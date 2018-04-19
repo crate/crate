@@ -25,7 +25,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.sql.parser.ParsingException;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -33,7 +32,6 @@ import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
@@ -114,7 +112,7 @@ public class SQLExceptions {
      * If concrete {@link ElasticsearchException} is found, first transform it
      * to a {@link CrateException}
      */
-    public static SQLActionException createSQLActionException(Throwable e, ExceptionAuthorizedValidator validator) {
+    public static SQLActionException createSQLActionException(Throwable e) {
         // ideally this method would be a static factory method in SQLActionException,
         // but that would pull too many dependencies for the client
 
@@ -122,12 +120,6 @@ public class SQLExceptions {
             return (SQLActionException) e;
         }
         e = esToCrateException(e);
-        try {
-            validator.ensureExceptionAuthorized(e);
-        } catch (MissingPrivilegeException mpe) {
-            e = mpe;
-        }
-
 
         int errorCode = 5000;
         RestStatus restStatus = RestStatus.INTERNAL_SERVER_ERROR;
@@ -185,7 +177,6 @@ public class SQLExceptions {
             return new UnsupportedFeatureException(e.getMessage(), (Exception) e);
         } else if (isDocumentAlreadyExistsException(e)) {
             return new DuplicateKeyException(
-                ((EngineException) e).getIndex().getName(),
                 "A document with the same primary key exists already", e);
         } else if (e instanceof ResourceAlreadyExistsException) {
             return new RelationAlreadyExists(((ResourceAlreadyExistsException) e).getIndex().getName(), e);

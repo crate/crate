@@ -23,24 +23,21 @@
 package io.crate.action.sql;
 
 import io.crate.analyze.AnalyzedStatement;
-import io.crate.exceptions.MissingPrivilegeException;
-import io.crate.metadata.Schemas;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.auth.user.StatementAuthorizedValidator;
 import io.crate.auth.user.User;
+import io.crate.metadata.Schemas;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.Set;
 
-public class SessionContext implements StatementAuthorizedValidator, ExceptionAuthorizedValidator {
+public class SessionContext implements StatementAuthorizedValidator {
 
     private final int defaultLimit;
     private final Set<Option> options;
     @Nullable
     private final User user;
     private final StatementAuthorizedValidator statementAuthorizedValidator;
-    private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
 
     private String defaultSchema;
     private boolean semiJoinsRewriteEnabled;
@@ -48,23 +45,19 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
 
     public SessionContext(@Nullable String defaultSchema,
                           @Nullable User user,
-                          StatementAuthorizedValidator statementAuthorizedValidator,
-                          ExceptionAuthorizedValidator exceptionAuthorizedValidator) {
-        this(0, Option.NONE, defaultSchema, user,
-            statementAuthorizedValidator, exceptionAuthorizedValidator);
+                          StatementAuthorizedValidator statementAuthorizedValidator) {
+        this(0, Option.NONE, defaultSchema, user, statementAuthorizedValidator);
     }
 
     public SessionContext(int defaultLimit,
                           Set<Option> options,
                           @Nullable String defaultSchema,
                           @Nullable User user,
-                          StatementAuthorizedValidator statementAuthorizedValidator,
-                          ExceptionAuthorizedValidator exceptionAuthorizedValidator) {
+                          StatementAuthorizedValidator statementAuthorizedValidator) {
         this.defaultLimit = defaultLimit;
         this.options = options;
         this.user = user;
         this.statementAuthorizedValidator = statementAuthorizedValidator;
-        this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
         this.defaultSchema = defaultSchema;
         if (defaultSchema == null) {
             resetSchema();
@@ -116,11 +109,6 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     }
 
     @Override
-    public void ensureExceptionAuthorized(Throwable t) throws MissingPrivilegeException {
-        exceptionAuthorizedValidator.ensureExceptionAuthorized(t);
-    }
-
-    @Override
     public void ensureStatementAuthorized(AnalyzedStatement statement) {
         statementAuthorizedValidator.ensureStatementAuthorized(statement);
     }
@@ -137,6 +125,6 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
      * Note: User can only set at the beginning of session.
      */
     public static SessionContext create(User user) {
-        return new SessionContext(null, user, s -> { }, t -> { });
+        return new SessionContext(null, user, s -> { });
     }
 }

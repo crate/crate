@@ -23,10 +23,9 @@
 package io.crate.rest.action;
 
 import io.crate.action.sql.BaseResultReceiver;
-import io.crate.expression.symbol.Field;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
+import io.crate.expression.symbol.Field;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -45,7 +44,6 @@ class RestResultSetReceiver extends BaseResultReceiver {
     private static final Logger LOGGER = Loggers.getLogger(RestResultSetReceiver.class);
 
     private final RestChannel channel;
-    private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
     private final List<Field> outputFields;
     private final ResultToXContentBuilder builder;
     private long startTime;
@@ -53,13 +51,11 @@ class RestResultSetReceiver extends BaseResultReceiver {
     private long rowCount;
 
     RestResultSetReceiver(RestChannel channel,
-                          ExceptionAuthorizedValidator exceptionAuthorizedValidator,
                           List<Field> outputFields,
                           long startTime,
                           RowAccounting rowAccounting,
                           boolean includeTypesOnResponse) {
         this.channel = channel;
-        this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
         this.outputFields = outputFields;
         this.startTime = startTime;
         this.rowAccounting = rowAccounting;
@@ -114,8 +110,7 @@ class RestResultSetReceiver extends BaseResultReceiver {
     @Override
     public void fail(@Nonnull Throwable t) {
         try {
-            channel.sendResponse(new CrateThrowableRestResponse(channel,
-                createSQLActionException(t, exceptionAuthorizedValidator)));
+            channel.sendResponse(new CrateThrowableRestResponse(channel, createSQLActionException(t)));
         } catch (Throwable e) {
             LOGGER.error("Failed to send error response for failed request.", e, t);
         } finally {

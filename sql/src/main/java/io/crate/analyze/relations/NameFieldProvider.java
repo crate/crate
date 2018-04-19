@@ -24,7 +24,6 @@ package io.crate.analyze.relations;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
@@ -57,8 +56,7 @@ public class NameFieldProvider implements FieldProvider<Field> {
 
         Field field = relation.getField(columnIdent, operation);
         if (field == null) {
-            QualifiedName qname = relation.getQualifiedName();
-            throw new ColumnUnknownException(columnIdent.sqlFqn(), RelationName.fromIndexName(qname.toString()));
+            throw new ColumnUnknownException(columnIdent.sqlFqn());
         }
         return field;
     }

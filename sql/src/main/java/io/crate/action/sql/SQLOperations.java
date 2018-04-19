@@ -91,18 +91,17 @@ public class SQLOperations {
     public Session newSystemSession() {
         User user = userManager.findUser("crate");
         return createSession(new SessionContext(
-            SysSchemaInfo.NAME, user, userManager.getStatementValidator(user), userManager.getExceptionValidator(user))
+            SysSchemaInfo.NAME, user, userManager.getStatementValidator(user))
         );
     }
 
     public Session createSession(@Nullable String defaultSchema, @Nullable User user) {
-        return createSession(new SessionContext(defaultSchema, user,
-            userManager.getStatementValidator(user), userManager.getExceptionValidator(user)));
+        return createSession(new SessionContext(defaultSchema, user, userManager.getStatementValidator(user)));
     }
 
     public Session createSession(@Nullable String defaultSchema, @Nullable User user, Set<Option> options, int defaultLimit) {
-        return createSession(new SessionContext(defaultLimit, options, defaultSchema, user,
-            userManager.getStatementValidator(user), userManager.getExceptionValidator(user)));
+        return createSession(
+            new SessionContext(defaultLimit, options, defaultSchema, user, userManager.getStatementValidator(user)));
     }
 
     /**

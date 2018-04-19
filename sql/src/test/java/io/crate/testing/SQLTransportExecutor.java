@@ -29,7 +29,6 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Field;
@@ -223,15 +222,15 @@ public class SQLTransportExecutor {
             session.bind(UNNAMED, UNNAMED, argsList, null);
             List<Field> outputFields = session.describe('P', UNNAMED).getFields();
             if (outputFields == null) {
-                ResultReceiver resultReceiver = new RowCountReceiver(listener, session.sessionContext());
+                ResultReceiver resultReceiver = new RowCountReceiver(listener);
                 session.execute(UNNAMED, 0, resultReceiver);
             } else {
-                ResultReceiver resultReceiver = new ResultSetReceiver(listener, session.sessionContext(), outputFields);
+                ResultReceiver resultReceiver = new ResultSetReceiver(listener, outputFields);
                 session.execute(UNNAMED, 0, resultReceiver);
             }
             session.sync();
         } catch (Throwable t) {
-            listener.onFailure(SQLExceptions.createSQLActionException(t, session.sessionContext()));
+            listener.onFailure(SQLExceptions.createSQLActionException(t));
         }
     }
 
@@ -262,11 +261,11 @@ public class SQLTransportExecutor {
                 if (t == null) {
                     listener.onResponse(new SQLBulkResponse(results));
                 } else {
-                    listener.onFailure(SQLExceptions.createSQLActionException(t, session.sessionContext()));
+                    listener.onFailure(SQLExceptions.createSQLActionException(t));
                 }
             });
         } catch (Throwable t) {
-            listener.onFailure(SQLExceptions.createSQLActionException(t, session.sessionContext()));
+            listener.onFailure(SQLExceptions.createSQLActionException(t));
         }
     }
 
@@ -576,14 +575,11 @@ public class SQLTransportExecutor {
 
         private final List<Object[]> rows = new ArrayList<>();
         private final ActionListener<SQLResponse> listener;
-        private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
         private final List<Field> outputFields;
 
         ResultSetReceiver(ActionListener<SQLResponse> listener,
-                          ExceptionAuthorizedValidator exceptionAuthorizedValidator,
                           List<Field> outputFields) {
             this.listener = listener;
-            this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
             this.outputFields = outputFields;
         }
 
@@ -605,7 +601,7 @@ public class SQLTransportExecutor {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(SQLExceptions.createSQLActionException(t, exceptionAuthorizedValidator));
+            listener.onFailure(SQLExceptions.createSQLActionException(t));
             super.fail(t);
         }
 
@@ -637,14 +633,11 @@ public class SQLTransportExecutor {
     private static class RowCountReceiver extends BaseResultReceiver {
 
         private final ActionListener<SQLResponse> listener;
-        private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
 
         private long rowCount;
 
-        RowCountReceiver(ActionListener<SQLResponse> listener,
-                         ExceptionAuthorizedValidator exceptionAuthorizedValidator) {
+        RowCountReceiver(ActionListener<SQLResponse> listener) {
             this.listener = listener;
-            this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
         }
 
         @Override
@@ -667,7 +660,7 @@ public class SQLTransportExecutor {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(SQLExceptions.createSQLActionException(t, exceptionAuthorizedValidator));
+            listener.onFailure(SQLExceptions.createSQLActionException(t));
             super.fail(t);
         }
     }

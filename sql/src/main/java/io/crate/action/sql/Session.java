@@ -268,7 +268,7 @@ public class Session implements AutoCloseable {
                 statement = EMPTY_STMT;
             } else {
                 jobsLogs.logPreExecutionFailure(UUID.randomUUID(), query, SQLExceptions.messageOf(t), sessionContext.user());
-                throw SQLExceptions.createSQLActionException(t, sessionContext);
+                throw SQLExceptions.createSQLActionException(t);
             }
         }
         preparedStatements.put(statementName, new PreparedStmt(statement, query, paramTypes));
@@ -296,7 +296,7 @@ public class Session implements AutoCloseable {
             }
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), SQLExceptions.messageOf(t), sessionContext.user());
-            throw SQLExceptions.createSQLActionException(t, sessionContext);
+            throw SQLExceptions.createSQLActionException(t);
         }
     }
 
@@ -341,7 +341,7 @@ public class Session implements AutoCloseable {
                         analyzedStatement = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
                         preparedStmt.analyzedStatement(analyzedStatement);
                     } catch (Throwable t) {
-                        throw SQLExceptions.createSQLActionException(t, sessionContext);
+                        throw SQLExceptions.createSQLActionException(t);
                     }
                 }
                 if (analyzedStatement == null) {

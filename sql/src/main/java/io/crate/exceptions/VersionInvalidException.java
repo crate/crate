@@ -21,7 +21,7 @@
 
 package io.crate.exceptions;
 
-public class VersionInvalidException extends ValidationException implements UnscopedException {
+public class VersionInvalidException extends ValidationException {
 
     public static final String ERROR_MSG = "\"_version\" column can only be used in the WHERE clause " +
                                            "with equals comparisons and if there are also equals comparisons on primary key columns";

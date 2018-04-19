@@ -21,7 +21,7 @@
 
 package io.crate.exceptions;
 
-public class UnsupportedFeatureException extends ValidationException implements ClusterScopeException {
+public class UnsupportedFeatureException extends ValidationException {
 
     public UnsupportedFeatureException(String msg) {
         super(msg);

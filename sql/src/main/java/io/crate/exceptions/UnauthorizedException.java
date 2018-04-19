@@ -22,7 +22,7 @@
 
 package io.crate.exceptions;
 
-public class UnauthorizedException extends RuntimeException implements UnscopedException {
+public class UnauthorizedException extends RuntimeException implements CrateException {
 
     public UnauthorizedException(String message)  {
         super(message);

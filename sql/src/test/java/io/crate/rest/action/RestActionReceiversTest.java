@@ -23,13 +23,13 @@
 package io.crate.rest.action;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.Symbols;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyRelation;
@@ -82,7 +82,7 @@ public class RestActionReceiversTest extends CrateUnitTest {
 
     @Test
     public void testRestRowCountReceiver() throws Exception {
-        RestRowCountReceiver receiver = new RestRowCountReceiver(newChannel(), t -> {}, 0L, true);
+        RestRowCountReceiver receiver = new RestRowCountReceiver(newChannel(), 0L, true);
         receiver.setNextRow(row);
         XContentBuilder actualBuilder = receiver.finishBuilder();
 
@@ -101,7 +101,6 @@ public class RestActionReceiversTest extends CrateUnitTest {
     public void testRestResultSetReceiver() throws Exception {
         RestResultSetReceiver receiver = new RestResultSetReceiver(
             newChannel(),
-            t -> {},
             fields,
             0L,
             new RowAccounting(Symbols.typeView(fields), new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"))),

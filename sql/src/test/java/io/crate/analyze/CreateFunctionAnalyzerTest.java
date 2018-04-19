@@ -83,7 +83,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
         CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement("CREATE FUNCTION bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
-            new TransactionContext(new SessionContext(0, Option.NONE, "my_schema", null, s -> {}, t -> {})),
+            new TransactionContext(new SessionContext(0, Option.NONE, "my_schema", null, s -> {})),
             new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
 
         assertThat(analysis.schema(), is("my_schema"));
@@ -95,7 +95,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
         CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement("CREATE FUNCTION my_other_schema.bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
-            new TransactionContext(new SessionContext(0, Option.NONE, "my_schema", null, s -> {}, t -> {})),
+            new TransactionContext(new SessionContext(0, Option.NONE, "my_schema", null, s -> {})),
             new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
 
         assertThat(analysis.schema(), is("my_other_schema"));

@@ -21,26 +21,14 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.RelationName;
+public class DuplicateKeyException extends ConflictException {
 
-import java.util.Collections;
-
-public class DuplicateKeyException extends ConflictException implements TableScopeException {
-
-    private final RelationName relationName;
-
-    DuplicateKeyException(String indexName, String msg, Throwable e) {
+    DuplicateKeyException(String msg, Throwable e) {
         super(msg, e);
-        relationName = RelationName.fromIndexName(indexName);
     }
 
     @Override
     public int errorCode() {
         return 1;
-    }
-
-    @Override
-    public Iterable<RelationName> getTableIdents() {
-        return Collections.singletonList(relationName);
     }
 }

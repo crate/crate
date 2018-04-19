@@ -27,12 +27,12 @@ import io.crate.Version;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
-import io.crate.expression.symbol.Field;
-import io.crate.collections.Lists2;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
 import io.crate.auth.user.User;
+import io.crate.collections.Lists2;
+import io.crate.expression.symbol.Field;
 import io.crate.protocols.http.CrateNettyHttpServerTransport;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -601,11 +601,10 @@ class PostgresWireProtocol {
         if (outputTypes == null) {
             // this is a DML query
             maxRows = 0;
-            resultReceiver = new RowCountReceiver(query, channel, session.sessionContext());
+            resultReceiver = new RowCountReceiver(query, channel);
         } else {
             // query with resultSet
-            resultReceiver = new ResultSetReceiver(query, channel, session.sessionContext(), outputTypes,
-                session.getResultFormatCodes(portalName));
+            resultReceiver = new ResultSetReceiver(query, channel, outputTypes, session.getResultFormatCodes(portalName));
         }
         session.execute(portalName, maxRows, resultReceiver);
     }
@@ -652,14 +651,13 @@ class PostgresWireProtocol {
             Session.DescribeResult describeResult = session.describe('P', "");
             List<Field> fields = describeResult.getFields();
             if (fields == null) {
-                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel, session.sessionContext());
+                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel);
                 session.execute("", 0, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(channel, fields, null);
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
                     query,
                     channel,
-                    session.sessionContext(),
                     Lists2.copyAndReplace(fields, Field::valueType),
                     null
                 );

@@ -27,7 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
 
-public class RelationUnknown extends ResourceUnknownException implements TableScopeException {
+public class RelationUnknown extends ResourceUnknownException {
 
     private RelationName relationName;
 
@@ -46,7 +46,6 @@ public class RelationUnknown extends ResourceUnknownException implements TableSc
         return 1;
     }
 
-    @Override
     public Collection<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
     }

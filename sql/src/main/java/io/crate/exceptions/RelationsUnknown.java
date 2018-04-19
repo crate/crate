@@ -27,18 +27,10 @@ import io.crate.metadata.RelationName;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-public class RelationsUnknown extends ResourceUnknownException implements TableScopeException {
-
-    private final Iterable<RelationName> relations;
+public class RelationsUnknown extends ResourceUnknownException {
 
     public RelationsUnknown(Collection<RelationName> relations) {
         super(errorMsg(relations));
-        this.relations = relations;
-    }
-
-    @Override
-    public Iterable<RelationName> getTableIdents() {
-        return relations;
     }
 
     private static String errorMsg(Collection<RelationName> relations) {

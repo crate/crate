@@ -22,7 +22,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.user.Privilege;
-import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserUnknownException;
@@ -57,16 +56,9 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     @VisibleForTesting
     static final StatementAuthorizedValidator BYPASS_AUTHORIZATION_CHECKS = s -> {
     };
-    @VisibleForTesting
-    static final ExceptionAuthorizedValidator NOOP_EXCEPTION_VALIDATOR = t -> {
-    };
 
     static final StatementAuthorizedValidator ALWAYS_FAIL_STATEMENT_VALIDATOR = s -> {
         throw new UnauthorizedException("User `null` is not authorized to execute statement");
-    };
-
-    static final ExceptionAuthorizedValidator ALWAYS_FAIL_EXCEPTION_VALIDATOR = s -> {
-        throw new MissingPrivilegeException(s.getMessage());
     };
 
     private static final Consumer<User> ENSURE_DROP_USER_NOT_SUPERUSER = user -> {
@@ -199,17 +191,6 @@ public class UserManagerService implements UserManager, ClusterStateListener {
             return BYPASS_AUTHORIZATION_CHECKS;
         }
         return new StatementPrivilegeValidator(this, user);
-    }
-
-    @Override
-    public ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user) {
-        if (user == null) {
-            return ALWAYS_FAIL_EXCEPTION_VALIDATOR;
-        }
-        if (user.isSuperUser()) {
-            return NOOP_EXCEPTION_VALIDATOR;
-        }
-        return new ExceptionPrivilegeValidator(user);
     }
 
     @Override

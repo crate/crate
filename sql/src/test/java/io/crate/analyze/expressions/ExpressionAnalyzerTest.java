@@ -132,7 +132,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testQuotedSubscriptExpression() throws Exception {
         SessionContext sessionContext = new SessionContext(
-            0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {});
+            0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {});
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             new TransactionContext(sessionContext),
@@ -175,7 +175,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         // Test when use subscript function is used explicitly then it's handled (and validated)
         // the same way it's handled when the subscript operator `[]` is used
         SessionContext sessionContext = new SessionContext(
-            0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {});
+            0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {});
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             new TransactionContext(sessionContext),

@@ -24,8 +24,8 @@ package io.crate.analyze;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import io.crate.expression.symbol.Field;
 import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.expression.symbol.Field;
 import io.crate.metadata.Path;
 
 import java.util.ArrayList;
@@ -49,7 +49,7 @@ public class Fields {
     public Field get(Path key) {
         Collection<Field> fieldList = fieldsMap.get(key.outputName());
         if (fieldList.size() > 1) {
-            throw new AmbiguousColumnAliasException(key.outputName(), fieldList);
+            throw new AmbiguousColumnAliasException(key.outputName());
         }
         if (fieldList.isEmpty()) {
             return null;

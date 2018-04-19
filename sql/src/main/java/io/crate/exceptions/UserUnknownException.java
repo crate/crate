@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-public class UserUnknownException extends ResourceUnknownException implements UnscopedException {
+public class UserUnknownException extends ResourceUnknownException {
 
     public UserUnknownException(String userName) {
         super(getMessage(Collections.singletonList(userName)));

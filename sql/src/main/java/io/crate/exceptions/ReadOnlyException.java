@@ -22,7 +22,7 @@
 
 package io.crate.exceptions;
 
-public class ReadOnlyException extends RuntimeException implements ClusterScopeException {
+public class ReadOnlyException extends RuntimeException implements CrateException {
 
     private static final String MESSAGE = "Only read operations are allowed on this node";
 

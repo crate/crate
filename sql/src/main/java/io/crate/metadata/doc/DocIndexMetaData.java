@@ -46,8 +46,8 @@ import io.crate.metadata.IndexMappings;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.Operation;
@@ -544,7 +544,7 @@ public class DocIndexMetaData {
             return;
         }
         Collection<Reference> references = this.references.values();
-        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(references, ident);
+        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(references);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions, new TransactionContext(), ParamTypeHints.EMPTY, tableReferenceResolver, null);
         ExpressionAnalysisContext context = new ExpressionAnalysisContext();
