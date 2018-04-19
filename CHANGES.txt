@@ -171,6 +171,9 @@ Changes
 Fixes
 =====
 
+- Fixed incorrect HTTP responses on the BLOB API of subsequent requests after
+  an error response occurred, e.g. 404 Not Found.
+
 - Fixed an issue that caused ``ANY`` to not work correctly on nested arrays.
 
 - Fixed an issue that would cause a NullPointerException to be thrown when
