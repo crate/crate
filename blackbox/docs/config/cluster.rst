@@ -144,37 +144,6 @@ Collecting Stats
 
     Using a very small value can cause a high load on the cluster.
 
-.. _stats.breaker.log:
-
-Settings that control the behaviour of the stats circuit breaker. There are two
-breakers in place, one for the jobs log and one for the operations log. For
-each of them the breaker limit can be set.
-
-.. _stats.breaker.log.jobs.limit:
-
-**stats.breaker.log.jobs.limit**
-  | *Default:*    ``5%``
-  | *Runtime:*   ``yes``
-
-  The maximum memory that can be used from :ref:`crate-heap-size` for the
-  :ref:`sys.jobs_log <sys-logs>` table on each node.
-
-  When this memory limit is reached the job log circuit breaker logs an error
-  message and clears the :ref:`sys.jobs_log <sys-logs>` table completely.
-
-.. _stats.breaker.log.operations.limit:
-
-**stats.breaker.log.operations.limit**
-  | *Default:*    ``5%``
-  | *Runtime:*   ``yes``
-
-  The maximum memory that can be used from :ref:`crate-heap-size` for the
-  :ref:`sys.operations_log <sys-logs>` table on each node.
-
-  When this memory limit is reached the operations log circuit breaker logs an
-  error message and clears the :ref:`sys.operations_log <sys-logs>` table
-  completely.
-
 .. _conf_usage_data_collector:
 
 Usage Data Collector
@@ -930,6 +899,40 @@ exception is raised.
 
   A constant that all request estimations are multiplied with to determine a
   final estimation.
+
+.. _stats.breaker.log:
+
+Stats Circuit Breakers
+----------------------
+
+Settings that control the behaviour of the stats circuit breaker. There are two
+breakers in place, one for the jobs log and one for the operations log. For
+each of them, the breaker limit can be set.
+
+.. _stats.breaker.log.jobs.limit:
+
+**stats.breaker.log.jobs.limit**
+  | *Default:*    ``5%``
+  | *Runtime:*   ``yes``
+
+  The maximum memory that can be used from :ref:`crate-heap-size` for the
+  :ref:`sys.jobs_log <sys-logs>` table on each node.
+
+  When this memory limit is reached, the job log circuit breaker logs an error
+  message and clears the :ref:`sys.jobs_log <sys-logs>` table completely.
+
+.. _stats.breaker.log.operations.limit:
+
+**stats.breaker.log.operations.limit**
+  | *Default:*    ``5%``
+  | *Runtime:*   ``yes``
+
+  The maximum memory that can be used from :ref:`crate-heap-size` for the
+  :ref:`sys.operations_log <sys-logs>` table on each node.
+
+  When this memory limit is reached, the operations log circuit breaker logs an
+  error message and clears the :ref:`sys.operations_log <sys-logs>` table
+  completely.
 
 Thread Pools
 ------------

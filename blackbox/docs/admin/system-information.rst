@@ -961,6 +961,28 @@ CrateDB also logs both of these tables.
 By default, these tables are not populated, because tracking jobs and
 operations adds a slight performance overhead.
 
+The tracking jobs are stored in memory. The amount of memory that can be
+used to store the jobs is limited by the
+:ref:`Jobs Log Circuit Breaker <stats.breaker.log.jobs.limit>` and
+:ref:`Operations Log Circuit Breaker <stats.breaker.log.operations.limit>`.
+If the memory limit is reached, an error message will be logged and the log
+table will be cleared completely.
+
+You can avoid the tables being cleared completely by configuring a records
+retention policy. We currently support two retention policies.
+
+One option is to configure how many records are to be stored in the logs
+tables. This is configurable using :ref:`Jobs Log Size <stats.jobs_log_size>`
+and :ref:`Operations Log Size <stats.operations_log_size>`. Once the configured
+table size is reached the older log records are deleted as newer records are
+added.
+
+Another option is to configure an expiration time for the records. In this
+case, the records in the logs tables are periodically cleared if they are older
+than the expiry time. This behaviour is configurable using
+:ref:`Jobs Log Expiration <stats.jobs_log_expiration>` and
+:ref:`Operations Log Expiration <stats.operations_log_expiration>`.
+
 If you want to use the jobs and operations tables, you must enable the
 collection of CrateDB statistics with :ref:`ref-set`, like so::
 
