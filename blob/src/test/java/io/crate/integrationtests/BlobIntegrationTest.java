@@ -74,6 +74,18 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     }
 
     @Test
+    public void testErrorResponseResetsBlobHandlerStateCorrectly() throws IOException {
+        String digest = uploadTinyBlob();
+        CloseableHttpResponse response;
+
+        response = get(blobUri("0000000000000000000000000000000000000000"));
+        assertThat(response.getStatusLine().getStatusCode(), is(404));
+
+        response = get(blobUri(digest));
+        assertThat(response.getStatusLine().getStatusCode(), is(200));
+    }
+
+    @Test
     public void testUploadValidFile() throws IOException {
         String digest = "c520e6109835c876fd98636efec43dd61634b7d3";
         CloseableHttpResponse response = put(blobUri(digest), StringUtils.repeat("a", 1500));

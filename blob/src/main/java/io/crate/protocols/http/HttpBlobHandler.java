@@ -145,7 +145,6 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             Matcher matcher = blobsMatcher.reset(uri);
             if (!matcher.matches()) {
                 simpleResponse(HttpResponseStatus.NOT_FOUND);
-                reset();
                 return;
             }
             digestBlob = null;
@@ -159,6 +158,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         } else if (msg instanceof HttpContent) {
             if (currentMessage == null) {
                 // the chunk is probably from a regular non-blob request.
+                reset();
                 ctx.fireChannelRead(msg);
                 return;
             }
@@ -166,13 +166,13 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             handleBlobRequest(currentMessage, (HttpContent) msg);
         } else {
             // Neither HttpMessage or HttpChunk
+            reset();
             ctx.fireChannelRead(msg);
         }
     }
 
     private void handleBlobRequest(HttpRequest request, @Nullable HttpContent content) throws IOException {
         if (possibleRedirect(request, index, digest)) {
-            reset();
             return;
         }
 
@@ -182,15 +182,12 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             reset();
         } else if (method.equals(HttpMethod.HEAD)) {
             head(index, digest);
-            reset();
         } else if (method.equals(HttpMethod.PUT)) {
             put(content, index, digest);
         } else if (method.equals(HttpMethod.DELETE)) {
             delete(index, digest);
-            reset();
         } else {
             simpleResponse(HttpResponseStatus.METHOD_NOT_ALLOWED);
-            reset();
         }
     }
 
@@ -243,6 +240,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         if (currentMessage != null && !HttpUtil.isKeepAlive(currentMessage)) {
             cf.addListener(ChannelFutureListener.CLOSE);
         }
+        reset();
     }
 
     @Override
