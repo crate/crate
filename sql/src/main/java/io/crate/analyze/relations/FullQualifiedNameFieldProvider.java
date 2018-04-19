@@ -137,13 +137,13 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
         QualifiedName qn = new QualifiedName(Arrays.asList(schema, columnTableName));
         if (parents.containsRelation(qn)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "Cannot use relation \"%s.%s\" in subquery. Correlated subqueries are not supported",
+                "Cannot use relation \"%s.%s\" in this context. It is only accessible in the parent context.",
                 schema,
                 columnTableName));
         }
         if (columnSchema == null && parents.containsRelation(new QualifiedName(columnTableName))) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "Cannot use relation \"%s\" in subquery. Correlated subqueries are not supported", columnTableName));
+                "Cannot use relation \"%s\" in this context. It is only accessible in the parent context.", columnTableName));
         }
     }
 }

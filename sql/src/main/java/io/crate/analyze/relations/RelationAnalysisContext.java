@@ -64,7 +64,7 @@ public class RelationAnalysisContext {
         return sources;
     }
 
-    private void addJoinPair(JoinPair joinType) {
+    void addJoinPair(JoinPair joinType) {
         if (joinPairs == null) {
             joinPairs = new ArrayList<>();
         }
@@ -97,7 +97,7 @@ public class RelationAnalysisContext {
         return joinPairs;
     }
 
-    private void addSourceRelation(QualifiedName qualifiedName, AnalyzedRelation relation) {
+    void addSourceRelation(QualifiedName qualifiedName, AnalyzedRelation relation) {
         if (sources.put(qualifiedName, relation) != null) {
             String tableName = qualifiedName.toString();
             if (tableName.startsWith(".")) {

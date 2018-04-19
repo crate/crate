@@ -24,6 +24,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue where the order of the relations in FROM would expose fields
+  between the relations. An error was thrown during execution of the statements.
+
 - Fixed incorrect HTTP responses on the BLOB API of subsequent requests after
   an error response occurred, e.g. 404 Not Found.
 

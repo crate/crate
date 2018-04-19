@@ -29,6 +29,7 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.RelationUnknownException;
+import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.engine.aggregation.impl.AverageAggregation;
 import io.crate.expression.operator.EqOperator;
@@ -1873,21 +1874,21 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testSubSelectWithAccessToParentRelationThrowsUnsupportedFeature() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot use relation \"doc.t1\" in subquery. Correlated subqueries are not supported");
+        expectedException.expectMessage("Cannot use relation \"doc.t1\" in this context. It is only accessible in the parent context");
         analyze("select (select 1 from t1 as ti where ti.x = t1.x) from t1");
     }
 
     @Test
     public void testSubSelectWithAccessToParentRelationAliasThrowsUnsupportedFeature() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot use relation \"tparent\" in subquery. Correlated subqueries are not supported");
+        expectedException.expectMessage("Cannot use relation \"tparent\" in this context. It is only accessible in the parent context");
         analyze("select (select 1 from t1 where t1.x = tparent.x) from t1 as tparent");
     }
 
     @Test
     public void testSubSelectWithAccessToGrandParentRelation() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot use relation \"grandparent\" in subquery. Correlated subqueries are not supported");
+        expectedException.expectMessage("Cannot use relation \"grandparent\" in this context. It is only accessible in the parent context");
         analyze("select (select (select 1 from t1 where grandparent.x = t1.x) from t1 as parent) from t1 as grandparent");
     }
 
@@ -1908,8 +1909,17 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addDocTable(fooTableInfo)
             .build();
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot use relation \"foo.t1\" in subquery. Correlated subqueries are not supported");
+        expectedException.expectMessage("Cannot use relation \"foo.t1\" in this context. It is only accessible in the parent context");
         sqlExecutor2.analyze("select * from t1 where id = (select 1 from t1 as x where x.id = t1.id)");
+    }
+
+    @Test
+    public void testContextForExplicitJoinsPrecedesImplicitJoins() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot use relation \"doc.t1\" in this context. It is only accessible in the parent context");
+        // Inner join has to be processed before implicit cross join.
+        // Inner join does not know about t1's fields (!)
+        analyze("select * from t1, t2 inner join t1 b on b.x = t1.x");
     }
 
     @Test
