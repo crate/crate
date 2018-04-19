@@ -41,6 +41,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -210,5 +211,31 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
             .add("inputTypes", inputTypes)
             .add("orderBy", positionalOrderBy);
         return helper.toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        MergePhase that = (MergePhase) o;
+        return numUpstreams == that.numUpstreams &&
+               numInputs == that.numInputs &&
+               Objects.equals(inputTypes, that.inputTypes) &&
+               Objects.equals(executionNodes, that.executionNodes) &&
+               Objects.equals(distributionInfo, that.distributionInfo) &&
+               Objects.equals(positionalOrderBy, that.positionalOrderBy);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), inputTypes, numUpstreams, numInputs, executionNodes,
+            distributionInfo, positionalOrderBy);
     }
 }

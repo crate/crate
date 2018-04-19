@@ -33,6 +33,7 @@ import io.crate.sql.tree.Expression;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class ESClusterUpdateSettingsPlan implements Plan {
 
@@ -70,5 +71,24 @@ public class ESClusterUpdateSettingsPlan implements Plan {
         ESClusterUpdateSettingsTask task = new ESClusterUpdateSettingsTask(
             this, executor.transportActionProvider().transportClusterUpdateSettingsAction());
         task.execute(consumer, params);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ESClusterUpdateSettingsPlan that = (ESClusterUpdateSettingsPlan) o;
+        return Objects.equals(persistentSettings, that.persistentSettings) &&
+               Objects.equals(transientSettings, that.transientSettings);
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(persistentSettings, transientSettings);
     }
 }

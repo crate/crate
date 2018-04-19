@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -156,5 +157,26 @@ public class FetchPhase implements ExecutionPhase {
 
     public TreeMap<String, Integer> bases() {
         return bases;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        FetchPhase that = (FetchPhase) o;
+        return executionPhaseId == that.executionPhaseId &&
+               Objects.equals(bases, that.bases) &&
+               Objects.equals(tableIndices, that.tableIndices) &&
+               Objects.equals(fetchRefs, that.fetchRefs) &&
+               Objects.equals(executionNodes, that.executionNodes);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(bases, tableIndices, fetchRefs, executionPhaseId, executionNodes);
     }
 }

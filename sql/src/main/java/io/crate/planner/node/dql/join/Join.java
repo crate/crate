@@ -33,6 +33,7 @@ import io.crate.types.DataType;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Plan that will execute a join.
@@ -165,5 +166,29 @@ public class Join implements ExecutionPlan, ResultDescription {
     @Override
     public List<DataType> streamOutputs() {
         return joinPhase.outputTypes();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Join join = (Join) o;
+        return limit == join.limit &&
+               offset == join.offset &&
+               numOutputs == join.numOutputs &&
+               maxRowsPerNode == join.maxRowsPerNode &&
+               Objects.equals(left, join.left) &&
+               Objects.equals(right, join.right) &&
+               Objects.equals(joinPhase, join.joinPhase) &&
+               Objects.equals(orderBy, join.orderBy);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(left, right, joinPhase, limit, offset, numOutputs, maxRowsPerNode, orderBy);
     }
 }

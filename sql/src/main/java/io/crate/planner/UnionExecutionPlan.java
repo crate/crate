@@ -31,6 +31,7 @@ import io.crate.types.DataType;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Plan for Union which uses a MergePhase to combine the results of two plans (= two inputs).
@@ -163,4 +164,28 @@ public class UnionExecutionPlan implements ExecutionPlan, ResultDescription {
         return mergePhase.outputTypes();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        UnionExecutionPlan that = (UnionExecutionPlan) o;
+        return unfinishedLimit == that.unfinishedLimit &&
+               unfinishedOffset == that.unfinishedOffset &&
+               numOutputs == that.numOutputs &&
+               maxRowsPerNode == that.maxRowsPerNode &&
+               Objects.equals(left, that.left) &&
+               Objects.equals(right, that.right) &&
+               Objects.equals(mergePhase, that.mergePhase) &&
+               Objects.equals(orderBy, that.orderBy);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(left, right, mergePhase, unfinishedLimit, unfinishedOffset, numOutputs,
+            maxRowsPerNode, orderBy);
+    }
 }

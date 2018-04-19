@@ -34,8 +34,10 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.uid.Versions;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -203,5 +205,31 @@ public class LegacyUpsertById implements Plan {
             executor.transportActionProvider().transportBulkCreateIndicesAction()
         );
         return task.executeBulk();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        LegacyUpsertById that = (LegacyUpsertById) o;
+        return numBulkResponses == that.numBulkResponses &&
+               isPartitioned == that.isPartitioned &&
+               ignoreDuplicateKeys == that.ignoreDuplicateKeys &&
+               Objects.equals(items, that.items) &&
+               Objects.equals(bulkIndices, that.bulkIndices) &&
+               Arrays.equals(updateColumns, that.updateColumns) &&
+               Arrays.equals(insertColumns, that.insertColumns);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(numBulkResponses, isPartitioned, items, bulkIndices, ignoreDuplicateKeys);
+        result = 31 * result + Arrays.hashCode(updateColumns);
+        result = 31 * result + Arrays.hashCode(insertColumns);
+        return result;
     }
 }

@@ -38,6 +38,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public class Merge implements ExecutionPlan, ResultDescription {
 
@@ -252,5 +253,28 @@ public class Merge implements ExecutionPlan, ResultDescription {
     @Override
     public List<DataType> streamOutputs() {
         return mergePhase.outputTypes();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Merge merge = (Merge) o;
+        return unfinishedLimit == merge.unfinishedLimit &&
+               unfinishedOffset == merge.unfinishedOffset &&
+               numOutputs == merge.numOutputs &&
+               maxRowsPerNode == merge.maxRowsPerNode &&
+               Objects.equals(subExecutionPlan, merge.subExecutionPlan) &&
+               Objects.equals(mergePhase, merge.mergePhase) &&
+               Objects.equals(orderBy, merge.orderBy);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(subExecutionPlan, mergePhase, unfinishedLimit, unfinishedOffset, numOutputs, maxRowsPerNode, orderBy);
     }
 }

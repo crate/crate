@@ -156,4 +156,26 @@ public class PositionalOrderBy {
         }
         return new PositionalOrderBy(indices, orderBy.reverseFlags(), orderBy.nullsFirst());
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        PositionalOrderBy that = (PositionalOrderBy) o;
+        return Arrays.equals(indices, that.indices) &&
+               Arrays.equals(reverseFlags, that.reverseFlags) &&
+               Arrays.equals(nullsFirst, that.nullsFirst);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Arrays.hashCode(indices);
+        result = 31 * result + Arrays.hashCode(reverseFlags);
+        result = 31 * result + Arrays.hashCode(nullsFirst);
+        return result;
+    }
 }

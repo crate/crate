@@ -36,6 +36,7 @@ import io.crate.types.DataType;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 public class Collect implements ExecutionPlan, ResultDescription {
 
@@ -162,5 +163,27 @@ public class Collect implements ExecutionPlan, ResultDescription {
         }
         Projection lastProjection = projections.get(projections.size() - 1);
         return Symbols.typeView(lastProjection.outputs());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Collect collect = (Collect) o;
+        return unfinishedLimit == collect.unfinishedLimit &&
+               unfinishedOffset == collect.unfinishedOffset &&
+               numOutputs == collect.numOutputs &&
+               maxRowsPerNode == collect.maxRowsPerNode &&
+               Objects.equals(collectPhase, collect.collectPhase) &&
+               Objects.equals(orderBy, collect.orderBy);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(collectPhase, unfinishedLimit, unfinishedOffset, numOutputs, maxRowsPerNode, orderBy);
     }
 }

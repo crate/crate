@@ -35,6 +35,7 @@ import io.crate.types.DataType;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 public class CountPlan implements ExecutionPlan, ResultDescription {
 
@@ -125,5 +126,26 @@ public class CountPlan implements ExecutionPlan, ResultDescription {
     @Override
     public List<DataType> streamOutputs() {
         return mergePhase.outputTypes();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        CountPlan countPlan = (CountPlan) o;
+        return unfinishedLimit == countPlan.unfinishedLimit &&
+               unfinishedOffset == countPlan.unfinishedOffset &&
+               Objects.equals(countPhase, countPlan.countPhase) &&
+               Objects.equals(mergePhase, countPlan.mergePhase) &&
+               Objects.equals(unfinishedOrderBy, countPlan.unfinishedOrderBy);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(countPhase, mergePhase, unfinishedLimit, unfinishedOffset, unfinishedOrderBy);
     }
 }

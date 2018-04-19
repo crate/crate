@@ -60,11 +60,18 @@ public class SQLPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPrintAndAnalyzeRoundTrip() {
-        String actualOutputRound1 = printer.format(e.analyze(input));
-        assertThat(actualOutputRound1, is(expectedOutput));
-        // must be possible to analyze again without error
-        String actualOutputRound2 = printer.format(e.analyze(actualOutputRound1));
-        assertThat(actualOutputRound2, is(expectedOutput));
+        // check if printed analyzed plan matches expected SQL output
+        String firstRoundSql = printer.format(e.analyze(input));
+        assertThat(firstRoundSql, is(expectedOutput));
+
+        // printed plan shouldn't change if analyzed again
+        String secondRoundSql = printer.format(e.analyze(firstRoundSql));
+        assertThat(secondRoundSql, is(expectedOutput));
+
+        // check if all generated plans are identical
+        Object referencePlan = e.plan(input);
+        assertThat(e.plan(firstRoundSql), is(referencePlan));
+        assertThat(e.plan(secondRoundSql), is(referencePlan));
     }
 
 

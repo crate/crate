@@ -43,6 +43,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -290,5 +291,33 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
             result.orderBy(orderBy);
         }
         return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        RoutedCollectPhase that = (RoutedCollectPhase) o;
+        return Objects.equals(routing, that.routing) &&
+               Objects.equals(toCollect, that.toCollect) &&
+               maxRowGranularity == that.maxRowGranularity &&
+               Objects.equals(whereClause, that.whereClause) &&
+               Objects.equals(distributionInfo, that.distributionInfo) &&
+               Objects.equals(nodePageSizeHint, that.nodePageSizeHint) &&
+               Objects.equals(orderBy, that.orderBy) &&
+               Objects.equals(user, that.user);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), routing, toCollect, maxRowGranularity, whereClause, distributionInfo,
+            nodePageSizeHint, orderBy, user);
     }
 }

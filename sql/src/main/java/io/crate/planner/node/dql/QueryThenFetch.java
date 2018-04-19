@@ -31,6 +31,7 @@ import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.dsl.projection.Projection;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 public class QueryThenFetch implements ExecutionPlan {
 
@@ -76,5 +77,24 @@ public class QueryThenFetch implements ExecutionPlan {
     @Override
     public void setDistributionInfo(DistributionInfo distributionInfo) {
         subExecutionPlan.setDistributionInfo(distributionInfo);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        QueryThenFetch that = (QueryThenFetch) o;
+        boolean bla = Objects.equals(fetchPhase, that.fetchPhase) &&
+               Objects.equals(subExecutionPlan, that.subExecutionPlan);
+        return bla;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(fetchPhase, subExecutionPlan);
     }
 }
