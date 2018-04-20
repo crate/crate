@@ -43,13 +43,6 @@ name of an already existing table.
 Views are read-only. They cannot be used as a target relation in write
 operations.
 
-
-.. note::
-
-    Currently not all supported ``SELECT`` statements can be used in a view
-    definition. Using queries involving a JOIN, UNION or subqueries will result
-    in an error on ``CREATE VIEW``
-
 .. SEEALSO::
 
     :ref:`ref-drop-view`
