@@ -1,0 +1,69 @@
+#!/bin/bash
+
+set -e -o pipefail
+
+CDPATH=""
+
+SCRIPT="$0"
+
+# SCRIPT might be an arbitrarily deep series of symbolic links; loop until we
+# have the concrete path
+while [ -h "$SCRIPT" ] ; do
+  ls=`ls -ld "$SCRIPT"`
+  # Drop everything prior to ->
+  link=`expr "$ls" : '.*-> \(.*\)$'`
+  if expr "$link" : '/.*' > /dev/null; then
+    SCRIPT="$link"
+  else
+    SCRIPT=`dirname "$SCRIPT"`/"$link"
+  fi
+done
+
+# determine crate home; to do this, we strip from the path until we find
+# bin, and then strip bin (there is an assumption here that there is no nested
+# directory under bin also named bin)
+CRATE_HOME=`dirname "$SCRIPT"`
+
+# now make CRATE_HOME absolute
+CRATE_HOME=`cd "$CRATE_HOME"; pwd`
+
+while [ "`basename "$CRATE_HOME"`" != "bin" ]; do
+  CRATE_HOME=`dirname "$CRATE_HOME"`
+done
+CRATE_HOME=`dirname "$CRATE_HOME"`
+
+# now set the classpath
+CRATE_CLASSPATH="$CRATE_HOME/lib/*"
+
+# now set the path to java
+if [ -x "$JAVA_HOME/bin/java" ]; then
+  JAVA="$JAVA_HOME/bin/java"
+else
+  set +e
+  JAVA=`which java`
+  set -e
+fi
+
+if [ ! -x "$JAVA" ]; then
+  echo "could not find java; set JAVA_HOME or ensure java is in PATH"
+  exit 1
+fi
+
+# do not let JAVA_TOOL_OPTIONS slip in (as the JVM does by default)
+if [ ! -z "$JAVA_TOOL_OPTIONS" ]; then
+  echo "warning: ignoring JAVA_TOOL_OPTIONS=$JAVA_TOOL_OPTIONS"
+  unset JAVA_TOOL_OPTIONS
+fi
+
+export HOSTNAME=$HOSTNAME
+
+if [ -z "$PATH_CONF" ]; then PATH_CONF="$CRATE_HOME"/config; fi
+
+if [ -z "$PATH_CONF" ]; then
+  echo "PATH_CONF must be set to the configuration path"
+  exit 1
+fi
+
+# now make PATH_CONF absolute
+PATH_CONF=`cd "$PATH_CONF"; pwd`
+
