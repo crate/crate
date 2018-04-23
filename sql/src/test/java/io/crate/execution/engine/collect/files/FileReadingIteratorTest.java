@@ -37,6 +37,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -105,7 +106,8 @@ public class FileReadingIteratorTest extends CrateUnitTest {
                 LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
             false,
             1,
-            0
+            0,
+            Settings.EMPTY
         );
     }
 }

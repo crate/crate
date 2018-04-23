@@ -305,7 +305,8 @@ public class ProjectionToProjectorVisitor
             ctx.expressions(),
             overwrites,
             projection.outputNames(),
-            projection.outputFormat()
+            projection.outputFormat(),
+            settings
         );
     }
 

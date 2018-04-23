@@ -21,22 +21,20 @@
 
 package io.crate.external;
 
-import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSCredentialsProviderChain;
-import com.amazonaws.auth.AnonymousAWSCredentials;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
-import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import com.amazonaws.retry.PredefinedRetryPolicies;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
+import com.google.common.annotations.VisibleForTesting;
+import org.elasticsearch.common.settings.SecureSetting;
+import org.elasticsearch.common.settings.SecureString;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -46,23 +44,20 @@ import java.net.URI;
 @NotThreadSafe
 public class S3ClientHelper {
 
-    private static final AWSCredentialsProvider DEFAULT_CREDENTIALS_PROVIDER_CHAIN =
-        new AWSCredentialsProviderChain(
-            new EnvironmentVariableCredentialsProvider(),
-            new SystemPropertiesCredentialsProvider(),
-            new InstanceProfileCredentialsProvider()) {
+    // prefix for s3 client settings
+    private static final String PREFIX = "s3.client.";
 
-            private AWSCredentials ANONYMOUS_CREDENTIALS = new AnonymousAWSCredentials();
+    // Duplicating settings from S3ClientSettings to avoid adding compile dependency to 'es-repository-s3'.
+    static final Setting.AffixSetting<SecureString> ACCESS_KEY_SETTING = Setting.affixKeySetting(PREFIX, "access_key",
+        key -> SecureSetting.secureString(key, null));
+    static final Setting.AffixSetting<SecureString> SECRET_KEY_SETTING = Setting.affixKeySetting(PREFIX, "secret_key",
+        key -> SecureSetting.secureString(key, null));
 
-            public AWSCredentials getCredentials() {
-                try {
-                    return super.getCredentials();
-                } catch (AmazonClientException ace) {
-                    // allow for anonymous access
-                    return ANONYMOUS_CREDENTIALS;
-                }
-            }
-        };
+    static final String ACCESS_KEY_SETTING_NAME = PREFIX + "default.access_key";
+    static final String SECRET_KEY_SETTING_NAME = PREFIX + "default.secret_key";
+
+    private final Settings settings;
+    private final boolean useDefaultRegion;
 
     private static final ClientConfiguration CLIENT_CONFIGURATION = new ClientConfiguration().withProtocol(Protocol.HTTPS);
 
@@ -75,39 +70,62 @@ public class S3ClientHelper {
 
     private final IntObjectMap<AmazonS3> clientMap = new IntObjectHashMap<>(1);
 
-    protected AmazonS3 initClient(@Nullable String accessKey, @Nullable String secretKey) throws IOException {
-        if (accessKey == null || secretKey == null) {
-            return new AmazonS3Client(DEFAULT_CREDENTIALS_PROVIDER_CHAIN, CLIENT_CONFIGURATION);
+    private S3ClientHelper(Settings settings, boolean useDefaultRegion) {
+        this.settings = settings;
+        this.useDefaultRegion = useDefaultRegion;
+    }
+
+    public S3ClientHelper(Settings settings) {
+        this(settings, false);
+    }
+
+    @VisibleForTesting
+    static S3ClientHelper withDefaultRegion(Settings settings) {
+        return new S3ClientHelper(settings, true);
+    }
+
+    protected AmazonS3 initClient(String accessKey, String secretKey) throws IOException {
+        AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
+        if (useDefaultRegion) {
+            builder.setRegion("eu-west-1");
         }
-        return new AmazonS3Client(
-            new BasicAWSCredentials(accessKey, secretKey),
-            CLIENT_CONFIGURATION
-        );
+
+        if (!accessKey.isEmpty() && !secretKey.isEmpty()) {
+            builder.withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
+                    .withClientConfiguration(CLIENT_CONFIGURATION);
+        }
+        return builder.build();
     }
 
     public AmazonS3 client(URI uri) throws IOException {
-        String accessKey = null;
-        String secretKey = null;
         if (uri.getHost() == null) {
             throw new IllegalArgumentException(INVALID_URI_MSG);
         }
+        // UserInfo should not be part of the URI as the AWS credentials should reside in the keystore
         if (uri.getUserInfo() != null) {
-            String[] userInfoParts = uri.getUserInfo().split(":");
-            try {
-                accessKey = userInfoParts[0];
-                secretKey = userInfoParts[1];
-            } catch (ArrayIndexOutOfBoundsException e) {
-                // ignore
+            if (!uri.getUserInfo().isEmpty()) {
+                throw new IllegalArgumentException("S3 credentials cannot be part of the URI but instead " +
+                                                   "must be stored inside the Crate keystore");
             }
+        } else if (uri.toString().contains("@") && uri.toString().contains(":")) {
             // if the URI contains '@' and ':', a UserInfo is in fact given, but could not
             // be parsed properly because the URI is not valid (e.g. not properly encoded).
-        } else if (uri.toString().contains("@") && uri.toString().contains(":")) {
             throw new IllegalArgumentException(INVALID_URI_MSG);
         }
-        return client(accessKey, secretKey);
+
+        return client();
     }
 
-    private AmazonS3 client(@Nullable String accessKey, @Nullable String secretKey) throws IOException {
+    private AmazonS3 client() throws IOException {
+        String accessKey = ACCESS_KEY_SETTING.getConcreteSetting(ACCESS_KEY_SETTING_NAME).get(settings).toString();
+        String secretKey = SECRET_KEY_SETTING.getConcreteSetting(SECRET_KEY_SETTING_NAME).get(settings).toString();
+
+        if ((accessKey.isEmpty() && !secretKey.isEmpty()) || (!accessKey.isEmpty() && secretKey.isEmpty())) {
+            throw new IllegalArgumentException(
+                "Both [" + ACCESS_KEY_SETTING_NAME + "] and [" + SECRET_KEY_SETTING_NAME + "] " +
+                "S3 settings for credentials must be stored in the crate.keystore");
+        }
+
         int hash = hash(accessKey, secretKey);
         AmazonS3 client = clientMap.get(hash);
         if (client == null) {

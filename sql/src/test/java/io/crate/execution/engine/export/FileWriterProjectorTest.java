@@ -33,6 +33,7 @@ import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -81,7 +82,7 @@ public class FileWriterProjectorTest extends CrateUnitTest {
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, file.toUri().toString(),
             null, null, ImmutableSet.of(), new HashMap<>(),
-            null, WriterProjection.OutputFormat.JSON_OBJECT);
+            null, WriterProjection.OutputFormat.JSON_OBJECT, Settings.EMPTY);
 
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
 
@@ -101,7 +102,7 @@ public class FileWriterProjectorTest extends CrateUnitTest {
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, directory.toUri().toString(),
             null, null, ImmutableSet.of(), new HashMap<>(),
-            null, WriterProjection.OutputFormat.JSON_OBJECT);
+            null, WriterProjection.OutputFormat.JSON_OBJECT, Settings.EMPTY);
 
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
     }
@@ -115,7 +116,7 @@ public class FileWriterProjectorTest extends CrateUnitTest {
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, uri,
             null, null, ImmutableSet.of(), new HashMap<>(),
-            null, WriterProjection.OutputFormat.JSON_OBJECT);
+            null, WriterProjection.OutputFormat.JSON_OBJECT, Settings.EMPTY);
 
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
     }

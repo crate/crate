@@ -33,8 +33,9 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import io.crate.external.S3ClientHelper;
 import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.external.S3ClientHelper;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.ByteArrayInputStream;
@@ -55,16 +56,21 @@ public class OutputS3 extends Output {
     private final ExecutorService executorService;
     private final URI uri;
     private final boolean compression;
+    private final Settings settings;
 
-    public OutputS3(ExecutorService executorService, URI uri, WriterProjection.CompressionType compressionType) {
+    public OutputS3(ExecutorService executorService,
+                    URI uri,
+                    WriterProjection.CompressionType compressionType,
+                    Settings settings) {
         this.executorService = executorService;
         this.uri = uri;
         compression = compressionType != null;
+        this.settings = settings;
     }
 
     @Override
     public OutputStream acquireOutputStream() throws IOException {
-        OutputStream outputStream = new S3OutputStream(executorService, uri, new S3ClientHelper());
+        OutputStream outputStream = new S3OutputStream(executorService, uri, new S3ClientHelper(settings));
         if (compression) {
             outputStream = new GZIPOutputStream(outputStream);
         }

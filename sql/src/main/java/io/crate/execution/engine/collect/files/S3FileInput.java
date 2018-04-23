@@ -28,6 +28,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import io.crate.external.S3ClientHelper;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,8 +44,8 @@ public class S3FileInput implements FileInput {
 
     final S3ClientHelper clientBuilder;
 
-    public S3FileInput() {
-        clientBuilder = new S3ClientHelper();
+    public S3FileInput(Settings settings) {
+        clientBuilder = new S3ClientHelper(settings);
     }
 
     public S3FileInput(S3ClientHelper clientBuilder) {

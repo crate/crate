@@ -33,19 +33,20 @@ import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
+import io.crate.expression.InputFactory;
+import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.expression.InputFactory;
-import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
-import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -267,7 +268,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
             compression,
             ImmutableMap.of(
                 LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory(),
-                S3FileInputFactory.NAME, () -> new S3FileInput(new S3ClientHelper() {
+                S3FileInputFactory.NAME, (s) -> new S3FileInput(new S3ClientHelper(Settings.EMPTY) {
                     @Override
                     protected AmazonS3 initClient(String accessKey, String secretKey) throws IOException {
                         AmazonS3 client = mock(AmazonS3Client.class);
@@ -288,7 +289,8 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                 })),
             false,
             1,
-            0
+            0,
+            Settings.EMPTY
         );
     }
 

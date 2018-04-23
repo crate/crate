@@ -27,9 +27,10 @@ import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.metadata.ColumnIdent;
-import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.metadata.ColumnIdent;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -47,6 +48,7 @@ public class FileWriterProjector implements Projector {
     private final WriterProjection.OutputFormat outputFormat;
     private final WriterProjection.CompressionType compressionType;
     private final ExecutorService executorService;
+    private final Settings settings;
 
     /**
      * @param inputs a list of {@link Input}.
@@ -63,7 +65,8 @@ public class FileWriterProjector implements Projector {
                                Iterable<CollectExpression<Row, ?>> collectExpressions,
                                Map<ColumnIdent, Object> overwrites,
                                @Nullable List<String> outputNames,
-                               WriterProjection.OutputFormat outputFormat) {
+                               WriterProjection.OutputFormat outputFormat,
+                               Settings settings) {
         this.collectExpressions = collectExpressions;
         this.executorService = executorService;
         this.inputs = inputs;
@@ -72,6 +75,7 @@ public class FileWriterProjector implements Projector {
         this.outputFormat = outputFormat;
         this.compressionType = compressionType;
         this.uri = uri;
+        this.settings = settings;
     }
 
     @Override
@@ -86,7 +90,8 @@ public class FileWriterProjector implements Projector {
                 collectExpressions,
                 overwrites,
                 outputNames,
-                outputFormat
+                outputFormat,
+                settings
             )
         );
     }

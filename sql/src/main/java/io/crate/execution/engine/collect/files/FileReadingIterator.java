@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -84,6 +85,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private long currentLineNumber;
     private LineContext lineContext;
     private final Row row;
+    private final Settings settings;
 
     private FileReadingIterator(Collection<String> fileUris,
                                 List<? extends Input<?>> inputs,
@@ -92,7 +94,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                 Map<String, FileInputFactory> fileInputFactories,
                                 Boolean shared,
                                 int numReaders,
-                                int readerNumber) {
+                                int readerNumber,
+                                Settings settings) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs) {
             @Override
@@ -112,6 +115,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         this.readerNumber = readerNumber;
         this.urisWithGlob = getUrisWithGlob(fileUris);
         this.collectorExpressions = collectorExpressions;
+        this.settings = settings;
         initCollectorState();
     }
 
@@ -132,9 +136,10 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                                  Map<String, FileInputFactory> fileInputFactories,
                                                  Boolean shared,
                                                  int numReaders,
-                                                 int readerNumber) {
+                                                 int readerNumber,
+                                                 Settings settings) {
         return new CloseAssertingBatchIterator<>(new FileReadingIterator(fileUris, inputs, collectorExpressions,
-            compression, fileInputFactories, shared, numReaders, readerNumber));
+            compression, fileInputFactories, shared, numReaders, readerNumber, settings));
     }
 
     private void initCollectorState() {
@@ -357,7 +362,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private FileInput getFileInput(URI fileUri) throws IOException {
         FileInputFactory fileInputFactory = fileInputFactories.get(fileUri.getScheme());
         if (fileInputFactory != null) {
-            return fileInputFactory.create();
+            return fileInputFactory.create(settings);
         }
         return new URLFileInput(fileUri);
     }

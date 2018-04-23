@@ -32,6 +32,7 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -63,7 +64,7 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
         Functions functions = getFunctions();
         CollectSourceResolver collectSourceResolver = mock(CollectSourceResolver.class);
         when(collectSourceResolver.getService(any(RoutedCollectPhase.class)))
-            .thenReturn(new FileCollectSource(functions, clusterService, Collections.emptyMap()));
+            .thenReturn(new FileCollectSource(functions, clusterService, Collections.emptyMap(), Settings.EMPTY));
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
             collectSourceResolver,
             THREAD_POOL

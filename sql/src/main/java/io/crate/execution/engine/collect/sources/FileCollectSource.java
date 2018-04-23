@@ -22,26 +22,27 @@
 package io.crate.execution.engine.collect.sources;
 
 import io.crate.analyze.CopyFromAnalyzedStatement;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.ValueSymbolVisitor;
-import io.crate.data.RowConsumer;
 import io.crate.data.BatchIterator;
-import io.crate.metadata.Functions;
-import io.crate.expression.InputFactory;
+import io.crate.data.RowConsumer;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
+import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
-import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.ValueSymbolVisitor;
+import io.crate.metadata.Functions;
 import io.crate.types.CollectionType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -54,12 +55,17 @@ public class FileCollectSource implements CollectSource {
     private final ClusterService clusterService;
     private final Map<String, FileInputFactory> fileInputFactoryMap;
     private final InputFactory inputFactory;
+    private final Settings settings;
 
     @Inject
-    public FileCollectSource(Functions functions, ClusterService clusterService, Map<String, FileInputFactory> fileInputFactoryMap) {
+    public FileCollectSource(Functions functions,
+                             ClusterService clusterService,
+                             Map<String, FileInputFactory> fileInputFactoryMap,
+                             Settings settings) {
         this.fileInputFactoryMap = fileInputFactoryMap;
         inputFactory = new InputFactory(functions);
         this.clusterService = clusterService;
+        this.settings = settings;
     }
 
     @Override
@@ -83,7 +89,8 @@ public class FileCollectSource implements CollectSource {
             fileInputFactoryMap,
             fileUriCollectPhase.sharedStorage(),
             readers.length,
-            Arrays.binarySearch(readers, clusterService.state().nodes().getLocalNodeId())
+            Arrays.binarySearch(readers, clusterService.state().nodes().getLocalNodeId()),
+            settings
         );
 
         return BatchIteratorCollectorBridge.newInstance(fileReadingIterator, consumer);

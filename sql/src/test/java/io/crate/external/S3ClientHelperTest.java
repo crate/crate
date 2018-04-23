@@ -24,18 +24,31 @@ package io.crate.external;
 import com.amazonaws.http.IdleConnectionReaper;
 import com.amazonaws.services.s3.AmazonS3;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.settings.MockSecureSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.net.URI;
 import java.net.URL;
 import java.util.Date;
 
-import static org.hamcrest.Matchers.is;
+import static io.crate.external.S3ClientHelper.ACCESS_KEY_SETTING_NAME;
+import static io.crate.external.S3ClientHelper.SECRET_KEY_SETTING_NAME;
+import static org.hamcrest.Matchers.startsWith;
 
 public class S3ClientHelperTest extends CrateUnitTest {
 
-    private final S3ClientHelper s3ClientHelper = new S3ClientHelper();
+    private S3ClientHelper s3ClientHelper;
+
+    @Before
+    public void setupS3ClientHelper() {
+        MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setString(ACCESS_KEY_SETTING_NAME, "testS3AccessKey");
+        secureSettings.setString(SECRET_KEY_SETTING_NAME, "testS3SecretKey");
+        s3ClientHelper = S3ClientHelper.withDefaultRegion(Settings.builder().setSecureSettings(secureSettings).build());
+    }
 
     @After
     public void cleanUpS3() {
@@ -46,8 +59,8 @@ public class S3ClientHelperTest extends CrateUnitTest {
     public void testClient() throws Exception {
         assertNotNull(s3ClientHelper.client(new URI("s3://baz")));
         assertNotNull(s3ClientHelper.client(new URI("s3://baz/path/to/file")));
-        assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@baz")));
-        assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@baz/path/to/file")));
+        assertNotNull(s3ClientHelper.client(new URI("s3://@baz")));
+        assertNotNull(s3ClientHelper.client(new URI("s3://@baz/path/to/file")));
     }
 
     @Test
@@ -69,9 +82,41 @@ public class S3ClientHelperTest extends CrateUnitTest {
     }
 
     @Test
+    public void testWithURICredentials() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("S3 credentials cannot be part of the URI but instead must be stored " +
+                                        "inside the Crate keystore");
+        s3ClientHelper.client(new URI("s3://user:pass@host/path"));
+    }
+
+    @Test
     public void testWithCredentials() throws Exception {
-        AmazonS3 s3Client = s3ClientHelper.client(new URI("s3://user:password@host/path"));
+        AmazonS3 s3Client = s3ClientHelper.client(new URI("s3://@host/path"));
         URL url = s3Client.generatePresignedUrl("bucket", "key", new Date(0L));
-        assertThat(url.toString(), is("https://bucket.s3.amazonaws.com/key?AWSAccessKeyId=user&Expires=0&Signature=o5V2voSQbVEErsUXId6SssCq9OY%3D"));
+        assertThat(url.toString(), startsWith("https://bucket.s3-eu-west-1.amazonaws.com/key?"));
+    }
+
+    @Test
+    public void testWithAccessKeyButNoSecretKeyInKeyStore() throws Exception {
+        MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setString(ACCESS_KEY_SETTING_NAME, "testS3AccessKey");
+        S3ClientHelper s3ClientHelper = new S3ClientHelper(Settings.builder().setSecureSettings(secureSettings).build());
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Both [s3.client.default.access_key] and [s3.client.default.secret_key] S3 " +
+                                        "settings for credentials must be stored in the crate.keystore");
+        s3ClientHelper.client(new URI("s3://@host/path"));
+    }
+
+    @Test
+    public void testWithSecretKeyButNoAccessKeyInKeyStore() throws Exception {
+        MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setString(SECRET_KEY_SETTING_NAME, "testS3SecretKey");
+        S3ClientHelper s3ClientHelper = new S3ClientHelper(Settings.builder().setSecureSettings(secureSettings).build());
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Both [s3.client.default.access_key] and [s3.client.default.secret_key] S3 " +
+                                        "settings for credentials must be stored in the crate.keystore");
+        s3ClientHelper.client(new URI("s3://@host/path"));
     }
 }

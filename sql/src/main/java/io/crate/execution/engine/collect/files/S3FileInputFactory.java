@@ -22,6 +22,8 @@
 
 package io.crate.execution.engine.collect.files;
 
+import org.elasticsearch.common.settings.Settings;
+
 import java.io.IOException;
 
 public class S3FileInputFactory implements FileInputFactory {
@@ -29,7 +31,7 @@ public class S3FileInputFactory implements FileInputFactory {
     public static final String NAME = "s3";
 
     @Override
-    public FileInput create() throws IOException {
-        return new S3FileInput();
+    public FileInput create(Settings settings) throws IOException {
+        return new S3FileInput(settings);
     }
 }

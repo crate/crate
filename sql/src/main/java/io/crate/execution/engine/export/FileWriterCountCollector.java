@@ -29,13 +29,11 @@ import io.crate.data.Row1;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.export.Output;
-import io.crate.execution.engine.export.OutputFile;
-import io.crate.execution.engine.export.OutputS3;
 import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.metadata.ColumnIdent;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -86,7 +84,8 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
                              Iterable<CollectExpression<Row, ?>> collectExpressions,
                              Map<ColumnIdent, Object> overwrites,
                              @Nullable List<String> outputNames,
-                             WriterProjection.OutputFormat outputFormat) {
+                             WriterProjection.OutputFormat outputFormat,
+                             Settings settings) {
         this.collectExpressions = collectExpressions;
         this.inputs = inputs;
         this.overwrites = toNestedStringObjectMap(overwrites);
@@ -101,7 +100,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         if (this.uri.getScheme() == null || this.uri.getScheme().equals("file")) {
             this.output = new OutputFile(this.uri, this.compressionType);
         } else if (this.uri.getScheme().equalsIgnoreCase("s3")) {
-            this.output = new OutputS3(executorService, this.uri, this.compressionType);
+            this.output = new OutputS3(executorService, this.uri, this.compressionType, settings);
         } else {
             throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", this.uri.getScheme()));
         }
