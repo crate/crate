@@ -22,8 +22,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.user.Privilege;
-import io.crate.exceptions.MissingPrivilegeException;
-import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserUnknownException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
@@ -49,6 +47,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static io.crate.auth.user.User.CRATE_USER;
+import static java.util.Objects.requireNonNull;
 
 @Singleton
 public class UserManagerService implements UserManager, ClusterStateListener {
@@ -58,14 +57,6 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     };
     @VisibleForTesting
     static final ExceptionAuthorizedValidator NOOP_EXCEPTION_VALIDATOR = t -> {
-    };
-
-    static final StatementAuthorizedValidator ALWAYS_FAIL_STATEMENT_VALIDATOR = s -> {
-        throw new UnauthorizedException("User `null` is not authorized to execute statement");
-    };
-
-    static final ExceptionAuthorizedValidator ALWAYS_FAIL_EXCEPTION_VALIDATOR = s -> {
-        throw new MissingPrivilegeException(s.getMessage());
     };
 
     private static final Consumer<User> ENSURE_DROP_USER_NOT_SUPERUSER = user -> {
@@ -190,10 +181,8 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     }
 
     @Override
-    public StatementAuthorizedValidator getStatementValidator(@Nullable User user) {
-        if (user == null) {
-            return ALWAYS_FAIL_STATEMENT_VALIDATOR;
-        }
+    public StatementAuthorizedValidator getStatementValidator(User user) {
+        requireNonNull(user, "User must not be null");
         if (user.isSuperUser()) {
             return BYPASS_AUTHORIZATION_CHECKS;
         }
@@ -201,10 +190,8 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     }
 
     @Override
-    public ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user) {
-        if (user == null) {
-            return ALWAYS_FAIL_EXCEPTION_VALIDATOR;
-        }
+    public ExceptionAuthorizedValidator getExceptionValidator(User user) {
+        requireNonNull(user, "User must not be null");
         if (user.isSuperUser()) {
             return NOOP_EXCEPTION_VALIDATOR;
         }

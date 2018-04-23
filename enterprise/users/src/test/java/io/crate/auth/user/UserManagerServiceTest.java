@@ -30,8 +30,6 @@ import org.junit.Test;
 import java.util.Set;
 
 import static io.crate.auth.user.User.CRATE_USER;
-import static io.crate.auth.user.UserManagerService.ALWAYS_FAIL_EXCEPTION_VALIDATOR;
-import static io.crate.auth.user.UserManagerService.ALWAYS_FAIL_STATEMENT_VALIDATOR;
 import static io.crate.auth.user.UserManagerService.BYPASS_AUTHORIZATION_CHECKS;
 import static io.crate.auth.user.UserManagerService.NOOP_EXCEPTION_VALIDATOR;
 import static org.hamcrest.Matchers.contains;
@@ -66,9 +64,9 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testGetNoopStatementValidatorForNullUser() throws Exception {
-        StatementAuthorizedValidator validator = userManagerService.getStatementValidator(null);
-        assertThat(validator, is(ALWAYS_FAIL_STATEMENT_VALIDATOR));
+    public void testUserIsRequiredToGetStatementValidator() throws Exception {
+        expectedException.expectMessage("User must not be null");
+        userManagerService.getStatementValidator(null);
     }
 
     @Test
@@ -78,9 +76,9 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testGetNoopExceptionValidatorForNullUser() throws Exception {
-        ExceptionAuthorizedValidator validator = userManagerService.getExceptionValidator(null);
-        assertThat(validator, is(ALWAYS_FAIL_EXCEPTION_VALIDATOR));
+    public void testUserIsRequiredToGetExceptionValidator() throws Exception {
+        expectedException.expectMessage("User must not be null");
+        userManagerService.getExceptionValidator(null);
     }
 
     @Test
