@@ -24,8 +24,8 @@ package io.crate.exceptions;
 import com.google.common.base.MoreObjects;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.action.sql.SQLActionException;
-import io.crate.metadata.PartitionName;
 import io.crate.auth.user.ExceptionAuthorizedValidator;
+import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -124,7 +124,7 @@ public class SQLExceptions {
         e = esToCrateException(e);
         try {
             validator.ensureExceptionAuthorized(e);
-        } catch (MissingPrivilegeException mpe) {
+        } catch (Exception mpe) {
             e = mpe;
         }
 

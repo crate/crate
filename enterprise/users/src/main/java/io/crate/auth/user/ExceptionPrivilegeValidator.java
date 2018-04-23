@@ -56,9 +56,9 @@ class ExceptionPrivilegeValidator implements ExceptionAuthorizedValidator {
         }
 
         @Override
-        protected Void visitTableScopeException(TableScopeException e, User context) {
+        protected Void visitTableScopeException(TableScopeException e, User user) {
             for (RelationName relationName : e.getTableIdents()) {
-                Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, relationName.toString(), context);
+                Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, relationName.toString(), user);
             }
             return null;
         }

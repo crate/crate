@@ -274,7 +274,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("Missing 'DQL' privilege for user '"+ TEST_USERNAME + "'"));
+        expectedException.expectMessage("Schema 'doc' unknown");
         execute("select * from t1", null, testUserSession());
     }
 
@@ -288,7 +288,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
         executeAsSuperuser("create view doc.v1 as select 1");
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("Missing 'DQL' privilege for user '"+ TEST_USERNAME + "'"));
+        expectedException.expectMessage("Schema 'doc' unknown");
         execute("select * from v1", null, testUserSession());
     }
 
@@ -306,7 +306,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("Missing 'DQL' privilege for user '"+ TEST_USERNAME + "'"));
+        expectedException.expectMessage("Schema 'doc' unknown");
         execute("select * from t1", null, testUserSession());
     }
 
