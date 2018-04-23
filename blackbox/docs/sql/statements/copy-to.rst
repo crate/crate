@@ -70,24 +70,41 @@ The ``output_uri`` can be any expression evaluating to a string.
 The resulting string should be a valid URI of one of the supporting schemes:
 
  * ``file://``
- * ``s3://[<accesskey>:<secretkey>@]<bucketname>/<path>``
+ * ``s3://<bucketname>/<path>``
 
 If no scheme is given (e.g.: '/path/to/dir') the default uri-scheme ``file://``
 will be used.
 
+The credentials to access s3 buckets can be set with the following settings:
+
+**s3.client.default.access_key**
+  | *Secure setting*
+  | *Type:*    ``string``
+
+  Access key used for authentication against AWS.
+  As this is a :ref:`secure setting <conf-secure-settings>` it must be stored
+  in the keystore as so:
+
+  .. code-block:: sh
+
+     sh$ ./bin/crate-keystore add s3.client.default.access_key
+
+**s3.client.default.secret_key**
+  | *Secure setting*
+  | *Type:*    ``string``
+
+  Secret key used for authentication against AWS.
+  As this is a :ref:`secure setting <conf-secure-settings>` it must be stored
+  in the keystore as so:
+
+  .. code-block:: sh
+
+     sh$ ./bin/crate-keystore add s3.client.default.secret_key
+
 .. NOTE::
 
-   If the s3 scheme is used without specifying any credentials an
-   attempt is made to read these information from the AWS_ACCESS_KEY_ID
-   and AWS_SECRET_KEY environment variables. In addition to that the
-   Java System properties aws.accessKeyId and aws.secretKey are also
-   used as a fallback.
-
-.. NOTE::
-
-   A ``secretkey`` provided by Amazon Web Service can contain characters such
-   as '/', '+' or '='. Such characters must be URI encoded. The same encoding
-   as in :ref:`copy_from_s3` applies.
+   If no credentials are set the s3 client will operate in anonymous mode, see
+   `AWS Java Documentation`_.
 
 .. NOTE::
 
@@ -175,4 +192,5 @@ Possible values for the ``format`` settings are:
 
 .. _gzip: http://www.gzip.org/
 .. _`Amazon S3`: http://aws.amazon.com/s3/
+.. _`AWS Java Documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
 .. _NFS: http://en.wikipedia.org/wiki/Network_File_System

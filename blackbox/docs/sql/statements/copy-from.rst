@@ -108,25 +108,42 @@ Can be used to access buckets on the Amazon AWS S3 Service:
 
 .. code-block:: text
 
-    s3://[<accesskey>:<secretkey>@]<bucketname>/<path>
+    s3://<bucketname>/<path>
 
-If ``accesskey`` and ``secretkey`` are ommited, CrateDB attempts to load the
-credentials from the environment or Java settings.
+The credentials to access s3 buckets can be set with the following settings:
 
-Environment Variables - ``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY``
+**s3.client.default.access_key**
+  | *Secure setting*
+  | *Type:*    ``string``
 
-Java System Properties - ``aws.accessKeyId`` and ``aws.secretKey``
+  Access key used for authentication against AWS.
+  As this is a :ref:`secure setting <conf-secure-settings>` it must be stored
+  in the keystore as so:
 
-If no credentials are set the s3 client will operate in anonymous mode, see
-`AWS Java Documentation`_.
+  .. code-block:: sh
 
-Using the 's3://' URI scheme sets the ``shared`` option implicitly.
+     sh$ ./bin/crate-keystore add s3.client.default.access_key
+
+**s3.client.default.secret_key**
+  | *Secure setting*
+  | *Type:*    ``string``
+
+  Secret key used for authentication against AWS.
+  As this is a :ref:`secure setting <conf-secure-settings>` it must be stored
+  in the keystore as so:
+
+  .. code-block:: sh
+
+     sh$ ./bin/crate-keystore add s3.client.default.secret_key
 
 .. NOTE::
 
-   A ``secretkey`` provided by Amazon Web Services can contain characters such
-   as '/', '+' or '='. These characters must be `URL encoded`_. For a detailed
-   explanation read the official `AWS documentation`_.
+    If no credentials are set the s3 client will operate in anonymous mode, see
+    `AWS Java Documentation`_.
+
+.. NOTE::
+
+    Using the 's3://' URI scheme sets the ``shared`` option implicitly.
 
 .. NOTE::
 

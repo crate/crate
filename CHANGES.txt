@@ -15,7 +15,18 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
-- Renamed ec2 ``cloud.aws.*`` settings to ``discovery.ec2.*`` (eg. 
+- When using S3 for ``COPY FROM`` and ``COPY TO``, the credentials to access S3
+  can no longer be provided through the URI. Instead, they must be stored as
+  values of ``s3.client.default.access_key`` and s3.client.default.secret_key``
+  secure settings in `crate.keystore`_
+
+- When using S3 for ``CREATE REPOSITORY``, the credentials to access S3
+  can no longer be provided through the SQL command parameters ``access_key``
+  and ``secret_key``. Instead, they must be stored as values of
+  ``s3.client.default.access_key`` and s3.client.default.secret_key`` secure
+ settings in `crate.keystore`_
+
+- Renamed ec2 ``cloud.aws.*`` settings to ``discovery.ec2.*`` (eg.
   ``cloud.aws.access_key`` is now ``discovery.ec2.access_key``)
 
 - The columns ``number_of_shards``, ``number_of_replicas``, and
@@ -184,3 +195,5 @@ Fixes
 - Fixed an issue that would cause a ClassCastException to be thrown instead of
   BatchUpdateException with a descriptive message, when using batched prepared
   statements with ``SELECT`` queries.
+
+.. _`crate.keystore`: https://crate.io/docs/crate/reference/en/latest/config/secure.html
