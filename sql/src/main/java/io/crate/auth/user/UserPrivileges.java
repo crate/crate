@@ -30,16 +30,18 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 class UserPrivileges implements Iterable<Privilege> {
 
     private final Map<PrivilegeIdent, Privilege> privilegeByIdent;
     private final boolean anyClusterPrivilege;
-    private final Map<String, Boolean> anySchemaPrivilege = new HashMap<>();
-    private final Map<String, Boolean> anyTablePrivilege = new HashMap<>();
-    private final Map<String, Boolean> anyViewPrivilege = new HashMap<>();
+    private final Set<String> anySchemaPrivilege = new HashSet<>();
+    private final Set<String> anyTablePrivilege = new HashSet<>();
+    private final Set<String> anyViewPrivilege = new HashSet<>();
 
     UserPrivileges(Collection<Privilege> privileges) {
         privilegeByIdent = new HashMap<>(privileges.size());
@@ -53,13 +55,13 @@ class UserPrivileges implements Iterable<Privilege> {
                         anyClusterPrivilege = true;
                         break;
                     case SCHEMA:
-                        anySchemaPrivilege.put(privilegeIdent.ident(), true);
+                        anySchemaPrivilege.add(privilegeIdent.ident());
                         break;
                     case TABLE:
-                        anyTablePrivilege.put(privilegeIdent.ident(), true);
+                        anyTablePrivilege.add(privilegeIdent.ident());
                         break;
                     case VIEW:
-                        anyViewPrivilege.put(privilegeIdent.ident(), true);
+                        anyViewPrivilege.add(privilegeIdent.ident());
                         break;
                     default:
                         throw new IllegalStateException("Unsupported privilege class=" + privilegeIdent.clazz());
@@ -160,15 +162,15 @@ class UserPrivileges implements Iterable<Privilege> {
     }
 
     private boolean hasAnySchemaPrivilege(String ident) {
-        return anySchemaPrivilege.get(ident) != null;
+        return anySchemaPrivilege.contains(ident);
     }
 
     private boolean hasAnyTablePrivilege(String ident) {
-        return anyTablePrivilege.get(ident) != null;
+        return anyTablePrivilege.contains(ident);
     }
 
     private boolean hasAnyViewPrivilege(String ident) {
-        return anyViewPrivilege.get(ident) != null;
+        return anyViewPrivilege.contains(ident);
     }
 
     @Override
