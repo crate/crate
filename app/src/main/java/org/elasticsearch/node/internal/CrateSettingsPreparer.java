@@ -29,6 +29,8 @@ import io.crate.settings.CrateSetting;
 import org.elasticsearch.cli.UserException;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.logging.LogConfigurator;
+import org.elasticsearch.common.settings.KeyStoreWrapper;
+import org.elasticsearch.common.settings.SecureSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
@@ -93,6 +95,11 @@ public class CrateSettingsPreparer {
         settingsBuilder.put(
             Environment.PATH_LOGS_SETTING.getKey(),
             env.logsFile().toAbsolutePath().normalize().toString());
+
+        SecureSettings keystoreSettings = loadSecureSettings(configPath);
+        if (keystoreSettings != null) {
+            settingsBuilder.setSecureSettings(keystoreSettings);
+        }
 
         return new Environment(settingsBuilder.build(), env.configFile());
     }
@@ -165,5 +172,25 @@ public class CrateSettingsPreparer {
         } catch (IOException e) {
             throw new RuntimeException("Could not read node names list", e);
         }
+    }
+
+    private static SecureSettings loadSecureSettings(Path configPath) throws UserException {
+        final KeyStoreWrapper keystore;
+        try {
+            keystore = KeyStoreWrapper.load(configPath);
+        } catch (IOException e) {
+            throw new UserException(1, "Failed to load keystore file from path: " + configPath);
+        }
+        if (keystore == null) {
+            return null; // no keystore
+        }
+
+        try {
+            keystore.decrypt(new char[0] /* TODO: read password from stdin */);
+            KeyStoreWrapper.upgrade(keystore, configPath);
+        } catch (Exception e) {
+            throw new UserException(1, "Failed to decrypt keystore file from path: " + configPath);
+        }
+        return keystore;
     }
 }
