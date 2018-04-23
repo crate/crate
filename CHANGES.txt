@@ -176,6 +176,11 @@ Changes
 Fixes
 =====
 
+- Fixed a performance regression which occurred in queries where a literal was
+  compared against an array column of a different type. For example:
+  ``Select * from t1 where 1 = ANY(int_arr_column)`` <- array column would be
+  converted to long although 1 could have been converted to integer.
+
 - Fixed an issue where the order of the relations in FROM would expose fields
   between the relations. An error was thrown during execution of the statements.
 
