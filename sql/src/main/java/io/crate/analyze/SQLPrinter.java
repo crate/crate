@@ -231,10 +231,7 @@ public final class SQLPrinter {
                     sb.append(" AS ");
                     sb.append(Identifiers.quoteIfNeeded(field.outputName()));
                 }
-            } else if (output instanceof SelectSymbol) {
-                sb.append(printSymbol(output));
-            } else if (output instanceof io.crate.expression.symbol.Literal && output.valueType().isNumeric()) {
-                sb.append(((io.crate.expression.symbol.Literal) output).value());
+
             } else {
                 sb.append(printSymbol(output));
             }

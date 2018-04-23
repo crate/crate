@@ -46,8 +46,8 @@ public class ArrayType extends CollectionType {
     }
 
     @Override
-    public String getName() {
-        return super.getName() + "_array";
+    public String getCollectionName() {
+        return "array";
     }
 
     @Override

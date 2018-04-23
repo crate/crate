@@ -37,7 +37,9 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.Param;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.types.CollectionType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import java.util.List;
 import java.util.Map;
@@ -109,7 +111,14 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
 
     @Override
     public String afterArgs(Function function) {
-        return " AS " + function.valueType().getName() + PAREN_CLOSE;
+        DataType dataType = function.valueType();
+        if (DataTypes.isCollectionType(dataType)) {
+            CollectionType collectionType = ((CollectionType) dataType);
+            return " AS " + collectionType.getCollectionName() +
+                   PAREN_OPEN + collectionType.innerType().getName() + PAREN_CLOSE
+                   + PAREN_CLOSE;
+        }
+        return " AS " + dataType.getName() + PAREN_CLOSE;
     }
 
     @Override

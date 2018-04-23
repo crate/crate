@@ -76,8 +76,10 @@ public abstract class CollectionType extends DataType {
 
     @Override
     public String getName() {
-        return innerType.getName();
+        return innerType.getName() + "_" + getCollectionName();
     }
+
+    public abstract String getCollectionName();
 
     public final DataType<?> innerType() {
         return innerType;

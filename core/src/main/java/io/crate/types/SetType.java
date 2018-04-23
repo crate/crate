@@ -55,8 +55,8 @@ public class SetType extends CollectionType {
     }
 
     @Override
-    public String getName() {
-        return super.getName() + "_set";
+    public String getCollectionName() {
+        return "set";
     }
 
     @Override

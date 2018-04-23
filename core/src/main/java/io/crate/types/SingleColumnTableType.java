@@ -50,8 +50,8 @@ public class SingleColumnTableType extends CollectionType {
     }
 
     @Override
-    public String getName() {
-        return super.getName() + "_table";
+    public String getCollectionName() {
+        return "table";
     }
 
     /**
