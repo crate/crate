@@ -24,6 +24,7 @@ package io.crate.expression.symbol.format;
 
 import io.crate.analyze.relations.RelationPrinter;
 import io.crate.expression.operator.any.AnyOperator;
+import io.crate.expression.predicate.MatchPredicate;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.FetchReference;
@@ -97,7 +98,7 @@ public final class SymbolPrinter {
         return context.formatted();
     }
 
-    private static final class SymbolPrintVisitor extends SymbolVisitor<SymbolPrinterContext, Void> {
+    static final class SymbolPrintVisitor extends SymbolVisitor<SymbolPrinterContext, Void> {
 
         @Nullable
         private final Functions functions;
@@ -126,6 +127,8 @@ public final class SymbolPrinter {
             String functionName = function.info().ident().name();
             if (functionName.startsWith(AnyOperator.OPERATOR_PREFIX)) {
                 printAnyOperator(function, context);
+            } else if (functionName.equals(MatchPredicate.NAME)) {
+                printMatchPredicate(function, context);
             } else {
                 printGenericFunction(function, context);
             }
@@ -180,6 +183,10 @@ public final class SymbolPrinter {
         private String anyOperatorName(String functionName) {
             // handles NOT_LIKE -> NOT LIKE
             return functionName.substring(4).replace('_', ' ').toUpperCase(Locale.ENGLISH);
+        }
+
+        private void printMatchPredicate(Function matchPredicate, SymbolPrinterContext context) {
+            MatchPrinter.printMatchPredicate(matchPredicate, context, this);
         }
 
         @Override

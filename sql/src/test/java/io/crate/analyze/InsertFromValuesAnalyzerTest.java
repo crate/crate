@@ -625,7 +625,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testInsertWithMatchPredicateInValues() throws Exception {
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Validation failed for awesome: " +
-                                        "Invalid value 'match({\"name\"=NULL}, 'bar', 'best_fields', {})' in insert statement");
+                                        "Invalid value 'MATCH((name), 'bar') USING best_fields' in insert statement");
         e.analyze("insert into users (id, awesome) values (1, match(name, 'bar'))");
     }
 

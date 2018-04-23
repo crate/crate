@@ -91,7 +91,7 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
         QueriedRelation relation = e.analyze(
             "select * from users where match(shape 1.2, (select shape from users limit 1))");
         assertThat(relation.where().query(),
-            isSQL("match({\"shape\"=1.2}, SelectSymbol{geo_shape_table}, 'intersects', {})"));
+            isSQL("MATCH((shape 1.2), SelectSymbol{geo_shape_table}) USING intersects"));
     }
 
     @Test
