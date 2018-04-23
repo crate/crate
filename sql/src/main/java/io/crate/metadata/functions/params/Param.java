@@ -205,7 +205,7 @@ public final class Param {
             if (argDataType instanceof CollectionType) {
                 DataType innerType = Preconditions.checkNotNull(((CollectionType) argDataType).innerType(),
                     "Inner type expected but no inner type for argument: " + funcArg);
-                this.innerType.bind(new ConvertedArg(innerType), multiBind);
+                this.innerType.bind(new ConvertedArg(innerType, funcArg.canBeCasted()), multiBind);
             } else {
                 throw new IllegalArgumentException("DataType with an inner type expected but not provided.");
             }
@@ -237,15 +237,18 @@ public final class Param {
     private static class ConvertedArg implements FuncArg {
 
         private final DataType dataType;
+        private final boolean canBeCasted;
 
         private ConvertedArg(FuncArg sourceArg, DataType targetDataType) {
             Preconditions.checkArgument(sourceArg.canBeCasted(),
                 "Converted argument must be castable.");
             this.dataType = targetDataType;
+            this.canBeCasted = true;
         }
 
-        private ConvertedArg(DataType argumentType) {
+        private ConvertedArg(DataType argumentType, boolean canBeCasted) {
             this.dataType = argumentType;
+            this.canBeCasted = canBeCasted;
         }
 
         @Override
@@ -255,7 +258,7 @@ public final class Param {
 
         @Override
         public boolean canBeCasted() {
-            return true;
+            return canBeCasted;
         }
     }
 
