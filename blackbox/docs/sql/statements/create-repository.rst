@@ -234,30 +234,6 @@ A repository that stores its snapshot on the Amazon S3 service.
 
   Path within the bucket to the repository.
 
-**access_key**
-  | *Secure setting*
-  | *Type:*    ``string``
-
-  Access key used for authentication against AWS. 
-  As this is a :ref:`secure setting <conf-secure-settings>` it must be stored 
-  in the keystore as so: 
-
-  .. code-block:: sh
-
-     sh$ ./bin/crate-keystore add s3.client.default.access_key
-
-**secret_key**
-  | *Secure setting*
-  | *Type:*    ``string``
-
-  Secret key used for authentication against AWS.
-  As this is a :ref:`secure setting <conf-secure-settings>` it must be stored 
-  in the keystore as so: 
-
-  .. code-block:: sh
-
-     sh$ ./bin/crate-keystore add s3.client.default.secret_key
-
 **concurrent_streams**
   | *Type:*    ``integer``
   | *Default:* ``5``
@@ -318,6 +294,36 @@ A repository that stores its snapshot on the Amazon S3 service.
 
   When the repository creates buckets and objects, the specified canned ACL is
   added.
+
+S3 credentials
+..............
+
+Credentials for S3 cannot be provided as parameters of the SQL command, instead
+the following settings should be stored in the keystore:
+
+**s3.client.default.access_key**
+  | *Secure setting*
+  | *Type:*    ``string``
+
+  Access key used for authentication against AWS.
+  As this is a :ref:`secure setting <conf-secure-settings>` it must be stored
+  in the keystore as so:
+
+  .. code-block:: sh
+
+     sh$ ./bin/crate-keystore add s3.client.default.access_key
+
+**s3.client.default.secret_key**
+  | *Secure setting*
+  | *Type:*    ``string``
+
+  Secret key used for authentication against AWS.
+  As this is a :ref:`secure setting <conf-secure-settings>` it must be stored
+  in the keystore as so:
+
+  .. code-block:: sh
+
+     sh$ ./bin/crate-keystore add s3.client.default.secret_key
 
 .. _ref-create-repository-types-url:
 
