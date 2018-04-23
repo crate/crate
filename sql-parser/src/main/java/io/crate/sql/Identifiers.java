@@ -53,7 +53,7 @@ public class Identifiers {
     private static boolean areQuotesRequired(String identifier) {
         for (int i = 0; i < identifier.length(); i++) {
             int cp = identifier.codePointAt(i);
-            if (cp == '"' || Character.isUpperCase(cp)) {
+            if (cp == '"' || cp == '[' || cp == ']' || Character.isUpperCase(cp)) {
                 return true;
             }
         }
