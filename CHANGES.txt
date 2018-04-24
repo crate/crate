@@ -15,7 +15,11 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
-- Renamed ec2 ``cloud.aws.*`` settings to ``discovery.ec2.*`` (eg. 
+- The ``region`` setting for ``CREATE REPOSITORY`` has been removed. It is
+  automatically "guessed" but can still be manually specified by using the
+  ``endpoint`` setting.
+
+- Renamed ec2 ``cloud.aws.*`` settings to ``discovery.ec2.*`` (eg.
   ``cloud.aws.access_key`` is now ``discovery.ec2.access_key``)
 
 - The columns ``number_of_shards``, ``number_of_replicas``, and
