@@ -6,48 +6,48 @@
 
 # Java files
 .classpath
+.gradle/
 .project
 .settings
-.gradle/
 build/
 
 # intellij files
 .idea/
-build-idea/
-test-output/
-reports/
 *.iml
 *.ipr
 *.iws
+build-idea/
+reports/
+test-output/
 
 # Python files
 __pycache__/
-eggs/
-parts/
-develop-eggs/
-tmp/
 .installed.cfg
 .venv/
 *.pyc
 *.pyo
+blackbox/get-pip.py
+develop-eggs/
+eggs/
+parts/
+tmp/
 
 # app files
+app/adminui/
 app/data/
+app/enterprise/
 app/logs/
+app/oss_modules/
+app/plugins/
+app/src/main/dist/bin/crate.bat
+app/src/main/dist/bin/crate.in.sh
+app/src/main/resources/crate-build.properties
 
 # Docs
 _out/
 out/
 
-# Single files and directories
-app/enterprise/
-app/oss_modules/
-app/plugins/
-app/adminui/
-app/src/main/dist/bin/crate.bat
-app/src/main/dist/bin/crate.in.sh
-app/src/main/resources/crate-build.properties
-blackbox/get-pip.py
+# Misc
 blackbox/sqllogic.log
-sql-parser/src/main/java/io/crate/sql/parser/antlr/
 sandbox/crate/data/
+sql-parser/src/main/java/io/crate/sql/parser/antlr/
