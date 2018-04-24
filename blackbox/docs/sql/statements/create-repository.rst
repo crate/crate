@@ -210,17 +210,12 @@ A repository that stores its snapshot on the Amazon S3 service.
   does not yet exist, a new bucket will be created on S3 (assuming the
   required permissions are set).
 
-**region**
-  | *Type:*    ``string``
-  | *Default:* ``us-east-1``
-
-  Region where the bucket is located.
-
 **endpoint**
   | *Type:*    ``string``
   | *Default:* Default AWS API endpoint
 
-  Endpoint to the S3 API. Setting a region will override the endpoint setting.
+  Endpoint to the S3 API. If a specific region is desired, specify it by using
+  this setting.
 
 **protocol**
   | *Type:*    ``string``

@@ -15,6 +15,10 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+- The ``region`` setting for ``CREATE REPOSITORY`` has been removed. It is
+  automatically "guessed" but can still be manually specified by using the
+  ``endpoint`` setting.
+
 - When using S3 for ``COPY FROM`` and ``COPY TO``, the credentials to access S3
   can no longer be provided through the URI. Instead, they must be stored as
   values of ``s3.client.default.access_key`` and s3.client.default.secret_key``
