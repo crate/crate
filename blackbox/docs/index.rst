@@ -16,6 +16,10 @@ massive amounts of machine data in real-time.
    Check out the `CrateDB Guide`_ for high-level documentation, including
    overviews, best practices, and tutorials.
 
+.. SEEALSO::
+
+   CrateDB is an open source project and is `hosted on GitHub`_.
+
 .. rubric:: Table of Contents
 
 .. toctree::
@@ -32,3 +36,4 @@ massive amounts of machine data in real-time.
 
 .. _CrateDB Guide: https://crate.io/docs/crate/guide/en/latest/
 .. _Getting Started With CrateDB: https://crate.io/docs/crate/getting-started/en/latest/
+.. _hosted on GitHub: https://github.com/crate/crate
