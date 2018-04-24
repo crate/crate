@@ -166,6 +166,16 @@ public class FuncParamsTest extends CrateUnitTest {
     }
 
     @Test
+    public void testRespectNonCastableArgumentsWithInnerType() {
+        FuncArg nonCastableArg1 = new Arg(DataTypes.LONG, false);
+        FuncArg nonCastableArg2 = new Arg(new ArrayType(DataTypes.INTEGER), false);
+        FuncParams params = FuncParams.builder(Param.ANY, Param.ANY_ARRAY.withInnerType(Param.ANY)).build();
+
+        List<DataType> signature = params.match(list(nonCastableArg1, nonCastableArg2));
+        assertThat(signature, is(list(DataTypes.LONG, new ArrayType(DataTypes.LONG))));
+    }
+
+    @Test
     public void testRespectCastableArgumentsWithInnerType() {
         FuncArg castableArg = new Arg(DataTypes.LONG, true);
         ArrayType integerArrayType = new ArrayType(DataTypes.INTEGER);
