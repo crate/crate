@@ -37,6 +37,7 @@ app/logs/
 
 # Docs
 _out/
+out/
 
 # Single files and directories
 app/enterprise/
