@@ -35,6 +35,7 @@ import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.Reference;
 import io.crate.planner.node.dql.join.JoinType;
@@ -193,7 +194,11 @@ public final class SQLPrinter {
             sb.append(" GROUP BY ");
             for (int i = 0; i < groupKeys.size(); i++) {
                 Symbol groupKey = groupKeys.get(i);
-                sb.append(printSymbol(groupKey));
+                if (groupKey.symbolType() == SymbolType.LITERAL) {
+                    sb.append(Identifiers.quoteIfNeeded(printSymbol(groupKey)));
+                } else {
+                    sb.append(printSymbol(groupKey));
+                }
 
                 addCommaIfNotLast(sb, groupKeys.size(), i);
             }
