@@ -27,7 +27,7 @@ Returns: ``string``
 
     cr> select concat('foo', null, 'bar') from sys.cluster;
     +----------------------------+
-    | concat('foo', null, 'bar') |
+    | concat('foo', NULL, 'bar') |
     +----------------------------+
     | foobar                     |
     +----------------------------+

@@ -26,7 +26,7 @@ import io.crate.expression.symbol.Symbol;
 
 import java.util.Locale;
 
-import static io.crate.expression.symbol.format.SymbolPrinter.Strings.NULL_LOWER;
+import static io.crate.expression.symbol.format.SymbolPrinter.Strings.NULL_UPPER;
 
 public class SymbolFormatter {
 
@@ -39,7 +39,7 @@ public class SymbolFormatter {
         for (int i = 0; i < symbols.length; i++) {
             Symbol s = symbols[i];
             if (s == null) {
-                formattedSymbols[i] = NULL_LOWER;
+                formattedSymbols[i] = NULL_UPPER;
             } else {
                 formattedSymbols[i] = SymbolPrinter.INSTANCE.printUnqualified(s);
             }

@@ -219,7 +219,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitNullLiteral(NullLiteral node, Void context) {
-            return "null";
+            return "NULL";
         }
 
         @Override

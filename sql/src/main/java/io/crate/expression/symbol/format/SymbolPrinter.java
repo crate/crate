@@ -312,7 +312,7 @@ public final class SymbolPrinter {
         public static final String PAREN_OPEN = "(";
         public static final String PAREN_CLOSE = ")";
         public static final String COMMA = ",";
-        public static final String NULL_LOWER = "null";
+        public static final String NULL_UPPER = "NULL";
         public static final String WS = " ";
         public static final String DOT = ".";
         public static final String ANY = "ANY";
