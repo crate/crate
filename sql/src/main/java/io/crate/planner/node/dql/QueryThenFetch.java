@@ -88,9 +88,7 @@ public class QueryThenFetch implements ExecutionPlan {
             return false;
         }
         QueryThenFetch that = (QueryThenFetch) o;
-        boolean bla = Objects.equals(fetchPhase, that.fetchPhase) &&
-               Objects.equals(subExecutionPlan, that.subExecutionPlan);
-        return bla;
+        return Objects.equals(fetchPhase, that.fetchPhase) && Objects.equals(subExecutionPlan, that.subExecutionPlan);
     }
 
     @Override

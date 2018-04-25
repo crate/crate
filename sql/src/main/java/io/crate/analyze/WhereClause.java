@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -129,30 +130,6 @@ public class WhereClause extends QueryClause {
         return helper.toString();
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof WhereClause)) return false;
-
-        WhereClause that = (WhereClause) o;
-        if (query != null ? !query.equals(that.query) : that.query != null) return false;
-        if (noMatch != that.noMatch) return false;
-        if (!docKeys.equals(that.docKeys)) return false;
-        if (!clusteredBy.equals(that.clusteredBy)) return false;
-        if (partitions != null ? !partitions.equals(that.partitions) : that.partitions != null)
-            return false;
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = query != null ? query.hashCode() : 0;
-        result = 31 * result + (noMatch ? 1 : 0);
-        result = 31 * result + (clusteredBy != null ? clusteredBy.hashCode() : 0);
-        result = 31 * result + (partitions != null ? partitions.hashCode() : 0);
-        return result;
-    }
-
     public boolean hasVersions() {
         return (docKeys.isPresent() && docKeys.get().withVersions())
             || query != null && Symbols.containsColumn(query, DocSysColumns.VERSION);
@@ -186,5 +163,24 @@ public class WhereClause extends QueryClause {
         }
         Symbol newQuery = replaceFunction.apply(query);
         return new WhereClause(newQuery, docKeys.orElse(null), partitions, clusteredBy);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        WhereClause that = (WhereClause) o;
+        return Objects.equals(clusteredBy, that.clusteredBy) &&
+               Objects.equals(docKeys, that.docKeys) &&
+               Objects.equals(partitions, that.partitions);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(clusteredBy, docKeys, partitions);
     }
 }

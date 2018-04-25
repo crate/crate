@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public abstract class JoinPhase extends AbstractProjectionsPhase implements UpstreamPhase {
@@ -199,5 +200,33 @@ public abstract class JoinPhase extends AbstractProjectionsPhase implements Upst
     @Override
     public void distributionInfo(DistributionInfo distributionInfo) {
         this.distributionInfo = distributionInfo;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        JoinPhase joinPhase = (JoinPhase) o;
+        return numLeftOutputs == joinPhase.numLeftOutputs &&
+               numRightOutputs == joinPhase.numRightOutputs &&
+               Objects.equals(executionNodes, joinPhase.executionNodes) &&
+               Objects.equals(leftMergePhase, joinPhase.leftMergePhase) &&
+               Objects.equals(rightMergePhase, joinPhase.rightMergePhase) &&
+               joinType == joinPhase.joinType &&
+               Objects.equals(joinCondition, joinPhase.joinCondition) &&
+               Objects.equals(distributionInfo, joinPhase.distributionInfo);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), executionNodes, numLeftOutputs, numRightOutputs,
+            leftMergePhase, rightMergePhase, joinType, joinCondition, distributionInfo);
     }
 }

@@ -30,6 +30,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -110,5 +111,25 @@ public class CountPhase implements UpstreamPhase {
 
     public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         where = replaceFunction.apply(where);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        CountPhase that = (CountPhase) o;
+        return executionPhaseId == that.executionPhaseId &&
+               Objects.equals(routing, that.routing) &&
+               Objects.equals(where, that.where) &&
+               Objects.equals(distributionInfo, that.distributionInfo);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(executionPhaseId, routing, where, distributionInfo);
     }
 }
