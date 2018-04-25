@@ -22,6 +22,7 @@
 
 package io.crate.expression.symbol.format;
 
+import io.crate.analyze.SQLPrinter;
 import io.crate.analyze.relations.RelationPrinter;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.MatchPredicate;
@@ -34,6 +35,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.LiteralValueFormatter;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.ColumnIdent;
@@ -71,12 +73,14 @@ public final class SymbolPrinter {
         UNQUALIFIED,
         QUALIFIED;
 
-        SymbolPrinterContext context() {
-            return new SymbolPrinterContext(this);
+        SymbolPrinterContext createNewContext(@Nullable SQLPrinter.Visitor sqlPrinterVisitor) {
+            return new SymbolPrinterContext(this, sqlPrinterVisitor);
         }
     }
 
     private final SymbolPrintVisitor symbolPrintVisitor;
+    @Nullable
+    private SQLPrinter.Visitor sqlPrinterVisitor;
 
     @Inject
     public SymbolPrinter(@Nullable Functions functions) {
@@ -95,9 +99,13 @@ public final class SymbolPrinter {
      * format a symbol with the given style
      */
     private String print(Symbol symbol, Style style) {
-        SymbolPrinterContext context = style.context();
+        SymbolPrinterContext context = style.createNewContext(sqlPrinterVisitor);
         symbolPrintVisitor.process(symbol, context);
         return context.formatted();
+    }
+
+    public void registerSqlPrinterVisitor(SQLPrinter.Visitor sqlPrinter) {
+        this.sqlPrinterVisitor = sqlPrinter;
     }
 
     static final class SymbolPrintVisitor extends SymbolVisitor<SymbolPrinterContext, Void> {
@@ -113,6 +121,17 @@ public final class SymbolPrinter {
         protected Void visitSymbol(Symbol symbol, SymbolPrinterContext context) {
             context.builder.append(symbol.toString());
             return null;
+        }
+
+        @Override
+        public Void visitSelectSymbol(SelectSymbol selectSymbol, SymbolPrinterContext context) {
+            if (context.sqlPrinterExists()) {
+                context.builder.append("(");
+                context.processWithSqlPrinter(selectSymbol.relation());
+                context.builder.append(")");
+                return null;
+            }
+            return super.visitSelectSymbol(selectSymbol, context);
         }
 
         @Override

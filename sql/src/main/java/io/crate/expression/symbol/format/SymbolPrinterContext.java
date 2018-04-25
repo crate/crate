@@ -22,13 +22,22 @@
 
 package io.crate.expression.symbol.format;
 
+import io.crate.analyze.SQLPrinter;
+import io.crate.analyze.relations.AnalyzedRelation;
+
+import javax.annotation.Nullable;
+
 final class SymbolPrinterContext {
 
     final StringBuilder builder = new StringBuilder();
-    private final SymbolPrinter.Style style;
+    final SymbolPrinter.Style style;
 
-    SymbolPrinterContext(SymbolPrinter.Style style) {
+    @Nullable
+    private final SQLPrinter.Visitor sqlPrinterVisitor;
+
+    SymbolPrinterContext(SymbolPrinter.Style style, @Nullable SQLPrinter.Visitor sqlPrinterVisitor) {
         this.style = style;
+        this.sqlPrinterVisitor = sqlPrinterVisitor;
     }
 
     String formatted() {
@@ -37,5 +46,15 @@ final class SymbolPrinterContext {
 
     boolean isFullQualified() {
         return style == SymbolPrinter.Style.QUALIFIED;
+    }
+
+    boolean sqlPrinterExists() {
+        return sqlPrinterVisitor != null;
+    }
+
+    void processWithSqlPrinter(AnalyzedRelation analyzedRelation) {
+        if (sqlPrinterVisitor != null) {
+            sqlPrinterVisitor.process(analyzedRelation, builder);
+        }
     }
 }

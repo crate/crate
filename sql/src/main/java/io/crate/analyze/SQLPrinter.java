@@ -56,20 +56,25 @@ public final class SQLPrinter {
 
     public String format(AnalyzedStatement stmt) {
         StringBuilder sb = new StringBuilder();
-        if (stmt instanceof QueriedRelation) {
-            visitor.process(((QueriedRelation) stmt), sb);
+        if (canPrint(stmt)) {
+            visitor.process((AnalyzedRelation) stmt, sb);
         } else {
             throw new UnsupportedOperationException("Cannot format " + stmt);
         }
         return sb.toString();
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<StringBuilder, Void> {
+    public boolean canPrint(AnalyzedStatement stmt) {
+        return stmt instanceof QueriedRelation;
+    }
+
+    public static class Visitor extends AnalyzedRelationVisitor<StringBuilder, Void> {
 
         private final SymbolPrinter symbolPrinter;
 
         public Visitor(SymbolPrinter symbolPrinter) {
             this.symbolPrinter = symbolPrinter;
+            symbolPrinter.registerSqlPrinterVisitor(this);
         }
 
 
