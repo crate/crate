@@ -272,7 +272,7 @@ public final class SQLPrinter {
                     sb.append("(");
                     process(subRelation, sb);
                     sb.append(") ");
-                    sb.append(relation.getQualifiedName());
+                    sb.append(subRelation.getQualifiedName());
                 }
             } else if (relation instanceof MultiSourceSelect) {
                 addJoinClause((MultiSourceSelect) relation, sb);
@@ -318,16 +318,20 @@ public final class SQLPrinter {
 
         }
 
-        private static void printRelationName(AnalyzedRelation relation, StringBuilder sb) {
+        private void printRelationName(AnalyzedRelation relation, StringBuilder sb) {
             if (relation instanceof QueriedTable) {
-                String rightRelationName = ((QueriedTable) relation).tableRelation().tableInfo().ident().sqlFqn();
-                sb.append(rightRelationName);
-                if (!rightRelationName.equals(relation.getQualifiedName().toString())) {
+                String relationName = ((QueriedTable) relation).tableRelation().tableInfo().ident().sqlFqn();
+                sb.append(relationName);
+                if (!relationName.equals(relation.getQualifiedName().toString())) {
                     sb.append(" AS ");
                     sb.append(relation.getQualifiedName());
                 }
-            } else {
-                sb.append(relation.getQualifiedName());
+            } else if (relation instanceof QueriedSelectRelation) {
+                QueriedRelation subRelation = ((QueriedSelectRelation) relation).subRelation();
+                sb.append("(");
+                process(subRelation, sb);
+                sb.append(") ");
+                sb.append(subRelation.getQualifiedName());
             }
         }
 
