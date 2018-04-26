@@ -188,12 +188,7 @@ public class CastFunctionResolver {
         return FUNCTION_MAP.get(returnType) != null;
     }
 
-    private static Function<String, String> TO_TRY_CAST_MAP = new Function<String, String>() {
-        @Override
-        public String apply(String functionName) {
-            return TRY_CAST_PREFIX + functionName;
-        }
-    };
+    private static final Function<String, String> TO_TRY_CAST_MAP = functionName -> TRY_CAST_PREFIX + functionName;
 
     public static Map<DataType, String> tryFunctionsMap() {
         return Maps.transformValues(FUNCTION_MAP, TO_TRY_CAST_MAP);
