@@ -95,7 +95,7 @@ public class HashJoinOperation implements CompletionListenable {
     }
 
     public RowConsumer rightConsumer() {
-        return JoinOperations.getBatchConsumer(rightBatchIterator, false);
+        return JoinOperations.getBatchConsumer(rightBatchIterator, true);
     }
 
     private static Function<Row, Integer> getHashBuilderFromSymbols(InputFactory inputFactory, List<Symbol> inputs) {

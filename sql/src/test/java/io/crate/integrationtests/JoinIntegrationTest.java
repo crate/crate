@@ -903,4 +903,18 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                "2| 3| c\n")
         );
     }
+
+    @Test
+    public void testInnerJoinOnPreSortedRightRelation() {
+        execute("CREATE TABLE t1 (x int) with (number_of_replicas = 0)");
+        execute("insert into t1 (x) values (1) ");
+        execute("refresh table t1");
+        // regression test; the repeat requirement wasn't set correctly for the right side
+        assertThat(
+            printedTable(execute(
+                "select * from (select * from t1 order by x) t1 " +
+                "join (select * from t1 order by x) t2 on t1.x=t2.x").rows()),
+            is("1| 1\n")
+        );
+    }
 }
