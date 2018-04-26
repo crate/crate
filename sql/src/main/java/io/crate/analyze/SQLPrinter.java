@@ -91,9 +91,9 @@ public final class SQLPrinter {
 
         @Override
         public Void visitUnionSelect(UnionSelect unionSelect, StringBuilder sb) {
-            printSelect(unionSelect.left(), sb);
+            process(unionSelect.left(), sb);
             sb.append(" UNION ALL ");
-            printSelect(unionSelect.right(), sb);
+            process(unionSelect.right(), sb);
             return null;
         }
 
