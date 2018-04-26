@@ -94,9 +94,12 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         }
         List<GeneratedReference> generatedReferences = tableInfo.generatedColumns();
 
-        for (ColumnIdent partitionIdent : tableInfo.partitionedBy()) {
-            ensureNotUpdated(ci, partitionIdent, "Updating a partitioned-by column is not supported");
-            int idx = generatedReferences.indexOf(tableInfo.getReference(partitionIdent));
+        for (Reference partitionRef : tableInfo.partitionedByColumns()) {
+            ensureNotUpdated(ci, partitionRef.column(), "Updating a partitioned-by column is not supported");
+            if (!(partitionRef instanceof GeneratedReference)) {
+                continue;
+            }
+            int idx = generatedReferences.indexOf(partitionRef);
             if (idx >= 0) {
                 GeneratedReference generatedReference = generatedReferences.get(idx);
                 for (Reference reference : generatedReference.referencedReferences()) {
