@@ -63,7 +63,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testNoMatchWhereClause() throws Exception {
-        Query query = convert(WhereClause.NO_MATCH);
+        Query query = convert(WhereClause.NO_MATCH.queryOrFallback());
         assertThat(query, instanceOf(MatchNoDocsQuery.class));
     }
 
@@ -77,7 +77,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.of(new QualifiedName(tableInfo.ident().name()), tableRelation);
             SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation, new Object[]{null}, User.CRATE_USER);
 
-            Query query = convert(new WhereClause(sqlExpressions.normalize(sqlExpressions.asSymbol("x = ?"))));
+            Query query = convert(sqlExpressions.normalize(sqlExpressions.asSymbol("x = ?")));
 
             // must always become a MatchNoDocsQuery
             // string: term query with null would cause NPE
@@ -122,7 +122,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testEqOnTwoArraysBecomesGenericFunctionQueryAllValuesNull() throws Exception {
         SqlExpressions sqlExpressions = new SqlExpressions(sources, new Object[]{new Object[]{null, null, null}});
-        Query query = convert(new WhereClause(expressions.normalize(sqlExpressions.asSymbol("y_array = ?"))));
+        Query query = convert(expressions.normalize(sqlExpressions.asSymbol("y_array = ?")));
         assertThat(query, instanceOf(GenericFunctionQuery.class));
     }
 
@@ -131,7 +131,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Object[] values = new Object[2000]; // should trigger the TooManyClauses exception
         Arrays.fill(values, 10L);
         SqlExpressions sqlExpressions = new SqlExpressions(sources, new Object[]{values});
-        Query query = convert(new WhereClause(expressions.normalize(sqlExpressions.asSymbol("y_array = ?"))));
+        Query query = convert(expressions.normalize(sqlExpressions.asSymbol("y_array = ?")));
         assertThat(query, instanceOf(BooleanQuery.class));
         BooleanQuery booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(PointInSetQuery.class));
@@ -381,6 +381,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testRangeQueryForId() throws Exception {
         Query query = convert("_id > 'foo'");
         assertThat(query, instanceOf(TermRangeQuery.class));
+    }
+
+    @Test
+    public void testNiceErrorIsThrownOnInvalidTopLevelLiteral() {
+        expectedException.expectMessage("Can't build query from symbol 'yes'");
+        convert("'yes'");
     }
 
     @Test

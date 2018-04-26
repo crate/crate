@@ -23,9 +23,9 @@
 package io.crate.lucene;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -218,16 +218,12 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
         return analysisModule.getAnalysisRegistry().build(indexSettings);
     }
 
-    private WhereClause asWhereClause(String expression) {
-        return new WhereClause(expressions.normalize(expressions.asSymbol(expression)));
-    }
-
-    protected Query convert(WhereClause clause) {
-        return builder.convert(clause, mapperService, queryShardContext, indexCache).query;
+    protected Query convert(Symbol query) {
+        return builder.convert(query, mapperService, queryShardContext, indexCache).query;
     }
 
     protected Query convert(String expression) {
-        return convert(asWhereClause(expression));
+        return convert(expressions.normalize(expressions.asSymbol(expression)));
     }
 
     private Version indexVersion() {

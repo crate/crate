@@ -31,7 +31,6 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import io.crate.Constants;
 import io.crate.analyze.MatchOptionsAnalysis;
-import io.crate.analyze.WhereClause;
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
@@ -138,6 +137,7 @@ import java.util.stream.Stream;
 
 import static io.crate.expression.scalar.regex.RegexMatcher.isPcrePattern;
 import static io.crate.lucene.DistanceQueries.esV5DistanceQuery;
+import static io.crate.metadata.DocReferences.inverseSourceLookup;
 
 
 @Singleton
@@ -152,23 +152,14 @@ public class LuceneQueryBuilder {
         this.functions = functions;
     }
 
-    public Context convert(WhereClause whereClause,
+    public Context convert(Symbol query,
                            MapperService mapperService,
                            QueryShardContext queryShardContext,
                            IndexCache indexCache) throws UnsupportedFeatureException {
         Context ctx = new Context(functions, mapperService, indexCache, queryShardContext);
-        if (whereClause.noMatch()) {
-            ctx.query = Queries.newMatchNoDocsQuery("whereClause no-match");
-        } else if (!whereClause.hasQuery()) {
-            ctx.query = Queries.newMatchAllQuery();
-        } else {
-            Symbol query = DocReferences.inverseSourceLookup(whereClause.query());
-            ctx.query = VISITOR.process(query, ctx);
-        }
+        ctx.query = VISITOR.process(inverseSourceLookup(query), ctx);
         if (LOGGER.isTraceEnabled()) {
-            if (whereClause.hasQuery()) {
-                LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolPrinter.INSTANCE.printUnqualified(whereClause.query()), ctx.query);
-            }
+            LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolPrinter.INSTANCE.printUnqualified(query), ctx.query);
         }
         return ctx;
     }
@@ -1325,6 +1316,23 @@ public class LuceneQueryBuilder {
                 return fieldType.termQuery(true, null);
             }
             return super.visitReference(symbol, context);
+        }
+
+        @Override
+        public Query visitLiteral(Literal literal, Context context) {
+            Object value = literal.value();
+            if (value == null) {
+                return Queries.newMatchNoDocsQuery("WHERE null -> no match");
+            }
+            try {
+                return (boolean) value
+                    ? Queries.newMatchAllQuery()
+                    : Queries.newMatchNoDocsQuery("WHERE false -> no match");
+            } catch (ClassCastException e) {
+                // Throw a nice error if the top-level literal doesn't have a boolean type
+                // (This is currently caught earlier, so this code is just a safe-guard)
+                return visitSymbol(literal, context);
+            }
         }
 
         @Override
