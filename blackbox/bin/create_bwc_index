@@ -1,3 +1,0 @@
-#!/bin/bash
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PYTHONPATH=$DIR/../bwc $DIR/../.venv/bin/python bwc/create_bwc_index.py "$@"
