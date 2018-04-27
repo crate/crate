@@ -25,6 +25,7 @@ package io.crate.protocols.postgres.types;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.hamcrest.Matchers;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -177,5 +178,30 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
         Object targetArray = pgArray.readBinaryValue(buffer, length);
         buffer.release();
         assertThat(targetArray, is(sourceArray));
+    }
+
+    @Test
+    @Ignore // For multi-dimensions -1 is used both for "padding" until the max length of the dimension,
+            // but also for null handling, therefore we cannot distinguish between the two
+    public void testBinaryEncodingDecodingRoundtrip_MultipleDimensionsWithNulls() {
+        Object sourceArray = new Object[][] {
+            {1, 2, 3},
+            {4, 5, null},
+            {null, 6, 7, 8},
+            {null, null, 9, null}
+        };
+
+        ByteBuf buffer = Unpooled.buffer();
+        pgArray.writeAsBinary(buffer, sourceArray);
+        int length = buffer.readInt();
+        Object targetArray = pgArray.readBinaryValue(buffer, length);
+        assertThat(targetArray, is(sourceArray));
+        // Because of the null handling problem it returns:
+        // {
+        //     {1, 2, 3, null},
+        //     {4, 5, null, null},
+        //     {null, 6, 7, 8},
+        //     {null, null, 9, null}
+        // }
     }
 }
