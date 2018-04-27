@@ -267,7 +267,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Test
     public void testFormatQualified() throws Exception {
-        Symbol ref = sqlExpressions.asSymbol("doc.formatter.\"CraZy\"");
+        Symbol ref = sqlExpressions.asSymbol("formatter.\"CraZy\"");
         assertThat(printer.printQualified(ref), is("doc.formatter.\"CraZy\""));
         assertThat(printer.printUnqualified(ref), is("\"CraZy\""));
     }

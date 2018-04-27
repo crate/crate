@@ -70,6 +70,9 @@ Breaking Changes
 Changes
 =======
 
+- Fully qualified column names including a schema name will no longer match on
+  table aliases.
+
 - The default user if enterprise is disabled changed from ``null`` to
   ``crate``. This causes entries in ``sys.jobs`` to show up with ``crate`` as
   username. Functions like ``user`` will also return ``crate`` if enterprise is

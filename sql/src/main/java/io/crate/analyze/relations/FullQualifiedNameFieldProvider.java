@@ -99,7 +99,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
                     "sources key (QualifiedName) must have 1 or 2 parts, not %d", sourceParts.size()));
             }
 
-            if (columnSchema != null && sourceSchema != null && !columnSchema.equals(sourceSchema)) {
+            if (columnSchema != null && !columnSchema.equals(sourceSchema)) {
                 continue;
             }
             schemaMatched = true;

@@ -221,7 +221,7 @@ public class FieldProviderTest extends CrateUnitTest {
     public void testColumnSchemaResolver() throws Exception {
         AnalyzedRelation barT = new DummyRelation("\"Name\"");
 
-        FieldProvider<Field> resolver = newFQFieldProvider(ImmutableMap.of(newQN("\"Bar\""), barT));
+        FieldProvider<Field> resolver = newFQFieldProvider(ImmutableMap.of(newQN("\"Foo\".\"Bar\""), barT));
         Field field = resolver.resolveField(newQN("\"Foo\".\"Bar\".\"Name\""), null, Operation.READ);
         assertThat(field.relation(), equalTo(barT));
     }

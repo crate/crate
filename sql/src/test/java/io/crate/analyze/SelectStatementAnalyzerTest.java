@@ -29,7 +29,6 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.engine.aggregation.impl.AverageAggregation;
 import io.crate.expression.operator.EqOperator;
@@ -1935,5 +1934,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testColumnOutputWithSingleRowSubselect() {
         QueriedRelation relation = analyze("select 1 = \n (select \n 2\n)\n");
         assertThat(relation.fields(), isSQL(".empty_row.(1 = (SELECT 2))"));
+    }
+
+    @Test
+    public void testTableAliasIsNotAddressableByColumnNameWithSchema() {
+        expectedException.expectMessage("Relation 'doc.a' unknown");
+        analyze("select doc.a.x from t1 as a");
     }
 }
