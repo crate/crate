@@ -22,6 +22,8 @@
 
 package io.crate.protocols.postgres.types;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -31,9 +33,13 @@ import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
 
-public class PGArrayTest {
+public class PGArrayTest extends BasePGTypeTest<PGArray> {
 
     private PGArray pgArray = PGArray.INT4_ARRAY;
+
+    public PGArrayTest() {
+        super(PGArray.INT4_ARRAY);
+    }
 
     @Test
     public void testEncodeUTF8Text() {
@@ -145,5 +151,31 @@ public class PGArrayTest {
         o = pgArray.decodeUTF8Text("{{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}},{{\"5\",NULL,\"6\"},{\"7\"}}".getBytes(StandardCharsets.UTF_8));
         assertThat(o, is(new Object[][][] {{{1, null, 2}, {null, 3, 4}}, {{5, null, 6}, {7}}}));
     }
+
+    @Test
+    public void testBinaryEncodingDecodingRoundtrip() {
+        byte[] bytes = new byte[] {
+            0, 0, 0, 44, // length as 4 byte int (not including the length itself)
+            0, 0, 0, 1,  // dimensions as 4 byte int
+            0, 0, 0, 1,  // possible nulls flag as 4 byte int
+            0, 0, 0, 23, // oid of inner type (here is integer) as 4 byte int
+            0, 0, 0, 3,  // dimension max elements as 4 byte int
+            0, 0, 0, 3,  // dimension max elements as 4 byte int
+            0, 0, 0, 4,  // length of inner type (here is integer) as 4 type int
+            0, 0, 0, 1,  // value
+            0, 0, 0, 4,  // length of inner type (here is integer) as 4 type int
+            0, 0, 0, 2,  // value
+            0, 0, 0, 4,  // length of inner type (here is integer) as 4 type int
+            0, 0, 0, 3   // value
+        };
+
+        Object sourceArray = new Object[] {1, 2, 3};
+        assertBytesWritten(sourceArray, bytes, 48);
+
+        ByteBuf buffer = Unpooled.wrappedBuffer(bytes);
+        int length = buffer.readInt();
+        Object targetArray = pgArray.readBinaryValue(buffer, length);
+        buffer.release();
+        assertThat(targetArray, is(sourceArray));
     }
 }
