@@ -23,7 +23,6 @@
 package io.crate.protocols.postgres.types;
 
 import org.hamcrest.Matchers;
-import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -31,14 +30,13 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 public class PGArrayTest {
 
     private PGArray pgArray = PGArray.INT4_ARRAY;
 
     @Test
-    public void testEncodeUTF8Text() throws Exception {
+    public void testEncodeUTF8Text() {
         // 1-dimension array
         byte[] bytes = pgArray.encodeAsUTF8Text(new Object[] { 10, 20 });
         String s = new String(bytes, StandardCharsets.UTF_8);
@@ -51,18 +49,18 @@ public class PGArrayTest {
     }
 
     @Test
-    public void testArrayWithNullValues() throws Exception {
+    public void testArrayWithNullValues() {
         Object[] array = {10, null, 20};
         byte[] bytes = pgArray.encodeAsUTF8Text(array);
         String s = new String(bytes, StandardCharsets.UTF_8);
         assertThat(s, is("{\"10\",NULL,\"20\"}"));
         Object o = pgArray.decodeUTF8Text(bytes);
-        assertThat(((Object[]) o), is(array));
+        assertThat(o, is(array));
     }
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testJsonArrayEncodeDecode() throws Exception {
+    public void testJsonArrayEncodeDecode() {
         // 1-dimension array
         // Decode
         String s = "{\"{\"names\":[\"Arthur\",\"Trillian\"]}\",\"{\"names\":[\"Ford\",\"Slarti\"]}\"}";
@@ -115,7 +113,7 @@ public class PGArrayTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testDecodeEncodeEscapedJson() throws Exception {
+    public void testDecodeEncodeEscapedJson() {
         // Decode
         String s = "{\"{\\\"names\\\":[\\\"Arthur\\\",\\\"Trillian\\\"]}\",\"{\\\"names\\\":[\\\"Ford\\\",\\\"Slarti\\\"]}\"}";
         Object[] values = (Object[]) PGArray.JSON_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
@@ -134,17 +132,18 @@ public class PGArrayTest {
     }
 
     @Test
-    public void testDecodeUTF8Text() throws Exception {
+    public void testDecodeUTF8Text() {
         // 1-dimension array
         Object o = pgArray.decodeUTF8Text("{\"10\",\"20\"}".getBytes(StandardCharsets.UTF_8));
-        assertThat((Object[]) o, is(new Object[] {10, 20}));
+        assertThat(o, is(new Object[] {10, 20}));
 
         // 2-dimension array
         o = pgArray.decodeUTF8Text("{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}}".getBytes(StandardCharsets.UTF_8));
-        assertThat(((Object[]) o), Is.<Object[]>is(new Object[][] {{1, null, 2}, {null, 3, 4}}));
+        assertThat(o, is(new Object[][] {{1, null, 2}, {null, 3, 4}}));
 
         // 3-dimension array
         o = pgArray.decodeUTF8Text("{{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}},{{\"5\",NULL,\"6\"},{\"7\"}}".getBytes(StandardCharsets.UTF_8));
-        assertThat(((Object[]) o), Is.<Object[]>is(new Object[][][] {{{1, null, 2}, {null, 3, 4}}, {{5, null, 6}, {7}}}));
+        assertThat(o, is(new Object[][][] {{{1, null, 2}, {null, 3, 4}}, {{5, null, 6}, {7}}}));
+    }
     }
 }
