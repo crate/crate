@@ -34,11 +34,7 @@ import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -47,7 +43,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
-public class WhereClause extends QueryClause implements Streamable {
+public class WhereClause extends QueryClause {
 
     public static final WhereClause MATCH_ALL = new WhereClause(Literal.BOOLEAN_TRUE);
     public static final WhereClause NO_MATCH = new WhereClause(Literal.BOOLEAN_FALSE);
@@ -58,10 +54,6 @@ public class WhereClause extends QueryClause implements Streamable {
 
     private List<String> partitions = new ArrayList<>();
 
-
-    public WhereClause(StreamInput in) throws IOException {
-        readFrom(in);
-    }
 
     public WhereClause(@Nullable Symbol normalizedQuery,
                        @Nullable DocKeys docKeys,
@@ -122,26 +114,6 @@ public class WhereClause extends QueryClause implements Streamable {
      */
     public List<String> partitions() {
         return partitions;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        if (in.readBoolean()) {
-            query = Symbols.fromStream(in);
-        } else {
-            noMatch = in.readBoolean();
-        }
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        if (query != null) {
-            out.writeBoolean(true);
-            Symbols.toStream(query, out);
-        } else {
-            out.writeBoolean(false);
-            out.writeBoolean(noMatch);
-        }
     }
 
     @Override

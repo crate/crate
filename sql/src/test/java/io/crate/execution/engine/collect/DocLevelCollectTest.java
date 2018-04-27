@@ -188,7 +188,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             RowGranularity.DOC,
             toCollect,
             ImmutableList.of(),
-            whereClause,
+            whereClause.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );

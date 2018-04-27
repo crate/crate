@@ -24,20 +24,19 @@ package io.crate.planner.node;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Value;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.expression.scalar.cast.CastFunctionResolver;
-import io.crate.auth.user.User;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -70,7 +69,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             RowGranularity.DOC,
             toCollect,
             ImmutableList.<Projection>of(),
-            WhereClause.MATCH_ALL,
+            WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_MODULO,
             null // not streamed
         );
@@ -102,7 +101,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             RowGranularity.DOC,
             Collections.singletonList(toInt10),
             Collections.emptyList(),
-            WhereClause.MATCH_ALL,
+            WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_SAME_NODE,
             null
         );
@@ -125,7 +124,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             RowGranularity.DOC,
             Collections.singletonList(toInt10),
             Collections.emptyList(),
-            WhereClause.MATCH_ALL,
+            WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_SAME_NODE,
             null
         );
@@ -147,7 +146,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             RowGranularity.DOC,
             Collections.singletonList(Literal.of(10)),
             Collections.emptyList(),
-            WhereClause.MATCH_ALL,
+            WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_SAME_NODE,
             null
         );

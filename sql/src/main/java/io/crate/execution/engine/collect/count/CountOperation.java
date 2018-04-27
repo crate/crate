@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.collect.count;
 
-import io.crate.analyze.WhereClause;
+import io.crate.expression.symbol.Symbol;
 import org.elasticsearch.common.inject.ImplementedBy;
 import org.elasticsearch.index.Index;
 
@@ -34,7 +34,7 @@ import java.util.concurrent.CompletableFuture;
 public interface CountOperation {
 
     CompletableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
-                                  WhereClause whereClause) throws IOException, InterruptedException;
+                                  Symbol filter) throws IOException, InterruptedException;
 
-    long count(Index index, int shardId, WhereClause whereClause) throws IOException, InterruptedException;
+    long count(Index index, int shardId, Symbol filter) throws IOException, InterruptedException;
 }

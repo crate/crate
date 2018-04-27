@@ -24,20 +24,27 @@ package io.crate.planner.consumer;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedUpdateStatement;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.expression.symbol.Assignments;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.SysUpdateProjection;
+import io.crate.execution.dsl.projection.UpdateProjection;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
+import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Assignments;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
@@ -45,8 +52,6 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.execution.dsl.phases.NodeOperationTree;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -58,13 +63,8 @@ import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dml.UpdateById;
 import io.crate.planner.node.dql.Collect;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryAndParamBinder;
-import io.crate.execution.dsl.projection.MergeCountProjection;
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.SysUpdateProjection;
-import io.crate.execution.dsl.projection.UpdateProjection;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -217,7 +217,7 @@ public final class UpdatePlanner {
             tableInfo.rowGranularity(),
             newArrayList(idReference),
             singletonList(updateProjection),
-            where,
+            where.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST,
             plannerCtx.transactionContext().sessionContext().user()
         );

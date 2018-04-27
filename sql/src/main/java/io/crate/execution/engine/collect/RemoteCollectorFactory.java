@@ -140,7 +140,7 @@ public class RemoteCollectorFactory {
             collectPhase.maxRowGranularity(),
             collectPhase.toCollect(),
             new ArrayList<>(Projections.shardProjections(collectPhase.projections())),
-            collectPhase.whereClause(),
+            collectPhase.where(),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );

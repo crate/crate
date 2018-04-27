@@ -23,17 +23,17 @@
 package io.crate.execution.engine.collect.collectors;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.BatchIterator;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.stats.NodeStatsRequest;
 import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
+import io.crate.expression.InputFactory;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.expression.InputFactory;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
@@ -84,7 +84,7 @@ public class NodeStatsIteratorTest extends CrateUnitTest {
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.HOSTNAME),
             RowGranularity.DOC, DataTypes.STRING);
         collectPhase = mock(RoutedCollectPhase.class);
-        when(collectPhase.whereClause()).thenReturn(WhereClause.NO_MATCH);
+        when(collectPhase.where()).thenReturn(Literal.BOOLEAN_FALSE);
 
         nodes.add(newNode("nodeOne"));
         nodes.add(newNode("nodeTwo"));
@@ -155,7 +155,7 @@ public class NodeStatsIteratorTest extends CrateUnitTest {
         List<Symbol> toCollect = new ArrayList<>();
         toCollect.add(idRef);
         when(collectPhase.toCollect()).thenReturn(toCollect);
-        when(collectPhase.whereClause()).thenReturn(WhereClause.MATCH_ALL);
+        when(collectPhase.where()).thenReturn(Literal.BOOLEAN_TRUE);
         when(collectPhase.orderBy()).thenReturn(new OrderBy(Collections.singletonList(idRef),
             new boolean[]{false}, new Boolean[]{true}));
 

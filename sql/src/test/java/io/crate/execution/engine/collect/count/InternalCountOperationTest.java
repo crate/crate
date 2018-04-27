@@ -22,9 +22,10 @@
 package io.crate.execution.engine.collect.count;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -55,7 +56,7 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         ClusterService clusterService = internalCluster().getDataNodeInstance(ClusterService.class);
         MetaData metaData = clusterService.state().getMetaData();
         Index index = metaData.index(getFqn("t")).getIndex();
-        assertThat(countOperation.count(index, 0, WhereClause.MATCH_ALL), is(3L));
+        assertThat(countOperation.count(index, 0, Literal.BOOLEAN_TRUE), is(3L));
 
         Schemas schemas = internalCluster().getInstance(Schemas.class);
         TableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getDefaultSchema(), "t"));
@@ -63,7 +64,7 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName(tableInfo.ident().name()), tableRelation);
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);
 
-        WhereClause whereClause = new WhereClause(sqlExpressions.normalize(sqlExpressions.asSymbol("name = 'Marvin'")));
-        assertThat(countOperation.count(index, 0, whereClause), is(1L));
+        Symbol filter = sqlExpressions.normalize(sqlExpressions.asSymbol("name = 'Marvin'"));
+        assertThat(countOperation.count(index, 0, filter), is(1L));
     }
 }

@@ -23,19 +23,19 @@
 package io.crate.execution.engine.collect.collectors;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.WhereClause;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.kill.KillJobsRequest;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobRequest;
 import io.crate.execution.jobs.transport.JobResponse;
 import io.crate.execution.jobs.transport.TransportJobAction;
-import io.crate.analyze.WhereClause;
-import io.crate.breaker.RamAccountingContext;
-import io.crate.execution.jobs.kill.KillJobsRequest;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
-import io.crate.execution.jobs.JobContextService;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
@@ -79,7 +79,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             RowGranularity.DOC,
             Collections.singletonList(createReference("name", DataTypes.STRING)),
             Collections.emptyList(),
-            WhereClause.MATCH_ALL,
+            WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );

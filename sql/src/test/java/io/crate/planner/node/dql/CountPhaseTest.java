@@ -21,9 +21,9 @@
 
 package io.crate.planner.node.dql;
 
-import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.execution.dsl.phases.CountPhase;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.integration.CrateUnitTest;
@@ -51,7 +51,7 @@ public class CountPhaseTest extends CrateUnitTest {
                     .put("i2", Arrays.asList(1, 2)).map())
                 .put("n2", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
                     .put("i1", Collections.singletonList(3)).map()).map());
-        CountPhase countPhase = new CountPhase(1, routing, WhereClause.MATCH_ALL, DistributionInfo.DEFAULT_BROADCAST);
+        CountPhase countPhase = new CountPhase(1, routing, Literal.BOOLEAN_TRUE, DistributionInfo.DEFAULT_BROADCAST);
 
         BytesStreamOutput out = new BytesStreamOutput(10);
         countPhase.writeTo(out);

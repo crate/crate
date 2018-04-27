@@ -21,8 +21,8 @@
 
 package io.crate.execution.engine.collect.count;
 
-import io.crate.analyze.WhereClause;
 import io.crate.execution.support.ThreadPools;
+import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.IndexParts;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -71,7 +71,7 @@ public class InternalCountOperation implements CountOperation {
 
     @Override
     public CompletableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
-                                         final WhereClause whereClause) throws IOException, InterruptedException {
+                                         Symbol filter) throws IOException, InterruptedException {
 
         List<Supplier<Long>> suppliers = new ArrayList<>();
         MetaData metaData = clusterService.state().getMetaData();
@@ -88,7 +88,7 @@ public class InternalCountOperation implements CountOperation {
             for (final Integer shardId : entry.getValue()) {
                 suppliers.add(() -> {
                     try {
-                        return count(index, shardId, whereClause);
+                        return count(index, shardId, filter);
                     } catch (IOException | InterruptedException e) {
                         throw new RuntimeException(e);
                     }
@@ -102,7 +102,7 @@ public class InternalCountOperation implements CountOperation {
     }
 
     @Override
-    public long count(Index index, int shardId, WhereClause whereClause) throws IOException, InterruptedException {
+    public long count(Index index, int shardId, Symbol filter) throws IOException, InterruptedException {
         IndexService indexService;
         try {
             indexService = indicesService.indexServiceSafe(index);
@@ -116,7 +116,7 @@ public class InternalCountOperation implements CountOperation {
         IndexShard indexShard = indexService.getShard(shardId);
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
-                whereClause.queryOrFallback(),
+                filter,
                 indexService.mapperService(),
                 indexService.newQueryShardContext(shardId, searcher.reader(), System::currentTimeMillis,  null),
                 indexService.cache());

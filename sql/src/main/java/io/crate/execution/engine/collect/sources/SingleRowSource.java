@@ -21,20 +21,21 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.analyze.QueryClause;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.metadata.ClusterReferenceResolver;
-import io.crate.metadata.Functions;
-import io.crate.metadata.RowGranularity;
-import io.crate.expression.InputFactory;
-import io.crate.expression.InputRow;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.collect.RowsCollector;
-import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.expression.InputFactory;
+import io.crate.expression.InputRow;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.metadata.ClusterReferenceResolver;
+import io.crate.metadata.Functions;
+import io.crate.metadata.RowGranularity;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -54,11 +55,11 @@ public class SingleRowSource implements CollectSource {
     public CrateCollector getCollector(CollectPhase phase, RowConsumer consumer, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         collectPhase = collectPhase.normalize(clusterNormalizer, null);
-        if (collectPhase.whereClause().noMatch()) {
+
+        if (!QueryClause.canMatch(collectPhase.where())) {
             return RowsCollector.empty(consumer);
         }
-        assert !collectPhase.whereClause().hasQuery()
-            : "WhereClause should have been normalized to either MATCH_ALL or NO_MATCH";
+        assert collectPhase.where().symbolType().isValueSymbol() : "whereClause must have been normalized to a value";
 
         InputFactory inputFactory = new InputFactory(functions);
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(collectPhase.toCollect());

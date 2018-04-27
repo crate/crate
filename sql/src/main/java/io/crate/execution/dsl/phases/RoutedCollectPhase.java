@@ -22,21 +22,20 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
+import io.crate.auth.user.User;
+import io.crate.collections.Lists2;
+import io.crate.data.Paging;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.collections.Lists2;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.data.Paging;
-import io.crate.auth.user.User;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.projection.Projection;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -56,8 +55,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     private final Routing routing;
     private final List<Symbol> toCollect;
     private final RowGranularity maxRowGranularity;
+    private Symbol where;
 
-    private WhereClause whereClause;
     private DistributionInfo distributionInfo;
 
     @Nullable
@@ -76,17 +75,17 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                               RowGranularity maxRowGranularity,
                               List<Symbol> toCollect,
                               List<Projection> projections,
-                              WhereClause whereClause,
+                              Symbol where,
                               DistributionInfo distributionInfo,
                               @Nullable User user) {
         super(jobId, executionNodeId, name, projections);
         assert toCollect.stream().noneMatch(st -> SymbolVisitors.any(s -> s instanceof Field, st))
             : "toCollect must not contain any fields: " + toCollect;
-        assert !whereClause.hasQuery() || !SymbolVisitors.any(s -> s instanceof Field, whereClause.query())
-            : "whereClause must not contain any fields: " + whereClause;
+        assert !SymbolVisitors.any(s -> s instanceof Field, where)
+            : "whereClause must not contain any fields: " + where;
         assert routing != null : "routing must not be null";
 
-        this.whereClause = whereClause;
+        this.where = where;
         this.routing = routing;
         this.maxRowGranularity = maxRowGranularity;
         this.toCollect = toCollect;
@@ -98,7 +97,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     @Override
     public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         super.replaceSymbols(replaceFunction);
-        whereClause.replace(replaceFunction);
+
+        where = replaceFunction.apply(where);
         Lists2.replaceItems(toCollect, replaceFunction);
         if (orderBy != null) {
             orderBy.replace(replaceFunction);
@@ -192,8 +192,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         this.orderBy = orderBy;
     }
 
-    public WhereClause whereClause() {
-        return whereClause;
+    public Symbol where() {
+        return where;
     }
 
     public Routing routing() {
@@ -234,7 +234,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
         routing = new Routing(in);
 
-        whereClause = new WhereClause(in);
+        where = Symbols.fromStream(in);
 
         nodePageSizeHint = in.readOptionalVInt();
 
@@ -251,7 +251,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         RowGranularity.toStream(maxRowGranularity, out);
 
         routing.writeTo(out);
-        whereClause.writeTo(out);
+        Symbols.toStream(where, out);
 
         out.writeOptionalVInt(nodePageSizeHint);
         out.writeOptionalWriteable(orderBy);
@@ -263,17 +263,16 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
      * @return a normalized node, if no changes occurred returns this
      */
     public RoutedCollectPhase normalize(EvaluatingNormalizer normalizer, TransactionContext transactionContext) {
-        assert whereClause() != null : "whereClause must not be null";
         RoutedCollectPhase result = this;
         Function<Symbol, Symbol> normalize = s -> normalizer.normalize(s, transactionContext);
         List<Symbol> newToCollect = Lists2.copyAndReplace(toCollect, normalize);
         boolean changed = !newToCollect.equals(toCollect);
-        WhereClause newWhereClause = whereClause().normalize(normalizer, transactionContext);
+        Symbol newWhereClause = normalizer.normalize(where, transactionContext);
         OrderBy orderBy = this.orderBy;
         if (orderBy != null) {
             orderBy = orderBy.copyAndReplace(normalize);
         }
-        changed = changed || newWhereClause != whereClause();
+        changed = changed || newWhereClause != where;
         if (changed) {
             result = new RoutedCollectPhase(
                 jobId(),
@@ -308,7 +307,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         return Objects.equals(routing, that.routing) &&
                Objects.equals(toCollect, that.toCollect) &&
                maxRowGranularity == that.maxRowGranularity &&
-               Objects.equals(whereClause, that.whereClause) &&
+               Objects.equals(where, that.where) &&
                Objects.equals(distributionInfo, that.distributionInfo) &&
                Objects.equals(nodePageSizeHint, that.nodePageSizeHint) &&
                Objects.equals(orderBy, that.orderBy) &&
@@ -317,7 +316,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), routing, toCollect, maxRowGranularity, whereClause, distributionInfo,
+        return Objects.hash(super.hashCode(), routing, toCollect, maxRowGranularity, where, distributionInfo,
             nodePageSizeHint, orderBy, user);
     }
 }

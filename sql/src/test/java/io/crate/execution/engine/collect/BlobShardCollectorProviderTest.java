@@ -75,7 +75,7 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
             RowGranularity.SHARD,
             ImmutableList.of(),
             ImmutableList.of(),
-            WhereClause.MATCH_ALL,
+            WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );

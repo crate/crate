@@ -22,8 +22,8 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionInfo;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -37,16 +37,16 @@ public class CountPhase implements UpstreamPhase {
 
     private final int executionPhaseId;
     private final Routing routing;
-    private WhereClause whereClause;
+    private Symbol where;
     private DistributionInfo distributionInfo;
 
     public CountPhase(int executionPhaseId,
                       Routing routing,
-                      WhereClause whereClause,
+                      Symbol where,
                       DistributionInfo distributionInfo) {
         this.executionPhaseId = executionPhaseId;
         this.routing = routing;
-        this.whereClause = whereClause;
+        this.where = where;
         this.distributionInfo = distributionInfo;
     }
 
@@ -64,8 +64,8 @@ public class CountPhase implements UpstreamPhase {
         return routing;
     }
 
-    public WhereClause whereClause() {
-        return whereClause;
+    public Symbol where() {
+        return where;
     }
 
     @Override
@@ -96,7 +96,7 @@ public class CountPhase implements UpstreamPhase {
     public CountPhase(StreamInput in) throws IOException {
         executionPhaseId = in.readVInt();
         routing = new Routing(in);
-        whereClause = new WhereClause(in);
+        where = Symbols.fromStream(in);
         distributionInfo = DistributionInfo.fromStream(in);
     }
 
@@ -104,11 +104,11 @@ public class CountPhase implements UpstreamPhase {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(executionPhaseId);
         routing.writeTo(out);
-        whereClause.writeTo(out);
+        Symbols.toStream(where, out);
         distributionInfo.writeTo(out);
     }
 
     public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        whereClause.replace(replaceFunction);
+        where = replaceFunction.apply(where);
     }
 }

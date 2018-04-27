@@ -25,20 +25,25 @@ package io.crate.planner.statement;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedDeleteStatement;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.DeleteProjection;
+import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.execution.support.OneRowActionListener;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
@@ -46,8 +51,6 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.execution.dsl.phases.NodeOperationTree;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -61,10 +64,7 @@ import io.crate.planner.node.ddl.DeleteAllPartitions;
 import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.node.dql.Collect;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.planner.operators.SubQueryAndParamBinder;
-import io.crate.execution.dsl.projection.DeleteProjection;
-import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -177,7 +177,7 @@ public final class DeletePlanner {
             tableInfo.rowGranularity(),
             newArrayList(idReference),
             ImmutableList.of(deleteProjection),
-            where,
+            where.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST,
             sessionContext.user()
         );

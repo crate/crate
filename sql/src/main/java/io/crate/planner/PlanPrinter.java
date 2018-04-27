@@ -22,7 +22,6 @@
 package io.crate.planner;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.WhereClause;
 import io.crate.execution.dsl.phases.AbstractProjectionsPhase;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.CountPhase;
@@ -120,10 +119,7 @@ public class PlanPrinter {
             builder.put("toCollect", ExplainLeaf.printList(phase.toCollect()));
             builder = dqlPlanNode(phase, builder);
             builder.put("routing", phase.routing().locations());
-            WhereClause whereClause = phase.whereClause();
-            if (whereClause.hasQuery()) {
-                builder.put("where", whereClause.query().representation());
-            }
+            builder.put("where", phase.where().representation());
             return createMap(phase, builder);
         }
 

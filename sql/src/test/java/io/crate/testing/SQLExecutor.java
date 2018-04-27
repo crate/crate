@@ -87,8 +87,10 @@ import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepos
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.EmptyClusterInfoService;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -100,9 +102,12 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.routing.allocation.decider.SameShardAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.indices.analysis.AnalysisModule;
@@ -377,6 +382,47 @@ public class SQLExecutor {
             return this;
         }
 
+        public Builder addPartitionedTable(String createTableStmt, String... partitions) throws IOException {
+            CreateTable stmt = (CreateTable) SqlParser.createStatement(createTableStmt);
+            CreateTableAnalyzedStatement analyzedStmt = createTableStatementAnalyzer.analyze(
+                stmt, ParameterContext.EMPTY, new TransactionContext(SessionContext.create()));
+            if (!analyzedStmt.isPartitioned()) {
+                throw new IllegalArgumentException("use addTable(..) to add non partitioned tables");
+            }
+            ClusterState prevState = clusterService.state();
+
+            XContentBuilder mappingBuilder = XContentFactory.jsonBuilder().map(analyzedStmt.mapping());
+            CompressedXContent mapping = new CompressedXContent(mappingBuilder.bytes());
+            Settings settings = analyzedStmt.tableParameter().settings().getByPrefix("index.");
+            AliasMetaData.Builder alias = AliasMetaData.builder(analyzedStmt.tableIdent().indexName());
+            IndexTemplateMetaData.Builder template = IndexTemplateMetaData.builder(analyzedStmt.templateName())
+                .patterns(singletonList(analyzedStmt.templatePrefix()))
+                .order(100)
+                .putMapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
+                .settings(settings)
+                .putAlias(alias);
+
+            MetaData.Builder mdBuilder = MetaData.builder(prevState.metaData())
+                .put(template);
+
+            RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
+            for (String partition : partitions) {
+                IndexMetaData indexMetaData= getIndexMetaData(
+                    partition, analyzedStmt, prevState.nodes().getSmallestNonClientNodeVersion())
+                    .putAlias(alias)
+                    .build();
+                mdBuilder.put(indexMetaData, true);
+                routingBuilder.addAsNew(indexMetaData);
+            }
+            ClusterState newState = ClusterState.builder(prevState)
+                .metaData(mdBuilder.build())
+                .routingTable(routingBuilder.build())
+                .build();
+
+            ClusterServiceUtils.setState(clusterService, allocationService.reroute(newState, "assign shards"));
+            return this;
+        }
+
         /**
          * Add a table to the clusterState
          */
@@ -386,18 +432,11 @@ public class SQLExecutor {
                 stmt, ParameterContext.EMPTY, new TransactionContext(SessionContext.create()));
 
             if (analyzedStmt.isPartitioned()) {
-                // this is simply not implemented: We'd have to add the template instead of adding indexMetaData
-                throw new UnsupportedOperationException("Cannot add partitioned table");
+                throw new IllegalArgumentException("use addPartitionedTable(..) to add partitioned tables");
             }
             ClusterState prevState = clusterService.state();
-            IndexMetaData indexMetaData = IndexMetaData.builder(analyzedStmt.tableIdent().name())
-                .settings(
-                    Settings.builder()
-                        .put(analyzedStmt.tableParameter().settings())
-                        .put(SETTING_VERSION_CREATED, prevState.nodes().getSmallestNonClientNodeVersion())
-                        .build()
-                )
-                .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, analyzedStmt.mapping()))
+            IndexMetaData indexMetaData = getIndexMetaData(
+                analyzedStmt.tableIdent().name(), analyzedStmt, prevState.nodes().getSmallestNonClientNodeVersion())
                 .build();
 
             ClusterState state = ClusterState.builder(prevState)
@@ -407,6 +446,19 @@ public class SQLExecutor {
 
             ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
             return this;
+        }
+
+        private static IndexMetaData.Builder getIndexMetaData(String indexName,
+                                                              CreateTableAnalyzedStatement analyzedStmt,
+                                                              Version smallestNodeVersion) throws IOException {
+            return IndexMetaData.builder(indexName)
+                .settings(
+                    Settings.builder()
+                        .put(analyzedStmt.tableParameter().settings())
+                        .put(SETTING_VERSION_CREATED, smallestNodeVersion)
+                        .build()
+                )
+                .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, analyzedStmt.mapping()));
         }
 
         /**

@@ -24,16 +24,11 @@ package io.crate.execution.engine.collect.sources;
 
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
-import io.crate.expression.symbol.Symbol;
-import io.crate.data.RowConsumer;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
-import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.expression.InputFactory;
+import io.crate.data.RowConsumer;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.collect.JobCollectContext;
@@ -41,8 +36,12 @@ import io.crate.execution.engine.collect.RowsCollector;
 import io.crate.execution.engine.collect.RowsTransformer;
 import io.crate.execution.engine.collect.ValueAndInputRow;
 import io.crate.expression.InputCondition;
-import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
+import io.crate.expression.InputFactory;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -64,11 +63,6 @@ public class TableFunctionCollectSource implements CollectSource {
                                        RowConsumer consumer,
                                        JobCollectContext jobCollectContext) {
         TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
-        WhereClause whereClause = phase.whereClause();
-        if (whereClause.noMatch()) {
-            return RowsCollector.empty(consumer);
-        }
-
         TableFunctionImplementation functionImplementation = phase.functionImplementation();
         TableInfo tableInfo = functionImplementation.createTableInfo();
 
@@ -86,10 +80,8 @@ public class TableFunctionCollectSource implements CollectSource {
         Iterable<Row> rows = Iterables.transform(
             functionImplementation.execute(inputs),
             new ValueAndInputRow<>(topLevelInputs, ctx.expressions()));
-        if (whereClause.hasQuery()) {
-            Input<Boolean> condition = (Input<Boolean>) ctx.add(whereClause.query());
-            rows = Iterables.filter(rows, InputCondition.asPredicate(condition));
-        }
+        Input<Boolean> condition = (Input<Boolean>) ctx.add(phase.where());
+        rows = Iterables.filter(rows, InputCondition.asPredicate(condition));
         OrderBy orderBy = phase.orderBy();
         if (orderBy != null) {
             rows = RowsTransformer.sortRows(Iterables.transform(rows, Row::materialize), phase);

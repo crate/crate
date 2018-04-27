@@ -24,11 +24,15 @@ package io.crate.execution.engine.collect;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.data.Bucket;
+import io.crate.data.CollectionBucket;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.reference.sys.cluster.ClusterNameExpression;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Bucket;
-import io.crate.data.CollectionBucket;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -43,11 +47,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.expression.operator.EqOperator;
-import io.crate.expression.reference.sys.cluster.ClusterNameExpression;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
@@ -91,7 +91,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
             rowGranularity,
             toCollect,
             ImmutableList.<Projection>of(),
-            whereClause,
+            whereClause.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );

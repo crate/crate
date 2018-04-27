@@ -88,7 +88,7 @@ public class Count extends ZeroInputPlan {
         CountPhase countPhase = new CountPhase(
             plannerContext.nextExecutionPhaseId(),
             routing,
-            boundWhere,
+            boundWhere.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST
         );
         MergePhase mergePhase = new MergePhase(

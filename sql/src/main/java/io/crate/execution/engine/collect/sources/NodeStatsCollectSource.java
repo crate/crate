@@ -24,26 +24,27 @@ package io.crate.execution.engine.collect.sources;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.analyze.QueryClause;
 import io.crate.analyze.WhereClause;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.BatchIterator;
 import io.crate.data.RowConsumer;
-import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
-import io.crate.metadata.Functions;
-import io.crate.metadata.LocalSysColReferenceResolver;
-import io.crate.metadata.RowCollectExpression;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.expression.InputFactory;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.collect.RowsCollector;
 import io.crate.execution.engine.collect.collectors.NodeStatsIterator;
+import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
+import io.crate.expression.InputFactory;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
-import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
+import io.crate.metadata.LocalSysColReferenceResolver;
+import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
@@ -75,10 +76,11 @@ public class NodeStatsCollectSource implements CollectSource {
     @Override
     public CrateCollector getCollector(CollectPhase phase, RowConsumer consumer, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
-        if (collectPhase.whereClause().noMatch()) {
+        if (!QueryClause.canMatch(collectPhase.where())) {
             return RowsCollector.empty(consumer);
         }
-        Collection<DiscoveryNode> nodes = nodeIds(collectPhase.whereClause(),
+        Collection<DiscoveryNode> nodes = nodeIds(
+            collectPhase.where(),
             Lists.newArrayList(clusterService.state().getNodes().iterator()),
             functions);
         if (nodes.isEmpty()) {
@@ -94,12 +96,9 @@ public class NodeStatsCollectSource implements CollectSource {
     }
 
     @Nullable
-    static Collection<DiscoveryNode> nodeIds(WhereClause whereClause,
+    static Collection<DiscoveryNode> nodeIds(Symbol where,
                                              Collection<DiscoveryNode> nodes,
                                              Functions functions) {
-        if (!whereClause.hasQuery()) {
-            return nodes;
-        }
         LocalSysColReferenceResolver localSysColReferenceResolver = new LocalSysColReferenceResolver(
             ImmutableList.of(SysNodesTableInfo.Columns.NAME, SysNodesTableInfo.Columns.ID)
         );
@@ -115,8 +114,8 @@ public class NodeStatsCollectSource implements CollectSource {
             for (RowCollectExpression<NodeStatsContext, ?> expression : localSysColReferenceResolver.expressions()) {
                 expression.setNextRow(new NodeStatsContext(nodeId, node.getName()));
             }
-            Symbol normalized = normalizer.normalize(whereClause.query(), null);
-            if (normalized.equals(whereClause.query())) {
+            Symbol normalized = normalizer.normalize(where, null);
+            if (normalized.equals(where)) {
                 return nodes; // No local available sys nodes columns in where clause
             }
             if (WhereClause.canMatch(normalized)) {

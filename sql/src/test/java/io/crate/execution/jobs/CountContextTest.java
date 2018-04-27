@@ -21,9 +21,10 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.engine.collect.count.CountOperation;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.test.CauseMatcher;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
@@ -50,9 +51,9 @@ public class CountContextTest extends CrateUnitTest {
         CompletableFuture<Long> future = new CompletableFuture<>();
 
         CountOperation countOperation = mock(CountOperation.class);
-        when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
+        when(countOperation.count(anyMap(), any(Symbol.class))).thenReturn(future);
 
-        CountContext countContext = new CountContext(1, countOperation, new TestingRowConsumer(), null, WhereClause.MATCH_ALL);
+        CountContext countContext = new CountContext(1, countOperation, new TestingRowConsumer(), null, Literal.BOOLEAN_TRUE);
         countContext.prepare();
         countContext.start();
         future.complete(1L);
@@ -62,9 +63,9 @@ public class CountContextTest extends CrateUnitTest {
 
         // on error
         future = new CompletableFuture<>();
-        when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
+        when(countOperation.count(anyMap(), any(Symbol.class))).thenReturn(future);
 
-        countContext = new CountContext(2, countOperation, new TestingRowConsumer(), null, WhereClause.MATCH_ALL);
+        countContext = new CountContext(2, countOperation, new TestingRowConsumer(), null, Literal.BOOLEAN_TRUE);
         countContext.prepare();
         countContext.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
@@ -78,7 +79,7 @@ public class CountContextTest extends CrateUnitTest {
         CompletableFuture<Long> future = mock(CompletableFuture.class);
         CountOperation countOperation = new FakeCountOperation(future);
 
-        CountContext countContext = new CountContext(1, countOperation, new TestingRowConsumer(), null, WhereClause.MATCH_ALL);
+        CountContext countContext = new CountContext(1, countOperation, new TestingRowConsumer(), null, Literal.BOOLEAN_TRUE);
 
         countContext.prepare();
         countContext.start();
@@ -98,12 +99,12 @@ public class CountContextTest extends CrateUnitTest {
 
         @Override
         public CompletableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
-                                             WhereClause whereClause) throws IOException, InterruptedException {
+                                             Symbol filter) throws IOException, InterruptedException {
             return future;
         }
 
         @Override
-        public long count(Index index, int shardId, WhereClause whereClause) throws IOException, InterruptedException {
+        public long count(Index index, int shardId, Symbol filter) throws IOException, InterruptedException {
             return 0;
         }
     }

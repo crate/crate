@@ -22,25 +22,26 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.execution.jobs.SharedShardContext;
-import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.analyze.QueryClause;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.TransportActionProvider;
-import io.crate.metadata.Functions;
-import io.crate.expression.NestableInput;
-import io.crate.metadata.RowGranularity;
-import io.crate.expression.InputFactory;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
 import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
+import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.SharedShardContext;
+import io.crate.expression.InputFactory;
+import io.crate.expression.NestableInput;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.ReferenceResolver;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.Projections;
+import io.crate.metadata.Functions;
+import io.crate.metadata.RowGranularity;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -95,11 +96,10 @@ public abstract class ShardCollectorProvider {
         assert collectPhase.maxRowGranularity() == RowGranularity.SHARD : "granularity must be SHARD";
 
         collectPhase = collectPhase.normalize(shardNormalizer, null);
-        if (collectPhase.whereClause().noMatch()) {
+        if (!QueryClause.canMatch(collectPhase.where())) {
             return null;
         }
-        assert !collectPhase.whereClause().hasQuery()
-            : "whereClause shouldn't have a query after normalize. Should be NO_MATCH or MATCH_ALL";
+        assert collectPhase.where().symbolType().isValueSymbol() : "where must be a literal after normalize";
 
         InputFactory.Context<CollectExpression<Row, ?>> ctx =
             inputFactory.ctxForInputColumns(collectPhase.toCollect());
@@ -127,7 +127,7 @@ public abstract class ShardCollectorProvider {
         RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, null);
 
         final CrateCollector.Builder builder;
-        if (normalizedCollectNode.whereClause().noMatch()) {
+        if (!QueryClause.canMatch(normalizedCollectNode.where())) {
             builder = RowsCollector.emptyBuilder();
         } else {
             assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";

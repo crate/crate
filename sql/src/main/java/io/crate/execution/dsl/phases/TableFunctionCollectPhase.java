@@ -22,14 +22,13 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.analyze.WhereClause;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.projection.Projection;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
@@ -48,7 +47,7 @@ public class TableFunctionCollectPhase extends RoutedCollectPhase implements Col
                                      List<Literal<?>> functionArguments,
                                      List<Projection> projections,
                                      List<Symbol> outputs,
-                                     WhereClause whereClause) {
+                                     Symbol where) {
         super(jobId,
             phaseId,
             functionImplementation.info().ident().name(),
@@ -56,7 +55,7 @@ public class TableFunctionCollectPhase extends RoutedCollectPhase implements Col
             RowGranularity.DOC,
             outputs,
             projections,
-            whereClause,
+            where,
             DistributionInfo.DEFAULT_BROADCAST,
             null);
         this.functionImplementation = functionImplementation;

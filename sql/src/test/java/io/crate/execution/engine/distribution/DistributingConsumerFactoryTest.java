@@ -78,7 +78,7 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
             RowGranularity.DOC,
             ImmutableList.of(),
             ImmutableList.of(),
-            WhereClause.MATCH_ALL,
+            WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_MODULO,
             null
         );

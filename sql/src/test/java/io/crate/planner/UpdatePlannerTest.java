@@ -23,17 +23,17 @@
 package io.crate.planner;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
-import io.crate.metadata.Reference;
-import io.crate.planner.consumer.UpdatePlanner;
-import io.crate.planner.node.dml.UpdateById;
-import io.crate.planner.node.dql.Collect;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.UpdateProjection;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
+import io.crate.planner.consumer.UpdatePlanner;
+import io.crate.planner.node.dml.UpdateById;
+import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -43,6 +43,7 @@ import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
@@ -71,8 +72,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertThat(collectPhase.routing(), is(TableDefinitions.SHARD_ROUTING));
-        assertFalse(collectPhase.whereClause().noMatch());
-        assertFalse(collectPhase.whereClause().hasQuery());
+        assertThat(collectPhase.where(), isSQL("true"));
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(UpdateProjection.class));
         assertThat(collectPhase.toCollect().size(), is(1));

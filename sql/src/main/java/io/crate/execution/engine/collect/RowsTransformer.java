@@ -26,15 +26,15 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
-import io.crate.expression.symbol.Symbol;
+import io.crate.analyze.QueryClause;
 import io.crate.data.Buckets;
 import io.crate.data.Row;
-import io.crate.expression.InputFactory;
-import io.crate.expression.InputCondition;
-import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.expression.reference.ReferenceResolver;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.expression.InputCondition;
+import io.crate.expression.InputFactory;
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
@@ -46,8 +46,7 @@ public final class RowsTransformer {
                                                ReferenceResolver<?> referenceResolver,
                                                RoutedCollectPhase collectPhase,
                                                Iterable<?> iterable) {
-        WhereClause whereClause = collectPhase.whereClause();
-        if (whereClause.noMatch()) {
+        if (!QueryClause.canMatch(collectPhase.where())) {
             return Collections.emptyList();
         }
         InputFactory.Context ctx = inputFactory.ctxForRefs(referenceResolver);
@@ -61,13 +60,11 @@ public final class RowsTransformer {
 
         @SuppressWarnings("unchecked")
         Iterable<Row> rows = Iterables.transform(iterable, new ValueAndInputRow<>(ctx.topLevelInputs(), ctx.expressions()));
-        if (whereClause.hasQuery()) {
-            assert DataTypes.BOOLEAN.equals(whereClause.query().valueType()) :
-                "whereClause.query() must be of type " +  DataTypes.BOOLEAN;
+        assert DataTypes.BOOLEAN.equals(collectPhase.where().valueType()) :
+            "whereClause.query() must be of type " +  DataTypes.BOOLEAN;
 
-            //noinspection unchecked  whereClause().query() is a symbol of type boolean so it must become Input<Boolean>
-            rows = Iterables.filter(rows, InputCondition.asPredicate(ctx.add(whereClause.query())));
-        }
+        //noinspection unchecked  whereClause().query() is a symbol of type boolean so it must become Input<Boolean>
+        rows = Iterables.filter(rows, InputCondition.asPredicate(ctx.add(collectPhase.where())));
         if (orderBy == null) {
             return rows;
         }

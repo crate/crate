@@ -294,7 +294,7 @@ class Collect extends ZeroInputPlan {
                 functionArguments,
                 Collections.emptyList(),
                 outputs,
-                where
+                where.queryOrFallback()
             );
         }
 
@@ -326,7 +326,7 @@ class Collect extends ZeroInputPlan {
             tableInfo.rowGranularity(),
             boundOutputs,
             Collections.emptyList(),
-            where,
+            where.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST,
             sessionContext.user()
         );

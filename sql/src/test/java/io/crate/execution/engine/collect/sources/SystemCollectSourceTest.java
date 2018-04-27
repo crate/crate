@@ -35,9 +35,9 @@ import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.metadata.sys.SysTableDefinitions;
@@ -83,7 +83,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             RowGranularity.SHARD,
             Collections.singletonList(shardId),
             ImmutableList.of(),
-            WhereClause.MATCH_ALL,
+            WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );
@@ -117,7 +117,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             RowGranularity.SHARD,
             ImmutableList.of(),
             ImmutableList.of(),
-            WhereClause.MATCH_ALL,
+            WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST,
             null);
 

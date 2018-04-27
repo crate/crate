@@ -539,7 +539,7 @@ public class ContextPreparer extends AbstractComponent {
                 countOperation,
                 consumer,
                 indexShardMap,
-                phase.whereClause()
+                phase.where()
             ));
             return true;
         }

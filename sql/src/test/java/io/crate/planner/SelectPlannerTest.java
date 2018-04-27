@@ -24,7 +24,6 @@ package io.crate.planner;
 
 import com.google.common.collect.Iterables;
 import io.crate.analyze.TableDefinitions;
-import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -45,6 +44,7 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.PartitionName;
@@ -76,17 +76,20 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.SymbolMatchers.isFetchRef;
 import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -103,13 +106,23 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addDocTable(TableDefinitions.USER_TABLE_INFO)
             .addDocTable(TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_INFO)
             .addDocTable(TableDefinitions.PARTED_PKS_TI)
-            .addDocTable(TableDefinitions.TEST_PARTITIONED_TABLE_INFO)
             .addDocTable(TableDefinitions.IGNORED_NESTED_TABLE_INFO)
             .addDocTable(TableDefinitions.TEST_MULTIPLE_PARTITIONED_TABLE_INFO)
             .addDocTable(T3.T1_INFO)
             .addDocTable(T3.T2_INFO)
             .addDocTable(bindGeneratedColumnTable())
             .addTable("create table t_pk_part_generated (ts timestamp, p as date_trunc('day', ts), primary key (ts, p))")
+            .addPartitionedTable(
+                "create table parted (" +
+                "   id int," +
+                "   name string," +
+                "   date timestamp," +
+                "   obj object" +
+                ") partitioned by (date) ",
+                new PartitionName("parted", singletonList(new BytesRef("1395874800000"))).asIndexName(),
+                new PartitionName("parted", singletonList(new BytesRef("1395961200000"))).asIndexName(),
+                new PartitionName("parted", singletonList(null)).asIndexName()
+            )
             .build();
     }
 
@@ -222,7 +235,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         QueryThenFetch qtf = e.plan("select name from users where name = 'x' order by id limit 10");
         Merge merge = (Merge) qtf.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
-        assertTrue(collectPhase.whereClause().hasQuery());
+        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, string} = 'x'"));
 
         TopNProjection topNProjection = (TopNProjection) collectPhase.projections().get(0);
         assertThat(topNProjection.limit(), is(10));
@@ -246,7 +259,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = e.plan("select name from users where name = 'x' order by name limit 10");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertTrue(collectPhase.whereClause().hasQuery());
+        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, string} = 'x'"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(1));
@@ -308,7 +321,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(indices, Matchers.contains(
             new PartitionName("parted", Arrays.asList(new BytesRef("123"))).asIndexName()));
 
-        assertTrue(collectPhase.whereClause().hasQuery());
+        assertThat(collectPhase.where().representation(), is("Ref{doc.parted_pks.name, string} = 'x'"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(3));
@@ -320,7 +333,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = (Merge) qtf.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
 
-        assertTrue(collectPhase.whereClause().hasQuery());
+        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, string} = 'x'"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(2));
@@ -397,7 +410,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCountOnPartitionedTable() throws Exception {
         CountPlan plan = e.plan("select count(*) from parted where date = 1395874800000");
-        assertThat(plan.countPhase().whereClause().partitions(), containsInAnyOrder(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
+        assertThat(
+            plan.countPhase().routing().locations().entrySet().stream()
+                .flatMap(e -> e.getValue().keySet().stream())
+                .collect(Collectors.toList()),
+            Matchers.contains(
+                is(".partitioned.parted.04732cpp6ks3ed1o60o30c1g")
+            )
+        );
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -428,11 +448,18 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGlobalAggregateWithWhereOnPartitionColumn() throws Exception {
         Collect globalAggregate = e.plan(
-            "select min(name) from parted where date > 1395961100000");
+            "select min(name) from parted where date >= 1395961100000");
+        Routing routing = ((RoutedCollectPhase) globalAggregate.collectPhase()).routing();
 
-        WhereClause whereClause = ((RoutedCollectPhase) globalAggregate.collectPhase()).whereClause();
-        assertThat(whereClause.partitions().size(), is(1));
-        assertThat(whereClause.noMatch(), is(false));
+        assertThat(
+            routing.locations().values()
+                .stream()
+                .flatMap(shardsByIndex -> shardsByIndex.keySet().stream())
+                .sorted(Comparator.naturalOrder())
+                .collect(Collectors.toList()),
+            contains(
+                is(".partitioned.parted.04732cpp6ksjcc9i60o30c1g")
+        ));
     }
 
     @Test
@@ -548,7 +575,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join nl = (Join) qtf.subPlan();
         assertThat(nl.joinPhase().joinType(), is(JoinType.INNER));
         Collect rightCM = (Collect) nl.right();
-        assertThat(((RoutedCollectPhase) rightCM.collectPhase()).whereClause().query(),
+        assertThat(((RoutedCollectPhase) rightCM.collectPhase()).where(),
             isSQL("((doc.users.name = 'Arthur') AND (doc.users.id > 1))"));
 
         // doesn't contain "name" because whereClause is pushed down,
@@ -567,7 +594,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testGlobalCountPlan() throws Exception {
         CountPlan plan = e.plan("select count(*) from users");
 
-        assertThat(plan.countPhase().whereClause(), equalTo(WhereClause.MATCH_ALL));
+        assertThat(plan.countPhase().where(), equalTo(Literal.BOOLEAN_TRUE));
 
         assertThat(plan.mergePhase().projections().size(), is(1));
         assertThat(plan.mergePhase().projections().get(0), instanceOf(MergeCountProjection.class));
@@ -651,18 +678,18 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join nl = (Join) qtf.subPlan();
         assertThat(nl.left(), instanceOf(Collect.class));
         assertThat(nl.right(), instanceOf(Collect.class));
-        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).whereClause().noMatch(), is(true));
-        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).whereClause().noMatch(), is(true));
+        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where(), isSQL("false"));
+        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where(), isSQL("false"));
     }
 
     @Test
     public void test3TableJoinWithNoMatch() throws Exception {
         QueryThenFetch qtf = e.plan("select * from users t1, users t2, users t3 WHERE 1=2");
         Join outer = (Join) qtf.subPlan();
-        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).whereClause().noMatch(), is(true));
+        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where(), isSQL("false"));
         Join inner = (Join) outer.left();
-        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).whereClause().noMatch(), is(true));
-        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).whereClause().noMatch(), is(true));
+        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where(), isLiteral(false));
+        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where(), isLiteral(false));
     }
 
     @Test
@@ -670,17 +697,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join nl = e.plan("select count(*) from users t1, users t2 WHERE 1=2");
         assertThat(nl.left(), instanceOf(Collect.class));
         assertThat(nl.right(), instanceOf(Collect.class));
-        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).whereClause().noMatch(), is(true));
-        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).whereClause().noMatch(), is(true));
+        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where(), isLiteral(false));
+        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where(), isLiteral(false));
     }
 
     @Test
     public void testGlobalAggregateOn3TableJoinWithNoMatch() throws Exception {
         Join outer = e.plan("select count(*) from users t1, users t2, users t3 WHERE 1=2");
         Join inner = (Join) outer.left();
-        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).whereClause().noMatch(), is(true));
-        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).whereClause().noMatch(), is(true));
-        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).whereClause().noMatch(), is(true));
+        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where(), isLiteral(false));
+        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where(), isLiteral(false));
+        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where(), isLiteral(false));
     }
 
     @Test
