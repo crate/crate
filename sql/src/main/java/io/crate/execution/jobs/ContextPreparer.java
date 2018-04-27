@@ -743,8 +743,7 @@ public class ContextPreparer extends AbstractComponent {
                 inputFactory,
                 circuitBreaker,
                 phase.estimatedRowSizeForLeft(),
-                phase.numberOfRowsForLeft(),
-                phase.rowsToBeConsumed());
+                phase.numberOfRowsForLeft());
             PageDownstreamContext left = pageDownstreamContextForNestedLoop(
                 phase.phaseId(),
                 context,

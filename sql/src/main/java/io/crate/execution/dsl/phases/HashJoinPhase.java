@@ -45,7 +45,6 @@ public class HashJoinPhase extends JoinPhase {
     private final Collection<DataType> leftOutputTypes;
     private final long estimatedRowSizeForLeft;
     private final long numberOfRowsForLeft;
-    private final int rowsToBeConsumed;
 
     public HashJoinPhase(UUID jobId,
                          int executionNodeId,
@@ -61,8 +60,7 @@ public class HashJoinPhase extends JoinPhase {
                          List<Symbol> rightJoinConditionInputs,
                          Collection<DataType> leftOutputTypes,
                          long estimatedRowSizeForLeft,
-                         long numberOfRowsForLeft,
-                         int rowsToBeConsumed) {
+                         long numberOfRowsForLeft) {
         super(
             jobId,
             executionNodeId,
@@ -76,13 +74,11 @@ public class HashJoinPhase extends JoinPhase {
             JoinType.INNER,
             joinCondition);
         assert joinCondition != null : "JoinCondition for HashJoin cannot be null";
-        assert rowsToBeConsumed >= 0 : "RowsToBeConsumed for HashJoin cannot be negative";
         this.leftJoinConditionInputs = leftJoinConditionInputs;
         this.rightJoinConditionInputs = rightJoinConditionInputs;
         this.leftOutputTypes = leftOutputTypes;
         this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
         this.numberOfRowsForLeft = numberOfRowsForLeft;
-        this.rowsToBeConsumed = rowsToBeConsumed;
     }
 
     public HashJoinPhase(StreamInput in) throws IOException {
@@ -94,7 +90,6 @@ public class HashJoinPhase extends JoinPhase {
 
         estimatedRowSizeForLeft = in.readZLong();
         numberOfRowsForLeft = in.readZLong();
-        rowsToBeConsumed = in.readVInt();
     }
 
     @Override
@@ -107,7 +102,6 @@ public class HashJoinPhase extends JoinPhase {
 
         out.writeZLong(estimatedRowSizeForLeft);
         out.writeZLong(numberOfRowsForLeft);
-        out.writeVInt(rowsToBeConsumed);
     }
 
     @Override
@@ -138,9 +132,5 @@ public class HashJoinPhase extends JoinPhase {
 
     public long numberOfRowsForLeft() {
         return numberOfRowsForLeft;
-    }
-
-    public int rowsToBeConsumed() {
-        return rowsToBeConsumed;
     }
 }

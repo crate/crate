@@ -33,58 +33,30 @@ import static org.mockito.Mockito.when;
 
 public class BlockSizeCalculatorTest {
 
-    private static final int ROWS_TO_BE_CONSUMED = 10_000;
-
     private final CircuitBreaker circuitBreaker = mock(CircuitBreaker.class);
 
     @Test
     public void testCalculationOfBlockSize() {
         when(circuitBreaker.getLimit()).thenReturn(110L);
         when(circuitBreaker.getUsed()).thenReturn(10L);
-        BlockSizeCalculator blockCalculator100leftRows = new BlockSizeCalculator(circuitBreaker, 5, 100, ROWS_TO_BE_CONSUMED);
+        BlockSizeCalculator blockCalculator100leftRows = new BlockSizeCalculator(circuitBreaker, 5, 100);
         assertThat(blockCalculator100leftRows.calculateBlockSize(), is(20));
-        BlockSizeCalculator blockCalculator10LeftRows = new BlockSizeCalculator(circuitBreaker, 5, 10, ROWS_TO_BE_CONSUMED);
+        BlockSizeCalculator blockCalculator10LeftRows = new BlockSizeCalculator(circuitBreaker, 5, 10);
         assertThat(blockCalculator10LeftRows.calculateBlockSize(), is(10));
-    }
-
-    @Test
-    public void testBlockSizeIsAdjustedForUnorderedLimitJoins() {
-        when(circuitBreaker.getLimit()).thenReturn(DEFAULT_BLOCK_SIZE + 1L);
-        when(circuitBreaker.getUsed()).thenReturn(0L);
-        long numberOfRowsForLeft = DEFAULT_BLOCK_SIZE + 1;
-        BlockSizeCalculator blockSizeCalculator = new BlockSizeCalculator(circuitBreaker, 1, numberOfRowsForLeft, 100);
-        int blockSize = blockSizeCalculator.calculateBlockSize();
-        assertThat(blockSize, is(DEFAULT_BLOCK_SIZE));
-
-        // even for limit joins we don't use a block size larger than what the available memory dictates
-        when(circuitBreaker.getLimit()).thenReturn(110L);
-        when(circuitBreaker.getUsed()).thenReturn(10L);
-        blockSize = blockSizeCalculator.calculateBlockSize();
-        assertThat(blockSize, is(100));
-    }
-
-    @Test
-    public void testBlockSizeIsNotAdjustedForOrderedLimitJoins() {
-        when(circuitBreaker.getLimit()).thenReturn(DEFAULT_BLOCK_SIZE + 1L);
-        when(circuitBreaker.getUsed()).thenReturn(0L);
-
-        long numberOfRowsForLeft = DEFAULT_BLOCK_SIZE + 1;
-        BlockSizeCalculator blockSizeCalculator = new BlockSizeCalculator(circuitBreaker, 1, numberOfRowsForLeft, Integer.MAX_VALUE);
-        assertThat(blockSizeCalculator.calculateBlockSize(), is(DEFAULT_BLOCK_SIZE + 1));
     }
 
     @Test
     public void testCalculationOfBlockSizeWithMissingStats() {
         when(circuitBreaker.getLimit()).thenReturn(-1L);
-        BlockSizeCalculator blockSizeCalculator = new BlockSizeCalculator(circuitBreaker, 10, 10, ROWS_TO_BE_CONSUMED);
+        BlockSizeCalculator blockSizeCalculator = new BlockSizeCalculator(circuitBreaker, 10, 10);
         assertThat(blockSizeCalculator.calculateBlockSize(), is(DEFAULT_BLOCK_SIZE));
 
         when(circuitBreaker.getLimit()).thenReturn(110L);
         when(circuitBreaker.getUsed()).thenReturn(10L);
-        BlockSizeCalculator blockCalculatorNoNumberOrRowsStats = new BlockSizeCalculator(circuitBreaker, 10, -1, ROWS_TO_BE_CONSUMED);
+        BlockSizeCalculator blockCalculatorNoNumberOrRowsStats = new BlockSizeCalculator(circuitBreaker, 10, -1);
         assertThat(blockCalculatorNoNumberOrRowsStats.calculateBlockSize(), is(DEFAULT_BLOCK_SIZE));
 
-        BlockSizeCalculator blockCalculatorNoRowSizeStats = new BlockSizeCalculator(circuitBreaker, -1, 10, ROWS_TO_BE_CONSUMED);
+        BlockSizeCalculator blockCalculatorNoRowSizeStats = new BlockSizeCalculator(circuitBreaker, -1, 10);
         assertThat(blockCalculatorNoRowSizeStats.calculateBlockSize(), is(DEFAULT_BLOCK_SIZE));
     }
 
@@ -92,7 +64,7 @@ public class BlockSizeCalculatorTest {
     public void testCalculationOfBlockSizeWithNoMemLeft() {
         when(circuitBreaker.getLimit()).thenReturn(110L);
         when(circuitBreaker.getUsed()).thenReturn(110L);
-        BlockSizeCalculator blockSizeCalculator = new BlockSizeCalculator(circuitBreaker, 10, 10, ROWS_TO_BE_CONSUMED);
+        BlockSizeCalculator blockSizeCalculator = new BlockSizeCalculator(circuitBreaker, 10, 10);
         assertThat(blockSizeCalculator.calculateBlockSize(), is(10));
     }
 
@@ -100,7 +72,15 @@ public class BlockSizeCalculatorTest {
     public void testCalculationOfBlockSizeWithIntegerOverflow() {
         when(circuitBreaker.getLimit()).thenReturn(Integer.MAX_VALUE + 1L);
         when(circuitBreaker.getUsed()).thenReturn(0L);
-        BlockSizeCalculator blockSizeCalculator = new BlockSizeCalculator(circuitBreaker, 1, 1, Integer.MAX_VALUE);
+        BlockSizeCalculator blockSizeCalculator = new BlockSizeCalculator(circuitBreaker, 1, 1);
         assertThat(blockSizeCalculator.calculateBlockSize(), is(1));
+    }
+
+    @Test
+    public void testBlockSizeIsNotGreaterThanPageSize() {
+        when(circuitBreaker.getLimit()).thenReturn(DEFAULT_BLOCK_SIZE * 2L);
+        when(circuitBreaker.getUsed()).thenReturn(0L);
+        BlockSizeCalculator blockSizeCalculator = new BlockSizeCalculator(circuitBreaker, 1, DEFAULT_BLOCK_SIZE * 2L);
+        assertThat(blockSizeCalculator.calculateBlockSize(), is(DEFAULT_BLOCK_SIZE));
     }
 }

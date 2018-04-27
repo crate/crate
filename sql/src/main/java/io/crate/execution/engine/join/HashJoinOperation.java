@@ -56,8 +56,7 @@ public class HashJoinOperation implements CompletionListenable {
                              InputFactory inputFactory,
                              CircuitBreaker circuitBreaker,
                              long estimatedRowSizeForLeft,
-                             long numberOfRowsForLeft,
-                             int rowsToBeConsumed) {
+                             long numberOfRowsForLeft) {
 
         CompletableFuture.allOf(leftBatchIterator, rightBatchIterator)
             .whenComplete((result, failure) -> {
@@ -73,7 +72,7 @@ public class HashJoinOperation implements CompletionListenable {
                             getHashBuilderFromSymbols(inputFactory, joinLeftInputs),
                             getHashBuilderFromSymbols(inputFactory, joinRightInputs),
                             rowAccounting,
-                            new BlockSizeCalculator(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft, rowsToBeConsumed)
+                            new BlockSizeCalculator(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)
                         ), completionFuture);
                         nlResultConsumer.accept(joinIterator, null);
                     } catch (Exception e) {

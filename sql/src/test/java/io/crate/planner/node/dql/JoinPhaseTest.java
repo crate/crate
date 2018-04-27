@@ -135,8 +135,7 @@ public class JoinPhaseTest extends CrateUnitTest {
             Arrays.asList(Literal.of("testRight"), Literal.of(20)),
             Arrays.asList(DataTypes.STRING, DataTypes.INTEGER),
             111,
-            222,
-            333);
+            222);
 
         BytesStreamOutput output = new BytesStreamOutput();
         node.writeTo(output);
@@ -161,6 +160,5 @@ public class JoinPhaseTest extends CrateUnitTest {
         assertThat(node.leftOutputTypes(), is(node2.leftOutputTypes()));
         assertThat(node.estimatedRowSizeForLeft(), is(node2.estimatedRowSizeForLeft()));
         assertThat(node.numberOfRowsForLeft(), is(node2.numberOfRowsForLeft()));
-        assertThat(node.rowsToBeConsumed(), is(node2.rowsToBeConsumed()));
     }
 }

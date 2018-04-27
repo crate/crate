@@ -34,16 +34,13 @@ class BlockSizeCalculator implements Supplier<Integer> {
     private final CircuitBreaker circuitBreaker;
     private final long estimatedRowSizeForLeft;
     private final long numberOfRowsForLeft;
-    private final int rowsToBeConsumed;
 
     BlockSizeCalculator(CircuitBreaker circuitBreaker,
                         long estimatedRowSizeForLeft,
-                        long numberOfRowsForLeft,
-                        int rowsToBeConsumed) {
+                        long numberOfRowsForLeft) {
         this.circuitBreaker = circuitBreaker;
         this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
         this.numberOfRowsForLeft = numberOfRowsForLeft;
-        this.rowsToBeConsumed = rowsToBeConsumed;
     }
 
     int calculateBlockSize() {
@@ -53,14 +50,12 @@ class BlockSizeCalculator implements Supplier<Integer> {
 
         int blockSize = (int) Math.min(Integer.MAX_VALUE, (circuitBreaker.getLimit() - circuitBreaker.getUsed()) / estimatedRowSizeForLeft);
         blockSize = (int) Math.min(numberOfRowsForLeft, blockSize);
-        // we can encounter operations with explicit limit statement but without any order by clause.
-        // in this case, if the limit is much lower than the default block size, we'll try to keep the block size
-        // smaller than what the given node can handle as we will likely need to consume a smaller number of rows
-        // (imagine a node which can load the entire table in memory so the block size could be in the range of
-        // millions - the table row count - but the operation has `limit 100`)
-        if (rowsToBeConsumed < Integer.MAX_VALUE && rowsToBeConsumed <= DEFAULT_BLOCK_SIZE) {
-            blockSize = Math.min(DEFAULT_BLOCK_SIZE, blockSize);
-        }
+
+        // for distributed hash joins, we must ensure that each parallel executed join is switching to the same relation
+        // eventually and does not load the next batch while another is already switching. this would result in a
+        // dead lock caused by the constraint that all receivers must response to the collect nodes before a next batch
+        // is sent.
+        blockSize = Math.min(DEFAULT_BLOCK_SIZE, blockSize);
 
         // In case no mem available from circuit breaker then still allocate a small blockSize,
         // so that at least some rows (min 1) could be processed and a CircuitBreakerException can be triggered.
