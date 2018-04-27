@@ -77,7 +77,7 @@ class PGArray extends PGType {
         }
         int len = bytesWritten + writeArrayAsBinary(buffer, (Object[]) value, dimensionsList, 1);
         buffer.setInt(lenIndex, len);
-        return len;
+        return INT32_BYTE_SIZE + len; // add also the size of the length itself
     }
 
     private int getDimensions(@Nonnull Object value) {

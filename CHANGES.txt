@@ -180,8 +180,11 @@ Changes
 Fixes
 =====
 
-- As Windows does not support sending signals, stop attempting to handle the 
-  ``USR2`` signal on windows platforms as it just pollutes the logs with a big 
+- Fixed an issue in binary encoding/decoding of array types in Postgres Wire
+  Protocol affecting the ``npgsql`` driver.
+
+- As Windows does not support sending signals, stop attempting to handle the
+  ``USR2`` signal on windows platforms as it just pollutes the logs with a big
   warning.
 
 - Fixed an issue that caused queries on the `_uid` column to not match
