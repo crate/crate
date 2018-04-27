@@ -330,7 +330,7 @@ Both of these index types accept the following parameters:
   an optional distance unit (defaults to ``m``).
 
   Supported units are ``inch`` (``in``), ``yard`` (``yd``), ``miles``
-  (``mi``), ``kilometers`` (``km``), ``meters``(``m``), ``centimeters``
+  (``mi``), ``kilometers`` (``km``), ``meters`` (``m``), ``centimeters``
   (``cm``), ``millimeters`` (``mm``).
 
 :distance_error_pct:
