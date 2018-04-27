@@ -22,6 +22,7 @@
 package io.crate.lucene;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -29,7 +30,6 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateArrays;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
-import io.crate.Constants;
 import io.crate.analyze.MatchOptionsAnalysis;
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -63,7 +63,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.geo.GeoJSONUtils;
@@ -76,7 +75,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -111,7 +109,6 @@ import org.elasticsearch.index.mapper.GeoPointFieldMapper;
 import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.query.ExistsQueryBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.RegexpFlag;
@@ -1229,19 +1226,18 @@ public class LuceneQueryBuilder {
             return false;
         }
 
-        private Function rewriteAndValidateFields(Function function, Context context) {
-            if (function.arguments().size() == 2) {
-                Symbol left = function.arguments().get(0);
-                Symbol right = function.arguments().get(1);
+        private static Function rewriteAndValidateFields(Function function, Context context) {
+            List<Symbol> arguments = function.arguments();
+            if (arguments.size() == 2) {
+                Symbol left = arguments.get(0);
+                Symbol right = arguments.get(1);
                 if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
                     Reference ref = (Reference) left;
-                    if (ref.ident().columnIdent().equals(DocSysColumns.UID)) {
-                        Literal uidLiteral = generateLuceneUIDs(right);
+                    if (ref.ident().columnIdent().equals(DocSysColumns.UID) && context.queryShardContext().getIndexSettings().isSingleType()) {
                         return new Function(
                             function.info(),
-                            Arrays.asList(
-                                DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID),
-                                uidLiteral));
+                            ImmutableList.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID), right)
+                        );
                     } else {
                         String unsupportedMessage = context.unsupportedMessage(ref.ident().columnIdent().name());
                         if (unsupportedMessage != null) {
@@ -1251,25 +1247,6 @@ public class LuceneQueryBuilder {
                 }
             }
             return function;
-        }
-
-        /**
-         * Converts the Symbol value(s) to Lucene string(s) to match against the Lucene ids.
-         * @param symbol The Symbol to convert to a String uid.
-         * @return A literal holding the Lucene query value string.
-         */
-        private static Literal generateLuceneUIDs(Symbol symbol) {
-            if (DataTypes.isCollectionType(symbol.valueType())) {
-                List<String> strings = ValueSymbolVisitor.STRING_LIST.process(symbol);
-                String[] uids = new String[strings.size()];
-                for (int i = 0; i < uids.length; i++) {
-                    uids[i] = Uid.createUid(Constants.DEFAULT_MAPPING_TYPE, strings.get(i));
-                }
-                return Literal.of(new ArrayType(DataTypes.STRING), uids);
-            } else {
-                String uid = Uid.createUid(Constants.DEFAULT_MAPPING_TYPE, ValueSymbolVisitor.STRING.process(symbol));
-                return Literal.of(uid);
-            }
         }
 
         static Query genericFunctionFilter(Function function, Context context) {

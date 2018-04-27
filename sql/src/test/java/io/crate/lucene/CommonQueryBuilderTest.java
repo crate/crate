@@ -393,6 +393,9 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testRangeQueryForUid() throws Exception {
         Query query = convert("_uid > 'foo'");
         assertThat(query, instanceOf(TermRangeQuery.class));
+        TermRangeQuery rangeQuery = (TermRangeQuery) query;
+        assertThat(rangeQuery.getField(), is("_id"));
+        assertThat(rangeQuery.getLowerTerm().utf8ToString(), is("foo"));
     }
 
     public void testRangeQueryOnDocThrowsException() throws Exception {
