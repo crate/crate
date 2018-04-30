@@ -37,7 +37,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -136,12 +135,12 @@ public class MultiSourceSelect implements QueriedRelation {
     }
 
     private static QualifiedName generateName(Set<QualifiedName> sourceNames) {
-        ArrayList<String> nameParts = new ArrayList<>(sourceNames.size() + 1);
-        nameParts.add("J");
+        StringBuilder sb = new StringBuilder();
+        sb.append("J.");
         for (QualifiedName sourceName : sourceNames) {
-            nameParts.add(sourceName.toString());
+            sb.append(sourceName);
         }
-        return new QualifiedName(nameParts);
+        return new QualifiedName(sb.toString());
     }
 
     private MultiSourceSelect(QualifiedName relName,

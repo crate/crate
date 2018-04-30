@@ -313,7 +313,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         boolean distinctProcessed = false;
         boolean isDistinct = node.getSelect().isDistinct();
-        if (node.getSelect().isDistinct()) {
+        if (isDistinct) {
             List<Symbol> newGroupBy = rewriteGlobalDistinct(selectAnalysis.outputSymbols());
             if (groupBy.isEmpty() || Sets.newHashSet(newGroupBy).equals(Sets.newHashSet(groupBy))) {
                 distinctProcessed = true;
@@ -333,7 +333,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 node.getOrderBy(),
                 expressionAnalyzer,
                 expressionAnalysisContext,
-                expressionAnalysisContext.hasAggregates() || groupBy != null, isDistinct))
+                expressionAnalysisContext.hasAggregates() || groupBy != null,
+                isDistinct))
             .having(analyzeHaving(
                 node.getHaving(),
                 groupBy,
@@ -381,6 +382,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (!isDistinct || distinctProcessed) {
             return relation;
         }
+
+        // This relation will become the inner relation of the generated relation, so it needs a new name
+        relation.setQualifiedName(QualifiedName.of(relation.getQualifiedName().toString()));
 
         // Rewrite ORDER BY so it can be applied to the "wrapper" QueriedSelectRelation
         // Since ORDER BY symbols must be subset of the select SYMBOLS we use the index

@@ -45,6 +45,7 @@ import io.crate.sql.tree.QualifiedName;
 import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public final class SQLPrinter {
 
@@ -147,7 +148,7 @@ public final class SQLPrinter {
                     // use the name of the view instead of the underlying relation
                     return ((AnalyzedView) field.relation()).name() + "." + Identifiers.quoteIfNeeded(field.outputName());
                 } else {
-                    return field.relation().getQualifiedName() + "." + Identifiers.quoteIfNeeded(field.outputName());
+                    return quoteQualifiedName(field.relation().getQualifiedName()) + "." + Identifiers.quoteIfNeeded(field.outputName());
                 }
             }
             if (symbol instanceof Reference && "".equals(((Reference) symbol).ident().tableIdent().schema())) {
@@ -265,7 +266,7 @@ public final class SQLPrinter {
                     } else {
                         sb.append(printSymbol(function));
                         sb.append(" AS ");
-                        sb.append(qName.toString());
+                        sb.append(quoteQualifiedName(qName));
                     }
                 } else {
                     sb.append(tableRelation.tableInfo().ident().sqlFqn());
@@ -278,7 +279,7 @@ public final class SQLPrinter {
                     sb.append("(");
                     process(subRelation, sb);
                     sb.append(") ");
-                    sb.append(subRelation.getQualifiedName());
+                    sb.append(quoteQualifiedName(subRelation.getQualifiedName()));
                 }
             } else if (relation instanceof MultiSourceSelect) {
                 addJoinClause((MultiSourceSelect) relation, sb);
@@ -330,7 +331,7 @@ public final class SQLPrinter {
                 sb.append(relationName);
                 if (!relationName.equals(relation.getQualifiedName().toString())) {
                     sb.append(" AS ");
-                    sb.append(relation.getQualifiedName());
+                    sb.append(quoteQualifiedName(relation.getQualifiedName()));
                 }
             } else if (relation instanceof QueriedSelectRelation) {
                 QueriedRelation subRelation = ((QueriedSelectRelation) relation).subRelation();
@@ -340,9 +341,18 @@ public final class SQLPrinter {
                     sb.append("(");
                     process(subRelation, sb);
                     sb.append(")");
-                    sb.append(subRelation.getQualifiedName());
+                    sb.append(quoteQualifiedName(subRelation.getQualifiedName()));
                 }
             }
+        }
+
+        private static String quoteQualifiedName(QualifiedName qualifiedName) {
+            return qualifiedName.getParts().stream().map(part -> {
+                if (!part.startsWith("\"") && part.contains(".")) {
+                    return "\"" + part + "\"";
+                }
+                return part;
+            }).collect(Collectors.joining("."));
         }
 
         @Override
