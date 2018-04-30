@@ -328,10 +328,14 @@ public final class SQLPrinter {
                 }
             } else if (relation instanceof QueriedSelectRelation) {
                 QueriedRelation subRelation = ((QueriedSelectRelation) relation).subRelation();
-                sb.append("(");
-                process(subRelation, sb);
-                sb.append(") ");
-                sb.append(subRelation.getQualifiedName());
+                if (subRelation instanceof AnalyzedView) {
+                    process(subRelation, sb);
+                } else {
+                    sb.append("(");
+                    process(subRelation, sb);
+                    sb.append(")");
+                    sb.append(subRelation.getQualifiedName());
+                }
             }
         }
 
