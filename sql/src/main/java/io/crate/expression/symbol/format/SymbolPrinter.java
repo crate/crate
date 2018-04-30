@@ -22,8 +22,11 @@
 
 package io.crate.expression.symbol.format;
 
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.SQLPrinter;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationPrinter;
+import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.MatchPredicate;
 import io.crate.expression.scalar.SubscriptFunction;
@@ -43,6 +46,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.types.ArrayType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -235,7 +239,7 @@ public final class SymbolPrinter {
 
         @Override
         public Void visitReference(Reference symbol, SymbolPrinterContext context) {
-            if (context.isFullQualified()) {
+            if (context.isFullQualified() && !isTableFunctionReference(symbol)) {
                 context.builder.append(symbol.ident().tableIdent().sqlFqn())
                     .append(DOT);
             }
@@ -250,7 +254,7 @@ public final class SymbolPrinter {
 
         @Override
         public Void visitField(Field field, SymbolPrinterContext context) {
-            if (context.isFullQualified()) {
+            if (context.isFullQualified() && !isTableFunctionField(field)) {
                 context.builder.append(RelationPrinter.INSTANCE.process(field.relation(), null))
                     .append(DOT);
             }
@@ -324,6 +328,19 @@ public final class SymbolPrinter {
                     context.builder.append(COMMA).append(WS);
                 }
             }
+        }
+
+        private static boolean isTableFunctionReference(Reference reference) {
+            RelationName relationName = reference.ident().tableIdent();
+            return "".equals(relationName.schema());
+        }
+
+        private static boolean isTableFunctionField(Field field) {
+            AnalyzedRelation relation = field.relation();
+            if (relation instanceof QueriedTable) {
+                return ((QueriedTable) relation).tableRelation() instanceof TableFunctionRelation;
+            }
+            return false;
         }
     }
 

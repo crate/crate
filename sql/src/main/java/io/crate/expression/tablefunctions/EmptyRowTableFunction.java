@@ -53,7 +53,7 @@ import java.util.List;
 public class EmptyRowTableFunction {
 
     private static final String NAME = "empty_row";
-    private static final RelationName TABLE_IDENT = new RelationName("", NAME);
+    public static final RelationName TABLE_IDENT = new RelationName("", NAME);
 
     static class EmptyRowTableFunctionImplementation implements TableFunctionImplementation {
 

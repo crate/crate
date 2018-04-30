@@ -97,7 +97,7 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
             new SemiJoins.SemiJoinCandidate(query, subquery),
             relation.tableRelation());
 
-        assertThat(joinCondition, isSQL("(doc.t1.a = .empty_row.'foo')"));
+        assertThat(joinCondition, isSQL("(doc.t1.a = 'foo')"));
     }
 
     @Test
@@ -110,7 +110,7 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((QueriedRelation) semiJoin.sources().get(T1)).querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i WHERE (doc.t1.x = 10)"));
         assertThat(((QueriedRelation) semiJoin.sources().get(new QualifiedName(Arrays.asList("S0", "", "empty_row"))))
-            .querySpec(), isSQL("SELECT S0..empty_row.'foo'"));
+            .querySpec(), isSQL("SELECT 'foo'"));
 
         assertThat(semiJoin.joinPairs().get(0).condition(), isSQL("(doc.t1.a = S0..empty_row.'foo')"));
         assertThat(semiJoin.joinPairs().get(0).joinType(), is(JoinType.SEMI));
@@ -126,7 +126,7 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((QueriedRelation) antiJoin.sources().get(T1)).querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i WHERE (doc.t1.x = 10)"));
         assertThat(((QueriedRelation) antiJoin.sources().get(new QualifiedName(Arrays.asList("S0", "", "empty_row"))))
-            .querySpec(), isSQL("SELECT S0..empty_row.'foo'"));
+            .querySpec(), isSQL("SELECT 'foo'"));
 
         assertThat(antiJoin.joinPairs().get(0).condition(), isSQL("(doc.t1.a = S0..empty_row.'foo')"));
         assertThat(antiJoin.joinPairs().get(0).joinType(), is(JoinType.ANTI));

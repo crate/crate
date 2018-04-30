@@ -1865,9 +1865,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedRelation relation =
             analyze("select * from unnest(['a'], ['b'], [0], [0], [0], [0], [0], [0], [0], [0], [0])");
 
-        String sqlFields = ".unnest.col1, .unnest.col2, .unnest.col3, .unnest.col4, " +
-                           ".unnest.col5, .unnest.col6, .unnest.col7, .unnest.col8, " +
-                           ".unnest.col9, .unnest.col10, .unnest.col11";
+        String sqlFields = "col1, col2, col3, col4, " +
+                           "col5, col6, col7, col8, " +
+                           "col9, col10, col11";
         assertThat(relation.querySpec().outputs(), isSQL(sqlFields));
         assertThat(relation.fields(), isSQL(sqlFields));
     }
@@ -1933,7 +1933,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testColumnOutputWithSingleRowSubselect() {
         QueriedRelation relation = analyze("select 1 = \n (select \n 2\n)\n");
-        assertThat(relation.fields(), isSQL(".empty_row.(1 = (SELECT 2))"));
+        assertThat(relation.fields(), isSQL("(1 = (SELECT 2))"));
     }
 
     @Test

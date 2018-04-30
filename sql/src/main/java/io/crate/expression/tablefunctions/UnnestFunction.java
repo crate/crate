@@ -62,7 +62,7 @@ import static io.crate.metadata.functions.params.Param.ANY_ARRAY;
 public class UnnestFunction {
 
     private static final String NAME = "unnest";
-    private static final RelationName TABLE_IDENT = new RelationName("", NAME);
+    public static final RelationName TABLE_IDENT = new RelationName("", NAME);
 
     static class UnnestTableFunctionImplementation implements TableFunctionImplementation {
 
