@@ -28,6 +28,7 @@ import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.Constants;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -150,11 +151,13 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         // Signal handling here breaks FlightRecorder
         // So this is a undocumented switch to disable this for benchmarking purposes
         if (!System.getProperty("crate.signal_handler.disabled", "false").equalsIgnoreCase("true")) {
-            try {
-                Signal signal = new Signal("USR2");
-                Signal.handle(signal, this);
-            } catch (IllegalArgumentException e) {
-                logger.warn("SIGUSR2 signal not supported on {}.", System.getProperty("os.name"), e);
+            if (Constants.WINDOWS == false) {
+                try {
+                    Signal signal = new Signal("USR2");
+                    Signal.handle(signal, this);
+                } catch (IllegalArgumentException e) {
+                    logger.warn("SIGUSR2 signal not supported on {}.", System.getProperty("os.name"), e);
+                }
             }
         }
         this.executorService = executorService;
