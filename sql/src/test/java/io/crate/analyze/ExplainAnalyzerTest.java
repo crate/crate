@@ -54,7 +54,7 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         ExplainAnalyzedStatement stmt = e.analyze("explain SELECT id from sys.cluster where id = any([1,2,3])");
         assertNotNull(stmt.statement());
         assertThat(stmt.statement(), instanceOf(QueriedRelation.class));
-        assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN SELECT \"id\"\nFROM \"sys\".\"cluster\"\nWHERE \"id\" = ANY([1,2,3])\n")));
+        assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN SELECT \"id\"\nFROM \"sys\".\"cluster\"\nWHERE \"id\" = ANY([1, 2, 3])\n")));
     }
 
     @Test

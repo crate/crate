@@ -233,7 +233,7 @@ public final class ExpressionFormatter {
             boolean first = true;
             for (Expression element : node.values()) {
                 if (!first) {
-                    builder.append(",");
+                    builder.append(", ");
                 } else {
                     first = false;
                 }
