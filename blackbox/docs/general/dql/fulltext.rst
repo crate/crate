@@ -26,7 +26,7 @@ Synopsis
 ::
 
     MATCH (
-         {  column_ident | ( column_ident [boost]  [, ...] ) }
+         {  column_or_idx_ident | ( column_or_idx_ident [boost]  [, ...] ) }
      , query_term
     )  [ using match_type [ with ( match_parameter [= value] [, ... ] ) ] ]
 
@@ -65,14 +65,15 @@ relevant the row::
 
 The MATCH predicate in its simplest form performs a fulltext search against a
 single column. It takes the ``query_term`` and, if no ``analyzer`` was
-provided, analyzes the term with the analyzer configured on ``column_ident``.
-The resulting tokens are then matched against the index at ``column_ident`` and
-if one of them matches, MATCH returns ``TRUE``.
+provided, analyzes the term with the analyzer configured on
+``column_or_idx_ident``. The resulting tokens are then matched against the
+index at ``column_or_idx_ident`` and if one of them matches, MATCH returns
+``TRUE``.
 
 The MATCH predicate can be also used to perform a fulltext search on multiple
 columns with a single ``query_term`` and to add weight to specific columns it's
-possible to add a ``boost`` argument to each ``column_ident``. Matches on
-columns with a higher boost result in a higher :ref:`_score
+possible to add a ``boost`` argument to each ``column_or_idx_ident``. Matches
+on columns with a higher boost result in a higher :ref:`_score
 <sql_administration_system_column_score>` value for that document.
 
 The ``match_type`` argument determines how a single ``query_term`` is applied
@@ -86,9 +87,16 @@ by default, but can be overridden by adding an ``ORDER BY`` clause.
 Arguments
 .........
 
-:column_ident:
-  A reference to an index column or an existing column that is indexed
-  and of type ``string``.
+:column_or_idx_ident:
+  A reference to a column or an index.
+
+  If the column has an implicit index (e.g. created with something like
+  ``STRING column_a INDEX USING FULLTEXT``) this should be the name of the
+  column.
+
+  If the column has an explicit index (e.g. created with something like ``INDEX
+  "column_a_idx" USING FULLTEXT ("column_a") WITH (...)``) this should be the
+  name of the index.
 
   By default every column is indexed but only the raw data is stored, so
   matching against a ``string`` column without a fulltext index is
