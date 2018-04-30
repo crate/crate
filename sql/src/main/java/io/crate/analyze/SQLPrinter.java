@@ -241,7 +241,13 @@ public final class SQLPrinter {
                     sb.append(" AS ");
                     sb.append(Identifiers.quoteIfNeeded(field.outputName()));
                 }
-
+            } else if (output instanceof Field) {
+                String name = printSymbol(output);
+                sb.append(name);
+                if (!field.outputName().equals(((Field) output).outputName())) {
+                    sb.append(" AS ");
+                    sb.append(Identifiers.quoteIfNeeded(field.outputName()));
+                }
             } else {
                 sb.append(printSymbol(output));
             }
