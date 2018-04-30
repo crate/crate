@@ -68,26 +68,22 @@ jar {
     }
 }
 
+def moduleDir = file('../upstream/core')
 
 sourceSets {
     main {
-        java.srcDirs = ['../upstream/core/src/main/java']
-        resources {
-            srcDir '../upstream/core/src/main/resources'
-            include '**/*.*'
+        java {
+            srcDir "$moduleDir/src/main/java"
         }
         resources {
-            srcDir '../upstream/core/src/main/java'
-            include '**/*.json'
-            include '**/*.yml'
+            srcDir "$moduleDir/src/main/resources"
         }
     }
 }
 
 idea {
     module {
-        contentRoot = file('../upstream/core/src/main')
+        contentRoot = file("$moduleDir/src/main")
         excludeDirs += file('build')
     }
 }
-
