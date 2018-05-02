@@ -59,7 +59,7 @@ import java.util.stream.Stream;
  * <p>
  * We currently support the {@link NestedLoopJoin} and {@link HashJoin} operators (the hash join operator is
  * enabled by the {@link io.crate.metadata.settings.session.SessionSettingRegistry#HASH_JOIN_KEY} setting and its
- * application is mandated by {@link HashJoinDetector}).
+ * application is mandated by {@link EquiJoinDetector}).
  */
 public class JoinPlanBuilder implements LogicalPlan.Builder {
 
@@ -222,7 +222,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
     }
 
     private static boolean isHashJoinPossible(JoinType joinType, Symbol joinCondition, SessionContext sessionContext) {
-        return sessionContext.isHashJoinEnabled() && HashJoinDetector.isHashJoinPossible(joinType, joinCondition);
+        return sessionContext.isHashJoinEnabled() && EquiJoinDetector.isHashJoinPossible(joinType, joinCondition);
     }
 
     private static JoinType maybeInvertPair(QualifiedName rhsName, JoinPair pair) {

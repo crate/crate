@@ -36,7 +36,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Helper to detect if a join could be executed with a hash join algorithm.
+ * Helper to detect if a join is an Equi join and could be executed with a hash join algorithm.
  * <p>
  * Using hash join is possible under following assumptions:
  * <ul>
@@ -46,7 +46,7 @@ import java.util.Set;
  * <li>at least one argument of the {@link EqOperator} must NOT contain fields to multiple tables</li>
  * </ul>
  */
-public class HashJoinDetector {
+public class EquiJoinDetector {
 
     private static final Visitor VISITOR = new Visitor();
 
@@ -54,6 +54,10 @@ public class HashJoinDetector {
         if (joinType != JoinType.INNER) {
             return false;
         }
+        return isEquiJoin(joinCondition);
+    }
+
+    private static boolean isEquiJoin(Symbol joinCondition) {
         assert joinCondition != null : "join condition must not be null on inner joins";
         Context context = new Context();
         VISITOR.process(joinCondition, context);

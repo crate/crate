@@ -31,67 +31,67 @@ import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-public class HashJoinDetectorTest extends CrateUnitTest {
+public class EquiJoinDetectorTest extends CrateUnitTest {
 
     private static final SqlExpressions SQL_EXPRESSIONS = new SqlExpressions(T3.SOURCES);
 
     @Test
     public void testPossibleOnInnerContainingEqCondition() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x = t2.y");
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(true));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(true));
     }
 
     @Test
     public void testPossibleOnInnerContainingEqAndAnyCondition() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x > t2.y and t1.a = t2.b and not(t1.i = t2.i)");
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(true));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(true));
     }
 
     @Test
     public void testNotPossibleOnInnerWithoutAnyEqCondition() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x > t2.y and t1.a > t2.b");
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
     }
 
     @Test
     public void testPossibleOnInnerWithEqAndScalarOnOneRelation() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x + t1.i = t2.b");
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(true));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(true));
     }
 
     @Test
     public void testNotPossibleOnInnerWithEqAndScalarOnMultipleRelations() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x + t2.y = 4");
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
     }
 
     @Test
     public void testNotPossibleOnInnerContainingEqOrAnyCondition() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x = t2.y and t1.a = t2.b or t1.i = t2.i");
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
     }
 
     @Test
     public void testNotPossibleIfNotAnInnerJoin() {
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.CROSS, null), is(false));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.CROSS, null), is(false));
 
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x = t2.y");
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.LEFT, joinCondition), is(false));
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.RIGHT, joinCondition), is(false));
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.FULL, joinCondition), is(false));
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.ANTI, joinCondition), is(false));
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.SEMI, joinCondition), is(false));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.LEFT, joinCondition), is(false));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.RIGHT, joinCondition), is(false));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.FULL, joinCondition), is(false));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.ANTI, joinCondition), is(false));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.SEMI, joinCondition), is(false));
     }
 
     @Test
     public void testNotPossibleOnEqWithoutRelationFieldsOnBothSides() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x = 4");
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
     }
 
     @Test
     public void testNotPossibleOnNotWrappingEq() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("NOT (t1.a = t2.b)");
-        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
     }
 }
