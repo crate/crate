@@ -22,7 +22,9 @@
 package io.crate.analyze.expressions;
 
 import io.crate.sql.tree.ArrayComparisonExpression;
+import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.SubqueryExpression;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -32,7 +34,8 @@ import java.util.Map;
  */
 public class ExpressionAnalysisContext {
 
-    private final Map<Expression, Object> arrayExpressionsChildren = new IdentityHashMap<>();
+    private final ArrayComparisonChildVisitor arrayComparisonChildVisitor = new ArrayComparisonChildVisitor();
+    private final Map<SubqueryExpression, Object> arrayExpressionsChildren = new IdentityHashMap<>();
 
     private boolean hasAggregates;
 
@@ -46,20 +49,28 @@ public class ExpressionAnalysisContext {
 
     /**
      * Registers the given expression as the child of an ArrayComparisonExpression.
-     * Can be used by downstream operators to check if an expression is part of an
-     * {@link ArrayComparisonExpression}.
+     * Can be used by downstream operators to check if a SubqueryExpression is part of
+     * an {@link ArrayComparisonExpression}.
      * @param arrayExpressionChild the expression to register
      */
     void registerArrayComparisonChild(Expression arrayExpressionChild) {
-        arrayExpressionsChildren.put(arrayExpressionChild, null);
+        arrayComparisonChildVisitor.process(arrayExpressionChild, null);
     }
 
     /**
-     * Checks if the given Expression is part of an {@link ArrayComparisonExpression}.
+     * Checks if the given SubqueryExpression is part of an {@link ArrayComparisonExpression}.
      * @return True if the given expression has previously been registered.
      */
-    boolean isArrayComparisonChild(Expression expression) {
+    boolean isArrayComparisonChild(SubqueryExpression expression) {
         return arrayExpressionsChildren.containsKey(expression);
     }
 
+    private class ArrayComparisonChildVisitor extends DefaultTraversalVisitor<Void, Void> {
+
+        @Override
+        protected Void visitSubqueryExpression(SubqueryExpression node, Void context) {
+            arrayExpressionsChildren.put(node, null);
+            return null;
+        }
+    }
 }
