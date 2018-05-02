@@ -33,6 +33,7 @@ import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.format.SymbolPrinter;
@@ -160,7 +161,14 @@ public final class SQLPrinter {
         }
 
         private void clauseAndQuery(StringBuilder sb, String clause, @Nullable QueryClause query) {
-            if (query == null || !query.hasQuery()) {
+            if (query == null) {
+                return;
+            }
+            if (query.noMatch()) {
+                clauseAndSymbol(sb, clause, Literal.of(false));
+                return;
+            }
+            if (!query.hasQuery()) {
                 return;
             }
             clauseAndSymbol(sb, clause, query.query());
