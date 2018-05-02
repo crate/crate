@@ -57,6 +57,7 @@ import io.crate.metadata.settings.StringSetting;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.Expression;
@@ -184,7 +185,8 @@ class CopyAnalyzer {
 
         Symbol uri = expressionAnalyzer.convert(node.targetUri(), expressionAnalysisContext);
         uri = normalizer.normalize(uri, analysis.transactionContext());
-        List<String> partitions = resolvePartitions(node, analysis, tableRelation);
+        List<String> partitions = resolvePartitions(
+            node.table().partitionProperties(), analysis.parameterContext().parameters(), tableRelation.tableInfo());
 
         List<Symbol> outputs = new ArrayList<>();
         QuerySpec querySpec = new QuerySpec();
@@ -258,20 +260,18 @@ class CopyAnalyzer {
         return Enum.valueOf(settingsEnum, settingValue.toUpperCase(Locale.ENGLISH));
     }
 
-    private List<String> resolvePartitions(CopyTo node, Analysis analysis, DocTableRelation tableRelation) {
-        List<String> partitions = ImmutableList.of();
-        if (!node.table().partitionProperties().isEmpty()) {
-            PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                tableRelation.tableInfo(),
-                node.table().partitionProperties(),
-                analysis.parameterContext().parameters());
-
-            if (!partitionExists(tableRelation.tableInfo(), partitionName)) {
-                throw new PartitionUnknownException(partitionName);
-            }
-            partitions = ImmutableList.of(partitionName.asIndexName());
+    private static List<String> resolvePartitions(List<Assignment> partitionProperties, Row parameters, DocTableInfo table) {
+        if (partitionProperties.isEmpty()) {
+            return Collections.emptyList();
         }
-        return partitions;
+        PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
+            table,
+            partitionProperties,
+            parameters);
+        if (!table.partitions().contains(partitionName)) {
+            throw new PartitionUnknownException(partitionName);
+        }
+        return Collections.singletonList(partitionName.asIndexName());
     }
 
     private WhereClause createWhereClause(Optional<Expression> where,
@@ -307,21 +307,9 @@ class CopyAnalyzer {
         }
     }
 
-    private boolean partitionExists(DocTableInfo table, @Nullable PartitionName partition) {
-        if (table.isPartitioned() && partition != null) {
-            for (PartitionName partitionName : table.partitions()) {
-                if (partitionName.tableIdent().equals(table.ident())
-                    && partitionName.equals(partition)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private Settings settingsFromProperties(Map<String, Expression> properties,
-                                            ExpressionAnalyzer expressionAnalyzer,
-                                            ExpressionAnalysisContext expressionAnalysisContext) {
+    private static Settings settingsFromProperties(Map<String, Expression> properties,
+                                                   ExpressionAnalyzer expressionAnalyzer,
+                                                   ExpressionAnalysisContext expressionAnalysisContext) {
         Settings.Builder builder = Settings.builder();
         for (Map.Entry<String, Expression> entry : properties.entrySet()) {
             String key = entry.getKey();
