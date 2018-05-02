@@ -78,9 +78,9 @@ public class DeletePartitions implements Plan {
     @VisibleForTesting
     ArrayList<String> getIndices(Functions functions, Row parameters, Map<SelectSymbol, Object> subQueryValues) {
         ArrayList<String> indexNames = new ArrayList<>();
+        Function<Symbol, BytesRef> symbolToBytesRef =
+            s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, s, parameters, subQueryValues));
         for (List<Symbol> partitionValues : partitions) {
-            Function<Symbol, BytesRef> symbolToBytesRef =
-                s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, s, parameters, subQueryValues));
             List<BytesRef> values = Lists2.copyAndReplace(partitionValues, symbolToBytesRef);
             String indexName = IndexParts.toIndexName(relationName, PartitionName.encodeIdent(values));
             indexNames.add(indexName);

@@ -232,15 +232,6 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(querySpec.where().partitions(), contains(parted));
     }
 
-    @Test
-    public void testCopyToWithPartitionInWhereClause() throws Exception {
-        CopyToAnalyzedStatement analysis = e.analyze(
-            "copy parted where date = 1395874800000 to directory '/tmp/foo'");
-        String parted = new PartitionName("parted", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName();
-        QuerySpec querySpec = analysis.subQueryRelation().querySpec();
-        assertThat(querySpec.where().partitions(), contains(parted));
-        assertThat(analysis.overwrites().size(), is(1));
-    }
 
     @Test
     public void testCopyToWithPartitionIdentAndWhereClause() throws Exception {
@@ -250,13 +241,6 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QuerySpec querySpec = analysis.subQueryRelation().querySpec();
         assertThat(querySpec.where().partitions(), contains(parted));
         assertThat(querySpec.where().query(), isFunction("op_="));
-    }
-
-    @Test
-    public void testCopyToWithInvalidPartitionInWhereClause() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Given partition ident does not match partition evaluated from where clause");
-        e.analyze("copy parted partition (date=1395874800000) where date = 1395961200000 to directory '/tmp/foo'");
     }
 
     @Test

@@ -28,7 +28,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.VersionInvalidException;
@@ -120,7 +119,7 @@ public final class UpdatePlanner {
         }
 
         return new Update((plannerContext, params, subQueryValues) ->
-            updateByQuery(functions, plannerContext, docTable, assignmentByTargetCol, query, params, subQueryValues));
+            updateByQuery(functions, plannerContext, docTable, assignmentByTargetCol, detailedQuery, params, subQueryValues));
     }
 
     @FunctionalInterface
@@ -183,7 +182,7 @@ public final class UpdatePlanner {
                                                PlannerContext plannerCtx,
                                                DocTableRelation table,
                                                Map<Reference, Symbol> assignmentByTargetCol,
-                                               Symbol query,
+                                               WhereClauseOptimizer.DetailedQuery detailedQuery,
                                                Row params,
                                                Map<SelectSymbol, Object> subQueryValues) {
         DocTableInfo tableInfo = table.tableInfo();
@@ -192,9 +191,9 @@ public final class UpdatePlanner {
         Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryValues);
         UpdateProjection updateProjection = new UpdateProjection(
             new InputColumn(0, idReference.valueType()), assignments.targetNames(), assignmentSources, null);
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, table);
-        WhereClause where = whereClauseAnalyzer.analyze(
-            SubQueryAndParamBinder.convert(query, params, subQueryValues), plannerCtx.transactionContext());
+
+        WhereClause where = detailedQuery.toBoundWhereClause(
+            tableInfo, functions, params, subQueryValues, plannerCtx.transactionContext());
         if (where.hasVersions()) {
             throw new VersionInvalidException();
         }

@@ -27,7 +27,6 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -64,7 +63,6 @@ import io.crate.planner.node.ddl.DeleteAllPartitions;
 import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -124,10 +122,14 @@ public final class DeletePlanner {
                             RowConsumer consumer,
                             Row params,
                             Map<SelectSymbol, Object> valuesBySubQuery) {
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(executor.functions(), table);
 
-            Symbol query = SubQueryAndParamBinder.convert(detailedQuery.query(), params, valuesBySubQuery);
-            WhereClause where = whereClauseAnalyzer.analyze(query, plannerContext.transactionContext());
+            WhereClause where = detailedQuery.toBoundWhereClause(
+                table.tableInfo(),
+                executor.functions(),
+                params,
+                valuesBySubQuery,
+                plannerContext.transactionContext()
+            );
             if (!where.partitions().isEmpty() && !where.hasQuery()) {
                 DeleteIndexRequest request = new DeleteIndexRequest(where.partitions().toArray(new String[0]));
                 request.indicesOptions(IndicesOptions.lenientExpandOpen());
@@ -148,11 +150,14 @@ public final class DeletePlanner {
                                                          PlannerContext plannerContext,
                                                          List<Row> bulkParams,
                                                          Map<SelectSymbol, Object> valuesBySubQuery) {
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(executor.functions(), table);
             ArrayList<NodeOperationTree> nodeOperationTreeList = new ArrayList<>(bulkParams.size());
             for (Row params : bulkParams) {
-                Symbol query = SubQueryAndParamBinder.convert(detailedQuery.query(), params, valuesBySubQuery);
-                WhereClause where = whereClauseAnalyzer.analyze(query, plannerContext.transactionContext());
+                WhereClause where = detailedQuery.toBoundWhereClause(
+                    table.tableInfo(),
+                    executor.functions(),
+                    params,
+                    valuesBySubQuery,
+                    plannerContext.transactionContext());
                 ExecutionPlan executionPlan = deleteByQuery(table, plannerContext, where);
                 nodeOperationTreeList.add(NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId()));
             }

@@ -24,6 +24,9 @@ package io.crate.planner.statement;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -31,9 +34,6 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -41,9 +41,13 @@ import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import static io.crate.analyze.TableDefinitions.shardRouting;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -51,9 +55,20 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService)
             .addDocTable(TableDefinitions.USER_TABLE_INFO)
+            .addPartitionedTable(
+                "create table parted (" +
+                "   id int," +
+                "   name string," +
+                "   date timestamp," +
+                "   obj object" +
+                ") partitioned by (date) ",
+                new PartitionName("parted", singletonList(new BytesRef("1395874800000"))).asIndexName(),
+                new PartitionName("parted", singletonList(new BytesRef("1395961200000"))).asIndexName(),
+                new PartitionName("parted", singletonList(null)).asIndexName()
+            )
             .addDocTable(
                 new TestingTableInfo.Builder(new RelationName("doc", "parted_generated"), shardRouting("parted_generated"))
                     .add("ts", DataTypes.TIMESTAMP, null)
@@ -64,9 +79,9 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
             ).build();
     }
 
-    private Merge plan(String stmt) {
+    private <T> T plan(String stmt) {
          CopyStatementPlanner.CopyTo plan = e.plan(stmt);
-         return (Merge) CopyStatementPlanner.planCopyToExecution(
+         return (T) CopyStatementPlanner.planCopyToExecution(
              plan.copyTo,
              e.getPlannerContext(clusterService.state()),
              plan.logicalPlanner,
@@ -96,5 +111,26 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
         WriterProjection projection = (WriterProjection) node.projections().get(0);
         assertThat(projection.overwrites().size(), is(0));
+    }
+
+    @Test
+    public void testCopyToWithPartitionInWhereClauseRoutesToPartitionIndexOnly() throws Exception {
+        Collect collect = plan(
+            "copy parted where date = 1395874800000 to directory '/tmp/foo'");
+        String expectedIndex = new PartitionName("parted", singletonList(new BytesRef("1395874800000"))).asIndexName();
+
+        assertThat(
+            ((RoutedCollectPhase) collect.collectPhase()).routing().locations().values().stream()
+                .flatMap(shardsByIndices -> shardsByIndices.keySet().stream())
+            .collect(Collectors.toList()),
+            contains(expectedIndex)
+        );
+    }
+
+    @Test
+    public void testCopyToWithInvalidPartitionInWhereClause() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Given partition ident does not match partition evaluated from where clause");
+        plan("copy parted partition (date=1395874800000) where date = 1395961200000 to directory '/tmp/foo'");
     }
 }

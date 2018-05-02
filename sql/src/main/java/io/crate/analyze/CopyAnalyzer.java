@@ -30,16 +30,15 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
+import io.crate.data.Row;
+import io.crate.exceptions.PartitionUnknownException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.expression.symbol.format.SymbolPrinter;
-import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.data.Row;
-import io.crate.exceptions.PartitionUnknownException;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
@@ -246,7 +245,6 @@ class CopyAnalyzer {
             .outputs(outputs)
             .where(createWhereClause(
                 node.whereClause(),
-                tableRelation,
                 partitions,
                 normalizer,
                 expressionAnalyzer,
@@ -279,36 +277,20 @@ class CopyAnalyzer {
         return Collections.singletonList(partitionName.asIndexName());
     }
 
-    private WhereClause createWhereClause(Optional<Expression> where,
-                                          DocTableRelation tableRelation,
-                                          List<String> partitions,
-                                          EvaluatingNormalizer normalizer,
-                                          ExpressionAnalyzer expressionAnalyzer,
-                                          ExpressionAnalysisContext expressionAnalysisContext,
-                                          TransactionContext transactionContext) {
-        WhereClause whereClause = null;
+    private static WhereClause createWhereClause(Optional<Expression> where,
+                                                 List<String> partitions,
+                                                 EvaluatingNormalizer normalizer,
+                                                 ExpressionAnalyzer expressionAnalyzer,
+                                                 ExpressionAnalysisContext expressionAnalysisContext,
+                                                 TransactionContext transactionContext) {
+        // primary key optimization and partition selection from query happens later
+        // based on the queriedRelation in the LogicalPlanner
         if (where.isPresent()) {
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, tableRelation);
-            Symbol query = expressionAnalyzer.convert(where.get(), expressionAnalysisContext);
-            whereClause = whereClauseAnalyzer.analyze(normalizer.normalize(query, transactionContext), transactionContext);
-        }
-
-        if (whereClause == null) {
-            return new WhereClause(null, null, partitions, Collections.emptySet());
-        } else if (whereClause.noMatch()) {
-            return whereClause;
+            Symbol query = normalizer.normalize(
+                expressionAnalyzer.convert(where.get(), expressionAnalysisContext), transactionContext);
+            return new WhereClause(query, partitions, Collections.emptySet());
         } else {
-            if (!whereClause.partitions().isEmpty() && !partitions.isEmpty() &&
-                !whereClause.partitions().equals(partitions)) {
-                throw new IllegalArgumentException("Given partition ident does not match partition evaluated from where clause");
-            }
-
-            return new WhereClause(
-                whereClause.query(),
-                whereClause.docKeys().orElse(null),
-                partitions.isEmpty() ? whereClause.partitions() : partitions,
-                whereClause.clusteredBy()
-            );
+            return new WhereClause(null, partitions, Collections.emptySet());
         }
     }
 

@@ -99,7 +99,6 @@ class Collect extends ZeroInputPlan {
     public static LogicalPlan.Builder create(QueriedTable relation,
                                              List<Symbol> toCollect,
                                              WhereClause where) {
-        assert !where.docKeys().isPresent() : "If whereClause has docKeys a Get operator should be used";
         return (tableStats, usedColumns) -> new Collect(
             relation,
             toCollect,

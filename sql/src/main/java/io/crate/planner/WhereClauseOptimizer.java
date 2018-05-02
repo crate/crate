@@ -23,21 +23,29 @@
 package io.crate.planner;
 
 import io.crate.analyze.GeneratedColumnExpander;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.where.DocKeys;
 import io.crate.analyze.where.EqualityExtractor;
+import io.crate.analyze.where.WhereClauseAnalyzer;
+import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.collections.Lists2;
+import io.crate.data.Row;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.operators.SubQueryAndParamBinder;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -61,7 +69,7 @@ public final class WhereClauseOptimizer {
 
         private final Symbol query;
         private final DocKeys docKeys;
-        private final List<List<Symbol>> partitionValues;
+        private final List<List<Symbol>> partitions;
         private final Set<Symbol> clusteredByValues;
 
         DetailedQuery(Symbol query,
@@ -70,7 +78,7 @@ public final class WhereClauseOptimizer {
                       Set<Symbol> clusteredByValues) {
             this.query = query;
             this.docKeys = docKeys;
-            this.partitionValues = firstNonNull(partitionValues, Collections.emptyList());
+            this.partitions = firstNonNull(partitionValues, Collections.emptyList());
             this.clusteredByValues = clusteredByValues;
         }
 
@@ -86,7 +94,7 @@ public final class WhereClauseOptimizer {
          *         The order matches the order of the partitioned by column definition.
          */
         public List<List<Symbol>> partitions() {
-            return partitionValues;
+            return partitions;
         }
 
         public Symbol query() {
@@ -95,6 +103,40 @@ public final class WhereClauseOptimizer {
 
         public Set<Symbol> clusteredBy() {
             return clusteredByValues;
+        }
+
+        public WhereClause toBoundWhereClause(DocTableInfo table,
+                                              Functions functions,
+                                              Row params,
+                                              Map<SelectSymbol, Object> subQueryValues,
+                                              TransactionContext txnCtx) {
+            if (docKeys != null) {
+                throw new IllegalStateException(getClass().getSimpleName()
+                                                + " must not be converted to a WhereClause if docKeys are present");
+            }
+            Symbol boundQuery = SubQueryAndParamBinder.convert(query, params, subQueryValues);
+            HashSet<Symbol> clusteredBy = new HashSet<>(clusteredByValues.size());
+            for (Symbol clusteredByValue : clusteredByValues) {
+                clusteredBy.add(SubQueryAndParamBinder.convert(clusteredByValue, params, subQueryValues));
+            }
+            if (table.isPartitioned()) {
+                if (table.partitions().isEmpty()) {
+                    return WhereClause.NO_MATCH;
+                }
+                WhereClauseAnalyzer.PartitionResult partitionResult =
+                    WhereClauseAnalyzer.resolvePartitions(boundQuery, table, functions, txnCtx);
+                return new WhereClause(
+                    partitionResult.query,
+                    partitionResult.partitions,
+                    clusteredBy
+                );
+            } else {
+                return new WhereClause(
+                    boundQuery,
+                    Collections.emptyList(),
+                    clusteredBy
+                );
+            }
         }
     }
 
@@ -141,6 +183,9 @@ public final class WhereClauseOptimizer {
                     clusteredBy.add(s.get(0));
                 }
             }
+        }
+        if (docKeys == null) {
+            WhereClauseValidator.validate(query);
         }
         return new DetailedQuery(query, docKeys, partitionValues, clusteredBy);
     }

@@ -24,15 +24,14 @@ package io.crate.planner;
 
 import com.google.common.collect.Lists;
 import io.crate.analyze.TableDefinitions;
-import io.crate.expression.symbol.ParameterSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.expression.symbol.ParameterSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.TestingRowConsumer;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,7 +44,6 @@ import static io.crate.testing.TestingHelpers.isDocKey;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -88,16 +86,8 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWhereVersionIsNullPredicate() throws Exception {
-        Plan plan = e.plan("delete from users where _version is null");
-
         expectedException.expect(VersionInvalidException.class);
         expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        plan.execute(
-            mock(DependencyCarrier.class),
-            e.getPlannerContext(clusterService.state()),
-            new TestingRowConsumer(),
-            Row.EMPTY,
-            Collections.emptyMap()
-        );
+        e.plan("delete from users where _version is null");
     }
 }

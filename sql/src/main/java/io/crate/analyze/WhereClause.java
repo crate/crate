@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterators;
-import io.crate.analyze.where.DocKeys;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.eval.NullEliminator;
 import io.crate.expression.operator.AndOperator;
@@ -35,12 +34,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.common.Nullable;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -50,18 +47,13 @@ public class WhereClause extends QueryClause {
     public static final WhereClause NO_MATCH = new WhereClause(Literal.BOOLEAN_FALSE);
 
     private Set<Symbol> clusteredBy = Collections.emptySet();
-
-    private Optional<DocKeys> docKeys = Optional.empty();
-
-    private List<String> partitions = new ArrayList<>();
+    private List<String> partitions = Collections.emptyList();
 
 
     public WhereClause(@Nullable Symbol normalizedQuery,
-                       @Nullable DocKeys docKeys,
                        @Nullable List<String> partitions,
                        Set<Symbol> clusteredBy) {
         super(normalizedQuery);
-        this.docKeys = Optional.ofNullable(docKeys);
         this.clusteredBy = clusteredBy;
         if (partitions != null) {
             this.partitions = partitions;
@@ -82,7 +74,7 @@ public class WhereClause extends QueryClause {
         if (nullReplacedQuery == query) {
             return this;
         }
-        return new WhereClause(nullReplacedQuery, docKeys.orElse(null), partitions, clusteredBy);
+        return new WhereClause(nullReplacedQuery, partitions, clusteredBy);
     }
 
     public Set<Symbol> clusteredBy() {
@@ -99,10 +91,6 @@ public class WhereClause extends QueryClause {
         } else {
             return null;
         }
-    }
-
-    public Optional<DocKeys> docKeys() {
-        return docKeys;
     }
 
     /**
@@ -131,8 +119,7 @@ public class WhereClause extends QueryClause {
     }
 
     public boolean hasVersions() {
-        return (docKeys.isPresent() && docKeys.get().withVersions())
-            || query != null && Symbols.containsColumn(query, DocSysColumns.VERSION);
+        return query != null && Symbols.containsColumn(query, DocSysColumns.VERSION);
     }
 
 
@@ -142,7 +129,6 @@ public class WhereClause extends QueryClause {
      * The result is either a new WhereClause or the same (but modified) instance.
      */
     public WhereClause add(Symbol otherQuery) {
-        assert !docKeys.isPresent() : "Cannot add otherQuery if there are docKeys in the WhereClause";
         if (this == MATCH_ALL) {
             return new WhereClause(otherQuery);
         }
@@ -162,7 +148,7 @@ public class WhereClause extends QueryClause {
             return this;
         }
         Symbol newQuery = replaceFunction.apply(query);
-        return new WhereClause(newQuery, docKeys.orElse(null), partitions, clusteredBy);
+        return new WhereClause(newQuery, partitions, clusteredBy);
     }
 
     @Override
@@ -175,12 +161,11 @@ public class WhereClause extends QueryClause {
         }
         WhereClause that = (WhereClause) o;
         return Objects.equals(clusteredBy, that.clusteredBy) &&
-               Objects.equals(docKeys, that.docKeys) &&
                Objects.equals(partitions, that.partitions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(clusteredBy, docKeys, partitions);
+        return Objects.hash(clusteredBy, partitions);
     }
 }

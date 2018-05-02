@@ -81,6 +81,13 @@ public class EqualityExtractorTest extends CrateUnitTest {
     }
 
     @Test
+    public void testNoExtractOnNotEqualsOnSinglePk() {
+        Symbol query = query("x != 1");
+        List<List<Symbol>> matches = analyzeExactX(query);
+        assertNull(matches);
+    }
+
+    @Test
     public void testExtract2ColPKWithAndAndNestedOr() throws Exception {
         Symbol query = query("x = 1 and (i = 2 or i = 3 or i = 4)");
         List<List<Symbol>> matches = analyzeExactXI(query);
@@ -335,6 +342,12 @@ public class EqualityExtractorTest extends CrateUnitTest {
     public void testNoPKExtractionIfFunctionUsingPKIsPresent() throws Exception {
         Symbol query = query("x in (1, 2, 3) and substr(cast(x as string), 0) = 4");
         List<List<Symbol>> matches = analyzeExactX(query);
+        assertThat(matches, nullValue());
+    }
+
+    @Test
+    public void testNoPKExtractionOnNotIn() {
+        List<List<Symbol>> matches = analyzeExactX(query("x not in (1, 2, 3)"));
         assertThat(matches, nullValue());
     }
 }

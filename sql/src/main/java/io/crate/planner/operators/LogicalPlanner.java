@@ -22,7 +22,6 @@
 
 package io.crate.planner.operators;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
@@ -242,7 +241,6 @@ public class LogicalPlanner {
                                                         FetchMode fetchMode,
                                                         Functions functions,
                                                         TransactionContext txnCtx) {
-        SessionContext sessionContext = txnCtx.sessionContext();
         if (queriedRelation instanceof AnalyzedView) {
             return plan(((AnalyzedView) queriedRelation).relation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
         }
@@ -267,7 +265,6 @@ public class LogicalPlanner {
                 }
                 return Collect.create(queriedTable, toCollect, new WhereClause(
                     detailedQuery.query(),
-                    null,
                     where.partitions(),
                     detailedQuery.clusteredBy()
                 ));
