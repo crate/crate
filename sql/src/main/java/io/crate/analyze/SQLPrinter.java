@@ -295,10 +295,10 @@ public final class SQLPrinter {
             int i = 0;
             while (i < numberOfCrossJoins) {
                 if (i == 0) {
-                    printRelationName(sourcesIt.next(), sb);
+                    printRelation(sourcesIt.next(), sb);
                 }
                 sb.append(" CROSS JOIN ");
-                printRelationName(sourcesIt.next(), sb);
+                printRelation(sourcesIt.next(), sb);
                 i++;
             }
             // now print explicit join pairs
@@ -308,24 +308,23 @@ public final class SQLPrinter {
             if (i == 0) {
                 JoinPair firstPair = mss.joinPairs().iterator().next();
                 AnalyzedRelation leftRelation = mss.sources().get(firstPair.left());
-                printRelationName(leftRelation, sb);
+                printRelation(leftRelation, sb);
             }
             for (JoinPair currentJoinPair : mss.joinPairs()) {
                 sb.append(" ");
                 sb.append(currentJoinPair.joinType());
                 sb.append(" JOIN ");
                 AnalyzedRelation rightRelation = mss.sources().get(currentJoinPair.right());
-                printRelationName(rightRelation, sb);
-                if (currentJoinPair.joinType() == JoinType.CROSS) {
-                    continue;
+                printRelation(rightRelation, sb);
+                if (currentJoinPair.joinType() != JoinType.CROSS) {
+                    sb.append(" ON ");
+                    sb.append(printSymbol(currentJoinPair.condition()));
                 }
-                sb.append(" ON ");
-                sb.append(printSymbol(currentJoinPair.condition()));
             }
 
         }
 
-        private void printRelationName(AnalyzedRelation relation, StringBuilder sb) {
+        private void printRelation(AnalyzedRelation relation, StringBuilder sb) {
             if (relation instanceof QueriedTable) {
                 String relationName = ((QueriedTable) relation).tableRelation().tableInfo().ident().sqlFqn();
                 sb.append(relationName);
