@@ -18,31 +18,5 @@ Breaking Changes
 Changes
 =======
 
-- Table functions no longer require any permissions to be used. (Enterprise
-  only)
-
 Fixes
 =====
-
-- Fixed an issue in binary encoding/decoding of array types in Postgres Wire
-  Protocol affecting the ``npgsql`` driver.
-
-- As Windows does not support sending signals, stop attempting to handle the
-  ``USR2`` signal on windows platforms as it just pollutes the logs with a big
-  warning.
-
-- Fixed a performance regression which occurred in queries where a literal was
-  compared against an array column of a different type. For example:
-  ``Select * from t1 where 1 = ANY(int_arr_column)`` <- array column would be
-  converted to long although 1 could have been converted to integer.
-
-- Fixed an issue where the order of the relations in FROM would expose fields
-  between the relations. An error was thrown during execution of the statements.
-
-- Fixed incorrect HTTP responses on the BLOB API of subsequent requests after
-  an error response occurred, e.g. 404 Not Found.
-
-- Fixed an issue that caused ``ANY`` to not work correctly on nested arrays.
-
-- Fixed an issue that would cause a NullPointerException to be thrown when
-  executing an ``EXPLAIN`` statement for a ``CROSS JOIN``.
