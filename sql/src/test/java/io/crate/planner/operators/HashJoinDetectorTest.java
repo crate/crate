@@ -55,7 +55,7 @@ public class HashJoinDetectorTest extends CrateUnitTest {
 
     @Test
     public void testPossibleOnInnerWithEqAndScalarOnOneRelation() {
-        Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x + t1.i = 2");
+        Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x + t1.i = t2.b");
         assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(true));
     }
 
@@ -81,5 +81,17 @@ public class HashJoinDetectorTest extends CrateUnitTest {
         assertThat(HashJoinDetector.isHashJoinPossible(JoinType.FULL, joinCondition), is(false));
         assertThat(HashJoinDetector.isHashJoinPossible(JoinType.ANTI, joinCondition), is(false));
         assertThat(HashJoinDetector.isHashJoinPossible(JoinType.SEMI, joinCondition), is(false));
+    }
+
+    @Test
+    public void testNotPossibleOnEqWithoutRelationFieldsOnBothSides() {
+        Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x = 4");
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
+    }
+
+    @Test
+    public void testNotPossibleOnNotWrappingEq() {
+        Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("NOT (t1.a = t2.b)");
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
     }
 }

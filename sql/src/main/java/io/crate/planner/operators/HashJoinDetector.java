@@ -23,6 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.symbol.Field;
@@ -71,23 +72,31 @@ public class HashJoinDetector {
         public Void visitFunction(Function function, Context context) {
             String functionName = function.info().ident().name();
             switch (functionName) {
-                case OrOperator.NAME:
-                    context.isHashJoinPossible = false;
-                    return null;
+                case AndOperator.NAME:
+                    for (Symbol arg : function.arguments()) {
+                        process(arg, context);
+                    }
+                    break;
                 case EqOperator.NAME:
                     context.isHashJoinPossible = true;
                     context.insideEqOperator = true;
                     for (Symbol arg : function.arguments()) {
                         process(arg, context);
-                        if (context.usedRelationsInsideEqOperatorArgument.size() > 1) {
+                        if (context.usedRelationsInsideEqOperatorArgument.isEmpty() ||
+                            context.usedRelationsInsideEqOperatorArgument.size() > 1) {
                             context.isHashJoinPossible = false;
                         }
                         context.usedRelationsInsideEqOperatorArgument = new HashSet<>();
                     }
                     break;
                 default:
-                    for (Symbol arg : function.arguments()) {
-                        process(arg, context);
+                    if (context.insideEqOperator) {
+                        for (Symbol arg : function.arguments()) {
+                            process(arg, context);
+                        }
+                    } else {
+                        context.isHashJoinPossible = false;
+                        return null;
                     }
                     break;
             }
