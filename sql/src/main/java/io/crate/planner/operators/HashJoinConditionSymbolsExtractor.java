@@ -23,6 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Field;
@@ -67,42 +68,57 @@ public final class HashJoinConditionSymbolsExtractor {
      * class documentation for details.
      */
     public static Map<AnalyzedRelation, List<Symbol>> extract(Symbol symbol) {
-        Map<AnalyzedRelation, List<Symbol>> symbolsPerRelation = new HashMap<>();
-        SYMBOL_EXTRACTOR.process(symbol, symbolsPerRelation);
-
-        return symbolsPerRelation;
+        Context ctx = new Context();
+        SYMBOL_EXTRACTOR.process(symbol, ctx);
+        return ctx.symbolsPerRelation;
     }
 
-    private static class SymbolExtractor extends DefaultTraversalSymbolVisitor<Map<AnalyzedRelation, List<Symbol>>, Void> {
+    private static class Context {
+        boolean insideEqOperator = false;
+        Map<AnalyzedRelation, List<Symbol>> symbolsPerRelation = new HashMap<>();
+    }
+
+    private static class SymbolExtractor extends DefaultTraversalSymbolVisitor<Context, Void> {
 
         @Override
-        public Void visitFunction(Function function, Map<AnalyzedRelation, List<Symbol>> symbolsPerRelation) {
+        public Void visitFunction(Function function, Context context) {
             String functionName = function.info().ident().name();
-            if (functionName.equals(EqOperator.NAME)) {
-                int duplicatePos = 0;
-                for (Symbol arg : function.arguments()) {
-                    AnalyzedRelation relation = RELATION_EXTRACTOR.process(arg, null);
-                    List<Symbol> symbols = symbolsPerRelation.computeIfAbsent(relation, k -> new ArrayList<>());
-                    if (symbols.contains(arg)) {
-                        // duplicate detected, use the current size as the position of the other relation symbol we
-                        // want to remove (if any)
-                        duplicatePos = symbols.size();
-                        continue;
+            switch (functionName) {
+                case AndOperator.NAME:
+                    return super.visitFunction(function, context);
+                case EqOperator.NAME:
+                    context.insideEqOperator = true;
+                    int duplicatePos = 0;
+                    for (Symbol arg : function.arguments()) {
+                        AnalyzedRelation relation = RELATION_EXTRACTOR.process(arg, null);
+                        List<Symbol> symbols = context.symbolsPerRelation.computeIfAbsent(relation, k -> new ArrayList<>());
+                        if (symbols.contains(arg)) {
+                            // duplicate detected, use the current size as the position of the other relation symbol we
+                            // want to remove (if any)
+                            duplicatePos = symbols.size();
+                            continue;
+                        }
+                        symbols.add(arg);
                     }
-                    symbols.add(arg);
-                }
-                // if a duplicate is found, we must remove already processed argument symbols of the other relation
-                if (duplicatePos > 0) {
-                    for (Map.Entry<AnalyzedRelation, List<Symbol>> entry : symbolsPerRelation.entrySet()) {
-                        List<Symbol> symbols = entry.getValue();
-                        if (symbols.size() > duplicatePos) {
-                            symbols.remove(duplicatePos);
+                    // if a duplicate is found, we must remove already processed argument symbols of the other relation
+                    if (duplicatePos > 0) {
+                        for (Map.Entry<AnalyzedRelation, List<Symbol>> entry : context.symbolsPerRelation.entrySet()) {
+                            List<Symbol> symbols = entry.getValue();
+                            if (symbols.size() > duplicatePos) {
+                                symbols.remove(duplicatePos);
+                            }
                         }
                     }
-                }
-                return null;
+                    context.insideEqOperator = false;
+                    return null;
+                default:
+                    if (context.insideEqOperator) {
+                        return super.visitFunction(function, context);
+                    } else {
+                        return null;
+                    }
+
             }
-            return super.visitFunction(function, symbolsPerRelation);
         }
     }
 

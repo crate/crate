@@ -56,8 +56,8 @@ public class HashJoinConditionSymbolsExtractorTest extends CrateUnitTest {
     public void testExtractFromNestedEqCondition() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x > t2.y and t1.a = t2.b and not(t1.i = t2.i)");
         Map<AnalyzedRelation, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
-        assertThat(symbolsPerRelation.get(T3.TR_1), containsInAnyOrder(isField("a"), isField("i")));
-        assertThat(symbolsPerRelation.get(T3.TR_2), containsInAnyOrder(isField("b"), isField("i")));
+        assertThat(symbolsPerRelation.get(T3.TR_1), contains(isField("a")));
+        assertThat(symbolsPerRelation.get(T3.TR_2), contains(isField("b")));
     }
 
     @SuppressWarnings("unchecked")
