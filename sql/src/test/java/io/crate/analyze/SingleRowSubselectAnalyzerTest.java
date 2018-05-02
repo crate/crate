@@ -49,7 +49,7 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
     public void testSingleRowSubselectInWhereClause() throws Exception {
         QueriedRelation relation = e.analyze("select * from t1 where x = (select y from t2)");
         assertThat(relation.where().query(),
-            isSQL("(doc.t1.x = SelectSymbol{integer_table})"));
+            isSQL("(doc.t1.x = SelectSymbol{integer_array})"));
     }
 
     @Test
@@ -57,13 +57,13 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
         QueriedRelation relation = e.analyze(
             "select a from t1 where x = (select y from t2 where y = (select z from t3))");
         assertThat(relation.where().query(),
-            isSQL("(doc.t1.x = SelectSymbol{integer_table})"));
+            isSQL("(doc.t1.x = SelectSymbol{integer_array})"));
     }
 
     @Test
     public void testSingleRowSubselectInSelectList() throws Exception {
         QueriedRelation relation = e.analyze("select (select b from t2 limit 1) from t1");
-        assertThat(relation.outputs(), isSQL("SelectSymbol{string_table}"));
+        assertThat(relation.outputs(), isSQL("SelectSymbol{string_array}"));
     }
 
     @Test
@@ -91,24 +91,24 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
         QueriedRelation relation = e.analyze(
             "select * from users where match(shape 1.2, (select shape from users limit 1))");
         assertThat(relation.where().query(),
-            isSQL("MATCH((shape 1.2), SelectSymbol{geo_shape_table}) USING intersects"));
+            isSQL("MATCH((shape 1.2), SelectSymbol{geo_shape_array}) USING intersects"));
     }
 
     @Test
     public void testLikeSupportsSubQueries() throws Exception {
         QueriedRelation relation = e.analyze("select * from users where name like (select 'foo')");
         assertThat(relation.where().query(),
-            isSQL("(doc.users.name LIKE SelectSymbol{string_table})"));
+            isSQL("(doc.users.name LIKE SelectSymbol{string_array})"));
     }
 
     @Test
     public void testAnySupportsSubQueries() throws Exception {
         QueriedRelation relation = e.analyze("select * from users where (select 'bar') = ANY (tags)");
         assertThat(relation.where().query(),
-            isSQL("(SelectSymbol{string_table} = ANY(doc.users.tags))"));
+            isSQL("(SelectSymbol{string_array} = ANY(doc.users.tags))"));
 
         relation = e.analyze("select * from users where 'bar' = ANY (select 'bar')");
         assertThat(relation.where().query(),
-            isSQL("('bar' = ANY(SelectSymbol{string_table}))"));
+            isSQL("('bar' = ANY(SelectSymbol{string_array}))"));
     }
 }

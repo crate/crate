@@ -36,7 +36,6 @@ import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
-import io.crate.types.SingleColumnTableType;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
@@ -117,8 +116,7 @@ public final class AnyLikeOperator extends Operator<Object> {
                 Param.ANY,
                 Param.of(
                     new ArrayType(DataTypes.UNDEFINED),
-                    new SetType(DataTypes.UNDEFINED),
-                    new SingleColumnTableType(DataTypes.UNDEFINED))
+                    new SetType(DataTypes.UNDEFINED))
                     .withInnerType(Param.ANY))
                 .build());
             this.name = name;

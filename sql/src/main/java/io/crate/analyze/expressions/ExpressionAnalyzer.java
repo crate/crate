@@ -116,7 +116,6 @@ import io.crate.sql.tree.WhenClause;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.SingleColumnTableType;
 import io.crate.types.UndefinedType;
 
 import javax.annotation.Nullable;
@@ -851,10 +850,10 @@ public class ExpressionAnalyzer {
              * But there are no other row-expressions yet. In addition the cast functions and operators don't work with
              * row types (yet).
              *
-             * However, we support a single column RowType through the SingleColumnTableType.
+             * However, we support a single column RowType through the ArrayType.
              */
             DataType innerType = fields.get(0).valueType();
-            SingleColumnTableType dataType = new SingleColumnTableType(innerType);
+            ArrayType dataType = new ArrayType(innerType);
             final SelectSymbol.ResultType resultType;
             if (context.isArrayComparisonChild(node)) {
                 resultType = SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES;

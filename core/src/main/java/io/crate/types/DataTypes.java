@@ -119,7 +119,6 @@ public final class DataTypes {
         .put(GeoShapeType.ID, () -> GEO_SHAPE)
         .put(ArrayType.ID, ArrayType::new)
         .put(SetType.ID, SetType::new)
-        .put(SingleColumnTableType.ID, SingleColumnTableType::new)
         .map();
 
 
@@ -152,7 +151,6 @@ public final class DataTypes {
         .put(OBJECT.id(), ImmutableSet.of(GEO_SHAPE))
         .put(ArrayType.ID, ImmutableSet.of()) // convertability handled in ArrayType
         .put(SetType.ID, ImmutableSet.of()) // convertability handled in SetType
-        .put(SingleColumnTableType.ID, ImmutableSet.of()) // convertability handled in SingleColumnTableType
         .build();
 
     /**
@@ -168,7 +166,7 @@ public final class DataTypes {
         .build();
 
     public static boolean isCollectionType(DataType type) {
-        return type.id() == ArrayType.ID || type.id() == SetType.ID || type.id() == SingleColumnTableType.ID;
+        return type.id() == ArrayType.ID || type.id() == SetType.ID;
     }
 
     public static List<DataType> listFromStream(StreamInput in) throws IOException {

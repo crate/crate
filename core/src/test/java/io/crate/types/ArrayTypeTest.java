@@ -21,12 +21,17 @@
 
 package io.crate.types;
 
+import io.crate.Streamer;
 import io.crate.test.integration.CrateUnitTest;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
+import static org.hamcrest.Matchers.array;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
 
 public class ArrayTypeTest extends CrateUnitTest {
 
@@ -49,5 +54,47 @@ public class ArrayTypeTest extends CrateUnitTest {
         ArrayType readInnerArrayType = (ArrayType) readArrayType.innerType();
         assertThat(readInnerArrayType.innerType(), instanceOf(StringType.class));
         assertSame(readInnerArrayType.innerType(), StringType.INSTANCE);
+    }
+
+    @Test
+    public void testValueSerialization() throws Exception {
+        ArrayType arrayType = new ArrayType(StringType.INSTANCE);
+
+        Streamer<?> streamer = arrayType.streamer();
+
+        BytesRef[] serArray = new BytesRef[]{
+            new BytesRef("foo"),
+            new BytesRef("bar"),
+            new BytesRef("foobar")
+        };
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        streamer.writeValueTo(out, serArray);
+
+        StreamInput in = out.bytes().streamInput();
+
+        assertThat(streamer.readValueFrom(in), is(serArray));
+    }
+
+    @Test
+    public void testNullValues() throws Exception {
+        ArrayType arrayType = new ArrayType(StringType.INSTANCE);
+
+        Streamer<?> streamer = arrayType.streamer();
+
+        BytesStreamOutput out = new BytesStreamOutput();
+
+        streamer.writeValueTo(out, null);
+
+        StreamInput in = out.bytes().streamInput();
+        assertThat(streamer.readValueFrom(in), is(nullValue()));
+
+        out.reset();
+        Object[] nullArray = {null};
+        streamer.writeValueTo(out, nullArray);
+
+        in = out.bytes().streamInput();
+        Object[] o = (Object[]) streamer.readValueFrom(in);
+        assertThat(o, is(array(nullValue())));
     }
 }

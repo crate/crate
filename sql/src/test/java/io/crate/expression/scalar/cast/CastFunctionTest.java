@@ -22,8 +22,8 @@
 
 package io.crate.expression.scalar.cast;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.symbol.Literal;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
@@ -48,7 +48,6 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("cast(null as string)", null);
         assertEvaluate("cast(10.4 as long)", 10L);
         assertEvaluate("to_long_array([10.2, 12.3])", new Long[] { 10L, 12L });
-        assertEvaluate("to_double_table([10, 12])", new Double[] { 10.0, 12.0 });
         Map<String, Object> object = new HashMap<>();
         object.put("x", 10);
         assertEvaluate("'{\"x\": 10}'::object", object);

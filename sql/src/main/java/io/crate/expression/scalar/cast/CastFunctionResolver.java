@@ -33,7 +33,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
-import io.crate.types.SingleColumnTableType;
 
 import java.util.Locale;
 import java.util.Map;
@@ -80,17 +79,6 @@ public class CastFunctionResolver {
         static final String TO_FLOAT_SET = "to_float_set";
         static final String TO_SHORT_SET = "to_short_set";
         static final String TO_IP_SET = "to_ip_set";
-
-        static final String TO_STRING_TABLE = "to_string_table";
-        static final String TO_LONG_TABLE = "to_long_table";
-        static final String TO_INTEGER_TABLE = "to_int_table";
-        static final String TO_DOUBLE_TABLE = "to_double_table";
-        static final String TO_BOOLEAN_TABLE = "to_boolean_table";
-        static final String TO_BYTE_TABLE = "to_byte_table";
-        static final String TO_FLOAT_TABLE = "to_float_table";
-        static final String TO_SHORT_TABLE = "to_short_table";
-        static final String TO_IP_TABLE = "to_ip_table";
-        static final String TO_TIMESTAMP_TABLE = "to_timestamp_table";
     }
 
     private static final ImmutableMap<DataType, String> PRIMITIVE_FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
@@ -136,25 +124,11 @@ public class CastFunctionResolver {
         .put(new SetType(DataTypes.IP), FunctionNames.TO_IP_SET)
         .build();
 
-    private static final ImmutableMap<DataType, String> TABLE_FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
-        .put(new SingleColumnTableType(DataTypes.STRING), FunctionNames.TO_STRING_TABLE)
-        .put(new SingleColumnTableType(DataTypes.LONG), FunctionNames.TO_LONG_TABLE)
-        .put(new SingleColumnTableType(DataTypes.INTEGER), FunctionNames.TO_INTEGER_TABLE)
-        .put(new SingleColumnTableType(DataTypes.DOUBLE), FunctionNames.TO_DOUBLE_TABLE)
-        .put(new SingleColumnTableType(DataTypes.BOOLEAN), FunctionNames.TO_BOOLEAN_TABLE)
-        .put(new SingleColumnTableType(DataTypes.BYTE), FunctionNames.TO_BYTE_TABLE)
-        .put(new SingleColumnTableType(DataTypes.FLOAT), FunctionNames.TO_FLOAT_TABLE)
-        .put(new SingleColumnTableType(DataTypes.SHORT), FunctionNames.TO_SHORT_TABLE)
-        .put(new SingleColumnTableType(DataTypes.IP), FunctionNames.TO_IP_TABLE)
-        .put(new SingleColumnTableType(DataTypes.TIMESTAMP), FunctionNames.TO_TIMESTAMP_TABLE)
-        .build();
-
     static final ImmutableMap<DataType, String> FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
         .putAll(PRIMITIVE_FUNCTION_MAP)
         .putAll(GEO_FUNCTION_MAP)
         .putAll(ARRAY_FUNCTION_MAP)
         .putAll(SET_FUNCTION_MAP)
-        .putAll(TABLE_FUNCTION_MAP)
         .put(DataTypes.OBJECT, FunctionNames.TO_OBJECT)
         .build();
 
