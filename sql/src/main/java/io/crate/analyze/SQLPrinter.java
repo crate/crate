@@ -33,7 +33,6 @@ import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.format.SymbolPrinter;
@@ -132,13 +131,6 @@ public final class SQLPrinter {
         }
 
         private String printSymbol(Symbol symbol) {
-            if (symbol instanceof SelectSymbol) {
-                StringBuilder sb = new StringBuilder();
-                sb.append("(");
-                process(((SelectSymbol) symbol).relation(), sb);
-                sb.append(")");
-                return sb.toString();
-            }
             if (symbol instanceof Field) {
                 Field field = ((Field) symbol);
                 if (field.relation() instanceof UnionSelect) {
