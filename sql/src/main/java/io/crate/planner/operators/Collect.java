@@ -30,7 +30,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
-import io.crate.analyze.where.DocKeys;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -100,11 +99,7 @@ class Collect extends ZeroInputPlan {
     public static LogicalPlan.Builder create(QueriedTable relation,
                                              List<Symbol> toCollect,
                                              WhereClause where) {
-        if (where.docKeys().isPresent() && !((DocTableInfo) relation.tableRelation().tableInfo()).isAlias()) {
-            DocKeys docKeys = where.docKeys().get();
-            return ((tableStats, usedBeforeNextFetch) ->
-                        new Get(((QueriedTable) relation), docKeys, toCollect, tableStats));
-        }
+        assert !where.docKeys().isPresent() : "If whereClause has docKeys a Get operator should be used";
         return (tableStats, usedColumns) -> new Collect(
             relation,
             toCollect,

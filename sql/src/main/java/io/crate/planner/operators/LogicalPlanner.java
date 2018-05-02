@@ -35,25 +35,31 @@ import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.UnionSelect;
+import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.MultiPhaseExecutor;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.builder.SplitPoints;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SelectStatementPlanner;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
+import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.OptimizingRewriter;
@@ -65,6 +71,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
@@ -80,10 +87,12 @@ public class LogicalPlanner {
     private final TableStats tableStats;
     private final SelectStatementPlanner selectStatementPlanner;
     private final Visitor statementVisitor = new Visitor();
+    private final Functions functions;
 
     public LogicalPlanner(Functions functions, TableStats tableStats) {
         this.optimizingRewriter = new OptimizingRewriter(functions);
         this.tableStats = tableStats;
+        this.functions = functions;
         selectStatementPlanner = new SelectStatementPlanner(this);
     }
 
@@ -109,7 +118,8 @@ public class LogicalPlanner {
             FetchMode.NEVER_CLEAR,
             subqueryPlanner,
             true,
-            plannerContext.transactionContext().sessionContext());
+            functions,
+            plannerContext.transactionContext());
 
         planBuilder = tryOptimizeForInSubquery(selectSymbol, relation, planBuilder);
         LogicalPlan optimizedPlan = tryOptimize(planBuilder.build(tableStats, Collections.emptySet()));
@@ -140,7 +150,7 @@ public class LogicalPlanner {
         TransactionContext transactionContext = plannerContext.transactionContext();
         QueriedRelation relation = optimizingRewriter.optimize(queriedRelation, transactionContext);
 
-        LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true, transactionContext.sessionContext())
+        LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true, functions, transactionContext)
             .build(tableStats, new HashSet<>(relation.outputs()));
 
         LogicalPlan optimizedPlan = tryOptimize(logicalPlan);
@@ -165,8 +175,9 @@ public class LogicalPlanner {
                                     FetchMode fetchMode,
                                     SubqueryPlanner subqueryPlanner,
                                     boolean isLastFetch,
-                                    SessionContext sessionContext) {
-        LogicalPlan.Builder builder = prePlan(relation, fetchMode, subqueryPlanner, isLastFetch, sessionContext);
+                                    Functions functions,
+                                    TransactionContext txnCtx) {
+        LogicalPlan.Builder builder = prePlan(relation, fetchMode, subqueryPlanner, isLastFetch, functions, txnCtx);
         if (isLastFetch) {
             return builder;
         }
@@ -177,7 +188,8 @@ public class LogicalPlanner {
                                                FetchMode fetchMode,
                                                SubqueryPlanner subqueryPlanner,
                                                boolean isLastFetch,
-                                               SessionContext sessionContext) {
+                                               Functions functions,
+                                               TransactionContext txnCtx) {
         SplitPoints splitPoints = SplitPoints.create(relation);
         return
             FetchOrEval.create(
@@ -191,7 +203,8 @@ public class LogicalPlanner {
                                     relation.where(),
                                     subqueryPlanner,
                                     fetchMode,
-                                    sessionContext
+                                    functions,
+                                    txnCtx
                                 ),
                                 relation.groupBy(),
                                 splitPoints.aggregates()),
@@ -227,26 +240,53 @@ public class LogicalPlanner {
                                                         WhereClause where,
                                                         SubqueryPlanner subqueryPlanner,
                                                         FetchMode fetchMode,
-                                                        SessionContext sessionContext) {
+                                                        Functions functions,
+                                                        TransactionContext txnCtx) {
+        SessionContext sessionContext = txnCtx.sessionContext();
         if (queriedRelation instanceof AnalyzedView) {
-            return plan(((AnalyzedView) queriedRelation).relation(), fetchMode, subqueryPlanner, false, sessionContext);
+            return plan(((AnalyzedView) queriedRelation).relation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
         }
         if (queriedRelation instanceof QueriedTable) {
-            return Collect.create((QueriedTable) queriedRelation, toCollect, where);
+            QueriedTable queriedTable = (QueriedTable) queriedRelation;
+            TableInfo table = queriedTable.tableRelation().tableInfo();
+            if (table instanceof DocTableInfo) {
+                EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+                    functions, RowGranularity.CLUSTER, null, queriedTable.tableRelation());
+
+                WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
+                    normalizer,
+                    where.queryOrFallback(),
+                    (DocTableInfo) table,
+                    txnCtx
+                );
+
+                Optional<DocKeys> docKeys = detailedQuery.docKeys();
+                if (docKeys.isPresent() && !((DocTableInfo) table).isAlias()) {
+                    return (tableStats, usedBeforeNextFetch) ->
+                        new Get(queriedTable, docKeys.get(), toCollect, tableStats);
+                }
+                return Collect.create(queriedTable, toCollect, new WhereClause(
+                    detailedQuery.query(),
+                    null,
+                    where.partitions(),
+                    detailedQuery.clusteredBy()
+                ));
+            }
+            return Collect.create(queriedTable, toCollect, where);
         }
         if (queriedRelation instanceof MultiSourceSelect) {
-            return JoinPlanBuilder.createNodes((MultiSourceSelect) queriedRelation, where, subqueryPlanner, sessionContext);
+            return JoinPlanBuilder.createNodes((MultiSourceSelect) queriedRelation, where, subqueryPlanner, functions, txnCtx);
         }
         if (queriedRelation instanceof UnionSelect) {
-            return Union.create((UnionSelect) queriedRelation, subqueryPlanner, sessionContext);
+            return Union.create((UnionSelect) queriedRelation, subqueryPlanner, functions, txnCtx);
         }
         if (queriedRelation instanceof OrderedLimitedRelation) {
-            return plan(((OrderedLimitedRelation) queriedRelation).childRelation(), fetchMode, subqueryPlanner, false, sessionContext);
+            return plan(((OrderedLimitedRelation) queriedRelation).childRelation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
         }
         if (queriedRelation instanceof QueriedSelectRelation) {
             QueriedSelectRelation selectRelation = (QueriedSelectRelation) queriedRelation;
             return Filter.create(
-                plan(selectRelation.subRelation(), fetchMode, subqueryPlanner, false, sessionContext),
+                plan(selectRelation.subRelation(), fetchMode, subqueryPlanner, false, functions, txnCtx),
                 where
             );
         }

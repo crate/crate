@@ -27,16 +27,13 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.Rewriter;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.planner.WhereClauseOptimizer;
 
 /**
  * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single QueriedRelation.
@@ -105,27 +102,13 @@ public final class RelationNormalizer {
             EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
                 functions, RowGranularity.CLUSTER, null, tableRelation);
 
-            QuerySpec normalizedQS = queriedTable.querySpec().copyAndReplace(s -> evalNormalizer.normalize(s, tnxCtx));
-            WhereClause where = normalizedQS.where();
-            if (tableRelation instanceof DocTableRelation) {
-                DocTableInfo tableInfo = ((DocTableRelation) tableRelation).tableInfo();
-                if (where.hasQuery()) {
-                    WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
-                        normalizer, where.query(), tableInfo, tnxCtx);
-                    WhereClauseValidator.validate(detailedQuery.query());
-                    where = new WhereClause(
-                        detailedQuery.query(),
-                        detailedQuery.docKeys().orElse(null),
-                        where.partitions(),
-                        detailedQuery.clusteredBy()
-                    );
-                }
-            }
-            return new QueriedTable<>(
+            QueriedTable<? extends AbstractTableRelation<?>> table = new QueriedTable<>(
                 tableRelation,
                 queriedTable.fields(),
-                normalizedQS.where(where)
+                queriedTable.querySpec().copyAndReplace(s -> evalNormalizer.normalize(s, tnxCtx))
             );
+            WhereClauseValidator.validate(table.where().queryOrFallback());
+            return table;
         }
 
         @Override

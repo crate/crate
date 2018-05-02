@@ -22,7 +22,6 @@
 
 package io.crate.planner.operators;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.UnionSelect;
@@ -33,6 +32,8 @@ import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -63,7 +64,7 @@ import static io.crate.planner.operators.Limit.limitAndOffset;
  */
 public class Union extends TwoInputPlan {
 
-    static Builder create(UnionSelect ttr, SubqueryPlanner subqueryPlanner, SessionContext sessionContext) {
+    static Builder create(UnionSelect ttr, SubqueryPlanner subqueryPlanner, Functions functions, TransactionContext txnCtx) {
         return (tableStats, usedColsByParent) -> {
 
             QueriedRelation left = ttr.left();
@@ -79,11 +80,11 @@ public class Union extends TwoInputPlan {
             usedFromRight.addAll(right.outputs());
 
             LogicalPlan lhsPlan = LogicalPlanner
-                .plan(left, FetchMode.NEVER_CLEAR, subqueryPlanner, false, sessionContext)
+                .plan(left, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
                 .build(tableStats, usedFromLeft);
 
             LogicalPlan rhsPlan = LogicalPlanner
-                .plan(right, FetchMode.NEVER_CLEAR, subqueryPlanner, false, sessionContext)
+                .plan(right, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
                 .build(tableStats, usedFromRight);
 
             return new Union(lhsPlan, rhsPlan, ttr.outputs());

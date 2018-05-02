@@ -31,6 +31,8 @@ import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
@@ -64,23 +66,27 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
     private final MultiSourceSelect mss;
     private final WhereClause where;
     private final SubqueryPlanner subqueryPlanner;
-    private final SessionContext sessionContext;
+    private final Functions functions;
+    private final TransactionContext txnCtx;
 
     private JoinPlanBuilder(MultiSourceSelect mss,
                             WhereClause where,
                             SubqueryPlanner subqueryPlanner,
-                            SessionContext sessionContext) {
+                            Functions functions,
+                            TransactionContext txnCtx) {
         this.mss = mss;
         this.where = where;
         this.subqueryPlanner = subqueryPlanner;
-        this.sessionContext = sessionContext;
+        this.functions = functions;
+        this.txnCtx = txnCtx;
     }
 
     static JoinPlanBuilder createNodes(MultiSourceSelect mss,
                                        WhereClause where,
                                        SubqueryPlanner subqueryPlanner,
-                                       SessionContext sessionContext) {
-        return new JoinPlanBuilder(mss, where, subqueryPlanner, sessionContext);
+                                       Functions functions,
+                                       TransactionContext txnCtx) {
+        return new JoinPlanBuilder(mss, where, subqueryPlanner, functions, txnCtx);
     }
 
     @Override
@@ -145,9 +151,9 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         // use NEVER_CLEAR as fetchMode to prevent intermediate fetches
         // This is necessary; because due to how the fetch-reader-allocation works it's not possible to
         // have more than 1 fetchProjection within a single execution
-        LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, sessionContext)
+        LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
             .build(tableStats, usedFromLeft);
-        LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, sessionContext)
+        LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
             .build(tableStats, usedFromRight);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
         LogicalPlan joinPlan = createJoinPlan(
@@ -159,7 +165,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             rhs,
             query,
             hasOuterJoins,
-            sessionContext,
+            txnCtx.sessionContext(),
             tableStats);
 
         joinPlan = Filter.create(joinPlan, query);
@@ -176,7 +182,8 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 subqueryPlanner,
                 hasOuterJoins,
                 lhs,
-                sessionContext);
+                functions,
+                txnCtx);
             joinNames.add(nextRel.getQualifiedName());
         }
         assert queryParts.isEmpty() : "Must've applied all queryParts";
@@ -239,7 +246,8 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                             SubqueryPlanner subqueryPlanner,
                                             boolean hasOuterJoins,
                                             QueriedRelation leftRelation,
-                                            SessionContext sessionContext) {
+                                            Functions functions,
+                                            TransactionContext txnCtx) {
         QualifiedName nextName = nextRel.getQualifiedName();
 
         Set<Symbol> usedFromNext = new LinkedHashSet<>();
@@ -263,7 +271,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         }
         addColumnsFrom(usedColumns, addToUsedColumns, nextRel);
 
-        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER_CLEAR, subqueryPlanner, false, sessionContext)
+        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
             .build(tableStats, usedFromNext);
 
         Symbol query = AndOperator.join(
@@ -282,7 +290,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 nextRel,
                 query,
                 hasOuterJoins,
-                sessionContext,
+                txnCtx.sessionContext(),
                 tableStats),
             query
         );

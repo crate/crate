@@ -32,6 +32,7 @@ import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
@@ -59,6 +60,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
     private Functions functions = getFunctions();
     private ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
+    private TransactionContext txnCtx = new TransactionContext();
 
     @Before
     public void setUpExecutor() {
@@ -84,7 +86,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         PlannerContext context = e.getPlannerContext(clusterService.state());
         LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
-        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, SessionContext.create())
+        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, e.functions(), txnCtx)
             .build(tableStats, Collections.emptySet());
         Join nl = (Join) operator.build(
             context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
@@ -97,7 +99,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10, 0));
         tableStats.updateTableStats(rowCountByTable);
 
-        operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, SessionContext.create())
+        operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, functions, txnCtx)
             .build(tableStats, Collections.emptySet());
         nl = (Join) operator.build(context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
         assertThat(
@@ -121,8 +123,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         PlannerContext context = e.getPlannerContext(clusterService.state());
         LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
-        SessionContext sessionContext = SessionContext.create();
-        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner,  sessionContext)
+        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, functions, txnCtx)
             .build(tableStats, Collections.emptySet());
         assertThat(operator, instanceOf(HashJoin.class));
         assertThat(((HashJoin) operator).concreteRelation.toString(), is("QueriedTable{DocTableRelation{doc.locations}}"));
@@ -150,7 +151,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
         SessionContext sessionContext = SessionContext.create();
-        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner,  sessionContext)
+        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, functions, txnCtx)
             .build(tableStats, Collections.emptySet());
         assertThat(operator, instanceOf(HashJoin.class));
         assertThat(((HashJoin) operator).concreteRelation.toString(), is("QueriedTable{DocTableRelation{doc.locations}}"));
@@ -175,7 +176,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
         SessionContext sessionContext = SessionContext.create();
         sessionContext.setHashJoinEnabled(true);
-        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner,  sessionContext)
+        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, functions, txnCtx)
             .build(tableStats, Collections.emptySet());
         assertThat(operator, instanceOf(HashJoin.class));
         LogicalPlan leftPlan = ((HashJoin) operator).lhs;
@@ -199,7 +200,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
         SessionContext sessionContext = SessionContext.create();
         sessionContext.setHashJoinEnabled(true);
-        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner,  sessionContext)
+        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, functions, txnCtx)
             .build(tableStats, Collections.emptySet());
         assertThat(operator, instanceOf(NestedLoopJoin.class));
         LogicalPlan leftPlan = ((NestedLoopJoin) operator).lhs;
