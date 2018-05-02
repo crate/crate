@@ -189,22 +189,9 @@ class CopyAnalyzer {
             node.table().partitionProperties(), analysis.parameterContext().parameters(), tableRelation.tableInfo());
 
         List<Symbol> outputs = new ArrayList<>();
-        QuerySpec querySpec = new QuerySpec();
-
-        WhereClause whereClause = createWhereClause(
-            node.whereClause(),
-            tableRelation,
-            partitions,
-            normalizer,
-            expressionAnalyzer,
-            expressionAnalysisContext,
-            analysis.transactionContext());
-        querySpec.where(whereClause);
-
         Map<ColumnIdent, Symbol> overwrites = null;
         boolean columnsDefined = false;
         List<String> outputNames = null;
-
         if (!node.columns().isEmpty()) {
             outputNames = new ArrayList<>(node.columns().size());
             for (Expression expression : node.columns()) {
@@ -234,7 +221,6 @@ class CopyAnalyzer {
             }
             outputs = ImmutableList.of(sourceRef);
         }
-        querySpec.outputs(outputs);
 
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
             node.genericProperties(), analysis.parameterContext(), SETTINGS_APPLIERS).build();
@@ -248,6 +234,17 @@ class CopyAnalyzer {
             throw new UnsupportedFeatureException("Output format not supported without specifying columns.");
         }
 
+        QuerySpec querySpec = new QuerySpec()
+            .outputs(outputs)
+            .where(createWhereClause(
+                node.whereClause(),
+                tableRelation,
+                partitions,
+                normalizer,
+                expressionAnalyzer,
+                expressionAnalysisContext,
+                analysis.transactionContext())
+            );
         QueriedTable<DocTableRelation> subRelation = new QueriedTable<>(tableRelation, querySpec);
         return new CopyToAnalyzedStatement(
             subRelation, settings, uri, compressionType, outputFormat, outputNames, columnsDefined, overwrites);
