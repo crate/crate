@@ -56,7 +56,7 @@ import java.util.Map;
  * as t2.c is compared to the same symbol as t2.b and only EQ operators are processed.
  *
  * It is expected that each expression argument of a EQ operator only contains symbols of one relation.
- * This can be ensured by using the {@link HashJoinDetector} upfront.
+ * This can be ensured by using the {@link EquiJoinDetector} upfront.
  */
 public final class HashJoinConditionSymbolsExtractor {
 

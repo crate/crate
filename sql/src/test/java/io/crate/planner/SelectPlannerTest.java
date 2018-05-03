@@ -95,6 +95,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -561,8 +562,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join outerNl = (Join) qtf.subPlan();
         Join innerNl = (Join) outerNl.left();
 
-        assertThat(((FilterProjection) innerNl.joinPhase().projections().get(1)).query(),
-            isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))"));
+        assertThat(innerNl.joinPhase().joinCondition(), isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))"));
+        assertThat(innerNl.joinPhase().projections().size(), is(1));
+        assertThat(innerNl.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
+
+        assertThat(outerNl.joinPhase().joinCondition(), nullValue());
+        assertThat(outerNl.joinPhase().projections().size(), is(2));
+        assertThat(outerNl.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
+        assertThat(outerNl.joinPhase().projections().get(1), instanceOf(FetchProjection.class));
     }
 
     @Test
@@ -641,16 +648,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                             "where t1.id = t2.id and t2.id = t3.id");
         assertThat(plan.subPlan(), instanceOf(Join.class));
         Join outerNL = (Join)plan.subPlan();
-        assertThat(outerNL.joinPhase().projections().get(1), instanceOf(FilterProjection.class));
-        FilterProjection filterProjection = (FilterProjection) outerNL.joinPhase().projections().get(1);
-        assertThat(filterProjection.query(), isSQL("(INPUT(1) = INPUT(2))"));
+        assertThat(outerNL.joinPhase().joinCondition(), isSQL("(INPUT(1) = INPUT(2))"));
+        assertThat(outerNL.joinPhase().projections().size(), is(2));
+        assertThat(outerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
+        assertThat(outerNL.joinPhase().projections().get(1), instanceOf(AggregationProjection.class));
         assertThat(outerNL.joinPhase().outputTypes().size(), is(1));
         assertThat(outerNL.joinPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
 
         Join innerNL = (Join) outerNL.left();
-        assertThat(innerNL.joinPhase().projections().get(1), instanceOf(FilterProjection.class));
-        filterProjection = (FilterProjection) innerNL.joinPhase().projections().get(1);
-        assertThat(filterProjection.query(), isSQL("(INPUT(0) = INPUT(1))"));
+        assertThat(innerNL.joinPhase().joinCondition(), isSQL("(INPUT(0) = INPUT(1))"));
+        assertThat(innerNL.joinPhase().projections().size(), is(1));
+        assertThat(innerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
         assertThat(innerNL.joinPhase().outputTypes().size(), is(2));
         assertThat(innerNL.joinPhase().outputTypes().get(0), is(DataTypes.LONG));
 
@@ -658,16 +666,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                             "where t1.id = t2.id and t2.id = t3.id");
         assertThat(plan.subPlan(), instanceOf(Join.class));
         outerNL = (Join)plan.subPlan();
-        assertThat(outerNL.joinPhase().projections().get(1), instanceOf(FilterProjection.class));
-        filterProjection = (FilterProjection) outerNL.joinPhase().projections().get(1);
-        assertThat(filterProjection.query(), isSQL("(INPUT(2) = INPUT(3))"));
+        assertThat(outerNL.joinPhase().joinCondition(), isSQL("(INPUT(2) = INPUT(3))"));
+        assertThat(outerNL.joinPhase().projections().size(), is(2));
+        assertThat(outerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
+        assertThat(outerNL.joinPhase().projections().get(1), instanceOf(AggregationProjection.class));
         assertThat(outerNL.joinPhase().outputTypes().size(), is(1));
         assertThat(outerNL.joinPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
 
         innerNL = (Join) outerNL.left();
-        assertThat(innerNL.joinPhase().projections().get(1), instanceOf(FilterProjection.class));
-        filterProjection = (FilterProjection) innerNL.joinPhase().projections().get(1);
-        assertThat(filterProjection.query(), isSQL("(INPUT(0) = INPUT(2))"));
+        assertThat(innerNL.joinPhase().joinCondition(), isSQL("(INPUT(0) = INPUT(2))"));
+        assertThat(innerNL.joinPhase().projections().size(), is(1));
+        assertThat(innerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
         assertThat(innerNL.joinPhase().outputTypes().size(), is(3));
         assertThat(innerNL.joinPhase().outputTypes().get(0), is(DataTypes.LONG));
         assertThat(innerNL.joinPhase().outputTypes().get(1), is(DataTypes.LONG));

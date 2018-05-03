@@ -28,6 +28,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.QuerySplitter;
+import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Symbol;
@@ -91,18 +92,12 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
 
     @Override
     public LogicalPlan build(TableStats tableStats, Set<Symbol> usedBeforeNextFetch) {
-        LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs = new LinkedHashMap<>();
-        for (JoinPair joinPair : mss.joinPairs()) {
-            if (joinPair.condition() == null) {
-                continue;
-            }
-            JoinPair prevPair = joinPairs.put(Sets.newHashSet(joinPair.left(), joinPair.right()), joinPair);
-            if (prevPair != null) {
-                throw new IllegalStateException("joinPairs contains duplicate: " + joinPair + " matches " + prevPair);
-            }
-        }
-        final boolean hasOuterJoins = joinPairs.values().stream().anyMatch(p -> p.joinType().isOuter());
         Map<Set<QualifiedName>, Symbol> queryParts = getQueryParts(where);
+        LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs =
+            JoinOperations.buildRelationsToJoinPairsMap(
+                JoinOperations.convertImplicitJoinConditionsToJoinPairs(mss.joinPairs(), queryParts));
+
+        final boolean hasOuterJoins = joinPairs.values().stream().anyMatch(p -> p.joinType().isOuter());
 
         Collection<QualifiedName> orderedRelationNames;
         if (mss.sources().size() > 2) {

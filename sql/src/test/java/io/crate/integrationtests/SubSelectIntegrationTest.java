@@ -25,7 +25,6 @@ package io.crate.integrationtests;
 import io.crate.data.Paging;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseSemiJoins;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
