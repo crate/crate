@@ -128,6 +128,7 @@ class HashJoin extends TwoInputPlan {
             extractHashJoinSymbolsFromJoinSymbolsAndSplitPerSide(tablesSwitched);
 
         ResultDescription leftResultDesc = leftExecutionPlan.resultDescription();
+        ResultDescription rightResultDesc = rightExecutionPlan.resultDescription();
         Collection<String> joinExecutionNodes = leftResultDesc.nodeIds();
 
         List<Symbol> leftOutputs = leftLogicalPlan.outputs();
@@ -135,18 +136,32 @@ class HashJoin extends TwoInputPlan {
         MergePhase leftMerge = null;
         MergePhase rightMerge = null;
 
-        ResultDescription rightResultDesc = rightExecutionPlan.resultDescription();
+        // We can only run the join distributed if no remaining limit or offset must be applied on the source relations.
+        // Because on distributed joins, every join is running on a slice (modulo) set of the data and so no limit/offset
+        // could be applied. Limit/offset can only be applied on the whole data set after all partial rows from the
+        // shards are merged
+        boolean isDistributed = leftResultDesc.hasRemainingLimitOrOffset() == false
+                                && rightResultDesc.hasRemainingLimitOrOffset() == false;
+
         if (joinExecutionNodes.size() == 1
             && joinExecutionNodes.equals(rightResultDesc.nodeIds())
             && !rightResultDesc.hasRemainingLimitOrOffset()) {
-            // if the left and the right plan are executed on the same single node the mergePhase
+            // If the left and the right plan are executed on the same single node the mergePhase
             // should be omitted. This is the case if the left and right table have only one shards which
             // are on the same node
             leftExecutionPlan.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
             rightExecutionPlan.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
         } else {
-            leftOutputs = setModuloDistribution(hashSymbols.v1(), leftLogicalPlan.outputs(), leftExecutionPlan);
-            rightOutputs = setModuloDistribution(hashSymbols.v2(), rightLogicalPlan.outputs(), rightExecutionPlan);
+            if (isDistributed) {
+                // Run the join distributed by modulo distribution algorithm
+                leftOutputs = setModuloDistribution(hashSymbols.v1(), leftLogicalPlan.outputs(), leftExecutionPlan);
+                rightOutputs = setModuloDistribution(hashSymbols.v2(), rightLogicalPlan.outputs(), rightExecutionPlan);
+            } else {
+                // Run the join non-distributed on the handler node
+                joinExecutionNodes = Collections.singletonList(plannerContext.handlerNode());
+                leftExecutionPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+                rightExecutionPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+            }
             leftMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, leftResultDesc, joinExecutionNodes);
             rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, joinExecutionNodes);
         }
@@ -226,7 +241,7 @@ class HashJoin extends TwoInputPlan {
         Symbol firstJoinSymbol = joinSymbols.get(0);
         int distributeBySymbolPos = planOutputs.indexOf(firstJoinSymbol);
         if (distributeBySymbolPos < 0) {
-            // looks like a function symbol, it must be evaluated BEFORE distribution
+            // Looks like a function symbol, it must be evaluated BEFORE distribution
             outputs = createEvalProjectionForDistributionJoinSymbol(firstJoinSymbol, planOutputs, executionPlan);
             distributeBySymbolPos = planOutputs.size();
         }

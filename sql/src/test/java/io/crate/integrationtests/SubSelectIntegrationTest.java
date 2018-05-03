@@ -424,9 +424,9 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select * from" +
-                " (select * from t1 order by 1 limit 3 offset 1) t1, " +
+                " (select * from t1 order by 1 limit 3 offset 1) t1 inner join " +
                 " (select * from t2 order by 1 limit 5 offset 3) t2 " +
-                "where t1.col1 = t2.col1 " +
+                "on t1.col1 = t2.col1 " +
                 "order by 1 desc, 2 " +
                 "limit 2 offset 1");
         assertThat(printedTable(response.rows()), is("3| 3\n2| 2\n"));
