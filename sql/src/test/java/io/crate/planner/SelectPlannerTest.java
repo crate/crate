@@ -580,7 +580,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                                   "from users u1 left join users u2 on u1.id = u2.id " +
                                   "where u2.name = 'Arthur'" +
                                   "and u2.id > 1 ");
-        Join nl = (Join) qtf.subPlan();
+        Join nl = (Join) ((Merge) qtf.subPlan()).subPlan();
         assertThat(nl.joinPhase().joinType(), is(JoinType.INNER));
         Collect rightCM = (Collect) nl.right();
         assertThat(((RoutedCollectPhase) rightCM.collectPhase()).where(),

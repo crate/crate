@@ -81,7 +81,7 @@ class NestedLoopJoin extends TwoInputPlan {
                    AnalyzedRelation topMostLeftRelation) {
         super(lhs, rhs, new ArrayList<>());
         this.joinType = joinType;
-        this.isFiltered = isFiltered;
+        this.isFiltered = isFiltered || joinCondition != null;
         if (joinType == JoinType.SEMI) {
             this.outputs.addAll(lhs.outputs());
         } else {
@@ -120,16 +120,14 @@ class NestedLoopJoin extends TwoInputPlan {
                                Row params,
                                Map<SelectSymbol, Object> subQueryValues) {
         /*
-         * isDistributed/filterNeeded doesn't consider the joinCondition.
-         * This means joins with implicit syntax result in a different plan than joins using explicit syntax.
-         * This was unintentional but we'll keep it that way (for now) as a distributed plan can be significantly slower
-         * (depending on the number of rows that are filtered)
-         * and we don't want to introduce a performance regression.
+         * Benchmarks reveal that if rows are filtered out distributed execution gives better performance.
+         * Therefore if `filterNeeded` is true (there is joinCondition or a filtering after the join operation)
+         * then it's a good indication that distributed execution will be faster.
          *
-         * We may at some point add some kind of session-settings to override this behaviour or otherwise
-         * come up with a better heuristic.
+         * We may at some point add some kind of session-settings to override this behaviour
+         * or otherwise come up with a better heuristic.
          */
-        Integer childPageSizeHint = !isFiltered && joinCondition == null && limit != TopN.NO_LIMIT
+        Integer childPageSizeHint = !isFiltered && limit != TopN.NO_LIMIT
             ? limitAndOffset(limit, offset)
             : null;
 
