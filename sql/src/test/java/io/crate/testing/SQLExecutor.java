@@ -33,6 +33,7 @@ import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
+import io.crate.analyze.SQLPrinter;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -52,6 +53,7 @@ import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
@@ -139,6 +141,8 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -157,6 +161,7 @@ public class SQLExecutor {
     private final SessionContext sessionContext;
     private final TransactionContext transactionContext;
     private final Random random;
+    private final SQLPrinter sqlPrinter;
 
     /**
      * Shortcut for {@link #getPlannerContext(ClusterState, Random)}
@@ -516,17 +521,30 @@ public class SQLExecutor {
         this.sessionContext = sessionContext;
         this.transactionContext = new TransactionContext(sessionContext);
         this.random = random;
+        this.sqlPrinter = new SQLPrinter(new SymbolPrinter(functions));
     }
 
     public Functions functions() {
         return functions;
     }
 
-    private <T extends AnalyzedStatement> T analyze(String stmt, ParameterContext parameterContext) {
+    private <T extends AnalyzedStatement> T analyzeInternal(String stmt, ParameterContext parameterContext) {
         Analysis analysis = analyzer.boundAnalyze(
             SqlParser.createStatement(stmt), transactionContext, parameterContext);
         //noinspection unchecked
         return (T) analysis.analyzedStatement();
+    }
+
+    private <T extends AnalyzedStatement> T analyze(String stmt, ParameterContext parameterContext) {
+        T analyzedStatement = analyzeInternal(stmt, parameterContext);
+        if (sqlPrinter.canPrint(analyzedStatement)) {
+            // check if the statement can be printed and analyzed again
+            String generatedSql = sqlPrinter.format(analyzedStatement);
+            AnalyzedStatement analyzedAgain = analyzeInternal(generatedSql, parameterContext);
+            String generatedSql2 = sqlPrinter.format(analyzedAgain);
+            assertThat(generatedSql2, is(generatedSql));
+        }
+        return analyzedStatement;
     }
 
     public <T extends AnalyzedStatement> T analyze(String statement) {
@@ -568,10 +586,23 @@ public class SQLExecutor {
             SqlParser.createExpression(expression), new ExpressionAnalysisContext());
     }
 
-
     public <T> T plan(String statement, UUID jobId, int softLimit, int fetchSize) {
-        Analysis analysis = analyzer.boundAnalyze(
-            SqlParser.createStatement(statement), transactionContext, ParameterContext.EMPTY);
+        AnalyzedStatement analyzedStatement = analyze(statement, ParameterContext.EMPTY);
+        T referencePlan = planInternal(analyzedStatement, jobId, softLimit, fetchSize);
+        if (sqlPrinter.canPrint(analyzedStatement)) {
+            // check if the statement can be printed and planned again
+            String printedStatement = sqlPrinter.format(analyzedStatement);
+            assertThat(planInternal(printedStatement, jobId, softLimit, fetchSize), is(referencePlan));
+        }
+        return referencePlan;
+    }
+
+    private <T> T planInternal(String statement, UUID jobId, int softLimit, int fetchSize) {
+        AnalyzedStatement analyzedStatement = analyzeInternal(statement, ParameterContext.EMPTY);
+        return planInternal(analyzedStatement, jobId, softLimit, fetchSize);
+    }
+
+    private <T> T planInternal(AnalyzedStatement analyzedStatement, UUID jobId, int softLimit, int fetchSize) {
         RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), new String[0]);
         PlannerContext plannerContext = new PlannerContext(
             planner.currentClusterState(),
@@ -582,7 +613,7 @@ public class SQLExecutor {
             softLimit,
             fetchSize
         );
-        Plan plan = planner.plan(analysis.analyzedStatement(), plannerContext);
+        Plan plan = planner.plan(analyzedStatement, plannerContext);
         if (plan instanceof LogicalPlan) {
             return (T) ((LogicalPlan) plan).build(
                 plannerContext,
@@ -611,39 +642,6 @@ public class SQLExecutor {
         }
         return (T) planner.plan(stmt, getPlannerContext(planner.currentClusterState()));
     }
-
-    public <T> T plan(String stmt, Row row) {
-        AnalyzedStatement analyzedStatement = analyzer.unboundAnalyze(
-            SqlParser.createStatement(stmt),
-            sessionContext,
-            ParamTypeHints.EMPTY
-        );
-        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);
-        PlannerContext plannerContext = new PlannerContext(
-            planner.currentClusterState(),
-            routingProvider,
-            UUID.randomUUID(),
-            functions,
-            transactionContext,
-            0,
-            0
-        );
-        Plan plan = planner.plan(analyzedStatement, plannerContext);
-        if (plan instanceof LogicalPlan) {
-            return (T) ((LogicalPlan) plan).build(
-                plannerContext,
-                new ProjectionBuilder(functions),
-                TopN.NO_LIMIT,
-                0,
-                null,
-                null,
-                Row.EMPTY,
-                Collections.emptyMap()
-            );
-        }
-        return (T) plan;
-    }
-
 
     public <T> T plan(String statement) {
         return plan(statement, UUID.randomUUID(), 0, 0);
