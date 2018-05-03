@@ -184,8 +184,6 @@ Fixes
 - Fixed an issue that caused queries on the `_uid` column to not match
   correctly.
 
-- Do not allow renaming a table when connected to a read-only node.
-
 - Fixed an issue that would cause a ClassCastException to be thrown instead of
   BatchUpdateException with a descriptive message, when using batched prepared
   statements with ``SELECT`` queries.
