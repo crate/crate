@@ -68,7 +68,7 @@ public class BatchSimulatingIterator<T> implements BatchIterator<T> {
         this.numBatches = maxAdditionalFakeBatches;
         this.batchSize = batchSize;
 
-        this.loadNextDelays = new Random(System.currentTimeMillis()).longs(0, 100).iterator();
+        this.loadNextDelays = new Random(System.currentTimeMillis()).longs(0, 5).iterator();
         this.executor = executor == null ? ForkJoinPool.commonPool() : executor;
     }
 
