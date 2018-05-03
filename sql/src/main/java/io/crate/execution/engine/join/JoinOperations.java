@@ -26,8 +26,11 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
@@ -94,5 +97,20 @@ public final class JoinOperations {
                 return requiresRepeat;
             }
         };
+    }
+
+    /**
+     * Creates an {@link EvalProjection} to ensure that the join output symbols are emitted in the original order as
+     * a possible outer operator (e.g. GROUP BY) is relying on the order.
+     * The order could have been changed due to the switch-table optimizations
+     *
+     * @param outputs       List of join output symbols in their original order.
+     * @param joinOutputs   List of join output symbols after possible re-ordering due optimizations.
+     */
+    public static Projection createJoinProjection(List<Symbol> outputs, List<Symbol> joinOutputs) {
+        List<Symbol> projectionOutputs = InputColumns.create(
+            outputs,
+            new InputColumns.SourceSymbols(joinOutputs));
+        return new EvalProjection(projectionOutputs);
     }
 }

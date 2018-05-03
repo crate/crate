@@ -30,28 +30,30 @@ import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
-import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.join.JoinOperations;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
+import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -90,15 +92,16 @@ class NestedLoopJoin extends TwoInputPlan {
         this.hasOuterJoins = hasOuterJoins;
     }
 
-    public JoinType joinType() {
+    JoinType joinType() {
         return joinType;
     }
 
     @Nullable
-    public Symbol joinCondition() {
+    Symbol joinCondition() {
         return joinCondition;
     }
 
+    @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         HashMap<LogicalPlan, SelectSymbol> deps = new HashMap<>(lhs.dependencies().size() + rhs.dependencies().size());
         deps.putAll(lhs.dependencies());
@@ -134,82 +137,45 @@ class NestedLoopJoin extends TwoInputPlan {
         ExecutionPlan right = rhs.build(
             plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryValues);
 
-
         boolean hasDocTables = baseTables.stream().anyMatch(r -> r instanceof DocTableRelation);
-        JoinType joinType = this.joinType;
         boolean isDistributed = hasDocTables && isFiltered && !joinType.isOuter();
 
-        ResultDescription leftResultDesc = left.resultDescription();
-        ResultDescription rightResultDesc = right.resultDescription();
+        LogicalPlan leftLogicalPlan = lhs;
+        LogicalPlan rightLogicalPlan = rhs;
         isDistributed = isDistributed &&
-                        (!leftResultDesc.nodeIds().isEmpty() && !rightResultDesc.nodeIds().isEmpty());
-        boolean switchTables = false;
+                        (!left.resultDescription().nodeIds().isEmpty() && !right.resultDescription().nodeIds().isEmpty());
         if (isDistributed && joinType.supportsInversion() && lhs.numExpectedRows() < rhs.numExpectedRows()) {
-            // temporarily switch plans and relations to apply broadcasting logic
-            // to smaller side (which is always the right side).
-            switchTables = true;
+            // switch plans and relations to apply broadcasting logic to smaller side (which is always the right side).
             ExecutionPlan tmpExecutionPlan = left;
             left = right;
             right = tmpExecutionPlan;
+            leftLogicalPlan = rhs;
+            rightLogicalPlan = lhs;
+        }
+        Tuple<Collection<String>, List<MergePhase>> joinExecutionNodesAndMergePhases =
+            configureExecution(left, right, plannerContext, isDistributed);
 
-            leftResultDesc = left.resultDescription();
-            rightResultDesc = right.resultDescription();
-        }
-        Collection<String> nlExecutionNodes = ImmutableSet.of(plannerContext.handlerNode());
+        List<Symbol> joinOutputs = Lists2.concat(leftLogicalPlan.outputs(), rightLogicalPlan.outputs());
 
-        MergePhase leftMerge = null;
-        MergePhase rightMerge = null;
-        if (isDistributed && !leftResultDesc.hasRemainingLimitOrOffset()) {
-            left.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
-            nlExecutionNodes = leftResultDesc.nodeIds();
-        } else {
-            left.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-            if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, leftResultDesc, false)) {
-                leftMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, leftResultDesc, nlExecutionNodes);
-            }
-        }
-        if (nlExecutionNodes.size() == 1
-            && nlExecutionNodes.equals(rightResultDesc.nodeIds())
-            && !rightResultDesc.hasRemainingLimitOrOffset()) {
-            // if the left and the right plan are executed on the same single node the mergePhase
-            // should be omitted. This is the case if the left and right table have only one shards which
-            // are on the same node
-            right.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
-        } else {
-            if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, rightResultDesc, isDistributed)) {
-                rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
-            }
-            right.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-        }
-
-        if (switchTables) {
-            ExecutionPlan tmpExecutionPlan = left;
-            left = right;
-            right = tmpExecutionPlan;
-            MergePhase tmp = leftMerge;
-            leftMerge = rightMerge;
-            rightMerge = tmp;
-        }
         Symbol joinInput = null;
         if (joinCondition != null) {
-            joinInput = InputColumns.create(joinCondition, Lists2.concat(lhs.outputs(), rhs.outputs()));
+            joinInput = InputColumns.create(joinCondition, joinOutputs);
         }
 
         NestedLoopPhase nlPhase = new NestedLoopPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             isDistributed ? "distributed-nested-loop" : "nested-loop",
-            // JoinPhase ctor wants at least one projection
-            Collections.singletonList(new EvalProjection(InputColumn.fromSymbols(outputs))),
-            leftMerge,
-            rightMerge,
-            lhs.outputs().size(),
-            rhs.outputs().size(),
-            nlExecutionNodes,
+            Collections.singletonList(JoinOperations.createJoinProjection(outputs, joinOutputs)),
+            joinExecutionNodesAndMergePhases.v2().get(0),
+            joinExecutionNodesAndMergePhases.v2().get(1),
+            leftLogicalPlan.outputs().size(),
+            rightLogicalPlan.outputs().size(),
+            joinExecutionNodesAndMergePhases.v1(),
             joinType,
             joinInput
         );
-        return new io.crate.planner.node.dql.join.Join(
+        return new Join(
             nlPhase,
             left,
             right,
@@ -219,6 +185,45 @@ class NestedLoopJoin extends TwoInputPlan {
             outputs.size(),
             null
         );
+    }
+
+    private Tuple<Collection<String>, List<MergePhase>> configureExecution(ExecutionPlan left,
+                                                                           ExecutionPlan right,
+                                                                           PlannerContext plannerContext,
+                                                                           boolean isDistributed) {
+        Collection<String> nlExecutionNodes = ImmutableSet.of(plannerContext.handlerNode());
+        ResultDescription leftResultDesc = left.resultDescription();
+        ResultDescription rightResultDesc = right.resultDescription();
+        MergePhase leftMerge = null;
+        MergePhase rightMerge = null;
+
+        if (leftResultDesc.nodeIds().size() == 1
+            && leftResultDesc.nodeIds().equals(rightResultDesc.nodeIds())
+            && !rightResultDesc.hasRemainingLimitOrOffset()) {
+            // if the left and the right plan are executed on the same single node the mergePhase
+            // should be omitted. This is the case if the left and right table have only one shards which
+            // are on the same node
+            nlExecutionNodes = leftResultDesc.nodeIds();
+            left.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+            right.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+        } else if (isDistributed && !leftResultDesc.hasRemainingLimitOrOffset()) {
+            // run join phase distributed on all nodes of the left relation
+            nlExecutionNodes = leftResultDesc.nodeIds();
+            left.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+            right.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+            rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
+        } else {
+            // run join phase non-distributed on the handler
+            left.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+            right.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+            if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, leftResultDesc, false)) {
+                leftMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, leftResultDesc, nlExecutionNodes);
+            }
+            if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, rightResultDesc, false)) {
+                rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
+            }
+        }
+        return new Tuple<>(nlExecutionNodes, Arrays.asList(leftMerge, rightMerge));
     }
 
     @Override
@@ -261,7 +266,7 @@ class NestedLoopJoin extends TwoInputPlan {
              */
             if (hasOuterJoins == false) {
                 Set<AnalyzedRelation> relationsInOrderBy =
-                    Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
+                    Collections.newSetFromMap(new IdentityHashMap<>());
                 Consumer<Field> gatherRelations = f -> relationsInOrderBy.add(f.relation());
 
                 OrderBy orderBy = ((Order) pushDown).orderBy;

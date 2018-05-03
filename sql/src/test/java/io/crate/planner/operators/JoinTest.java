@@ -31,12 +31,12 @@ import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
-import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -90,10 +90,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             .build(tableStats, Collections.emptySet());
         Join nl = (Join) operator.build(
             context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
-        assertThat(
-            ((Collect) nl.left()).collectPhase().distributionInfo().distributionType(),
-            is(DistributionType.BROADCAST)
-        );
+        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("locations"));
 
         rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(10_000, 0));
         rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10, 0));
@@ -102,10 +99,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, functions, txnCtx)
             .build(tableStats, Collections.emptySet());
         nl = (Join) operator.build(context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
-        assertThat(
-            ((Collect) nl.left()).collectPhase().distributionInfo().distributionType(),
-            is(DistributionType.SAME_NODE)
-        );
+        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("users"));
     }
 
     @Test

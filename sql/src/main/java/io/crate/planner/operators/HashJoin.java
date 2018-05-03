@@ -78,14 +78,15 @@ class HashJoin extends TwoInputPlan {
         this.tableStats = tableStats;
     }
 
-    public JoinType joinType() {
+    JoinType joinType() {
         return JoinType.INNER;
     }
 
-    protected Symbol joinCondition() {
+    Symbol joinCondition() {
         return joinCondition;
     }
 
+    @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         HashMap<LogicalPlan, SelectSymbol> deps = new HashMap<>(lhs.dependencies().size() + rhs.dependencies().size());
         deps.putAll(lhs.dependencies());
@@ -102,8 +103,6 @@ class HashJoin extends TwoInputPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                Map<SelectSymbol, Object> subQueryValues) {
-
-
         ExecutionPlan leftExecutionPlan = lhs.build(
             plannerContext, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryValues);
         ExecutionPlan rightExecutionPlan = rhs.build(
@@ -153,27 +152,18 @@ class HashJoin extends TwoInputPlan {
         }
 
         List<Symbol> joinOutputs = Lists2.concat(leftOutputs, rightOutputs);
-        // The projection operates on the the outputs of the join operation, which may be inverted due to a table switch,
-        // and must produce outputs that match the order of the original outputs, because a "parent" (eg. GROUP BY)
-        // operator of the join expects the original outputs order.
-        List<Symbol> projectionOutputs = InputColumns.create(
-                outputs,
-                new InputColumns.SourceSymbols(joinOutputs));
-
-        Symbol joinConditionInput = InputColumns.create(joinCondition, joinOutputs);
 
         HashJoinPhase joinPhase = new HashJoinPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             "hash-join",
-            // JoinPhase ctor wants at least one projection
-            Collections.singletonList(new EvalProjection(projectionOutputs)),
+            Collections.singletonList(JoinOperations.createJoinProjection(outputs, joinOutputs)),
             leftMerge,
             rightMerge,
             leftOutputs.size(),
             rightOutputs.size(),
             joinExecutionNodes,
-            joinConditionInput,
+            InputColumns.create(joinCondition, joinOutputs),
             InputColumns.create(hashSymbols.v1(), new InputColumns.SourceSymbols(leftOutputs)),
             InputColumns.create(hashSymbols.v2(), new InputColumns.SourceSymbols(rightOutputs)),
             Symbols.typeView(leftOutputs),
