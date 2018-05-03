@@ -34,6 +34,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
+import io.crate.sql.tree.QualifiedName;
 
 import java.util.Collection;
 import java.util.List;
@@ -73,7 +74,14 @@ class Relations {
                 ((QueriedRelation) relation), namesFromOutputs(querySpec.outputs()), querySpec);
             newRelation = (QueriedRelation) normalizer.normalize(newRelation, transactionContext);
         }
-        newRelation.setQualifiedName(relation.getQualifiedName());
+        if (newRelation.where().hasQuery() && newRelation.getQualifiedName().equals(relation.getQualifiedName())) {
+            // This relation will be represented as a subquery and needs a proper QualifiedName.
+            // If there is no distinct QualifiedName, create one by merging all parts of the old QualifiedName
+            // e.g. "doc"."users" -> "doc.users"
+            newRelation.setQualifiedName(QualifiedName.of(relation.getQualifiedName().toString()));
+        } else {
+            newRelation.setQualifiedName(relation.getQualifiedName());
+        }
         return newRelation;
     }
 }

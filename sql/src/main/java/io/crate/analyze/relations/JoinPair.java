@@ -28,7 +28,6 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.function.Function;
 
 public class JoinPair {
 
@@ -88,10 +87,6 @@ public class JoinPair {
     @Override
     public int hashCode() {
         return Objects.hashCode(left, right, joinType, condition);
-    }
-
-    public void replaceCondition(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        condition = replaceFunction.apply(condition);
     }
 
     boolean equalsNames(QualifiedName left, QualifiedName right) {

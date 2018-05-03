@@ -39,10 +39,12 @@ import io.crate.sql.tree.QualifiedName;
 import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class MultiSourceSelect implements QueriedRelation {
 
@@ -92,15 +94,29 @@ public class MultiSourceSelect implements QueriedRelation {
         Function<? super Symbol, ? extends Symbol> convertFieldInSymbolsToNewRelations =
             FieldReplacer.bind(convertFieldToPointToNewRelations);
 
-        for (JoinPair joinPair : mss.joinPairs) {
-            joinPair.replaceCondition(convertFieldInSymbolsToNewRelations);
+        // remap the sources according to their QualifiedName which might have changed
+        Map<QualifiedName, AnalyzedRelation> newSources = new LinkedHashMap<>();
+        for (Map.Entry<QualifiedName, AnalyzedRelation> source : mss.sources.entrySet()) {
+            AnalyzedRelation analyzedRelation = source.getValue();
+            newSources.put(analyzedRelation.getQualifiedName(), analyzedRelation);
         }
+
+        List<JoinPair> newJoinPairs = mss.joinPairs().stream().map(joinPair -> {
+            Map<QualifiedName, AnalyzedRelation> oldSources = mss.sources();
+            return JoinPair.of(
+                oldSources.get(joinPair.left()).getQualifiedName(),
+                oldSources.get(joinPair.right()).getQualifiedName(),
+                joinPair.joinType(),
+                convertFieldInSymbolsToNewRelations.apply(joinPair.condition())
+            );
+        }).collect(Collectors.toList());
+
         return new MultiSourceSelect(
             mss.qualifiedName,
-            mss.sources(),
+            newSources,
             mss.fields(),
             querySpec,
-            mss.joinPairs
+            newJoinPairs
         );
     }
 

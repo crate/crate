@@ -758,12 +758,12 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "where users.name = 'Arthur'");
 
         assertThat(relation.joinPairs().get(0).condition(),
-            isSQL("(doc.users.id = doc.users_multi_pk.id)"));
+            isSQL("(\"doc.users\".id = doc.users_multi_pk.id)"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
         assertThat(relation.querySpec().where().query(), isSQL("null"));
         QueriedRelation users =
-            ((QueriedRelation) ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "users")));
+            ((QueriedRelation) relation.sources().get(QualifiedName.of("doc.users")));
         assertThat(users.querySpec().where().query(), isSQL("(doc.users.name = 'Arthur')"));
     }
 

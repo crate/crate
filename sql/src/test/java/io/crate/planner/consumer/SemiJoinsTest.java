@@ -25,10 +25,12 @@ package io.crate.planner.consumer;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedTable;
+import io.crate.analyze.SQLPrinter;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.LogicalPlan;
@@ -107,12 +109,13 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
             rel, new TransactionContext(SessionContext.create()));
 
         assertThat(semiJoin.querySpec().where(), isSQL("true"));
-        assertThat(((QueriedRelation) semiJoin.sources().get(T1)).querySpec(),
+        System.out.println(new SQLPrinter(new SymbolPrinter(getFunctions())).format(semiJoin));
+        assertThat(((QueriedRelation) semiJoin.sources().get(QualifiedName.of(T1.toString()))).querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i WHERE (doc.t1.x = 10)"));
         assertThat(((QueriedRelation) semiJoin.sources().get(new QualifiedName(Arrays.asList("S0", "", "empty_row"))))
             .querySpec(), isSQL("SELECT 'foo'"));
 
-        assertThat(semiJoin.joinPairs().get(0).condition(), isSQL("(doc.t1.a = S0..empty_row.'foo')"));
+        assertThat(semiJoin.joinPairs().get(0).condition(), isSQL("(\"doc.t1\".a = S0..empty_row.'foo')"));
         assertThat(semiJoin.joinPairs().get(0).joinType(), is(JoinType.SEMI));
     }
 
@@ -123,12 +126,12 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
             rel, new TransactionContext(SessionContext.create()));
 
         assertThat(antiJoin.querySpec().where(), isSQL("true"));
-        assertThat(((QueriedRelation) antiJoin.sources().get(T1)).querySpec(),
+        assertThat(((QueriedRelation) antiJoin.sources().get(QualifiedName.of(T1.toString()))).querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i WHERE (doc.t1.x = 10)"));
         assertThat(((QueriedRelation) antiJoin.sources().get(new QualifiedName(Arrays.asList("S0", "", "empty_row"))))
             .querySpec(), isSQL("SELECT 'foo'"));
 
-        assertThat(antiJoin.joinPairs().get(0).condition(), isSQL("(doc.t1.a = S0..empty_row.'foo')"));
+        assertThat(antiJoin.joinPairs().get(0).condition(), isSQL("(\"doc.t1\".a = S0..empty_row.'foo')"));
         assertThat(antiJoin.joinPairs().get(0).joinType(), is(JoinType.ANTI));
     }
 

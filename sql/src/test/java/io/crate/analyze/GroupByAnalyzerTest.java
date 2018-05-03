@@ -259,7 +259,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedRelation relation = analyze("select distinct max(id) from users group by name order by 1");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
         assertThat(relation.querySpec(),
-            isSQL("SELECT doc.users.max(id) GROUP BY doc.users.max(id) ORDER BY doc.users.max(id)"));
+            isSQL("SELECT \"doc.users\".max(id) GROUP BY \"doc.users\".max(id) ORDER BY \"doc.users\".max(id)"));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.subRelation(), instanceOf(QueriedTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
@@ -272,8 +272,8 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             analyze("select distinct max(id) from users group by name order by 1 limit 5 offset 10");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
         assertThat(relation.querySpec(),
-            isSQL("SELECT doc.users.max(id) GROUP BY doc.users.max(id) " +
-                  "ORDER BY doc.users.max(id) LIMIT 5 OFFSET 10"));
+            isSQL("SELECT \"doc.users\".max(id) GROUP BY \"doc.users\".max(id) " +
+                  "ORDER BY \"doc.users\".max(id) LIMIT 5 OFFSET 10"));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.subRelation(), instanceOf(QueriedTable.class));
         assertThat(outerRelation.subRelation().querySpec(),

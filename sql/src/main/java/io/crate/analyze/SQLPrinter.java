@@ -127,7 +127,6 @@ public final class SQLPrinter {
             addOrderBy(sb, relation.orderBy());
             clauseAndSymbol(sb, "LIMIT", relation.limit());
             clauseAndSymbol(sb, "OFFSET", relation.offset());
-
             return null;
         }
 
@@ -321,42 +320,58 @@ public final class SQLPrinter {
                     sb.append(printSymbol(currentJoinPair.condition()));
                 }
             }
-
         }
 
         private void printRelation(AnalyzedRelation relation, StringBuilder sb) {
             if (relation instanceof QueriedTable) {
-                String relationName = ((QueriedTable) relation).tableRelation().tableInfo().ident().sqlFqn();
-                sb.append(relationName);
-                if (!relationName.equals(relation.getQualifiedName().toString())) {
+                QueriedTable queriedTable = (QueriedTable) relation;
+                String relationName = queriedTable.tableRelation().tableInfo().ident().toString();
+                if (queriedTable.where().query() != null) {
+                    // this source has a where clause, we need to process it in a subquery
+                    sb.append("(");
+                    printSelect(queriedTable, sb);
+                    sb.append(")");
+                } else {
+                    sb.append(relationName);
+                }
+                String quotedQualifiedName = quoteQualifiedName(relation.getQualifiedName());
+                if (!relationName.equals(quotedQualifiedName)) {
                     sb.append(" AS ");
-                    sb.append(quoteQualifiedName(relation.getQualifiedName()));
+                    sb.append(quotedQualifiedName);
                 }
             } else if (relation instanceof QueriedSelectRelation) {
                 QueriedRelation subRelation = ((QueriedSelectRelation) relation).subRelation();
                 if (subRelation instanceof AnalyzedView) {
                     process(subRelation, sb);
+                    String quotedQualifiedName = quoteQualifiedName(subRelation.getQualifiedName());
+                    if (!((AnalyzedView) subRelation).name().toString().equals(quotedQualifiedName)) {
+                        sb.append(" AS ");
+                        sb.append(quotedQualifiedName);
+                    }
                 } else {
                     sb.append("(");
                     process(subRelation, sb);
                     sb.append(")");
+                    sb.append(" AS ");
                     sb.append(quoteQualifiedName(subRelation.getQualifiedName()));
                 }
+            } else {
+                throw new IllegalStateException("Unknown relation: " + relation);
             }
-        }
-
-        private static String quoteQualifiedName(QualifiedName qualifiedName) {
-            return qualifiedName.getParts().stream().map(part -> {
-                if (!part.startsWith("\"") && part.contains(".")) {
-                    return "\"" + part + "\"";
-                }
-                return part;
-            }).collect(Collectors.joining("."));
         }
 
         @Override
         protected Void visitAnalyzedRelation(AnalyzedRelation relation, StringBuilder context) {
             throw new UnsupportedOperationException("Cannot format statement: " + relation);
         }
+    }
+
+    public static String quoteQualifiedName(QualifiedName qualifiedName) {
+        return qualifiedName.getParts().stream().map(part -> {
+            if (!part.startsWith("\"") && part.contains(".")) {
+                return "\"" + part + "\"";
+            }
+            return part;
+        }).collect(Collectors.joining("."));
     }
 }

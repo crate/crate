@@ -24,6 +24,7 @@ package io.crate.analyze.relations;
 
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
+import io.crate.analyze.SQLPrinter;
 
 public class RelationPrinter extends AnalyzedRelationVisitor<Void, String> {
 
@@ -50,7 +51,7 @@ public class RelationPrinter extends AnalyzedRelationVisitor<Void, String> {
     @Override
     public String visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
         String fqn = queriedTable.tableRelation().tableInfo().ident().sqlFqn();
-        String qualifiedName = queriedTable.getQualifiedName().toString();
+        String qualifiedName = SQLPrinter.quoteQualifiedName(queriedTable.getQualifiedName());
         if (!fqn.equals(qualifiedName)) {
             return qualifiedName;
         }
@@ -59,11 +60,11 @@ public class RelationPrinter extends AnalyzedRelationVisitor<Void, String> {
 
     @Override
     public String visitQueriedSelectRelation(QueriedSelectRelation relation, Void context) {
-        return relation.getQualifiedName().toString();
+        return SQLPrinter.quoteQualifiedName(relation.getQualifiedName());
     }
 
     @Override
     public String visitUnionSelect(UnionSelect unionSelect, Void context) {
-        return unionSelect.getQualifiedName().toString();
+        return SQLPrinter.quoteQualifiedName(unionSelect.getQualifiedName());
     }
 }
