@@ -49,6 +49,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
@@ -351,6 +352,7 @@ public class Join extends TwoInputPlan {
             plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryValues);
 
 
+        PositionalOrderBy orderByFromLeft = left.resultDescription().orderBy();
         boolean hasDocTables = baseTables.stream().anyMatch(r -> r instanceof DocTableRelation);
         JoinType joinType = this.joinType;
         boolean isDistributed = hasDocTables && isFiltered && !joinType.isOuter();
@@ -360,9 +362,12 @@ public class Join extends TwoInputPlan {
         isDistributed = isDistributed &&
                         (!leftResultDesc.nodeIds().isEmpty() && !rightResultDesc.nodeIds().isEmpty());
         boolean switchTables = false;
-        if (isDistributed && joinType.supportsInversion() && lhs.numExpectedRows() < rhs.numExpectedRows()) {
-            // temporarily switch plans and relations to apply broadcasting logic
-            // to smaller side (which is always the right side).
+
+        if (isDistributed && joinType.supportsInversion() &&
+            lhs.numExpectedRows() < rhs.numExpectedRows() && orderByFromLeft == null) {
+            // The right side is always broadcast-ed, so for performance reasons we switch the tables so that
+            // the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
+            // to be preserved, then the switch is not possible.
             switchTables = true;
             ExecutionPlan tmpExecutionPlan = left;
             left = right;
@@ -433,7 +438,7 @@ public class Join extends TwoInputPlan {
             0,
             TopN.NO_LIMIT,
             outputs.size(),
-            null
+            orderByFromLeft
         );
     }
 

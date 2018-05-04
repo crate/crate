@@ -21,5 +21,8 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could cause ``JOIN`` queries with ``ORDER BY`` to return
+  incorrect results.
+
 - Fixed an issue that caused ``COPY TO`` with filters on primary key columns to
   fail.

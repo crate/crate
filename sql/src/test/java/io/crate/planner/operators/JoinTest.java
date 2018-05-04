@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.ObjectLongHashMap;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.PlannerContext;
@@ -34,7 +35,6 @@ import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -43,8 +43,10 @@ import org.junit.Test;
 import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.IsNull.notNullValue;
 
 public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
@@ -52,17 +54,34 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private Functions functions = getFunctions();
     private ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
 
+    private PlannerContext plannerCtx;
+
     @Before
     public void setUpExecutor() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .addDocTable(TableDefinitions.USER_TABLE_INFO)
             .addDocTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO)
             .build();
+        plannerCtx = e.getPlannerContext(clusterService.state());
+    }
+
+    private LogicalPlan createLogicalPlan(MultiSourceSelect mss, TableStats tableStats) {
+        LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
+        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
+        return Join.createNodes(mss, mss.where(), subqueryPlanner).build(tableStats, Collections.emptySet());
+    }
+
+    private NestedLoop buildJoin(LogicalPlan operator) {
+        return (NestedLoop) operator.build(plannerCtx, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
+    }
+
+    private NestedLoop plan(MultiSourceSelect mss, TableStats tableStats) {
+        return buildJoin(createLogicalPlan(mss, tableStats));
     }
 
     @Test
-    public void testTablesAreSwitchedIfLeftIsSmallerThanRight() throws Exception {
-        MultiSourceSelect mss = e.analyze("select * from users, locations where users.id = locations.id");
+    public void testNestedLoop_TablesAreSwitchedIfLeftIsSmallerThanRight() throws Exception {
+        MultiSourceSelect mss = e.analyze("select users.id from users, locations where users.id = locations.id");
 
         TableStats tableStats = new TableStats();
         ObjectLongHashMap<TableIdent> rowCountByTable = new ObjectLongHashMap<>();
@@ -70,12 +89,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, 10_000);
         tableStats.updateTableStats(rowCountByTable);
 
-        PlannerContext context = e.getPlannerContext(clusterService.state());
-        LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
-        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
-        LogicalPlan operator = Join.createNodes(mss, mss.where(), subqueryPlanner).build(tableStats, Collections.emptySet());
-        NestedLoop nl = (NestedLoop) operator.build(
-            context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
+        NestedLoop nl = plan(mss, tableStats);
         assertThat(
             ((Collect) nl.left()).collectPhase().distributionInfo().distributionType(),
             is(DistributionType.BROADCAST)
@@ -85,12 +99,28 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, 10);
         tableStats.updateTableStats(rowCountByTable);
 
-        operator = Join.createNodes(mss, mss.where(), subqueryPlanner).build(tableStats, Collections.emptySet());
-        nl = (NestedLoop) operator.build(context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
+        nl = plan(mss, tableStats);
         assertThat(
             ((Collect) nl.left()).collectPhase().distributionInfo().distributionType(),
             is(DistributionType.SAME_NODE)
         );
     }
 
+    @Test
+    public void testNestedLoop_TablesAreNotSwitchedIfLeftHasAPushedDownOrderBy() {
+        // we use a subselect to simulate the pushed-down order by
+        MultiSourceSelect mss = e.analyze("select users.id from (select id from users order by id) users, " +
+                                          "locations where users.id = locations.id");
+
+        TableStats tableStats = new TableStats();
+        ObjectLongHashMap<TableIdent> rowCountByTable = new ObjectLongHashMap<>();
+        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, 10);
+        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, 10_000);
+        tableStats.updateTableStats(rowCountByTable);
+
+        NestedLoop nl = plan(mss, tableStats);
+
+        assertThat(((Collect) nl.left()).collectPhase().toCollect(), isSQL("doc.users.id"));
+        assertThat(nl.resultDescription().orderBy(), notNullValue());
+    }
 }
