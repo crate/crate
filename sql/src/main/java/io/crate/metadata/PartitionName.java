@@ -157,7 +157,7 @@ public class PartitionName {
         return values;
     }
 
-    public RelationName tableIdent() {
+    public RelationName relationName() {
         return relationName;
     }
 

@@ -279,7 +279,7 @@ public class SnapshotRestoreDDLDispatcher {
 
         private static boolean isIndexPartitionOfTable(String index, RelationName relationName) {
             return IndexParts.isPartitioned(index) &&
-                   PartitionName.fromIndexOrTemplate(index).tableIdent().equals(relationName);
+                   PartitionName.fromIndexOrTemplate(index).relationName().equals(relationName);
         }
 
         @Override

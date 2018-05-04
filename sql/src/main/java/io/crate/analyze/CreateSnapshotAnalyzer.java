@@ -119,7 +119,7 @@ class CreateSnapshotAnalyzer {
                         if (!ignoreUnavailable) {
                             throw new PartitionUnknownException(partitionName);
                         } else {
-                            LOGGER.info("ignoring unknown partition of table '{}' with ident '{}'", partitionName.tableIdent(), partitionName.ident());
+                            LOGGER.info("ignoring unknown partition of table '{}' with ident '{}'", partitionName.relationName(), partitionName.ident());
                         }
                     } else {
                         snapshotIndices.add(partitionName.asIndexName());

@@ -34,10 +34,10 @@ public class PartitionUnknownException extends ResourceUnknownException implemen
     public PartitionUnknownException(PartitionName partitionName) {
         super(String.format(Locale.ENGLISH,
             "No partition for table '%s' with ident '%s' exists",
-            partitionName.tableIdent().fqn(),
+            partitionName.relationName().fqn(),
             partitionName.ident()));
 
-        this.relationName = partitionName.tableIdent();
+        this.relationName = partitionName.relationName();
     }
 
     @Override

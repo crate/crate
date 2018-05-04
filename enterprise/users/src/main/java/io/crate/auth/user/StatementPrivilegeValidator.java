@@ -322,7 +322,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
             for (String indexName : analysis.indexNames()) {
                 String tableName;
                 if (IndexParts.isPartitioned(indexName)) {
-                    tableName = PartitionName.fromIndexOrTemplate(indexName).tableIdent().toString();
+                    tableName = PartitionName.fromIndexOrTemplate(indexName).relationName().toString();
                 } else {
                     tableName = RelationName.fqnFromIndexName(indexName);
                 }

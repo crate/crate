@@ -40,10 +40,10 @@ public class ShardPartitionOrphanedExpression implements NestableInput<Boolean> 
         isPartition = IndexParts.isPartitioned(shardId.getIndex().getName());
         if (isPartition) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(shardId.getIndex().getName());
-            aliasName = partitionName.tableIdent().indexName();
+            aliasName = partitionName.relationName().indexName();
             templateName = PartitionName.templateName(
-                partitionName.tableIdent().schema(),
-                partitionName.tableIdent().name());
+                partitionName.relationName().schema(),
+                partitionName.relationName().name());
         } else {
             templateName = null;
             aliasName = null;

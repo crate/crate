@@ -59,9 +59,9 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<PartitionInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PartitionInfo>>builder()
             .put(InformationTablesTableInfo.Columns.TABLE_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> r.name().tableIdent().name()))
+                () -> RowContextCollectorExpression.objToBytesRef(r -> r.name().relationName().name()))
             .put(Columns.TABLE_SCHEMA,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> r.name().tableIdent().schema()))
+                () -> RowContextCollectorExpression.objToBytesRef(r -> r.name().relationName().schema()))
             .put(InformationTablesTableInfo.Columns.TABLE_TYPE,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> RelationType.BASE_TABLE.pretty()))
             .put(Columns.PARTITION_IDENT,

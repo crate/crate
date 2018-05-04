@@ -167,7 +167,7 @@ public class DocSchemaInfo implements SchemaInfo {
             }
             try {
                 PartitionName partitionName = PartitionName.fromIndexOrTemplate(templateName);
-                RelationName ti = partitionName.tableIdent();
+                RelationName ti = partitionName.relationName();
                 if (schemaName.equalsIgnoreCase(ti.schema())) {
                     tables.add(ti.name());
                 }

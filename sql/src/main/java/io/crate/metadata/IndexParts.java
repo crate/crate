@@ -122,7 +122,7 @@ public class IndexParts {
     }
 
     public static String toIndexName(PartitionName partitionName) {
-        RelationName relationName = partitionName.tableIdent();
+        RelationName relationName = partitionName.relationName();
         return toIndexName(relationName.schema(), relationName.name(), partitionName.ident());
     }
 

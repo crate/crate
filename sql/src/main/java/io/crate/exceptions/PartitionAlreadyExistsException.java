@@ -34,7 +34,7 @@ public class PartitionAlreadyExistsException extends ConflictException implement
 
     public PartitionAlreadyExistsException(PartitionName partitionName) {
         super(String.format(Locale.ENGLISH, "Partition '%s' already exists", partitionName));
-        this.relationName = partitionName.tableIdent();
+        this.relationName = partitionName.relationName();
     }
 
     @Override

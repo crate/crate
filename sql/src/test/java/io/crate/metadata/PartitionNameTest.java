@@ -119,13 +119,13 @@ public class PartitionNameTest extends CrateUnitTest {
     @Test
     public void testPartitionNameNotFromTable() throws Exception {
         String partitionName = IndexParts.PARTITIONED_TABLE_PART + "test1._1";
-        assertFalse(PartitionName.fromIndexOrTemplate(partitionName).tableIdent().name().equals("test"));
+        assertFalse(PartitionName.fromIndexOrTemplate(partitionName).relationName().name().equals("test"));
     }
 
     @Test
     public void testPartitionNameNotFromSchema() throws Exception {
         String partitionName = "schema1." + IndexParts.PARTITIONED_TABLE_PART + "test1._1";
-        assertFalse(PartitionName.fromIndexOrTemplate(partitionName).tableIdent().schema().equals("schema"));
+        assertFalse(PartitionName.fromIndexOrTemplate(partitionName).relationName().schema().equals("schema"));
     }
 
     @Test
@@ -177,7 +177,7 @@ public class PartitionNameTest extends CrateUnitTest {
     @Test
     public void splitTemplateName() throws Exception {
         PartitionName partitionName = PartitionName.fromIndexOrTemplate(PartitionName.templateName("schema", "t"));
-        assertThat(partitionName.tableIdent(), is(new RelationName("schema", "t")));
+        assertThat(partitionName.relationName(), is(new RelationName("schema", "t")));
         assertThat(partitionName.ident(), is(""));
     }
 

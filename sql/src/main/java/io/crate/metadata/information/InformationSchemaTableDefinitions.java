@@ -61,7 +61,7 @@ public class InformationSchemaTableDefinitions {
         ));
         tableDefinitions.put(InformationPartitionsTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::partitions,
-            (user, p) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, p.name().tableIdent().fqn()),
+            (user, p) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, p.name().relationName().fqn()),
             InformationPartitionsTableInfo.expressions()
         ));
         tableDefinitions.put(InformationColumnsTableInfo.IDENT, new StaticTableDefinition<>(

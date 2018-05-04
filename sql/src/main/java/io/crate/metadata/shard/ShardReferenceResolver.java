@@ -108,7 +108,7 @@ public class ShardReferenceResolver {
             throw new UnhandledServerException(String.format(Locale.ENGLISH,
                 "Unable to load PARTITIONED BY columns from partition %s", index.getName()), e);
         }
-        RelationName relationName = partitionName.tableIdent();
+        RelationName relationName = partitionName.relationName();
         try {
             DocTableInfo info = schemas.getTableInfo(relationName);
             if (!schemas.isOrphanedAlias(info)) {
