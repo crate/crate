@@ -418,8 +418,8 @@ public class TransportCreatePartitionsAction
             int lastDotIndex = mappingFile.getName().lastIndexOf('.');
             String mappingType =
                 lastDotIndex != -1 ? mappingFile.getName().substring(0, lastDotIndex) : mappingFile.getName();
-            try {
-                String mappingSource = Streams.copyToString(new InputStreamReader(new FileInputStream(mappingFile), Charsets.UTF_8));
+            try (InputStreamReader reader = new InputStreamReader(new FileInputStream(mappingFile), Charsets.UTF_8)) {
+                String mappingSource = Streams.copyToString(reader);
                 if (mappings.containsKey(mappingType)) {
                     XContentHelper.mergeDefaults(mappings.get(mappingType), parseMapping(mappingSource));
                 } else {

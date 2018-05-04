@@ -302,8 +302,9 @@ public final class SslConfiguration {
         private TrustStoreSettings(Settings settings) throws Exception {
             super(settings);
 
-            keyStore.load(
-                new FileInputStream(new File(keyStorePath)), keyStorePassword);
+            try (FileInputStream stream = new FileInputStream(new File(keyStorePath))) {
+                keyStore.load(stream, keyStorePassword);
+            }
 
             TrustManagerFactory trustFactory =
                 TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
