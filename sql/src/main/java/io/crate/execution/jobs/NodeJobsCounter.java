@@ -46,7 +46,7 @@ public class NodeJobsCounter {
     // Using single element long[] to avoid autoboxing
     private final Map<String, long[]> operationsCountPerNode = new ConcurrentHashMap<>();
 
-    private static BiFunction<String, long[], long[]> INCREMENT_COUNTER_FOR_NODE = (node, count) -> {
+    private static final BiFunction<String, long[], long[]> INCREMENT_COUNTER_FOR_NODE = (node, count) -> {
         if (count == null) {
             count = new long[1];
             count[0] = 1;
@@ -56,7 +56,7 @@ public class NodeJobsCounter {
         return count;
     };
 
-    private static BiFunction<String, long[], long[]> DECREMENT_COUNTER_FOR_NODE = (id, count) -> {
+    private static final BiFunction<String, long[], long[]> DECREMENT_COUNTER_FOR_NODE = (id, count) -> {
         if (count == null) {
             count = new long[1];
             count[0] = 0;
