@@ -44,6 +44,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -73,8 +74,14 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             .build();
     }
 
+    @After
+    public void resetEnableHashJoinFlag() {
+        txnCtx.sessionContext().setHashJoinEnabled(true);
+    }
+
     @Test
-    public void testTablesAreSwitchedIfLeftIsSmallerThanRight() {
+    public void testNestedLoop_TablesAreSwitchedIfLeftIsSmallerThanRight() {
+        txnCtx.sessionContext().setHashJoinEnabled(false);
         MultiSourceSelect mss = e.analyze("select * from users, locations where users.id = locations.id");
 
         TableStats tableStats = new TableStats();
@@ -103,7 +110,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testHashJoinTableOrderInLogicalAndExecutionPlan() {
+    public void testHashJoin_TableOrderInLogicalAndExecutionPlan() {
         MultiSourceSelect mss = e.analyze("select users.name, locations.id " +
                                           "from users " +
                                           "join locations on users.id = locations.id");
@@ -130,7 +137,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testHashJoinTablesSwitchWhenRightBiggerThanLeft() {
+    public void testHashJoin_TablesSwitchWhenRightBiggerThanLeft() {
         MultiSourceSelect mss = e.analyze("select users.name, locations.id " +
                                           "from users " +
                                           "join locations on users.id = locations.id");
@@ -205,5 +212,4 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(join.left(), instanceOf(Join.class));
         assertThat(((Join)join.left()).joinPhase(), instanceOf(HashJoinPhase.class));
     }
-
 }

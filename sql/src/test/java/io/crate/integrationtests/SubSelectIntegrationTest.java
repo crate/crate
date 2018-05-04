@@ -627,7 +627,6 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseSemiJoins(0) // Executed explicitly both with enable_semijoin enabled and disabled
     public void testJoiningSubqueries() throws Exception {
         setup.setUpJobs();
         setup.setUpEmployees();
