@@ -71,6 +71,10 @@ public class ShardReferenceResolver {
         ImmutableMap.Builder<ReferenceIdent, NestableInput> builder = ImmutableMap.builder();
         if (IndexParts.isPartitioned(index.getName())) {
             addPartitions(index, schemas, builder);
+            builder.put(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION,
+                new ShardPartitionOrphanedExpression(index.getName(), clusterService));
+        } else {
+            builder.put(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION, new LiteralNestableInput<>(false));
         }
         IndexParts indexParts = new IndexParts(index.getName());
         builder.put(SysShardsTableInfo.ReferenceIdents.ID, new LiteralNestableInput<>(shardId.getId()));
@@ -87,8 +91,6 @@ public class ShardReferenceResolver {
             new LiteralNestableInput<>(new BytesRef(indexParts.getTable())));
         builder.put(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT,
             new ShardPartitionIdentExpression(shardId));
-        builder.put(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION,
-            new ShardPartitionOrphanedExpression(shardId, clusterService));
         builder.put(SysShardsTableInfo.ReferenceIdents.PATH, new ShardPathExpression(indexShard));
         builder.put(SysShardsTableInfo.ReferenceIdents.BLOB_PATH, new LiteralNestableInput<>(null));
         builder.put(SysShardsTableInfo.ReferenceIdents.MIN_LUCENE_VERSION,

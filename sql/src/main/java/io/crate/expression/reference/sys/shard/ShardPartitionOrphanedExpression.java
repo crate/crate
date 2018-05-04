@@ -21,40 +21,28 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
 import io.crate.expression.NestableInput;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.index.shard.ShardId;
 
 public class ShardPartitionOrphanedExpression implements NestableInput<Boolean> {
 
     private final ClusterService clusterService;
     private final String aliasName;
     private final String templateName;
-    private final boolean isPartition;
 
-    public ShardPartitionOrphanedExpression(ShardId shardId, ClusterService clusterService) {
+    public ShardPartitionOrphanedExpression(String indexName, ClusterService clusterService) {
         this.clusterService = clusterService;
-        isPartition = IndexParts.isPartitioned(shardId.getIndex().getName());
-        if (isPartition) {
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(shardId.getIndex().getName());
-            aliasName = partitionName.relationName().indexName();
-            templateName = PartitionName.templateName(
-                partitionName.relationName().schema(),
-                partitionName.relationName().name());
-        } else {
-            templateName = null;
-            aliasName = null;
-        }
+        PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexName);
+        RelationName relationName = partitionName.relationName();
+        aliasName = relationName.indexName();
+        templateName = PartitionName.templateName(relationName.schema(), relationName.name());
     }
 
     @Override
     public Boolean value() {
-        if (!isPartition) {
-            return false;
-        }
         final MetaData metaData = clusterService.state().metaData();
         return !(metaData.templates().containsKey(templateName) && metaData.hasConcreteIndex(aliasName));
     }
