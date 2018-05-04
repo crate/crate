@@ -40,6 +40,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.Join;
@@ -137,6 +138,7 @@ class NestedLoopJoin extends TwoInputPlan {
         ExecutionPlan right = rhs.build(
             plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryValues);
 
+        PositionalOrderBy orderByFromLeft = left.resultDescription().orderBy();
         boolean hasDocTables = baseTables.stream().anyMatch(r -> r instanceof DocTableRelation);
         boolean isDistributed = hasDocTables && isFiltered && !joinType.isOuter();
 
@@ -144,8 +146,11 @@ class NestedLoopJoin extends TwoInputPlan {
         LogicalPlan rightLogicalPlan = rhs;
         isDistributed = isDistributed &&
                         (!left.resultDescription().nodeIds().isEmpty() && !right.resultDescription().nodeIds().isEmpty());
-        if (isDistributed && joinType.supportsInversion() && lhs.numExpectedRows() < rhs.numExpectedRows()) {
-            // switch plans and relations to apply broadcasting logic to smaller side (which is always the right side).
+        if (isDistributed && joinType.supportsInversion() &&
+            lhs.numExpectedRows() < rhs.numExpectedRows() && orderByFromLeft == null) {
+            // The right side is always broadcast-ed, so for performance reasons we switch the tables so that
+            // the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
+            // to be preserved, then the switch is not possible.
             ExecutionPlan tmpExecutionPlan = left;
             left = right;
             right = tmpExecutionPlan;
@@ -183,7 +188,7 @@ class NestedLoopJoin extends TwoInputPlan {
             0,
             TopN.NO_LIMIT,
             outputs.size(),
-            null
+            orderByFromLeft
         );
     }
 

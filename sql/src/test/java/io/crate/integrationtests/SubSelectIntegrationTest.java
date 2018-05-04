@@ -25,6 +25,7 @@ package io.crate.integrationtests;
 import io.crate.data.Paging;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseSemiJoins;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -631,12 +632,11 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         setup.setUpJobs();
         setup.setUpEmployees();
 
-        execute("select employees.name, employees.department from employees" +
-                "    join ( select jobs.department" +
-                "           from jobs" +
-                "        ) sub" +
-                "       on employees.department = sub.department" +
-                "    order by 1, 2");
+        execute("select employees.name, employees.department " +
+                "from employees, " +
+                "     (select jobs.department from jobs) sub " +
+                "where employees.department = sub.department " +
+                "order by 1, 2");
         assertThat(response.rowCount(), is(6L));
         assertThat(printedTable(response.rows()),
             is ("asok| internship\n" +
