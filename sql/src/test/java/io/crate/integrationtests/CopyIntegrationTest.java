@@ -470,6 +470,17 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    public void testCopyToWithWhereOnPrimaryKey() throws Exception {
+        execute("create table t1 (id int primary key) with (number_of_replicas = 0)");
+        execute("insert into t1 (id) values (1)");
+        execute("refresh table t1");
+
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
+        SQLResponse response = execute("copy t1 where id = 1 to DIRECTORY ?", new Object[]{uriTemplate});
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
     public void testCopyToWithWhereNoMatch() throws Exception {
         this.setup.groupBySetup();
 

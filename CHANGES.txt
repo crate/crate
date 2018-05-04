@@ -181,6 +181,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused ``COPY TO`` with filters on primary key columns to
+  fail.
+
 - Fixed an issue that caused queries on the `_uid` column to not match
   correctly.
 
