@@ -225,6 +225,12 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         indexEventListenerProxy.addLast(new LifecycleListener());
     }
 
+    public ProjectorFactory getProjectorFactory(ShardId shardId) {
+        ShardCollectorProvider collectorProvider = getCollectorProviderSafe(shardId);
+        return collectorProvider.getProjectorFactory();
+    }
+
+
     /**
      * Executor that delegates the execution of tasks to the provided {@link Executor} until
      * it starts rejecting tasks with {@link EsRejectedExecutionException} in which case it executes the

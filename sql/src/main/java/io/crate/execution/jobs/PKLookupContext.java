@@ -22,17 +22,19 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.expression.symbol.Symbol;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.expression.reference.GetResponseRefResolver;
-import io.crate.metadata.ColumnIdent;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
-import io.crate.execution.engine.collect.PKLookupOperation;
-import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.reference.GetResponseRefResolver;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.planner.operators.PKAndVersion;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.get.GetResponse;
@@ -40,29 +42,40 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.get.GetResult;
 import org.elasticsearch.index.shard.ShardId;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public final class PKLookupContext extends AbstractExecutionSubContext {
 
     private static final Logger LOGGER = Loggers.getLogger(PKLookupContext.class);
+    private final UUID jobId;
+    private final RamAccountingContext ramAccountingContext;
     private final PKLookupOperation pkLookupOperation;
     private final boolean ignoreMissing;
     private final Map<ShardId, List<PKAndVersion>> idsByShard;
+    private final Collection<? extends Projection> shardProjections;
     private final RowConsumer consumer;
     private final InputRow inputRow;
     private final List<CollectExpression<GetResponse, ?>> expressions;
 
-    public PKLookupContext(int phaseId,
+    public PKLookupContext(UUID jobId,
+                           int phaseId,
+                           RamAccountingContext ramAccountingContext,
                            InputFactory inputFactory,
                            PKLookupOperation pkLookupOperation,
                            List<ColumnIdent> partitionedByColumns,
                            List<Symbol> toCollect,
                            Map<ShardId, List<PKAndVersion>> idsByShard,
+                           Collection<? extends Projection> shardProjections,
                            RowConsumer consumer) {
         super(phaseId, LOGGER);
+        this.jobId = jobId;
+        this.ramAccountingContext = ramAccountingContext;
         this.pkLookupOperation = pkLookupOperation;
         this.idsByShard = idsByShard;
+        this.shardProjections = shardProjections;
         this.consumer = consumer;
         this.ignoreMissing = !partitionedByColumns.isEmpty();
         GetResponseRefResolver getResponseRefResolver = new GetResponseRefResolver(partitionedByColumns);
@@ -75,8 +88,20 @@ public final class PKLookupContext extends AbstractExecutionSubContext {
 
     @Override
     protected void innerStart() {
-        BatchIterator<GetResult> batchIterator = pkLookupOperation.lookup(ignoreMissing, idsByShard);
-        consumer.accept(BatchIterators.map(batchIterator, this::resultToRow), null);
+        if (shardProjections.isEmpty()) {
+            BatchIterator<GetResult> batchIterator = pkLookupOperation.lookup(ignoreMissing, idsByShard);
+            consumer.accept(BatchIterators.map(batchIterator, this::resultToRow), null);
+        } else {
+            pkLookupOperation.runWithShardProjections(
+                jobId,
+                ramAccountingContext,
+                ignoreMissing,
+                idsByShard,
+                shardProjections,
+                consumer,
+                this::resultToRow
+            );
+        }
         close(null);
     }
 

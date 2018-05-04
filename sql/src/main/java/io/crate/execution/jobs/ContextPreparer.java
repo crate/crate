@@ -51,8 +51,20 @@ import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.support.Paging;
 import io.crate.expression.RowFilter;
+import io.crate.execution.dsl.phases.PKLookupPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.UpstreamPhase;
+import io.crate.execution.dsl.phases.PKLookupPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.UpstreamPhase;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
+import io.crate.execution.engine.collect.PKLookupOperation;
+import io.crate.execution.engine.collect.count.CountOperation;
+import io.crate.execution.engine.collect.PKLookupOperation;
+import io.crate.execution.engine.collect.count.CountOperation;
+import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.execution.engine.collect.sources.SystemCollectSource;
 import io.crate.execution.engine.collect.count.CountOperation;
 import io.crate.execution.engine.fetch.FetchContext;
@@ -100,6 +112,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
+import static io.crate.execution.dsl.projection.Projections.nodeProjections;
+import static io.crate.execution.dsl.projection.Projections.shardProjections;
+
 @Singleton
 public class ContextPreparer extends AbstractComponent {
 
@@ -128,6 +143,7 @@ public class ContextPreparer extends AbstractComponent {
                            IndicesService indicesService,
                            Functions functions,
                            SystemCollectSource systemCollectSource,
+                           ShardCollectSource shardCollectSource,
                            BigArrays bigArrays) {
         super(settings);
         nlContextLogger = Loggers.getLogger(NestedLoopContext.class, settings);
@@ -135,7 +151,7 @@ public class ContextPreparer extends AbstractComponent {
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
-        this.pkLookupOperation = new PKLookupOperation(indicesService);
+        this.pkLookupOperation = new PKLookupOperation(indicesService, shardCollectSource);
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         this.distributingConsumerFactory = distributingConsumerFactory;
         innerPreparer = new InnerPreparer();
@@ -543,21 +559,28 @@ public class ContextPreparer extends AbstractComponent {
 
         @Override
         public Boolean visitPKLookup(PKLookupPhase pkLookupPhase, PreparerContext context) {
-            RowConsumer rowConsumer = ProjectingRowConsumer.create(
+            Collection<? extends Projection> shardProjections = shardProjections(pkLookupPhase.projections());
+            Collection<? extends Projection> nodeProjections = nodeProjections(pkLookupPhase.projections());
+
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, pkLookupPhase);
+            RowConsumer nodeRowConsumer = ProjectingRowConsumer.create(
                 context.getRowConsumer(pkLookupPhase, 0),
-                pkLookupPhase.projections(),
+                nodeProjections,
                 pkLookupPhase.jobId(),
-                RamAccountingContext.forExecutionPhase(circuitBreaker, pkLookupPhase),
+                ramAccountingContext,
                 projectorFactory
             );
             context.registerSubContext(new PKLookupContext(
+                pkLookupPhase.jobId(),
                 pkLookupPhase.phaseId(),
+                ramAccountingContext,
                 inputFactory,
                 pkLookupOperation,
                 pkLookupPhase.partitionedByColumns(),
                 pkLookupPhase.toCollect(),
                 pkLookupPhase.getIdsByShardId(clusterService.localNode().getId()),
-                rowConsumer
+                shardProjections,
+                nodeRowConsumer
             ));
             return true;
         }

@@ -167,4 +167,8 @@ public abstract class ShardCollectorProvider {
                                                             SharedShardContext sharedShardContext,
                                                             JobCollectContext jobCollectContext,
                                                             boolean requiresRepeat);
+
+    public ProjectorFactory getProjectorFactory() {
+        return projectorFactory;
+    }
 }
