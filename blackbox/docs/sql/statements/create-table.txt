@@ -347,14 +347,6 @@ Sets the maximum number of columns that is allowed for a table. Default is ``100
   Maximum amount of fields in the Lucene index mapping. This includes
   both the user facing mapping (columns) and internal fields.
 
-``translog.flush_threshold_ops``
-................................
-
-Sets the number of operations before flushing.
-
-:value:
-  Number of operations prior to flushing.
-
 ``translog.flush_threshold_size``
 .................................
 
