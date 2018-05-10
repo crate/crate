@@ -289,6 +289,9 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, PlannerContext context) {
+        if (explainAnalyzedStatement.analyze()) {
+            throw new UnsupportedOperationException("The analyze property is currently not supported for explain statements");
+        }
         return new ExplainPlan(process(explainAnalyzedStatement.statement(), context));
     }
 

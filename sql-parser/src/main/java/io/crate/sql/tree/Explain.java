@@ -29,13 +29,19 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class Explain
     extends Statement {
     private final Statement statement;
+    private final boolean analyze;
 
-    public Explain(Statement statement) {
+    public Explain(Statement statement, boolean analyze) {
         this.statement = checkNotNull(statement, "statement is null");
+        this.analyze = analyze;
     }
 
     public Statement getStatement() {
         return statement;
+    }
+
+    public boolean isAnalyze() {
+        return analyze;
     }
 
     @Override

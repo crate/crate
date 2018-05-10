@@ -175,6 +175,7 @@ public class TestStatementBuilder {
     @Test
     public void testExplainStmtBuilder() {
         printStatement("explain drop table foo");
+        printStatement("explain analyze drop table foo");
     }
 
     @Test
