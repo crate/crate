@@ -33,7 +33,7 @@ singleExpression
 statement
     : query                                                                          #default
     | BEGIN                                                                          #begin
-    | EXPLAIN statement                                                              #explain
+    | EXPLAIN (ANALYZE)? statement                                                   #explain
     | OPTIMIZE TABLE tableWithPartitions withProperties?                             #optimize
     | REFRESH TABLE tableWithPartitions                                              #refreshTable
     | UPDATE aliasedRelation SET assignment (',' assignment)* where?                 #update
@@ -610,7 +610,7 @@ clazz
     ;
 
 nonReserved
-    : ALIAS | ANALYZER | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
+    : ALIAS | ANALYZE | ANALYZER | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
     | COLUMNS | COPY | CURRENT | DATE | DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
     | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LOGICAL | LOCAL | MATERIALIZED | MINUTE
@@ -756,6 +756,7 @@ FUNCTION: 'FUNCTION';
 LANGUAGE: 'LANGUAGE';
 INPUT: 'INPUT';
 
+ANALYZE: 'ANALYZE';
 CONSTRAINT: 'CONSTRAINT';
 DESCRIBE: 'DESCRIBE';
 EXPLAIN: 'EXPLAIN';
