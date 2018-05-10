@@ -42,7 +42,8 @@ public class ExplainStatementAnalyzer {
         CHECK_VISITOR.process(node.getStatement(), null);
         AnalyzedStatement subStatement = analyzer.analyzedStatement(node.getStatement(), analysis);
         String columnName = SqlFormatter.formatSql(node);
-        ExplainAnalyzedStatement explainAnalyzedStatement = new ExplainAnalyzedStatement(columnName, subStatement);
+        ExplainAnalyzedStatement explainAnalyzedStatement =
+            new ExplainAnalyzedStatement(columnName, subStatement, node.isAnalyze());
         analysis.rootRelation(explainAnalyzedStatement);
         return explainAnalyzedStatement;
     }

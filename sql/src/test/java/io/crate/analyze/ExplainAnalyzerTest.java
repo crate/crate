@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isField;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -47,7 +48,14 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         ExplainAnalyzedStatement stmt = e.analyze("explain select id from sys.cluster");
         assertNotNull(stmt.statement());
         assertThat(stmt.statement(), instanceOf(QueriedRelation.class));
+        assertThat(stmt.analyze(), is(false));
     }
+
+    @Test
+    public void testAnalyzePropertyIsSetOnExplainAnalyze() {
+        ExplainAnalyzedStatement stmt = e.analyze("explain analyze select id from sys.cluster");
+        assertThat(stmt.analyze(), is(true));
+     }
 
     @Test
     public void testExplainArrayComparison() throws Exception {
