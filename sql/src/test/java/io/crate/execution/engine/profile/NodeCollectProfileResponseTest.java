@@ -20,32 +20,34 @@
  * agreement.
  */
 
-package io.crate.execution.jobs.transport;
+package io.crate.execution.engine.profile;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
-public class JobRequestTest {
+public class NodeCollectProfileResponseTest {
 
     @Test
-    public void testJobRequestStreaming() throws Exception {
-        JobRequest r1 = new JobRequest(UUID.randomUUID(), "n1", Collections.emptyList(), true);
+    public void testStreaming() throws Exception {
+        Map<String, Long> timings = new HashMap<>();
+        timings.put("node1", 1000L);
+        NodeCollectProfileResponse originalResponse = new NodeCollectProfileResponse(timings);
 
         BytesStreamOutput out = new BytesStreamOutput();
-        r1.writeTo(out);
+        originalResponse.writeTo(out);
 
-        JobRequest r2 = new JobRequest();
-        r2.readFrom(out.bytes().streamInput());
+        StreamInput in = out.bytes().streamInput();
 
-        assertThat(r1.coordinatorNodeId(), is(r2.coordinatorNodeId()));
-        assertThat(r1.jobId(), is(r2.jobId()));
-        assertThat(r1.nodeOperations().isEmpty(), is(true));
-        assertThat(r1.enableProfiling(), is(r2.enableProfiling()));
+        NodeCollectProfileResponse streamed = new NodeCollectProfileResponse();
+        streamed.readFrom(in);
+
+        assertThat(originalResponse.durationByContextIdent(), is(streamed.durationByContextIdent()));
     }
 }

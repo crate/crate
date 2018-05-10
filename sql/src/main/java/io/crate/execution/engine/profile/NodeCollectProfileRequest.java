@@ -20,32 +20,40 @@
  * agreement.
  */
 
-package io.crate.execution.jobs.transport;
+package io.crate.execution.engine.profile;
 
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.junit.Test;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportRequest;
 
-import java.util.Collections;
+import java.io.IOException;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+public class NodeCollectProfileRequest extends TransportRequest {
 
-public class JobRequestTest {
+    private UUID jobId;
 
-    @Test
-    public void testJobRequestStreaming() throws Exception {
-        JobRequest r1 = new JobRequest(UUID.randomUUID(), "n1", Collections.emptyList(), true);
+    NodeCollectProfileRequest() {
+    }
 
-        BytesStreamOutput out = new BytesStreamOutput();
-        r1.writeTo(out);
+    NodeCollectProfileRequest(UUID jobId) {
+        this.jobId = jobId;
+    }
 
-        JobRequest r2 = new JobRequest();
-        r2.readFrom(out.bytes().streamInput());
+    public UUID jobId() {
+        return jobId;
+    }
 
-        assertThat(r1.coordinatorNodeId(), is(r2.coordinatorNodeId()));
-        assertThat(r1.jobId(), is(r2.jobId()));
-        assertThat(r1.nodeOperations().isEmpty(), is(true));
-        assertThat(r1.enableProfiling(), is(r2.enableProfiling()));
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        jobId = new UUID(in.readLong(), in.readLong());
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeLong(jobId.getMostSignificantBits());
+        out.writeLong(jobId.getLeastSignificantBits());
     }
 }

@@ -71,6 +71,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
 
@@ -310,14 +311,15 @@ public class LogicalPlanner {
                                PlannerContext plannerContext,
                                RowConsumer consumer,
                                Row params,
-                               SubQueryResults subQueryResults) {
+                               SubQueryResults subQueryResults,
+                               boolean enableProfiling) {
         if (logicalPlan.dependencies().isEmpty()) {
-            doExecute(logicalPlan, executor, plannerContext, consumer, params, subQueryResults);
+            doExecute(logicalPlan, executor, plannerContext, consumer, params, subQueryResults, enableProfiling);
         } else {
             MultiPhaseExecutor.execute(logicalPlan.dependencies(), executor, plannerContext, params)
                 .whenComplete((valueBySubQuery, failure) -> {
                     if (failure == null) {
-                        doExecute(logicalPlan, executor, plannerContext, consumer, params, valueBySubQuery);
+                        doExecute(logicalPlan, executor, plannerContext, consumer, params, valueBySubQuery, false);
                     } else {
                         consumer.accept(null, failure);
                     }
@@ -330,18 +332,25 @@ public class LogicalPlanner {
                                   PlannerContext plannerContext,
                                   RowConsumer consumer,
                                   Row params,
-                                  SubQueryResults subQueryResults) {
-        NodeOperationTree nodeOpTree;
-        try {
-            ExecutionPlan executionPlan = logicalPlan.build(
-                plannerContext, executor.projectionBuilder(), -1, 0, null, null, params, subQueryResults);
-            nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
-        } catch (Throwable t) {
-            consumer.accept(null, t);
-            return;
-        }
+                                  SubQueryResults subQueryResults,
+                                  boolean enableProfiling) {
+        NodeOperationTree nodeOpTree = getNodeOperationTree(logicalPlan, executor, plannerContext, params, subQueryResults);
+        executeNodeOpTree(executor, plannerContext.jobId(), consumer, enableProfiling, nodeOpTree);
+    }
+
+    public static NodeOperationTree getNodeOperationTree(LogicalPlan logicalPlan,
+                                                         DependencyCarrier executor,
+                                                         PlannerContext plannerContext,
+                                                         Row params,
+                                                         SubQueryResults subQueryResults) {
+        ExecutionPlan executionPlan = logicalPlan.build(
+            plannerContext, executor.projectionBuilder(), -1, 0, null, null, params, subQueryResults);
+        return NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
+    }
+
+    public static void executeNodeOpTree(DependencyCarrier executor, UUID jobId, RowConsumer consumer, boolean enableProfiling, NodeOperationTree nodeOpTree) {
         executor.phasesTaskFactory()
-            .create(plannerContext.jobId(), Collections.singletonList(nodeOpTree))
+            .create(jobId, Collections.singletonList(nodeOpTree), enableProfiling)
             .execute(consumer);
     }
 

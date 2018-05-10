@@ -21,6 +21,7 @@
 
 package io.crate.execution.jobs;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.ContextMissingException;
@@ -108,12 +109,9 @@ public class JobContextService extends AbstractLifecycleComponent {
         return activeContexts.get(jobId);
     }
 
+    @VisibleForTesting
     public JobExecutionContext.Builder newBuilder(UUID jobId) {
-        return new JobExecutionContext.Builder(jobId, clusterService.localNode().getId(), Collections.emptyList(), jobsLogs);
-    }
-
-    public JobExecutionContext.Builder newBuilder(UUID jobId, String coordinatorNodeId) {
-        return new JobExecutionContext.Builder(jobId, coordinatorNodeId, Collections.emptyList(), jobsLogs);
+        return new JobExecutionContext.Builder(jobId, clusterService.localNode().getId(), Collections.emptySet(), jobsLogs);
     }
 
     public JobExecutionContext.Builder newBuilder(UUID jobId, String coordinatorNodeId, Collection<String> participatingNodes) {
@@ -212,7 +210,7 @@ public class JobContextService extends AbstractLifecycleComponent {
         public void accept(Void aVoid, Throwable throwable) {
             activeContexts.remove(jobId);
             if (logger.isTraceEnabled()) {
-                logger.trace("JobExecutionContext closed and removed. jobId={} remainingContexts={} failure={}",
+                logger.trace("JobExecutionContext removed from active contexts: jobId={} remainingContexts={} failure={}",
                     jobId, activeContexts.size(), throwable);
             }
         }

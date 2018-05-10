@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Representation of a complete top-level plan which can be consumed by an {@link io.crate.executor.Executor}.
+ * Representation of a complete top-level plan which can be consumed by an {@link io.crate.execution.MultiPhaseExecutor}.
  */
 public interface Plan {
 

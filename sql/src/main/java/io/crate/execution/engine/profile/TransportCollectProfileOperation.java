@@ -20,32 +20,29 @@
  * agreement.
  */
 
-package io.crate.execution.jobs.transport;
+package io.crate.execution.engine.profile;
 
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.junit.Test;
+import io.crate.action.FutureActionListener;
 
-import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+public class TransportCollectProfileOperation implements CollectProfileOperation {
 
-public class JobRequestTest {
+    private final UUID jobId;
+    private final TransportCollectProfileNodeAction transportAction;
 
-    @Test
-    public void testJobRequestStreaming() throws Exception {
-        JobRequest r1 = new JobRequest(UUID.randomUUID(), "n1", Collections.emptyList(), true);
+    public TransportCollectProfileOperation(TransportCollectProfileNodeAction transportAction, UUID jobId) {
+        this.jobId = jobId;
+        this.transportAction = transportAction;
+    }
 
-        BytesStreamOutput out = new BytesStreamOutput();
-        r1.writeTo(out);
-
-        JobRequest r2 = new JobRequest();
-        r2.readFrom(out.bytes().streamInput());
-
-        assertThat(r1.coordinatorNodeId(), is(r2.coordinatorNodeId()));
-        assertThat(r1.jobId(), is(r2.jobId()));
-        assertThat(r1.nodeOperations().isEmpty(), is(true));
-        assertThat(r1.enableProfiling(), is(r2.enableProfiling()));
+    @Override
+    public CompletableFuture<Map<String, Long>> collect(String nodeId) {
+        FutureActionListener<NodeCollectProfileResponse, Map<String, Long>> listener =
+            new FutureActionListener<>(NodeCollectProfileResponse::durationByContextIdent);
+        transportAction.execute(nodeId, new NodeCollectProfileRequest(jobId), listener);
+        return listener;
     }
 }

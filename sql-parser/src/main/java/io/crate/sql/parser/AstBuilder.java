@@ -563,7 +563,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitExplain(SqlBaseParser.ExplainContext context) {
-        return new Explain((Statement) visit(context.statement()));
+        return new Explain((Statement) visit(context.statement()), context.ANALYZE() != null);
     }
 
     @Override

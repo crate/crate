@@ -20,32 +20,12 @@
  * agreement.
  */
 
-package io.crate.execution.jobs.transport;
+package io.crate.execution.engine.profile;
 
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.junit.Test;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
-import java.util.Collections;
-import java.util.UUID;
+public interface CollectProfileOperation {
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
-public class JobRequestTest {
-
-    @Test
-    public void testJobRequestStreaming() throws Exception {
-        JobRequest r1 = new JobRequest(UUID.randomUUID(), "n1", Collections.emptyList(), true);
-
-        BytesStreamOutput out = new BytesStreamOutput();
-        r1.writeTo(out);
-
-        JobRequest r2 = new JobRequest();
-        r2.readFrom(out.bytes().streamInput());
-
-        assertThat(r1.coordinatorNodeId(), is(r2.coordinatorNodeId()));
-        assertThat(r1.jobId(), is(r2.jobId()));
-        assertThat(r1.nodeOperations().isEmpty(), is(true));
-        assertThat(r1.enableProfiling(), is(r2.enableProfiling()));
-    }
+    CompletableFuture<Map<String, Long>> collect(String nodeId);
 }

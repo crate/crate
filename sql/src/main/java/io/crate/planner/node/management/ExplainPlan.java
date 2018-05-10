@@ -22,6 +22,18 @@
 
 package io.crate.planner.node.management;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.crate.action.sql.BaseResultReceiver;
+import io.crate.action.sql.RowConsumerToResultReceiver;
+import io.crate.execution.dsl.phases.NodeOperation;
+import io.crate.execution.dsl.phases.NodeOperationGrouper;
+import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.execution.engine.profile.TransportCollectProfileNodeAction;
+import io.crate.execution.engine.profile.TransportCollectProfileOperation;
+import io.crate.execution.support.OneRowActionListener;
+import io.crate.planner.operators.LogicalPlanner;
+import io.crate.profile.TimeMeasurable;
+import io.crate.profile.ProfilingContext;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -35,17 +47,34 @@ import io.crate.planner.operators.ExplainLogicalPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.statement.CopyStatementPlanner;
+import org.elasticsearch.common.collect.MapBuilder;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
 public class ExplainPlan implements Plan {
 
-    private final Plan subPlan;
+    public enum Phase {
+        Analyze,
+        Plan,
+        Execute
+    }
 
-    public ExplainPlan(Plan subExecutionPlan) {
+    private final Plan subPlan;
+    private final ProfilingContext context;
+
+    public ExplainPlan(Plan subExecutionPlan, ProfilingContext context) {
         this.subPlan = subExecutionPlan;
+        this.context = context;
     }
 
     public Plan subPlan() {
@@ -58,25 +87,129 @@ public class ExplainPlan implements Plan {
                         RowConsumer consumer,
                         Row params,
                         SubQueryResults subQueryResults) {
-        Map<String, Object> map;
-        try {
-            if (subPlan instanceof LogicalPlan) {
-                map = ExplainLogicalPlan.explainMap((LogicalPlan) subPlan, plannerContext, executor.projectionBuilder());
-            } else if (subPlan instanceof CopyStatementPlanner.CopyFrom) {
-                ExecutionPlan executionPlan = CopyStatementPlanner.planCopyFromExecution(
-                    executor.clusterService().state().nodes(),
-                    ((CopyStatementPlanner.CopyFrom) subPlan).copyFrom,
-                    plannerContext
-                );
-                map = PlanPrinter.objectMap(executionPlan);
+        if (context.enabled()) {
+            assert subPlan instanceof LogicalPlan : "subPlan must be a LogicalPlan";
+            LogicalPlan plan = (LogicalPlan) subPlan;
+            /**
+             * EXPLAIN ANALYZE does not support analyzing {@link io.crate.planner.MultiPhasePlan}s
+             */
+            if (plan.dependencies().isEmpty()) {
+                UUID jobId = plannerContext.jobId();
+                BaseResultReceiver resultReceiver = new BaseResultReceiver();
+                RowConsumer noopRowConsumer = new RowConsumerToResultReceiver(resultReceiver, 0);
+
+                TimeMeasurable timeMeasurable = context.createMeasurable(Phase.Execute.name());
+                timeMeasurable.start();
+
+                NodeOperationTree operationTree = LogicalPlanner.getNodeOperationTree(
+                    plan, executor, plannerContext, params, subQueryResults);
+
+                resultReceiver.completionFuture()
+                    .whenComplete(createResultConsumer(executor, consumer, jobId, timeMeasurable, operationTree));
+
+                LogicalPlanner.executeNodeOpTree(executor, jobId, noopRowConsumer, context.enabled(), operationTree);
             } else {
-                consumer.accept(null, new UnsupportedOperationException("EXPLAIN not supported for " + subPlan));
-                return;
+                consumer.accept(null,
+                    new UnsupportedOperationException("EXPLAIN ANALYZE does not support profiling multi-phase plans, " +
+                                                      "such as queries with scalar subselects."));
             }
-        } catch (Throwable t) {
-            consumer.accept(null, t);
-            return;
+        } else {
+            try {
+                Map<String, Object> map;
+                if (subPlan instanceof LogicalPlan) {
+                    map = ExplainLogicalPlan.explainMap((LogicalPlan) subPlan, plannerContext, executor.projectionBuilder());
+                } else if (subPlan instanceof CopyStatementPlanner.CopyFrom) {
+                    ExecutionPlan executionPlan = CopyStatementPlanner.planCopyFromExecution(
+                        executor.clusterService().state().nodes(),
+                        ((CopyStatementPlanner.CopyFrom) subPlan).copyFrom,
+                        plannerContext
+                    );
+                    map = PlanPrinter.objectMap(executionPlan);
+                } else {
+                    consumer.accept(null, new UnsupportedOperationException("EXPLAIN not supported for " + subPlan));
+                    return;
+                }
+                consumer.accept(InMemoryBatchIterator.of(new Row1(map), SENTINEL), null);
+            } catch (Throwable t) {
+                consumer.accept(null, t);
+            }
         }
-        consumer.accept(InMemoryBatchIterator.of(new Row1(map), SENTINEL), null);
+    }
+
+    private BiConsumer<Void, Throwable> createResultConsumer(DependencyCarrier executor,
+                                                             RowConsumer consumer,
+                                                             UUID jobId,
+                                                             TimeMeasurable timeMeasurable,
+                                                             NodeOperationTree operationTree) {
+        return (ignored, t) -> {
+            context.stopAndAddMeasurable(timeMeasurable);
+            if (t == null) {
+                OneRowActionListener<Map<String, Map<String, Long>>> actionListener =
+                    new OneRowActionListener<>(consumer, resp -> buildResponse(context.getAsMap(), resp));
+                collectTimingResults(jobId, executor, operationTree.nodeOperations())
+                    .whenComplete(actionListener);
+            } else {
+                consumer.accept(null, t);
+            }
+        };
+    }
+
+    private TransportCollectProfileOperation getTransportCollectProfileOperation(DependencyCarrier executor, UUID jobId) {
+        TransportCollectProfileNodeAction nodeAction = executor.transportActionProvider()
+            .transportCollectProfileNodeAction();
+        return new TransportCollectProfileOperation(nodeAction, jobId);
+    }
+
+    private Row buildResponse(Map<String, Long> apeTimings, Map<String, Map<String, Long>> nodeTimings) {
+        MapBuilder<String, Object> mapBuilder = MapBuilder.newMapBuilder();
+        apeTimings.forEach(mapBuilder::put);
+
+        MapBuilder<String, Object> executionTimingsMap = MapBuilder.newMapBuilder();
+        nodeTimings.forEach(executionTimingsMap::put);
+        executionTimingsMap.put("Total", apeTimings.get(Phase.Execute.name()));
+
+        mapBuilder.put(Phase.Execute.name(), executionTimingsMap.immutableMap());
+        return new Row1(mapBuilder.immutableMap());
+    }
+
+    private CompletableFuture<Map<String, Map<String, Long>>> collectTimingResults(UUID jobId,
+                                                                                   DependencyCarrier executor,
+                                                                                   Collection<NodeOperation> nodeOperations) {
+        Set<String> nodeIds = NodeOperationGrouper.groupByServer(nodeOperations).keySet();
+
+        if (nodeIds.size() > 0) {
+            CompletableFuture<Map<String, Map<String, Long>>> resultFuture = new CompletableFuture<>();
+            TransportCollectProfileOperation collectProfileOperation = getTransportCollectProfileOperation(executor, jobId);
+
+            ConcurrentHashMap<String, Map<String, Long>> mergedMap = new ConcurrentHashMap<>(nodeIds.size());
+            AtomicInteger counter = new AtomicInteger(nodeIds.size());
+
+            for (String nodeId : nodeIds) {
+                collectProfileOperation.collect(nodeId)
+                    .whenComplete((map, throwable) -> {
+                        if (throwable == null) {
+                            mergedMap.put(nodeId, map);
+                            if (counter.decrementAndGet() == 0) {
+                                resultFuture.complete(mergedMap);
+                            }
+                        } else {
+                            resultFuture.completeExceptionally(throwable);
+                        }
+                    });
+            }
+            return resultFuture;
+        } else {
+            // Collect from local JobExecutionContext
+            return executor
+                .transportActionProvider()
+                .transportCollectProfileNodeAction()
+                .collectExecutionTimesAndFinishContext(jobId)
+                .thenApply(timings -> Collections.singletonMap(executor.localNodeId(), timings));
+        }
+    }
+
+    @VisibleForTesting
+    public boolean doAnalyze() {
+        return context.enabled();
     }
 }

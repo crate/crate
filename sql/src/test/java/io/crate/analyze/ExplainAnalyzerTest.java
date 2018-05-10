@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isField;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -47,6 +48,19 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         ExplainAnalyzedStatement stmt = e.analyze("explain select id from sys.cluster");
         assertNotNull(stmt.statement());
         assertThat(stmt.statement(), instanceOf(QueriedRelation.class));
+        assertThat(stmt.context().enabled(), is(false));
+    }
+
+    @Test
+    public void testAnalyzePropertyIsSetOnExplainAnalyze() {
+        ExplainAnalyzedStatement stmt = e.analyze("explain analyze select id from sys.cluster");
+        assertThat(stmt.context().enabled(), is(true));
+     }
+
+    @Test
+    public void testAnalyzePropertyIsReflectedInColumnName() {
+        ExplainAnalyzedStatement stmt = e.analyze("explain analyze select 1");
+        assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN ANALYZE")));
     }
 
     @Test
@@ -54,14 +68,14 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         ExplainAnalyzedStatement stmt = e.analyze("explain SELECT id from sys.cluster where id = any([1,2,3])");
         assertNotNull(stmt.statement());
         assertThat(stmt.statement(), instanceOf(QueriedRelation.class));
-        assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN SELECT \"id\"\nFROM \"sys\".\"cluster\"\nWHERE \"id\" = ANY([1, 2, 3])\n")));
+        assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN")));
     }
 
     @Test
     public void testExplainCopyFrom() throws Exception {
         ExplainAnalyzedStatement stmt = e.analyze("explain copy users from '/tmp/*' WITH (shared=True)");
         assertThat(stmt.statement(), instanceOf(CopyFromAnalyzedStatement.class));
-        assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN COPY \"users\" FROM '/tmp/*' WITH (\n   shared = true\n)")));
+        assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN")));
     }
 
     @Test

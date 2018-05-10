@@ -44,7 +44,7 @@ import java.util.Set;
  * LogicalPlan is a tree of "Operators"
  * This is a representation of the logical order of operators that need to be executed to produce a correct result.
  *
- * {@link #build(PlannerContext, ProjectionBuilder, int, int, OrderBy, Integer, Row, Map)}  is used to create the
+ * {@link #build(PlannerContext, ProjectionBuilder, int, int, OrderBy, Integer, Row, SubQueryResults)}  is used to create the
  * actual "physical" execution plan.
  *
  * A Operator is something like Limit, OrderBy, HashAggregate, Join, Union, Collect
@@ -58,7 +58,7 @@ import java.util.Set;
  *     Collect [x, y, z]
  * </pre>
  *
- * {@link #build(PlannerContext, ProjectionBuilder, int, int, OrderBy, Integer, Row, Map)}  is called
+ * {@link #build(PlannerContext, ProjectionBuilder, int, int, OrderBy, Integer, Row, SubQueryResults)}  is called
  * on the "root" and flows down.
  * Each time each operator may provide "hints" to the children so that they can decide to eagerly apply parts of the
  * operations
@@ -229,7 +229,7 @@ public interface LogicalPlan extends Plan {
                          RowConsumer consumer,
                          Row params,
                          SubQueryResults subQueryResults) {
-        LogicalPlanner.execute(this, executor, plannerContext, consumer, params, subQueryResults);
+        LogicalPlanner.execute(this, executor, plannerContext, consumer, params, subQueryResults, false);
     }
 
     <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context);

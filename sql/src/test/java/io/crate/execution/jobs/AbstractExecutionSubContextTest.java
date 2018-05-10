@@ -88,7 +88,7 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
         final AtomicInteger numClose = new AtomicInteger();
         final AtomicInteger numKill = new AtomicInteger();
 
-        public TestingExecutionSubContext(int id) {
+        TestingExecutionSubContext(int id) {
             super(id, LOGGER);
         }
 
@@ -98,7 +98,7 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
 
         @Override
         public String name() {
-            return getClass().getCanonicalName();
+            return getClass().getSimpleName();
         }
 
         @Override

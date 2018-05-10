@@ -20,32 +20,8 @@
  * agreement.
  */
 
-package io.crate.execution.jobs.transport;
-
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.UUID;
-
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
-public class JobRequestTest {
-
-    @Test
-    public void testJobRequestStreaming() throws Exception {
-        JobRequest r1 = new JobRequest(UUID.randomUUID(), "n1", Collections.emptyList(), true);
-
-        BytesStreamOutput out = new BytesStreamOutput();
-        r1.writeTo(out);
-
-        JobRequest r2 = new JobRequest();
-        r2.readFrom(out.bytes().streamInput());
-
-        assertThat(r1.coordinatorNodeId(), is(r2.coordinatorNodeId()));
-        assertThat(r1.jobId(), is(r2.jobId()));
-        assertThat(r1.nodeOperations().isEmpty(), is(true));
-        assertThat(r1.enableProfiling(), is(r2.enableProfiling()));
-    }
-}
+/**
+ * The profile package contains a range of utility and helper classes used for measure and accumulate execution timings
+ * that can be used for both internal profiling as well as for the EXPLAIN ANALYZE statement.
+ */
+package io.crate.profile;

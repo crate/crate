@@ -61,6 +61,10 @@ public final class PhasesTaskFactory {
     }
 
     public ExecutionPhasesTask create(UUID jobId, List<NodeOperationTree> nodeOperationTreeList) {
+        return create(jobId, nodeOperationTreeList, false);
+    }
+
+    public ExecutionPhasesTask create(UUID jobId, List<NodeOperationTree> nodeOperationTreeList, boolean enableProfiling) {
         return new ExecutionPhasesTask(
             jobId,
             clusterService,
@@ -69,7 +73,8 @@ public final class PhasesTaskFactory {
             indicesService,
             jobAction,
             killJobsNodeAction,
-            nodeOperationTreeList
+            nodeOperationTreeList,
+            enableProfiling
         );
     }
 }
