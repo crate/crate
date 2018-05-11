@@ -30,7 +30,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class BaseResultReceiver implements ResultReceiver {
 
-    private CompletableFuture<Boolean> completionFuture = new CompletableFuture<>();
+    private CompletableFuture<Void> completionFuture = new CompletableFuture<>();
 
     @Override
     public void setNextRow(Row row) {
@@ -43,7 +43,12 @@ public class BaseResultReceiver implements ResultReceiver {
     @Override
     @OverridingMethodsMustInvokeSuper
     public void allFinished(boolean interrupted) {
-        completionFuture.complete(interrupted);
+        if (interrupted) {
+            completionFuture.completeExceptionally(
+                new InterruptedException("Interrupted before finished receiving results"));
+        } else {
+            completionFuture.complete(null);
+        }
     }
 
     @Override
@@ -53,7 +58,7 @@ public class BaseResultReceiver implements ResultReceiver {
     }
 
     @Override
-    public CompletableFuture<?> completionFuture() {
+    public CompletableFuture<Void> completionFuture() {
         return completionFuture;
     }
 }

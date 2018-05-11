@@ -34,6 +34,12 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * A portal is the entry point for submitting queries to the cluster.
+ *
+ * It models the portal objects of the PostgreSQL Wire Protocol:
+ * https://www.postgresql.org/docs/current/static/protocol-flow.html
+ */
 public interface Portal {
 
     FormatCodes.FormatCode[] getLastResultFormatCodes();
@@ -59,6 +65,11 @@ public interface Portal {
 
     void execute(ResultReceiver resultReceiver, int maxRows);
 
+    /**
+     * @return Future which will be completed when the results have been received.
+     *         Note: The future is either completed successfully or with an
+     *         exception. The return value is not relevant.
+     */
     CompletableFuture<?> sync(Planner planner, JobsLogs jobsLogs);
 
     void close();

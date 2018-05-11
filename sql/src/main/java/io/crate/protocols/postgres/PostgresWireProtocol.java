@@ -58,6 +58,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
 import static io.crate.protocols.SSL.getSession;
@@ -265,8 +266,12 @@ class PostgresWireProtocol {
 
         @Override
         public void accept(Object result, Throwable t) {
-            if (result == null || result.equals(Boolean.FALSE)) {
-                // only send ReadyForQuery if query was not interrupted
+            if (t != null) {
+                if (!(t.getCause() instanceof InterruptedException)) {
+                    Messages.sendErrorResponse(channel, t);
+                    Messages.sendReadyForQuery(channel);
+                }
+            } else {
                 Messages.sendReadyForQuery(channel);
             }
         }
@@ -641,11 +646,14 @@ class PostgresWireProtocol {
         String query = readCString(buffer);
         assert query != null : "query must not be nulL";
 
+
         if (query.isEmpty() || ";".equals(query)) {
             Messages.sendEmptyQueryResponse(channel);
             Messages.sendReadyForQuery(channel);
             return;
         }
+
+        CompletableFuture<?> result;
         try {
             session.parse("", query, Collections.<DataType>emptyList());
             session.bind("", "", Collections.emptyList(), null);
@@ -665,13 +673,13 @@ class PostgresWireProtocol {
                 );
                 session.execute("", 0, resultSetReceiver);
             }
-            ReadyForQueryCallback readyForQueryCallback = new ReadyForQueryCallback(channel);
-            session.sync().whenComplete(readyForQueryCallback);
+            result = session.sync();
         } catch (Throwable t) {
             session.clearState();
-            Messages.sendErrorResponse(channel, t);
-            Messages.sendReadyForQuery(channel);
+            result = new CompletableFuture<>();
+            result.completeExceptionally(t);
         }
+        result.whenComplete(new ReadyForQueryCallback(channel));
     }
 
 
