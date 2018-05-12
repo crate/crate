@@ -41,6 +41,7 @@ import static org.hamcrest.Matchers.greaterThan;
 public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private static final List<String> EXPLAIN_TEST_STATEMENTS = ImmutableList.of(
+        "select 1 as connected",
         "select id from sys.cluster",
         "select id from users order by id",
         "select * from users",
@@ -60,9 +61,20 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExplain() {
         for (String statement : EXPLAIN_TEST_STATEMENTS) {
-            ExplainPlan plan = e.plan("explain " + statement);
+            ExplainPlan plan = e.plan("EXPLAIN " + statement);
             assertNotNull(plan);
             assertNotNull(plan.subPlan());
+            assertFalse(plan.doAnalyze());
+        }
+    }
+
+    @Test
+    public void testExplainAnalyze() {
+        for (String statement : EXPLAIN_TEST_STATEMENTS) {
+            ExplainPlan plan = e.plan("EXPLAIN ANALYZE " + statement);
+            assertNotNull(plan);
+            assertNotNull(plan.subPlan());
+            assertTrue(plan.doAnalyze());
         }
     }
 

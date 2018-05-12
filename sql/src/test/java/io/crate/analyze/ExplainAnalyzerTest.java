@@ -48,13 +48,13 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         ExplainAnalyzedStatement stmt = e.analyze("explain select id from sys.cluster");
         assertNotNull(stmt.statement());
         assertThat(stmt.statement(), instanceOf(QueriedRelation.class));
-        assertThat(stmt.analyze(), is(false));
+        assertThat(stmt.context().enabled(), is(false));
     }
 
     @Test
     public void testAnalyzePropertyIsSetOnExplainAnalyze() {
         ExplainAnalyzedStatement stmt = e.analyze("explain analyze select id from sys.cluster");
-        assertThat(stmt.analyze(), is(true));
+        assertThat(stmt.context().enabled(), is(true));
      }
 
     @Test
