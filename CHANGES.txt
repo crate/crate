@@ -71,6 +71,9 @@ Breaking Changes
 Changes
 =======
 
+- Updated the bundled CrateDB Shell (``crash``) to version ``0.24.0`` which
+  adds support for default schema for connections.
+
 - Fully qualified column names including a schema name will no longer match on
   table aliases.
 
