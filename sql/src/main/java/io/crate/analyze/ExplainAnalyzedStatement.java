@@ -40,12 +40,12 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
 
     final AnalyzedStatement statement;
     private final List<Field> fields;
-    private final boolean analyze;
+    private final ProfilingContext context;
 
-    public ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement, boolean analyze) {
+    ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement, ProfilingContext context) {
         this.statement = statement;
         this.fields = Collections.singletonList(new Field(this, new OutputName(columnName), DataTypes.OBJECT));
-        this.analyze = analyze;
+        this.context = context;
     }
 
     @Override
@@ -57,8 +57,8 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
         return statement;
     }
 
-    public boolean analyze() {
-        return analyze;
+    public ProfilingContext context() {
+        return context;
     }
 
     @Override

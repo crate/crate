@@ -22,11 +22,13 @@
 
 package io.crate.planner.node.management;
 
-import io.crate.expression.symbol.SelectSymbol;
+import com.google.common.annotations.VisibleForTesting;
+import io.crate.analyze.ProfilingContext;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
@@ -43,9 +45,12 @@ import static io.crate.data.SentinelRow.SENTINEL;
 public class ExplainPlan implements Plan {
 
     private final Plan subPlan;
+    private final ProfilingContext context;
+    private static final RowConsumer NOOP_ROW_CONSUMER = (it, failure) -> { };
 
-    public ExplainPlan(Plan subExecutionPlan) {
+    public ExplainPlan(Plan subExecutionPlan, ProfilingContext context) {
         this.subPlan = subExecutionPlan;
+        this.context = context;
     }
 
     public Plan subPlan() {
@@ -59,24 +64,37 @@ public class ExplainPlan implements Plan {
                         Row params,
                         Map<SelectSymbol, Object> valuesBySubQuery) {
         Map<String, Object> map;
-        try {
-            if (subPlan instanceof LogicalPlan) {
-                map = ExplainLogicalPlan.explainMap((LogicalPlan) subPlan, plannerContext, executor.projectionBuilder());
-            } else if (subPlan instanceof CopyStatementPlanner.CopyFrom) {
-                ExecutionPlan executionPlan = CopyStatementPlanner.planCopyFromExecution(
-                    executor.clusterService().state().nodes(),
-                    ((CopyStatementPlanner.CopyFrom) subPlan).copyFrom,
-                    plannerContext
-                );
-                map = PlanPrinter.objectMap(executionPlan);
-            } else {
-                consumer.accept(null, new UnsupportedOperationException("EXPLAIN not supported for " + subPlan));
+
+        if (context.enabled()) {
+            ProfilingContext.TimerToken timerToken = context.startTiming("Execute");
+            subPlan.execute(executor, plannerContext, NOOP_ROW_CONSUMER, params, valuesBySubQuery);
+            context.stopTiming(timerToken);
+            map = context.build();
+        } else {
+            try {
+                if (subPlan instanceof LogicalPlan) {
+                    map = ExplainLogicalPlan.explainMap((LogicalPlan) subPlan, plannerContext, executor.projectionBuilder());
+                } else if (subPlan instanceof CopyStatementPlanner.CopyFrom) {
+                    ExecutionPlan executionPlan = CopyStatementPlanner.planCopyFromExecution(
+                        executor.clusterService().state().nodes(),
+                        ((CopyStatementPlanner.CopyFrom) subPlan).copyFrom,
+                        plannerContext
+                    );
+                    map = PlanPrinter.objectMap(executionPlan);
+                } else {
+                    consumer.accept(null, new UnsupportedOperationException("EXPLAIN not supported for " + subPlan));
+                    return;
+                }
+            } catch (Throwable t) {
+                consumer.accept(null, t);
                 return;
             }
-        } catch (Throwable t) {
-            consumer.accept(null, t);
-            return;
         }
         consumer.accept(InMemoryBatchIterator.of(new Row1(map), SENTINEL), null);
+    }
+
+    @VisibleForTesting
+    public boolean doAnalyze() {
+        return context.enabled();
     }
 }
