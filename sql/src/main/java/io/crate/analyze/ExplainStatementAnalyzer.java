@@ -39,11 +39,14 @@ public class ExplainStatementAnalyzer {
     }
 
     public ExplainAnalyzedStatement analyze(Explain node, Analysis analysis) {
+        ProfilingContext profilingContext = new ProfilingContext(node.isAnalyze());
         CHECK_VISITOR.process(node.getStatement(), null);
+        ProfilingContext.TimerToken timerToken = profilingContext.startTiming("Analyze");
         AnalyzedStatement subStatement = analyzer.analyzedStatement(node.getStatement(), analysis);
+        profilingContext.stopTiming(timerToken);
         String columnName = SqlFormatter.formatSql(node);
         ExplainAnalyzedStatement explainAnalyzedStatement =
-            new ExplainAnalyzedStatement(columnName, subStatement, node.isAnalyze());
+            new ExplainAnalyzedStatement(columnName, subStatement, profilingContext);
         analysis.rootRelation(explainAnalyzedStatement);
         return explainAnalyzedStatement;
     }

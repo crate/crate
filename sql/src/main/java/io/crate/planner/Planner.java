@@ -43,6 +43,7 @@ import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
 import io.crate.analyze.KillAnalyzedStatement;
+import io.crate.analyze.ProfilingContext;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
@@ -289,10 +290,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, PlannerContext context) {
-        if (explainAnalyzedStatement.analyze()) {
-            throw new UnsupportedOperationException("The analyze property is currently not supported for explain statements");
-        }
-        return new ExplainPlan(process(explainAnalyzedStatement.statement(), context));
+        ProfilingContext ctx = explainAnalyzedStatement.context();
+        ProfilingContext.TimerToken timerToken = ctx.startTiming("Plan");
+        Plan subPlan = process(explainAnalyzedStatement.statement(), context);
+        ctx.stopTiming(timerToken);
+        return new ExplainPlan(subPlan, ctx);
     }
 
     @Override
