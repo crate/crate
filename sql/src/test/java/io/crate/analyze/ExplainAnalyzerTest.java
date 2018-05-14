@@ -58,18 +58,24 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
      }
 
     @Test
+    public void testAnalyzePropertyIsReflectedInColumnName() {
+        ExplainAnalyzedStatement stmt = e.analyze("explain analyze select 1");
+        assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN ANALYZE")));
+    }
+
+    @Test
     public void testExplainArrayComparison() throws Exception {
         ExplainAnalyzedStatement stmt = e.analyze("explain SELECT id from sys.cluster where id = any([1,2,3])");
         assertNotNull(stmt.statement());
         assertThat(stmt.statement(), instanceOf(QueriedRelation.class));
-        assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN SELECT \"id\"\nFROM \"sys\".\"cluster\"\nWHERE \"id\" = ANY([1, 2, 3])\n")));
+        assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN")));
     }
 
     @Test
     public void testExplainCopyFrom() throws Exception {
         ExplainAnalyzedStatement stmt = e.analyze("explain copy users from '/tmp/*' WITH (shared=True)");
         assertThat(stmt.statement(), instanceOf(CopyFromAnalyzedStatement.class));
-        assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN COPY \"users\" FROM '/tmp/*' WITH (\n   shared = true\n)")));
+        assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN")));
     }
 
     @Test

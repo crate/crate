@@ -34,7 +34,7 @@ public class ExplainStatementAnalyzer {
 
     private final Analyzer analyzer;
 
-    public ExplainStatementAnalyzer(Analyzer analyzer) {
+    ExplainStatementAnalyzer(Analyzer analyzer) {
         this.analyzer = analyzer;
     }
 
