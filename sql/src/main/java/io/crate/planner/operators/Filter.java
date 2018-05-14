@@ -108,6 +108,9 @@ class Filter extends OneInputPlan {
 
     @Override
     public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
+        // OrderBy is not pushed-down through a Filter as the Filter can potentially shrink the
+        // data set and ordering a bigger data set before filtering can lead to worse performance.
+
         Filter currentFilter = this;
         if (pushDown instanceof Filter) {
             Symbol ancestorQuery = mapper.apply(outputs, ((Filter) pushDown).query);
