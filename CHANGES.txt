@@ -188,6 +188,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that resulted in an unusable partitioned table when at least
+  one column was defined with an explicit ``COLUMNSTORE`` setting.
+
 - Fixed an issue that could cause ``JOIN`` queries with ``ORDER BY`` to return
   incorrect results.
 

@@ -46,8 +46,8 @@ import io.crate.metadata.IndexMappings;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.Operation;
@@ -59,6 +59,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 
@@ -375,7 +376,8 @@ public class DocIndexMetaData {
             boolean nullable = !notNullColumns.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
             Reference.IndexType columnIndexType = getColumnIndexType(columnProperties);
-            boolean columnsStoreDisabled = !(boolean) columnProperties.getOrDefault(DOC_VALUES, true);
+            boolean columnsStoreDisabled = !Booleans.parseBoolean(
+                columnProperties.getOrDefault(DOC_VALUES, true).toString());
             if (columnDataType == DataTypes.GEO_SHAPE) {
                 String geoTree = (String) columnProperties.get("tree");
                 String precision = (String) columnProperties.get("precision");
