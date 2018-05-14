@@ -71,6 +71,11 @@ Breaking Changes
 Changes
 =======
 
+- Added a new tab for views in the Admin UI which lists available views and
+  their properties.
+
+- Multiple Admin UI improvements.
+
 - Updated the bundled CrateDB Shell (``crash``) to version ``0.24.0`` which
   adds support for default schema for connections.
 
