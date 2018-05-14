@@ -142,8 +142,10 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitExplain(Explain node, Integer indent) {
-            append(indent, "EXPLAIN ");
-            process(node.getStatement(), indent);
+            append(indent, "EXPLAIN");
+            if (node.isAnalyze()) {
+                builder.append(" ANALYZE");
+            }
             return null;
         }
 
