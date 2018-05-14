@@ -27,12 +27,12 @@ import io.crate.Version;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
-import io.crate.expression.symbol.Field;
-import io.crate.collections.Lists2;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
 import io.crate.auth.user.User;
+import io.crate.collections.Lists2;
+import io.crate.expression.symbol.Field;
 import io.crate.protocols.http.CrateNettyHttpServerTransport;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -643,19 +643,30 @@ class PostgresWireProtocol {
 
     @VisibleForTesting
     void handleSimpleQuery(ByteBuf buffer, final Channel channel) {
-        String query = readCString(buffer);
-        assert query != null : "query must not be nulL";
+        String queryString = readCString(buffer);
+        assert queryString != null : "query must not be nulL";
 
+        List<String> queries = QueryStringSplitter.splitQuery(queryString);
+
+        CompletableFuture<?> composedFuture = CompletableFuture.completedFuture(null);
+        for (String query : queries) {
+            composedFuture = composedFuture.thenCompose(result -> handleSingleQuery(query, channel));
+        }
+        composedFuture.whenComplete(new ReadyForQueryCallback(channel));
+    }
+
+    private CompletableFuture<?> handleSingleQuery(String query, Channel channel) {
+
+        CompletableFuture<?> result = new CompletableFuture<>();
 
         if (query.isEmpty() || ";".equals(query)) {
             Messages.sendEmptyQueryResponse(channel);
-            Messages.sendReadyForQuery(channel);
-            return;
+            result.complete(null);
+            return result;
         }
 
-        CompletableFuture<?> result;
         try {
-            session.parse("", query, Collections.<DataType>emptyList());
+            session.parse("", query, Collections.emptyList());
             session.bind("", "", Collections.emptyList(), null);
             Session.DescribeResult describeResult = session.describe('P', "");
             List<Field> fields = describeResult.getFields();
@@ -673,13 +684,12 @@ class PostgresWireProtocol {
                 );
                 session.execute("", 0, resultSetReceiver);
             }
-            result = session.sync();
+            return session.sync();
         } catch (Throwable t) {
             session.clearState();
-            result = new CompletableFuture<>();
             result.completeExceptionally(t);
+            return result;
         }
-        result.whenComplete(new ReadyForQueryCallback(channel));
     }
 
 

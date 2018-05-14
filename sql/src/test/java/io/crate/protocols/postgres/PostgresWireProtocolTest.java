@@ -28,9 +28,9 @@ import io.crate.action.sql.Session;
 import io.crate.auth.AlwaysOKNullAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
-import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.DependencyCarrier;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -47,6 +47,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
@@ -55,9 +56,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
+import static org.mockito.Matchers.anyChar;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -383,5 +387,99 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         channel.writeInbound(buffer);
 
         verify(session, times(1)).close();
+    }
+
+    @Test
+    public void testHandleMultipleSimpleQueries() {
+        submitQueriesThroughSimpleQueryMode(false);
+        readReadyForQueryMessage(channel);
+        assertThat(channel.outboundMessages().size() , is(0));
+    }
+
+    @Test
+    public void testHandleMultipleSimpleQueriesWithQueryFailure() {
+        submitQueriesThroughSimpleQueryMode(true);
+        readErrorResponse(channel);
+        readReadyForQueryMessage(channel);
+        assertThat(channel.outboundMessages().size() , is(0));
+    }
+
+    private void submitQueriesThroughSimpleQueryMode(boolean failFirstStatement) {
+        SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
+        Session session = mock(Session.class);
+        when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
+        Session.DescribeResult describeResult = mock(Session.DescribeResult.class);
+        when(describeResult.getFields()).thenReturn(null);
+        when(session.describe(anyChar(), anyString())).thenReturn(describeResult);
+        if (failFirstStatement) {
+            when(session.sync()).thenAnswer(mock -> new RuntimeException("fail"));
+        } else {
+            when(session.sync()).thenReturn(CompletableFuture.completedFuture(null));
+        }
+
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sqlOperations,
+                new AlwaysOKNullAuthentication(),
+                null);
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        sendStartupMessage(channel);
+        readAuthenticationOK(channel);
+        skipParameterMessages(channel);
+        readReadyForQueryMessage(channel);
+
+        ByteBuf query = Unpooled.buffer();
+        try {
+            // the actual statements don't have to be valid as they are not executed
+            Messages.writeCString(query, "first statement; second statement;".getBytes(StandardCharsets.UTF_8));
+            ctx.handleSimpleQuery(query, channel);
+        } finally {
+            query.release();
+        }
+    }
+
+    private static void sendStartupMessage(EmbeddedChannel channel) {
+        ByteBuf startupMsg = Unpooled.buffer();
+        ClientMessages.sendStartupMessage(startupMsg, "db");
+        channel.writeInbound(startupMsg);
+    }
+
+    private static void readAuthenticationOK(EmbeddedChannel channel) {
+        ByteBuf response = channel.readOutbound();
+        byte[] responseBytes = new byte[9];
+        response.readBytes(responseBytes);
+        // AuthenticationOK: 'R' | int32 len | int32 code
+        assertThat(responseBytes, is(new byte[]{'R', 0, 0, 0, 8, 0, 0, 0, 0}));
+    }
+
+    private static void skipParameterMessages(EmbeddedChannel channel) {
+        int messagesToSkip = 0;
+        for (Object msg : channel.outboundMessages()) {
+            byte messageType = ((ByteBuf) msg).getByte(0);
+            if (messageType != 'S') {
+                break;
+            }
+            messagesToSkip++;
+        }
+        for (int i = 0; i < messagesToSkip; i++) {
+            channel.readOutbound();
+        }
+    }
+
+    private static void readReadyForQueryMessage(EmbeddedChannel channel) {
+        ByteBuf response = channel.readOutbound();
+        byte[] responseBytes = new byte[6];
+        response.readBytes(responseBytes);
+        // ReadyForQuery: 'Z' | int32 len | 'I'
+        assertThat(responseBytes, is(new byte[]{'Z', 0, 0, 0, 5, 'I'}));
+    }
+
+    private static void readErrorResponse(EmbeddedChannel channel) {
+        ByteBuf response = channel.readOutbound();
+        byte[] responseBytes = new byte[5];
+        response.readBytes(responseBytes);
+        // ErrorResponse: 'E' | int32 len | ...
+        assertThat(responseBytes, is(new byte[]{'E', 0, 0, 0, -110}));
     }
 }

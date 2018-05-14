@@ -709,6 +709,25 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testMultiStatementQuery() throws Exception {
+        Properties properties = new Properties(this.properties);
+        // multi query support is only available in simple query mode
+        properties.setProperty("preferQueryMode", "simple");
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            Statement statement = conn.createStatement();
+            statement.execute("set search_path to 'hoschi';" +
+                              "create table t (id int);" +
+                              "insert into t values (42);" +
+                              "refresh table t");
+            statement = conn.createStatement();
+            ResultSet resultSet = statement.executeQuery("select * from hoschi.t");
+            resultSet.next();
+            assertThat(resultSet.getInt(1), is(42));
+            assertThat(resultSet.isLast(), is(true));
+        }
+    }
+
+    @Test
     @UseJdbc(0) // Simulate explicit call by a user through HTTP iface
     public void test_proper_termination_of_deallocate_through_http_call() throws Exception {
        execute("DEALLOCATE ALL");

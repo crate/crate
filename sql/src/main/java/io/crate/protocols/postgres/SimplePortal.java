@@ -213,7 +213,8 @@ public class SimplePortal extends AbstractPortal {
 
         jobsLogs.logExecutionStart(jobId, query, sessionContext.user());
         JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
-        CompletableFuture completableFuture = resultReceiver.completionFuture().whenComplete(jobsLogsUpdateListener);
+        CompletableFuture<?> completableFuture = resultReceiver.completionFuture()
+            .whenComplete(jobsLogsUpdateListener);
 
         if (!resumeIfSuspended()) {
             consumer = new RowConsumerToResultReceiver(resultReceiver, maxRows);
