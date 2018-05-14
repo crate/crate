@@ -237,7 +237,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     }
 
     private boolean mustSwitchToRight() {
-        return numberOfRowsInBuffer == blockSize
+        return left.allLoaded()
+               || numberOfRowsInBuffer == blockSize
                || (leftBatchHasItems == false && numberOfLeftBatchesLoadedForBlock == numberOfLeftBatchesForBlock);
     }
 

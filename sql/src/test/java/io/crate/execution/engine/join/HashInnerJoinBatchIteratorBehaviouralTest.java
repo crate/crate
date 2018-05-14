@@ -43,7 +43,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-public class HashInnerJoinBatchIteratorDistributedTest {
+public class HashInnerJoinBatchIteratorBehaviouralTest {
 
     private int originalPageSize = Paging.PAGE_SIZE;
 
@@ -58,7 +58,7 @@ public class HashInnerJoinBatchIteratorDistributedTest {
     }
 
     @Test
-    public void testHashJoinIteratorSwitchToRightEvenIfLeftBatchDoesNotDeliverAllRowsExpectedByOneBatch() throws Exception {
+    public void testDistributed_SwitchToRightEvenIfLeftBatchDoesNotDeliverAllRowsExpectedByOneBatch() throws Exception {
         BatchSimulatingIterator<Row> leftSimulatingIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(1, 2, 4)), 1, 2, null);
         RamAccountingBatchIterator<Row> leftIterator = new RamAccountingBatchIterator<>(
@@ -87,5 +87,31 @@ public class HashInnerJoinBatchIteratorDistributedTest {
         // on the same side synchronously as the upstreams will only send new data after all downstreams responded.
         // to validate this, the right must be repeated 3 times
         assertThat(rightIterator.getMovetoStartCalls(), is(2));
+    }
+
+    @Test
+    public void test_SwitchToRightWhenLeftExhausted() throws Exception {
+        BatchSimulatingIterator<Row> leftSimulatingIterator = new BatchSimulatingIterator<>(
+            TestingBatchIterators.ofValues(Arrays.asList(1, 2, 3, 4)), 2, 1, null);
+        RamAccountingBatchIterator<Row> leftIterator = new RamAccountingBatchIterator<>(
+            leftSimulatingIterator,
+            mock(RowAccounting.class));
+        BatchSimulatingIterator<Row> rightIterator = new BatchSimulatingIterator<>(
+            TestingBatchIterators.ofValues(Arrays.asList(2, 0, 4, 5)), 2, 1, null);
+
+        BatchIterator<Row> batchIterator = new HashInnerJoinBatchIterator<>(
+            leftIterator,
+            rightIterator,
+            new CombinedRow(1, 1),
+            row -> Objects.equals(row.get(0), row.get(1)),
+            row -> Objects.hash(row.get(0)),
+            row -> Objects.hash(row.get(0)),
+            () -> 500000
+        );
+
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(batchIterator, null);
+        List<Object[]> result = consumer.getResult();
+        assertThat(result, contains(new Object[]{2, 2}, new Object[]{4, 4}));
     }
 }
