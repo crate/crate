@@ -109,6 +109,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         executor = SQLExecutor.builder(clusterService)
             .addDocTable(T3.T1_INFO)
             .addDocTable(T3.T2_INFO)
+            .addTable("create table tarr (xs array(integer))")
             .build();
         expressions = new SqlExpressions(Collections.emptyMap());
     }
@@ -363,5 +364,11 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testParameterExpressionInLikeAny() throws Exception {
         Symbol s = expressions.asSymbol("5 LIKE ANY(?)");
         assertThat(s, isFunction(AnyLikeOperator.LIKE, isLiteral(5L), instanceOf(ParameterSymbol.class)));
+    }
+
+    @Test
+    public void testAnyWithArrayOnBothSidesResultsInNiceErrorMessage() {
+        expectedException.expectMessage("Cannot cast long to type integer_array");
+        executor.analyze("select * from tarr where xs = ANY([10, 20])");
     }
 }

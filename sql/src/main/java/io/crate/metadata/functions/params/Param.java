@@ -260,6 +260,11 @@ public final class Param {
         public boolean canBeCasted() {
             return canBeCasted;
         }
+
+        @Override
+        public String toString() {
+            return dataType.toString();
+        }
     }
 
     /**
