@@ -1367,4 +1367,11 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         GeneratedReference generatedReference = md.generatedColumnReferences().get(0);
         assertThat(generatedReference.valueType(), is(new ArrayType(DataTypes.LONG)));
     }
+
+    @Test
+    public void testColumnStoreBooleanIsParsedCorrectly() throws Exception {
+        DocIndexMetaData md = getDocIndexMetaDataFromStatement(
+            "create table t1 (x string STORAGE WITH (columnstore = false))");
+        assertThat(md.columns().get(0).isColumnStoreDisabled(), is(true));
+    }
 }
