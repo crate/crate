@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that would cause `count(*)` to return the wrong count when
+  applied to a subquery.
+
 - Fixed an issue that could cause ``JOIN`` queries with ``ORDER BY`` to return
   incorrect results.
 
