@@ -111,6 +111,7 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
             .add("ts_array", new ArrayType(DataTypes.TIMESTAMP))
             .add("shape", DataTypes.GEO_SHAPE)
             .add("point", DataTypes.GEO_POINT)
+            .add("ts", DataTypes.TIMESTAMP)
             .add("addr", DataTypes.IP)
             .build();
         TableRelation usersTr = new TableRelation(users);
@@ -141,6 +142,7 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
                     .startObject("point").field("type", "geo_point").endObject()
                     .startObject("shape").field("type", "geo_shape").endObject()
                     .startObject("addr").field("type", "ip").endObject()
+                    .startObject("ts").field("type", "date").endObject()
                     .startObject("d_array")
                         .field("type", "array")
                         .startObject("inner")

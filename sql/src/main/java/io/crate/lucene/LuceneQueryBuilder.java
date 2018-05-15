@@ -444,7 +444,7 @@ public class LuceneQueryBuilder {
 
                 BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    andBuilder.add(fieldType.termQuery(value, null), BooleanClause.Occur.MUST);
+                    andBuilder.add(fieldType.termQuery(value, context.queryShardContext()), BooleanClause.Occur.MUST);
                 }
                 return Queries.not(andBuilder.build());
             }
