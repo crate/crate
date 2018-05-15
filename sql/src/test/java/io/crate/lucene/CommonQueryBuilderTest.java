@@ -418,4 +418,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         query = convert("addr < 'fe80::1'");
         assertThat(query.toString(), is("addr:[0:0:0:0:0:0:0:0 TO fe80:0:0:0:0:0:0:0]"));
     }
+
+    @Test
+    public void testAnyEqOnTimestampArrayColumn() {
+        assertThat(
+            convert("1129224512000 = ANY(ts_array)").toString(),
+            is("ts_array:[1129224512000 TO 1129224512000]")
+        );
+    }
 }
