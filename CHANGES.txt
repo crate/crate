@@ -18,6 +18,8 @@ Breaking Changes
 Changes
 =======
 
+- Added support for `SHOW TRANSACTION_ISOLATION` statement.
+
 Fixes
 =====
 

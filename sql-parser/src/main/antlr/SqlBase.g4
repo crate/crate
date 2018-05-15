@@ -38,7 +38,7 @@ statement
     | REFRESH TABLE tableWithPartitions                                              #refreshTable
     | UPDATE aliasedRelation SET assignment (',' assignment)* where?                 #update
     | DELETE FROM aliasedRelation where?                                             #delete
-    | SHOW TRANSACTION ISOLATION LEVEL                                               #showTransaction
+    | SHOW (TRANSACTION ISOLATION LEVEL | TRANSACTION_ISOLATION)                     #showTransaction
     | SHOW CREATE TABLE table                                                        #showCreateTable
     | SHOW TABLES ((FROM | IN) qname)? (LIKE pattern=stringLiteral | where)?         #showTables
     | SHOW SCHEMAS (LIKE pattern=stringLiteral | where)?                             #showSchemas
@@ -622,7 +622,7 @@ nonReserved
     | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
     | PRIVILEGES | SCHEMA | INGEST | RULE | PREPARE
     | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED
-    | DO | NOTHING | CONFLICT
+    | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION
     ;
 
 SELECT: 'SELECT';
@@ -769,6 +769,7 @@ CAST: 'CAST';
 TRY_CAST: 'TRY_CAST';
 SHOW: 'SHOW';
 TRANSACTION: 'TRANSACTION';
+TRANSACTION_ISOLATION: 'TRANSACTION_ISOLATION';
 CHARACTERISTICS: 'CHARACTERISTICS';
 ISOLATION: 'ISOLATION';
 LEVEL: 'LEVEL';
