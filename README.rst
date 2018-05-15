@@ -61,6 +61,20 @@ contributions!
 
 See the `developer docs`_ and the `contribution docs`_ for more information.
 
+
+License
+=======
+
+CrateDB is icensed to Crate.IO GmbH (referred to in this notice as "Crate")
+under one or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information regarding copyright
+ownership.
+
+Crate licenses this software to you under the Apache License, Version 2.0.
+However, if you have executed another commercial license agreement with
+Crate these terms will supersede the license and you may use the software
+solely pursuant to the terms of the relevant commercial agreement.
+
 Help
 ====
 
