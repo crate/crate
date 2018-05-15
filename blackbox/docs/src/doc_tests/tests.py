@@ -36,7 +36,7 @@ from . import process_test
 from testutils.paths import crate_path, project_path
 from testutils.ports import GLOBAL_PORT_POOL
 from urllib.request import urlopen, Request
-from crate.crash.command import CrateCmd
+from crate.crash.command import CrateShell
 from crate.crash.printer import PrintWrapper, ColorPrinter
 from crate.client import connect
 
@@ -51,10 +51,10 @@ ch.setLevel(logging.ERROR)
 log.addHandler(ch)
 
 
-class CrateTestCmd(CrateCmd):
+class CrateTestShell(CrateShell):
 
     def __init__(self):
-        super(CrateTestCmd, self).__init__(is_tty=False)
+        super(CrateTestShell, self).__init__(is_tty=False)
         self.logger = ColorPrinter(False, stream=PrintWrapper(), line_end='\n')
 
     def stmt(self, stmt):
@@ -65,7 +65,7 @@ class CrateTestCmd(CrateCmd):
             self.execute(stmt)
 
 
-cmd = CrateTestCmd()
+cmd = CrateTestShell()
 
 
 def _execute_sql(stmt):
