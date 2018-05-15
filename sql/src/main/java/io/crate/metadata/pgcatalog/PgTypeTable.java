@@ -52,9 +52,10 @@ public class PgTypeTable extends StaticTableInfo {
         static final ColumnIdent TYPDELIM = new ColumnIdent("typdelim");
         static final ColumnIdent TYPELEM = new ColumnIdent("typelem");
         static final ColumnIdent TYPTYPE = new ColumnIdent("typtype");
+        static final ColumnIdent TYPBASETYPE = new ColumnIdent("typbasetype");
     }
 
-    private static final BytesRef TYPTYPE_BASE = new BytesRef("b");
+    private static final BytesRef TYPTYPE = new BytesRef("b");
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<PGType>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PGType>>builder()
@@ -71,7 +72,15 @@ public class PgTypeTable extends StaticTableInfo {
 
                     @Override
                     public BytesRef value() {
-                        return TYPTYPE_BASE;
+                        return TYPTYPE;
+                    }
+                })
+            .put(Columns.TYPBASETYPE,
+                () -> new RowContextCollectorExpression<PGType, Integer>() {
+
+                    @Override
+                    public Integer value() {
+                        return 0;
                     }
                 })
             .build();
@@ -83,7 +92,8 @@ public class PgTypeTable extends StaticTableInfo {
                 .register(Columns.TYPNAME.name(), DataTypes.STRING, null)
                 .register(Columns.TYPDELIM.name(), DataTypes.STRING, null)
                 .register(Columns.TYPELEM.name(), DataTypes.INTEGER, null)
-                .register(Columns.TYPTYPE.name(), DataTypes.STRING, null),
+                .register(Columns.TYPTYPE.name(), DataTypes.STRING, null)
+                .register(Columns.TYPBASETYPE.name(), DataTypes.INTEGER, null),
             Collections.emptyList());
     }
 
