@@ -1421,7 +1421,7 @@ public class LuceneQueryBuilder {
                 if (fieldType == null) {
                     return Queries.newMatchNoDocsQuery("column does not exist in this index");
                 }
-                return fieldType.termQuery(true, null);
+                return fieldType.termQuery(true, context.queryShardContext());
             }
             return super.visitReference(symbol, context);
         }
