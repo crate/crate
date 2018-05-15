@@ -23,12 +23,16 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.core.Is.is;
 
 public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -188,4 +192,14 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
             " ORDER BY information_schema.columns.column_name"));
     }
 
+    @Test
+    public void testRewriteOfTransactionIsolation() {
+        QueriedTable stmt = analyze("show transaction isolation level");
+        assertThat(stmt.tableRelation().tableInfo().ident(), is(SysClusterTableInfo.IDENT));
+        assertThat(stmt.outputs(), contains(isLiteral("read uncommitted")));
+
+        stmt = analyze("show transaction_isolation");
+        assertThat(stmt.tableRelation().tableInfo().ident(), is(SysClusterTableInfo.IDENT));
+        assertThat(stmt.outputs(), contains(isLiteral("read uncommitted")));
+    }
 }
