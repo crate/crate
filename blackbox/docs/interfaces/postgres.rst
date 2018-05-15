@@ -126,30 +126,30 @@ For compatibility reasons there is a trimmed down ``pg_type`` table available in
 CrateDB::
 
     cr> select * from pg_catalog.pg_type order by oid;
-    +------+----------+---------+-------------+---------+
-    |  oid | typdelim | typelem | typname     | typtype |
-    +------+----------+---------+-------------+---------+
-    |   16 | ,        |       0 | bool        | b       |
-    |   18 | ,        |       0 | char        | b       |
-    |   20 | ,        |       0 | int8        | b       |
-    |   21 | ,        |       0 | int2        | b       |
-    |   23 | ,        |       0 | int4        | b       |
-    |  114 | ,        |       0 | json        | b       |
-    |  199 | ,        |     114 | _json       | b       |
-    |  700 | ,        |       0 | float4      | b       |
-    |  701 | ,        |       0 | float8      | b       |
-    | 1000 | ,        |      16 | _bool       | b       |
-    | 1002 | ,        |      18 | _char       | b       |
-    | 1005 | ,        |      21 | _int2       | b       |
-    | 1007 | ,        |      23 | _int4       | b       |
-    | 1015 | ,        |    1043 | _varchar    | b       |
-    | 1016 | ,        |      20 | _int8       | b       |
-    | 1021 | ,        |     700 | _float4     | b       |
-    | 1022 | ,        |     701 | _float8     | b       |
-    | 1043 | ,        |       0 | varchar     | b       |
-    | 1184 | ,        |       0 | timestampz  | b       |
-    | 1185 | ,        |    1184 | _timestampz | b       |
-    +------+----------+---------+-------------+---------+
+    +------+-------------+----------+---------+-------------+---------+
+    |  oid | typbasetype | typdelim | typelem | typname     | typtype |
+    +------+-------------+----------+---------+-------------+---------+
+    |   16 |           0 | ,        |       0 | bool        | b       |
+    |   18 |           0 | ,        |       0 | char        | b       |
+    |   20 |           0 | ,        |       0 | int8        | b       |
+    |   21 |           0 | ,        |       0 | int2        | b       |
+    |   23 |           0 | ,        |       0 | int4        | b       |
+    |  114 |           0 | ,        |       0 | json        | b       |
+    |  199 |           0 | ,        |     114 | _json       | b       |
+    |  700 |           0 | ,        |       0 | float4      | b       |
+    |  701 |           0 | ,        |       0 | float8      | b       |
+    | 1000 |           0 | ,        |      16 | _bool       | b       |
+    | 1002 |           0 | ,        |      18 | _char       | b       |
+    | 1005 |           0 | ,        |      21 | _int2       | b       |
+    | 1007 |           0 | ,        |      23 | _int4       | b       |
+    | 1015 |           0 | ,        |    1043 | _varchar    | b       |
+    | 1016 |           0 | ,        |      20 | _int8       | b       |
+    | 1021 |           0 | ,        |     700 | _float4     | b       |
+    | 1022 |           0 | ,        |     701 | _float8     | b       |
+    | 1043 |           0 | ,        |       0 | varchar     | b       |
+    | 1184 |           0 | ,        |       0 | timestampz  | b       |
+    | 1185 |           0 | ,        |    1184 | _timestampz | b       |
+    +------+-------------+----------+---------+-------------+---------+
     SELECT 20 rows in set (... sec)
 
 Show Transaction Isolation

@@ -71,6 +71,8 @@ Breaking Changes
 Changes
 =======
 
+- Added `typbasetype` column to the `pg_catalog.pg_type` table.
+
 - Added support for `SHOW TRANSACTION_ISOLATION` statement.
 
 - Added support in the Postgres Wire Protocol's SimpleQuery mode to process a
