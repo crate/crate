@@ -426,4 +426,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             is("ts_array:[1129224512000 TO 1129224512000]")
         );
     }
+
+    @Test
+    public void testAnyNotEqOnTimestampColumn() {
+        assertThat(
+            convert("ts != ANY([1129224512000])").toString(),
+            is("+*:* -(+ts:[1129224512000 TO 1129224512000])")
+        );
+    }
 }
