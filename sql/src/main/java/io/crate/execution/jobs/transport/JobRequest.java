@@ -37,14 +37,19 @@ public class JobRequest extends TransportRequest {
     private UUID jobId;
     private String coordinatorNodeId;
     private Collection<? extends NodeOperation> nodeOperations;
+    private boolean enableProfiling;
 
     public JobRequest() {
     }
 
-    public JobRequest(UUID jobId, String coordinatorNodeId, Collection<? extends NodeOperation> nodeOperations) {
+    public JobRequest(UUID jobId,
+                      String coordinatorNodeId,
+                      Collection<? extends NodeOperation> nodeOperations,
+                      boolean enableProfiling) {
         this.jobId = jobId;
         this.coordinatorNodeId = coordinatorNodeId;
         this.nodeOperations = nodeOperations;
+        this.enableProfiling = enableProfiling;
     }
 
     public UUID jobId() {
@@ -57,6 +62,10 @@ public class JobRequest extends TransportRequest {
 
     public String coordinatorNodeId() {
         return coordinatorNodeId;
+    }
+
+    public boolean enableProfiling() {
+        return enableProfiling;
     }
 
     @Override
@@ -72,6 +81,7 @@ public class JobRequest extends TransportRequest {
             nodeOperations.add(new NodeOperation(in));
         }
         this.nodeOperations = nodeOperations;
+        enableProfiling = in.readBoolean();
     }
 
     @Override
@@ -86,5 +96,7 @@ public class JobRequest extends TransportRequest {
         for (NodeOperation nodeOperation : nodeOperations) {
             nodeOperation.writeTo(out);
         }
+
+        out.writeBoolean(enableProfiling);
     }
 }

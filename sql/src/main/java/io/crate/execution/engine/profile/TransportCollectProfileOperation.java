@@ -20,32 +20,29 @@
  * agreement.
  */
 
-package io.crate.planner;
+package io.crate.execution.engine.profile;
 
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.data.Row;
-import io.crate.data.RowConsumer;
+import io.crate.action.FutureActionListener;
 
-import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Representation of a complete top-level plan which can be consumed by an {@link io.crate.execution.MultiPhaseExecutor}.
- */
-public interface Plan {
+public class TransportCollectProfileOperation implements CollectProfileOperation {
 
-    void execute(DependencyCarrier executor,
-                 PlannerContext plannerContext,
-                 RowConsumer consumer,
-                 Row params,
-                 Map<SelectSymbol, Object> valuesBySubQuery);
+    private final UUID jobId;
+    private final TransportCollectProfileNodeAction transportAction;
 
-    default List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
-                                                      PlannerContext plannerContext,
-                                                      List<Row> bulkParams,
-                                                      Map<SelectSymbol, Object> valuesBySubQuery) {
-        throw new UnsupportedOperationException(
-            "Bulk operation not supported for " + this.getClass().getSimpleName());
+    public TransportCollectProfileOperation(TransportCollectProfileNodeAction transportAction, UUID jobId) {
+        this.jobId = jobId;
+        this.transportAction = transportAction;
+    }
+
+    @Override
+    public CompletableFuture<Map<String, Long>> collect(String nodeId) {
+        FutureActionListener<NodeCollectProfileResponse, Map<String, Long>> listener =
+            new FutureActionListener<>(NodeCollectProfileResponse::durationByPhase);
+        transportAction.execute(nodeId, new NodeCollectProfileRequest(jobId), listener);
+        return listener;
     }
 }

@@ -23,6 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.planner.node.management.ExplainPlan;
 import io.crate.profile.TimerToken;
 import io.crate.profile.ProfilingContext;
 import io.crate.sql.SqlFormatter;
@@ -43,7 +44,7 @@ public class ExplainStatementAnalyzer {
     public ExplainAnalyzedStatement analyze(Explain node, Analysis analysis) {
         ProfilingContext profilingContext = new ProfilingContext(node.isAnalyze());
         CHECK_VISITOR.process(node.getStatement(), null);
-        TimerToken timerToken = profilingContext.createAndStartTimer("Analyze");
+        TimerToken timerToken = profilingContext.createAndStartTimer(ExplainPlan.Phase.Analyze.name());
         AnalyzedStatement subStatement = analyzer.analyzedStatement(node.getStatement(), analysis);
         profilingContext.stopAndAddTimer(timerToken);
         String columnName = SqlFormatter.formatSql(node);

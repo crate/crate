@@ -290,7 +290,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, PlannerContext context) {
         ProfilingContext ctx = explainAnalyzedStatement.context();
-        TimerToken timerToken = ctx.createAndStartTimer("Plan");
+        TimerToken timerToken = ctx.createAndStartTimer(ExplainPlan.Phase.Plan.name());
         Plan subPlan = process(explainAnalyzedStatement.statement(), context);
         ctx.stopAndAddTimer(timerToken);
         return new ExplainPlan(subPlan, ctx);

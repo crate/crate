@@ -64,6 +64,7 @@ public class RemoteCollector implements CrateCollector {
 
     private final Object killLock = new Object();
     private final boolean scrollRequired;
+    private final boolean enableProfiling;
     private JobExecutionContext context = null;
     private boolean collectorKilled = false;
 
@@ -79,6 +80,12 @@ public class RemoteCollector implements CrateCollector {
         this.jobId = jobId;
         this.localNode = localNode;
         this.remoteNode = remoteNode;
+
+        /*
+         * We don't wanna profile the timings of the remote execution context, because the remoteCollect is already
+         * part of the subcontext duration of the original JobExecutionContext profiling.
+         */
+        this.enableProfiling = false;
 
         this.scrollRequired = consumer.requiresScroll();
         this.transportJobAction = transportJobAction;
@@ -130,7 +137,7 @@ public class RemoteCollector implements CrateCollector {
             }
             transportJobAction.execute(
                 remoteNode,
-                new JobRequest(jobId, localNode, Collections.singletonList(nodeOperation)),
+                new JobRequest(jobId, localNode, Collections.singletonList(nodeOperation), enableProfiling),
                 new ActionListener<JobResponse>() {
                     @Override
                     public void onResponse(JobResponse jobResponse) {
@@ -151,7 +158,8 @@ public class RemoteCollector implements CrateCollector {
     }
 
     private JobExecutionContext.Builder createPageDownstreamContext() {
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNode);
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNode, Collections.emptySet())
+            .enableProfiling(enableProfiling);
 
         PassThroughPagingIterator<Integer, Row> pagingIterator;
         if (scrollRequired) {
