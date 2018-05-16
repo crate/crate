@@ -17,6 +17,17 @@ information and changelog.
 .. _the CrateDB download page: https://crate.io/download/
 .. _the release archives: https://cdn.crate.io/downloads/releases/
 
+3.x
+===
+
+3.0.x
+-----
+
+.. toctree::
+    :maxdepth: 1
+
+    3.0.0
+
 2.x
 ===
 
