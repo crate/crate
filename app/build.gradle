@@ -347,7 +347,7 @@ distributions {
         contents {
             into("") {
                 from("$rootDir") {
-                    include 'LICENSE.txt'
+                    include 'LICENSE'
                     include 'NOTICE'
                     include 'README.rst'
                 }
