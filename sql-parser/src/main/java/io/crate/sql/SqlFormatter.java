@@ -130,6 +130,9 @@ public final class SqlFormatter {
                 append(indent, " ");
                 process(node.genericProperties(), indent);
             }
+            if (node.isReturnSummary()) {
+                append(indent," RETURN SUMMARY");
+            }
             return null;
         }
 

@@ -23,19 +23,24 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 
+import java.util.Objects;
+
 public class CopyFrom extends Statement {
 
     private final Table table;
     private final Expression path;
     private final GenericProperties genericProperties;
+    private final boolean returnSummary;
 
     public CopyFrom(Table table,
                     Expression path,
-                    GenericProperties genericProperties) {
+                    GenericProperties genericProperties,
+                    boolean returnSummary) {
 
         this.table = table;
         this.path = path;
         this.genericProperties = genericProperties;
+        this.returnSummary = returnSummary;
     }
 
     public Table table() {
@@ -50,26 +55,24 @@ public class CopyFrom extends Statement {
         return genericProperties;
     }
 
+    public boolean isReturnSummary() {
+        return returnSummary;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
-        CopyFrom that = (CopyFrom) o;
-
-        if (!genericProperties.equals(that.genericProperties)) return false;
-        if (!path.equals(that.path)) return false;
-        if (!table.equals(that.table)) return false;
-
-        return true;
+        CopyFrom copyFrom = (CopyFrom) o;
+        return returnSummary == copyFrom.returnSummary &&
+               Objects.equals(table, copyFrom.table) &&
+               Objects.equals(path, copyFrom.path) &&
+               Objects.equals(genericProperties, copyFrom.genericProperties);
     }
 
     @Override
     public int hashCode() {
-        int result = table.hashCode();
-        result = 31 * result + path.hashCode();
-        result = 31 * result + genericProperties.hashCode();
-        return result;
+        return Objects.hash(table, path, genericProperties, returnSummary);
     }
 
     @Override
@@ -78,6 +81,7 @@ public class CopyFrom extends Statement {
             .add("table", table)
             .add("path", path)
             .add("properties", genericProperties)
+            .add("returnSummary", returnSummary)
             .toString();
     }
 
