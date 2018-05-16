@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.profile;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -39,7 +39,7 @@ public class ProfilingContext {
     private final boolean enabled;
     private final ImmutableMap.Builder<String, Object> map;
 
-    ProfilingContext(boolean enabled) {
+    public ProfilingContext(boolean enabled) {
         this.enabled = enabled;
         this.map = ImmutableMap.builder();
     }

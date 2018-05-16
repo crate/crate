@@ -29,6 +29,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
+import io.crate.profile.ProfilingContext;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 

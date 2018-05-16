@@ -23,6 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.profile.ProfilingContext;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.CopyFrom;

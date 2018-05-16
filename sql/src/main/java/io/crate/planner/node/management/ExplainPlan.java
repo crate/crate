@@ -23,7 +23,7 @@
 package io.crate.planner.node.management;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.analyze.ProfilingContext;
+import io.crate.profile.ProfilingContext;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
