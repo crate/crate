@@ -49,11 +49,7 @@ class URLFileInput implements FileInput {
     @Override
     public InputStream getStream(URI uri) throws IOException {
         URL url = uri.toURL();
-        try {
-            return url.openStream();
-        } catch (FileNotFoundException e) {
-            return null;
-        }
+        return url.openStream();
     }
 
     @Override
