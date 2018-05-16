@@ -26,6 +26,7 @@ information and changelog.
 .. toctree::
     :maxdepth: 1
 
+    2.3.8
     2.3.7
     2.3.6
     2.3.5
