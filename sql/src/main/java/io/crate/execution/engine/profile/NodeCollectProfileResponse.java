@@ -20,47 +20,40 @@
  * agreement.
  */
 
-package io.crate.profile;
+package io.crate.execution.engine.profile;
 
-public class InternalTimerToken implements TimerToken {
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportResponse;
 
-    private final String name;
-    private long duration;
-    private long startTime;
-    private boolean running;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 
-    InternalTimerToken(String name) {
-        this.name = name;
-        this.running = false;
+public class NodeCollectProfileResponse extends TransportResponse {
+
+    private Map<String, Long> durationByPhase = Collections.emptyMap();
+
+    NodeCollectProfileResponse(Map<String, Long> durationByPhase) {
+        this.durationByPhase = durationByPhase;
+    }
+
+    NodeCollectProfileResponse() {
+    }
+
+    Map<String, Long> durationByPhase() {
+        return durationByPhase;
     }
 
     @Override
-    public String name() {
-        return name;
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        durationByPhase = in.readMap(StreamInput::readString, StreamInput::readVLong);
     }
 
     @Override
-    public void start() {
-        if (running) {
-            throw new IllegalStateException("Timer is already running");
-        } else {
-            running = true;
-            startTime = System.nanoTime();
-        }
-    }
-
-    @Override
-    public void stop() {
-        if (!running) {
-            throw new IllegalStateException("Timer is not running and cannot be stopped");
-        } else {
-            duration += System.nanoTime() - startTime;
-            running = false;
-        }
-    }
-
-    @Override
-    public long durationNanos() {
-        return duration;
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeMap(durationByPhase, StreamOutput::writeString, StreamOutput::writeVLong);
     }
 }

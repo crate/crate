@@ -24,6 +24,7 @@ package io.crate.execution;
 
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
+import io.crate.execution.engine.profile.TransportCollectProfileNodeAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.execution.engine.fetch.TransportFetchNodeAction;
 import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
@@ -41,6 +42,7 @@ import org.elasticsearch.common.inject.Provider;
 public class TransportActionProvider {
 
     private final Provider<TransportFetchNodeAction> transportFetchNodeActionProvider;
+    private final Provider<TransportCollectProfileNodeAction> transportCollectProfileNodeActionProvider;
 
     private final Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider;
     private final Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider;
@@ -60,6 +62,7 @@ public class TransportActionProvider {
 
     @Inject
     public TransportActionProvider(Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
+                                   Provider<TransportCollectProfileNodeAction> transportCollectProfileNodeActionProvider,
                                    Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider,
                                    Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider,
                                    Provider<TransportShardDeleteAction> transportShardDeleteActionProvider,
@@ -78,6 +81,7 @@ public class TransportActionProvider {
         this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
         this.transportKillAllNodeActionProvider = transportKillAllNodeActionProvider;
         this.transportFetchNodeActionProvider = transportFetchNodeActionProvider;
+        this.transportCollectProfileNodeActionProvider = transportCollectProfileNodeActionProvider;
         this.transportJobInitActionProvider = transportJobInitActionProvider;
         this.transportBulkCreateIndicesActionProvider = transportBulkCreateIndicesActionProvider;
         this.transportKillJobsNodeActionProvider = transportKillJobsNodeActionProvider;
@@ -113,6 +117,10 @@ public class TransportActionProvider {
 
     public TransportFetchNodeAction transportFetchNodeAction() {
         return transportFetchNodeActionProvider.get();
+    }
+
+    public TransportCollectProfileNodeAction transportCollectProfileNodeAction() {
+        return transportCollectProfileNodeActionProvider.get();
     }
 
     public TransportKillAllNodeAction transportKillAllNodeAction() {

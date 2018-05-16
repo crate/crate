@@ -72,6 +72,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
 
@@ -311,15 +312,16 @@ public class LogicalPlanner {
                                PlannerContext plannerContext,
                                RowConsumer consumer,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               Map<SelectSymbol, Object> subQueryValues,
+                               boolean enableProfiling) {
         if (logicalPlan.dependencies().isEmpty()) {
-            doExecute(logicalPlan, executor, plannerContext, consumer, params, subQueryValues);
+            doExecute(logicalPlan, executor, plannerContext, consumer, params, subQueryValues, enableProfiling);
         } else {
             MultiPhaseExecutor.execute(logicalPlan.dependencies(), executor, plannerContext, params)
                 .whenComplete((valueBySubQuery, failure) -> {
                     if (failure == null) {
                         try {
-                            doExecute(logicalPlan, executor, plannerContext, consumer, params, valueBySubQuery);
+                            doExecute(logicalPlan, executor, plannerContext, consumer, params, valueBySubQuery, false);
                         } catch (Exception e) {
                             consumer.accept(null, e);
                         }
@@ -335,16 +337,29 @@ public class LogicalPlanner {
                                   PlannerContext plannerContext,
                                   RowConsumer consumer,
                                   Row params,
-                                  Map<SelectSymbol, Object> subQueryValues) {
+                                  Map<SelectSymbol, Object> subQueryValues,
+                                  boolean enableProfiling) {
+        NodeOperationTree nodeOpTree = getNodeOperationTree(logicalPlan, executor, plannerContext, params, subQueryValues);
+        executeNodeOpTree(executor, plannerContext.jobId(), consumer, enableProfiling, nodeOpTree);
+    }
+
+    public static NodeOperationTree getNodeOperationTree(LogicalPlan logicalPlan,
+                                                         DependencyCarrier executor,
+                                                         PlannerContext plannerContext,
+                                                         Row params,
+                                                         Map<SelectSymbol, Object> subQueryValues) {
         ExecutionPlan executionPlan = logicalPlan.build(
             plannerContext, executor.projectionBuilder(), -1, 0, null, null, params, subQueryValues);
 
         // Ideally we'd include the binding into the `build` step and avoid the after-the-fact symbol mutation
         ExecutionPlanSymbolMapper.map(executionPlan, new SubQueryAndParamBinder(params, subQueryValues));
 
-        NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
+        return NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
+    }
+
+    public static void executeNodeOpTree(DependencyCarrier executor, UUID jobId, RowConsumer consumer, boolean enableProfiling, NodeOperationTree nodeOpTree) {
         executor.phasesTaskFactory()
-            .create(plannerContext.jobId(), Collections.singletonList(nodeOpTree))
+            .create(jobId, Collections.singletonList(nodeOpTree), enableProfiling)
             .execute(consumer);
     }
 

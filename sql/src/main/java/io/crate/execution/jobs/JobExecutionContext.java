@@ -23,10 +23,13 @@ package io.crate.execution.jobs;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
+import com.google.common.collect.ImmutableMap;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.profile.ProfilingContext;
+import io.crate.profile.TimerToken;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -35,6 +38,8 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,16 +62,21 @@ public class JobExecutionContext implements CompletionListenable {
     private final CompletableFuture<Void> finishedFuture = new CompletableFuture<>();
     private final AtomicBoolean killSubContextsOngoing = new AtomicBoolean(false);
     private final Collection<String> participatedNodes;
+    private final ProfilingContext profiler;
+    @Nullable
+    private final ConcurrentHashMap<Integer, TimerToken> subContextTimers;
     private volatile Throwable failure;
 
 
     public static class Builder {
 
         private final UUID jobId;
-        private final String coordinatorNode;
         private final JobsLogs jobsLogs;
+        private final String coordinatorNode;
         private final List<ExecutionSubContext> subContexts = new ArrayList<>();
-        private final Collection<String> participatingNodes;
+
+        private Collection<String> participatingNodes;
+        private boolean enableProfiling = false;
 
         Builder(UUID jobId, String coordinatorNode, Collection<String> participatingNodes, JobsLogs jobsLogs) {
             this.jobId = jobId;
@@ -75,8 +85,17 @@ public class JobExecutionContext implements CompletionListenable {
             this.jobsLogs = jobsLogs;
         }
 
+        public Builder enableProfiling(boolean enable) {
+            this.enableProfiling = enable;
+            return this;
+        }
+
         public void addSubContext(ExecutionSubContext subContext) {
             subContexts.add(subContext);
+        }
+
+        JobExecutionContext build() throws Exception {
+            return new JobExecutionContext(jobId, coordinatorNode, participatingNodes, jobsLogs, subContexts, enableProfiling);
         }
 
         boolean isEmpty() {
@@ -86,10 +105,6 @@ public class JobExecutionContext implements CompletionListenable {
         public UUID jobId() {
             return jobId;
         }
-
-        JobExecutionContext build() throws Exception {
-            return new JobExecutionContext(jobId, coordinatorNode, participatingNodes, jobsLogs, subContexts);
-        }
     }
 
 
@@ -97,13 +112,17 @@ public class JobExecutionContext implements CompletionListenable {
                                 String coordinatorNodeId,
                                 Collection<String> participatingNodes,
                                 JobsLogs jobsLogs,
-                                List<ExecutionSubContext> orderedContexts) throws Exception {
+                                List<ExecutionSubContext> orderedContexts,
+                                boolean enableProfiling) throws Exception {
         this.coordinatorNodeId = coordinatorNodeId;
         this.participatedNodes = participatingNodes;
-        orderedContextIds = new IntArrayList(orderedContexts.size());
         this.jobId = jobId;
         this.jobsLogs = jobsLogs;
 
+        profiler = new ProfilingContext(enableProfiling);
+        subContextTimers = profiler.enabled() ? new ConcurrentHashMap<>(orderedContexts.size()) : null;
+
+        orderedContextIds = new IntArrayList(orderedContexts.size());
         subContexts = new ConcurrentHashMap<>(orderedContexts.size());
         numSubContexts = new AtomicInteger(orderedContexts.size());
 
@@ -114,9 +133,14 @@ public class JobExecutionContext implements CompletionListenable {
 
             context.completionFuture().whenComplete(new RemoveSubContextListener(subContextId));
 
-            ExecutionSubContext existingContext = subContexts.put(subContextId, context);
-            if (existingContext != null) {
+            if (subContexts.put(subContextId, context) != null) {
                 throw new IllegalArgumentException("ExecutionSubContext for " + subContextId + " already added");
+            }
+            if (subContextTimers != null) {
+                String subContextName = String.format(Locale.ROOT, "%d-%s", context.id(), context.name());
+                if (subContextTimers.put(subContextId, profiler.createTimer(subContextName)) != null) {
+                    throw new IllegalArgumentException("TimerToken for " + subContextId + " already added");
+                }
             }
             if (traceEnabled) {
                 LOGGER.trace("adding subContext {}, now there are {} subContexts", subContextId, subContexts.size());
@@ -161,6 +185,9 @@ public class JobExecutionContext implements CompletionListenable {
             ExecutionSubContext subContext = subContexts.get(id.value);
             if (subContext == null || closed.get()) {
                 break; // got killed before start was called
+            }
+            if (subContextTimers != null) {
+                subContextTimers.get(id.value).start();
             }
             subContext.start();
         }
@@ -207,12 +234,38 @@ public class JobExecutionContext implements CompletionListenable {
         return numKilled;
     }
 
-    private void finish() {
+    private void close() {
         if (failure != null) {
             finishedFuture.completeExceptionally(failure);
         } else {
             finishedFuture.complete(null);
         }
+    }
+
+    private void finish() {
+        if (profiler.enabled()) {
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Profiling is enabled. JobExecutionContext will not be closed until results are collected!");
+            }
+        } else {
+            close();
+        }
+    }
+
+    public void finishProfiling() {
+        if (profiler.enabled()) {
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Profiling results for job {}: {}", jobId, profiler.getAsMap());
+            }
+            close();
+            return;
+        }
+        // sanity check
+        throw new IllegalStateException(String.format(Locale.ENGLISH, "Tried to finish profiling job [id=%s], but profiling is not enabled.", jobId));
+    }
+
+    public Map<String, Long> executionTimes() {
+        return ImmutableMap.copyOf(profiler.getAsMap());
     }
 
     @Override
@@ -269,10 +322,19 @@ public class JobExecutionContext implements CompletionListenable {
 
         @Override
         public void accept(CompletionState completionState, Throwable throwable) {
+            stopSubContextTimer();
             if (throwable == null) {
                 onSuccess(completionState);
             } else {
                 onFailure(throwable);
+            }
+        }
+
+        private void stopSubContextTimer() {
+            if (subContextTimers != null) {
+                TimerToken removed = subContextTimers.remove(id);
+                assert removed != null : "removed must not be null";
+                profiler.stopAndAddTimer(removed);
             }
         }
     }

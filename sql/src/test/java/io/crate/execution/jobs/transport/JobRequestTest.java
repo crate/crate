@@ -22,8 +22,6 @@
 
 package io.crate.execution.jobs.transport;
 
-import io.crate.execution.dsl.phases.NodeOperation;
-import io.crate.execution.jobs.transport.JobRequest;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -37,7 +35,7 @@ public class JobRequestTest {
 
     @Test
     public void testJobRequestStreaming() throws Exception {
-        JobRequest r1 = new JobRequest(UUID.randomUUID(), "n1", Collections.<NodeOperation>emptyList());
+        JobRequest r1 = new JobRequest(UUID.randomUUID(), "n1", Collections.emptyList(), true);
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
@@ -48,5 +46,6 @@ public class JobRequestTest {
         assertThat(r1.coordinatorNodeId(), is(r2.coordinatorNodeId()));
         assertThat(r1.jobId(), is(r2.jobId()));
         assertThat(r1.nodeOperations().isEmpty(), is(true));
+        assertThat(r1.enableProfiling(), is(r2.enableProfiling()));
     }
 }

@@ -39,6 +39,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -77,7 +78,8 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
     @Override
     public CompletableFuture<JobResponse> nodeOperation(final JobRequest request) {
-        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(request.jobId(), request.coordinatorNodeId());
+        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(request.jobId(), request.coordinatorNodeId(), Collections.emptySet())
+            .enableProfiling(request.enableProfiling());
 
         SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
         List<CompletableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnRemote(

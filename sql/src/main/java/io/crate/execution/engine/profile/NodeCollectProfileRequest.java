@@ -20,47 +20,40 @@
  * agreement.
  */
 
-package io.crate.profile;
+package io.crate.execution.engine.profile;
 
-public class InternalTimerToken implements TimerToken {
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportRequest;
 
-    private final String name;
-    private long duration;
-    private long startTime;
-    private boolean running;
+import java.io.IOException;
+import java.util.UUID;
 
-    InternalTimerToken(String name) {
-        this.name = name;
-        this.running = false;
+public class NodeCollectProfileRequest extends TransportRequest {
+
+    private UUID jobId;
+
+    NodeCollectProfileRequest() {
+    }
+
+    NodeCollectProfileRequest(UUID jobId) {
+        this.jobId = jobId;
+    }
+
+    public UUID jobId() {
+        return jobId;
     }
 
     @Override
-    public String name() {
-        return name;
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        jobId = new UUID(in.readLong(), in.readLong());
     }
 
     @Override
-    public void start() {
-        if (running) {
-            throw new IllegalStateException("Timer is already running");
-        } else {
-            running = true;
-            startTime = System.nanoTime();
-        }
-    }
-
-    @Override
-    public void stop() {
-        if (!running) {
-            throw new IllegalStateException("Timer is not running and cannot be stopped");
-        } else {
-            duration += System.nanoTime() - startTime;
-            running = false;
-        }
-    }
-
-    @Override
-    public long durationNanos() {
-        return duration;
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeLong(jobId.getMostSignificantBits());
+        out.writeLong(jobId.getLeastSignificantBits());
     }
 }

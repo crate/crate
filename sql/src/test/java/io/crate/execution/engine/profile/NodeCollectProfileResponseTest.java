@@ -20,47 +20,35 @@
  * agreement.
  */
 
-package io.crate.profile;
+package io.crate.execution.engine.profile;
 
-public class InternalTimerToken implements TimerToken {
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.junit.Test;
 
-    private final String name;
-    private long duration;
-    private long startTime;
-    private boolean running;
+import java.util.HashMap;
+import java.util.Map;
 
-    InternalTimerToken(String name) {
-        this.name = name;
-        this.running = false;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
+public class NodeCollectProfileResponseTest {
+
+    @Test
+    public void testStreaming() throws Exception {
+        Map<String, Long> timings = new HashMap<>();
+        timings.put("node1", 1000L);
+        NodeCollectProfileResponse originalResponse = new NodeCollectProfileResponse(timings);
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        originalResponse.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+
+        NodeCollectProfileResponse streamed = new NodeCollectProfileResponse();
+        streamed.readFrom(in);
+
+        assertThat(originalResponse.durationByPhase(), is(streamed.durationByPhase()));
     }
 
-    @Override
-    public String name() {
-        return name;
-    }
-
-    @Override
-    public void start() {
-        if (running) {
-            throw new IllegalStateException("Timer is already running");
-        } else {
-            running = true;
-            startTime = System.nanoTime();
-        }
-    }
-
-    @Override
-    public void stop() {
-        if (!running) {
-            throw new IllegalStateException("Timer is not running and cannot be stopped");
-        } else {
-            duration += System.nanoTime() - startTime;
-            running = false;
-        }
-    }
-
-    @Override
-    public long durationNanos() {
-        return duration;
-    }
 }

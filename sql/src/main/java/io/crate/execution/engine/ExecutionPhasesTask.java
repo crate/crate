@@ -43,10 +43,8 @@ import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobRequest;
 import io.crate.execution.jobs.transport.TransportJobAction;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.indices.IndicesService;
 
 import javax.annotation.Nullable;
@@ -98,8 +96,6 @@ import java.util.stream.Collectors;
  **/
 public class ExecutionPhasesTask {
 
-    static final Logger LOGGER = Loggers.getLogger(ExecutionPhasesTask.class);
-
     private final TransportJobAction transportJobAction;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final List<NodeOperationTree> nodeOperationTrees;
@@ -108,17 +104,19 @@ public class ExecutionPhasesTask {
     private ContextPreparer contextPreparer;
     private final JobContextService jobContextService;
     private final IndicesService indicesService;
+    private final boolean enableProfiling;
 
     private boolean hasDirectResponse;
 
-    public ExecutionPhasesTask(UUID jobId,
-                               ClusterService clusterService,
-                               ContextPreparer contextPreparer,
-                               JobContextService jobContextService,
-                               IndicesService indicesService,
-                               TransportJobAction transportJobAction,
-                               TransportKillJobsNodeAction transportKillJobsNodeAction,
-                               List<NodeOperationTree> nodeOperationTrees) {
+    ExecutionPhasesTask(UUID jobId,
+                        ClusterService clusterService,
+                        ContextPreparer contextPreparer,
+                        JobContextService jobContextService,
+                        IndicesService indicesService,
+                        TransportJobAction transportJobAction,
+                        TransportKillJobsNodeAction transportKillJobsNodeAction,
+                        List<NodeOperationTree> nodeOperationTrees,
+                        boolean enableProfiling) {
         this.jobId = jobId;
         this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
@@ -127,6 +125,7 @@ public class ExecutionPhasesTask {
         this.transportJobAction = transportJobAction;
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
         this.nodeOperationTrees = nodeOperationTrees;
+        this.enableProfiling = enableProfiling;
 
         for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
             for (NodeOperation nodeOperation : nodeOperationTree.nodeOperations()) {
@@ -197,7 +196,8 @@ public class ExecutionPhasesTask {
         List<Tuple<ExecutionPhase, RowConsumer>> handlerPhaseAndReceiver = createHandlerPhaseAndReceivers(
             handlerPhases, handlerConsumers, initializationTracker);
 
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNodeId, operationByServer.keySet());
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNodeId, operationByServer.keySet())
+            .enableProfiling(enableProfiling);
         List<CompletableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnHandler(
             localNodeOperations, builder, handlerPhaseAndReceiver, new SharedShardContexts(indicesService));
         JobExecutionContext localJobContext = jobContextService.createContext(builder);
@@ -273,7 +273,7 @@ public class ExecutionPhasesTask {
                                  InitializationTracker initializationTracker) {
         for (Map.Entry<String, Collection<NodeOperation>> entry : operationByServer.entrySet()) {
             String serverNodeId = entry.getKey();
-            JobRequest request = new JobRequest(jobId, localNodeId, entry.getValue());
+            JobRequest request = new JobRequest(jobId, localNodeId, entry.getValue(), enableProfiling);
             if (hasDirectResponse) {
                 transportJobAction.execute(serverNodeId, request,
                     BucketForwarder.asActionListener(pageBucketReceivers, bucketIdx, initializationTracker));
