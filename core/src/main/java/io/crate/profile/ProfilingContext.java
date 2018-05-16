@@ -24,8 +24,8 @@ package io.crate.profile;
 
 import com.google.common.collect.ImmutableMap;
 
-import javax.annotation.Nullable;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Simple stop watch type class that can be used as a context across multiple layers (analyzer, planner, executor)
@@ -38,10 +38,12 @@ public class ProfilingContext {
 
     private final boolean enabled;
     private final ImmutableMap.Builder<String, Object> map;
+    private final Function<String, TimerToken> tokenProvider;
 
     public ProfilingContext(boolean enabled) {
         this.enabled = enabled;
         this.map = ImmutableMap.builder();
+        this.tokenProvider = enabled ? InternalTimerToken::new : NoopTimerToken::new;
     }
 
     public boolean enabled() {
@@ -52,29 +54,16 @@ public class ProfilingContext {
         return map.build();
     }
 
-    @Nullable
-    public TimerToken startTiming(String name) {
+    public TimerToken createAndStartTimer(String name) {
+        TimerToken timer = tokenProvider.apply(name);
+        timer.start();
+        return timer;
+    }
+
+    public void stopAndAddTimer(TimerToken token) {
+        token.stop();
         if (enabled) {
-            return new TimerToken(name);
-        }
-        return null;
-    }
-
-    public void stopTiming(@Nullable TimerToken token) {
-        if (enabled && token != null) {
-            long duration = System.nanoTime() - token.startTimeNanos;
-            map.put(token.name, duration / 1_000_000L);
-        }
-    }
-
-    public static class TimerToken {
-
-        private final String name;
-        private final long startTimeNanos;
-
-        private TimerToken(String name) {
-            this.name = name;
-            this.startTimeNanos = System.nanoTime();
+            map.put(token.name(), token.durationNanos() / 1_000_000L);
         }
     }
 }
