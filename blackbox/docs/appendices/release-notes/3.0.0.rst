@@ -1,0 +1,213 @@
+.. _version_3.0.0:
+
+=============
+Version 3.0.0
+=============
+
+Released on 2018/05/16.
+
+Changelog
+=========
+
+Breaking Changes
+----------------
+
+- Dropped support for tables that have been created with CrateDB prior to
+  version 2.0. Tables which require upgrading are indicated in the cluster
+  checks, including visually shown in the Admin UI, if running the latest 2.2
+  or 2.3 release. The upgrade of tables needs to happen before updating CrateDB
+  to this version. This can be done by exporting the data with ``COPY TO`` and
+  importing it into a new table with ``COPY FROM``.  Alternatively you can use
+  ``INSERT`` with query.
+
+- Data paths as defined in ``path.data`` must not contain the cluster name as a
+  folder. Data paths which are not compatible with this version are indicated
+  in the node checks, including visually shown in the Admin UI, if running the
+  latest 2.2 or 2.3 release.
+
+- The ``region`` setting for ``CREATE REPOSITORY`` has been removed. It is
+  automatically "guessed" but can still be manually specified by using the
+  ``endpoint`` setting.
+
+- Store level throttling settings ``indices.store.throttle.*`` have been
+  removed.
+
+- The gateway recovery table setting ``recovery.initial_shards`` has been
+  removed. Nodes will recover their unassigned local primary shards
+  immediatelly after restart.
+
+- The discovery setting ``discovery.type`` has been removed. To enable EC2
+  discovery, the ``discovery.zen.hosts_provider`` setting must be set to ``ec2``.
+
+- EC2 settings``cloud.aws.*`` settings have been renamed to ``discovery.ec2.*``.
+
+- The setting that controls system call filters ``bootstrap.seccomp`` has been
+  setting that controls system call filters has been renamed to
+  ``bootstrap.system_call_filter``.
+
+- The columns ``number_of_shards``, ``number_of_replicas``, and
+  ``self_referencing_column_name`` in ``information_schema.tables`` changed to
+  return ``NULL`` for non-sharded tables.
+
+- Adapted queries in the Admin UI to be compatible with CrateDB 3.0 and
+  greater.
+
+- For HTTP authentication, support was dropped for the ``X-User`` header, used
+  to provide a username, which has been deprecated in ``2.3.0.`` in favour of
+  the standard HTTP ``Authorization`` header.
+
+- The ``error_trace`` GET parameter of the HTTP endpoint only allows ``true``
+  and ``false`` in lower case. Other values are not allowed any more and will
+  result in a parsing exception.
+
+- The ``_node`` column on ``sys.shards`` and ``sys.operations`` has been
+  renamed to ``node``, is now visible by default and has been trimmed to only
+  include ``node['id']`` and ``node['name']``. In order to get all information
+  a join query can be used with ``sys.nodes``.
+
+Changes
+-------
+
+- CrateDB is now based on Elasticsearch 6.1.4 and Lucene 7.1.0.
+
+- Multiple Admin UI improvements.
+
+- Added a new tab for views in the Admin UI which lists available views and
+  their properties.
+
+- Updated the bundled CrateDB Shell (``crash``) to version ``0.24.0`` which
+  adds support for default schema for connections.
+
+- Added support in the Postgres Wire Protocol's SimpleQuery mode to process a
+  query string which contains multiple queries delimited by semicolons.
+
+- Added support for ``DEALLOCATE`` statement which is used by certain Postgres
+  Wire Protocol clients (e.g. libpq) to deallocate a prepared statement and
+  release its resources.
+
+- Added support for ordering on analysed or partitioned columns.
+
+- Added support for views which can be created using the new ``CREATE VIEW``
+  statement and dropped using the ``DROP VIEW`` statement. Views are listed in
+  ``information_schema.views`` and they show up in
+  ``information_schema.tables`` as well as ``information_schema.columns``.
+
+- Enterprise: Added the VIEW privilege class which can be used to grant/deny
+  access to views.
+
+- Added support for ``INSERT INTO ... ON CONFLICT DO NOTHING``. The statement
+  ignores insert values which would cause duplicate keys.
+
+- Added support for ON CONFLICT clause in insert statements.  ``INSERT INTO ...
+  ON CONFLICT (pk_col) DO UPDATE SET col = val`` is identical to ``INSERT INTO
+  ... ON DUPLICATE KEY UPDATE col = val``.  The special EXCLUDED table can be
+  used to refer to the insert values: ``INSERT INTO ... ON CONFLICT (pk_col) DO
+  UPDATE SET col = EXCLUDED.col``
+
+- DEPRECATED: The ``ON DUPLICATE KEY UPDATE`` clause has been deprecated in
+  favor of the ``ON CONFLICT DO UPDATE SET`` clause.
+
+- Implemented the Block Hash Join algorithm which is now used for Equi-Joins.
+
+- Added new ``sys.health`` system information table to expose the health of all
+  tables and table partitions.
+
+- Added new ``cluster.routing.allocation.disk.watermark.flood_stage`` setting,
+  that controls at which disk usage indices should become read-only to prevent
+  running out of disk space. There is also a new node check that indicates
+  whether the threshold is exceeded.
+
+- Added a new ``bengali`` language analyzer and a ``bengali_normalization``
+  token filter.
+
+- Add ``max_token_length`` parameter to whitespace tokenizer.
+
+- Added new tokenizers ``simple_pattern`` and ``simple_pattern_split`` which
+  allow to tokenize text for the fulltext index by a regular expression
+  pattern.
+
+- Added support for CSV file inputs in ``COPY FROM`` statements. Input type is
+  inferred using the file's extension or can be set using the optional ``WITH``
+  clause and specifying the ``format``.
+
+- Fully qualified column names including a schema name will no longer match on
+  table aliases.
+
+- The default user if enterprise is disabled changed from ``null`` to
+  ``crate``. This causes entries in ``sys.jobs`` to show up with ``crate`` as
+  username. Functions like ``user`` will also return ``crate`` if enterprise is
+  enabled but the user module is not available.
+
+- Display the node information (name and id) of jobs in the ``sys.jobs`` table.
+
+- Changed the primary key constraints of the information schema tables
+  ``table_constraints``, ``referential_constraints``, ``table_partitions``,
+  ``key_column_usage``, ``columns``, and ``tables`` to be SQL compliant.
+
+- Arrays can now contain mixed types if they're safely convertible. JSON
+  libraries tend to encode values like ``[ 0.0, 1.2]`` as ``[ 0, 1.2 ]``, this
+  caused an error because of the strict type match we enforced before.
+
+- Implemented ``constraint_schema`` and ``table_schema`` in
+  ``information_schema.key_column_usage`` correctly and documented the full
+  table schema.
+
+- Statistics for jobs and operations are enabled by default. If you don't need
+  any statistics, please set ``stats.enabled`` to ``false``.
+
+- Changed ``BEGIN`` and ``SET SESSION`` to no longer require ``DQL``
+  permissions on the ``CLUSTER`` level.
+
+- Added ``epoch`` argument to the extract function which returns the number of
+  seconds since Jan 1, 1970. For example: ``extract(epoch from
+  '1970-01-01T00:00:01')`` returns ``1.0`` seconds.
+
+- Enable logging of JVM garbage collection times that help to debug memory
+  pressure and garbage collection issues. GC log files are stored separately to
+  the standard CrateDB logs and the files are log-rotated.
+
+- CrateDB will now by default create a heap dump in case of a crash caused by
+  an out of memory error. This makes it necessary to account for the additional
+  disk space requirements.
+
+- Implemented a ``Ready`` node status JMX metric expressing if the node is
+  ready for processing SQL statements.
+
+- Implemented a ``NodeInfo`` JMX MBean to expose useful information (id, name)
+  about the node.
+
+- Fixed path of logfile name in rotation pattern in ``log4j2.properties``. It
+  now writes into the correct logging directory instead of the parent
+  directory.
+
+- ``ALTER TABLE <name> OPEN`` will now wait for all shards to become active
+  before returning to be consistent with the behaviour of other statements.
+
+- Added note about the newly available ``JMX HTTP Exporter`` to the monitoring
+  documentation section.
+
+- The first argument (``field``) of the ``EXTRACT`` function has been limited
+  to string literals and identifiers, as it was documented.
+
+.. _version_3.0.0_upgrade_notes:
+
+Upgrade Notes
+=============
+
+Tables Created < 2.0.0
+----------------------
+
+Support for tables created prior to 2.0.0 has been dropped, and these tables
+must be upgraded before upgrading to 3.0.0. This can be done by exporting the
+data using ``COPY TO`` and importing it using ``COPY FROM`` while running
+a version of CrateDB > 2.0.4.
+
+EC2 Settings
+------------
+
+Several settings to do with the Amazon EC2 service have been removed or renamed.
+All EC2 settings that were previously under ``cloud.aws.*`` have now been renamed
+to ``discovery.ec2.*`` (eg. ``cloud.aws.access_key`` is now
+``discovery.ec2.access_key``). Alongside this, the ``discovery.type`` setting
+has been removed, and in order to enable EC2 discovery, you should will need to
+set ``discovery.zen.hosts_provider`` to ``ec2``.
