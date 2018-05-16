@@ -88,14 +88,6 @@ sets the default schema name for future queries. If no schema is specified, the
 schema ``doc`` will be used as default. Additionally, the only supported charset
 is ``UTF8``.
 
-Simple Query
-------------
-
-The `Simple Query`_ protocol is implemented with the following limitations:
-
-- The ``query`` may only contain one query. Sending multiple queries with one
-  message is not supported.
-
 Extended Query
 --------------
 
