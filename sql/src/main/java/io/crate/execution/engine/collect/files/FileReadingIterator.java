@@ -201,18 +201,27 @@ public class FileReadingIterator implements BatchIterator<Row> {
         Predicate<URI> uriPredicate = generateUriPredicate(fileInput, fileUri.globPredicate);
         List<URI> uris = getUris(fileInput, fileUri.uri, fileUri.preGlobUri, uriPredicate);
 
-        if (uris.size() > 0) {
+        if (uris.isEmpty()) {
+            LOGGER.warn("No files matched the pattern '{}'", fileUri.uri);
+        } else {
             currentInputIterator = uris.iterator();
             advanceToNextUri(fileInput);
         }
     }
 
     private void initCurrentReader(FileInput fileInput, URI uri) throws IOException {
-        InputStream stream = fileInput.getStream(uri);
-        if (stream != null) {
-            currentReader = createBufferedReader(stream);
-            currentLineNumber = 0;
-            lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
+        try {
+            InputStream stream = fileInput.getStream(uri);
+            if (stream != null) {
+                currentReader = createBufferedReader(stream);
+                currentLineNumber = 0;
+                lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
+            } else {
+                LOGGER.warn("Couldn't open reader for URI '{}'", uri);
+            }
+        } catch (IOException e) {
+            LOGGER.warn("{} when reading from URI '{}': {}",
+                e.getClass().getSimpleName(), uri, e.getMessage());
         }
     }
 
@@ -255,7 +264,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
             URI uri = currentInput.v2().uri;
             // it's nice to know which exact file/uri threw an error
             // when COPY FROM returns less rows than expected
-            LOGGER.info("Error during COPY FROM '{}'", e, uri.toString());
+            LOGGER.warn("Error during COPY FROM '{}'", e, uri.toString());
             rethrowUnchecked(e);
         }
         return line;
