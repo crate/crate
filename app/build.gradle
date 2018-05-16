@@ -321,7 +321,7 @@ task chooseReleaseNotes(dependsOn: [':core:getVersion']) {
     doLast {
         def version = project(':core').getVersion.version
         def releaseNotesDir = "$rootDir/blackbox/docs/appendices/release-notes"
-        def releaseNotesFile = version.replaceAll('-.*', '') + '.txt'
+        def releaseNotesFile = version.replaceAll('-.*', '') + '.rst'
         if (new File(releaseNotesDir + "/" + releaseNotesFile).exists()) {
             copy {
                 from("$releaseNotesDir") {
