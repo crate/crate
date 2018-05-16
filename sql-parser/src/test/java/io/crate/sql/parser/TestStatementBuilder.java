@@ -758,6 +758,8 @@ public class TestStatementBuilder {
         printStatement("copy foo from ? with (some_property=1)");
         printStatement("copy foo from ? with (some_property=false)");
         printStatement("copy schemah.foo from '/folder/file.extension'");
+        printStatement("copy schemah.foo from '/folder/file.extension' return summary");
+        printStatement("copy schemah.foo from '/folder/file.extension' with (some_property=1) return summary");
 
         printStatement("copy foo (nae) to '/folder/file.extension'");
         printStatement("copy foo to '/folder/file.extension'");
