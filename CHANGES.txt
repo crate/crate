@@ -21,3 +21,4 @@ Changes
 Fixes
 =====
 
+- Fixed a memory leak caused by using the ``hyperloglog_distinct`` function.

@@ -115,6 +115,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
         if (state2.isInitialized()) {
             state1.merge(state2);
+            state2.close();
         }
         return state1;
     }
@@ -122,7 +123,9 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     @Override
     public Long terminatePartial(RamAccountingContext ramAccountingContext, HllState state) {
         if (state.isInitialized()) {
-            return state.value();
+            long count = state.value();
+            state.close();
+            return count;
         }
         return null;
     }
@@ -137,7 +140,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         return info;
     }
 
-    public static class HllState implements Comparable<HllState>, Writeable {
+    public static class HllState implements Comparable<HllState>, Writeable, AutoCloseable {
 
         private final DataType dataType;
         private final Murmur3Hash murmur3Hash;
@@ -200,8 +203,16 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             if (isInitialized()) {
                 out.writeBoolean(true);
                 hyperLogLogPlusPlus.writeTo(0, out);
+                hyperLogLogPlusPlus.close();
             } else {
                 out.writeBoolean(false);
+            }
+        }
+
+        @Override
+        public void close() {
+            if (hyperLogLogPlusPlus != null) {
+                hyperLogLogPlusPlus.close();
             }
         }
     }
