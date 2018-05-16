@@ -23,6 +23,7 @@
 package io.crate.planner.node.management;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.profile.TimerToken;
 import io.crate.profile.ProfilingContext;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -66,9 +67,9 @@ public class ExplainPlan implements Plan {
         Map<String, Object> map;
 
         if (context.enabled()) {
-            ProfilingContext.TimerToken timerToken = context.startTiming("Execute");
+            TimerToken timerToken = context.createAndStartTimer("Execute");
             subPlan.execute(executor, plannerContext, NOOP_ROW_CONSUMER, params, valuesBySubQuery);
-            context.stopTiming(timerToken);
+            context.stopAndAddTimer(timerToken);
             map = context.build();
         } else {
             try {
