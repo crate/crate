@@ -64,7 +64,7 @@ statement
     | INSERT INTO table ('(' ident (',' ident)* ')')? insertSource
         (onDuplicate | onConflict)?                                                  #insert
     | RESTORE SNAPSHOT qname (ALL | TABLE tableWithPartitions) withProperties?       #restore
-    | COPY tableWithPartition FROM path=expr withProperties?                         #copyFrom
+    | COPY tableWithPartition FROM path=expr withProperties? (RETURN SUMMARY)?       #copyFrom
     | COPY tableWithPartition columns? where?
         TO DIRECTORY? path=expr withProperties?                                      #copyTo
     | DROP BLOB TABLE (IF EXISTS)? table                                             #dropBlobTable
@@ -622,7 +622,7 @@ nonReserved
     | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
     | PRIVILEGES | SCHEMA | INGEST | RULE | PREPARE
     | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED
-    | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION
+    | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION | RETURN | SUMMARY
     ;
 
 SELECT: 'SELECT';
@@ -849,6 +849,9 @@ SCHEMA: 'SCHEMA';
 
 INGEST: 'INGEST';
 RULE: 'RULE';
+
+RETURN: 'RETURN';
+SUMMARY: 'SUMMARY';
 
 EQ  : '=';
 NEQ : '<>' | '!=';
