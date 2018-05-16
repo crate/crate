@@ -398,10 +398,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitCopyFrom(SqlBaseParser.CopyFromContext context) {
+        boolean returnSummary = context.SUMMARY() != null;
         return new CopyFrom(
             (Table) visit(context.tableWithPartition()),
             (Expression) visit(context.path),
-            extractGenericProperties(context.withProperties()));
+            extractGenericProperties(context.withProperties()),
+            returnSummary);
     }
 
     @Override
