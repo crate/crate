@@ -71,6 +71,9 @@ Breaking Changes
 Changes
 =======
 
+- Added support in the Postgres Wire Protocol's SimpleQuery mode to process a
+  query string which contains multiple queries delimited by semicolons.
+
 - Added a new tab for views in the Admin UI which lists available views and
   their properties.
 
