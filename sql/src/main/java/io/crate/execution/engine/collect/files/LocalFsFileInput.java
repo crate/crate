@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -81,13 +80,9 @@ public class LocalFsFileInput implements FileInput {
     }
 
     @Override
-    public InputStream getStream(URI uri) {
+    public InputStream getStream(URI uri) throws IOException {
         File file = new File(uri);
-        try {
-            return new FileInputStream(file);
-        } catch (FileNotFoundException e) {
-            return null;
-        }
+        return new FileInputStream(file);
     }
 
     @Override

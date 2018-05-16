@@ -100,7 +100,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.crate.exceptions.Exceptions.userFriendlyMessage;
+import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnly;
 
 /**
  * Realizes Upserts of tables which either results in an Insert or an Update.
@@ -188,7 +188,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 shardResponse.add(location,
                     new ShardResponse.Failure(
                         item.id(),
-                        userFriendlyMessage(e),
+                        userFriendlyCrateExceptionTopOnly(e),
                         (e instanceof VersionConflictEngineException)));
             }
         }

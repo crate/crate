@@ -35,26 +35,26 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * IndexWriterProjector that gets its values from a source input
  */
 public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
-    private final Boolean overwriteDuplicates;
-
-    private final Reference rawSourceReference;
-    private final InputColumn rawSourceSymbol;
-
     private static final String OVERWRITE_DUPLICATES = "overwrite_duplicates";
     private static final boolean OVERWRITE_DUPLICATES_DEFAULT = false;
+
+    private final Boolean overwriteDuplicates;
+    private final Reference rawSourceReference;
+    private final InputColumn rawSourceSymbol;
+    private final List<? extends Symbol> outputs;
 
     @Nullable
     private String[] includes;
 
     @Nullable
     private String[] excludes;
-
 
     public SourceIndexWriterProjection(RelationName relationName,
                                        @Nullable String partitionIdent,
@@ -68,6 +68,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        @Nullable String[] excludes,
                                        List<Symbol> idSymbols,
                                        @Nullable Symbol clusteredBySymbol,
+                                       List<? extends Symbol> outputs,
                                        boolean autoCreateIndices) {
         super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, idSymbols, autoCreateIndices);
         this.rawSourceReference = rawSourceReference;
@@ -76,15 +77,15 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         this.partitionedBySymbols = partitionedBySymbols;
         this.clusteredBySymbol = clusteredBySymbol;
         this.rawSourceSymbol = rawSourcePtr;
+        this.outputs = outputs;
         overwriteDuplicates = settings.getAsBoolean(OVERWRITE_DUPLICATES, OVERWRITE_DUPLICATES_DEFAULT);
     }
 
-    public SourceIndexWriterProjection(StreamInput in) throws IOException {
+    SourceIndexWriterProjection(StreamInput in) throws IOException {
         super(in);
         overwriteDuplicates = in.readBoolean();
         rawSourceReference = Reference.fromStream(in);
         rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
-
 
         if (in.readBoolean()) {
             int length = in.readVInt();
@@ -100,6 +101,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                 excludes[i] = in.readString();
             }
         }
+        outputs = Symbols.listFromStream(in);
     }
 
     @Override
@@ -131,24 +133,28 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     }
 
     @Override
+    public List<? extends Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
-
         SourceIndexWriterProjection that = (SourceIndexWriterProjection) o;
-
-        if (!Arrays.equals(excludes, that.excludes)) return false;
-        if (!Arrays.equals(includes, that.includes)) return false;
-        return rawSourceSymbol.equals(that.rawSourceSymbol);
+        return Objects.equals(overwriteDuplicates, that.overwriteDuplicates) &&
+               Objects.equals(rawSourceReference, that.rawSourceReference) &&
+               Objects.equals(rawSourceSymbol, that.rawSourceSymbol) &&
+               Arrays.equals(includes, that.includes) &&
+               Arrays.equals(excludes, that.excludes);
     }
 
     @Override
     public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + (includes != null ? Arrays.hashCode(includes) : 0);
-        result = 31 * result + (excludes != null ? Arrays.hashCode(excludes) : 0);
-        result = 31 * result + rawSourceSymbol.hashCode();
+        int result = Objects.hash(super.hashCode(), overwriteDuplicates, rawSourceReference, rawSourceSymbol);
+        result = 31 * result + Arrays.hashCode(includes);
+        result = 31 * result + Arrays.hashCode(excludes);
         return result;
     }
 
@@ -178,6 +184,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                 out.writeString(exclude);
             }
         }
+        Symbols.toStream(outputs, out);
     }
 
     public boolean overwriteDuplicates() {

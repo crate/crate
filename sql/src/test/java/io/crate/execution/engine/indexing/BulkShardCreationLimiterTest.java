@@ -51,7 +51,7 @@ public class BulkShardCreationLimiterTest extends CrateUnitTest {
 
     private static final ShardedRequests<DummyShardRequest, DummyRequestItem> SHARED_REQUESTS = new ShardedRequests<>((s) -> new DummyShardRequest());
     static {
-        SHARED_REQUESTS.add(new DummyRequestItem("1"), "dummy", null);
+        SHARED_REQUESTS.add(new DummyRequestItem("1"), "dummy", null, RowSourceInfo.EMPTY_INSTANCE);
     }
 
     @Test

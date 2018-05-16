@@ -239,8 +239,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardResponse response = result.finalResponseIfSuccessful;
         assertThat(response.failures().size(), is(1));
         assertThat(response.failures().get(0).message(),
-            is("VersionConflictEngineException[[default][1]: version conflict, " +
-               "document with id: 1 already exists in 'characters']"));
+            is("[default][1]: version conflict, document with id: 1 already exists in 'characters'"));
     }
 
     @Test

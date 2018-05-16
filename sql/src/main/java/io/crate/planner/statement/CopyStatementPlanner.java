@@ -25,20 +25,26 @@ package io.crate.planner.statement;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.CopyFromAnalyzedStatement;
+import io.crate.analyze.CopyFromReturnSummaryAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
+import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.reference.file.SourceUriExpression;
+import io.crate.expression.reference.file.SourceLineNumberExpression;
+import io.crate.expression.reference.file.SourceUriFailureExpression;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -59,6 +65,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -187,37 +194,80 @@ public final class CopyStatementPlanner {
             clusteredBy == null ? null : table.getReference(clusteredBy)
         );
         Reference rawOrDoc = rawOrDoc(table, partitionIdent);
-        int rawOrDocIdx = toCollect.size();
+        final int rawOrDocIdx = toCollect.size();
         toCollect.add(rawOrDoc);
+
+
         String[] excludes = partitionedByNames.size() > 0
-            ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null;
+            ? partitionedByNames.toArray(new String[0]) : null;
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(toCollect);
         Symbol clusteredByInputCol = null;
         if (clusteredBy != null) {
             clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
         }
-        SourceIndexWriterProjection sourceIndexWriterProjection = new SourceIndexWriterProjection(
-            table.ident(),
-            partitionIdent,
-            table.getReference(DocSysColumns.RAW),
-            new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
-            table.primaryKey(),
-            InputColumns.create(table.partitionedByColumns(), sourceSymbols),
-            clusteredBy,
-            copyFrom.settings(),
-            null,
-            excludes,
-            InputColumns.create(primaryKeyRefs, sourceSymbols),
-            clusteredByInputCol,
-            table.isPartitioned() // autoCreateIndices
-        );
-        List<Projection> projections = Collections.singletonList(sourceIndexWriterProjection);
+
+        SourceIndexWriterProjection sourceIndexWriterProjection;
+
+        List<? extends Symbol> projectionOutputs = AbstractIndexWriterProjection.OUTPUTS;
+        boolean isReturnSummary = copyFrom instanceof CopyFromReturnSummaryAnalyzedStatement;
+        if (isReturnSummary) {
+            final InputColumn sourceUriSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
+            toCollect.add(SourceUriExpression.getReferenceForRelation(table.ident()));
+
+            final InputColumn sourceUriFailureSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
+            toCollect.add(SourceUriFailureExpression.getReferenceForRelation(table.ident()));
+
+            final InputColumn lineNumberSymbol = new InputColumn(toCollect.size(), DataTypes.LONG);
+            toCollect.add(SourceLineNumberExpression.getReferenceForRelation(table.ident()));
+
+            List<? extends Symbol> fields = ((CopyFromReturnSummaryAnalyzedStatement) copyFrom).fields();
+            projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
+
+            sourceIndexWriterProjection = new SourceIndexWriterReturnSummaryProjection(
+                table.ident(),
+                partitionIdent,
+                table.getReference(DocSysColumns.RAW),
+                new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
+                table.primaryKey(),
+                InputColumns.create(table.partitionedByColumns(), sourceSymbols),
+                clusteredBy,
+                copyFrom.settings(),
+                null,
+                excludes,
+                InputColumns.create(primaryKeyRefs, sourceSymbols),
+                clusteredByInputCol,
+                projectionOutputs,
+                table.isPartitioned(), // autoCreateIndices
+                sourceUriSymbol,
+                sourceUriFailureSymbol,
+                lineNumberSymbol
+            );
+        } else {
+            sourceIndexWriterProjection = new SourceIndexWriterProjection(
+                table.ident(),
+                partitionIdent,
+                table.getReference(DocSysColumns.RAW),
+                new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
+                table.primaryKey(),
+                InputColumns.create(table.partitionedByColumns(), sourceSymbols),
+                clusteredBy,
+                copyFrom.settings(),
+                null,
+                excludes,
+                InputColumns.create(primaryKeyRefs, sourceSymbols),
+                clusteredByInputCol,
+                projectionOutputs,
+                table.isPartitioned() // autoCreateIndices
+            );
+        }
 
         // if there are partitionValues (we've had a PARTITION clause in the statement)
         // we need to use the calculated partition values because the partition columns are likely NOT in the data being read
         // the partitionedBy-inputColumns created for the projection are still valid because the positions are not changed
-        rewriteToCollectToUsePartitionValues(table.partitionedByColumns(), partitionValues, toCollect);
+        if (partitionValues != null) {
+            rewriteToCollectToUsePartitionValues(table.partitionedByColumns(), partitionValues, toCollect);
+        }
 
         FileUriCollectPhase collectPhase = new FileUriCollectPhase(
             context.jobId(),
@@ -226,14 +276,23 @@ public final class CopyStatementPlanner {
             getExecutionNodes(allNodes, copyFrom.settings().getAsInt("num_readers", allNodes.getSize()), copyFrom.nodePredicate()),
             copyFrom.uri(),
             toCollect,
-            projections,
+            Collections.emptyList(),
             copyFrom.settings().get("compression", null),
             copyFrom.settings().getAsBoolean("shared", null),
             copyFrom.inputFormat()
         );
 
-        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
-        return Merge.ensureOnHandler(collect, context, Collections.singletonList(MergeCountProjection.INSTANCE));
+        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, -1, null);
+        // add the projection to the plan to ensure that the outputs are correctly set to the projection outputs
+        collect.addProjection(sourceIndexWriterProjection);
+
+        List<Projection> handlerProjections;
+        if (isReturnSummary) {
+            handlerProjections = Collections.emptyList();
+        } else {
+            handlerProjections = Collections.singletonList(MergeCountProjection.INSTANCE);
+        }
+        return Merge.ensureOnHandler(collect, context, handlerProjections);
     }
 
     private static void rewriteToCollectToUsePartitionValues(List<Reference> partitionedByColumns,

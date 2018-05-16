@@ -20,28 +20,28 @@
  * agreement.
  */
 
-package io.crate.execution.engine.collect.files
+package io.crate.execution.engine.indexing;
 
-import io.crate.test.integration.CrateUnitTest
-import org.junit.Test
+import io.crate.data.Row;
+import io.crate.execution.dml.ShardResponse;
 
-import java.nio.file.Path
+import java.util.List;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
-class URLFileInputTest extends CrateUnitTest {
+public interface UpsertResultCollector {
 
-    @Test
-    void testGetStream() {
-        Path tempDir = createTempDir();
-        File file = new File(tempDir.toFile(), "doesnt_exist")
-        URLFileInput input = new URLFileInput(file.toURI());
+    Supplier<UpsertResults> supplier();
 
-        String expectedMessage = "doesnt_exist (No such file or directory)";
-        if (isRunningOnWindows()) {
-            expectedMessage = "doesnt_exist (The system cannot find the file specified)"
-        }
+    Accumulator accumulator();
 
-        expectedException.expect(FileNotFoundException.class);
-        expectedException.expectMessage(expectedMessage);
-        input.getStream(file.toURI());
+    BinaryOperator<UpsertResults> combiner();
+
+    Function<UpsertResults, Iterable<Row>> finisher();
+
+    interface Accumulator {
+
+        void accept(UpsertResults upsertResults, ShardResponse shardResponse, List<RowSourceInfo> rowSourceInfos);
     }
 }

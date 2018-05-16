@@ -23,32 +23,42 @@ package io.crate.expression.reference.file;
 
 import io.crate.metadata.ColumnIdent;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.compress.NotXContentException;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import javax.annotation.Nullable;
+import java.net.URI;
 import java.util.Map;
 
 public class LineContext {
 
     private byte[] rawSource;
     private Map<String, Object> parsedSource;
+    private BytesRef currentUri;
+    private String currentUriFailure;
+    private long currentLineNumber = 0;
 
     @Nullable
-    public BytesRef sourceAsBytesRef() {
+    BytesRef sourceAsBytesRef() {
         if (rawSource != null) {
             return new BytesRef(rawSource);
         }
         return null;
     }
 
-    public Map<String, Object> sourceAsMap() {
+    @Nullable
+    Map<String, Object> sourceAsMap() {
         if (parsedSource == null) {
-            try {
-                parsedSource = XContentHelper.convertToMap(new BytesArray(rawSource), false, XContentType.JSON).v2();
-            } catch (NullPointerException e) {
-                return null;
+            if (rawSource != null) {
+                try {
+                    parsedSource = XContentHelper.convertToMap(new BytesArray(rawSource), false, XContentType.JSON).v2();
+                } catch (ElasticsearchParseException | NotXContentException e) {
+                    throw new RuntimeException("JSON parser error: " + e.getMessage(), e);
+                }
             }
         }
         return parsedSource;
@@ -69,5 +79,42 @@ public class LineContext {
     public void rawSource(byte[] bytes) {
         this.rawSource = bytes;
         this.parsedSource = null;
+    }
+
+    /**
+     * Sets the current URI to the context. This is expected to happen when starting to process a new URI.
+     * Any existing URI processing failure must have been consumed already as it will be overwritten/reset.
+     */
+    public void currentUri(URI currentUri) {
+        this.currentUri = BytesRefs.toBytesRef(currentUri.toString());
+        currentUriFailure = null;
+    }
+
+    BytesRef currentUri() {
+        return currentUri;
+    }
+
+    public void setCurrentUriFailure(String failureMessage) {
+        currentUriFailure = failureMessage;
+    }
+
+    /**
+     * Return the current URI failure if any. A NULL value indicates that no failure happened while accessing the URI.
+     */
+    @Nullable
+    String getCurrentUriFailure() {
+        return currentUriFailure;
+    }
+
+    public void resetCurrentLineNumber() {
+        currentLineNumber = 0;
+    }
+
+    public void incrementCurrentLineNumber() {
+        currentLineNumber++;
+    }
+
+    long getCurrentLineNumber() {
+        return currentLineNumber;
     }
 }

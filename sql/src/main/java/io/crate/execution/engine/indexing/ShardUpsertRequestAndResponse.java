@@ -20,28 +20,16 @@
  * agreement.
  */
 
-package io.crate.execution.engine.collect.files
+package io.crate.execution.engine.indexing;
 
-import io.crate.test.integration.CrateUnitTest
-import org.junit.Test
+import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
 
-import java.nio.file.Path
+public class ShardUpsertRequestAndResponse {
+    final ShardUpsertRequest shardRequest;
+    ShardResponse shardResponse;
 
-class URLFileInputTest extends CrateUnitTest {
-
-    @Test
-    void testGetStream() {
-        Path tempDir = createTempDir();
-        File file = new File(tempDir.toFile(), "doesnt_exist")
-        URLFileInput input = new URLFileInput(file.toURI());
-
-        String expectedMessage = "doesnt_exist (No such file or directory)";
-        if (isRunningOnWindows()) {
-            expectedMessage = "doesnt_exist (The system cannot find the file specified)"
-        }
-
-        expectedException.expect(FileNotFoundException.class);
-        expectedException.expectMessage(expectedMessage);
-        input.getStream(file.toURI());
+    ShardUpsertRequestAndResponse(ShardUpsertRequest shardRequest) {
+        this.shardRequest = shardRequest;
     }
 }

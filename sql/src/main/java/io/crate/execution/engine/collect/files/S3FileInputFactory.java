@@ -22,14 +22,12 @@
 
 package io.crate.execution.engine.collect.files;
 
-import java.io.IOException;
-
 public class S3FileInputFactory implements FileInputFactory {
 
     public static final String NAME = "s3";
 
     @Override
-    public FileInput create() throws IOException {
+    public FileInput create() {
         return new S3FileInput();
     }
 }

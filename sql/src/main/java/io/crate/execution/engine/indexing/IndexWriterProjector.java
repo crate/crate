@@ -22,17 +22,17 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -86,7 +86,8 @@ public class IndexWriterProjector implements Projector {
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates,
-                                UUID jobId) {
+                                UUID jobId,
+                                UpsertResultContext upsertResultContext) {
         Input<BytesRef> source;
         if (includes == null && excludes == null) {
             //noinspection unchecked
@@ -104,6 +105,9 @@ public class IndexWriterProjector implements Projector {
             new Reference[]{rawSourceReference},
             jobId,
             false);
+
+        //noinspection unchecked
+        Input<BytesRef> sourceUri = upsertResultContext.getSourceUriInput();
 
         Function<String, ShardUpsertRequest.Item> itemFactory = id ->
             new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null);
@@ -123,7 +127,8 @@ public class IndexWriterProjector implements Projector {
             autoCreateIndices,
             shardUpsertAction,
             transportCreatePartitionsAction,
-            tableSettings
+            tableSettings,
+            upsertResultContext
         );
     }
 

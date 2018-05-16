@@ -20,28 +20,33 @@
  * agreement.
  */
 
-package io.crate.execution.engine.collect.files
+package io.crate.execution.engine.indexing;
 
-import io.crate.test.integration.CrateUnitTest
-import org.junit.Test
+import org.apache.lucene.util.BytesRef;
 
-import java.nio.file.Path
+import javax.annotation.Nullable;
 
-class URLFileInputTest extends CrateUnitTest {
+class RowSourceInfo {
 
-    @Test
-    void testGetStream() {
-        Path tempDir = createTempDir();
-        File file = new File(tempDir.toFile(), "doesnt_exist")
-        URLFileInput input = new URLFileInput(file.toURI());
+    static final RowSourceInfo EMPTY_INSTANCE = new RowSourceInfo();
 
-        String expectedMessage = "doesnt_exist (No such file or directory)";
-        if (isRunningOnWindows()) {
-            expectedMessage = "doesnt_exist (The system cannot find the file specified)"
+    static RowSourceInfo emptyMarkerOrNewInstance(@Nullable BytesRef sourceUri, @Nullable Long lineNumber) {
+        if (sourceUri != null && lineNumber != null) {
+            return new RowSourceInfo(sourceUri, lineNumber);
         }
+        return EMPTY_INSTANCE;
+    }
 
-        expectedException.expect(FileNotFoundException.class);
-        expectedException.expectMessage(expectedMessage);
-        input.getStream(file.toURI());
+    final BytesRef sourceUri;
+    final long lineNumber;
+
+    private RowSourceInfo(BytesRef sourceUri, Long lineNumber) {
+        this.sourceUri = sourceUri;
+        this.lineNumber = lineNumber;
+    }
+
+    private RowSourceInfo() {
+        this.sourceUri = null;
+        this.lineNumber = 0;
     }
 }

@@ -36,7 +36,10 @@ public final class FileLineReferenceResolver {
     private static final Map<String, Supplier<LineCollectorExpression<?>>> EXPRESSION_BUILDER =
         ImmutableMap.of(
             SourceLineExpression.COLUMN_NAME, SourceLineExpression::new,
-            SourceAsMapLineExpression.COLUMN_NAME, SourceAsMapLineExpression::new);
+            SourceAsMapLineExpression.COLUMN_NAME, SourceAsMapLineExpression::new,
+            SourceUriExpression.COLUMN_NAME, SourceUriExpression::new,
+            SourceUriFailureExpression.COLUMN_NAME, SourceUriFailureExpression::new,
+            SourceLineNumberExpression.COLUMN_NAME, SourceLineNumberExpression::new);
 
     private FileLineReferenceResolver() {
     }

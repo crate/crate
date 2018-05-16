@@ -22,23 +22,23 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
-import io.crate.expression.symbol.Assignments;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.TransportActionProvider;
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.RowShardResolver;
+import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.expression.InputRow;
+import io.crate.expression.symbol.Assignments;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.expression.InputRow;
-import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.RowShardResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
@@ -118,7 +118,8 @@ public class ColumnIndexWriterProjector implements Projector {
             autoCreateIndices,
             transportActionProvider.transportShardUpsertAction()::execute,
             transportActionProvider.transportBulkCreateIndicesAction(),
-            tableSettings
+            tableSettings,
+            UpsertResultContext.forRowCount()
         );
     }
 

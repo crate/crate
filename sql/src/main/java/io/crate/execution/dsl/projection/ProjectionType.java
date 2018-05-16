@@ -34,6 +34,7 @@ public enum ProjectionType {
     FILTER(FilterProjection::new),
     WRITER(WriterProjection::new),
     INDEX_WRITER(SourceIndexWriterProjection::new),
+    INDEX_WRITER_RETURN_SUMMARY(SourceIndexWriterReturnSummaryProjection::new),
     COLUMN_INDEX_WRITER(ColumnIndexWriterProjection::new),
     UPDATE(UpdateProjection::new),
     SYS_UPDATE(SysUpdateProjection::new),
