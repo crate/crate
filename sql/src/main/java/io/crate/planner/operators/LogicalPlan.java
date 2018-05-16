@@ -229,7 +229,7 @@ public interface LogicalPlan extends Plan {
                          RowConsumer consumer,
                          Row params,
                          Map<SelectSymbol, Object> valuesBySubQuery) {
-        LogicalPlanner.execute(this, executor, plannerContext, consumer, params, valuesBySubQuery);
+        LogicalPlanner.execute(this, executor, plannerContext, consumer, params, valuesBySubQuery, false);
     }
 
     <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context);

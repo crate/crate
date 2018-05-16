@@ -37,7 +37,7 @@ import java.util.function.Function;
 public class ProfilingContext {
 
     private final boolean enabled;
-    private final ImmutableMap.Builder<String, Object> map;
+    private final ImmutableMap.Builder<String, Long> map;
     private final Function<String, TimerToken> tokenProvider;
 
     public ProfilingContext(boolean enabled) {
@@ -50,12 +50,12 @@ public class ProfilingContext {
         return enabled;
     }
 
-    public Map<String, Object> build() {
+    public Map<String, Long> getAsMap() {
         return map.build();
     }
 
     public TimerToken createAndStartTimer(String name) {
-        TimerToken timer = tokenProvider.apply(name);
+        TimerToken timer = createTimer(name);
         timer.start();
         return timer;
     }
@@ -65,5 +65,9 @@ public class ProfilingContext {
         if (enabled) {
             map.put(token.name(), token.durationNanos() / 1_000_000L);
         }
+    }
+
+    public TimerToken createTimer(String name) {
+        return tokenProvider.apply(name);
     }
 }

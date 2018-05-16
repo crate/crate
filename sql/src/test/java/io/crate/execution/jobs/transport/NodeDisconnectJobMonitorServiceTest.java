@@ -38,6 +38,7 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
 
 import static io.crate.testing.DiscoveryNodes.newNode;
@@ -82,17 +83,13 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
         DiscoveryNode coordinator = newNode("coordinator");
         DiscoveryNode dataNode = newNode("dataNode");
 
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(
-            UUID.randomUUID(),
-            coordinator.getId(),
-            Arrays.asList(coordinator.getId(), dataNode.getId())
-        );
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID(), coordinator.getId(), Arrays.asList(coordinator.getId(), dataNode.getId()));
         builder.addSubContext(new DummySubContext());
         jobContextService.createContext(builder);
 
         // add a second job that is coordinated by the other node to make sure the the broadcast logic is run
         // even though there are jobs coordinated by the disconnected node
-        builder = jobContextService.newBuilder(UUID.randomUUID(), dataNode.getId());
+        builder = jobContextService.newBuilder(UUID.randomUUID(), dataNode.getId(), Collections.emptySet());
         builder.addSubContext(new DummySubContext());
         jobContextService.createContext(builder);
 

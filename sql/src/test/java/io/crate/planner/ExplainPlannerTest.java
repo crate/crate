@@ -23,6 +23,8 @@
 package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.operators.ExplainLogicalPlan;
@@ -32,10 +34,14 @@ import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 
 public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -94,5 +100,25 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             assertNotNull(map);
             assertThat(map.size(), greaterThan(0));
         }
+    }
+
+    @Test
+    public void testExplainAnalyzeMultiPhasePlanNotSupported() {
+        ExplainPlan plan = e.plan("EXPLAIN ANALYZE SELECT * FROM users WHERE name = (SELECT 'crate') or id = (SELECT 1)");
+        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
+        CountDownLatch counter = new CountDownLatch(1);
+
+        AtomicReference<BatchIterator<Row>> iterator = new AtomicReference<>();
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+
+        plan.execute(null, plannerContext, (i, f) -> {
+            iterator.set(i);
+            failure.set(f);
+            counter.countDown();
+        }, Row.EMPTY, Collections.emptyMap());
+
+        assertNull(iterator.get());
+        assertNotNull(failure.get());
+        assertThat(failure.get().getMessage(), containsString("EXPLAIN ANALYZE not supported for RootBoundary{io.crate.planner.operators.MultiPhase"));
     }
 }
