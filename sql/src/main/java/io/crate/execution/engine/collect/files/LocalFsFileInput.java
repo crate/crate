@@ -81,13 +81,9 @@ public class LocalFsFileInput implements FileInput {
     }
 
     @Override
-    public InputStream getStream(URI uri) {
+    public InputStream getStream(URI uri) throws FileNotFoundException {
         File file = new File(uri);
-        try {
-            return new FileInputStream(file);
-        } catch (FileNotFoundException e) {
-            return null;
-        }
+        return new FileInputStream(file);
     }
 
     @Override

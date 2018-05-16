@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect.files;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -41,6 +42,7 @@ public interface FileInput {
      */
     List<URI> listUris(URI fileUri, Predicate<URI> uriPredicate) throws IOException;
 
+    @Nullable
     InputStream getStream(URI uri) throws IOException;
 
     boolean sharedStorageDefault();

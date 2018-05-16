@@ -71,6 +71,9 @@ Breaking Changes
 Changes
 =======
 
+- Added logging for COPY FROM in case the pattern doesn't match or no files
+  can be found.
+
 - Added support in the Postgres Wire Protocol's SimpleQuery mode to process a
   query string which contains multiple queries delimited by semicolons.
 
