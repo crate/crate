@@ -424,7 +424,7 @@ Import From a File URI
 
 An example import from a file URI::
 
-    cr> copy quotes from 'file:///tmp/import_data/quotes.json';
+    cr> COPY quotes FROM 'file:///tmp/import_data/quotes.json';
     COPY OK, 3 rows affected (... sec)
 
 .. Hidden: delete imported data
@@ -437,7 +437,7 @@ An example import from a file URI::
 If all files inside a directory should be imported a ``*`` wildcard has to be
 used::
 
-    cr> copy quotes from '/tmp/import_data/*' with (bulk_size = 4);
+    cr> COPY quotes FROM '/tmp/import_data/*' WITH (bulk_size = 4);
     COPY OK, 3 rows affected (... sec)
 
 .. Hidden: delete imported data
@@ -451,8 +451,30 @@ used::
 
 This wildcard can also be used to only match certain files::
 
-    cr> copy quotes from '/tmp/import_data/qu*.json';
+    cr> COPY quotes FROM '/tmp/import_data/qu*.json';
     COPY OK, 3 rows affected (... sec)
+
+.. Hidden: delete imported data
+
+    cr> refresh table quotes;
+    REFRESH OK, 1 row affected (... sec)
+    cr> delete from quotes;
+    DELETE OK, 3 rows affected (... sec)
+    cr> refresh table quotes;
+    REFRESH OK, 1 row affected (... sec)
+
+If the ``RETURN_SUMMARY`` clause is specified, a result set containing information
+about failures and successfully imported records is returned.
+
+::
+
+   cr> COPY quotes FROM '/tmp/import_data/qu*.json' RETURN SUMMARY;
+    +---------+--------------------------------+-------------+---------------+--------+
+    | node    | uri                            | error_count | success_count | errors |
+    +---------+--------------------------------+-------------+---------------+--------+
+    | ...     | '/tmp/import_data/quotes.json' | 0           | 3             | NULL   |
+    +---------+--------------------------------+-------------+---------------+--------+
+   COPY OK, 1 row affected (... sec)
 
 See :ref:`copy_from` for more information.
 
