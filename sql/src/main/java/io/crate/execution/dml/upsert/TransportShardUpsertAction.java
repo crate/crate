@@ -23,7 +23,6 @@
 package io.crate.execution.dml.upsert;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.ConstraintsValidator;
@@ -115,6 +114,7 @@ import static io.crate.exceptions.Exceptions.userFriendlyMessage;
 public class TransportShardUpsertAction extends TransportShardAction<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
     private static final String ACTION_NAME = "indices:crate/data/write/upsert";
+    private static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
 
     private final SchemaUpdateClient schemaUpdateClient;
     private final Schemas schemas;
@@ -144,7 +144,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     @Override
     protected WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                         ShardUpsertRequest request,
-                                                                                        AtomicBoolean killed) throws InterruptedException {
+                                                                                        AtomicBoolean killed) {
         ShardResponse shardResponse = new ShardResponse();
         DocTableInfo tableInfo = schemas.getTableInfo(TableIdent.fromIndexName(request.index()), Operation.INSERT);
 
@@ -170,12 +170,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     item,
                     indexShard,
                     item.insertValues() != null, // try insert first
-                    notUsedNonGeneratedColumns,
-                    0);
+                    notUsedNonGeneratedColumns);
                 shardResponse.add(location);
             } catch (Exception e) {
                 if (retryPrimaryException(e)) {
-                    Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
                 logger.debug("{} failed to execute upsert for [{}]/[{}]",
                     e, request.shardId(), request.type(), item.id());
@@ -215,13 +214,50 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return new WriteReplicaResult<>(request, location, null, indexShard, logger);
     }
 
+    @Nullable
+    private Translog.Location indexItem(DocTableInfo tableInfo,
+                                        ShardUpsertRequest request,
+                                        ShardUpsertRequest.Item item,
+                                        IndexShard indexShard,
+                                        boolean tryInsertFirst,
+                                        Collection<ColumnIdent> notUsedNonGeneratedColumns) throws Exception {
+        VersionConflictEngineException lastException = null;
+        for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
+            try {
+                return indexItem(tableInfo, request, item, indexShard, tryInsertFirst, notUsedNonGeneratedColumns, retryCount > 0);
+            } catch (VersionConflictEngineException e) {
+                lastException = e;
+                Symbol[] updateAssignments = item.updateAssignments();
+                if (updateAssignments != null && updateAssignments.length > 0) {
+                    if (tryInsertFirst) {
+                        // insert failed, document already exists, try update
+                        tryInsertFirst = false;
+                        continue;
+                    } else if (item.retryOnConflict()) {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("[{}] VersionConflict, retrying operation for document id={}, version={} retryCount={}",
+                                indexShard.shardId(), item.id(), item.version(), retryCount);
+                        }
+                        continue;
+                    }
+                }
+                throw e;
+            }
+        }
+        logger.warn("[{}] VersionConflict for document id={}, version={} exceeded retry limit of {}, will stop retrying",
+            indexShard.shardId(), item.id(), item.version(), MAX_RETRY_LIMIT);
+        throw lastException;
+    }
+
+    @VisibleForTesting
+    @Nullable
     protected Translog.Location indexItem(DocTableInfo tableInfo,
                                           ShardUpsertRequest request,
                                           ShardUpsertRequest.Item item,
                                           IndexShard indexShard,
                                           boolean tryInsertFirst,
                                           Collection<ColumnIdent> notUsedNonGeneratedColumns,
-                                          int retryCount) throws Exception {
+                                          boolean isRetry) throws Exception {
         long version;
         // try insert first without fetching the document
         if (tryInsertFirst) {
@@ -251,21 +287,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         Exception failure = indexResult.getFailure();
         if (failure != null) {
-            if (failure instanceof VersionConflictEngineException) {
-                if (item.updateAssignments() != null) {
-                    if (tryInsertFirst) {
-                        // insert failed, document already exists, try update
-                        return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns, 0);
-                    } else if (item.retryOnConflict()) {
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("[{}] VersionConflict, retrying operation for document id {}, retry count: {}",
-                                indexShard.shardId(), item.id(), retryCount);
-                        }
-                        return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns,
-                            retryCount + 1);
-                    }
-                }
-            }
             throw failure;
         }
 
@@ -406,9 +427,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         List<GeneratedReference> generatedReferencesWithValue = new ArrayList<>();
         BytesReference source;
+        Object[] insertValues = item.insertValues();
+        Reference[] insertColumns = request.insertColumns();
+        assert insertValues != null && insertColumns != null : "insertValues and insertColumns must not be null";
         if (request.isRawSourceInsert()) {
-            assert item.insertValues().length > 0 : "empty insert values array";
-            source = new BytesArray((BytesRef) item.insertValues()[0]);
+            assert insertValues.length > 0 : "empty insert values array";
+            source = new BytesArray((BytesRef) insertValues[0]);
         } else {
             XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
@@ -418,9 +442,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 ConstraintsValidator.validateConstraintsForNotUsedColumns(notUsedNonGeneratedColumns, tableInfo);
             }
 
-            for (int i = 0; i < item.insertValues().length; i++) {
-                Object value = item.insertValues()[i];
-                Reference ref = request.insertColumns()[i];
+            for (int i = 0; i < insertValues.length; i++) {
+                Object value = insertValues[i];
+                Reference ref = insertColumns[i];
 
                 ConstraintsValidator.validate(value, ref, tableInfo.notNullColumns());
 
