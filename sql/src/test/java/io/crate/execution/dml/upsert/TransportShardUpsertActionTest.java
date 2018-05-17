@@ -136,7 +136,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                               IndexShard indexShard,
                                               boolean tryInsertFirst,
                                               Collection<ColumnIdent> notUsedNonGeneratedColumns,
-                                              int retryCount) throws ElasticsearchException {
+                                              boolean isRetry) throws ElasticsearchException {
             throw new VersionConflictEngineException(
                 indexShard.shardId(),
                 request.type(),
