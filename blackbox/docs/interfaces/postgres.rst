@@ -12,7 +12,7 @@ PostgreSQL Wire Protocol
 Introduction
 ============
 
-CrateDB contains experimental support for the `PostgreSQL wire protocol v3`_.
+CrateDB contains support for the `PostgreSQL wire protocol v3`_.
 
 If a node is started with postgres support enabled it will bind to port
 ``5432`` by default. To use a custom port, set the corresponding
@@ -88,10 +88,18 @@ sets the default schema name for future queries. If no schema is specified, the
 schema ``doc`` will be used as default. Additionally, the only supported charset
 is ``UTF8``.
 
-Extended Query
---------------
+Query Modes
+-----------
 
-The `Extended Query`_ protocol is implemented with the following limitations:
+Simple Query
+............
+
+The `Simple Query`_ protocol mode is fully implemented.
+
+Extended Query
+..............
+
+The `Extended Query`_ protocol mode is implemented with the following limitations:
 
 - The ``ParameterDescription`` message works for the most common use cases
   except for DDL statements.
@@ -306,6 +314,7 @@ either because of the table is empty or by a not matching where clause.
 
 .. _Arrays: https://www.postgresql.org/docs/current/static/arrays.html
 .. _Enterprise Edition: https://crate.io/enterprise-edition/
+.. _Simple Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#id-1.10.5.7.4
 .. _Extended Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
 .. _Github: https://github.com/crate/crate
 .. _High Level Architecture: https://crate.io/overview/high-level-architecture
@@ -313,5 +322,4 @@ either because of the table is empty or by a not matching where clause.
 .. _PostgreSQL Fulltext Search: https://www.postgresql.org/docs/current/static/functions-textsearch.html
 .. _PostgreSQL JDBC connection failover: https://jdbc.postgresql.org/documentation/head/connect.html#connection-failover
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
-.. _Simple Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#AEN108745
 .. _Value Expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html
