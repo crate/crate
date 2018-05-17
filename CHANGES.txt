@@ -21,7 +21,3 @@ Changes
 Fixes
 =====
 
-- Fixed a stackoverflow on upserts which could happen by retries on version
-  conflicts.
-
-- Fixed a memory leak caused by using the ``hyperloglog_distinct`` function.
