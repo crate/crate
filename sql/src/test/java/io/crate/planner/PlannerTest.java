@@ -1,30 +1,20 @@
 package io.crate.planner;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Randomness;
 import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.UUID;
 
-import static io.crate.analyze.TableDefinitions.shardRouting;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
@@ -56,24 +46,6 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testSetSessionTransactionModeIsNoopPlan() throws Exception {
         Plan plan = e.plan("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ");
         assertThat(plan, instanceOf(NoopPlan.class));
-    }
-
-    @Test
-    public void testIndices() throws Exception {
-        RelationName custom = new RelationName("custom", "table");
-        String[] indices = Planner.indices(TestingTableInfo.builder(custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
-        assertThat(indices, arrayContainingInAnyOrder("custom.table"));
-
-        indices = Planner.indices(TestingTableInfo.builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "table"), shardRouting("t1")).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
-        assertThat(indices, arrayContainingInAnyOrder("table"));
-
-        indices = Planner.indices(TestingTableInfo.builder(custom, shardRouting("t1"))
-            .add("id", DataTypes.INTEGER, null)
-            .add("date", DataTypes.TIMESTAMP, null, true)
-            .addPartitions(new PartitionName(custom, Collections.singletonList(new BytesRef("0"))).asIndexName())
-            .addPartitions(new PartitionName(custom, Collections.singletonList(new BytesRef("12345"))).asIndexName())
-            .build(), WhereClause.MATCH_ALL);
-        assertThat(indices, arrayContainingInAnyOrder("custom..partitioned.table.04130", "custom..partitioned.table.04332chj6gqg"));
     }
 
     @Test

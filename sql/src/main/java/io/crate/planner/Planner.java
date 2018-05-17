@@ -46,12 +46,10 @@ import io.crate.analyze.KillAnalyzedStatement;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.consumer.UpdatePlanner;
@@ -349,35 +347,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         }
 
         return legacyUpsertById;
-    }
-
-    /**
-     * return the ES index names the query should go to
-     */
-    public static String[] indices(DocTableInfo tableInfo, WhereClause whereClause) {
-        String[] indices;
-
-        if (whereClause.noMatch()) {
-            indices = org.elasticsearch.common.Strings.EMPTY_ARRAY;
-        } else if (!tableInfo.isPartitioned()) {
-            // table name for non-partitioned tables
-            indices = new String[]{tableInfo.ident().indexName()};
-        } else if (whereClause.partitions().isEmpty()) {
-            if (whereClause.noMatch()) {
-                return new String[0];
-            }
-
-            // all partitions
-            indices = new String[tableInfo.partitions().size()];
-            int i = 0;
-            for (PartitionName partitionName : tableInfo.partitions()) {
-                indices[i] = partitionName.asIndexName();
-                i++;
-            }
-        } else {
-            indices = whereClause.partitions().toArray(new String[whereClause.partitions().size()]);
-        }
-        return indices;
     }
 
     public Functions functions() {
