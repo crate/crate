@@ -18,7 +18,7 @@ Synopsis
 ::
 
     COPY table_ident [ PARTITION (partition_column = value [ , ... ]) ]
-    FROM uri [ WITH ( option = value [, ...] ) ]
+    FROM uri [ WITH ( option = value [, ...] ) ] [ RETURN SUMMARY ]
 
 where ``option`` can be one of:
 
@@ -295,6 +295,46 @@ primary key already exists. Set to true to overwrite duplicate rows.
 This option specifies the format of the input file. Available formats are
 ``csv`` or ``json``. If a format is not specified and the format cannot be
 guessed from the file extension, the file will be processed as JSON.
+
+.. _return_summary:
+
+``RETURN SUMMARY``
+------------------
+
+By using the optional ``RETURN SUMMARY`` clause, a per-node result set will be
+returned containing information about possible failures and successfully
+inserted records.
+
+::
+
+    [ RETURN SUMMARY ]
+
+.. rubric:: Schema
+
++--------------------------------+------------------------------------------------+---------------+
+| Column Name                    | Description                                    |  Return Type  |
++================================+================================================+===============+
+| ``node``                       | Information about the node that has processed  | ``OBJECT``    |
+|                                | the URI resource.                              |               |
++--------------------------------+------------------------------------------------+---------------+
+| ``node['id']``                 | The id of the node.                            | ``STRING``    |
++--------------------------------+------------------------------------------------+---------------+
+| ``node['name']``               | The name of the node.                          | ``STRING``    |
++--------------------------------+------------------------------------------------+---------------+
+| ``uri``                        | The URI the node has processed.                | ``STRING``    |
++--------------------------------+------------------------------------------------+---------------+
+| ``error_count``                | The total number of records which failed.      | ``LONG``      |
++--------------------------------+------------------------------------------------+---------------+
+| ``success_count``              | The total number of records which were         | ``LONG``      |
+|                                | inserted.                                      |               |
++--------------------------------+------------------------------------------------+---------------+
+| ``errors``                     | Contains detailed information about all        | ``OBJECT``    |
+|                                | errors.                                        |               |
++--------------------------------+------------------------------------------------+---------------+
+| ``errors[ERROR_MSG]``          | Contains information about a type of an error. | ``OBJECT``    |
++--------------------------------+------------------------------------------------+---------------+
+| ``errors[ERROR_MSG]['count']`` | The number records failed with this error.     | ``LONG``      |
++--------------------------------+------------------------------------------------+---------------+
 
 .. _`AWS documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
 .. _`AWS Java Documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
