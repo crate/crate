@@ -47,12 +47,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Collection;
 import java.util.Locale;
-import java.util.ArrayList;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -201,9 +201,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         Predicate<URI> uriPredicate = generateUriPredicate(fileInput, fileUri.globPredicate);
         List<URI> uris = getUris(fileInput, fileUri.uri, fileUri.preGlobUri, uriPredicate);
 
-        if (uris.isEmpty()) {
-            LOGGER.warn("No files matched the pattern '{}'", fileUri.uri);
-        } else {
+        if (uris.size() > 0) {
             currentInputIterator = uris.iterator();
             advanceToNextUri(fileInput);
         }
