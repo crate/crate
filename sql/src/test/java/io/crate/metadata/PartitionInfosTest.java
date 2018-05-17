@@ -78,7 +78,8 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPartitionWithoutMapping() throws Exception {
-        PartitionName partitionName = new PartitionName("test1", ImmutableList.of(new BytesRef("foo")));
+        PartitionName partitionName = new PartitionName(
+            new RelationName("doc", "test1"), ImmutableList.of(new BytesRef("foo")));
         addIndexMetaDataToClusterState(IndexMetaData.builder(partitionName.asIndexName())
             .settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4));
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
@@ -87,7 +88,8 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPartitionWithMeta() throws Exception {
-        PartitionName partitionName = new PartitionName("test1", ImmutableList.of(new BytesRef("foo")));
+        PartitionName partitionName = new PartitionName(
+            new RelationName("doc", "test1"), ImmutableList.of(new BytesRef("foo")));
         IndexMetaData.Builder indexMetaData = IndexMetaData
             .builder(partitionName.asIndexName())
             .settings(defaultSettings())
@@ -107,7 +109,8 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPartitionWithMetaMultiCol() throws Exception {
-        PartitionName partitionName = new PartitionName("test1", ImmutableList.of(new BytesRef("foo"), new BytesRef("1")));
+        PartitionName partitionName = new PartitionName(
+            new RelationName("doc", "test1"), ImmutableList.of(new BytesRef("foo"), new BytesRef("1")));
         IndexMetaData.Builder indexMetaData = IndexMetaData
             .builder(partitionName.asIndexName())
             .settings(defaultSettings())

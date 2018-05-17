@@ -26,10 +26,9 @@ import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 
@@ -37,7 +36,7 @@ public class PartitionNameTest extends CrateUnitTest {
 
     @Test
     public void testSingleColumn() throws Exception {
-        PartitionName partitionName = new PartitionName("test", ImmutableList.of(new BytesRef("1")));
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), ImmutableList.of(new BytesRef("1")));
 
         assertThat(partitionName.values().size(), is(1));
         assertEquals(ImmutableList.of(new BytesRef("1")), partitionName.values());
@@ -48,7 +47,7 @@ public class PartitionNameTest extends CrateUnitTest {
 
     @Test
     public void testSingleColumnSchema() throws Exception {
-        PartitionName partitionName = new PartitionName("schema", "test", ImmutableList.of(new BytesRef("1")));
+        PartitionName partitionName = new PartitionName(new RelationName("schema", "test"), ImmutableList.of(new BytesRef("1")));
 
         assertThat(partitionName.values().size(), is(1));
         assertEquals(ImmutableList.of(new BytesRef("1")), partitionName.values());
@@ -59,7 +58,8 @@ public class PartitionNameTest extends CrateUnitTest {
 
     @Test
     public void testMultipleColumns() throws Exception {
-        PartitionName partitionName = new PartitionName("test", ImmutableList.of(new BytesRef("1"), new BytesRef("foo")));
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "test"),
+            ImmutableList.of(new BytesRef("1"), new BytesRef("foo")));
 
         assertThat(partitionName.values().size(), is(2));
         assertEquals(ImmutableList.of(new BytesRef("1"), new BytesRef("foo")), partitionName.values());
@@ -70,7 +70,8 @@ public class PartitionNameTest extends CrateUnitTest {
 
     @Test
     public void testMultipleColumnsSchema() throws Exception {
-        PartitionName partitionName = new PartitionName("schema", "test", ImmutableList.of(new BytesRef("1"), new BytesRef("foo")));
+        PartitionName partitionName = new PartitionName(
+            new RelationName("schema", "test"), ImmutableList.of(new BytesRef("1"), new BytesRef("foo")));
 
         assertThat(partitionName.values().size(), is(2));
         assertEquals(ImmutableList.of(new BytesRef("1"), new BytesRef("foo")), partitionName.values());
@@ -81,9 +82,7 @@ public class PartitionNameTest extends CrateUnitTest {
 
     @Test
     public void testNull() throws Exception {
-        PartitionName partitionName = new PartitionName("test", new ArrayList<BytesRef>() {{
-            add(null);
-        }});
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), singletonList(null));
 
         assertThat(partitionName.values().size(), is(1));
         assertEquals(null, partitionName.values().get(0));
@@ -94,10 +93,7 @@ public class PartitionNameTest extends CrateUnitTest {
 
     @Test
     public void testNullSchema() throws Exception {
-        PartitionName partitionName = new PartitionName("schema", "test", new ArrayList<BytesRef>() {{
-            add(null);
-        }});
-
+        PartitionName partitionName = new PartitionName(new RelationName("schema", "test"), singletonList(null));
         assertThat(partitionName.values().size(), is(1));
         assertEquals(null, partitionName.values().get(0));
 
@@ -107,7 +103,7 @@ public class PartitionNameTest extends CrateUnitTest {
 
     @Test
     public void testEmptyStringValue() throws Exception {
-        PartitionName partitionName = new PartitionName("test", ImmutableList.of(new BytesRef("")));
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), ImmutableList.of(new BytesRef("")));
 
         assertThat(partitionName.values().size(), is(1));
         assertEquals(ImmutableList.of(new BytesRef("")), partitionName.values());
@@ -154,22 +150,27 @@ public class PartitionNameTest extends CrateUnitTest {
 
     @Test
     public void testFromIndexOrTemplate() throws Exception {
-        PartitionName partitionName = new PartitionName("t", Arrays.asList(new BytesRef("a"), new BytesRef("b")));
+        PartitionName partitionName = new PartitionName(
+            new RelationName("doc", "t"), Arrays.asList(new BytesRef("a"), new BytesRef("b")));
         assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
 
-        partitionName = new PartitionName("t", Arrays.asList(new BytesRef("a"), new BytesRef("b")));
-        assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
-        assertThat(partitionName.ident(), is("081620j2"));
-
-        partitionName = new PartitionName("schema", "t", Arrays.asList(new BytesRef("a"), new BytesRef("b")));
+        partitionName = new PartitionName(
+            new RelationName("doc", "t"), Arrays.asList(new BytesRef("a"), new BytesRef("b")));
         assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
         assertThat(partitionName.ident(), is("081620j2"));
 
-        partitionName = new PartitionName( "t", Collections.singletonList(new BytesRef("hoschi")));
+        partitionName = new PartitionName(
+            new RelationName("schema", "t"), Arrays.asList(new BytesRef("a"), new BytesRef("b")));
+        assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
+        assertThat(partitionName.ident(), is("081620j2"));
+
+        partitionName = new PartitionName(
+            new RelationName("doc", "t"), singletonList(new BytesRef("hoschi")));
         assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
         assertThat(partitionName.ident(), is("043mgrrjcdk6i"));
 
-        partitionName = new PartitionName("t", Collections.singletonList(null));
+        partitionName = new PartitionName(
+            new RelationName("doc", "t"), singletonList(null));
         assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
         assertThat(partitionName.ident(), is("0400"));
     }
@@ -227,15 +228,17 @@ public class PartitionNameTest extends CrateUnitTest {
     @Test
     public void testEquals() throws Exception {
         assertTrue(
-            new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
-                new PartitionName("table", Arrays.asList(new BytesRef("xxx")))));
+            new PartitionName(
+                new RelationName("doc", "table"), Arrays.asList(new BytesRef("xxx"))).equals(
+                new PartitionName(new RelationName("doc", "table"), Arrays.asList(new BytesRef("xxx")))));
         assertTrue(
-            new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
-                new PartitionName("table", Arrays.asList(new BytesRef("xxx")))));
+            new PartitionName(new RelationName("doc", "table"), Arrays.asList(new BytesRef("xxx"))).equals(
+                new PartitionName(
+                    new RelationName("doc", "table"), Arrays.asList(new BytesRef("xxx")))));
         assertFalse(
-            new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
-                new PartitionName("schema", "table", Arrays.asList(new BytesRef("xxx")))));
-        PartitionName name = new PartitionName( "table", Arrays.asList(new BytesRef("xxx")));
+            new PartitionName(new RelationName("doc", "table"), Arrays.asList(new BytesRef("xxx"))).equals(
+                new PartitionName(new RelationName("schema", "table"), Arrays.asList(new BytesRef("xxx")))));
+        PartitionName name = new PartitionName(new RelationName("doc", "table"), Arrays.asList(new BytesRef("xxx")));
         assertTrue(name.equals(PartitionName.fromIndexOrTemplate(name.asIndexName())));
     }
 }

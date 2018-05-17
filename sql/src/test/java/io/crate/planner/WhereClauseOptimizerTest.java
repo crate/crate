@@ -25,6 +25,7 @@ package io.crate.planner;
 import io.crate.analyze.QueriedTable;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -58,9 +59,9 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest{
             .addPartitionedTable(
                 "create table parted_pk (id int primary key, date timestamp primary key) " +
                 "partitioned by (date)",
-                new PartitionName("parted_pk", singletonList(new BytesRef("1395874800000"))).asIndexName(),
-                new PartitionName("parted_pk", singletonList(new BytesRef("1395961200000"))).asIndexName(),
-                new PartitionName("parted_pk", singletonList(null)).asIndexName()
+                new PartitionName(new RelationName("doc", "parted_pk"), singletonList(new BytesRef("1395874800000"))).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pk"), singletonList(new BytesRef("1395961200000"))).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pk"), singletonList(null)).asIndexName()
             )
             .build();
     }

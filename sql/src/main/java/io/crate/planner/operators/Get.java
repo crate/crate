@@ -32,7 +32,9 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -150,11 +152,12 @@ public class Get extends ZeroInputPlan {
     }
 
     public static String indexName(DocTableInfo tableInfo, @Nullable List<BytesRef> partitionValues) {
+        RelationName relation = tableInfo.ident();
         if (tableInfo.isPartitioned()) {
             assert partitionValues != null : "values must not be null";
-            return new PartitionName(tableInfo.ident(), partitionValues).asIndexName();
+            return IndexParts.toIndexName(relation, PartitionName.encodeIdent(partitionValues));
         } else {
-            return tableInfo.ident().indexName();
+            return relation.indexName();
         }
     }
 }

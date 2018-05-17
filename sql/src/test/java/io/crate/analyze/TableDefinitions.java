@@ -136,9 +136,9 @@ public final class TableDefinitions {
         .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
         // add 3 partitions/simulate already done inserts
         .addPartitions(
-            new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-            new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName(),
-            new PartitionName("parted", new ArrayList<BytesRef>() {{
+            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395961200000"))).asIndexName(),
+            new PartitionName(new RelationName("doc", "parted"), new ArrayList<BytesRef>() {{
                 add(null);
             }}).asIndexName())
         .build();
@@ -158,8 +158,8 @@ public final class TableDefinitions {
         .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
         // add 3 partitions/simulate already done inserts
         .addPartitions(
-            new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-            new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName()
+            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395961200000"))).asIndexName()
         )
         .addPrimaryKey("id")
         .addPrimaryKey("date")
@@ -175,9 +175,9 @@ public final class TableDefinitions {
         .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
         // add 3 partitions/simulate already done inserts
         .addPartitions(
-            new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395874800000"), new BytesRef("0"))).asIndexName(),
-            new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).asIndexName(),
-            new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).asIndexName())
+            new PartitionName(new RelationName("doc", "multi_parted"), Arrays.asList(new BytesRef("1395874800000"), new BytesRef("0"))).asIndexName(),
+            new PartitionName(new RelationName("doc", "multi_parted"), Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).asIndexName(),
+            new PartitionName(new RelationName("doc", "multi_parted"), Arrays.asList(null, new BytesRef("-100"))).asIndexName())
         .build();
     static final RelationName TEST_NESTED_PARTITIONED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "nested_parted");
     public static final DocTableInfo TEST_NESTED_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
@@ -188,9 +188,9 @@ public final class TableDefinitions {
         .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
         // add 3 partitions/simulate already done inserts
         .addPartitions(
-            new PartitionName("nested_parted", Arrays.asList(new BytesRef("1395874800000"), new BytesRef("Trillian"))).asIndexName(),
-            new PartitionName("nested_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("Ford"))).asIndexName(),
-            new PartitionName("nested_parted", Arrays.asList(null, new BytesRef("Zaphod"))).asIndexName())
+            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList(new BytesRef("1395874800000"), new BytesRef("Trillian"))).asIndexName(),
+            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList(new BytesRef("1395961200000"), new BytesRef("Ford"))).asIndexName(),
+            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList(null, new BytesRef("Zaphod"))).asIndexName())
         .build();
     public static final RelationName TEST_DOC_TRANSACTIONS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "transactions");
     public static final DocTableInfo TEST_DOC_TRANSACTIONS_TABLE_INFO = new TestingTableInfo.Builder(
@@ -245,8 +245,8 @@ public final class TableDefinitions {
                 .add("city", DataTypes.STRING, null)
                 .clusteredBy("city")
                 .addPartitions(
-                    new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                    new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
+                    new PartitionName(new RelationName("doc", "clustered_parted"), Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                    new PartitionName(new RelationName("doc", "clustered_parted"), Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
                 .build();
 
 

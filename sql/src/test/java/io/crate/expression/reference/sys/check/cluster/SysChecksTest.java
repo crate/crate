@@ -24,6 +24,7 @@ package io.crate.expression.reference.sys.check.cluster;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -125,7 +126,7 @@ public class SysChecksTest extends CrateUnitTest {
         List<PartitionName> partitions = new ArrayList<>();
 
         for (int i = 0; i < size; i++) {
-            partitions.add(new PartitionName("partition-" + i, Collections.<BytesRef>emptyList()));
+            partitions.add(new PartitionName(new RelationName("doc", "partition-" + i), Collections.emptyList()));
         }
 
         return partitions;

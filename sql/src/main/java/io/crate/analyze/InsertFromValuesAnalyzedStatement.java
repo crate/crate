@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -102,8 +103,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
             for (String columnName : columnNames) {
                 values.add(BytesRefs.toBytesRef(map.get(columnName)));
             }
-            PartitionName partitionName = new PartitionName(tableInfo().ident(), values);
-            partitionValues.add(partitionName.asIndexName());
+            partitionValues.add(IndexParts.toIndexName(tableInfo.ident(), PartitionName.encodeIdent(values)));
         }
         return partitionValues;
     }

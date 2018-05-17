@@ -65,17 +65,17 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp," +
                 "   obj object" +
                 ") partitioned by (date) ",
-                new PartitionName("parted", singletonList(new BytesRef("1395874800000"))).asIndexName(),
-                new PartitionName("parted", singletonList(new BytesRef("1395961200000"))).asIndexName(),
-                new PartitionName("parted", singletonList(null)).asIndexName()
+                new PartitionName(new RelationName("doc", "parted"), singletonList(new BytesRef("1395874800000"))).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted"), singletonList(new BytesRef("1395961200000"))).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
             )
             .addDocTable(
                 new TestingTableInfo.Builder(new RelationName("doc", "parted_generated"), shardRouting("parted_generated"))
                     .add("ts", DataTypes.TIMESTAMP, null)
                     .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
                     .addPartitions(
-                        new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                        new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
+                        new PartitionName(new RelationName("doc", "parted_generated"), Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                        new PartitionName(new RelationName("doc", "parted_generated"), Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
             ).build();
     }
 
@@ -117,7 +117,8 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToWithPartitionInWhereClauseRoutesToPartitionIndexOnly() throws Exception {
         Collect collect = plan(
             "copy parted where date = 1395874800000 to directory '/tmp/foo'");
-        String expectedIndex = new PartitionName("parted", singletonList(new BytesRef("1395874800000"))).asIndexName();
+        String expectedIndex = new PartitionName(
+            new RelationName("doc", "parted"), singletonList(new BytesRef("1395874800000"))).asIndexName();
 
         assertThat(
             ((RoutedCollectPhase) collect.collectPhase()).routing().locations().values().stream()

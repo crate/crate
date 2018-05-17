@@ -25,16 +25,18 @@ import com.google.common.collect.ImmutableList;
 import io.crate.types.StringType;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 public class PartitionName {
 
@@ -42,26 +44,23 @@ public class PartitionName {
 
     private final RelationName relationName;
 
+    @Nullable
     private List<BytesRef> values;
+
+    @Nullable
     private String indexName;
+
+    @Nullable
     private String ident;
 
-    public PartitionName(RelationName relationName, List<BytesRef> values) {
+    public PartitionName(RelationName relationName, @Nonnull List<BytesRef> values) {
         this.relationName = relationName;
-        this.values = values;
+        this.values = Objects.requireNonNull(values);
     }
 
-    public PartitionName(String tableName, List<BytesRef> values) {
-        this(Schemas.DOC_SCHEMA_NAME, tableName, values);
-    }
-
-    public PartitionName(String schemaName, String tableName, List<BytesRef> values) {
-        this(new RelationName(schemaName, tableName), values);
-    }
-
-    public PartitionName(String schema, String table, String partitionIdent) {
-        this(schema, table, (List<BytesRef>) null);
-        this.ident = partitionIdent;
+    public PartitionName(RelationName relationName, @Nonnull String partitionIdent) {
+        this.relationName = relationName;
+        this.ident = Objects.requireNonNull(partitionIdent);
     }
 
     public static String templateName(String indexName) {
@@ -194,7 +193,7 @@ public class PartitionName {
         if (!indexParts.isPartitioned()) {
             throw new IllegalArgumentException("Invalid index name: " + indexOrTemplate);
         }
-        return indexParts.toPartitionName();
+        return new PartitionName(new RelationName(indexParts.getSchema(), indexParts.getTable()), indexParts.getPartitionIdent());
     }
 
     /**

@@ -397,7 +397,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             new Object[]{6, true, false});
         execute("refresh table numbers");
 
-        Map<String, Object> sourceMap = getSourceMap(new PartitionName("numbers", Arrays.asList(new BytesRef("true"))).asIndexName());
+        Map<String, Object> sourceMap = getSourceMap(
+            new PartitionName(new RelationName("doc", "numbers"), Arrays.asList(new BytesRef("true"))).asIndexName());
         assertThat(String.valueOf(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT.value()));
 
         expectedException.expect(SQLActionException.class);
@@ -431,7 +432,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             new Object[]{6, true, false});
         execute("refresh table numbers");
 
-        Map<String, Object> sourceMap = getSourceMap(new PartitionName("numbers", Arrays.asList(new BytesRef("true"))).asIndexName());
+        Map<String, Object> sourceMap = getSourceMap(
+            new PartitionName(new RelationName("doc", "numbers"), Arrays.asList(new BytesRef("true"))).asIndexName());
         assertThat(String.valueOf(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT.value()));
 
         expectedException.expect(SQLActionException.class);
@@ -465,7 +467,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             new Object[]{6, true, false});
         execute("refresh table numbers");
 
-        Map<String, Object> sourceMap = getSourceMap(new PartitionName("numbers", Collections.singletonList(new BytesRef("true"))).asIndexName());
+        Map<String, Object> sourceMap = getSourceMap(
+            new PartitionName(new RelationName("doc", "numbers"), Collections.singletonList(new BytesRef("true"))).asIndexName());
         assertThat(String.valueOf(sourceMap.get("dynamic")), is("true"));
 
         execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
@@ -540,7 +543,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table dynamic_table");
         execute("alter table dynamic_table set (column_policy = 'strict')");
         waitNoPendingTasksOnAll();
-        String indexName = new PartitionName("dynamic_table", Arrays.asList(new BytesRef("10.0"))).asIndexName();
+        String indexName = new PartitionName(
+            new RelationName("doc", "dynamic_table"), Arrays.asList(new BytesRef("10.0"))).asIndexName();
         Map<String, Object> sourceMap = getSourceMap(indexName);
         assertThat(String.valueOf(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT.value()));
         execute("alter table dynamic_table reset (column_policy)");
@@ -587,13 +591,16 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table dynamic_table");
         ensureYellow();
 
-        Map<String, Object> sourceMap = getSourceMap(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("10.0"))).asIndexName());
+        Map<String, Object> sourceMap = getSourceMap(
+            new PartitionName(new RelationName("doc", "dynamic_table"), Arrays.asList(new BytesRef("10.0"))).asIndexName());
         assertThat(String.valueOf(sourceMap.get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
 
-        sourceMap = getSourceMap(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("5.0"))).asIndexName());
+        sourceMap = getSourceMap(new PartitionName(
+            new RelationName("doc", "dynamic_table"), Arrays.asList(new BytesRef("5.0"))).asIndexName());
         assertThat(String.valueOf(sourceMap.get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
 
-        sourceMap = getSourceMap(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("3.0"))).asIndexName());
+        sourceMap = getSourceMap(new PartitionName(
+            new RelationName("doc", "dynamic_table"), Arrays.asList(new BytesRef("3.0"))).asIndexName());
         assertThat(String.valueOf(sourceMap.get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
     }
 

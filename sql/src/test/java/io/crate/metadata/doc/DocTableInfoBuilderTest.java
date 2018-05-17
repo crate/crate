@@ -60,7 +60,8 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
     @Test
     public void testNoTableInfoFromOrphanedPartition() throws Exception {
         String schemaName = randomSchema();
-        PartitionName partitionName = new PartitionName(schemaName, "test", Collections.singletonList(new BytesRef("boo")));
+        PartitionName partitionName = new PartitionName(
+            new RelationName(schemaName, "test"), Collections.singletonList(new BytesRef("boo")));
         IndexMetaData.Builder indexMetaDataBuilder = IndexMetaData.builder(partitionName.asIndexName())
             .settings(Settings.builder().put("index.version.created", Version.CURRENT).build())
             .numberOfReplicas(0)

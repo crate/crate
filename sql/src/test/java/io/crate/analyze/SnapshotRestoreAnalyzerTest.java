@@ -274,7 +274,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testRestoreSinglePartition() throws Exception {
         RestoreSnapshotAnalyzedStatement statement = analyze(
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date=123)");
-        PartitionName partition = new PartitionName("parted", ImmutableList.of(new BytesRef("123")));
+        PartitionName partition = new PartitionName(
+            new RelationName("doc", "parted"), ImmutableList.of(new BytesRef("123")));
         assertThat(statement.restoreTables().size(), is(1));
         assertThat(statement.restoreTables().get(0).partitionName(), is(partition));
         assertThat(statement.restoreTables().get(0).tableIdent(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted")));
@@ -284,7 +285,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testRestoreSinglePartitionToUnknownTable() throws Exception {
         RestoreSnapshotAnalyzedStatement statement = analyze(
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE unknown_parted PARTITION (date=123)");
-        PartitionName partitionName = new PartitionName("unknown_parted", ImmutableList.of(new BytesRef("123")));
+        PartitionName partitionName = new PartitionName(
+            new RelationName("doc", "unknown_parted"), ImmutableList.of(new BytesRef("123")));
         assertThat(statement.restoreTables().size(), is(1));
         assertThat(statement.restoreTables().get(0).partitionName(), is(partitionName));
         assertThat(statement.restoreTables().get(0).tableIdent(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "unknown_parted")));

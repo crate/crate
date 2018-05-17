@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -681,7 +682,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into quotes (id, quote, date) values (?, ?, ?)",
             new Object[]{3, "Time is a illusion. Lunchtime doubles so", 1495961200000L}
         );
-        String partition = new PartitionName("quotes", Arrays.asList(new BytesRef("1495961200000"))).asIndexName();
+        String partition = new PartitionName(
+            new RelationName("doc", "quotes"), Arrays.asList(new BytesRef("1495961200000"))).asIndexName();
         GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(partition).execute().get();
         assertThat(settingsResponse.getSetting(partition, IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("5"));
     }

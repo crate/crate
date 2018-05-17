@@ -101,10 +101,6 @@ public class IndexParts {
         return new RelationName(schema, table);
     }
 
-    public PartitionName toPartitionName() {
-        return new PartitionName(schema, table, partitionIdent);
-    }
-
     public String toFullyQualifiedName() {
         return schema + "." + table;
     }

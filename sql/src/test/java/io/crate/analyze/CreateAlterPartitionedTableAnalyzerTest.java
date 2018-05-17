@@ -24,6 +24,7 @@ package io.crate.analyze;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -274,7 +275,8 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         AlterTableAnalyzedStatement analysis = e.analyze(
             "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(true));
-        assertThat(analysis.partitionName().get(), is(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")))));
+        assertThat(analysis.partitionName().get(), is(new PartitionName(
+            new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395874800000")))));
         assertThat(analysis.table().tableParameterInfo(), instanceOf(PartitionedTableParameterInfo.class));
         PartitionedTableParameterInfo tableSettingsInfo = (PartitionedTableParameterInfo) analysis.table().tableParameterInfo();
         assertThat(tableSettingsInfo.partitionTableSettingsInfo(), instanceOf(TableParameterInfo.class));

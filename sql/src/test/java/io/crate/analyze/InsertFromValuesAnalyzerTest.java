@@ -63,7 +63,6 @@ import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
@@ -594,9 +593,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
     private void validateBulkIndexPartitionedTableAnalysis(InsertFromValuesAnalyzedStatement analysis) {
         assertThat(analysis.generatePartitions(), contains(
-            new PartitionName("parted", Arrays.asList(new BytesRef("13963670051500"))).asIndexName(),
-            new PartitionName("parted", Arrays.asList(new BytesRef("0"))).asIndexName(),
-            new PartitionName("parted", new ArrayList<BytesRef>() {{
+            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("13963670051500"))).asIndexName(),
+            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("0"))).asIndexName(),
+            new PartitionName(new RelationName("doc", "parted"), new ArrayList<BytesRef>() {{
                 add(null);
             }}).asIndexName()
         ));
@@ -639,8 +638,8 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
                 2, "2014-05-21", new MapBuilder<String, Object>().put("name", "Arthur").map()
             });
         assertThat(analysis.generatePartitions(), contains(
-            new PartitionName("nested_parted", Arrays.asList(new BytesRef("0"), new BytesRef("Zaphod"))).asIndexName(),
-            new PartitionName("nested_parted", Arrays.asList(new BytesRef("1400630400000"), new BytesRef("Arthur"))).asIndexName()
+            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList(new BytesRef("0"), new BytesRef("Zaphod"))).asIndexName(),
+            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList(new BytesRef("1400630400000"), new BytesRef("Arthur"))).asIndexName()
 
         ));
         assertThat(analysis.sourceMaps().size(), is(2));

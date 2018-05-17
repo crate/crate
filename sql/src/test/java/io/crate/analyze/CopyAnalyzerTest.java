@@ -30,6 +30,7 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -85,7 +86,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyFromPartitionedTablePARTITIONKeywordValidArgs() throws Exception {
         CopyFromAnalyzedStatement analysis = e.analyze(
             "copy parted partition (date=1395874800000) from '/some/distant/file.ext'");
-        String parted = new PartitionName("parted", Collections.singletonList(new BytesRef("1395874800000"))).ident();
+        String parted = new PartitionName(
+            new RelationName("doc", "parted"), Collections.singletonList(new BytesRef("1395874800000"))).ident();
         assertThat(analysis.partitionIdent(), equalTo(parted));
     }
 
@@ -195,7 +197,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyToFileWithPartitionClause() throws Exception {
         CopyToAnalyzedStatement analysis = e.analyze("copy parted partition (date=1395874800000) to directory '/blah'");
-        String parted = new PartitionName("parted", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName();
+        String parted = new PartitionName(
+            new RelationName("doc", "parted"), Collections.singletonList(new BytesRef("1395874800000"))).asIndexName();
         QuerySpec querySpec = analysis.subQueryRelation().querySpec();
         assertThat(querySpec.where().partitions(), contains(parted));
     }
@@ -203,7 +206,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyToDirectoryWithPartitionClause() throws Exception {
         CopyToAnalyzedStatement analysis = e.analyze("copy parted partition (date=1395874800000) to directory '/tmp'");
-        String parted = new PartitionName("parted", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName();
+        String parted = new PartitionName(
+            new RelationName("doc", "parted"), Collections.singletonList(new BytesRef("1395874800000"))).asIndexName();
         QuerySpec querySpec = analysis.subQueryRelation().querySpec();
         assertThat(querySpec.where().partitions(), contains(parted));
         assertThat(analysis.overwrites().size(), is(0));
@@ -227,7 +231,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToWithPartitionIdentAndPartitionInWhereClause() throws Exception {
         CopyToAnalyzedStatement analysis = e.analyze(
             "copy parted partition (date=1395874800000) where date = 1395874800000 to directory '/tmp/foo'");
-        String parted = new PartitionName("parted", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName();
+        String parted = new PartitionName(
+            new RelationName("doc", "parted"), Collections.singletonList(new BytesRef("1395874800000"))).asIndexName();
         QuerySpec querySpec = analysis.subQueryRelation().querySpec();
         assertThat(querySpec.where().partitions(), contains(parted));
     }
@@ -237,7 +242,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToWithPartitionIdentAndWhereClause() throws Exception {
         CopyToAnalyzedStatement analysis = e.analyze(
             "copy parted partition (date=1395874800000) where id = 1 to directory '/tmp/foo'");
-        String parted = new PartitionName("parted", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName();
+        String parted = new PartitionName(
+            new RelationName("doc", "parted"), Collections.singletonList(new BytesRef("1395874800000"))).asIndexName();
         QuerySpec querySpec = analysis.subQueryRelation().querySpec();
         assertThat(querySpec.where().partitions(), contains(parted));
         assertThat(querySpec.where().query(), isFunction("op_="));

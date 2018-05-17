@@ -121,9 +121,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp," +
                 "   obj object" +
                 ") partitioned by (date) ",
-                new PartitionName("parted", singletonList(new BytesRef("1395874800000"))).asIndexName(),
-                new PartitionName("parted", singletonList(new BytesRef("1395961200000"))).asIndexName(),
-                new PartitionName("parted", singletonList(null)).asIndexName()
+                new PartitionName(new RelationName("doc", "parted"), singletonList(new BytesRef("1395874800000"))).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted"), singletonList(new BytesRef("1395961200000"))).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
             )
             .build();
     }
@@ -321,7 +321,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             indices.addAll(entry.getValue().keySet());
         }
         assertThat(indices, Matchers.contains(
-            new PartitionName("parted", Arrays.asList(new BytesRef("123"))).asIndexName()));
+            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("123"))).asIndexName()));
 
         assertThat(collectPhase.where().representation(), is("Ref{doc.parted_pks.name, string} = 'x'"));
 

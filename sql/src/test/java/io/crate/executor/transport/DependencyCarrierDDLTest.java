@@ -28,6 +28,7 @@ import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -53,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.isRow;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
@@ -89,7 +91,11 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithOrphanedPartitions() throws Exception {
-        String partitionName = new PartitionName(sqlExecutor.getDefaultSchema(), "test", Collections.singletonList(new BytesRef("foo"))).asIndexName();
+        String partitionName = IndexParts.toIndexName(
+            sqlExecutor.getDefaultSchema(),
+            "test",
+            PartitionName.encodeIdent(singletonList(new BytesRef("foo")))
+        );
         client().admin().indices().prepareCreate(partitionName)
             .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
             .setSettings(TEST_SETTINGS)
@@ -111,7 +117,8 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
     @Test
     @UseJdbc(0) // create table has no rowcount
     public void testCreateTableWithOrphanedAlias() throws Exception {
-        String partitionName = new PartitionName(sqlExecutor.getDefaultSchema(), "test", Collections.singletonList(new BytesRef("foo"))).asIndexName();
+        String partitionName = IndexParts.toIndexName(
+            sqlExecutor.getDefaultSchema(), "test", PartitionName.encodeIdent(singletonList(new BytesRef("foo"))));
         client().admin().indices().prepareCreate(partitionName)
             .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
             .setSettings(TEST_SETTINGS)
@@ -155,7 +162,8 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         String schema= sqlExecutor.getDefaultSchema();
-        String partitionName = new PartitionName(schema, "t", ImmutableList.of(new BytesRef("1"))).asIndexName();
+        String partitionName = IndexParts.toIndexName(
+            schema, "t", PartitionName.encodeIdent(ImmutableList.of(new BytesRef("1"))));
         PlanForNode plan = plan("delete from t where id = ?");
 
         assertTrue(client().admin().indices().prepareClose(partitionName).execute().actionGet().isAcknowledged());

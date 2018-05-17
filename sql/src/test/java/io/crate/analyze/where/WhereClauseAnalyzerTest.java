@@ -96,8 +96,8 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 .addGeneratedColumn("minus_y", DataTypes.LONG, "y * -1", true)
                 .addGeneratedColumn("x_incr", DataTypes.LONG, "x + 1", false)
                 .addPartitions(
-                    new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName(),
-                    new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()
+                    new PartitionName(new RelationName("doc", "generated_col"), Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName(),
+                    new PartitionName(new RelationName("doc", "generated_col"), Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()
                 );
         builder.addDocTable(genInfo);
 
@@ -131,9 +131,9 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 .add("date", DataTypes.TIMESTAMP, null, true)
                 .add("obj", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
                 .addPartitions(
-                    new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                    new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName(),
-                    new PartitionName("parted", new ArrayList<BytesRef>() {{
+                    new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                    new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395961200000"))).asIndexName(),
+                    new PartitionName(new RelationName("doc", "parted"), new ArrayList<BytesRef>() {{
                         add(null);
                     }}).asIndexName())
                 .build());
@@ -199,7 +199,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(whereClause.hasQuery(), is(false));
         assertThat(whereClause.noMatch(), is(false));
         assertThat(whereClause.partitions(),
-            Matchers.contains(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName()));
+            Matchers.contains(new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395874800000"))).asIndexName()));
     }
 
     @Test
@@ -210,9 +210,9 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSelectFromPartitionedTable() throws Exception {
-        String partition1 = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName();
-        String partition2 = new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName();
-        String partition3 = new PartitionName("parted", new ArrayList<BytesRef>() {{
+        String partition1 = new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395874800000"))).asIndexName();
+        String partition2 = new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395961200000"))).asIndexName();
+        String partition3 = new PartitionName(new RelationName("doc", "parted"), new ArrayList<BytesRef>() {{
             add(null);
         }}).asIndexName();
 
@@ -383,7 +383,8 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testEqualGenColOptimization() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where y = 1");
         assertThat(whereClause.partitions().size(), is(1));
-        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName()));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName(new RelationName("doc", "generated_col"),
+            Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName()));
     }
 
     @Test
@@ -396,14 +397,16 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testGtGenColOptimization() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts > '2015-01-02T12:00:00'");
         assertThat(whereClause.partitions().size(), is(1));
-        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName(new RelationName("doc", "generated_col"),
+            Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
     }
 
     @Test
     public void testGenColRoundingFunctionNoSwappingOperatorOptimization() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts >= '2015-01-02T12:00:00'");
         assertThat(whereClause.partitions().size(), is(1));
-        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName(
+            new RelationName("doc", "generated_col"), Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
     }
 
     @Test
@@ -418,7 +421,8 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testMultipleColumnsOptimization() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts > '2015-01-01T12:00:00' and y = 1");
         assertThat(whereClause.partitions().size(), is(1));
-        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName()));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName(
+            new RelationName("doc", "generated_col"), Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName()));
     }
 
     @Test
@@ -441,8 +445,10 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testGenColRangeOptimization() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts >= '2015-01-01T12:00:00' and ts <= '2015-01-02T00:00:00'");
         assertThat(whereClause.partitions().size(), is(2));
-        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName()));
-        assertThat(whereClause.partitions().get(1), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName(new RelationName("doc", "generated_col"),
+            Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName()));
+        assertThat(whereClause.partitions().get(1), is(new PartitionName(new RelationName("doc", "generated_col"),
+            Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
     }
 
     @Test

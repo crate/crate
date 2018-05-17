@@ -25,6 +25,7 @@ package io.crate.integrationtests;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import org.apache.lucene.util.BytesRef;
@@ -107,7 +108,8 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         });
         t.start();
 
-        PartitionName partitionName = new PartitionName(sqlExecutor.getDefaultSchema(), "t",
+        PartitionName partitionName = new PartitionName(
+            new RelationName(sqlExecutor.getDefaultSchema(), "t"),
             Collections.singletonList(new BytesRef("a")));
         final String indexName = partitionName.asIndexName();
 
@@ -267,7 +269,8 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         });
 
         final CountDownLatch deleteLatch = new CountDownLatch(1);
-        final String partitionName = new PartitionName(sqlExecutor.getDefaultSchema(), "parted",
+        final String partitionName = new PartitionName(
+            new RelationName(sqlExecutor.getDefaultSchema(), "parted"),
             Collections.singletonList(new BytesRef(String.valueOf(idToDelete)))
         ).asIndexName();
         final Object[] deleteArgs = new Object[]{idToDelete};
