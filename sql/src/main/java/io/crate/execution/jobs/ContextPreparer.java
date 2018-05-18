@@ -541,11 +541,10 @@ public class ContextPreparer extends AbstractComponent {
 
             RowConsumer consumer = context.getRowConsumer(phase, 0);
             context.registerSubContext(new CountContext(
-                phase.phaseId(),
+                phase,
                 countOperation,
                 consumer,
-                indexShardMap,
-                phase.where()
+                indexShardMap
             ));
             return true;
         }
@@ -566,6 +565,7 @@ public class ContextPreparer extends AbstractComponent {
             context.registerSubContext(new PKLookupContext(
                 pkLookupPhase.jobId(),
                 pkLookupPhase.phaseId(),
+                pkLookupPhase.name(),
                 ramAccountingContext,
                 inputFactory,
                 pkLookupOperation,

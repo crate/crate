@@ -59,24 +59,28 @@ public final class PKLookupContext extends AbstractExecutionSubContext {
     private final RowConsumer consumer;
     private final InputRow inputRow;
     private final List<CollectExpression<GetResponse, ?>> expressions;
+    private final String name;
 
-    public PKLookupContext(UUID jobId,
-                           int phaseId,
-                           RamAccountingContext ramAccountingContext,
-                           InputFactory inputFactory,
-                           PKLookupOperation pkLookupOperation,
-                           List<ColumnIdent> partitionedByColumns,
-                           List<Symbol> toCollect,
-                           Map<ShardId, List<PKAndVersion>> idsByShard,
-                           Collection<? extends Projection> shardProjections,
-                           RowConsumer consumer) {
+    PKLookupContext(UUID jobId,
+                    int phaseId,
+                    String name,
+                    RamAccountingContext ramAccountingContext,
+                    InputFactory inputFactory,
+                    PKLookupOperation pkLookupOperation,
+                    List<ColumnIdent> partitionedByColumns,
+                    List<Symbol> toCollect,
+                    Map<ShardId, List<PKAndVersion>> idsByShard,
+                    Collection<? extends Projection> shardProjections,
+                    RowConsumer consumer) {
         super(phaseId, LOGGER);
         this.jobId = jobId;
+        this.name = name;
         this.ramAccountingContext = ramAccountingContext;
         this.pkLookupOperation = pkLookupOperation;
         this.idsByShard = idsByShard;
         this.shardProjections = shardProjections;
         this.consumer = consumer;
+
         this.ignoreMissing = !partitionedByColumns.isEmpty();
         GetResponseRefResolver getResponseRefResolver = new GetResponseRefResolver(partitionedByColumns);
 
@@ -114,6 +118,6 @@ public final class PKLookupContext extends AbstractExecutionSubContext {
 
     @Override
     public String name() {
-        return "pkLookup";
+        return name;
     }
 }

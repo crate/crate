@@ -163,7 +163,7 @@ public class RemoteCollector implements CrateCollector {
             LOGGER,
             localNode,
             RECEIVER_PHASE_ID,
-            "remoteCollectReceiver",
+            "RemoteCollectPhase",
             consumer,
             pagingIterator,
             DataTypes.getStreamers(collectPhase.outputTypes()),
