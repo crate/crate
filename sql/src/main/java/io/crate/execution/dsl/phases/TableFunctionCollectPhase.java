@@ -50,7 +50,7 @@ public class TableFunctionCollectPhase extends RoutedCollectPhase implements Col
                                      Symbol where) {
         super(jobId,
             phaseId,
-            functionImplementation.info().ident().name(),
+            "TableFunctionCollectPhase",
             routing,
             RowGranularity.DOC,
             outputs,

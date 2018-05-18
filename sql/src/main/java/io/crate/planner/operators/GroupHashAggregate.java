@@ -56,7 +56,7 @@ import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 public class GroupHashAggregate extends OneInputPlan {
 
-    private static final String DISTRIBUTED_MERGE_PHASE_NAME = "distributed merge";
+    private static final String DISTRIBUTED_MERGE_PHASE_NAME = "DistributedMergePhase";
     final List<Function> aggregates;
     final List<Symbol> groupKeys;
 

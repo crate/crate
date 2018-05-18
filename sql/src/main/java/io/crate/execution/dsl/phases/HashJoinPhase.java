@@ -48,7 +48,6 @@ public class HashJoinPhase extends JoinPhase {
 
     public HashJoinPhase(UUID jobId,
                          int executionNodeId,
-                         String name,
                          List<Projection> projections,
                          @Nullable MergePhase leftMergePhase,
                          @Nullable MergePhase rightMergePhase,
@@ -64,7 +63,7 @@ public class HashJoinPhase extends JoinPhase {
         super(
             jobId,
             executionNodeId,
-            name,
+            Type.HASH_JOIN.humanName(),
             projections,
             leftMergePhase,
             rightMergePhase,

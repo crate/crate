@@ -41,33 +41,41 @@ public interface ExecutionPhase extends Writeable {
 
 
     enum Type {
-        COLLECT(RoutedCollectPhase::new),
-        COUNT(CountPhase::new),
-        FILE_URI_COLLECT(FileUriCollectPhase::new),
-        MERGE(MergePhase::new),
-        FETCH(FetchPhase::new),
-        NESTED_LOOP(NestedLoopPhase::new),
-        HASH_JOIN(HashJoinPhase::new),
+        COLLECT(RoutedCollectPhase::new, "CollectPhase"),
+        COUNT(CountPhase::new, "CountPhase"),
+        FILE_URI_COLLECT(FileUriCollectPhase::new, "FileUriCollectPhase"),
+        MERGE(MergePhase::new, "MergePhase"),
+        FETCH(FetchPhase::new, "FetchPhase"),
+        NESTED_LOOP(NestedLoopPhase::new, "NestedLoopPhase"),
+        HASH_JOIN(HashJoinPhase::new, "HashJoinPhase"),
         TABLE_FUNCTION_COLLECT(in -> {
-            throw new UnsupportedOperationException("TableFunctionCollectPhase is not streamable"); }),
-        PKLookup(PKLookupPhase::new);
+            throw new UnsupportedOperationException("TableFunctionCollectPhase is not streamable"); }, "TableFunctionCollectPhase"),
+        PK_LOOKUP(PKLookupPhase::new, "PrimaryKeyLookupPhase");
 
         public static final List<Type> VALUES = ImmutableList.copyOf(values());
 
         private final Writeable.Reader<ExecutionPhase> reader;
+        private final String humanName;
 
-        Type(Writeable.Reader<ExecutionPhase> reader) {
+        Type(Reader<ExecutionPhase> reader, String humanName) {
             this.reader = reader;
+            this.humanName = humanName;
         }
 
         public ExecutionPhase fromStream(StreamInput in) throws IOException {
             return reader.read(in);
         }
+
+        public String humanName() {
+            return humanName;
+        }
     }
 
     Type type();
 
-    String name();
+    default String name() {
+        return type().humanName();
+    }
 
     int phaseId();
 

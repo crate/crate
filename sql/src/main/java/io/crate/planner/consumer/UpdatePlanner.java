@@ -211,7 +211,7 @@ public final class UpdatePlanner {
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             plannerCtx.jobId(),
             plannerCtx.nextExecutionPhaseId(),
-            "collect",
+            "UpdateCollectPhase",
             routing,
             tableInfo.rowGranularity(),
             newArrayList(idReference),

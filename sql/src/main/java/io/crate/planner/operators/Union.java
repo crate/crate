@@ -143,7 +143,7 @@ public class Union extends TwoInputPlan {
         MergePhase mergePhase = new MergePhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
-            "union",
+            "UnionPhase",
             leftResultDesc.nodeIds().size() + rightResultDesc.nodeIds().size(),
             2,
             Collections.singletonList(plannerContext.handlerNode()),

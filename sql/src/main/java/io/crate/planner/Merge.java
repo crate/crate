@@ -82,7 +82,7 @@ public class Merge implements ExecutionPlan, ResultDescription {
         MergePhase mergePhase = new MergePhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
-            "mergeOnHandler",
+            "MergeOnHandlerPhase",
             resultDescription.nodeIds().size(),
             1,
             handlerNodeIds,

@@ -213,7 +213,6 @@ public final class CopyStatementPlanner {
         FileUriCollectPhase collectPhase = new FileUriCollectPhase(
             context.jobId(),
             context.nextExecutionPhaseId(),
-            "copyFrom",
             getExecutionNodes(allNodes, copyFrom.settings().getAsInt("num_readers", allNodes.getSize()), copyFrom.nodePredicate()),
             copyFrom.uri(),
             toCollect,

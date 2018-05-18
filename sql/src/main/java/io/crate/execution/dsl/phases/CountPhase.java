@@ -56,11 +56,6 @@ public class CountPhase implements UpstreamPhase {
         return Type.COUNT;
     }
 
-    @Override
-    public String name() {
-        return "count";
-    }
-
     public Routing routing() {
         return routing;
     }

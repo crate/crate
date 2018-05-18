@@ -69,11 +69,6 @@ public class FetchPhase implements ExecutionPhase {
     }
 
     @Override
-    public String name() {
-        return "fetchPhase";
-    }
-
-    @Override
     public int phaseId() {
         return executionPhaseId;
     }

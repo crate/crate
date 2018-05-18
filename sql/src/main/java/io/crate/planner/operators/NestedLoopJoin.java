@@ -168,7 +168,7 @@ class NestedLoopJoin extends TwoInputPlan {
         NestedLoopPhase nlPhase = new NestedLoopPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
-            isDistributed ? "distributed-nested-loop" : "nested-loop",
+            isDistributed,
             Collections.singletonList(JoinOperations.createJoinProjection(outputs, joinOutputs)),
             joinExecutionNodesAndMergePhases.v2().get(0),
             joinExecutionNodesAndMergePhases.v2().get(1),

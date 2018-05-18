@@ -177,7 +177,7 @@ public final class DeletePlanner {
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             context.jobId(),
             context.nextExecutionPhaseId(),
-            "collect",
+            "DeleteCollectPhase",
             routing,
             tableInfo.rowGranularity(),
             newArrayList(idReference),

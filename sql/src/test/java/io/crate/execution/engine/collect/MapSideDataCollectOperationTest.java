@@ -77,7 +77,6 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
         FileUriCollectPhase collectNode = new FileUriCollectPhase(
             UUID.randomUUID(),
             0,
-            "test",
             Collections.singletonList("noop_id"),
             Literal.of(Paths.get(tmpFile.toURI()).toUri().toString()),
             Arrays.asList(

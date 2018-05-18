@@ -55,7 +55,7 @@ public class SysOperationsTest extends SQLTransportIntegrationTest {
             names.add((String) objects[0]);
         }
         Collections.sort(names);
-        assertTrue(names.contains("collect"));
+        assertTrue(names.contains("CollectPhase"));
     }
 
     @Test

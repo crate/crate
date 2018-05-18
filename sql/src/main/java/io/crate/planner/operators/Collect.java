@@ -88,7 +88,7 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
  */
 class Collect extends ZeroInputPlan {
 
-    private static final String COLLECT_PHASE_NAME = "collect";
+    private static final String COLLECT_PHASE_NAME = "CollectPhase";
     final QueriedTable relation;
     WhereClause where;
 

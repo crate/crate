@@ -50,7 +50,7 @@ import java.util.Map;
  */
 public class Count extends ZeroInputPlan {
 
-    private static final String COUNT_PHASE_NAME = "count-merge";
+    private static final String COUNT_PHASE_NAME = "CountMergePhase";
 
     final AbstractTableRelation tableRelation;
     final WhereClause where;
