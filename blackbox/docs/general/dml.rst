@@ -394,15 +394,26 @@ Importing Data
 
 Using the ``COPY FROM`` SQL statement, data can be imported into CrateDB.
 
-Currently the only supported data format is JSON, one line is representing one
-entry.
+The supported data formats are JSON and CSV. The format is inferred from the
+file extension, if possible. Alternatively the format can also be provided as an
+option (see :ref:`with_option`). If the format is not provided and cannot be
+inferred from the file extension, it will be processed as JSON.
 
-.. highlight:: json
+JSON files must contain a single JSON object per line.
 
 Example JSON data::
 
     {"id": 1, "quote": "Don't panic"}
     {"id": 2, "quote": "Ford, you're turning into a penguin. Stop it."}
+
+CSV files must contain a header with comma-separated values, which will
+be added as columns.
+
+Example CSV data::
+
+    id,quote
+    1,"Don't panic"
+    2,"Ford, you're turning into a penguin. Stop it."
 
 .. NOTE::
 
@@ -414,8 +425,8 @@ Example JSON data::
   * Furthermore, column names in your data are considered case sensitive (as if
     they were quoted in a SQL statement).
 
-In order to import data into :ref:`partitioned_tables` take a look at the
-:ref:`copy_from` reference.
+For further information, including how to import data to
+:ref:`partitioned_tables`, take a look at the :ref:`copy_from` reference.
 
 Import From a File URI
 ......................
