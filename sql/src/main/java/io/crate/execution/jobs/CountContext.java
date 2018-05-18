@@ -26,8 +26,8 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
-import io.crate.expression.symbol.Symbol;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -44,28 +44,27 @@ public class CountContext extends AbstractExecutionSubContext {
 
     private static final Logger LOGGER = Loggers.getLogger(CountContext.class);
 
+    private final CountPhase countPhase;
     private final CountOperation countOperation;
     private final RowConsumer consumer;
     private final Map<String, List<Integer>> indexShardMap;
-    private final Symbol where;
     private CompletableFuture<Long> countFuture;
 
-    public CountContext(int id,
-                        CountOperation countOperation,
-                        RowConsumer consumer,
-                        Map<String, List<Integer>> indexShardMap,
-                        Symbol where) {
-        super(id, LOGGER);
+    CountContext(CountPhase countPhase,
+                 CountOperation countOperation,
+                 RowConsumer consumer,
+                 Map<String, List<Integer>> indexShardMap) {
+        super(countPhase.phaseId(), LOGGER);
+        this.countPhase = countPhase;
         this.countOperation = countOperation;
         this.consumer = consumer;
         this.indexShardMap = indexShardMap;
-        this.where = where;
     }
 
     @Override
     public synchronized void innerStart() {
         try {
-            countFuture = countOperation.count(indexShardMap, where);
+            countFuture = countOperation.count(indexShardMap, countPhase.where());
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -92,6 +91,6 @@ public class CountContext extends AbstractExecutionSubContext {
 
     @Override
     public String name() {
-        return "count(*)";
+        return countPhase.name();
     }
 }

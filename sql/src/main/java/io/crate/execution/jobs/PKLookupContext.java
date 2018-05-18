@@ -27,13 +27,13 @@ import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.GetResponseRefResolver;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.operators.PKAndVersion;
 import org.apache.logging.log4j.Logger;
@@ -59,29 +59,30 @@ public final class PKLookupContext extends AbstractExecutionSubContext {
     private final RowConsumer consumer;
     private final InputRow inputRow;
     private final List<CollectExpression<GetResponse, ?>> expressions;
+    private final PKLookupPhase phase;
 
-    public PKLookupContext(UUID jobId,
-                           int phaseId,
+    public PKLookupContext(PKLookupPhase phase,
                            RamAccountingContext ramAccountingContext,
                            InputFactory inputFactory,
                            PKLookupOperation pkLookupOperation,
-                           List<ColumnIdent> partitionedByColumns,
-                           List<Symbol> toCollect,
                            Map<ShardId, List<PKAndVersion>> idsByShard,
                            Collection<? extends Projection> shardProjections,
                            RowConsumer consumer) {
-        super(phaseId, LOGGER);
-        this.jobId = jobId;
+        super(phase.phaseId(), LOGGER);
+        this.phase = phase;
+        this.jobId = phase.jobId();
         this.ramAccountingContext = ramAccountingContext;
         this.pkLookupOperation = pkLookupOperation;
         this.idsByShard = idsByShard;
         this.shardProjections = shardProjections;
         this.consumer = consumer;
+
+        List<ColumnIdent> partitionedByColumns = phase.partitionedByColumns();
         this.ignoreMissing = !partitionedByColumns.isEmpty();
         GetResponseRefResolver getResponseRefResolver = new GetResponseRefResolver(partitionedByColumns);
 
         InputFactory.Context<CollectExpression<GetResponse, ?>> ctx = inputFactory.ctxForRefs(getResponseRefResolver);
-        ctx.add(toCollect);
+        ctx.add(phase.toCollect());
         expressions = ctx.expressions();
         inputRow = new InputRow(ctx.topLevelInputs());
     }
@@ -114,6 +115,6 @@ public final class PKLookupContext extends AbstractExecutionSubContext {
 
     @Override
     public String name() {
-        return "pkLookup";
+        return phase.name();
     }
 }

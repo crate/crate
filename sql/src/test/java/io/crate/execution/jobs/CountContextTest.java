@@ -22,6 +22,8 @@
 package io.crate.execution.jobs;
 
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.execution.dsl.phases.CountPhase;
+import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -31,7 +33,6 @@ import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.index.Index;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -45,6 +46,14 @@ import static org.mockito.Mockito.when;
 
 public class CountContextTest extends CrateUnitTest {
 
+    private static CountPhase countPhaseWithId(int phaseId) {
+        CountPhase phase = mock(CountPhase.class);
+        when(phase.type()).thenReturn(ExecutionPhase.Type.COUNT);
+        when(phase.where()).thenReturn(Literal.BOOLEAN_TRUE);
+        when(phase.phaseId()).thenReturn(phaseId);
+        return phase;
+    }
+
     @Test
     public void testClose() throws Exception {
 
@@ -53,7 +62,7 @@ public class CountContextTest extends CrateUnitTest {
         CountOperation countOperation = mock(CountOperation.class);
         when(countOperation.count(anyMap(), any(Symbol.class))).thenReturn(future);
 
-        CountContext countContext = new CountContext(1, countOperation, new TestingRowConsumer(), null, Literal.BOOLEAN_TRUE);
+        CountContext countContext = new CountContext(countPhaseWithId(1), countOperation, new TestingRowConsumer(), null);
         countContext.prepare();
         countContext.start();
         future.complete(1L);
@@ -65,7 +74,7 @@ public class CountContextTest extends CrateUnitTest {
         future = new CompletableFuture<>();
         when(countOperation.count(anyMap(), any(Symbol.class))).thenReturn(future);
 
-        countContext = new CountContext(2, countOperation, new TestingRowConsumer(), null, Literal.BOOLEAN_TRUE);
+        countContext = new CountContext(countPhaseWithId(2), countOperation, new TestingRowConsumer(), null);
         countContext.prepare();
         countContext.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
@@ -79,7 +88,7 @@ public class CountContextTest extends CrateUnitTest {
         CompletableFuture<Long> future = mock(CompletableFuture.class);
         CountOperation countOperation = new FakeCountOperation(future);
 
-        CountContext countContext = new CountContext(1, countOperation, new TestingRowConsumer(), null, Literal.BOOLEAN_TRUE);
+        CountContext countContext = new CountContext(countPhaseWithId(1), countOperation, new TestingRowConsumer(), null);
 
         countContext.prepare();
         countContext.start();
@@ -99,12 +108,12 @@ public class CountContextTest extends CrateUnitTest {
 
         @Override
         public CompletableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
-                                             Symbol filter) throws IOException, InterruptedException {
+                                             Symbol filter) {
             return future;
         }
 
         @Override
-        public long count(Index index, int shardId, Symbol filter) throws IOException, InterruptedException {
+        public long count(Index index, int shardId, Symbol filter) {
             return 0;
         }
     }

@@ -541,11 +541,10 @@ public class ContextPreparer extends AbstractComponent {
 
             RowConsumer consumer = context.getRowConsumer(phase, 0);
             context.registerSubContext(new CountContext(
-                phase.phaseId(),
+                phase,
                 countOperation,
                 consumer,
-                indexShardMap,
-                phase.where()
+                indexShardMap
             ));
             return true;
         }
@@ -564,13 +563,10 @@ public class ContextPreparer extends AbstractComponent {
                 projectorFactory
             );
             context.registerSubContext(new PKLookupContext(
-                pkLookupPhase.jobId(),
-                pkLookupPhase.phaseId(),
+                pkLookupPhase,
                 ramAccountingContext,
                 inputFactory,
                 pkLookupOperation,
-                pkLookupPhase.partitionedByColumns(),
-                pkLookupPhase.toCollect(),
                 pkLookupPhase.getIdsByShardId(clusterService.localNode().getId()),
                 shardProjections,
                 nodeRowConsumer

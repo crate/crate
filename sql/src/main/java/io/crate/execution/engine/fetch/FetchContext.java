@@ -176,7 +176,7 @@ public class FetchContext extends AbstractExecutionSubContext {
 
     @Override
     public String name() {
-        return "fetchContext";
+        return phase.name();
     }
 
     @Nonnull
