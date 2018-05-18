@@ -88,9 +88,11 @@ class HashJoin extends TwoInputPlan {
 
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
-        HashMap<LogicalPlan, SelectSymbol> deps = new HashMap<>(lhs.dependencies().size() + rhs.dependencies().size());
-        deps.putAll(lhs.dependencies());
-        deps.putAll(rhs.dependencies());
+        Map<LogicalPlan, SelectSymbol> leftDeps = lhs.dependencies();
+        Map<LogicalPlan, SelectSymbol> rightDeps = rhs.dependencies();
+        HashMap<LogicalPlan, SelectSymbol> deps = new HashMap<>(leftDeps.size() + rightDeps.size());
+        deps.putAll(leftDeps);
+        deps.putAll(rightDeps);
         return deps;
     }
 
