@@ -6,6 +6,22 @@ Version 3.0.0
 
 Released on 2018/05/16.
 
+.. NOTE::
+
+   If you are upgrading a cluster, you must be running CrateDB 2.0.4 or higher
+   before you upgrade to 3.0.0.
+
+   You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
+   version will require a `full restart upgrade`_.
+
+.. WARNING::
+
+   Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
 Changelog
 =========
 
@@ -26,7 +42,7 @@ Breaking Changes
   latest 2.2 or 2.3 release.
 
 - The ``region`` setting for ``CREATE REPOSITORY`` has been removed. It is
-  automatically "guessed" but can still be manually specified by using the
+  automatically inferred but can still be manually specified by using the
   ``endpoint`` setting.
 
 - Store level throttling settings ``indices.store.throttle.*`` have been
@@ -39,11 +55,10 @@ Breaking Changes
 - The discovery setting ``discovery.type`` has been removed. To enable EC2
   discovery, the ``discovery.zen.hosts_provider`` setting must be set to ``ec2``.
 
-- EC2 settings``cloud.aws.*`` settings have been renamed to ``discovery.ec2.*``.
+- EC2 ``cloud.aws.*`` settings have been renamed to ``discovery.ec2.*``.
 
 - The setting that controls system call filters ``bootstrap.seccomp`` has been
-  setting that controls system call filters has been renamed to
-  ``bootstrap.system_call_filter``.
+  has been renamed to  ``bootstrap.system_call_filter``.
 
 - The columns ``number_of_shards``, ``number_of_replicas``, and
   ``self_referencing_column_name`` in ``information_schema.tables`` changed to
