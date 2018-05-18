@@ -11,6 +11,8 @@ env:
     - _JAVA_OPTIONS="-Xms1g -Xmx1g"
     - GRADLE_OPTS="-Dorg.gradle.daemon=false"
 
+git:
+  submodules: false
 
 before_cache:
     - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
@@ -23,6 +25,9 @@ cache:
 notifications:
   email: false
 
+
+before_install:
+  - git submodule update --init -- es/upstream
 
 script:
   - ./gradlew -s :sql:test
