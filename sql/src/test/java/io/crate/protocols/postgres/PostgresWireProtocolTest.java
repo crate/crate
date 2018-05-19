@@ -412,7 +412,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         when(describeResult.getFields()).thenReturn(null);
         when(session.describe(anyChar(), anyString())).thenReturn(describeResult);
         if (failFirstStatement) {
-            when(session.sync()).thenAnswer(mock -> new RuntimeException("fail"));
+            when(session.sync()).thenThrow(new RuntimeException("fail"));
         } else {
             when(session.sync()).thenReturn(CompletableFuture.completedFuture(null));
         }
@@ -480,6 +480,6 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         byte[] responseBytes = new byte[5];
         response.readBytes(responseBytes);
         // ErrorResponse: 'E' | int32 len | ...
-        assertThat(responseBytes, is(new byte[]{'E', 0, 0, 0, -110}));
+        assertThat(responseBytes, is(new byte[]{'E', 0, 0, 0, 67}));
     }
 }
