@@ -45,7 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class PlanPrinter {
+public final class PlanPrinter {
 
     private PlanPrinter() {
     }
