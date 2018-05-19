@@ -159,4 +159,20 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                    "distribution={distributedByColumn=0, type=BROADCAST}, " +
                    "projections=[{type=TopN, limit=10, offset=0, outputs=IC{0, integer}}]}}}}"));
     }
+
+    @Test
+    public void testCountPlan() {
+        Map<String, Object> map = printPlan("select count(*) " +
+                                            "from t1 " +
+                                            "where t1.x > 10");
+        assertThat(map.toString(),
+            is("{CountPlan={type=executionPlan}, " +
+               "countPhase={COUNT={type=executionPhase, id=0, executionNodes=[n1]}, " +
+                   "distribution={distributedByColumn=0, type=BROADCAST}, " +
+                   "routing={n1={t1=[0]}}, " +
+                   "where=Ref{doc.t1.x, integer} > 10}, " +
+               "mergePhase={MERGE={type=executionPhase, id=1, executionNodes=[n1], " +
+                   "distribution={distributedByColumn=0, type=BROADCAST}, " +
+               "projections=[{type=MERGE_COUNT_AGGREGATION}]}}}"));
+    }
 }

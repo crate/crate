@@ -37,6 +37,7 @@ import io.crate.execution.dsl.phases.UpstreamPhase;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 
@@ -132,7 +133,10 @@ public final class PlanPrinter {
 
         @Override
         public ImmutableMap.Builder<String, Object> visitCountPhase(CountPhase phase, Void context) {
-            return createMap(phase, upstreamPhase(phase, createSubMap(phase)));
+            ImmutableMap.Builder<String, Object> builder = upstreamPhase(phase, visitExecutionPhase(phase, context));
+            builder.put("routing", phase.routing().locations());
+            builder.put("where", phase.where().representation());
+            return builder;
         }
 
         @Override
@@ -231,6 +235,13 @@ public final class PlanPrinter {
                 .put("left", createMap(unionExecutionPlan.left()))
                 .put("right", createMap(unionExecutionPlan.right()))
                 .put("mergePhase", phaseMap(unionExecutionPlan.mergePhase())));
+        }
+
+        @Override
+        public ImmutableMap.Builder<String, Object> visitCountPlan(CountPlan countPlan, Void context) {
+            return visitPlan(countPlan, context)
+                .put("countPhase", phaseMap(countPlan.countPhase()))
+                .put("mergePhase", phaseMap(countPlan.mergePhase()));
         }
     }
 }
