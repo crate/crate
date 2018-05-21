@@ -23,7 +23,6 @@ package io.crate.execution.jobs;
 
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.dsl.phases.CountPhase;
-import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;

@@ -26,28 +26,26 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class NodeCollectProfileResponseTest {
+public class NodeCollectProfileRequestTest {
 
     @Test
     public void testStreaming() throws Exception {
-        Map<String, Long> timings = new HashMap<>();
-        timings.put("node1", 1000L);
-        NodeCollectProfileResponse originalResponse = new NodeCollectProfileResponse(timings);
+        NodeCollectProfileRequest originalRequest = new NodeCollectProfileRequest(UUID.randomUUID());
 
         BytesStreamOutput out = new BytesStreamOutput();
-        originalResponse.writeTo(out);
+        originalRequest.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
 
-        NodeCollectProfileResponse streamed = new NodeCollectProfileResponse();
+        NodeCollectProfileRequest streamed = new NodeCollectProfileRequest();
         streamed.readFrom(in);
 
-        assertThat(originalResponse.durationByPhase(), is(streamed.durationByPhase()));
+        assertThat(originalRequest.jobId(), is(streamed.jobId()));
     }
+
 }
