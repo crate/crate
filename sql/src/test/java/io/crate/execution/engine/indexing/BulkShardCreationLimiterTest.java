@@ -47,6 +47,16 @@ public class BulkShardCreationLimiterTest extends CrateUnitTest {
         DummyRequestItem(String id) {
             super(id);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return 0;
+        }
     }
 
     private static final ShardedRequests<DummyShardRequest, DummyRequestItem> SHARED_REQUESTS = new ShardedRequests<>((s, i) -> new DummyShardRequest());

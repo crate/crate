@@ -22,7 +22,6 @@
 
 package io.crate.execution.dml.delete;
 
-import com.google.common.base.Objects;
 import io.crate.execution.dml.ShardRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -117,10 +116,12 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
 
         @Override
         public boolean equals(Object o) {
-            if (!super.equals(o)) return false;
-            if (this == o) return true;
-            if (getClass() != o.getClass()) return false;
-            if (!super.equals(o)) return false;
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof Item)) {
+                return false;
+            }
             Item item = (Item) o;
             return version == item.version &&
                    versionType == item.versionType;
@@ -128,7 +129,7 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(super.hashCode(), version, versionType);
+            return java.util.Objects.hash(version, versionType);
         }
 
         @Override

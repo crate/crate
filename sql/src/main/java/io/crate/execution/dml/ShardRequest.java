@@ -150,7 +150,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     public abstract static class Item implements Writeable {
 
         protected final String id;
-        private int location = -1;
+        protected int location = -1;
 
         public Item(String id) {
             this.id = id;
@@ -179,18 +179,11 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            Item item = (Item) o;
-            return location == item.location && id.equals(item.id);
-        }
+        public abstract boolean equals(Object o);
 
         @Override
-        public int hashCode() {
-            return Objects.hashCode(id, location);
-        }
+        public abstract int hashCode();
+
 
         @Override
         public String toString() {

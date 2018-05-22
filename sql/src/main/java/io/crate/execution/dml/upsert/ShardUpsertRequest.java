@@ -22,14 +22,12 @@
 
 package io.crate.execution.dml.upsert;
 
-import com.google.common.base.Objects;
 import io.crate.Streamer;
+import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.execution.dml.ShardRequest;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -43,6 +41,7 @@ import org.elasticsearch.index.shard.ShardId;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.UUID;
 
 public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
@@ -212,15 +211,21 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
     @Override
     public boolean equals(Object o) {
-        if (!super.equals(o)) return false;
-        if (this == o) return true;
-        if (getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ShardUpsertRequest)) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         ShardUpsertRequest items = (ShardUpsertRequest) o;
         return continueOnError == items.continueOnError &&
                overwriteDuplicates == items.overwriteDuplicates &&
                validateConstraints == items.validateConstraints &&
-               Objects.equal(isRawSourceInsert, items.isRawSourceInsert) &&
+               isRetry == items.isRetry &&
+               java.util.Objects.equals(isRawSourceInsert, items.isRawSourceInsert) &&
                Arrays.equals(updateColumns, items.updateColumns) &&
                Arrays.equals(insertColumns, items.insertColumns) &&
                Arrays.equals(insertValuesStreamer, items.insertValuesStreamer);
@@ -228,7 +233,12 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), continueOnError, overwriteDuplicates, isRawSourceInsert, validateConstraints, updateColumns, insertColumns, insertValuesStreamer);
+        int result = java.util.Objects.hash(super.hashCode(), continueOnError, overwriteDuplicates,
+            isRawSourceInsert, validateConstraints, isRetry);
+        result = 31 * result + Arrays.hashCode(updateColumns);
+        result = 31 * result + Arrays.hashCode(insertColumns);
+        result = 31 * result + Arrays.hashCode(insertValuesStreamer);
+        return result;
     }
 
     /**
@@ -261,7 +271,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             super(id);
             this.updateAssignments = updateAssignments;
             if (version != null) {
-                this.version = version;
+                this.version = checkVersionBoundary(version);
             }
             this.insertValues = insertValues;
         }
@@ -271,7 +281,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         }
 
         public void version(long version) {
-            this.version = version;
+            this.version = checkVersionBoundary(version);
         }
 
         public VersionType versionType() {
@@ -330,7 +340,10 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                     insertValues[i] = insertValueStreamers[i].readValueFrom(in);
                 }
             }
-            this.version = Version.readVersion(in).id;
+            // Version is long but we read it as integer here. This was introduced by a previous bug.
+            // We chose to keep protocol backwards-compatibility for rolling upgrades.
+            // Crate > 3.0 has this fixed.
+            version = in.readVInt();
             versionType = VersionType.fromValue(in.readByte());
             opType = IndexRequest.OpType.fromId(in.readByte());
             if (in.readBoolean()) {
@@ -358,8 +371,10 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             } else {
                 out.writeVInt(0);
             }
-
-            Version.writeVersion(Version.fromId((int) version), out);
+            // Version is long but we write it as integer here. This was introduced by a previous bug.
+            // We chose to keep protocol backwards-compatibility for rolling upgrades.
+            // Crate > 3.0 has this fixed.
+            out.writeVInt((int) version);
             out.writeByte(versionType.getValue());
             out.writeByte(opType.getId());
             boolean sourceAvailable = source != null;
@@ -367,6 +382,40 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             if (sourceAvailable) {
                 out.writeBytesReference(source);
             }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof Item)) {
+                return false;
+            }
+            Item item = (Item) o;
+            return version == item.version &&
+                   versionType == item.versionType &&
+                   opType == item.opType &&
+                   java.util.Objects.equals(source, item.source) &&
+                   Arrays.equals(updateAssignments, item.updateAssignments) &&
+                   Arrays.equals(insertValues, item.insertValues);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = java.util.Objects.hash(version, versionType, opType, source);
+            result = 31 * result + Arrays.hashCode(updateAssignments);
+            result = 31 * result + Arrays.hashCode(insertValues);
+            return result;
+        }
+
+        private long checkVersionBoundary(long version) {
+            if (version > Integer.MAX_VALUE) {
+                throw new IllegalStateException(String.format(Locale.ENGLISH,
+                    "Item with id '%s' and version %s has exceeded the maximum version number of %s.",
+                    id, version, Integer.MAX_VALUE));
+            }
+            return version;
         }
     }
 

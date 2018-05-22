@@ -23,3 +23,6 @@ Changes
 
 Fixes
 =====
+
+- Fixed a streaming issue which could result in wrong version numbers of items
+  on replica shards.

@@ -71,12 +71,18 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             "99",
             null,
             new Object[]{99, new BytesRef("Marvin")},
-            null));
+            1L));
         request.add(5, new ShardUpsertRequest.Item(
             "42",
             new Symbol[]{Literal.of(42), Literal.of("Deep Thought")},
             null,
             2L));
+        request.add(5, new ShardUpsertRequest.Item(
+            "1",
+            null,
+            null,
+            // maximum version number in Crate < 3.0
+            (long) Integer.MAX_VALUE));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
@@ -86,6 +92,33 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         request2.readFrom(in);
 
         assertThat(request, equalTo(request2));
+    }
+
+    @Test
+    public void testInvalidVersionNumberChange() {
+        ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(
+            "1",
+            null,
+            null,
+            4L);
+
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage("Item with id '1' and version 2147483648 has exceeded " +
+                                        "the maximum version number of 2147483647");
+
+        item.version((long) Integer.MAX_VALUE + 1);
+    }
+
+    @Test
+    public void testInvalidVersionNumberDuringItemCreation() {
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage("Item with id '1' and version 9223372036854775807 has exceeded " +
+                                        "the maximum version number of 2147483647");
+        new ShardUpsertRequest.Item(
+            "1",
+            null,
+            null,
+            Long.MAX_VALUE);
     }
 
 }
