@@ -9,8 +9,8 @@ Supplementary information for the CrateDB reference manual.
 .. rubric:: Table of Contents
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
 
     release-notes/index
-    sql-compliance
-    supported-features
+    compatibility
+    compliance

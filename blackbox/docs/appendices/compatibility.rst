@@ -1,8 +1,8 @@
 .. _crate_standard_sql:
 
-=======================
-Standard SQL Compliance
-=======================
+=============
+Compatibility
+=============
 
 CrateDB aims to provide an SQL implementation that is familiar to anyone having
 used other databases providing a standards-compliant SQL language. However, it
@@ -13,8 +13,11 @@ is worth being aware of some unique characteristics in CrateDB's SQL dialect.
 .. contents::
    :local:
 
+Implementation Notes
+====================
+
 Data Types
-==========
+----------
 
 CrateDB supports a set of primitive data types: integer, long, short, double,
 float, and byte, with the same ranges as corresponding Java types.
@@ -45,20 +48,20 @@ The following table defines how data types of standard SQL map to CrateDB
 +-----------------------------------+------------------------+
 
 Create Table
-============
+------------
 
 :ref:`ref-create-table` supports additional storage and table parameters for
 sharding, replication and routing of the data, and does not support
 inheritance.
 
 Alter Table
-===========
+-----------
 
 ``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported (see
 :ref:`ref-alter-table`).
 
 System Information Tables
-=========================
+-------------------------
 
 The read-only :ref:`system-information` and :ref:`information_schema` tables
 have a slightly different schema than specified in standard SQL. They provide
@@ -66,14 +69,14 @@ schema information and can be queried to get real-time statistical data about
 the cluster, its nodes, and their shards.
 
 BLOB Support
-============
+------------
 
 Standard SQL defines a binary string type, called ``BLOB`` or ``BINARY LARGE
 OBJECT``. With CrateDB, Binary Data is instead stored in separate BLOB Tables
 (see :ref:`blob_support`) which can be sharded and replicated.
 
 Transactions (``BEGIN``, ``COMMIT``, and ``ROLLBACK``)
-======================================================
+------------------------------------------------------
 
 CrateDB is focussed on providing analytical capabilities over supporting
 traditional transactional use cases, and thus it does not provide transaction

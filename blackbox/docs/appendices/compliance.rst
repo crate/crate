@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _sql_supported_features:
 
-==================
-Supported Features
-==================
+=======================
+SQL Standard Compliance
+=======================
 
 This section provides a list of features that CrateDB supports and to what
 extent it conforms to the current SQL standard `ISO/IEC 9075`_ "Database

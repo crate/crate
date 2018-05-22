@@ -14,14 +14,14 @@ information and changelog.
 
    Older version of CrateDB are available in `the release archives`_.
 
-.. _the CrateDB download page: https://crate.io/download/
-.. _the release archives: https://cdn.crate.io/downloads/releases/
+Versions
+========
 
 3.x
-===
+---
 
 3.0.x
------
+.....
 
 .. toctree::
     :maxdepth: 1
@@ -29,10 +29,10 @@ information and changelog.
     3.0.0
 
 2.x
-===
+---
 
 2.3.x
------
+.....
 
 .. toctree::
     :maxdepth: 1
@@ -49,7 +49,7 @@ information and changelog.
     2.3.0
 
 2.2.x
------
+.....
 
 .. toctree::
     :maxdepth: 1
@@ -64,7 +64,7 @@ information and changelog.
     2.2.0
 
 2.1.x
------
+.....
 
 .. toctree::
     :maxdepth: 1
@@ -82,7 +82,7 @@ information and changelog.
     2.1.0
 
 2.0.x
------
+.....
 
 .. toctree::
     :maxdepth: 1
@@ -97,10 +97,10 @@ information and changelog.
     2.0.0
 
 1.x
-===
+---
 
 1.2.x
------
+.....
 
 .. toctree::
     :maxdepth: 1
@@ -108,7 +108,7 @@ information and changelog.
     1.2.0
 
 1.1.x
------
+.....
 
 .. toctree::
     :maxdepth: 1
@@ -122,7 +122,7 @@ information and changelog.
     1.1.0
 
 1.0.x
------
+.....
 
 .. toctree::
     :maxdepth: 1
@@ -135,6 +135,11 @@ information and changelog.
     1.0.1
     1.0.0
 
-For earlier versions, see the 0.57.8 CHANGES.txt_ file.
+Older Versions
+==============
+
+For older versions, see the 0.57.8 CHANGES.txt_ file.
 
 .. _CHANGES.txt: https://github.com/crate/crate/blob/ed8a1c1f786891f3c4cde403baca37751037db14/CHANGES.txt
+.. _the CrateDB download page: https://crate.io/download/
+.. _the release archives: https://cdn.crate.io/downloads/releases/
