@@ -18,5 +18,8 @@ Breaking Changes
 Changes
 =======
 
+- Improved the performance of password authentication for connections that are
+  re-used.
+
 Fixes
 =====
