@@ -25,6 +25,7 @@ package io.crate.metadata.sys;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.Settings;
@@ -100,5 +101,29 @@ public class TableHealthServiceTest extends CrateDummyClusterServiceUnitTest {
 
         List<TableHealth> tableHealthList = tableHealthService.buildTablesHealth(tables);
         assertThat(tableHealthList.size(), is(0));
+    }
+
+    @Test
+    public void testCalculateHealthOfBlobTable() {
+        TableHealthService.TablePartitionIdent tablePartitionIdent = new TableHealthService.TablePartitionIdent(
+            new BytesRef("my_blob_table"), new BytesRef("blob"), null);
+        RelationName relationName = new RelationName("blob", "my_blob_table");
+        Schemas schemas = mock(Schemas.class);
+        when(schemas.getTableInfo(relationName)).thenReturn(new BlobTableInfo(
+            relationName,
+            ".blob.my_blob_table",
+            2,
+            new BytesRef(1),
+            null,
+            null,
+            null,
+            null,
+            false));
+        TableHealthService tableHealthService = new TableHealthService(Settings.EMPTY, clusterService, schemas, null);
+        Map<TableHealthService.TablePartitionIdent, TableHealthService.ShardsInfo> tables =
+            Collections.singletonMap(tablePartitionIdent, new TableHealthService.ShardsInfo());
+
+        List<TableHealth> tableHealthList = tableHealthService.buildTablesHealth(tables);
+        assertThat(tableHealthList.size(), is(1));
     }
 }

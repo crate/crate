@@ -24,3 +24,5 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused a ``ClassCastException`` to be thrown when querying
+  the ``sys.health`` table on a cluster that has ``blob`` tables.

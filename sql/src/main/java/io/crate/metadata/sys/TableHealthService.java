@@ -32,6 +32,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.apache.logging.log4j.Logger;
@@ -143,7 +144,7 @@ public class TableHealthService extends AbstractComponent {
             ShardsInfo shardsInfo = entry.getValue();
             RelationName relationName = new RelationName(
                 BytesRefs.toString(ident.tableSchema), BytesRefs.toString(ident.tableName));
-            DocTableInfo tableInfo;
+            ShardedTable tableInfo;
             try {
                 tableInfo = schemas.getTableInfo(relationName);
             } catch (RelationUnknown e) {
