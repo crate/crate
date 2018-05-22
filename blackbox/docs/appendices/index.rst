@@ -4,7 +4,7 @@
 Appendices
 ==========
 
-This section of the documentation provides supplementary information.
+Supplementary information for the CrateDB reference manual.
 
 .. rubric:: Table of Contents
 
