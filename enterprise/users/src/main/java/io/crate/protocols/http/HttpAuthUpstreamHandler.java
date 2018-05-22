@@ -66,8 +66,8 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                                                          "(password maybe empty if trust authentication " +
                                                          "is configured for your user)\")";
     private final Authentication authService;
-    private Settings settings;
-    private boolean authorized;
+    private final Settings settings;
+    private String authorizedUser = null;
 
     public HttpAuthUpstreamHandler(Settings settings, Authentication authService) {
         // do not auto-release reference counted messages which are just in transit here
@@ -94,6 +94,11 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         Tuple<String, SecureString> credentials = credentialsFromRequest(request, session, settings);
         String username = credentials.v1();
         SecureString password = credentials.v2();
+        if (username.equals(authorizedUser)) {
+            ctx.fireChannelRead(request);
+            return;
+        }
+
         InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
         ConnectionProperties connectionProperties = new ConnectionProperties(address, Protocol.HTTP, session);
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, connectionProperties);
@@ -109,7 +114,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                 if (user != null && LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".", username, authMethod.name());
                 }
-                authorized = true;
+                authorizedUser = username;
                 ctx.fireChannelRead(request);
             } catch (Exception e) {
                 sendUnauthorized(ctx.channel(), e.getMessage());
@@ -118,12 +123,12 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     }
 
     private void handleHttpChunk(ChannelHandlerContext ctx, HttpContent msg) {
-        if (authorized) {
-            ctx.fireChannelRead(msg);
-        } else {
+        if (authorizedUser == null) {
             // We won't forward the message downstream, thus we have to release
             msg.release();
             sendUnauthorized(ctx.channel(), null);
+        } else {
+            ctx.fireChannelRead(msg);
         }
     }
 
@@ -149,7 +154,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     @VisibleForTesting
     boolean authorized() {
-        return authorized;
+        return authorizedUser != null;
     }
 
     @VisibleForTesting
