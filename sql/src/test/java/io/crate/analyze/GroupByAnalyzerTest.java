@@ -149,7 +149,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             analyze("select 1/age as age from foo.users group by age order by age");
         assertThat(relation.querySpec().groupBy().isEmpty(), is(false));
         List<Symbol> groupBySymbols = relation.querySpec().groupBy();
-        assertThat(((Reference) groupBySymbols.get(0)).ident().columnIdent().fqn(), is("age"));
+        assertThat(((Reference) groupBySymbols.get(0)).column().fqn(), is("age"));
     }
 
     @Test
@@ -161,7 +161,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Symbol groupBy = groupBySymbols.get(0);
         assertThat(groupBy, instanceOf(Function.class));
         Function groupByFunction = (Function) groupBy;
-        assertThat(((Reference) groupByFunction.arguments().get(1)).ident().columnIdent().fqn(), is("age"));
+        assertThat(((Reference) groupByFunction.arguments().get(1)).column().fqn(), is("age"));
     }
 
     @Test
@@ -170,7 +170,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedRelation relation = analyze("select 1/age as height from foo.users group by age");
         assertThat(relation.querySpec().groupBy().isEmpty(), is(false));
         List<Symbol> groupBySymbols = relation.querySpec().groupBy();
-        assertThat(((Reference) groupBySymbols.get(0)).ident().columnIdent().fqn(), is("age"));
+        assertThat(((Reference) groupBySymbols.get(0)).column().fqn(), is("age"));
     }
 
     @Test

@@ -59,7 +59,7 @@ public class TableReferenceResolver implements FieldProvider<Reference> {
         }
 
         for (Reference reference : tableReferences) {
-            if (reference.ident().columnIdent().equals(columnIdent)) {
+            if (reference.column().equals(columnIdent)) {
                 if (reference instanceof GeneratedReference) {
                     throw new IllegalArgumentException("A generated column cannot be based on a generated column");
                 }

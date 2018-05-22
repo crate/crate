@@ -178,10 +178,10 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
-        assertThat(analysis.columns().get(0).ident().columnIdent().name(), is("id"));
+        assertThat(analysis.columns().get(0).column().name(), is("id"));
         assertEquals(DataTypes.LONG, analysis.columns().get(0).valueType());
 
-        assertThat(analysis.columns().get(1).ident().columnIdent().name(), is("name"));
+        assertThat(analysis.columns().get(1).column().name(), is("name"));
         assertEquals(DataTypes.STRING, analysis.columns().get(1).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
@@ -196,10 +196,10 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
-        assertThat(analysis.columns().get(0).ident().columnIdent().name(), is("name"));
+        assertThat(analysis.columns().get(0).column().name(), is("name"));
         assertEquals(DataTypes.STRING, analysis.columns().get(0).valueType());
 
-        assertThat(analysis.columns().get(1).ident().columnIdent().name(), is("id"));
+        assertThat(analysis.columns().get(1).column().name(), is("id"));
         assertEquals(DataTypes.LONG, analysis.columns().get(1).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
@@ -260,10 +260,10 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
-        assertThat(analysis.columns().get(0).ident().columnIdent().name(), is("id"));
+        assertThat(analysis.columns().get(0).column().name(), is("id"));
         assertEquals(DataTypes.LONG, analysis.columns().get(0).valueType());
 
-        assertThat(analysis.columns().get(1).ident().columnIdent().name(), is("name"));
+        assertThat(analysis.columns().get(1).column().name(), is("name"));
         assertEquals(DataTypes.STRING, analysis.columns().get(1).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
@@ -278,13 +278,13 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(3));
 
-        assertThat(analysis.columns().get(0).ident().columnIdent().name(), is("id"));
+        assertThat(analysis.columns().get(0).column().name(), is("id"));
         assertEquals(DataTypes.LONG, analysis.columns().get(0).valueType());
 
-        assertThat(analysis.columns().get(1).ident().columnIdent().name(), is("other_id"));
+        assertThat(analysis.columns().get(1).column().name(), is("other_id"));
         assertEquals(DataTypes.LONG, analysis.columns().get(1).valueType());
 
-        assertThat(analysis.columns().get(2).ident().columnIdent().name(), is("name"));
+        assertThat(analysis.columns().get(2).column().name(), is("name"));
         assertEquals(DataTypes.STRING, analysis.columns().get(2).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
@@ -300,7 +300,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(1));
 
-        assertThat(analysis.columns().get(0).ident().columnIdent().name(), is("id"));
+        assertThat(analysis.columns().get(0).column().name(), is("id"));
         assertEquals(DataTypes.LONG, analysis.columns().get(0).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));

@@ -301,7 +301,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             @Nullable
             @Override
             public String apply(@Nullable Reference input) {
-                return input.ident().columnIdent().fqn();
+                return input.column().fqn();
             }
         });
         assertThat(fqns, Matchers.is(
@@ -888,9 +888,9 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetaData md = newMeta(getIndexMetaData("test_analyzer", builder), "test_analyzer");
         assertThat(md.columns().size(), is(2));
         assertThat(md.columns().get(0).indexType(), is(Reference.IndexType.ANALYZED));
-        assertThat(md.columns().get(0).ident().columnIdent().fqn(), is("content_de"));
+        assertThat(md.columns().get(0).column().fqn(), is("content_de"));
         assertThat(md.columns().get(1).indexType(), is(Reference.IndexType.ANALYZED));
-        assertThat(md.columns().get(1).ident().columnIdent().fqn(), is("content_en"));
+        assertThat(md.columns().get(1).column().fqn(), is("content_en"));
     }
 
     @Test
@@ -1004,7 +1004,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReference.class));
         IndexReference indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
         assertThat(indexInfo.indexType(), is(Reference.IndexType.ANALYZED));
-        assertThat(indexInfo.ident().columnIdent().fqn(), is("fun_name_ft"));
+        assertThat(indexInfo.column().fqn(), is("fun_name_ft"));
     }
 
     @Test
@@ -1022,7 +1022,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReference.class));
         IndexReference indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
         assertThat(indexInfo.indexType(), is(Reference.IndexType.ANALYZED));
-        assertThat(indexInfo.ident().columnIdent().fqn(), is("fun_name_ft"));
+        assertThat(indexInfo.column().fqn(), is("fun_name_ft"));
     }
 
     @Test

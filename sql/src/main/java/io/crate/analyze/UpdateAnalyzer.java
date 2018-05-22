@@ -153,14 +153,14 @@ public final class UpdateAnalyzer {
                 tableInfo
             );
             if (assignmentByTargetCol.put(targetCol, source) != null) {
-                throw new IllegalArgumentException("Target expression repeated: " + targetCol.ident().columnIdent().sqlFqn());
+                throw new IllegalArgumentException("Target expression repeated: " + targetCol.column().sqlFqn());
             }
         }
         return assignmentByTargetCol;
     }
 
     private static boolean hasMatchingParent(TableInfo tableInfo, Reference info, Predicate<Reference> parentMatchPredicate) {
-        ColumnIdent parent = info.ident().columnIdent().getParent();
+        ColumnIdent parent = info.column().getParent();
         while (parent != null) {
             Reference parentInfo = tableInfo.getReference(parent);
             if (parentMatchPredicate.test(parentInfo)) {

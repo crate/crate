@@ -23,14 +23,14 @@
 package io.crate.analyze.expressions;
 
 import com.google.common.base.Preconditions;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.expression.symbol.format.SymbolPrinter;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.ColumnValidationException;
-import io.crate.exceptions.ConversionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -70,7 +70,7 @@ public final class ValueNormalizer {
             literal = Literal.convert(literal, reference.valueType());
         } catch (ConversionException e) {
             throw new ColumnValidationException(
-                reference.ident().columnIdent().name(),
+                reference.column().name(),
                 tableInfo.ident(),
                 String.format(Locale.ENGLISH, "Cannot cast %s to type %s", SymbolPrinter.INSTANCE.printUnqualified(valueSymbol),
                     reference.valueType().getName()));
@@ -88,7 +88,7 @@ public final class ValueNormalizer {
             }
         } catch (ConversionException e) {
             throw new ColumnValidationException(
-                reference.ident().columnIdent().name(),
+                reference.column().name(),
                 tableInfo.ident(),
                 SymbolFormatter.format(
                     "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" +
@@ -114,7 +114,7 @@ public final class ValueNormalizer {
     @SuppressWarnings("unchecked")
     private static void normalizeObjectValue(Map<String, Object> value, Reference info, TableInfo tableInfo) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
-            ColumnIdent nestedIdent = ColumnIdent.getChildSafe(info.ident().columnIdent(), entry.getKey());
+            ColumnIdent nestedIdent = ColumnIdent.getChildSafe(info.column(), entry.getKey());
             Reference nestedInfo = tableInfo.getReference(nestedIdent);
             if (nestedInfo == null) {
                 if (info.columnPolicy() == ColumnPolicy.IGNORED) {
@@ -130,7 +130,7 @@ public final class ValueNormalizer {
                 DataType type = DataTypes.guessType(entry.getValue());
                 if (type == null) {
                     throw new ColumnValidationException(
-                        info.ident().columnIdent().sqlFqn(), tableInfo.ident(), "Invalid value");
+                        info.column().sqlFqn(), tableInfo.ident(), "Invalid value");
                 }
                 dynamicReference.valueType(type);
                 nestedInfo = dynamicReference;
@@ -171,7 +171,7 @@ public final class ValueNormalizer {
             return info.valueType().value(primitiveValue);
         } catch (Exception e) {
             throw new ColumnValidationException(
-                info.ident().columnIdent().sqlFqn(),
+                info.column().sqlFqn(),
                 info.ident().tableIdent(),
                 String.format(Locale.ENGLISH, "Invalid %s", info.valueType().getName())
             );

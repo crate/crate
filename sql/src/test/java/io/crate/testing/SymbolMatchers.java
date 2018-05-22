@@ -143,7 +143,7 @@ public class SymbolMatchers {
         FeatureMatcher<Symbol, String> fm = new FeatureMatcher<Symbol, String>(equalTo(expectedName), "name", "name") {
             @Override
             protected String featureValueOf(Symbol actual) {
-                return ((Reference) actual).ident().columnIdent().outputName();
+                return ((Reference) actual).column().outputName();
             }
         };
         if (dataType == null) {

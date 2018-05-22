@@ -369,7 +369,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
 
         assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
-        assertThat(((Reference) collectPhase.toCollect().get(0)).ident().columnIdent().name(), is("name"));
+        assertThat(((Reference) collectPhase.toCollect().get(0)).column().name(), is("name"));
 
         MergePhase mergePhase = globalAggregate.mergePhase();
         assertThat(mergePhase.projections().size(), is(2));

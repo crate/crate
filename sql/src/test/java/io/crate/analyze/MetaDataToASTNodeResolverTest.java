@@ -119,7 +119,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
     private static ImmutableMap<ColumnIdent, Reference> referencesMap(List<Reference> columns) {
         ImmutableMap.Builder<ColumnIdent, Reference> referencesMap = ImmutableMap.builder();
         for (Reference info : columns) {
-            referencesMap.put(info.ident().columnIdent(), info);
+            referencesMap.put(info.column(), info);
         }
         return referencesMap.build();
     }
@@ -348,7 +348,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
             ImmutableList.of(),
             new ColumnIdent("cluster_column"),
             ImmutableMap.of(),
-            ImmutableList.of(columns.get(1).ident().columnIdent()),
+            ImmutableList.of(columns.get(1).column()),
             ColumnPolicy.DYNAMIC);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);

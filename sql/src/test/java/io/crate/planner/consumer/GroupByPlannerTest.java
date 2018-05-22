@@ -327,8 +327,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         // collect
         assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
         assertThat(collectPhase.toCollect().size(), is(2));
-        assertThat(((Reference) collectPhase.toCollect().get(0)).ident().columnIdent().name(), is("id"));
-        assertThat(((Reference) collectPhase.toCollect().get(1)).ident().columnIdent().name(), is("name"));
+        assertThat(((Reference) collectPhase.toCollect().get(0)).column().name(), is("id"));
+        assertThat(((Reference) collectPhase.toCollect().get(1)).column().name(), is("name"));
         Projection projection = collectPhase.projections().get(0);
         assertThat(projection, instanceOf(GroupProjection.class));
         GroupProjection groupProjection = (GroupProjection) projection;

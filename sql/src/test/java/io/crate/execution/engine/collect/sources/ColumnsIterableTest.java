@@ -45,7 +45,7 @@ public class ColumnsIterableTest {
         ImmutableList<ColumnContext> contexts = ImmutableList.copyOf((Iterable<ColumnContext>) columns);
 
         assertThat(
-            contexts.stream().map(c -> c.info.ident().columnIdent().name()).collect(Collectors.toList()),
+            contexts.stream().map(c -> c.info.column().name()).collect(Collectors.toList()),
             Matchers.contains("a", "x", "i"));
     }
 
@@ -54,10 +54,10 @@ public class ColumnsIterableTest {
         List<String> names = new ArrayList<>(6);
         InformationSchemaIterables.ColumnsIterable columns = new InformationSchemaIterables.ColumnsIterable(T3.T1_INFO);
         for (ColumnContext column : columns) {
-            names.add(column.info.ident().columnIdent().name());
+            names.add(column.info.column().name());
         }
         for (ColumnContext column : columns) {
-            names.add(column.info.ident().columnIdent().name());
+            names.add(column.info.column().name());
         }
         assertThat(names, Matchers.contains("a", "x", "i", "a", "x", "i"));
     }

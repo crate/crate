@@ -220,14 +220,14 @@ public final class SymbolPrinter {
             List<Symbol> arguments = function.arguments();
             if (arguments.get(0) instanceof Reference &&
                     arguments.get(0).valueType() instanceof ArrayType &&
-                    ((Reference) arguments.get(0)).ident().columnIdent().path().size() > 0) {
+                    ((Reference) arguments.get(0)).column().path().size() > 0) {
                 Reference firstArgument = (Reference) arguments.get(0);
-                context.builder.append(firstArgument.ident().columnIdent().name());
+                context.builder.append(firstArgument.column().name());
                 context.builder.append("[");
                 process(arguments.get(1), context);
                 context.builder.append("]");
                 context.builder.append("['");
-                context.builder.append(firstArgument.ident().columnIdent().path().get(0));
+                context.builder.append(firstArgument.column().path().get(0));
                 context.builder.append("']");
             } else {
                 process(arguments.get(0), context);

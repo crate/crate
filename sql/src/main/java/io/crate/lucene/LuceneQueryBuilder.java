@@ -364,7 +364,7 @@ public class LuceneQueryBuilder {
 
             @Override
             protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) {
-                MappedFieldType fieldType = context.getFieldTypeOrNull(arrayReference.ident().columnIdent().fqn());
+                MappedFieldType fieldType = context.getFieldTypeOrNull(arrayReference.column().fqn());
                 if (fieldType == null) {
                     if (CollectionType.unnest(arrayReference.valueType()).equals(DataTypes.OBJECT)) {
                         return null; // fallback to generic query to enable {x=10} = any(objects)
@@ -376,7 +376,7 @@ public class LuceneQueryBuilder {
 
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) {
-                String columnName = reference.ident().columnIdent().fqn();
+                String columnName = reference.column().fqn();
                 return termsQuery(context.getFieldTypeOrNull(columnName), asList(arrayLiteral), context.queryShardContext);
             }
         }
@@ -386,7 +386,7 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) {
                 // 1 != any ( col ) -->  gt 1 or lt 1
-                String columnName = arrayReference.ident().columnIdent().fqn();
+                String columnName = arrayReference.column().fqn();
                 Object value = literal.value();
 
                 MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
@@ -409,7 +409,7 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) {
                 //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
-                String columnName = reference.ident().columnIdent().fqn();
+                String columnName = reference.column().fqn();
                 MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
                 if (fieldType == null) {
                     return Queries.newMatchNoDocsQuery("column does not exist in this index");
@@ -432,7 +432,7 @@ public class LuceneQueryBuilder {
                 String notLike = negateWildcard(regexString);
 
                 return new RegexpQuery(new Term(
-                    arrayReference.ident().columnIdent().fqn(),
+                    arrayReference.column().fqn(),
                     notLike),
                     RegexpFlag.COMPLEMENT.value()
                 );
@@ -441,7 +441,7 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) {
                 // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
-                String columnName = reference.ident().columnIdent().fqn();
+                String columnName = reference.column().fqn();
                 MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
 
                 BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
@@ -488,7 +488,7 @@ public class LuceneQueryBuilder {
                 DataType dataType = CollectionType.unnest(reference.valueType());
                 return LikeQueryBuilder.like(
                     dataType,
-                    context.getFieldTypeOrNull(reference.ident().columnIdent().fqn()),
+                    context.getFieldTypeOrNull(reference.column().fqn()),
                     value
                 );
             }
@@ -577,7 +577,7 @@ public class LuceneQueryBuilder {
                 SymbolToNotNullContext ctx = new SymbolToNotNullContext();
                 INNER_VISITOR.process(arg, ctx);
                 for (Reference reference : ctx.references()) {
-                    String columnName = reference.ident().columnIdent().fqn();
+                    String columnName = reference.column().fqn();
                     MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
                     if (fieldType == null) {
                         // probably an object column, fallback to genericFunctionFilter
@@ -610,7 +610,7 @@ public class LuceneQueryBuilder {
                     return null;
                 }
                 Reference reference = (Reference) arg;
-                String columnName = reference.ident().columnIdent().fqn();
+                String columnName = reference.column().fqn();
 
                 // ExistsQueryBuilder.newFilter doesn't build the correct exists query for arrays
                 // because ES isn't really aware of explicit array types
@@ -639,7 +639,7 @@ public class LuceneQueryBuilder {
                 }
                 Reference reference = tuple.v1();
                 Literal literal = tuple.v2();
-                String columnName = reference.ident().columnIdent().fqn();
+                String columnName = reference.column().fqn();
                 MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
                 if (fieldType == null) {
                     if (reference.valueType().equals(DataTypes.OBJECT)) {
@@ -774,7 +774,7 @@ public class LuceneQueryBuilder {
             }
 
             public Query toQuery(Reference reference, Object value, FieldTypeLookup fieldTypeLookup, QueryShardContext queryShardContext) {
-                String columnName = reference.ident().columnIdent().fqn();
+                String columnName = reference.column().fqn();
                 MappedFieldType fieldType = fieldTypeLookup.get(columnName);
                 if (fieldType == null) {
                     // can't match column that doesn't exist or is an object ( "o >= {x=10}" is not supported)
@@ -931,7 +931,7 @@ public class LuceneQueryBuilder {
                 if (prepare == null) {
                     return null;
                 }
-                String fieldName = prepare.v1().ident().columnIdent().fqn();
+                String fieldName = prepare.v1().column().fqn();
                 BytesRef pattern = BytesRefs.toBytesRef(prepare.v2().value());
                 if (pattern == null) {
                     // cannot build query using null pattern value
@@ -954,7 +954,7 @@ public class LuceneQueryBuilder {
                 if (prepare == null) {
                     return null;
                 }
-                String fieldName = prepare.v1().ident().columnIdent().fqn();
+                String fieldName = prepare.v1().column().fqn();
                 Object value = prepare.v2().value();
 
                 if (value instanceof BytesRef) {
@@ -1020,7 +1020,7 @@ public class LuceneQueryBuilder {
                     return genericFunctionFilter(inner, context);
                 }
                 GeoPointFieldMapper.GeoPointFieldType geoPointFieldType = getGeoPointFieldType(
-                    innerPair.reference().ident().columnIdent().fqn(),
+                    innerPair.reference().column().fqn(),
                     context.mapperService);
 
                 Map<String, Object> geoJSON = (Map<String, Object>) innerPair.input().value();
@@ -1100,7 +1100,7 @@ public class LuceneQueryBuilder {
 
                 String parentName = functionLiteralPair.functionName();
                 Input geoPointInput = distanceRefLiteral.input();
-                String fieldName = distanceRefLiteral.reference().ident().columnIdent().fqn();
+                String fieldName = distanceRefLiteral.reference().column().fqn();
                 Double[] pointValue = (Double[]) geoPointInput.value();
                 return esV5DistanceQuery(parent, context, parentName, fieldName, distance, pointValue);
             }
@@ -1213,7 +1213,7 @@ public class LuceneQueryBuilder {
             Symbol left = function.arguments().get(0);
             Symbol right = function.arguments().get(1);
             if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
-                String columnName = ((Reference) left).ident().columnIdent().name();
+                String columnName = ((Reference) left).column().name();
                 if (Context.FILTERED_FIELDS.contains(columnName)) {
                     context.filteredFieldValues.put(columnName, ((Input) right).value());
                     return true;
@@ -1233,13 +1233,13 @@ public class LuceneQueryBuilder {
                 Symbol right = arguments.get(1);
                 if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
                     Reference ref = (Reference) left;
-                    if (ref.ident().columnIdent().equals(DocSysColumns.UID) && context.queryShardContext().getIndexSettings().isSingleType()) {
+                    if (ref.column().equals(DocSysColumns.UID) && context.queryShardContext().getIndexSettings().isSingleType()) {
                         return new Function(
                             function.info(),
                             ImmutableList.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID), right)
                         );
                     } else {
-                        String unsupportedMessage = context.unsupportedMessage(ref.ident().columnIdent().name());
+                        String unsupportedMessage = context.unsupportedMessage(ref.column().name());
                         if (unsupportedMessage != null) {
                             throw new UnsupportedFeatureException(unsupportedMessage);
                         }
@@ -1286,7 +1286,7 @@ public class LuceneQueryBuilder {
         public Query visitReference(Reference symbol, Context context) {
             // called for queries like: where boolColumn
             if (symbol.valueType() == DataTypes.BOOLEAN) {
-                MappedFieldType fieldType = context.getFieldTypeOrNull(symbol.ident().columnIdent().fqn());
+                MappedFieldType fieldType = context.getFieldTypeOrNull(symbol.column().fqn());
                 if (fieldType == null) {
                     return Queries.newMatchNoDocsQuery("column does not exist in this index");
                 }

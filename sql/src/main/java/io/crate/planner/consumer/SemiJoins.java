@@ -109,7 +109,7 @@ final class SemiJoins {
         // Function to turn Ref(x) back into Field(rel, x); it's required for the MultiSourceSelect structure;
         // (a lot of logic that follows in the Planner after the rewrite is based on Fields)
         java.util.function.Function<? super Symbol, ? extends Symbol> refsToFields =
-            RefReplacer.replaceRefs(r -> sourceRel.getField(r.ident().columnIdent(), Operation.READ));
+            RefReplacer.replaceRefs(r -> sourceRel.getField(r.column(), Operation.READ));
 
         removeRewriteCandidatesFromWhere(rel, rewriteCandidates);
         QuerySpec newTopQS = rel.querySpec().copyAndReplace(refsToFields);
@@ -195,7 +195,7 @@ final class SemiJoins {
     static Symbol makeJoinCondition(Candidate rewriteCandidate, AnalyzedRelation sourceRel) {
         Function anyFunc = RefReplacer.replaceRefs(
             rewriteCandidate.getAnyOpFunction(),
-            r -> sourceRel.getField(r.ident().columnIdent(), Operation.READ));
+            r -> sourceRel.getField(r.column(), Operation.READ));
         String name = anyFunc.info().ident().name();
         assert name.startsWith(AnyOperator.OPERATOR_PREFIX) : "Can only create a join condition from any_";
 

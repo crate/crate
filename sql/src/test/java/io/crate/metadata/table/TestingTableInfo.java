@@ -242,7 +242,7 @@ public class TestingTableInfo extends DocTableInfo {
             references.put(ref.column(), ref);
             if (partitionBy) {
                 partitionedByColumns.add(ref);
-                partitionedBy.add(ref.ident().columnIdent());
+                partitionedBy.add(ref.column());
             }
             return this;
         }

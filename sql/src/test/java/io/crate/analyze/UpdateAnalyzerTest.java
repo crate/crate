@@ -208,7 +208,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref.ident().tableIdent().name(), is("users"));
-        assertThat(ref.ident().columnIdent().name(), is("name"));
+        assertThat(ref.column().name(), is("name"));
         assertTrue(update.assignmentByTargetCol().containsKey(ref));
 
         Symbol value = update.assignmentByTargetCol().entrySet().iterator().next().getValue();
@@ -223,8 +223,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref, instanceOf(DynamicReference.class));
         Assert.assertEquals(DataTypes.LONG, ref.valueType());
-        assertThat(ref.ident().columnIdent().isTopLevel(), is(false));
-        assertThat(ref.ident().columnIdent().fqn(), is("details.arms"));
+        assertThat(ref.column().isTopLevel(), is(false));
+        assertThat(ref.column().fqn(), is("details.arms"));
     }
 
     @Test

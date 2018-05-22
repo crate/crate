@@ -22,24 +22,24 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.expression.symbol.Symbol;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.CloseAssertingBatchIterator;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.engine.collect.RowsTransformer;
 import io.crate.execution.engine.collect.stats.NodeStatsRequest;
 import io.crate.execution.engine.collect.stats.NodeStatsResponse;
 import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
+import io.crate.expression.InputFactory;
+import io.crate.expression.reference.StaticTableReferenceResolver;
+import io.crate.expression.reference.sys.node.NodeStatsContext;
+import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.expression.InputFactory;
-import io.crate.execution.engine.collect.RowsTransformer;
-import io.crate.expression.reference.StaticTableReferenceResolver;
-import io.crate.expression.reference.sys.node.NodeStatsContext;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.unit.TimeValue;
@@ -242,7 +242,7 @@ public class NodeStatsIterator implements BatchIterator<Row> {
 
         @Override
         public Void visitReference(Reference symbol, Set<ColumnIdent> context) {
-            context.add(symbol.ident().columnIdent().getRoot());
+            context.add(symbol.column().getRoot());
             return null;
         }
     }
