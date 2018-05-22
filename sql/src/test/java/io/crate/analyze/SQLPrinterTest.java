@@ -106,7 +106,11 @@ public class SQLPrinterTest extends CrateDummyClusterServiceUnitTest {
             $("select (select \"user\" from t1 limit 1), x from t1",
                 "SELECT (SELECT doc.t1.\"user\" FROM doc.t1 LIMIT 1), doc.t1.x FROM doc.t1"),
 
+            // scalar values / table functions
             $("select 1", "SELECT 1 FROM empty_row()"),
+            $("select 1 group by 1 order by 1;", "SELECT 1 FROM empty_row() GROUP BY \"1\" ORDER BY \"1\" ASC"),
+            $("select 2 group by 1 order by 1;", "SELECT 2 FROM empty_row() GROUP BY \"2\" ORDER BY \"2\" ASC"),
+            $("select 2 as two, 1 as eins group by eins order by eins;", "SELECT 2 AS two, 1 AS eins FROM empty_row() GROUP BY eins ORDER BY eins ASC"),
             $("select * from unnest([1, 2])", "SELECT col1 FROM unnest([1, 2])"),
             $("select col1 as x from unnest([1, 2])", "SELECT col1 AS x FROM unnest([1, 2])"),
             $("select col1 as x from unnest([1, 2]) t", "SELECT col1 AS x FROM unnest([1, 2]) AS t"),
@@ -126,6 +130,8 @@ public class SQLPrinterTest extends CrateDummyClusterServiceUnitTest {
 
             // VIEW (simple)
             $("select * from v1", "SELECT doc.v1.x, doc.v1.\"user\" FROM doc.v1"),
+            // VIEW (alias)
+            $("select x, \"user\" as u from v1", "SELECT doc.v1.x, doc.v1.\"user\" AS u FROM doc.v1"),
             // VIEW (order by)
             $("select * from v1 order by \"user\"", "SELECT doc.v1.x, doc.v1.\"user\" FROM doc.v1 ORDER BY doc.v1.\"user\" ASC"),
             // VIEW (order by / limit / offset)

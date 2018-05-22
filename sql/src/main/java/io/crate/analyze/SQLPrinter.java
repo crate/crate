@@ -101,7 +101,7 @@ public final class SQLPrinter {
         @Override
         public Void visitOrderedLimitedRelation(OrderedLimitedRelation relation, StringBuilder sb) {
             process(relation.childRelation(), sb);
-            addOrderBy(sb, relation.orderBy());
+            addOrderBy(sb, relation.orderBy(), relation.outputs(), relation.fields());
             clauseAndSymbol(sb, "LIMIT", relation.limit());
             clauseAndSymbol(sb, "OFFSET", relation.offset());
             return null;
@@ -122,9 +122,9 @@ public final class SQLPrinter {
             addOutputs(relation, sb);
             addFrom(sb, relation);
             clauseAndQuery(sb, "WHERE", relation.where());
-            addGroupBy(sb, relation.groupBy());
+            addGroupBy(sb, relation.groupBy(), relation.outputs(), relation.fields());
             clauseAndQuery(sb, "HAVING", relation.having());
-            addOrderBy(sb, relation.orderBy());
+            addOrderBy(sb, relation.orderBy(), relation.outputs(), relation.fields());
             clauseAndSymbol(sb, "LIMIT", relation.limit());
             clauseAndSymbol(sb, "OFFSET", relation.offset());
             return null;
@@ -173,14 +173,14 @@ public final class SQLPrinter {
             clauseAndSymbol(sb, clause, query.query());
         }
 
-        private void addOrderBy(StringBuilder sb, @Nullable OrderBy orderBy) {
+        private void addOrderBy(StringBuilder sb, @Nullable OrderBy orderBy, List<Symbol> outputs, List<Field> fields) {
             if (orderBy == null || orderBy.orderBySymbols().isEmpty()) {
                 return;
             }
             sb.append(" ORDER BY ");
             for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
-                Symbol symbol = orderBy.orderBySymbols().get(i);
-                sb.append(printSymbol(symbol));
+                Symbol orderBySymbol = orderBy.orderBySymbols().get(i);
+                sb.append(resolveOutputName(orderBySymbol, outputs, fields));
                 sb.append(" ");
                 sb.append(orderBy.reverseFlags()[i] ? "DESC" : "ASC");
                 Boolean nullsFirst = orderBy.nullsFirst()[i];
@@ -192,19 +192,14 @@ public final class SQLPrinter {
             }
         }
 
-        private void addGroupBy(StringBuilder sb, List<Symbol> groupKeys) {
+        private void addGroupBy(StringBuilder sb, List<Symbol> groupKeys, List<Symbol> outputs, List<Field> fields) {
             if (groupKeys.isEmpty()) {
                 return;
             }
             sb.append(" GROUP BY ");
             for (int i = 0; i < groupKeys.size(); i++) {
-                Symbol groupKey = groupKeys.get(i);
-                if (groupKey.symbolType() == SymbolType.LITERAL) {
-                    sb.append(Identifiers.quoteIfNeeded(printSymbol(groupKey)));
-                } else {
-                    sb.append(printSymbol(groupKey));
-                }
-
+                Symbol groupKeySymbol = groupKeys.get(i);
+                sb.append(resolveOutputName(groupKeySymbol, outputs, fields));
                 addCommaIfNotLast(sb, groupKeys.size(), i);
             }
         }
@@ -234,7 +229,7 @@ public final class SQLPrinter {
                     sb.append(" AS ");
                     sb.append(field.outputName());
                 }
-            } else if (output instanceof Function) {
+            } else if (output instanceof Function || output instanceof Literal) {
                 String name = printSymbol(output);
                 sb.append(name);
                 if (!name.equals(field.outputName())) {
@@ -358,6 +353,20 @@ public final class SQLPrinter {
             } else {
                 throw new IllegalStateException("Unknown relation: " + relation);
             }
+        }
+
+        private String resolveOutputName(Symbol symbol, List<Symbol> outputs, List<Field> fields) {
+            if (symbol.symbolType() == SymbolType.LITERAL) {
+                int outputIndex = outputs.indexOf(symbol);
+                if (outputIndex != -1) {
+                    // If the Literal is aliased, then we have to use that alias
+                    return Identifiers.quoteIfNeeded(fields.get(outputIndex).outputName());
+                } else {
+                    // Literals have to be quoted (otherwise it would be a positional group by / order by).
+                    return Identifiers.quoteIfNeeded(printSymbol(symbol));
+                }
+            }
+            return printSymbol(symbol);
         }
 
         @Override
