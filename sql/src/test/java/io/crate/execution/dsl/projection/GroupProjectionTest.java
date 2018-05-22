@@ -22,12 +22,12 @@
 package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -37,17 +37,15 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
 
 public class GroupProjectionTest extends CrateUnitTest {
 
-
     @Test
     public void testStreaming() throws Exception {
         ImmutableList<Symbol> keys = ImmutableList.of(
-            createReference("foo", DataTypes.STRING),
-            createReference("bar", DataTypes.SHORT)
+            new InputColumn(0, DataTypes.STRING),
+            new InputColumn(1, DataTypes.SHORT)
         );
         ImmutableList<Aggregation> aggregations = ImmutableList.of();
         GroupProjection p = new GroupProjection(keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER);
@@ -63,8 +61,7 @@ public class GroupProjectionTest extends CrateUnitTest {
 
     @Test
     public void testStreaming2() throws Exception {
-        Reference nameRef = createReference("name", DataTypes.STRING);
-        List<Symbol> keys = Collections.singletonList(nameRef);
+        List<Symbol> keys = Collections.singletonList(new InputColumn(0, DataTypes.STRING));
         List<Aggregation> aggregations = Collections.singletonList(
             new Aggregation(
                 CountAggregation.COUNT_STAR_FUNCTION,
@@ -89,8 +86,8 @@ public class GroupProjectionTest extends CrateUnitTest {
     @Test
     public void testStreamingGranularity() throws Exception {
         ImmutableList<Symbol> keys = ImmutableList.of(
-            createReference("foo", DataTypes.STRING),
-            createReference("bar", DataTypes.SHORT)
+            new InputColumn(0, DataTypes.STRING),
+            new InputColumn(1, DataTypes.SHORT)
         );
         ImmutableList<Aggregation> aggregations = ImmutableList.of();
         GroupProjection p = new GroupProjection(keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.SHARD);

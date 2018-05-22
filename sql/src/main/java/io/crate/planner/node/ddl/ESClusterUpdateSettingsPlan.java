@@ -21,13 +21,13 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.ESClusterUpdateSettingsTask;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Expression;
 
 import java.util.HashMap;
@@ -67,7 +67,7 @@ public class ESClusterUpdateSettingsPlan implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         ESClusterUpdateSettingsTask task = new ESClusterUpdateSettingsTask(
             this, executor.transportActionProvider().transportClusterUpdateSettingsAction());
         task.execute(consumer, params);

@@ -34,6 +34,7 @@ import io.crate.metadata.Reference;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dml.UpdateById;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -44,7 +45,6 @@ import org.junit.Test;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
-import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -66,7 +66,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateByQueryPlan() throws Exception {
         UpdatePlanner.Update plan = e.plan("update users set name='Vogon lyric fan'");
         Merge merge = (Merge) plan.createExecutionPlan.create(
-            e.getPlannerContext(clusterService.state()), Row.EMPTY, emptyMap());
+            e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY);
 
         Collect collect = (Collect) merge.subPlan();
 
@@ -101,7 +101,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(updateById.assignmentByTargetCol().values(), contains(isLiteral("Vogon lyric fan")));
         assertThat(updateById.docKeys().size(), is(1));
 
-        assertThat(updateById.docKeys().getOnlyKey().getId(e.functions(), Row.EMPTY, emptyMap()), is("1"));
+        assertThat(updateById.docKeys().getOnlyKey().getId(e.functions(), Row.EMPTY, SubQueryResults.EMPTY), is("1"));
     }
 
     @Test
@@ -123,7 +123,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateOnEmptyPartitionedTable() throws Exception {
         UpdatePlanner.Update update = e.plan("update empty_parted set name='Vogon lyric fan'");
         Collect collect = (Collect) update.createExecutionPlan.create(
-            e.getPlannerContext(clusterService.state()), Row.EMPTY, emptyMap());
+            e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY);
         assertThat(((RoutedCollectPhase) collect.collectPhase()).routing().nodes(), Matchers.emptyIterable());
     }
 }

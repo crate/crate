@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.dml;
 
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -30,9 +29,9 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class DeleteById implements Plan {
@@ -58,7 +57,7 @@ public class DeleteById implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         DeleteByIdTask task = new DeleteByIdTask(
             plannerContext.jobId(),
             executor.clusterService(),
@@ -66,14 +65,14 @@ public class DeleteById implements Plan {
             executor.transportActionProvider().transportShardDeleteAction(),
             this
         );
-        task.execute(consumer, params, valuesBySubQuery);
+        task.execute(consumer, params, subQueryResults);
     }
 
     @Override
     public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
                                                      PlannerContext plannerContext,
                                                      List<Row> bulkParams,
-                                                     Map<SelectSymbol, Object> valuesBySubQuery) {
+                                                     SubQueryResults subQueryResults) {
         DeleteByIdTask task = new DeleteByIdTask(
             plannerContext.jobId(),
             executor.clusterService(),
@@ -81,6 +80,6 @@ public class DeleteById implements Plan {
             executor.transportActionProvider().transportShardDeleteAction(),
             this
         );
-        return task.executeBulk(bulkParams, valuesBySubQuery);
+        return task.executeBulk(bulkParams, subQueryResults);
     }
 }

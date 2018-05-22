@@ -30,13 +30,13 @@ import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -78,7 +78,7 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan.docKeys().size(), is(2));
         List<String> docKeys = Lists.newArrayList(plan.docKeys())
             .stream()
-            .map(x -> x.getId(e.functions(), Row.EMPTY, Collections.emptyMap()))
+            .map(x -> x.getId(e.functions(), Row.EMPTY, SubQueryResults.EMPTY))
             .collect(Collectors.toList());
 
         assertThat(docKeys, Matchers.containsInAnyOrder("1", "2"));

@@ -25,13 +25,11 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 
 import javax.annotation.Nullable;
-import java.util.Map;
 
 /**
  * An operator with the primary purpose to ensure that the result is on the handler and no longer distributed.
@@ -50,7 +48,7 @@ public class RootRelationBoundary extends OneInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
         return Merge.ensureOnHandler(source.build(
             plannerContext,
             projectionBuilder,
@@ -59,7 +57,7 @@ public class RootRelationBoundary extends OneInputPlan {
             null,
             null,
             params,
-            subQueryValues
+            subQueryResults
         ), plannerContext);
     }
 

@@ -22,16 +22,15 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.delete.DeleteAllPartitionsTask;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.DependencyCarrier;
+import io.crate.planner.operators.SubQueryResults;
 
 import java.util.List;
-import java.util.Map;
 
 public final class DeleteAllPartitions implements Plan {
 
@@ -50,7 +49,7 @@ public final class DeleteAllPartitions implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         DeleteAllPartitionsTask task = new DeleteAllPartitionsTask(
             this, executor.transportActionProvider().transportDeleteIndexAction());
         task.execute(consumer);

@@ -175,7 +175,7 @@ public interface LogicalPlan extends Plan {
                         @Nullable OrderBy order,
                         @Nullable Integer pageSizeHint,
                         Row params,
-                        Map<SelectSymbol, Object> subQueryValues);
+                        SubQueryResults subQueryResults);
 
     List<Symbol> outputs();
 
@@ -207,7 +207,7 @@ public interface LogicalPlan extends Plan {
     /**
      * SubQueries that this plan depends on to be able to execute it.
      *
-     * valuesBySubQuery in {@link #execute(DependencyCarrier, PlannerContext, RowConsumer, Row, Map)}
+     * valuesBySubQuery in {@link #execute(DependencyCarrier, PlannerContext, RowConsumer, Row, SubQueryResults)}
      * must receive 1 entry per selectSymbol contained in the dependencies here.
      *
      * Note that currently {@link MultiPhase} is injected into the operator-tree to declare the dependencies.
@@ -228,8 +228,8 @@ public interface LogicalPlan extends Plan {
                          PlannerContext plannerContext,
                          RowConsumer consumer,
                          Row params,
-                         Map<SelectSymbol, Object> valuesBySubQuery) {
-        LogicalPlanner.execute(this, executor, plannerContext, consumer, params, valuesBySubQuery);
+                         SubQueryResults subQueryResults) {
+        LogicalPlanner.execute(this, executor, plannerContext, consumer, params, subQueryResults);
     }
 
     <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context);

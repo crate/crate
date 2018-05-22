@@ -69,7 +69,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -311,18 +310,14 @@ public class LogicalPlanner {
                                PlannerContext plannerContext,
                                RowConsumer consumer,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
         if (logicalPlan.dependencies().isEmpty()) {
-            doExecute(logicalPlan, executor, plannerContext, consumer, params, subQueryValues);
+            doExecute(logicalPlan, executor, plannerContext, consumer, params, subQueryResults);
         } else {
             MultiPhaseExecutor.execute(logicalPlan.dependencies(), executor, plannerContext, params)
                 .whenComplete((valueBySubQuery, failure) -> {
                     if (failure == null) {
-                        try {
-                            doExecute(logicalPlan, executor, plannerContext, consumer, params, valueBySubQuery);
-                        } catch (Exception e) {
-                            consumer.accept(null, e);
-                        }
+                        doExecute(logicalPlan, executor, plannerContext, consumer, params, valueBySubQuery);
                     } else {
                         consumer.accept(null, failure);
                     }
@@ -335,14 +330,16 @@ public class LogicalPlanner {
                                   PlannerContext plannerContext,
                                   RowConsumer consumer,
                                   Row params,
-                                  Map<SelectSymbol, Object> subQueryValues) {
-        ExecutionPlan executionPlan = logicalPlan.build(
-            plannerContext, executor.projectionBuilder(), -1, 0, null, null, params, subQueryValues);
-
-        // Ideally we'd include the binding into the `build` step and avoid the after-the-fact symbol mutation
-        ExecutionPlanSymbolMapper.map(executionPlan, new SubQueryAndParamBinder(params, subQueryValues));
-
-        NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
+                                  SubQueryResults subQueryResults) {
+        NodeOperationTree nodeOpTree;
+        try {
+            ExecutionPlan executionPlan = logicalPlan.build(
+                plannerContext, executor.projectionBuilder(), -1, 0, null, null, params, subQueryResults);
+            nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
+        } catch (Throwable t) {
+            consumer.accept(null, t);
+            return;
+        }
         executor.phasesTaskFactory()
             .create(plannerContext.jobId(), Collections.singletonList(nodeOpTree))
             .execute(consumer);

@@ -23,16 +23,14 @@
 package io.crate.planner.node.ddl;
 
 
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.tables.CreateAnalyzerTask;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.DependencyCarrier;
+import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.common.settings.Settings;
-
-import java.util.Map;
 
 public class CreateAnalyzerPlan implements Plan {
 
@@ -51,7 +49,7 @@ public class CreateAnalyzerPlan implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         CreateAnalyzerTask task = new CreateAnalyzerTask(
             this, executor.transportActionProvider().transportClusterUpdateSettingsAction());
         task.execute(consumer);

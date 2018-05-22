@@ -73,7 +73,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
             null,
             null,
             Row.EMPTY,
-            Collections.emptyMap()
+            SubQueryResults.EMPTY
         );
         io.crate.planner.node.dql.Collect collect = (io.crate.planner.node.dql.Collect) merge.subPlan();
         assertThat(collect.collectPhase().projections(), contains(

@@ -32,13 +32,12 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 
 public class CountPhase implements UpstreamPhase {
 
     private final int executionPhaseId;
     private final Routing routing;
-    private Symbol where;
+    private final Symbol where;
     private DistributionInfo distributionInfo;
 
     public CountPhase(int executionPhaseId,
@@ -102,10 +101,6 @@ public class CountPhase implements UpstreamPhase {
         routing.writeTo(out);
         Symbols.toStream(where, out);
         distributionInfo.writeTo(out);
-    }
-
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        where = replaceFunction.apply(where);
     }
 
     @Override

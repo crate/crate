@@ -24,10 +24,10 @@ package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.OrderBy;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.collections.Lists2;
 import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -38,7 +38,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 public class OrderedTopNProjection extends Projection {
 
@@ -55,10 +54,10 @@ public class OrderedTopNProjection extends Projection {
                                  List<Symbol> orderBy,
                                  boolean[] reverseFlags,
                                  Boolean[] nullsFirst) {
-        assert outputs.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
-            : "OrderedTopNProjection outputs cannot contain Field or Reference symbols: " + outputs;
-        assert orderBy.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
-            : "OrderedTopNProjection orderBy cannot contain Field or Reference symbols: " + orderBy;
+        assert outputs.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+            : "OrderedTopNProjection outputs cannot contain Field, Reference or SelectSymbol symbols: " + outputs;
+        assert orderBy.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+            : "OrderedTopNProjection orderBy cannot contain Field, Reference or SelectSymbol symbols: " + orderBy;
         assert orderBy.size() == reverseFlags.length : "reverse flags length does not match orderBy items count";
         assert orderBy.size() == nullsFirst.length : "nullsFirst length does not match orderBy items count";
 
@@ -109,12 +108,6 @@ public class OrderedTopNProjection extends Projection {
 
     public Boolean[] nullsFirst() {
         return nullsFirst;
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        Lists2.replaceItems(outputs, replaceFunction);
-        Lists2.replaceItems(orderBy, replaceFunction);
     }
 
     @Override

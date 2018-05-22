@@ -35,7 +35,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * IndexWriterProjector that gets its values from a source input
@@ -124,10 +123,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     @Nullable
     public String[] excludes() {
         return excludes;
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
     }
 
     @Override

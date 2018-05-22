@@ -28,7 +28,6 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -37,7 +36,6 @@ import io.crate.planner.PositionalOrderBy;
 
 import javax.annotation.Nullable;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Set;
 
 class Order extends OneInputPlan {
@@ -69,9 +67,9 @@ class Order extends OneInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
-            plannerContext, projectionBuilder, limit, offset, orderBy, pageSizeHint, params, subQueryValues);
+            plannerContext, projectionBuilder, limit, offset, orderBy, pageSizeHint, params, subQueryResults);
         if (executionPlan.resultDescription().orderBy() != null) {
             // Collect applied ORDER BY eagerly to produce a optimized execution plan;
             if (source instanceof Collect) {

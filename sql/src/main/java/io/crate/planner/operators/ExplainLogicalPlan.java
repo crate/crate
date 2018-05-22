@@ -35,7 +35,6 @@ import io.crate.planner.ExplainLeaf;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.PlannerContext;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,7 +58,7 @@ public class ExplainLogicalPlan {
                 null,
                 null,
                 Row.EMPTY,
-                Collections.emptyMap());
+                SubQueryResults.EMPTY);
             return PlanPrinter.objectMap(executionPlan);
         } catch (Exception e) {
             return VISITOR.process(logicalPlan, new Context(plannerContext, projectionBuilder)).build();

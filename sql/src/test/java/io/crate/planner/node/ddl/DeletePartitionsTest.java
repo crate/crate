@@ -24,12 +24,11 @@ package io.crate.planner.node.ddl;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.RowN;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-
-import static java.util.Collections.emptyMap;
 
 public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -42,12 +41,12 @@ public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
 
         Object[] args1 = {"1395874800000"};
         assertThat(
-            plan.getIndices(e.functions(), new RowN(args1), emptyMap()),
+            plan.getIndices(e.functions(), new RowN(args1), SubQueryResults.EMPTY),
             Matchers.containsInAnyOrder(".partitioned.parted_pks.04732cpp6ks3ed1o60o30c1g"));
 
         Object[] args2 = {"1395961200000"};
         assertThat(
-            plan.getIndices(e.functions(), new RowN(args2), emptyMap()),
+            plan.getIndices(e.functions(), new RowN(args2), SubQueryResults.EMPTY),
             Matchers.containsInAnyOrder(".partitioned.parted_pks.04732cpp6ksjcc9i60o30c1g"));
     }
 

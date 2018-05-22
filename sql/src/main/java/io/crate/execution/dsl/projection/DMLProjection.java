@@ -34,7 +34,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.function.Function;
 
 public abstract class DMLProjection extends Projection {
 
@@ -42,7 +41,7 @@ public abstract class DMLProjection extends Projection {
         new Value(DataTypes.LONG)  // number of rows updated
     );
 
-    Symbol uidSymbol;
+    final Symbol uidSymbol;
 
     DMLProjection(Symbol uidSymbol) {
         this.uidSymbol = uidSymbol;
@@ -82,10 +81,5 @@ public abstract class DMLProjection extends Projection {
     @Override
     public RowGranularity requiredGranularity() {
         return RowGranularity.SHARD;
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        uidSymbol = replaceFunction.apply(uidSymbol);
     }
 }

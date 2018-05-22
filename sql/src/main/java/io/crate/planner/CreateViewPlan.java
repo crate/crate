@@ -30,9 +30,7 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.views.CreateViewRequest;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.expression.symbol.SelectSymbol;
-
-import java.util.Map;
+import io.crate.planner.operators.SubQueryResults;
 
 public final class CreateViewPlan implements Plan {
 
@@ -47,7 +45,7 @@ public final class CreateViewPlan implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
 
         User owner = createViewStmt.owner();
         CreateViewRequest request = new CreateViewRequest(

@@ -23,16 +23,14 @@
 package io.crate.planner.node.dcl;
 
 import io.crate.analyze.DCLStatement;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.DependencyCarrier;
-
-import java.util.Map;
+import io.crate.planner.operators.SubQueryResults;
 
 public class GenericDCLPlan implements Plan {
 
@@ -47,7 +45,7 @@ public class GenericDCLPlan implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         executor.dclAction().apply(statement, params)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }

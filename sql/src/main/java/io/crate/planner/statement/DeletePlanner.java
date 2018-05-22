@@ -41,7 +41,6 @@ import io.crate.execution.engine.pipeline.TopN;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
@@ -63,6 +62,7 @@ import io.crate.planner.node.ddl.DeleteAllPartitions;
 import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -70,7 +70,6 @@ import org.elasticsearch.action.support.IndicesOptions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -121,13 +120,13 @@ public final class DeletePlanner {
                             PlannerContext plannerContext,
                             RowConsumer consumer,
                             Row params,
-                            Map<SelectSymbol, Object> valuesBySubQuery) {
+                            SubQueryResults subQueryResults) {
 
             WhereClause where = detailedQuery.toBoundWhereClause(
                 table.tableInfo(),
                 executor.functions(),
                 params,
-                valuesBySubQuery,
+                subQueryResults,
                 plannerContext.transactionContext()
             );
             if (!where.partitions().isEmpty() && !where.hasQuery()) {
@@ -149,14 +148,14 @@ public final class DeletePlanner {
         public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
                                                          PlannerContext plannerContext,
                                                          List<Row> bulkParams,
-                                                         Map<SelectSymbol, Object> valuesBySubQuery) {
+                                                         SubQueryResults subQueryResults) {
             ArrayList<NodeOperationTree> nodeOperationTreeList = new ArrayList<>(bulkParams.size());
             for (Row params : bulkParams) {
                 WhereClause where = detailedQuery.toBoundWhereClause(
                     table.tableInfo(),
                     executor.functions(),
                     params,
-                    valuesBySubQuery,
+                    subQueryResults,
                     plannerContext.transactionContext());
                 ExecutionPlan executionPlan = deleteByQuery(table, plannerContext, where);
                 nodeOperationTreeList.add(NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId()));

@@ -32,7 +32,6 @@ import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.planner.ExecutionPlan;
@@ -43,7 +42,6 @@ import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.Map;
 
 /**
  * An optimized version for "select count(*) from t where ..."
@@ -69,13 +67,13 @@ public class Count extends ZeroInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
         // bind all parameters and possible subQuery values and re-analyze the query
         // (could result in a NO_MATCH, routing could've changed, etc).
         WhereClause boundWhere = WhereClauseAnalyzer.bindAndAnalyze(
             where,
             params,
-            subQueryValues,
+            subQueryResults,
             tableRelation,
             plannerContext.functions(),
             plannerContext.transactionContext());

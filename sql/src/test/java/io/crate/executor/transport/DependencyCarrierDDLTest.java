@@ -33,6 +33,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
 import io.crate.testing.TestingRowConsumer;
@@ -48,7 +49,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -231,7 +231,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
             null,
             consumer,
             params,
-            Collections.emptyMap()
+            SubQueryResults.EMPTY
         );
         return consumer.getBucket();
     }

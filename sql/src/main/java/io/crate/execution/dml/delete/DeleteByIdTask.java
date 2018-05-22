@@ -26,15 +26,14 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.ShardRequestExecutor;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.metadata.Functions;
 import io.crate.planner.node.dml.DeleteById;
+import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -60,12 +59,12 @@ public class DeleteByIdTask {
         );
     }
 
-    public void execute(final RowConsumer consumer, Row parameters, Map<SelectSymbol, Object> valuesBySubQuery) {
-        executor.execute(consumer, parameters, valuesBySubQuery);
+    public void execute(final RowConsumer consumer, Row parameters, SubQueryResults subQueryResults) {
+        executor.execute(consumer, parameters, subQueryResults);
     }
 
-    public final List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, Map<SelectSymbol, Object> valuesBySubQuery) {
-        return executor.executeBulk(bulkParams, valuesBySubQuery);
+    public final List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, SubQueryResults subQueryResults) {
+        return executor.executeBulk(bulkParams, subQueryResults);
     }
 
 
@@ -87,7 +86,7 @@ public class DeleteByIdTask {
         }
 
         @Override
-        public void bind(Row parameters, Map<SelectSymbol, Object> valuesBySubQuery) {
+        public void bind(Row parameters, SubQueryResults subQueryResults) {
         }
 
         @Override

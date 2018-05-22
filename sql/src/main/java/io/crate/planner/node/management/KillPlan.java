@@ -22,21 +22,20 @@
 package io.crate.planner.node.management;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.execution.support.OneRowActionListener;
 import io.crate.execution.jobs.kill.KillAllRequest;
 import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -76,7 +75,7 @@ public class KillPlan implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         execute(
             executor.transportActionProvider().transportKillAllNodeAction(),
             executor.transportActionProvider().transportKillJobsNodeAction(),

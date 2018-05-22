@@ -31,7 +31,6 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.SymbolFormatter;
@@ -49,7 +48,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public class HashAggregate extends OneInputPlan {
 
@@ -69,10 +67,10 @@ public class HashAggregate extends OneInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
         AggregationOutputValidator.validateOutputs(aggregates);
         ExecutionPlan executionPlan = source.build(
-            plannerContext, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null, params, subQueryValues);
+            plannerContext, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null, params, subQueryResults);
 
         List<Symbol> sourceOutputs = source.outputs();
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {

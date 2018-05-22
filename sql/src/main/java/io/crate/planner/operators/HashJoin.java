@@ -104,11 +104,11 @@ class HashJoin extends TwoInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
         ExecutionPlan leftExecutionPlan = lhs.build(
-            plannerContext, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryValues);
+            plannerContext, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
         ExecutionPlan rightExecutionPlan = rhs.build(
-            plannerContext, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryValues);
+            plannerContext, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;

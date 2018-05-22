@@ -22,11 +22,12 @@
 
 package io.crate.planner;
 
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.MultiPhaseExecutor;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.SubQueryResults;
 
 import java.util.Map;
 
@@ -66,7 +67,7 @@ public class MultiPhasePlan implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         MultiPhaseExecutor.execute(dependencies, executor, plannerContext, params)
             .whenComplete((subQueryValues, failure) -> {
                 if (failure == null) {

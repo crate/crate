@@ -23,12 +23,12 @@ package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.scalar.FormatFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.Value;
-import io.crate.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -36,7 +36,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.expression.scalar.FormatFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
@@ -145,14 +144,6 @@ public class WriterProjection extends Projection {
 
     public List<Symbol> inputs() {
         return inputs;
-    }
-
-    @Override
-    public void replaceSymbols(java.util.function.Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        Lists2.replaceItems(inputs, replaceFunction);
-        for (Map.Entry<ColumnIdent, Symbol> entry : overwrites.entrySet()) {
-            entry.setValue(replaceFunction.apply(entry.getValue()));
-        }
     }
 
     @Override

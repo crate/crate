@@ -40,13 +40,13 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.elasticsearch.common.Randomness;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -182,7 +182,7 @@ class BulkPortal extends AbstractPortal {
             executor,
             plannerContext,
             bulkParams,
-            Collections.emptyMap()
+            SubQueryResults.EMPTY
         );
         CompletableFuture<Void> allFutures = CompletableFuture.allOf(rowCounts.toArray(new CompletableFuture[0]));
 

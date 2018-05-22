@@ -22,12 +22,11 @@
 
 package io.crate.planner;
 
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.planner.operators.SubQueryResults;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -39,12 +38,12 @@ public interface Plan {
                  PlannerContext plannerContext,
                  RowConsumer consumer,
                  Row params,
-                 Map<SelectSymbol, Object> valuesBySubQuery);
+                 SubQueryResults subQueryResults);
 
     default List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
                                                       PlannerContext plannerContext,
                                                       List<Row> bulkParams,
-                                                      Map<SelectSymbol, Object> valuesBySubQuery) {
+                                                      SubQueryResults subQueryResults) {
         throw new UnsupportedOperationException(
             "Bulk operation not supported for " + this.getClass().getSimpleName());
     }

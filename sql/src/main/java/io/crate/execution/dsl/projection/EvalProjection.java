@@ -23,7 +23,7 @@
 package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.collections.Lists2;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
@@ -34,7 +34,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * Projection which can evaluate functions or re-order columns
@@ -44,18 +43,14 @@ public class EvalProjection extends Projection {
     private final List<Symbol> outputs;
 
     public EvalProjection(List<Symbol> outputs) {
-        assert outputs.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
-            : "EvalProjection doesn't support Field or Reference symbols, got: " + outputs;
+        assert outputs.stream().noneMatch(
+            s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+            : "EvalProjection doesn't support Field, Reference or SelectSymbol symbols, got: " + outputs;
         this.outputs = outputs;
     }
 
     public EvalProjection(StreamInput in) throws IOException {
         this.outputs = Symbols.listFromStream(in);
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        Lists2.replaceItems(outputs, replaceFunction);
     }
 
     @Override

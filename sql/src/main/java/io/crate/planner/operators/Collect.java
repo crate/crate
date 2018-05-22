@@ -42,7 +42,6 @@ import io.crate.expression.predicate.MatchPredicate;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -66,7 +65,6 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
@@ -199,11 +197,11 @@ class Collect extends ZeroInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
-        RoutedCollectPhase collectPhase = createPhase(plannerContext, params, subQueryValues);
+                               SubQueryResults subQueryResults) {
+        RoutedCollectPhase collectPhase = createPhase(plannerContext, params, subQueryResults);
         PositionalOrderBy positionalOrderBy = getPositionalOrderBy(order, outputs);
         if (positionalOrderBy != null) {
-            collectPhase.orderBy(order);
+            collectPhase.orderBy(order.copyAndReplace(s -> SubQueryAndParamBinder.convert(s, params, subQueryResults)));
         }
         int limitAndOffset = limitAndOffset(limit, offset);
         maybeApplyPageSize(limitAndOffset, pageSizeHint, collectPhase);
@@ -265,8 +263,24 @@ class Collect extends ZeroInputPlan {
         }
     }
 
-    private RoutedCollectPhase createPhase(PlannerContext plannerContext, Row params, Map<SelectSymbol, Object> subQueryValues) {
+    private RoutedCollectPhase createPhase(PlannerContext plannerContext, Row params, SubQueryResults subQueryResults) {
         SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
+        // bind all parameters and possible subQuery values and re-analyze the query
+        // (could result in a NO_MATCH, routing could've changed, etc).
+        // the <p>where</p> instance variable must be overwritten as the plan creation of outer operators relies on it
+        // (e.g. GroupHashAggregate will build different plans based on the collect routing)
+        where = WhereClauseAnalyzer.bindAndAnalyze(
+            where,
+            params,
+            subQueryResults,
+            relation.tableRelation(),
+            plannerContext.functions(),
+            plannerContext.transactionContext());
+        List<Symbol> boundOutputs = new ArrayList<>(outputs.size());
+        for (Symbol output : outputs) {
+            boundOutputs.add(SubQueryAndParamBinder.convert(output, params, subQueryResults));
+        }
+
         if (relation.tableRelation() instanceof TableFunctionRelation) {
             TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation.tableRelation();
             List<Symbol> args = tableFunctionRelation.function().arguments();
@@ -276,7 +290,7 @@ class Collect extends ZeroInputPlan {
                 functionArguments.add(
                     Literal.of(
                         arg.valueType(),
-                        SymbolEvaluator.evaluate(plannerContext.functions(), arg, params, subQueryValues)
+                        SymbolEvaluator.evaluate(plannerContext.functions(), arg, params, subQueryResults)
                     )
                 );
             }
@@ -287,27 +301,10 @@ class Collect extends ZeroInputPlan {
                 tableFunctionRelation.functionImplementation(),
                 functionArguments,
                 Collections.emptyList(),
-                outputs,
+                boundOutputs,
                 where.queryOrFallback()
             );
         }
-
-        // bind all parameters and possible subQuery values and re-analyze the query
-        // (could result in a NO_MATCH, routing could've changed, etc).
-        // the <p>where</p> instance variable must be overwritten as the plan creation of outer operators relies on it
-        // (e.g. GroupHashAggregate will build different plans based on the collect routing)
-        where = WhereClauseAnalyzer.bindAndAnalyze(
-            where,
-            params,
-            subQueryValues,
-            relation.tableRelation(),
-            plannerContext.functions(),
-            plannerContext.transactionContext());
-        List<Symbol> boundOutputs = new ArrayList<>(outputs.size());
-        for (Symbol output : outputs) {
-            boundOutputs.add(SubQueryAndParamBinder.convert(output, params, subQueryValues));
-        }
-
         return new RoutedCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),

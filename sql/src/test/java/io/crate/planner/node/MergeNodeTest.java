@@ -22,20 +22,19 @@
 package io.crate.planner.node;
 
 import com.google.common.collect.Sets;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Aggregation;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RowGranularity;
-import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.RowGranularity;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -54,9 +53,7 @@ public class MergeNodeTest extends CrateUnitTest {
 
     @Test
     public void testSerialization() throws Exception {
-
-        Reference nameRef = TestingHelpers.createReference("name", DataTypes.STRING);
-        List<Symbol> keys = Collections.singletonList(nameRef);
+        List<Symbol> keys = Collections.singletonList(new InputColumn(0, DataTypes.STRING));
         List<Aggregation> aggregations = Collections.singletonList(
             new Aggregation(
                 CountAggregation.COUNT_STAR_FUNCTION,

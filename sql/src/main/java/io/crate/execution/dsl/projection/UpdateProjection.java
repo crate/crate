@@ -29,7 +29,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.function.Function;
 
 public class UpdateProjection extends DMLProjection {
 
@@ -78,14 +77,6 @@ public class UpdateProjection extends DMLProjection {
     @Nullable
     public Long requiredVersion() {
         return requiredVersion;
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        super.replaceSymbols(replaceFunction);
-        for (int i = 0; i < assignments.length; i++) {
-            assignments[i] = replaceFunction.apply(assignments[i]);
-        }
     }
 
     @Override

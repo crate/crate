@@ -52,6 +52,8 @@ import io.crate.data.Rows;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.expression.udf.UserDefinedFunctionService;
@@ -79,6 +81,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.QualifiedName;
@@ -138,6 +141,7 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_MULTI_PK;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY;
 import static io.crate.testing.DiscoveryNodes.newFakeAddress;
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
@@ -623,7 +627,12 @@ public class SQLExecutor {
                 null,
                 null,
                 Row.EMPTY,
-                Collections.emptyMap()
+                new SubQueryResults(emptyMap()) {
+                    @Override
+                    public Object getSafe(SelectSymbol key) {
+                        return Literal.of(key.valueType(), null);
+                    }
+                }
             );
         }
         return (T) plan;

@@ -29,7 +29,6 @@ import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExecutionPlan;
@@ -41,7 +40,6 @@ import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Map;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static io.crate.analyze.SymbolEvaluator.evaluate;
@@ -77,14 +75,14 @@ class Limit extends OneInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
         int limit = firstNonNull(
-            DataTypes.INTEGER.value(evaluate(plannerContext.functions(), this.limit, params, subQueryValues)), NO_LIMIT);
+            DataTypes.INTEGER.value(evaluate(plannerContext.functions(), this.limit, params, subQueryResults)), NO_LIMIT);
         int offset = firstNonNull(
-            DataTypes.INTEGER.value(evaluate(plannerContext.functions(), this.offset, params, subQueryValues)), 0);
+            DataTypes.INTEGER.value(evaluate(plannerContext.functions(), this.offset, params, subQueryResults)), 0);
 
         ExecutionPlan executionPlan = source.build(
-            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryValues);
+            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
         List<DataType> sourceTypes = Symbols.typeView(source.outputs());
         ResultDescription resultDescription = executionPlan.resultDescription();
         if (resultDescription.hasRemainingLimitOrOffset()

@@ -28,16 +28,15 @@ import io.crate.execution.dml.ShardRequestExecutor;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.expression.symbol.Assignments;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.node.dml.UpdateById;
+import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -74,7 +73,7 @@ public class UpdateByIdTask {
             );
     }
 
-    public void execute(RowConsumer consumer, Row parameters, Map<SelectSymbol, Object> valuesBySubQuery) {
+    public void execute(RowConsumer consumer, Row parameters, SubQueryResults subQueryResults) {
         UpdateRequests updateRequests = new UpdateRequests(createBuilder.apply(true), updateById.table(), assignments);
         ShardRequestExecutor<ShardUpsertRequest> executor = new ShardRequestExecutor<>(
             clusterService,
@@ -84,10 +83,10 @@ public class UpdateByIdTask {
             shardUpsertAction::execute,
             updateById.docKeys()
         );
-        executor.execute(consumer, parameters, valuesBySubQuery);
+        executor.execute(consumer, parameters, subQueryResults);
     }
 
-    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, Map<SelectSymbol, Object> valuesBySubQuery) {
+    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, SubQueryResults subQueryResults) {
         UpdateRequests updateRequests = new UpdateRequests(createBuilder.apply(true), updateById.table(), assignments);
         ShardRequestExecutor<ShardUpsertRequest> executor = new ShardRequestExecutor<>(
             clusterService,
@@ -97,7 +96,7 @@ public class UpdateByIdTask {
             shardUpsertAction::execute,
             updateById.docKeys()
         );
-        return executor.executeBulk(bulkParams, valuesBySubQuery);
+        return executor.executeBulk(bulkParams, subQueryResults);
     }
 
     private static class UpdateRequests implements ShardRequestExecutor.RequestGrouper<ShardUpsertRequest> {
@@ -120,8 +119,8 @@ public class UpdateByIdTask {
         }
 
         @Override
-        public void bind(Row parameters, Map<SelectSymbol, Object> valuesBySubQuery) {
-            assignmentSources = assignments.bindSources(table, parameters, valuesBySubQuery);
+        public void bind(Row parameters, SubQueryResults subQueryResults) {
+            assignmentSources = assignments.bindSources(table, parameters, subQueryResults);
         }
 
         @Override

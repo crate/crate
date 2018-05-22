@@ -43,6 +43,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.apache.logging.log4j.Logger;
@@ -223,7 +224,7 @@ public class SimplePortal extends AbstractPortal {
                 plannerContext,
                 consumer,
                 rowParams,
-                Collections.emptyMap()
+                SubQueryResults.EMPTY
             );
         }
         synced = true;
@@ -250,7 +251,7 @@ public class SimplePortal extends AbstractPortal {
             plannerContext,
             consumer,
             rowParams,
-            Collections.emptyMap()
+            SubQueryResults.EMPTY
         );
     }
 

@@ -123,16 +123,16 @@ public class Union extends TwoInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
 
         Integer childPageSizeHint = limit != TopN.NO_LIMIT
             ? limitAndOffset(limit, offset)
             : null;
 
         ExecutionPlan left = lhs.build(
-            plannerContext, projectionBuilder, limit + offset, offset, null, childPageSizeHint, params, subQueryValues);
+            plannerContext, projectionBuilder, limit + offset, offset, null, childPageSizeHint, params, subQueryResults);
         ExecutionPlan right = rhs.build(
-            plannerContext, projectionBuilder, limit + offset, offset, null, childPageSizeHint, params, subQueryValues);
+            plannerContext, projectionBuilder, limit + offset, offset, null, childPageSizeHint, params, subQueryResults);
 
         left = addMergeIfNeeded(left, plannerContext);
         right = addMergeIfNeeded(right, plannerContext);

@@ -23,7 +23,6 @@
 package io.crate.planner.statement;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -32,6 +31,7 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Expression;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
@@ -58,7 +58,7 @@ public class SetSessionPlan implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         for (Map.Entry<String, List<Expression>> entry : settings.entrySet()) {
             SessionSettingApplier applier = SessionSettingRegistry.getApplier(entry.getKey());
             if (applier == null) {

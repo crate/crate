@@ -26,9 +26,9 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Function;
 
 public abstract class AbstractProjectionsPhase implements ExecutionPhase {
 
@@ -98,12 +97,6 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
             return Optional.absent();
         } else {
             return Optional.of(projections.get(projections.size() - 1));
-        }
-    }
-
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        for (Projection projection : projections) {
-            projection.replaceSymbols(replaceFunction);
         }
     }
 

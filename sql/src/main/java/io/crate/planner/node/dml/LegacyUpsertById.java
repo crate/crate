@@ -24,19 +24,18 @@ package io.crate.planner.node.dml;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.upsert.LegacyUpsertByIdTask;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.uid.Versions;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -177,7 +176,7 @@ public class LegacyUpsertById implements Plan {
                         PlannerContext plannerCtx,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         LegacyUpsertByIdTask task = new LegacyUpsertByIdTask(
             plannerCtx.jobId(),
             this,
@@ -194,7 +193,7 @@ public class LegacyUpsertById implements Plan {
     public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
                                                      PlannerContext plannerContext,
                                                      List<Row> bulkParams,
-                                                     Map<SelectSymbol, Object> valuesBySubQuery) {
+                                                     SubQueryResults subQueryResults) {
         LegacyUpsertByIdTask task = new LegacyUpsertByIdTask(
             plannerContext.jobId(),
             this,

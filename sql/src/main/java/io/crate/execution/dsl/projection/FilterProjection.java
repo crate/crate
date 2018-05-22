@@ -21,12 +21,11 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.collections.Lists2;
 import io.crate.metadata.RowGranularity;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,17 +34,19 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class FilterProjection extends Projection {
 
-    private Symbol query;
-    private List<Symbol> outputs = ImmutableList.of();
+    private final Symbol query;
+    private final List<Symbol> outputs;
     private RowGranularity requiredGranularity = RowGranularity.CLUSTER;
 
     public FilterProjection(Symbol query, List<Symbol> outputs) {
-        assert !SymbolVisitors.any(Symbols.IS_COLUMN, query)
-            : "FilterProjection cannot operate on Reference or Field symbols: " + query;
+        assert !SymbolVisitors.any(Symbols.IS_COLUMN.or(s -> s instanceof SelectSymbol), query)
+            : "FilterProjection cannot operate on Reference, Field or SelectSymbol symbols: " + query;
+        assert outputs.stream().noneMatch(s ->
+            SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+            : "Cannot operate on Reference, Field or SelectSymbol symbols: " + outputs;
         this.query = query;
         this.outputs = outputs;
     }
@@ -59,12 +60,6 @@ public class FilterProjection extends Projection {
     @Override
     public RowGranularity requiredGranularity() {
         return requiredGranularity;
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        query = replaceFunction.apply(query);
-        Lists2.replaceItems(outputs, replaceFunction);
     }
 
     public void requiredGranularity(RowGranularity requiredRowGranularity) {

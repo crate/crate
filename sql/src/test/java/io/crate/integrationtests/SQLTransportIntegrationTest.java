@@ -54,6 +54,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.plugin.BlobPlugin;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.plugin.HttpTransportPlugin;
@@ -457,7 +458,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             planForNode.plannerContext,
             downstream,
             Row.EMPTY,
-            Collections.emptyMap()
+            SubQueryResults.EMPTY
         );
         return downstream;
     }

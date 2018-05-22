@@ -28,7 +28,6 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -56,9 +55,9 @@ public class Insert extends OneInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
         ExecutionPlan executionSubPlan = source.build(
-            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryValues);
+            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
         for (Projection projection : projections) {
             executionSubPlan.addProjection(projection);
         }

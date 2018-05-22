@@ -24,15 +24,15 @@ package io.crate.user;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
+import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.SecureString;
 
 import javax.annotation.Nullable;
 import java.security.GeneralSecurityException;
-import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 
@@ -65,7 +65,7 @@ public final class UserActions {
         for (String key : userStmtProperties.keySet()) {
             if (PASSWORD_PROPERTY.equals(key)) {
                 String value = BytesRefs.toString(
-                    SymbolEvaluator.evaluate(functions, userStmtProperties.get(key), parameters, Collections.emptyMap()));
+                    SymbolEvaluator.evaluate(functions, userStmtProperties.get(key), parameters, SubQueryResults.EMPTY));
                 if (value != null) {
                     return new SecureString(value.toCharArray());
                 }

@@ -22,16 +22,16 @@
 package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.data.Row;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Row;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import java.util.List;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static java.util.Collections.emptyMap;
 import static org.hamcrest.core.Is.is;
 
 public class DocKeysTest extends CrateUnitTest {
@@ -44,8 +44,8 @@ public class DocKeysTest extends CrateUnitTest {
         );
         DocKeys docKeys = new DocKeys(pks, false, 1, null);
         DocKeys.DocKey key = docKeys.getOnlyKey();
-        assertThat(key.getRouting(getFunctions(), Row.EMPTY, emptyMap()), is("Ford"));
-        assertThat(key.getId(getFunctions(), Row.EMPTY, emptyMap()), is("AgRGb3JkATE="));
+        assertThat(key.getRouting(getFunctions(), Row.EMPTY, SubQueryResults.EMPTY), is("Ford"));
+        assertThat(key.getId(getFunctions(), Row.EMPTY, SubQueryResults.EMPTY), is("AgRGb3JkATE="));
     }
 
 }

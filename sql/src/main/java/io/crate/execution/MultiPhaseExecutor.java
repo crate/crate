@@ -22,16 +22,16 @@
 
 package io.crate.execution;
 
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
 import io.crate.execution.engine.FirstColumnConsumers;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.SubQueryResults;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,10 +42,10 @@ public final class MultiPhaseExecutor {
     private MultiPhaseExecutor() {
     }
 
-    public static CompletableFuture<Map<SelectSymbol, Object>> execute(Map<LogicalPlan, SelectSymbol> dependencies,
-                                                                       DependencyCarrier executor,
-                                                                       PlannerContext plannerContext,
-                                                                       Row params) {
+    public static CompletableFuture<SubQueryResults> execute(Map<LogicalPlan, SelectSymbol> dependencies,
+                                                             DependencyCarrier executor,
+                                                             PlannerContext plannerContext,
+                                                             Row params) {
         List<CompletableFuture<?>> dependencyFutures = new ArrayList<>(dependencies.size());
         IdentityHashMap<SelectSymbol, Object> valueBySubQuery = new IdentityHashMap<>();
         for (Map.Entry<LogicalPlan, SelectSymbol> entry : dependencies.entrySet()) {
@@ -54,7 +54,7 @@ public final class MultiPhaseExecutor {
 
             CollectingRowConsumer<?, ?> rowConsumer = getConsumer(selectSymbol.getResultType());
             depPlan.execute(
-                executor, PlannerContext.forSubPlan(plannerContext), rowConsumer, params, Collections.emptyMap());
+                executor, PlannerContext.forSubPlan(plannerContext), rowConsumer, params, SubQueryResults.EMPTY);
 
             dependencyFutures.add(rowConsumer.resultFuture().thenAccept(val -> {
                 synchronized (valueBySubQuery) {
@@ -64,7 +64,7 @@ public final class MultiPhaseExecutor {
         }
         return CompletableFuture
             .allOf(dependencyFutures.toArray(new CompletableFuture[0]))
-            .thenApply(ignored -> valueBySubQuery);
+            .thenApply(ignored -> new SubQueryResults(valueBySubQuery));
     }
 
     private static CollectingRowConsumer<?, ?> getConsumer(SelectSymbol.ResultType resultType) {

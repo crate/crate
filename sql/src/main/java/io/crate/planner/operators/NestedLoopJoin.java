@@ -118,7 +118,7 @@ class NestedLoopJoin extends TwoInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
         /*
          * Benchmarks reveal that if rows are filtered out distributed execution gives better performance.
          * Therefore if `filterNeeded` is true (there is joinCondition or a filtering after the join operation)
@@ -132,9 +132,9 @@ class NestedLoopJoin extends TwoInputPlan {
             : null;
 
         ExecutionPlan left = lhs.build(
-            plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryValues);
+            plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
         ExecutionPlan right = rhs.build(
-            plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryValues);
+            plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
 
         PositionalOrderBy orderByFromLeft = left.resultDescription().orderBy();
         boolean hasDocTables = baseTables.stream().anyMatch(r -> r instanceof DocTableRelation);

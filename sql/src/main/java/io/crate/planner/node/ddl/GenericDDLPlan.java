@@ -22,7 +22,6 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.analyze.DDLStatement;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -30,8 +29,7 @@ import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-
-import java.util.Map;
+import io.crate.planner.operators.SubQueryResults;
 
 public class GenericDDLPlan implements Plan {
 
@@ -46,7 +44,7 @@ public class GenericDDLPlan implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         executor.ddlAction().apply(statement, params)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }

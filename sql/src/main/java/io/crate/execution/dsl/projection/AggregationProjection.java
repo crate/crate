@@ -21,11 +21,12 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExplainLeaf;
@@ -36,16 +37,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * A projection which aggregates all inputs to a single row
  */
 public class AggregationProjection extends Projection {
 
-    private RowGranularity contextGranularity;
-    private AggregateMode mode;
-    private List<Aggregation> aggregations = ImmutableList.of();
+    private final RowGranularity contextGranularity;
+    private final AggregateMode mode;
+    private final List<Aggregation> aggregations;
 
     public AggregationProjection(StreamInput in) throws IOException {
         int size = in.readVInt();
@@ -59,6 +59,9 @@ public class AggregationProjection extends Projection {
 
     public AggregationProjection(List<Aggregation> aggregations, RowGranularity contextGranularity, AggregateMode mode) {
         assert aggregations != null : "aggregations must not be null";
+        assert aggregations.stream().noneMatch(s ->
+            SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+            : "Cannot operate on Reference, Field or SelectSymbol symbols: " + aggregations;
 
         this.contextGranularity = contextGranularity;
         this.mode = mode;
@@ -68,10 +71,6 @@ public class AggregationProjection extends Projection {
     @Override
     public RowGranularity requiredGranularity() {
         return contextGranularity;
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
     }
 
     public List<Aggregation> aggregations() {

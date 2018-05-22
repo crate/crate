@@ -33,7 +33,6 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -49,7 +48,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
@@ -84,9 +82,9 @@ public class GroupHashAggregate extends OneInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
-            plannerContext, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryValues);
+            plannerContext, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
             executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }

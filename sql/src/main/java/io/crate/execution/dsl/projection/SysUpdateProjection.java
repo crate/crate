@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class SysUpdateProjection extends DMLProjection {
 
@@ -51,17 +50,6 @@ public class SysUpdateProjection extends DMLProjection {
         assignments = new HashMap<>(numAssignments, 1.0f);
         for (int i = 0; i < numAssignments; i++) {
             assignments.put(Reference.fromStream(in), Symbols.fromStream(in));
-        }
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        super.replaceSymbols(replaceFunction);
-        if (assignments.isEmpty()) {
-            return;
-        }
-        for (Map.Entry<Reference, Symbol> entry : assignments.entrySet()) {
-            entry.setValue(replaceFunction.apply(entry.getValue()));
         }
     }
 

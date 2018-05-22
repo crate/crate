@@ -43,6 +43,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.elasticsearch.common.Randomness;
@@ -182,7 +183,7 @@ class BatchPortal extends AbstractPortal {
                 plannerContext,
                 consumer,
                 new RowN(batchParams.toArray()),
-                Collections.emptyMap()
+                SubQueryResults.EMPTY
             );
         }
         synced = true;

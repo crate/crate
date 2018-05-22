@@ -27,8 +27,8 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.exceptions.ColumnValidationException;
-import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.predicate.NotPredicate;
@@ -46,6 +46,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.TestingRowConsumer;
@@ -69,7 +70,6 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
@@ -242,7 +242,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
         Symbol[] sources = assignments.bindSources(
-            ((DocTableInfo) update.table().tableInfo()), Row.EMPTY, emptyMap());
+            ((DocTableInfo) update.table().tableInfo()), Row.EMPTY, SubQueryResults.EMPTY);
         assertThat(sources[0], isLiteral(9L));
     }
 
@@ -320,7 +320,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot cast {} to type string");
-        assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), emptyMap());
+        assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
     }
 
     @Test
@@ -329,7 +329,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement update = analyze("update users set friends=? where other_id=0");
 
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
-        Symbol[] sources = assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), emptyMap());
+        Symbol[] sources = assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
 
 
         assertThat(sources[0].valueType().id(), is(ArrayType.ID));
@@ -438,7 +438,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement update = analyze("update users set new=? where id=1");
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
         Symbol[] sources = assignments.bindSources(
-            ((DocTableInfo) update.table().tableInfo()), new RowN(params), emptyMap());
+            ((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
 
         DataType dataType = sources[0].valueType();
         assertThat(dataType, is(new ArrayType(new ArrayType(DoubleType.INSTANCE))));
@@ -456,7 +456,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot cast [a, b] to type string");
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
-        assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), emptyMap());
+        assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
     }
 
     @Test
@@ -583,7 +583,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             e.getPlannerContext(clusterService.state()),
             new TestingRowConsumer(),
             params,
-            emptyMap()
+            SubQueryResults.EMPTY
         );
     }
 }

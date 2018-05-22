@@ -24,9 +24,10 @@ package io.crate.execution.dsl.projection;
 import com.google.common.collect.ImmutableMap;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.collections.Lists2;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -36,21 +37,26 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 public class GroupProjection extends Projection {
 
-    private List<Symbol> keys;
-    private List<Aggregation> values;
+    private final List<Symbol> keys;
+    private final List<Aggregation> values;
     private List<Symbol> outputs;
 
-    private AggregateMode mode;
-    private RowGranularity requiredGranularity = RowGranularity.CLUSTER;
+    private final AggregateMode mode;
+    private final RowGranularity requiredGranularity;
 
     public GroupProjection(List<Symbol> keys,
                            List<Aggregation> values,
                            AggregateMode mode,
                            RowGranularity requiredGranularity) {
+        assert keys.stream().noneMatch(s ->
+            SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+            : "Cannot operate on Reference, Field or SelectSymbol symbols: " + keys;
+        assert values.stream().noneMatch(s ->
+            SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+            : "Cannot operate on Reference, Field or SelectSymbol symbols: " + values;
         this.keys = keys;
         this.values = values;
         this.mode = mode;
@@ -66,12 +72,6 @@ public class GroupProjection extends Projection {
             values.add((Aggregation) Symbols.fromStream(in));
         }
         requiredGranularity = RowGranularity.fromStream(in);
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        Lists2.replaceItems(keys, replaceFunction);
-        Lists2.replaceItems(outputs, replaceFunction);
     }
 
     public List<Symbol> keys() {

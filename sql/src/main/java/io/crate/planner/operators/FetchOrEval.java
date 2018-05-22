@@ -42,7 +42,6 @@ import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.RefReplacer;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
@@ -234,22 +233,26 @@ class FetchOrEval extends OneInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
 
         ExecutionPlan executionPlan = source.build(
-            plannerContext, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryValues);
+            plannerContext, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryResults);
         List<Symbol> sourceOutputs = source.outputs();
         if (sourceOutputs.equals(outputs)) {
             return executionPlan;
         }
 
         if (doFetch && Symbols.containsColumn(sourceOutputs, DocSysColumns.FETCHID)) {
-            return planWithFetch(plannerContext, executionPlan, sourceOutputs);
+            return planWithFetch(plannerContext, executionPlan, sourceOutputs, params, subQueryResults);
         }
-        return planWithEvalProjection(plannerContext, executionPlan, sourceOutputs);
+        return planWithEvalProjection(plannerContext, executionPlan, sourceOutputs, params, subQueryResults);
     }
 
-    private ExecutionPlan planWithFetch(PlannerContext plannerContext, ExecutionPlan executionPlan, List<Symbol> sourceOutputs) {
+    private ExecutionPlan planWithFetch(PlannerContext plannerContext,
+                                        ExecutionPlan executionPlan,
+                                        List<Symbol> sourceOutputs,
+                                        Row params,
+                                        SubQueryResults subQueryResults) {
         executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         Map<RelationName, FetchSource> fetchSourceByTableId = new HashMap<>();
         LinkedHashSet<Reference> allFetchRefs = new LinkedHashSet<>();
@@ -271,7 +274,12 @@ class FetchOrEval extends OneInputPlan {
         List<Symbol> fetchOutputs = new ArrayList<>(outputs.size());
         for (Symbol output : outputs) {
             fetchOutputs.add(toInputColOrFetchRef(
-                output, sourceOutputs, fetchInputColumnsByTable, allocateFetchRef, source.expressionMapping()));
+                SubQueryAndParamBinder.convert(output, params, subQueryResults),
+                sourceOutputs,
+                fetchInputColumnsByTable,
+                allocateFetchRef,
+                source.expressionMapping())
+            );
         }
         if (source.baseTables().size() == 1) {
             // If there are no relation boundaries involved the outputs will have contained no fields but only references
@@ -291,7 +299,7 @@ class FetchOrEval extends OneInputPlan {
             // that all required columns are already provided.
             // This should be improved so that this case no longer occurs
             // `testNestedSimpleSelectWithJoin` is an example case
-            return planWithEvalProjection(plannerContext, executionPlan, sourceOutputs);
+            return planWithEvalProjection(plannerContext, executionPlan, sourceOutputs, params, subQueryResults);
         }
 
         ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
@@ -425,18 +433,24 @@ class FetchOrEval extends OneInputPlan {
         });
     }
 
-    private ExecutionPlan planWithEvalProjection(PlannerContext plannerContext, ExecutionPlan executionPlan, List<Symbol> sourceOutputs) {
+    private ExecutionPlan planWithEvalProjection(PlannerContext plannerContext,
+                                                 ExecutionPlan executionPlan,
+                                                 List<Symbol> sourceOutputs,
+                                                 Row params,
+                                                 SubQueryResults subQueryResults) {
         PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;
+        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
+        List<Symbol> boundOutputs = Lists2.copyAndReplace(outputs, binder);
         if (orderBy != null) {
-            newOrderBy = orderBy.tryMapToNewOutputs(sourceOutputs, outputs);
+            newOrderBy = orderBy.tryMapToNewOutputs(sourceOutputs, boundOutputs);
             if (newOrderBy == null) {
                 executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
             }
         }
-        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(sourceOutputs);
+        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists2.copyAndReplace(sourceOutputs, binder));
         executionPlan.addProjection(
-            new EvalProjection(InputColumns.create(this.outputs, ctx)),
+            new EvalProjection(InputColumns.create(boundOutputs, ctx)),
             executionPlan.resultDescription().limit(),
             executionPlan.resultDescription().offset(),
             newOrderBy

@@ -26,22 +26,28 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
+import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.dsl.projection.builder.InputColumns;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
+import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.execution.dsl.phases.NodeOperationTree;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -50,15 +56,9 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.node.dql.Collect;
-import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
-import io.crate.execution.dsl.projection.MergeCountProjection;
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
-import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.execution.dsl.projection.builder.InputColumns;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.planner.operators.SubQueryResults;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -69,7 +69,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -110,7 +109,7 @@ public final class CopyStatementPlanner {
                             PlannerContext plannerContext,
                             RowConsumer consumer,
                             Row params,
-                            Map<SelectSymbol, Object> valuesBySubQuery) {
+                            SubQueryResults subQueryResults) {
             ExecutionPlan executionPlan = planCopyToExecution(
                 copyTo, plannerContext, logicalPlanner, subqueryPlanner, executor.projectionBuilder(), params);
             NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
@@ -133,7 +132,7 @@ public final class CopyStatementPlanner {
                             PlannerContext plannerContext,
                             RowConsumer consumer,
                             Row params,
-                            Map<SelectSymbol, Object> valuesBySubQuery) {
+                            SubQueryResults subQueryResults) {
             ExecutionPlan plan = planCopyFromExecution(executor.clusterService().state().nodes(), copyFrom, plannerContext);
             NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(plan, executor.localNodeId());
             executor.phasesTaskFactory()
@@ -318,7 +317,7 @@ public final class CopyStatementPlanner {
             return null;
         }
         ExecutionPlan executionPlan = logicalPlan.build(
-            context, projectionBuilder, 0, 0, null, null, params, Collections.emptyMap());
+            context, projectionBuilder, 0, 0, null, null, params, SubQueryResults.EMPTY);
         executionPlan.addProjection(projection);
         return Merge.ensureOnHandler(executionPlan, context, Collections.singletonList(MergeCountProjection.INSTANCE));
     }

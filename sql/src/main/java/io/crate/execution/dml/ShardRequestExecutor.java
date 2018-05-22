@@ -30,11 +30,11 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.operators.SubQueryResults;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -72,7 +72,7 @@ public class ShardRequestExecutor<Req> {
          * (optional): bind the parameters.
          *             this is called once per params in the bulkParameters
          */
-        void bind(Row parameters, Map<SelectSymbol, Object> valuesBySubQuery);
+        void bind(Row parameters, SubQueryResults subQueryResults);
 
         /**
          * Creates and adds a new item to the request; This is called once per docKey per params.
@@ -94,10 +94,10 @@ public class ShardRequestExecutor<Req> {
         this.docKeys = docKeys;
     }
 
-    public void execute(RowConsumer consumer, Row parameters, Map<SelectSymbol, Object> valuesBySubQuery) {
+    public void execute(RowConsumer consumer, Row parameters, SubQueryResults subQueryResults) {
         HashMap<ShardId, Req> requestsByShard = new HashMap<>();
-        grouper.bind(parameters, valuesBySubQuery);
-        addRequests(0, parameters, requestsByShard, valuesBySubQuery);
+        grouper.bind(parameters, subQueryResults);
+        addRequests(0, parameters, requestsByShard, subQueryResults);
         MultiActionListener<ShardResponse, long[], ? super Row> listener = new MultiActionListener<>(
             requestsByShard.size(),
             () -> new long[]{0},
@@ -110,15 +110,15 @@ public class ShardRequestExecutor<Req> {
         }
     }
 
-    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, Map<SelectSymbol, Object> valuesBySubQuery) {
+    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, SubQueryResults subQueryResults) {
         HashMap<ShardId, Req> requests = new HashMap<>();
         IntArrayList bulkIndices = new IntArrayList(bulkParams.size() * docKeys.size());
         int location = 0;
         for (int resultIdx = 0; resultIdx < bulkParams.size(); resultIdx++) {
             int prevLocation = location;
             Row params = bulkParams.get(resultIdx);
-            grouper.bind(params, valuesBySubQuery);
-            location = addRequests(location, params, requests, valuesBySubQuery);
+            grouper.bind(params, subQueryResults);
+            location = addRequests(location, params, requests, subQueryResults);
             for (int i = prevLocation; i < location; i++) {
                 bulkIndices.add(resultIdx);
             }
@@ -131,14 +131,14 @@ public class ShardRequestExecutor<Req> {
         return listener.rowCountFutures();
     }
 
-    private int addRequests(int location, Row parameters, Map<ShardId, Req> requests, Map<SelectSymbol, Object> valuesBySubQuery) {
+    private int addRequests(int location, Row parameters, Map<ShardId, Req> requests, SubQueryResults subQueryResults) {
         for (DocKeys.DocKey docKey : docKeys) {
-            String id = docKey.getId(functions, parameters, valuesBySubQuery);
+            String id = docKey.getId(functions, parameters, subQueryResults);
             if (id == null) {
                 continue;
             }
-            String routing = docKey.getRouting(functions, parameters, valuesBySubQuery);
-            List<BytesRef> partitionValues = docKey.getPartitionValues(functions, parameters, valuesBySubQuery);
+            String routing = docKey.getRouting(functions, parameters, subQueryResults);
+            List<BytesRef> partitionValues = docKey.getPartitionValues(functions, parameters, subQueryResults);
             final String indexName;
             if (partitionValues == null) {
                 indexName = table.ident().indexName();
@@ -159,7 +159,7 @@ public class ShardRequestExecutor<Req> {
                 request = grouper.newRequest(shardId);
                 requests.put(shardId, request);
             }
-            Long version = docKey.version(functions, parameters, valuesBySubQuery).orElse(null);
+            Long version = docKey.version(functions, parameters, subQueryResults).orElse(null);
             grouper.addItem(request, location, id, version);
             location++;
         }

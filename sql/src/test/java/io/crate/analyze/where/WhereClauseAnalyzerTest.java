@@ -45,6 +45,7 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.WhereClauseOptimizer;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
@@ -57,7 +58,6 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -180,7 +180,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 docTableRelation.tableInfo(),
                 getFunctions(),
                 Row.EMPTY,
-                Collections.emptyMap(),
+                SubQueryResults.EMPTY,
                 transactionContext
             );
         }

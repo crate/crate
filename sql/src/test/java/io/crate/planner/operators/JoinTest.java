@@ -90,7 +90,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private Join buildJoin(LogicalPlan operator) {
-        return (Join) operator.build(plannerCtx, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
+        return (Join) operator.build(plannerCtx, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
     }
 
     private Join plan(MultiSourceSelect mss, TableStats tableStats) {
@@ -138,7 +138,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, e.functions(), txnCtx)
             .build(tableStats, Collections.emptySet());
         Join nl = (Join) operator.build(
-            context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
+            context, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
 
         assertThat(((Collect) nl.left()).collectPhase().toCollect(), isSQL("doc.users.id"));
         assertThat(nl.resultDescription().orderBy(), notNullValue());

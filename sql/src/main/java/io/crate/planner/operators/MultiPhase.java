@@ -64,9 +64,9 @@ public class MultiPhase extends OneInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
         return source.build(
-            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryValues);
+            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
     }
 
     @Override

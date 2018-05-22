@@ -31,7 +31,6 @@ import io.crate.data.Row;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.partitioned.PartitionExpression;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.metadata.Functions;
@@ -42,6 +41,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
+import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.common.collect.Tuple;
 
 import java.util.ArrayList;
@@ -60,12 +60,12 @@ public class WhereClauseAnalyzer {
      */
     public static WhereClause bindAndAnalyze(WhereClause where,
                                              Row params,
-                                             Map<SelectSymbol, Object> subQueryValues,
+                                             SubQueryResults subQueryResults,
                                              AbstractTableRelation tableRelation,
                                              Functions functions,
                                              TransactionContext transactionContext) {
         if (where.hasQuery()) {
-            Function<Symbol, Symbol> bind = s -> SubQueryAndParamBinder.convert(s, params, subQueryValues);
+            Function<Symbol, Symbol> bind = s -> SubQueryAndParamBinder.convert(s, params, subQueryResults);
             Symbol query = bind.apply(where.query());
             Set<Symbol> clusteredBy = where.clusteredBy().stream().map(bind).collect(Collectors.toSet());
             if (tableRelation instanceof DocTableRelation) {

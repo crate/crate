@@ -44,6 +44,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
@@ -206,7 +207,7 @@ public class Session implements AutoCloseable {
             );
         }
         RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0);
-        plan.execute(executor, plannerContext, consumer, params, Collections.emptyMap());
+        plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
     }
 
     private void retryQuery(UUID jobId,
@@ -230,7 +231,7 @@ public class Session implements AutoCloseable {
             plannerContext,
             consumer,
             params,
-            Collections.emptyMap()
+            SubQueryResults.EMPTY
         );
     }
 

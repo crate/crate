@@ -29,6 +29,7 @@ import io.crate.data.Row;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
+import io.crate.planner.operators.SubQueryResults;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
@@ -85,11 +86,11 @@ public final class Assignments {
         return sources;
     }
 
-    public Symbol[] bindSources(DocTableInfo tableInfo, Row params, Map<SelectSymbol, Object> subQueryValues) {
+    public Symbol[] bindSources(DocTableInfo tableInfo, Row params, SubQueryResults subQueryResults) {
         Symbol[] boundSources = new Symbol[targetColumns.length];
         for (int i = 0; i < boundSources.length; i++) {
             Symbol source = ValueNormalizer.normalizeInputForReference(
-                SubQueryAndParamBinder.convert(sources[i], params, subQueryValues),
+                SubQueryAndParamBinder.convert(sources[i], params, subQueryResults),
                 targetColumns[i],
                 tableInfo
             );

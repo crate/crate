@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.tables.DropTableTask;
@@ -29,8 +28,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-
-import java.util.Map;
+import io.crate.planner.operators.SubQueryResults;
 
 public class DropTablePlan implements Plan {
 
@@ -55,7 +53,7 @@ public class DropTablePlan implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         DropTableTask task = new DropTableTask(this, executor.transportDropTableAction());
         task.execute(consumer);
     }

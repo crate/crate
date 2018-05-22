@@ -31,7 +31,6 @@ import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
@@ -40,12 +39,12 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
+import io.crate.planner.operators.SubQueryResults;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -108,16 +107,16 @@ public final class WhereClauseOptimizer {
         public WhereClause toBoundWhereClause(DocTableInfo table,
                                               Functions functions,
                                               Row params,
-                                              Map<SelectSymbol, Object> subQueryValues,
+                                              SubQueryResults subQueryResults,
                                               TransactionContext txnCtx) {
             if (docKeys != null) {
                 throw new IllegalStateException(getClass().getSimpleName()
                                                 + " must not be converted to a WhereClause if docKeys are present");
             }
-            Symbol boundQuery = SubQueryAndParamBinder.convert(query, params, subQueryValues);
+            Symbol boundQuery = SubQueryAndParamBinder.convert(query, params, subQueryResults);
             HashSet<Symbol> clusteredBy = new HashSet<>(clusteredByValues.size());
             for (Symbol clusteredByValue : clusteredByValues) {
-                clusteredBy.add(SubQueryAndParamBinder.convert(clusteredByValue, params, subQueryValues));
+                clusteredBy.add(SubQueryAndParamBinder.convert(clusteredByValue, params, subQueryResults));
             }
             if (table.isPartitioned()) {
                 if (table.partitions().isEmpty()) {

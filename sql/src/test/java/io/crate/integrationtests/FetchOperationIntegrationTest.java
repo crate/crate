@@ -22,16 +22,16 @@
 package io.crate.integrationtests;
 
 import io.crate.data.Row;
+import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.execution.dsl.projection.FetchProjection;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.testing.TestingRowConsumer;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -60,7 +60,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         setUpCharacters();
         PlanForNode plan = plan("select id, name, substr(name, 2) from characters order by id");
         QueryThenFetch qtf = (QueryThenFetch) ((LogicalPlan) plan.plan).build(
-            plan.plannerContext, null, -1, 0, null, null, Row.EMPTY, Collections.emptyMap());
+            plan.plannerContext, null, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
         assertThat(qtf.subPlan(), instanceOf(Merge.class));
         Merge merge = (Merge) qtf.subPlan();
 

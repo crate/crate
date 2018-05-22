@@ -21,10 +21,9 @@
 
 package io.crate.execution.dsl.projection;
 
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.collections.Lists2;
-import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -35,18 +34,18 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
-    private List<Symbol> columnSymbols;
-    private List<Reference> targetColsExclPartitionCols;
-    private boolean ignoreDuplicateKeys;
+    private final List<Symbol> columnSymbols;
+    private final List<Reference> targetColsExclPartitionCols;
+    private final boolean ignoreDuplicateKeys;
     @Nullable
-    private Map<Reference, Symbol> onDuplicateKeyAssignments;
+    private final Map<Reference, Symbol> onDuplicateKeyAssignments;
 
     /**
      * @param relationName                identifying the table to write to
@@ -71,7 +70,6 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         this.ignoreDuplicateKeys = ignoreDuplicateKeys;
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
         this.targetColsExclPartitionCols = new ArrayList<>(columns.size() - partitionedByColumns.size());
-        this.columnSymbols = new ArrayList<>(columns.size() - partitionedBySymbols.size());
         for (Reference column : columns) {
             if (partitionedByColumns.contains(column.column())) {
                 continue;
@@ -87,6 +85,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
         if (in.readBoolean()) {
             columnSymbols = Symbols.listFromStream(in);
+        } else {
+            columnSymbols = Collections.emptyList();
         }
         if (in.readBoolean()) {
             int length = in.readVInt();
@@ -94,6 +94,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             for (int i = 0; i < length; i++) {
                 targetColsExclPartitionCols.add(Reference.fromStream(in));
             }
+        } else {
+            targetColsExclPartitionCols = Collections.emptyList();
         }
 
         ignoreDuplicateKeys = in.readBoolean();
@@ -103,6 +105,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             for (int i = 0; i < mapSize; i++) {
                 onDuplicateKeyAssignments.put(Reference.fromStream(in), Symbols.fromStream(in));
             }
+        } else {
+            onDuplicateKeyAssignments = Collections.emptyMap();
         }
     }
 
@@ -125,16 +129,6 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitColumnIndexWriterProjection(this, context);
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        Lists2.replaceItems(columnSymbols, replaceFunction);
-        if (onDuplicateKeyAssignments != null && !onDuplicateKeyAssignments.isEmpty()) {
-            for (Map.Entry<Reference, Symbol> entry : onDuplicateKeyAssignments.entrySet()) {
-                entry.setValue(replaceFunction.apply(entry.getValue()));
-            }
-        }
     }
 
     @Override

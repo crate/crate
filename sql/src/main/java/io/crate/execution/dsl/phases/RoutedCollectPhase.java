@@ -29,6 +29,7 @@ import io.crate.data.Paging;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
@@ -55,7 +56,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     private final Routing routing;
     private final List<Symbol> toCollect;
     private final RowGranularity maxRowGranularity;
-    private Symbol where;
+    private final Symbol where;
 
     private DistributionInfo distributionInfo;
 
@@ -79,10 +80,11 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                               DistributionInfo distributionInfo,
                               @Nullable User user) {
         super(jobId, executionNodeId, name, projections);
-        assert toCollect.stream().noneMatch(st -> SymbolVisitors.any(s -> s instanceof Field, st))
-            : "toCollect must not contain any fields: " + toCollect;
-        assert !SymbolVisitors.any(s -> s instanceof Field, where)
-            : "whereClause must not contain any fields: " + where;
+        assert toCollect.stream().noneMatch(
+            st -> SymbolVisitors.any(s -> s instanceof Field || s instanceof SelectSymbol, st))
+            : "toCollect must not contain any fields or selectSymbols: " + toCollect;
+        assert !SymbolVisitors.any(s -> s instanceof Field || s instanceof SelectSymbol, where)
+            : "whereClause must not contain any fields or selectSymbols: " + where;
         assert routing != null : "routing must not be null";
 
         this.where = where;
@@ -92,17 +94,6 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         this.distributionInfo = distributionInfo;
         this.user = user;
         this.outputTypes = extractOutputTypes(toCollect, projections);
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        super.replaceSymbols(replaceFunction);
-
-        where = replaceFunction.apply(where);
-        Lists2.replaceItems(toCollect, replaceFunction);
-        if (orderBy != null) {
-            orderBy.replace(replaceFunction);
-        }
     }
 
     @Override

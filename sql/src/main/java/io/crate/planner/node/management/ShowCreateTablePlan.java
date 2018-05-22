@@ -23,7 +23,6 @@ package io.crate.planner.node.management;
 
 import io.crate.analyze.MetaDataToASTNodeResolver;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -31,11 +30,10 @@ import io.crate.data.RowConsumer;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.CreateTable;
 import org.apache.lucene.util.BytesRef;
-
-import java.util.Map;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
@@ -52,7 +50,7 @@ public class ShowCreateTablePlan implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         Row1 row;
         try {
             CreateTable createTable = MetaDataToASTNodeResolver.resolveCreateTable(statement.tableInfo());

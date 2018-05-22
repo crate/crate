@@ -31,7 +31,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.function.Function;
 
 public class MergeCountProjection extends Projection {
 
@@ -61,10 +60,6 @@ public class MergeCountProjection extends Projection {
     @Override
     public RowGranularity requiredGranularity() {
         return RowGranularity.CLUSTER;
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
     }
 
     @Override

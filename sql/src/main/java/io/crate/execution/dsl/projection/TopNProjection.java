@@ -22,11 +22,10 @@
 package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.collections.Lists2;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExplainLeaf;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -35,7 +34,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 public class TopNProjection extends Projection {
 
@@ -68,11 +66,6 @@ public class TopNProjection extends Projection {
 
     public int offset() {
         return offset;
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        Lists2.replaceItems(outputs, replaceFunction);
     }
 
     @Override

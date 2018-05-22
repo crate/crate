@@ -22,31 +22,29 @@
 
 package io.crate.planner.operators;
 
+import io.crate.data.Row;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Row;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import java.util.Map;
 
 public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
     implements java.util.function.Function<Symbol, Symbol> {
 
     private final Row params;
-    private final Map<SelectSymbol, Object> subQueryValues;
+    private final SubQueryResults subQueryResults;
 
-    public static Symbol convert(Symbol symbol, Row params, Map<SelectSymbol, Object> subQueryValues) {
-        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryValues);
+    public static Symbol convert(Symbol symbol, Row params, SubQueryResults subQueryResults) {
+        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         return binder.apply(symbol);
     }
 
-    public SubQueryAndParamBinder(Row params, Map<SelectSymbol, Object> subQueryValues) {
+    public SubQueryAndParamBinder(Row params, SubQueryResults subQueryResults) {
         this.params = params;
-        this.subQueryValues = subQueryValues;
+        this.subQueryResults = subQueryResults;
     }
 
     @Override
@@ -56,10 +54,7 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
 
     @Override
     public Symbol visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
-        Object value = subQueryValues.get(selectSymbol);
-        if (value == null && !subQueryValues.containsKey(selectSymbol)) {
-            throw new IllegalArgumentException("Couldn't resolve subQuery: " + selectSymbol);
-        }
+        Object value = subQueryResults.getSafe(selectSymbol);
         return Literal.of(selectSymbol.valueType(), selectSymbol.valueType().value(value));
     }
 

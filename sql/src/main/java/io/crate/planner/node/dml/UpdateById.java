@@ -22,17 +22,17 @@
 
 package io.crate.planner.node.dml;
 
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.upsert.UpdateByIdTask;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 
 import java.util.List;
 import java.util.Map;
@@ -67,7 +67,7 @@ public final class UpdateById implements Plan {
                         PlannerContext plannerCtx,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         UpdateByIdTask task = new UpdateByIdTask(
             plannerCtx.jobId(),
             executor.clusterService(),
@@ -75,14 +75,14 @@ public final class UpdateById implements Plan {
             executor.transportActionProvider().transportShardUpsertAction(),
             this
         );
-        task.execute(consumer, params, valuesBySubQuery);
+        task.execute(consumer, params, subQueryResults);
     }
 
     @Override
     public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
                                                      PlannerContext plannerContext,
                                                      List<Row> bulkParams,
-                                                     Map<SelectSymbol, Object> valuesBySubQuery) {
+                                                     SubQueryResults subQueryResults) {
         UpdateByIdTask task = new UpdateByIdTask(
             plannerContext.jobId(),
             executor.clusterService(),
@@ -90,6 +90,6 @@ public final class UpdateById implements Plan {
             executor.transportActionProvider().transportShardUpsertAction(),
             this
         );
-        return task.executeBulk(bulkParams, valuesBySubQuery);
+        return task.executeBulk(bulkParams, subQueryResults);
     }
 }

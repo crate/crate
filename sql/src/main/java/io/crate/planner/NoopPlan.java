@@ -24,9 +24,7 @@ package io.crate.planner;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.expression.symbol.SelectSymbol;
-
-import java.util.Map;
+import io.crate.planner.operators.SubQueryResults;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
@@ -45,7 +43,7 @@ public final class NoopPlan implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         consumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
     }
 }

@@ -29,7 +29,6 @@ import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
@@ -38,7 +37,6 @@ import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Set;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
@@ -90,10 +88,11 @@ class Filter extends OneInputPlan {
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint,
                                Row params,
-                               Map<SelectSymbol, Object> subQueryValues) {
+                               SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
-            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryValues);
-        FilterProjection filterProjection = ProjectionBuilder.filterProjection(source.outputs(), query);
+            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
+        Symbol boundQuery = SubQueryAndParamBinder.convert(query, params, subQueryResults);
+        FilterProjection filterProjection = ProjectionBuilder.filterProjection(source.outputs(), boundQuery);
         if (executionPlan.resultDescription().executesOnShard()) {
             filterProjection.requiredGranularity(RowGranularity.SHARD);
         }

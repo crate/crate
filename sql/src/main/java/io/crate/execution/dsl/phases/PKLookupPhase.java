@@ -22,9 +22,11 @@
 
 package io.crate.execution.dsl.phases;
 
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.operators.PKAndVersion;
@@ -41,7 +43,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
 
 public final class PKLookupPhase extends AbstractProjectionsPhase implements CollectPhase {
 
@@ -56,6 +57,9 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
                          List<Symbol> toCollect,
                          Map<String, Map<ShardId, List<PKAndVersion>>> idsByShardByNode) {
         super(jobId, phaseId, "pkLookup", Collections.emptyList());
+        assert toCollect.stream().noneMatch(
+            st -> SymbolVisitors.any(s -> s instanceof Field || s instanceof SelectSymbol, st))
+            : "toCollect must not contain any fields or selectSymbols: " + toCollect;
         this.partitionedByColumns = partitionedByColumns;
         this.toCollect = toCollect;
         this.idsByShardByNode = idsByShardByNode;
@@ -121,12 +125,6 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
         for (ColumnIdent partitionedByColumn : partitionedByColumns) {
             partitionedByColumn.writeTo(out);
         }
-    }
-
-    @Override
-    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        super.replaceSymbols(replaceFunction);
-        Lists2.replaceItems(toCollect, replaceFunction);
     }
 
     @Override

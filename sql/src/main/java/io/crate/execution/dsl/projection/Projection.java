@@ -31,7 +31,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 public abstract class Projection implements ExplainNode {
@@ -52,8 +51,6 @@ public abstract class Projection implements ExplainNode {
     public RowGranularity requiredGranularity() {
         return RowGranularity.CLUSTER;
     }
-
-    public abstract void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction);
 
     public interface ProjectionFactory<T extends Projection> {
         T newInstance(StreamInput in) throws IOException;

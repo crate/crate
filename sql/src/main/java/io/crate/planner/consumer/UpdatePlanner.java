@@ -64,6 +64,7 @@ import io.crate.planner.node.dml.UpdateById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryAndParamBinder;
+import io.crate.planner.operators.SubQueryResults;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -124,7 +125,7 @@ public final class UpdatePlanner {
 
     @FunctionalInterface
     public interface CreateExecutionPlan {
-        ExecutionPlan create(PlannerContext plannerCtx, Row params, Map<SelectSymbol, Object> subQueryValues);
+        ExecutionPlan create(PlannerContext plannerCtx, Row params, SubQueryResults subQueryResults);
     }
 
     public static class Update implements Plan {
@@ -141,8 +142,8 @@ public final class UpdatePlanner {
                             PlannerContext plannerContext,
                             RowConsumer consumer,
                             Row params,
-                            Map<SelectSymbol, Object> valuesBySubQuery) {
-            ExecutionPlan executionPlan = createExecutionPlan.create(plannerContext, params, valuesBySubQuery);
+                            SubQueryResults subQueryResults) {
+            ExecutionPlan executionPlan = createExecutionPlan.create(plannerContext, params, subQueryResults);
             NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
 
             executor.phasesTaskFactory()
@@ -154,10 +155,10 @@ public final class UpdatePlanner {
         public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
                                                          PlannerContext plannerContext,
                                                          List<Row> bulkParams,
-                                                         Map<SelectSymbol, Object> valuesBySubQuery) {
+                                                         SubQueryResults subQueryResults) {
             List<NodeOperationTree> nodeOpTreeList = new ArrayList<>(bulkParams.size());
             for (Row params : bulkParams) {
-                ExecutionPlan executionPlan = createExecutionPlan.create(plannerContext, params, valuesBySubQuery);
+                ExecutionPlan executionPlan = createExecutionPlan.create(plannerContext, params, subQueryResults);
                 nodeOpTreeList.add(NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId()));
             }
             return executor.phasesTaskFactory()
@@ -170,11 +171,12 @@ public final class UpdatePlanner {
                                            TableRelation table,
                                            Map<Reference, Symbol> assignmentByTargetCol,
                                            Symbol query,
-                                           Row params, Map<SelectSymbol, Object> subQueryValues) {
+                                           Row params,
+                                           SubQueryResults subQueryResults) {
         TableInfo tableInfo = table.tableInfo();
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
         SysUpdateProjection updateProjection = new SysUpdateProjection(idReference.valueType(), assignmentByTargetCol);
-        WhereClause where = new WhereClause(SubQueryAndParamBinder.convert(query, params, subQueryValues));
+        WhereClause where = new WhereClause(SubQueryAndParamBinder.convert(query, params, subQueryResults));
         return createCollectAndMerge(plannerContext, tableInfo, idReference, updateProjection, where);
     }
 
@@ -184,16 +186,16 @@ public final class UpdatePlanner {
                                                Map<Reference, Symbol> assignmentByTargetCol,
                                                WhereClauseOptimizer.DetailedQuery detailedQuery,
                                                Row params,
-                                               Map<SelectSymbol, Object> subQueryValues) {
+                                               SubQueryResults subQueryResults) {
         DocTableInfo tableInfo = table.tableInfo();
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
         Assignments assignments = Assignments.convert(assignmentByTargetCol);
-        Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryValues);
+        Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
         UpdateProjection updateProjection = new UpdateProjection(
             new InputColumn(0, idReference.valueType()), assignments.targetNames(), assignmentSources, null);
 
         WhereClause where = detailedQuery.toBoundWhereClause(
-            tableInfo, functions, params, subQueryValues, plannerCtx.transactionContext());
+            tableInfo, functions, params, subQueryResults, plannerCtx.transactionContext());
         if (where.hasVersions()) {
             throw new VersionInvalidException();
         }

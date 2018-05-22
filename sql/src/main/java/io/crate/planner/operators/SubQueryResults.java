@@ -20,21 +20,28 @@
  * agreement.
  */
 
-package io.crate.execution.dsl.phases;
+package io.crate.planner.operators;
 
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SelectSymbol;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.Collections;
+import java.util.Map;
 
-public interface CollectPhase extends UpstreamPhase {
+public class SubQueryResults {
 
-    UUID jobId();
+    public static final SubQueryResults EMPTY = new SubQueryResults(Collections.emptyMap());
 
-    List<Symbol> toCollect();
+    private final Map<SelectSymbol, Object> valuesBySubQuery;
 
-    List<Projection> projections();
+    public SubQueryResults(Map<SelectSymbol, Object> valuesBySubQuery) {
+        this.valuesBySubQuery = valuesBySubQuery;
+    }
 
-    void addProjection(Projection projection);
+    public Object getSafe(SelectSymbol key) {
+        Object value = valuesBySubQuery.get(key);
+        if (value == null && !valuesBySubQuery.containsKey(key)) {
+            throw new IllegalArgumentException("Couldn't resolve value for subQuery: " + key);
+        }
+        return value;
+    }
 }

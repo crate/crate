@@ -22,7 +22,6 @@
 
 package io.crate.planner.node.management;
 
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -34,6 +33,7 @@ import io.crate.planner.PlanPrinter;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.ExplainLogicalPlan;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.statement.CopyStatementPlanner;
 
 import java.util.Map;
@@ -57,7 +57,7 @@ public class ExplainPlan implements Plan {
                         PlannerContext plannerContext,
                         RowConsumer consumer,
                         Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
+                        SubQueryResults subQueryResults) {
         Map<String, Object> map;
         try {
             if (subPlan instanceof LogicalPlan) {
