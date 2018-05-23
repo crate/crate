@@ -21,6 +21,11 @@ from a version prior to this will require a `full restart upgrade`_.
 .. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
 .. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Changelog
 =========
 
