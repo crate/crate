@@ -563,10 +563,14 @@ public class ContextPreparer extends AbstractComponent {
                 projectorFactory
             );
             context.registerSubContext(new PKLookupContext(
-                pkLookupPhase,
+                pkLookupPhase.jobId(),
+                pkLookupPhase.phaseId(),
+                pkLookupPhase.name(),
                 ramAccountingContext,
                 inputFactory,
                 pkLookupOperation,
+                pkLookupPhase.partitionedByColumns(),
+                pkLookupPhase.toCollect(),
                 pkLookupPhase.getIdsByShardId(clusterService.localNode().getId()),
                 shardProjections,
                 nodeRowConsumer

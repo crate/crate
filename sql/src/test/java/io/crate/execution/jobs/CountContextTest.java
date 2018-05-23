@@ -27,6 +27,8 @@ import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Routing;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.CauseMatcher;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
@@ -34,6 +36,7 @@ import org.elasticsearch.index.Index;
 import org.junit.Test;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -47,11 +50,10 @@ import static org.mockito.Mockito.when;
 public class CountContextTest extends CrateUnitTest {
 
     private static CountPhase countPhaseWithId(int phaseId) {
-        CountPhase phase = mock(CountPhase.class);
-        when(phase.type()).thenReturn(ExecutionPhase.Type.COUNT);
-        when(phase.where()).thenReturn(Literal.BOOLEAN_TRUE);
-        when(phase.phaseId()).thenReturn(phaseId);
-        return phase;
+        return new CountPhase(phaseId,
+            new Routing(Collections.emptyMap()),
+            Literal.BOOLEAN_TRUE,
+            DistributionInfo.DEFAULT_BROADCAST);
     }
 
     @Test
