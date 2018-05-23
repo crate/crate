@@ -1,4 +1,9 @@
-<!-- If reporting a bug: -->
+---
+name: Bug report
+about: Create a report to help us improve
+
+---
+
 
 **CrateDB version**:
 
@@ -27,12 +32,3 @@ possible.
 **Steps to reproduce**:
 
 <!-- please include table schema & some sample records if possible -->
-
-
-
-
-<!-- If requesting a feature, please describe your use case or problem you're trying to solve -->
-
-**Use case**:
-
-**Feature description**:
