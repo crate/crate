@@ -152,7 +152,7 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
 
     @Override
     public Type type() {
-        return Type.PK_LOOKUP;
+        return Type.PKLookup;
     }
 
     @Override

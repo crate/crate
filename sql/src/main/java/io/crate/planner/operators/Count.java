@@ -48,7 +48,7 @@ import java.util.Collections;
  */
 public class Count extends ZeroInputPlan {
 
-    private static final String COUNT_PHASE_NAME = "CountMergePhase";
+    private static final String COUNT_PHASE_NAME = "count-merge";
 
     final AbstractTableRelation tableRelation;
     final WhereClause where;

@@ -90,7 +90,7 @@ public class JoinPhaseTest extends CrateUnitTest {
         NestedLoopPhase node = new NestedLoopPhase(
             jobId,
             1,
-            false,
+            "nestedLoop",
             ImmutableList.of(topNProjection),
             mp1,
             mp2,
@@ -123,6 +123,7 @@ public class JoinPhaseTest extends CrateUnitTest {
         HashJoinPhase node = new HashJoinPhase(
             jobId,
             1,
+            "nestedLoop",
             ImmutableList.of(topNProjection),
             mp1,
             mp2,

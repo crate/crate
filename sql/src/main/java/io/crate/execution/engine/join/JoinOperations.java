@@ -82,7 +82,7 @@ public final class JoinOperations {
         return new MergePhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
-            "JoinMergePhase",
+            "join-merge",
             resultDescription.nodeIds().size(),
             1,
             executionNodes,

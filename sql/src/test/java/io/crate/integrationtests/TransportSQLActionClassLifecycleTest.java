@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
@@ -470,10 +469,12 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
                 names.add((String) objects[4]);
             }
             assertThat(names, Matchers.anyOf(
-                Matchers.hasItems("CollectPhase", "MergeOnHandlerPhase"),
+                Matchers.hasItems("distributing collect", "distributing collect"),
+                Matchers.hasItems("collect", "localMerge"),
+
                 // the select * from sys.operations_log has 2 collect operations (1 per node)
-                Matchers.hasItems("CollectPhase", "CollectPhase")
-            ));
+                Matchers.hasItems("collect", "collect"),
+                Matchers.hasItems("distributed merge", "localMerge")));
         }, 10L, TimeUnit.SECONDS);
 
         execute("set global transient stats.enabled = false");

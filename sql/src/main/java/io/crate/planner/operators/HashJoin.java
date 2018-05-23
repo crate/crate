@@ -173,6 +173,7 @@ class HashJoin extends TwoInputPlan {
         HashJoinPhase joinPhase = new HashJoinPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
+            "hash-join",
             Collections.singletonList(JoinOperations.createJoinProjection(outputs, joinOutputs)),
             leftMerge,
             rightMerge,

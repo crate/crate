@@ -49,6 +49,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
 
     public FileUriCollectPhase(UUID jobId,
                                int phaseId,
+                               String name,
                                Collection<String> executionNodes,
                                Symbol targetUri,
                                List<Symbol> toCollect,
@@ -56,7 +57,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
                                String compression,
                                Boolean sharedStorage,
                                InputFormat inputFormat) {
-        super(jobId, phaseId, Type.FILE_URI_COLLECT.humanName(), projections);
+        super(jobId, phaseId, name, projections);
         this.executionNodes = executionNodes;
         this.targetUri = targetUri;
         this.toCollect = toCollect;

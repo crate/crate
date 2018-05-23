@@ -83,6 +83,9 @@ public abstract class JoinPhase extends AbstractProjectionsPhase implements Upst
     }
 
     @Override
+    public abstract Type type();
+
+    @Override
     public Collection<String> nodeIds() {
         if (executionNodes == null) {
             return ImmutableSet.of();

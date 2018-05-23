@@ -35,9 +35,10 @@ import java.util.UUID;
 
 public class NestedLoopPhase extends JoinPhase {
 
+
     public NestedLoopPhase(UUID jobId,
                            int executionNodeId,
-                           boolean isDistributed,
+                           String name,
                            List<Projection> projections,
                            @Nullable MergePhase leftMergePhase,
                            @Nullable MergePhase rightMergePhase,
@@ -49,7 +50,7 @@ public class NestedLoopPhase extends JoinPhase {
         super(
             jobId,
             executionNodeId,
-            isDistributed ? "Distributed" + Type.NESTED_LOOP.humanName() : Type.NESTED_LOOP.humanName(),
+            name,
             projections,
             leftMergePhase,
             rightMergePhase,
