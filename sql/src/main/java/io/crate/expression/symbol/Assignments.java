@@ -88,9 +88,10 @@ public final class Assignments {
 
     public Symbol[] bindSources(DocTableInfo tableInfo, Row params, SubQueryResults subQueryResults) {
         Symbol[] boundSources = new Symbol[targetColumns.length];
+        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         for (int i = 0; i < boundSources.length; i++) {
             Symbol source = ValueNormalizer.normalizeInputForReference(
-                SubQueryAndParamBinder.convert(sources[i], params, subQueryResults),
+                binder.apply(sources[i]),
                 targetColumns[i],
                 tableInfo
             );

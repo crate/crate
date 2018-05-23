@@ -31,6 +31,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
+import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
@@ -276,10 +277,8 @@ class Collect extends ZeroInputPlan {
             relation.tableRelation(),
             plannerContext.functions(),
             plannerContext.transactionContext());
-        List<Symbol> boundOutputs = new ArrayList<>(outputs.size());
-        for (Symbol output : outputs) {
-            boundOutputs.add(SubQueryAndParamBinder.convert(output, params, subQueryResults));
-        }
+        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
+        List<Symbol> boundOutputs = Lists2.copyAndReplace(outputs, binder);
 
         if (relation.tableRelation() instanceof TableFunctionRelation) {
             TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation.tableRelation();

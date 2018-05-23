@@ -113,10 +113,11 @@ public final class WhereClauseOptimizer {
                 throw new IllegalStateException(getClass().getSimpleName()
                                                 + " must not be converted to a WhereClause if docKeys are present");
             }
-            Symbol boundQuery = SubQueryAndParamBinder.convert(query, params, subQueryResults);
+            SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
+            Symbol boundQuery = binder.apply(query);
             HashSet<Symbol> clusteredBy = new HashSet<>(clusteredByValues.size());
             for (Symbol clusteredByValue : clusteredByValues) {
-                clusteredBy.add(SubQueryAndParamBinder.convert(clusteredByValue, params, subQueryResults));
+                clusteredBy.add(binder.apply(clusteredByValue));
             }
             if (table.isPartitioned()) {
                 if (table.partitions().isEmpty()) {

@@ -37,6 +37,12 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
     private final Row params;
     private final SubQueryResults subQueryResults;
 
+    /**
+     * Returns a bound symbol with ParameterSymbols or SelectSymbols replaced as literals using the provided arguments.
+     *
+     * If multiple calls with the same params and subQueryResults are made it's better to instantiate the class
+     * once using {@link #SubQueryAndParamBinder(Row, SubQueryResults)}
+     */
     public static Symbol convert(Symbol symbol, Row params, SubQueryResults subQueryResults) {
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         return binder.apply(symbol);
