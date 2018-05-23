@@ -14,6 +14,8 @@ Released on 2018/05/16.
    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
    version will require a `full restart upgrade`_.
 
+   Please consult the `Upgrade Notes`_ before upgrading.
+
 .. WARNING::
 
    Before upgrading, you should `back up your data`_.
@@ -214,20 +216,87 @@ Changes
 Upgrade Notes
 =============
 
-Tables Created < 2.0.0
-----------------------
+Upgrade Strategy
+----------------
 
-Support for tables created prior to 2.0.0 has been dropped, and these tables
-must be upgraded before upgrading to 3.0.0. This can be done by exporting the
-data using ``COPY TO`` and importing it using ``COPY FROM`` while running
-a version of CrateDB > 2.0.4.
+Upgrading to 3.0.x is only possible from a 2.x release. It is advisable to to
+try and upgrade to the latest 2.3 release before moving to 3.0.x. Tables
+that were created prior to 2.0.0 have been **deprecated**, and must be upgraded
+before moving to 3.0.x. This can be done by using ``COPY TO`` and ``COPY FROM``
+while running a 2.X release into a new table, or by `inserting the data into a new table`_.
 
-EC2 Settings
-------------
+Once this is done, you must perform a `Full Cluster Restart`_, where all nodes
+are shut down, upgraded and started again. This is contrast to a rolling restart
+upgrade strategy, which if performed between major versions may lead to crashes,
+data corruption or unexpected behaviour. You should also take care to `backup`_
+your existing data before upgrading.
 
-Several settings to do with the Amazon EC2 service have been removed or renamed.
-All EC2 settings that were previously under ``cloud.aws.*`` have now been renamed
-to ``discovery.ec2.*`` (eg. ``cloud.aws.access_key`` is now
-``discovery.ec2.access_key``). Alongside this, the ``discovery.type`` setting
-has been removed, and in order to enable EC2 discovery, you should will need to
-set ``discovery.zen.hosts_provider`` to ``ec2``.
+When restarting the upgraded CrateDB node, CrateDB will migrate the existing
+indexes to the newer format used in 3.0.x. Depending on the amount of data,
+this may add a little bit of time do the node’s start up.
+
+Once the nodes have been restarted, and the data has been upgraded, the nodes
+will rejoin the cluster and your cluster will be back running 3.0.x.
+
+Breaking Changes
+----------------
+
+With a new major version, there are invariably changes that may break
+pre-existing configurations. There are a few configuration changes that you
+should be aware of before restarting the nodes.
+
+Removed Settings
+----------------
+
+- All store level throttle settings (under ``indices.store.throttle.*``) have
+  been removed, and should be removed from your node configuration.
+
+- Similarly, the ``recovery.initial_shards`` configuration option has been
+  removed, and should also be removed from your configuration.
+
+Renamed Settings
+----------------
+
+- The discovery setting ``discovery.type``, which was previously used to specify
+  whether a cluster should use DNS discovery or the EC2 API, has been removed.
+  Specifying usage of the EC2 api has now been moved to the
+  ``discovery.zen.hosts_provider`` setting.
+
+- The setting that controls system call filters ``bootstrap.seccomp``, has been
+  renamed to ``bootstrap.system_call_filter``.
+
+Settings Changes
+----------------
+
+- ``path.data`` is the setting that specifies the path or paths where the
+  CrateDB node should store its table data and cluster metadata. From 3.0.0,
+  this path must **not** contain the cluster name as a directory, like
+  ``/storage/myclustername/data/``. Data paths that are not compatible with
+  3.0.0 will be indicated visually in the Admin UI if running the latest 2.2
+  or 2.3 release, so be sure to verify this.
+
+Once these settings changes are taken care of, your cluster will be ready to be
+upgraded and restarted. Alongside these settings changes, however, there are a
+few other changes that you must be aware of from the application side.
+
+- The ``CREATE REPOSITORY`` statement for creating backup repositories has been
+  changed. When using Amazon S3 for backup storage, you previously had to specify
+  the region setting in order to determine the AWS region where the bucket was
+  located. This region is now inferred automatically, but if you still need to
+  specify this, use the endpoint setting to specify the AWS API endpoint.
+
+- The schema for HTTP authentication has been changed. Previously, you were
+  able to use the ``X-User`` HTTP header to provide a username. This has now been
+  deprecated in favour of the standard `HTTP Authorization header`_.
+
+- The ``_node`` column in ``sys.shards`` and ``sys.operations`` has been
+  renamed to node, but has been trimmed down only to include the id and name of
+  the node (``node['id']`` and ``node['name']``). In order to get the full node
+  information, you should now use ``node['id']`` to join to the ``sys.nodes``
+  table.
+
+
+.. _Full Cluster Restart: https://crate.io/docs/crate/guide/en/latest/admin/full-restart-upgrade.html
+.. _backup: https://crate.io/a/backing-up-and-restoring-cratedb/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+.. _HTTP Authorization header: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization
