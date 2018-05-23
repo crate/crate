@@ -12,6 +12,11 @@ Released on 2017/06/30.
    bug which leads to deletion of blob data upon node shutdown. It is
    recommended to not install those versions.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Changelog
 =========
 
