@@ -1,0 +1,10 @@
+path_classifiers:
+  docs:
+    - blackbox/docs
+  test:
+    - blackbox/hdfs
+    - blackbox/monitoring
+    - blackbox/shared
+    - blackbox/sqllogictest
+  library:
+    - es/upstream
