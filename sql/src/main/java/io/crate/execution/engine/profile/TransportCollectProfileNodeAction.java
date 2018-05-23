@@ -34,7 +34,9 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
@@ -69,15 +71,8 @@ public class TransportCollectProfileNodeAction implements NodeAction<NodeCollect
 
     @Override
     public CompletableFuture<NodeCollectProfileResponse> nodeOperation(NodeCollectProfileRequest request) {
-        NodeCollectProfileResponse response;
-        JobExecutionContext context = jobContextService.getContextOrNull(request.jobId());
-        if (context == null) {
-            response = new NodeCollectProfileResponse();
-        } else {
-            context.finishProfiling();
-            response = new NodeCollectProfileResponse(context.executionTimes());
-        }
-        return CompletableFuture.completedFuture(response);
+        return CompletableFuture.completedFuture(
+            new NodeCollectProfileResponse(collectExecutionTimesAndFinishContext(request.jobId())));
     }
 
     public void execute(String nodeId,
@@ -85,5 +80,15 @@ public class TransportCollectProfileNodeAction implements NodeAction<NodeCollect
                         FutureActionListener<NodeCollectProfileResponse, Map<String, Long>> listener) {
         transports.sendRequest(TRANSPORT_ACTION, nodeId, request, listener,
             new ActionListenerResponseHandler<>(listener, NodeCollectProfileResponse::new));
+    }
+
+    public Map<String, Long> collectExecutionTimesAndFinishContext(UUID jobId) {
+        JobExecutionContext context = jobContextService.getContextOrNull(jobId);
+        if (context == null) {
+            return Collections.emptyMap();
+        } else {
+            context.finishProfiling();
+            return context.executionTimes();
+        }
     }
 }
