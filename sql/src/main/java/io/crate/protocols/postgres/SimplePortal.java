@@ -123,7 +123,6 @@ public class SimplePortal extends AbstractPortal {
                 name,
                 this.query,
                 this.statement,
-                analyzedStatement,
                 outputTypes,
                 fields(),
                 resultReceiver, maxRows, this.params, sessionContext, portalContext);

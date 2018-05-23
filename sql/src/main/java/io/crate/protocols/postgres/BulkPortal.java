@@ -69,7 +69,6 @@ class BulkPortal extends AbstractPortal {
     BulkPortal(String name,
                String query,
                Statement statement,
-               @Nullable AnalyzedStatement analyzedStatement,
                List<? extends DataType> outputTypes,
                @Nullable List<Field> fields,
                ResultReceiver resultReceiver,

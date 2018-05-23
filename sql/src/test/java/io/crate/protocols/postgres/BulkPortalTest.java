@@ -38,7 +38,6 @@ public class BulkPortalTest extends CrateUnitTest {
         BulkPortal p1 = new BulkPortal("P1",
             query,
             Mockito.mock(Statement.class),
-            null,
             Collections.emptyList(),
             Collections.emptyList(),
             Mockito.mock(ResultSetReceiver.class),
