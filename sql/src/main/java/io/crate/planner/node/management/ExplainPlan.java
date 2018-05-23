@@ -50,6 +50,7 @@ import io.crate.planner.statement.CopyStatementPlanner;
 import org.elasticsearch.common.collect.MapBuilder;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -173,27 +174,39 @@ public class ExplainPlan implements Plan {
     private CompletableFuture<Map<String, Map<String, Long>>> collectTimingResults(UUID jobId,
                                                                                    DependencyCarrier executor,
                                                                                    Collection<NodeOperation> nodeOperations) {
-        CompletableFuture<Map<String, Map<String, Long>>> resultFuture = new CompletableFuture<>();
         Set<String> nodeIds = NodeOperationGrouper.groupByServer(nodeOperations).keySet();
-        TransportCollectProfileOperation collectProfileOperation = getTransportCollectProfileOperation(executor, jobId);
 
-        ConcurrentHashMap<String, Map<String, Long>> mergedMap = new ConcurrentHashMap<>(nodeIds.size());
-        AtomicInteger counter = new AtomicInteger(nodeIds.size());
+        if (nodeIds.size() > 0) {
+            CompletableFuture<Map<String, Map<String, Long>>> resultFuture = new CompletableFuture<>();
+            TransportCollectProfileOperation collectProfileOperation = getTransportCollectProfileOperation(executor, jobId);
 
-        for (String nodeId : nodeIds) {
-            collectProfileOperation.collect(nodeId)
-                .whenComplete((map, throwable) -> {
-                    if (throwable == null) {
-                        mergedMap.put(nodeId, map);
-                        if (counter.decrementAndGet() == 0) {
-                            resultFuture.complete(mergedMap);
+            ConcurrentHashMap<String, Map<String, Long>> mergedMap = new ConcurrentHashMap<>(nodeIds.size());
+            AtomicInteger counter = new AtomicInteger(nodeIds.size());
+
+            for (String nodeId : nodeIds) {
+                collectProfileOperation.collect(nodeId)
+                    .whenComplete((map, throwable) -> {
+                        if (throwable == null) {
+                            mergedMap.put(nodeId, map);
+                            if (counter.decrementAndGet() == 0) {
+                                resultFuture.complete(mergedMap);
+                            }
+                        } else {
+                            resultFuture.completeExceptionally(throwable);
                         }
-                    } else {
-                        resultFuture.completeExceptionally(throwable);
-                    }
-                });
+                    });
+            }
+            return resultFuture;
+        } else {
+            // Collect from local JobExecutionContext
+            TransportCollectProfileNodeAction nodeAction = executor.transportActionProvider()
+                .transportCollectProfileNodeAction();
+            Map<String, Map<String, Long>> localExecutionTimings =
+                Collections.singletonMap(
+                    executor.localNodeId(),
+                    nodeAction.collectExecutionTimesAndFinishContext(jobId));
+            return CompletableFuture.completedFuture(localExecutionTimings);
         }
-        return resultFuture;
     }
 
     @VisibleForTesting

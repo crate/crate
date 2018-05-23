@@ -51,6 +51,7 @@ public class ExplainAnalyzeIntegrationTest extends SQLTransportIntegrationTest {
         Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
 
         assertThat(executeAnalysis, is(notNullValue()));
+        assertTrue(executeAnalysis.keySet().contains("Total"));
 
         DiscoveryNodes nodes = clusterService().state().nodes();
         for (DiscoveryNode discoveryNode : nodes) {
@@ -58,5 +59,14 @@ public class ExplainAnalyzeIntegrationTest extends SQLTransportIntegrationTest {
                 assertThat(executeAnalysis.get(discoveryNode.getId()), is(notNullValue()));
             }
         }
+    }
+
+    @Test
+    public void testExplainSelectWithoutJobExecutionContexts() {
+        execute("explain analyze select 1");
+        Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
+        assertTrue(executeAnalysis.keySet().contains("Total"));
+        assertThat(executeAnalysis.keySet().size(), is(2)); // "Total" + local node id
     }
 }
