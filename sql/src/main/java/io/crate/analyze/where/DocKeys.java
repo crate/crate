@@ -116,10 +116,6 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
         this.idFunction = Id.compile(width, clusteredByIdx);
     }
 
-    public boolean withVersions() {
-        return withVersions;
-    }
-
     public DocKey getOnlyKey() {
         Preconditions.checkState(size() == 1);
         return new DocKey(0);
