@@ -139,8 +139,8 @@ public class ExplainPlan implements Plan {
                                                                UUID jobId,
                                                                TimerToken timerToken,
                                                                NodeOperationTree operationTree) {
-        context.stopAndAddTimer(timerToken);
         return (ignored, t) -> {
+            context.stopAndAddTimer(timerToken);
             if (t == null) {
                 OneRowActionListener<Map<String, Map<String, Long>>> actionListener =
                     new OneRowActionListener<>(consumer, resp -> buildResponse(context.getAsMap(), resp));
