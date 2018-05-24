@@ -22,9 +22,8 @@
 
 package io.crate.plugin;
 
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import org.elasticsearch.common.settings.Settings;
+import io.netty.channel.SimpleChannelInboundHandler;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -33,19 +32,9 @@ import static org.junit.Assert.assertThat;
 public class PipelineRegistryTest {
 
     private static PipelineRegistry.ChannelPipelineItem channelPipelineItem(String base, String name) {
-        return new PipelineRegistry.ChannelPipelineItem(base, name, () -> new ChannelHandler() {
+        return new PipelineRegistry.ChannelPipelineItem(base, name, () -> new SimpleChannelInboundHandler() {
             @Override
-            public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-
-            }
-
-            @Override
-            public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-
-            }
-
-            @Override
-            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
 
             }
         });
