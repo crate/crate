@@ -20,39 +20,40 @@
  * agreement.
  */
 
-package io.crate.execution.engine.collect.files;
+package io.crate.expression.reference.file;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URL;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Predicate;
+import io.crate.execution.engine.collect.files.LineCollectorExpression;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.types.DataTypes;
 
-class URLFileInput implements FileInput {
+import javax.annotation.Nullable;
 
-    private final URI fileUri;
+public class UriFailureExpression extends LineCollectorExpression<String> {
 
-    public URLFileInput(URI fileUri) {
-        this.fileUri = fileUri;
-    }
+    public static final String COLUMN_NAME = "_uri_failure";
+    private static final ColumnIdent COLUMN_IDENT = new ColumnIdent(COLUMN_NAME);
 
-    @Override
-    public List<URI> listUris(URI fileUri, Predicate<URI> uriPredicate) throws IOException {
-        // If the full fileUri contains a wildcard the fileUri passed as argument here is the fileUri up to the wildcard
-        // for URLs listing directory contents is not supported so always return the full fileUri for now
-        return Collections.singletonList(this.fileUri);
-    }
+    private LineContext lineContext;
 
     @Override
-    public InputStream getStream(URI uri) throws IOException {
-        URL url = uri.toURL();
-        return url.openStream();
+    public void startCollect(LineContext context) {
+        this.lineContext = context;
     }
 
+    @Nullable
     @Override
-    public boolean sharedStorageDefault() {
-        return true;
+    public String value() {
+        return lineContext.getCurrentUriFailure();
+    }
+
+    public static Reference getReferenceForRelation(RelationName relationName) {
+        return new Reference(
+            new ReferenceIdent(relationName, COLUMN_IDENT),
+            RowGranularity.DOC,
+            DataTypes.STRING);
     }
 }

@@ -44,6 +44,7 @@ import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.ProjectionVisitor;
 import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
+import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjection;
 import io.crate.execution.dsl.projection.SysUpdateProjection;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.UpdateProjection;
@@ -62,6 +63,7 @@ import io.crate.execution.engine.indexing.IndexNameResolver;
 import io.crate.execution.engine.indexing.IndexWriterProjector;
 import io.crate.execution.engine.indexing.ShardDMLExecutor;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.execution.engine.indexing.UpsertResultContext;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingTopNProjector;
@@ -336,6 +338,17 @@ public class ProjectionToProjectorVisitor
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         Settings tableSettings = TableSettingsResolver.get(clusterService.state().getMetaData(),
             projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
+
+        UpsertResultContext upsertResultContext;
+        if (projection instanceof SourceIndexWriterReturnSummaryProjection) {
+            upsertResultContext = UpsertResultContext.forReturnSummary(
+                (SourceIndexWriterReturnSummaryProjection) projection,
+                clusterService.localNode(),
+                inputFactory);
+        } else {
+            upsertResultContext = UpsertResultContext.forRowCount();
+        }
+
         return new IndexWriterProjector(
             clusterService,
             nodeJobsCounter,
@@ -359,7 +372,8 @@ public class ProjectionToProjectorVisitor
             projection.excludes(),
             projection.autoCreateIndices(),
             projection.overwriteDuplicates(),
-            context.jobId
+            context.jobId,
+            upsertResultContext
         );
     }
 

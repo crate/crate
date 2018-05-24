@@ -22,19 +22,21 @@
 
 package io.crate.execution.engine.collect.files
 
-import com.carrotsearch.randomizedtesting.RandomizedTest
+import io.crate.test.integration.CrateUnitTest
 import org.junit.Test
 
 import java.nio.file.Path
 
-class URLFileInputTest extends RandomizedTest {
-
+class URLFileInputTest extends CrateUnitTest {
 
     @Test
     void testGetStream() {
-        Path tempDir = newTempDir();
-        File file = new File("dont_exists", tempDir.toFile())
+        Path tempDir = createTempDir();
+        File file = new File(tempDir.toFile(), "dont_exists")
         URLFileInput input = new URLFileInput(file.toURI());
-        assert input.getStream(file.toURI()) == null;
+
+        expectedException.expect(FileNotFoundException.class);
+        expectedException.expectMessage("/dont_exists (No such file or directory)");
+        input.getStream(file.toURI());
     }
 }

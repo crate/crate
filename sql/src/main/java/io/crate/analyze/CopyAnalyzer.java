@@ -145,6 +145,10 @@ class CopyAnalyzer {
         FileUriCollectPhase.InputFormat inputFormat =
             settingAsEnum(FileUriCollectPhase.InputFormat.class, settings.get(INPUT_FORMAT_SETTINGS.name(),INPUT_FORMAT_SETTINGS.defaultValue()));
 
+        if (node.isReturnSummary()) {
+            return new CopyFromReturnSummaryAnalyzedStatement(tableInfo, settings, uri, partitionIdent, nodeFilters, inputFormat);
+        }
+
         return new CopyFromAnalyzedStatement(tableInfo, settings, uri, partitionIdent, nodeFilters, inputFormat);
     }
 

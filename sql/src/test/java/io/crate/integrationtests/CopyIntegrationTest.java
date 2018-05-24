@@ -25,7 +25,6 @@ import com.carrotsearch.randomizedtesting.LifecycleScope;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
@@ -48,13 +47,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 
@@ -239,9 +242,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(newFile), StandardCharsets.UTF_8)) {
             writer.write("{|}");
         }
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Failed to parse input in line: 1 in file:");
         execute("copy foo from ?", new Object[]{Paths.get(newFile.toURI()).toUri().toString()});
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test
@@ -509,7 +511,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("select * from users");
         assertThat(response.rowCount(), is(1L));
 
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2| Trillian\n"));
+        assertThat(printedTable(response.rows()), is("2| Trillian\n"));
     }
 
     @Test
@@ -564,7 +566,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.rowCount(), is(2L));
         execute("refresh table names");
         execute("select name from names order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("Marvin\nSlartibartfast\n"));
+        assertThat(printedTable(response.rows()), is("Marvin\nSlartibartfast\n"));
     }
 
     @Test
@@ -584,7 +586,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.rowCount(), is(2L));
         execute("refresh table names");
         execute("select name from names order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("Arthur\nSlartibartfast\n"));
+        assertThat(printedTable(response.rows()), is("Arthur\nSlartibartfast\n"));
     }
 
     @Test
@@ -631,9 +633,13 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     private static Path tmpFileWithLines(Iterable<String> lines) throws IOException {
         Path tmpDir = newTempDir(LifecycleScope.TEST);
         Path target = Files.createDirectories(tmpDir.resolve("target"));
-        File file = new File(target.toFile(), "data.json");
-        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        tmpFileWithLines(lines, "data.json", target);
         return Files.createSymbolicLink(tmpDir.resolve("link"), target);
+    }
+
+    private static void tmpFileWithLines(Iterable<String> lines, String filename, Path target) throws IOException {
+        File file = new File(target.toFile(), filename);
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
     }
 
     @Test
@@ -692,5 +698,85 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("copy t1 partition (g_ts_month = 1496275200000) from ? with (shared=true, overwrite_duplicates=true)",
             new Object[] { path.toUri().toString() + "*.json"});
         assertThat(response.rowCount(), is(2L));
+    }
+
+    @Test
+    public void testCopyFromReturnSummaryWithFailedRows() throws Exception {
+        execute("create table t1 (id int primary key, ts timestamp)");
+
+        Path tmpDir = newTempDir(LifecycleScope.TEST);
+        Path target = Files.createDirectories(tmpDir.resolve("target"));
+
+        tmpFileWithLines(Arrays.asList(
+            "{\"id\": 1, \"ts\": 1496275200000}",
+            "{\"id\": 2, \"ts\": 1496275300000}"
+        ), "data1.json", target);
+        tmpFileWithLines(Arrays.asList(
+            "{\"id\": 2, \"ts\": 1496275200000}",       // <-- duplicate key
+            "{\"id\": 3, \"ts\": 1496275300000}"
+        ), "data2.json", target);
+        tmpFileWithLines(Arrays.asList(
+            "{\"id\": 4, \"ts\": 1496275200000}",
+            "{\"id\": 5, \"ts\": \"May\"}",              // <-- invalid timestamp
+            "{\"id\": 7, \"ts\": \"Juli\"}"              // <-- invalid timestamp
+        ), "data3.json", target);
+        tmpFileWithLines(Arrays.asList(
+            "foo",                                      // <-- invalid json
+            "{\"id\": 6, \"ts\": 1496275200000}"
+        ), "data4.json", target);
+
+        execute("copy t1 from ? with (shared=true) return summary", new Object[]{target.toUri().toString() + "*"});
+        String result = printedTable(response.rows());
+
+        // one of the first files should be processed without any error
+        assertThat(result, containsString("| 2| 0| {}"));
+        // one of the first files will have a duplicate key error
+        assertThat(result, containsString("| 1| 1| {A document with the same primary key exists already={count=1}}"));
+        // file `data3.json` has a invalid timestamp error
+        assertThat(result, containsString("data3.json| 1| 2| {failed to parse [ts]={count=2}}"));
+        // file `data4.json` has an invalid json item entry
+        assertThat(result, containsString("data4.json| 1| 1| {JSON parser error: "));
+    }
+
+    @Test
+    public void testCopyFromReturnSummaryWithFailedURI() throws Exception {
+        execute("create table t1 (id int primary key, ts timestamp)");
+
+        Path tmpDir = newTempDir(LifecycleScope.TEST);
+        String tmpDirStr = tmpDir.toUri().toString();
+
+        String filename = "nonexistingfile.json";
+        execute("copy t1 from ? return summary", new Object[]{tmpDirStr + filename});
+        assertThat(response.rowCount(), is((long) internalCluster().numDataNodes()));
+
+        for (Object[] row : response.rows()) {
+            assertThat((String) row[1], endsWith(filename));
+            assertThat(row[2], nullValue());
+            assertThat(row[3], nullValue());
+            assertThat(((Map<String, Object>) row[4]).keySet(), contains(containsString("(No such file or directory)")));
+        }
+
+        // with shared=true, only 1 data node must try to process the uri
+        execute("copy t1 from ? with (shared=true) return summary", new Object[]{tmpDirStr + filename});
+        assertThat(response.rowCount(), is(1L));
+
+        for (Object[] row : response.rows()) {
+            assertThat((String) row[1], endsWith(filename));
+            assertThat(row[2], nullValue());
+            assertThat(row[3], nullValue());
+            assertThat(((Map<String, Object>) row[4]).keySet(), contains(containsString("(No such file or directory)")));
+        }
+
+        // with shared=true and wildcards all nodes will try to match a file
+        filename =  "*.json";
+        execute("copy t1 from ? with (shared=true) return summary", new Object[]{tmpDirStr + filename});
+        assertThat(response.rowCount(), is((long) internalCluster().numDataNodes()));
+
+        for (Object[] row : response.rows()) {
+            assertThat((String) row[1], endsWith("*.json"));
+            assertThat(row[2], nullValue());
+            assertThat(row[3], nullValue());
+            assertThat(((Map<String, Object>) row[4]).keySet(), contains(containsString("Cannot find any URI matching:")));
+        }
     }
 }

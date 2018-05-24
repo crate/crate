@@ -47,7 +47,7 @@ public final class Exceptions {
      * Does not contain a proper stacktrace.
      * @return a String of format ExceptionName[msg];...
      */
-    public static String userFriendlyMessage(Throwable t) {
+    public static String userFriendlyMessageInclNested(Throwable t) {
         if (t == null) {
             return "Unknown";
         }

@@ -22,21 +22,21 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
@@ -48,7 +48,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -58,14 +57,15 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.data.SentinelRow.SENTINEL;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTest {
 
-    private final static ColumnIdent ID_IDENT = new ColumnIdent("id");
-    private static final RelationName bulkImportIdent = new RelationName(Schemas.DOC_SCHEMA_NAME, "bulk_import");
-    private static Reference rawSourceReference = new Reference(
-        new ReferenceIdent(bulkImportIdent, "_raw"), RowGranularity.DOC, DataTypes.STRING);
+    private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
+    private static final RelationName BULK_IMPORT_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "bulk_import");
+    private static final Reference RAW_SOURCE_REFERENCE = new Reference(
+        new ReferenceIdent(BULK_IMPORT_IDENT, "_raw"), RowGranularity.DOC, DataTypes.STRING);
 
     private ExecutorService executor;
     private ScheduledExecutorService scheduler;
@@ -100,10 +100,10 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             Settings.EMPTY,
             transportCreatePartitionsAction,
             (request, listener) -> {},
-            IndexNameResolver.forTable(new RelationName(Schemas.DOC_SCHEMA_NAME, "bulk_import")),
-            rawSourceReference,
-            Arrays.asList(ID_IDENT),
-            Arrays.<Symbol>asList(new InputColumn(1)),
+            IndexNameResolver.forTable(BULK_IMPORT_IDENT),
+            RAW_SOURCE_REFERENCE,
+            Collections.singletonList(ID_IDENT),
+            Collections.<Symbol>singletonList(new InputColumn(1)),
             null,
             null,
             sourceInput,
@@ -113,7 +113,8 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             null,
             false,
             false,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            UpsertResultContext.forRowCount());
 
         RowN rowN = new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null});
         BatchIterator<Row> batchIterator = InMemoryBatchIterator.of(Collections.singletonList(rowN), SENTINEL);
@@ -122,8 +123,9 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
         TestingRowConsumer testingBatchConsumer = new TestingRowConsumer();
         testingBatchConsumer.accept(batchIterator, null);
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("A primary key value must not be NULL");
-        testingBatchConsumer.getResult();
+        List<Object[]> result = testingBatchConsumer.getResult();
+        // Zero affected rows as a NULL as a PK value will result in an exception.
+        // It must never bubble up as other rows might already have been written.
+        assertThat(result.get(0)[0], is(0L));
     }
 }

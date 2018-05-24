@@ -31,7 +31,6 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputRow;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -47,12 +46,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Collection;
-import java.util.Locale;
-import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -64,7 +62,7 @@ import static io.crate.exceptions.Exceptions.rethrowUnchecked;
 public class FileReadingIterator implements BatchIterator<Row> {
 
     private static final Logger LOGGER = Loggers.getLogger(FileReadingIterator.class);
-    public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
+    private static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
     private final Map<String, FileInputFactory> fileInputFactories;
     private final Boolean shared;
     private final int numReaders;
@@ -96,18 +94,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                 int readerNumber,
                                 FileUriCollectPhase.InputFormat inputFormat) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
-        this.row = new InputRow(inputs) {
-            @Override
-            public Object get(int index) {
-                try {
-                    return inputs.get(index).value();
-                } catch (ElasticsearchParseException e) {
-                    throw new ElasticsearchParseException(String.format(Locale.ENGLISH,
-                        "Failed to parse input in line: %d in file: \"%s\"%n" +
-                            "Original error message: %s", currentLineNumber, currentUri, e.getMessage()), e);
-                }
-            }
-        };
+        this.row = new InputRow(inputs);
         this.fileInputFactories = fileInputFactories;
         this.shared = shared;
         this.numReaders = numReaders;
@@ -147,12 +134,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
 
         List<Tuple<FileInput, UriWithGlob>> fileInputs = new ArrayList<>(urisWithGlob.size());
         for (UriWithGlob fileUri : urisWithGlob) {
-            try {
-                FileInput fileInput = getFileInput(fileUri.uri);
-                fileInputs.add(new Tuple<>(fileInput, fileUri));
-            } catch (IOException e) {
-                rethrowUnchecked(e);
-            }
+            FileInput fileInput = getFileInput(fileUri.uri);
+            fileInputs.add(new Tuple<>(fileInput, fileUri));
         }
         fileInputsIterator = fileInputs.iterator();
     }
@@ -184,9 +167,9 @@ public class FileReadingIterator implements BatchIterator<Row> {
                 return false;
             }
         } catch (IOException e) {
-            rethrowUnchecked(e);
+            lineProcessor.setFailure(e.getMessage());
+            return true;
         }
-        return false;
     }
 
     private void advanceToNextUri(FileInput fileInput) throws IOException {
@@ -204,16 +187,18 @@ public class FileReadingIterator implements BatchIterator<Row> {
         if (uris.size() > 0) {
             currentInputIterator = uris.iterator();
             advanceToNextUri(fileInput);
+        } else if (fileUri.preGlobUri != null) {
+            lineProcessor.startWithUri(fileUri.uri);
+            throw new IOException("Cannot find any URI matching: " + fileUri.uri.toString());
         }
     }
 
     private void initCurrentReader(FileInput fileInput, URI uri) throws IOException {
+        lineProcessor.startWithUri(uri);
         InputStream stream = fileInput.getStream(uri);
-        if (stream != null) {
-            currentReader = createBufferedReader(stream);
-            currentLineNumber = 0;
-            lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
-        }
+        currentReader = createBufferedReader(stream);
+        currentLineNumber = 0;
+        lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
     }
 
     private void closeCurrentReader() {
@@ -290,7 +275,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         @Nullable
         final Predicate<URI> globPredicate;
 
-        public UriWithGlob(URI uri, URI preGlobUri, Predicate<URI> globPredicate) {
+        UriWithGlob(URI uri, URI preGlobUri, Predicate<URI> globPredicate) {
             this.uri = uri;
             this.preGlobUri = preGlobUri;
             this.globPredicate = globPredicate;
@@ -358,7 +343,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     }
 
     @Nullable
-    private FileInput getFileInput(URI fileUri) throws IOException {
+    private FileInput getFileInput(URI fileUri) {
         FileInputFactory fileInputFactory = fileInputFactories.get(fileUri.getScheme());
         if (fileInputFactory != null) {
             return fileInputFactory.create();

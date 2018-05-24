@@ -22,9 +22,7 @@
 package io.crate.execution.engine.collect.files;
 
 
-import java.io.IOException;
-
 public interface FileInputFactory {
 
-    FileInput create() throws IOException;
+    FileInput create();
 }

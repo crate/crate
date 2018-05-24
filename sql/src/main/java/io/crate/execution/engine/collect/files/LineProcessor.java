@@ -39,12 +39,20 @@ public class LineProcessor {
         }
     }
 
-    public void readFirstLine(URI currentUri, InputFormat inputFormat, BufferedReader currentReader) throws IOException {
+    void startWithUri(URI currentUri) {
+        lineContext.currentUri(currentUri);
+    }
+
+    void readFirstLine(URI currentUri, InputFormat inputFormat, BufferedReader currentReader) throws IOException {
         lineParser.readFirstLine(currentUri, inputFormat, currentReader);
     }
 
     public void process(String line) throws IOException {
         byte[] jsonByteArray = lineParser.getByteArray(line);
         lineContext.rawSource(jsonByteArray);
+    }
+
+    public void setFailure(String failure) {
+        lineContext.setCurrentUriFailure(failure);
     }
 }

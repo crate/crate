@@ -477,15 +477,47 @@ This wildcard can also be used to only match certain files::
 If the ``RETURN_SUMMARY`` clause is specified, a result set containing information
 about failures and successfully imported records is returned.
 
+.. Hidden: delete existing data
+
+    cr> refresh table locations;
+    REFRESH OK, 1 row affected (... sec)
+    cr> delete from locations;
+    DELETE OK, 8 rows affected (... sec)
+    cr> refresh table locations;
+    REFRESH OK, 1 row affected (... sec)
+
 ::
 
-   cr> COPY quotes FROM '/tmp/import_data/qu*.json' RETURN SUMMARY;
-    +---------+--------------------------------+-------------+---------------+--------+
-    | node    | uri                            | error_count | success_count | errors |
-    +---------+--------------------------------+-------------+---------------+--------+
-    | ...     | '/tmp/import_data/quotes.json' | 0           | 3             | NULL   |
-    +---------+--------------------------------+-------------+---------------+--------+
-   COPY OK, 1 row affected (... sec)
+   cr> COPY locations FROM '/tmp/import_data/locations_with_failure/locations*.json' RETURN SUMMARY;
+    +--...--+----------...--------+---------------+-------------+------------------------------------------+
+    | node  | uri                 | success_count | error_count | errors                                   |
+    +--...--+----------...--------+---------------+-------------+------------------------------------------+
+    | {...} | .../locations1.json |             6 |           0 | {}                                       |
+    | {...} | .../locations2.json |             5 |           2 | {"failed to parse [date]": {"count": 2}} |
+    +--...--+----------...--------+---------------+-------------+------------------------------------------+
+    COPY 2 rows in set (... sec)
+
+.. Hidden: delete imported data
+
+    cr> refresh table locations;
+    REFRESH OK, 1 row affected (... sec)
+    cr> delete from locations;
+    DELETE OK, ...
+    cr> refresh table locations;
+    REFRESH OK, 1 row affected (... sec)
+
+If an error happens while processing the URI in general, the ``error_count`` and
+``success_count`` columns will contains `NULL` values to indicate that no records were processed.
+
+::
+
+   cr> COPY locations FROM '/tmp/import_data/not-existing.json' RETURN SUMMARY;
+    +--...--+-----------...---------+---------------+-------------+-------------------------------...-----------------------------------+
+    | node  | uri                   | success_count | error_count | errors                                                              |
+    +--...--+-----------...---------+---------------+-------------+-------------------------------...-----------------------------------+
+    | {...} | .../not-existing.json |          NULL |        NULL | {".../not-existing.json (No such file or directory)": {"count": 1}} |
+    +--...--+-----------...---------+---------------+-------------+-------------------------------...-----------------------------------+
+   COPY 1 row in set (... sec)
 
 See :ref:`copy_from` for more information.
 
@@ -501,7 +533,16 @@ Replicated data is not exported. So every row of an exported table is stored
 only once.
 
 This example shows how to export a given table into files named after the table
-and shard ID with gzip compression::
+and shard ID with gzip compression:
+
+.. Hidden: import data
+
+   cr> refresh table quotes;
+   REFRESH OK...
+   cr> copy quotes from '/tmp/import_data/*';
+   COPY OK, 3 rows affected (... sec)
+
+::
 
     cr> refresh table quotes;
     REFRESH OK...

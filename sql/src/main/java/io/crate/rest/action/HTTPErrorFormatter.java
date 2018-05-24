@@ -28,7 +28,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import java.io.IOException;
 
-import static io.crate.exceptions.Exceptions.userFriendlyMessage;
+import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
 
 
 class HTTPErrorFormatter {
@@ -38,7 +38,7 @@ class HTTPErrorFormatter {
         XContentBuilder builder = JsonXContent.contentBuilder()
             .startObject()
                 .startObject("error")
-                    .field("message", userFriendlyMessage(t))
+                    .field("message", userFriendlyMessageInclNested(t))
                     .field("code", t.errorCode())
                 .endObject();
         // @formatter:on

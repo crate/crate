@@ -47,7 +47,7 @@ import org.elasticsearch.transport.TransportService;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.crate.exceptions.Exceptions.userFriendlyMessage;
+import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
 
 @Singleton
 public class TransportShardDeleteAction extends TransportShardAction<ShardDeleteRequest, ShardDeleteRequest.Item> {
@@ -108,7 +108,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                     shardResponse.add(location,
                         new ShardResponse.Failure(
                             item.id(),
-                            userFriendlyMessage(e),
+                            userFriendlyMessageInclNested(e),
                             (e instanceof VersionConflictEngineException)));
                 }
             } catch (Exception e) {
@@ -120,7 +120,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                     shardResponse.add(location,
                         new ShardResponse.Failure(
                             item.id(),
-                            userFriendlyMessage(e),
+                            userFriendlyMessageInclNested(e),
                             (e instanceof VersionConflictEngineException)));
                 }
             }

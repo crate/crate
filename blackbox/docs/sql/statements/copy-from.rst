@@ -324,9 +324,15 @@ inserted records.
 | ``uri``                        | The URI the node has processed.                | ``STRING``    |
 +--------------------------------+------------------------------------------------+---------------+
 | ``error_count``                | The total number of records which failed.      | ``LONG``      |
+|                                | A NULL value indicates a general URI reading   |               |
+|                                | error, the error will be listed inside the     |               |
+|                                | ``errors`` column.                             |               |
 +--------------------------------+------------------------------------------------+---------------+
 | ``success_count``              | The total number of records which were         | ``LONG``      |
 |                                | inserted.                                      |               |
+|                                | A NULL value indicates a general URI reading   |               |
+|                                | error, the error will be listed inside the     |               |
+|                                | ``errors`` column.                             |               |
 +--------------------------------+------------------------------------------------+---------------+
 | ``errors``                     | Contains detailed information about all        | ``OBJECT``    |
 |                                | errors.                                        |               |
