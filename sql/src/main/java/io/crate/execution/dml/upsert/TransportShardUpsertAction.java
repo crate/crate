@@ -169,6 +169,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
             } catch (Exception e) {
                 if (retryPrimaryException(e)) {
+                    if (e instanceof RuntimeException) {
+                        throw (RuntimeException) e;
+                    }
                     throw new RuntimeException(e);
                 }
                 logger.debug("{} failed to execute upsert for [{}]/[{}]",
