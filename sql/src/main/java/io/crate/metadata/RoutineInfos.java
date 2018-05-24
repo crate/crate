@@ -26,13 +26,11 @@ import com.google.common.collect.Iterators;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Locale;
-import java.util.Map;
 
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType;
 import static java.util.Collections.emptyIterator;
@@ -136,60 +134,31 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
 
     private Iterator<RoutineInfo> customIterators() {
         try {
-            Iterator<RoutineInfo> cAnalyzersIterator;
-            Iterator<RoutineInfo> cCharFiltersIterator;
-            Iterator<RoutineInfo> cTokenFiltersIterator;
-            Iterator<RoutineInfo> cTokenizersIterator;
-            cAnalyzersIterator = Iterators.transform(
+            Iterator<RoutineInfo> cAnalyzersIterator = Iterators.transform(
                 ftResolver.getCustomAnalyzers().entrySet().iterator(),
-                new Function<Map.Entry<String, Settings>, RoutineInfo>() {
-                    @Nullable
-                    @Override
-                    public RoutineInfo apply(Map.Entry<String, Settings> input) {
-                        assert input != null : "input must not be null";
-                        return new RoutineInfo(input.getKey(),
-                            RoutineType.ANALYZER.getName()
-                        );
-                    }
+                input -> {
+                    assert input != null : "input must not be null";
+                    return new RoutineInfo(input.getKey(), RoutineType.ANALYZER.getName());
                 });
-            cCharFiltersIterator = Iterators.transform(
+            Iterator<RoutineInfo> cCharFiltersIterator = Iterators.transform(
                 ftResolver.getCustomCharFilters().entrySet().iterator(),
-                new Function<Map.Entry<String, Settings>, RoutineInfo>() {
-                    @Nullable
-                    @Override
-                    public RoutineInfo apply(Map.Entry<String, Settings> input) {
-                        assert input != null : "input must not be null";
-                        return new RoutineInfo(input.getKey(),
-                            RoutineType.CHAR_FILTER.getName()
-                        );
-                    }
+                input -> {
+                    assert input != null : "input must not be null";
+                    return new RoutineInfo(input.getKey(), RoutineType.CHAR_FILTER.getName());
                 });
-            cTokenFiltersIterator = Iterators.transform(
+            Iterator<RoutineInfo> cTokenFiltersIterator = Iterators.transform(
                 ftResolver.getCustomTokenFilters().entrySet().iterator(),
-                new Function<Map.Entry<String, Settings>, RoutineInfo>() {
-                    @Nullable
-                    @Override
-                    public RoutineInfo apply(Map.Entry<String, Settings> input) {
-                        assert input != null : "input must not be null";
-                        return new RoutineInfo(input.getKey(),
-                            RoutineType.TOKEN_FILTER.getName()
-                        );
-                    }
+                input -> {
+                    assert input != null : "input must not be null";
+                    return new RoutineInfo(input.getKey(), RoutineType.TOKEN_FILTER.getName());
                 });
-            cTokenizersIterator = Iterators.transform(
+            Iterator<RoutineInfo> cTokenizersIterator = Iterators.transform(
                 ftResolver.getCustomTokenizers().entrySet().iterator(),
-                new Function<Map.Entry<String, Settings>, RoutineInfo>() {
-                    @Nullable
-                    @Override
-                    public RoutineInfo apply(Map.Entry<String, Settings> input) {
-                        assert input != null : "input must not be null";
-                        return new RoutineInfo(input.getKey(),
-                            RoutineType.TOKENIZER.getName()
-                        );
-                    }
+                input -> {
+                    assert input != null : "input must not be null";
+                    return new RoutineInfo(input.getKey(), RoutineType.TOKENIZER.getName());
                 });
-            return Iterators.concat(cAnalyzersIterator, cCharFiltersIterator,
-                cTokenFiltersIterator, cTokenizersIterator);
+            return Iterators.concat(cAnalyzersIterator, cCharFiltersIterator, cTokenFiltersIterator, cTokenizersIterator);
         } catch (IOException e) {
             logger.error("Could not retrieve custom routines", e);
             return null;

@@ -96,7 +96,7 @@ tasks.withType(Pmd) {
 }
 
 checkstyle {
-    toolVersion = "8.1"
+    toolVersion = "8.10"
     def checkstyle_dir = new String("$rootDir/gradle/checkstyle/")
     configProperties = [
             'checkstyleDir' : checkstyle_dir,
