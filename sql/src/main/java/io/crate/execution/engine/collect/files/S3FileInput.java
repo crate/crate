@@ -95,7 +95,7 @@ public class S3FileInput implements FileInput {
         if (object != null) {
             return object.getObjectContent();
         }
-        return null;
+        throw new IOException("Failed to load S3 URI: " + uri.toString());
     }
 
     @Override

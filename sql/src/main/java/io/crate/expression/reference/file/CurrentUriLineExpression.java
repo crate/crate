@@ -20,39 +20,38 @@
  * agreement.
  */
 
-package io.crate.execution.engine.collect.files;
+package io.crate.expression.reference.file;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URL;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Predicate;
+import io.crate.execution.engine.collect.files.LineCollectorExpression;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 
-class URLFileInput implements FileInput {
+public class CurrentUriLineExpression extends LineCollectorExpression<BytesRef> {
 
-    private final URI fileUri;
+    public static final String COLUMN_NAME = "_uri";
+    private static final ColumnIdent COLUMN_IDENT = new ColumnIdent(COLUMN_NAME);
 
-    public URLFileInput(URI fileUri) {
-        this.fileUri = fileUri;
+    private LineContext context;
+
+    @Override
+    public void startCollect(LineContext context) {
+        this.context = context;
     }
 
     @Override
-    public List<URI> listUris(URI fileUri, Predicate<URI> uriPredicate) throws IOException {
-        // If the full fileUri contains a wildcard the fileUri passed as argument here is the fileUri up to the wildcard
-        // for URLs listing directory contents is not supported so always return the full fileUri for now
-        return Collections.singletonList(this.fileUri);
+    public BytesRef value() {
+        return context.currentUri();
     }
 
-    @Override
-    public InputStream getStream(URI uri) throws IOException {
-        URL url = uri.toURL();
-        return url.openStream();
-    }
-
-    @Override
-    public boolean sharedStorageDefault() {
-        return true;
+    public static Reference getReferenceForRelation(RelationName relationName) {
+        return new Reference(
+            new ReferenceIdent(relationName, COLUMN_IDENT),
+            RowGranularity.DOC,
+            DataTypes.STRING);
     }
 }

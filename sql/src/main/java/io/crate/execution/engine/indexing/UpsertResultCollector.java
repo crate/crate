@@ -20,14 +20,29 @@
  * agreement.
  */
 
-package io.crate.execution.engine.collect.files;
+package io.crate.execution.engine.indexing;
 
-public class S3FileInputFactory implements FileInputFactory {
+import io.crate.data.Row;
+import io.crate.execution.dml.ShardResponse;
+import org.apache.lucene.util.BytesRef;
 
-    public static final String NAME = "s3";
+import java.util.List;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
-    @Override
-    public FileInput create() {
-        return new S3FileInput();
+public interface UpsertResultCollector {
+
+    Supplier<UpsertResults> supplier();
+
+    Accumulator accumulator();
+
+    BinaryOperator<UpsertResults> combiner();
+
+    Function<UpsertResults, Iterable<Row>> finisher();
+
+    interface Accumulator {
+
+        void accept(UpsertResults upsertResults, ShardResponse shardResponse, List<BytesRef> sourceUrisOfItems);
     }
 }

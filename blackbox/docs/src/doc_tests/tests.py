@@ -191,6 +191,16 @@ def setUpLocations(test):
     locations_file = get_abspath("locations.json")
     _execute_sql("""copy locations from '{0}'""".format(locations_file))
     _execute_sql("""refresh table locations""")
+    import_failures_dir = '/tmp/import_data/locations_with_failure'
+    os.makedirs(import_failures_dir, exist_ok=True)
+    shutil.copy(
+        get_abspath("locations_import_summary1.json"),
+        os.path.join(import_failures_dir, "locations1.json")
+    )
+    shutil.copy(
+        get_abspath("locations_import_summary2.json"),
+        os.path.join(import_failures_dir, "locations2.json")
+    )
 
 
 def setUpUserVisits(test):

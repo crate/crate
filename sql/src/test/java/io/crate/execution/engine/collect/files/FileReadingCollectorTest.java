@@ -34,15 +34,17 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
+import io.crate.expression.InputFactory;
+import io.crate.expression.reference.file.FileLineReferenceResolver;
+import io.crate.expression.reference.file.SourceLineExpression;
+import io.crate.expression.reference.file.UriFailureExpression;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.expression.InputFactory;
-import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
-import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
@@ -59,7 +61,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -89,6 +90,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     private static File tmpFileGz;
     private static File tmpFileEmptyLine;
     private InputFactory inputFactory;
+    private Input<String> sourceUriFailureInput;
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -203,7 +205,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
             .thenReturn(-1);
 
 
-        TestingRowConsumer consumer = getObjects(Collections.singletonList("s3://fakebucket/foo"), null, inputStream);
+        TestingRowConsumer consumer = getObjects(Collections.singletonList("s3://fakebucket/foo"), null, inputStream, false);
         Bucket rows = consumer.getBucket();
         assertThat(rows.size(), is(2));
         assertThat(TestingHelpers.printedTable(rows), is("foo\nbar\n"));
@@ -211,9 +213,8 @@ public class FileReadingCollectorTest extends CrateUnitTest {
 
     @Test
     public void unsupportedURITest() throws Throwable {
-        expectedException.expect(MalformedURLException.class);
-        expectedException.expectMessage("unknown protocol: invalid");
-        getObjects("invalid://crate.io/docs/en/latest/sql/reference/copy_from.html").getBucket();
+        getObjects("invalid://crate.io/docs/en/latest/sql/reference/copy_from.html", true).getBucket();
+        assertThat(sourceUriFailureInput.value(), is("unknown protocol: invalid"));
     }
 
     @Test
@@ -236,31 +237,59 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     }
 
     private TestingRowConsumer getObjects(String fileUri) throws Throwable {
-        return getObjects(Collections.singletonList(fileUri), null);
+        return getObjects(fileUri, false);
     }
 
-    private TestingRowConsumer getObjects(Collection<String> fileUris, String compression) throws Throwable {
+    private TestingRowConsumer getObjects(String fileUri, boolean collectSourceUriFailure) throws Throwable {
+        return getObjects(Collections.singletonList(fileUri), null, collectSourceUriFailure);
+    }
+
+    private TestingRowConsumer getObjects(Collection<String> fileUris,
+                                          String compression) throws Throwable {
+        return getObjects(fileUris, compression, false);
+    }
+
+    private TestingRowConsumer getObjects(Collection<String> fileUris,
+                                          String compression,
+                                          boolean collectSourceUriFailure) throws Throwable {
         S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
         when(inputStream.read(new byte[anyInt()], anyInt(), anyByte())).thenReturn(-1);
-        return getObjects(fileUris, compression, inputStream);
+        return getObjects(fileUris, compression, inputStream, collectSourceUriFailure);
     }
 
-    private TestingRowConsumer getObjects(Collection<String> fileUris, String compression, S3ObjectInputStream s3InputStream) throws Throwable {
+    private TestingRowConsumer getObjects(Collection<String> fileUris,
+                                          String compression,
+                                          S3ObjectInputStream s3InputStream,
+                                          boolean collectSourceUriFailure) throws Throwable {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        getObjects(fileUris, compression, s3InputStream, consumer);
+        getObjects(fileUris, compression, s3InputStream, consumer, collectSourceUriFailure);
         return consumer;
     }
 
-    private void getObjects(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream, RowConsumer consumer) throws Throwable {
-        BatchIterator iterator = createBatchIterator(fileUris, compression, s3InputStream);
+    private void getObjects(Collection<String> fileUris,
+                            String compression,
+                            final S3ObjectInputStream s3InputStream,
+                            RowConsumer consumer,
+                            boolean collectSourceUriFailure) throws Throwable {
+        BatchIterator iterator = createBatchIterator(fileUris, compression, s3InputStream, collectSourceUriFailure);
         BatchIteratorCollectorBridge.newInstance(iterator, consumer).doCollect();
     }
 
-    private BatchIterator createBatchIterator(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream) {
-        Reference raw = createReference("_raw", DataTypes.STRING);
+    private BatchIterator createBatchIterator(Collection<String> fileUris,
+                                              String compression,
+                                              final S3ObjectInputStream s3InputStream,
+                                              boolean collectSourceUriFailure) {
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);
-        List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
+        List<Input<?>> inputs = new ArrayList<>(2);
+        Reference raw = createReference(SourceLineExpression.COLUMN_NAME, DataTypes.STRING);
+        inputs.add(ctx.add(raw));
+        if (collectSourceUriFailure) {
+            Reference sourceUriFailure = createReference(UriFailureExpression.COLUMN_NAME, DataTypes.STRING);
+            //noinspection unchecked
+            sourceUriFailureInput = (Input<String>) ctx.add(sourceUriFailure);
+            inputs.add(sourceUriFailureInput);
+        }
         return FileReadingIterator.newInstance(
             fileUris,
             inputs,

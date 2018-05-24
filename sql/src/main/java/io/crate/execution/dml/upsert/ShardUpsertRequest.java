@@ -74,7 +74,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     @Nullable
     private Streamer[] insertValuesStreamer;
 
-    public ShardUpsertRequest() {
+    ShardUpsertRequest() {
     }
 
     private ShardUpsertRequest(ShardId shardId,
@@ -94,44 +94,45 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         }
     }
 
-    public String[] updateColumns() {
+    String[] updateColumns() {
         return updateColumns;
     }
 
     @Nullable
-    public Reference[] insertColumns() {
+    Reference[] insertColumns() {
         return insertColumns;
     }
 
-    public DuplicateKeyAction duplicateKeyAction() {
+    DuplicateKeyAction duplicateKeyAction() {
         return duplicateKeyAction;
     }
 
-    public ShardUpsertRequest duplicateKeyAction(DuplicateKeyAction duplicateKeyAction) {
+    private ShardUpsertRequest duplicateKeyAction(DuplicateKeyAction duplicateKeyAction) {
         this.duplicateKeyAction = duplicateKeyAction;
         return this;
     }
 
-    public boolean continueOnError() {
+    boolean continueOnError() {
         return continueOnError;
     }
 
-    public ShardUpsertRequest continueOnError(boolean continueOnError) {
+    private ShardUpsertRequest continueOnError(boolean continueOnError) {
         this.continueOnError = continueOnError;
         return this;
     }
 
-    public boolean validateConstraints() {
+    boolean validateConstraints() {
         return validateConstraints;
     }
 
-    public ShardUpsertRequest validateConstraints(boolean validateConstraints) {
+    ShardUpsertRequest validateConstraints(boolean validateConstraints) {
         this.validateConstraints = validateConstraints;
         return this;
     }
 
-    public Boolean isRawSourceInsert() {
+    Boolean isRawSourceInsert() {
         if (isRawSourceInsert == null) {
+            assert insertColumns != null : "insertColumns must not be NULL on insert requests";
             isRawSourceInsert =
                 insertColumns.length == 1 && insertColumns[0].column().equals(DocSysColumns.RAW);
         }
@@ -274,12 +275,12 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             this.source = source;
         }
 
-        public boolean retryOnConflict() {
+        boolean retryOnConflict() {
             return version == Versions.MATCH_ANY;
         }
 
         @Nullable
-        public Symbol[] updateAssignments() {
+        Symbol[] updateAssignments() {
             return updateAssignments;
         }
 

@@ -23,8 +23,10 @@
 package io.crate.execution.engine.indexing;
 
 import io.crate.execution.dml.ShardRequest;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,7 +35,10 @@ import java.util.function.Function;
 
 public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item> {
 
-    final Map<String, List<ItemAndRouting<TItem>>> itemsByMissingIndex = new HashMap<>();
+    final Map<String, List<ItemAndRoutingAndSourceUri<TItem>>> itemsByMissingIndex = new HashMap<>();
+    final Map<BytesRef, List<String>> itemsWithFailureBySourceUri = new HashMap<>();
+    final Map<BytesRef, String> sourceUrisWithFailure = new HashMap<>();
+    final List<BytesRef> sourceUriOfItems = new ArrayList<>();
     final Map<ShardLocation, TReq> itemsByShard = new HashMap<>();
 
     private final Function<ShardId, TReq> requestFactory;
@@ -47,12 +52,12 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         this.requestFactory = requestFactory;
     }
 
-    public void add(TItem item, String indexName, String routing) {
-        List<ItemAndRouting<TItem>> items = itemsByMissingIndex.computeIfAbsent(indexName, k -> new ArrayList<>());
-        items.add(new ItemAndRouting<>(item, routing));
+    public void add(TItem item, String indexName, String routing, @Nullable BytesRef sourceUri) {
+        List<ItemAndRoutingAndSourceUri<TItem>> items = itemsByMissingIndex.computeIfAbsent(indexName, k -> new ArrayList<>());
+        items.add(new ItemAndRoutingAndSourceUri<>(item, routing, sourceUri));
     }
 
-    public void add(TItem item, ShardLocation shardLocation) {
+    public void add(TItem item, ShardLocation shardLocation, @Nullable BytesRef sourceUri) {
         TReq req = itemsByShard.get(shardLocation);
         if (req == null) {
             req = requestFactory.apply(shardLocation.shardId);
@@ -60,15 +65,29 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         }
         location++;
         req.add(location, item);
+        sourceUriOfItems.add(sourceUri);
     }
 
-    static class ItemAndRouting<TItem> {
+    void addFailedItem(BytesRef sourceUri, String readFailure) {
+        List<String> itemsWithFailure = itemsWithFailureBySourceUri.computeIfAbsent(sourceUri, k -> new ArrayList<>());
+        itemsWithFailure.add(readFailure);
+    }
+
+    void addFailedUri(BytesRef sourceUri, String uriReadFailure) {
+        assert sourceUrisWithFailure.get(sourceUri) == null : "A failure was already stored for this URI, should happen only once";
+        sourceUrisWithFailure.put(sourceUri, uriReadFailure);
+    }
+
+    static class ItemAndRoutingAndSourceUri<TItem> {
         final TItem item;
         final String routing;
+        @Nullable
+        final BytesRef sourceUri;
 
-        ItemAndRouting(TItem item, String routing) {
+        ItemAndRoutingAndSourceUri(TItem item, String routing, @Nullable BytesRef sourceUri) {
             this.item = item;
             this.routing = routing;
+            this.sourceUri = sourceUri;
         }
     }
 }

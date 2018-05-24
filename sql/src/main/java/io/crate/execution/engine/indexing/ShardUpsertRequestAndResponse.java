@@ -20,14 +20,16 @@
  * agreement.
  */
 
-package io.crate.execution.engine.collect.files;
+package io.crate.execution.engine.indexing;
 
-public class S3FileInputFactory implements FileInputFactory {
+import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
 
-    public static final String NAME = "s3";
+public class ShardUpsertRequestAndResponse {
+    final ShardUpsertRequest shardRequest;
+    ShardResponse shardResponse;
 
-    @Override
-    public FileInput create() {
-        return new S3FileInput();
+    ShardUpsertRequestAndResponse(ShardUpsertRequest shardRequest) {
+        this.shardRequest = shardRequest;
     }
 }

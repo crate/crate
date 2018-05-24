@@ -22,14 +22,18 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.pipeline.TableSettingsResolver;
+import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
@@ -38,10 +42,6 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.execution.engine.pipeline.TableSettingsResolver;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -50,7 +50,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -90,8 +89,8 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             internalCluster().getInstance(TransportShardUpsertAction.class)::execute,
             IndexNameResolver.forTable(bulkImportIdent),
             new Reference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING),
-            Arrays.asList(ID_IDENT),
-            Arrays.<Symbol>asList(new InputColumn(0)),
+            Collections.singletonList(ID_IDENT),
+            Collections.<Symbol>singletonList(new InputColumn(0)),
             null,
             null,
             sourceInput,
@@ -101,7 +100,8 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             null,
             false,
             false,
-            UUID.randomUUID()
+            UUID.randomUUID(),
+            UpsertResultContext.forRowCount()
         );
 
         BatchIterator rowsIterator = InMemoryBatchIterator.of(IntStream.range(0, 100)
