@@ -12,11 +12,20 @@ repositories {
 }
 
 compileJava {
-    options.warnings = true
-    options.deprecation = true
+    options.warnings = false
+    options.deprecation = false
+    options.compilerArgs << '-XDignore.symbol.file'
+    options.fork = true
+    options.forkOptions.executable = 'javac'
 
     finalizedBy checkstyleMain
 }
+
+
+javadoc {
+    options.addStringOption('XDignore.symbol.file', '')
+}
+
 
 sourceCompatibility = "8"
 targetCompatibility = "8"

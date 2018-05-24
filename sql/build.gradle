@@ -73,12 +73,3 @@ sourceSets {
         }
     }
 }
-
-// suppress Sun API warnings
-compileJava {
-    options.compilerArgs << '-XDignore.symbol.file'
-    options.fork = true
-}
-javadoc {
-    options.addStringOption('XDignore.symbol.file', '')
-}
