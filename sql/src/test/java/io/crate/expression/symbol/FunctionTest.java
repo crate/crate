@@ -63,26 +63,6 @@ public class FunctionTest extends CrateUnitTest {
         assertThat(fn.hashCode(), is(fn2.hashCode()));
     }
 
-    @Test
-    public void testCloning() throws Exception {
-
-        Function fn = new Function(
-            new FunctionInfo(
-                new FunctionIdent(
-                    randomAsciiLettersOfLength(10),
-                    ImmutableList.of(DataTypes.BOOLEAN)
-                ),
-                TestingHelpers.randomPrimitiveType(), FunctionInfo.Type.SCALAR, randomFeatures()),
-            Collections.singletonList(TestingHelpers.createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN))
-        );
-
-        Function fn2 = fn.clone();
-
-        assertThat(fn, is(equalTo(fn2)));
-        assertThat(fn.hashCode(), is(fn2.hashCode()));
-
-    }
-
     private Set<FunctionInfo.Feature> randomFeatures() {
         Set<FunctionInfo.Feature> features = EnumSet.noneOf(FunctionInfo.Feature.class);
         for (FunctionInfo.Feature feature : FunctionInfo.Feature.values()) {

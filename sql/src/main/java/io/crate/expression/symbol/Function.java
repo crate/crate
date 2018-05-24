@@ -147,9 +147,4 @@ public class Function extends Symbol implements Cloneable {
         result = 31 * result + info.hashCode();
         return result;
     }
-
-    @Override
-    public Function clone() {
-        return new Function(this.info, this.arguments);
-    }
 }
