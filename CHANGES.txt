@@ -33,3 +33,6 @@ Fixes
 - Fixed a bug affecting the Postgres Wire Protocol's Simple Query mode and
   queries which contained strings with escaped single quotes and semicolons,
   e.g. `'Hello ''Joe'';'`.
+
+- Fixed an issue in the Postgres Wire Protocol's Simple Query mode which would
+  send an empty statement if the query string contained trailing whitespace.

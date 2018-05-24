@@ -31,8 +31,13 @@ public class QueryStringSplitterTest {
 
     @Test
     public void testEmptyQuery() {
+        assertThat(QueryStringSplitter.splitQuery("  "), contains(""));
+        assertThat(QueryStringSplitter.splitQuery("      "), contains(""));
         assertThat(QueryStringSplitter.splitQuery(";"), contains(";"));
         assertThat(QueryStringSplitter.splitQuery(";; ;"), contains(";", ";", " ;"));
+        assertThat(QueryStringSplitter.splitQuery(";  "), contains(";"));
+        assertThat(QueryStringSplitter.splitQuery(";;  "), contains(";", ";"));
+        assertThat(QueryStringSplitter.splitQuery("; ;   ;"), contains(";", " ;", "   ;"));
     }
 
     @Test

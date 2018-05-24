@@ -58,10 +58,14 @@ class QueryStringSplitter {
 
         char[] chars = query.toCharArray();
 
+        boolean isCurrentlyEmpty = true;
         int offset = 0;
         char lastChar = ' ';
         for (int i = 0; i < chars.length; i++) {
             char aChar = chars[i];
+            if (isCurrentlyEmpty && !Character.isWhitespace(aChar)) {
+                isCurrentlyEmpty = false;
+            }
             switch (aChar) {
                 case '\'':
                     if (commentType == NO && quoteType != DOUBLE) {
@@ -109,6 +113,7 @@ class QueryStringSplitter {
                     if (commentType == NO && quoteType == NONE) {
                         queries.add(new String(chars, offset, i - offset + 1));
                         offset = i + 1;
+                        isCurrentlyEmpty = true;
                     }
                     break;
 
@@ -117,8 +122,11 @@ class QueryStringSplitter {
             lastChar = aChar;
         }
         // statement might not be terminated by semicolon
-        if (offset < chars.length && commentType == NO) {
+        if (!isCurrentlyEmpty && offset < chars.length && commentType == NO) {
             queries.add(new String(chars, offset, chars.length - offset));
+        }
+        if (queries.isEmpty()) {
+            queries.add("");
         }
 
         return queries;
