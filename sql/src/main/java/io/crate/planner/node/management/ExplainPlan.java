@@ -135,11 +135,11 @@ public class ExplainPlan implements Plan {
         }
     }
 
-    private BiConsumer<Object, Throwable> createResultConsumer(DependencyCarrier executor,
-                                                               RowConsumer consumer,
-                                                               UUID jobId,
-                                                               TimerToken timerToken,
-                                                               NodeOperationTree operationTree) {
+    private BiConsumer<Void, Throwable> createResultConsumer(DependencyCarrier executor,
+                                                             RowConsumer consumer,
+                                                             UUID jobId,
+                                                             TimerToken timerToken,
+                                                             NodeOperationTree operationTree) {
         return (ignored, t) -> {
             context.stopAndAddTimer(timerToken);
             if (t == null) {
@@ -199,13 +199,11 @@ public class ExplainPlan implements Plan {
             return resultFuture;
         } else {
             // Collect from local JobExecutionContext
-            TransportCollectProfileNodeAction nodeAction = executor.transportActionProvider()
-                .transportCollectProfileNodeAction();
-            Map<String, Map<String, Long>> localExecutionTimings =
-                Collections.singletonMap(
-                    executor.localNodeId(),
-                    nodeAction.collectExecutionTimesAndFinishContext(jobId));
-            return CompletableFuture.completedFuture(localExecutionTimings);
+            return executor
+                .transportActionProvider()
+                .transportCollectProfileNodeAction()
+                .collectExecutionTimesAndFinishContext(jobId)
+                .thenApply(timings -> Collections.singletonMap(executor.localNodeId(), timings));
         }
     }
 

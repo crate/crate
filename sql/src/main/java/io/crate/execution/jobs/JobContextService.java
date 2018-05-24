@@ -210,7 +210,7 @@ public class JobContextService extends AbstractLifecycleComponent {
         public void accept(Void aVoid, Throwable throwable) {
             activeContexts.remove(jobId);
             if (logger.isTraceEnabled()) {
-                logger.trace("JobExecutionContext closed and removed. jobId={} remainingContexts={} failure={}",
+                logger.trace("JobExecutionContext removed from active contexts: jobId={} remainingContexts={} failure={}",
                     jobId, activeContexts.size(), throwable);
             }
         }
