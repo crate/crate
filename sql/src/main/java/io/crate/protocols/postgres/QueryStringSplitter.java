@@ -54,6 +54,7 @@ class QueryStringSplitter {
 
         CommentType commentType = NO;
         QuoteType quoteType = NONE;
+        boolean restoreSingleQuoteIfEscaped = false;
 
         char[] chars = query.toCharArray();
 
@@ -65,9 +66,14 @@ class QueryStringSplitter {
                 case '\'':
                     if (commentType == NO && quoteType != DOUBLE) {
                         if (lastChar == '\'') {
-                            // quoting of ' via ''
-                            quoteType = NONE;
+                            // Escaping of ' via '', e.g.: 'hello ''Joe''!'
+                            // When we set single quotes state to NONE,
+                            // but we find out this was due to an escaped single quote (''),
+                            // we restore the previous single quote state here.
+                            quoteType = restoreSingleQuoteIfEscaped ? SINGLE : NONE;
+                            restoreSingleQuoteIfEscaped = false;
                         } else {
+                            restoreSingleQuoteIfEscaped = quoteType == SINGLE;
                             quoteType = quoteType == SINGLE ? NONE : SINGLE;
                         }
                     }

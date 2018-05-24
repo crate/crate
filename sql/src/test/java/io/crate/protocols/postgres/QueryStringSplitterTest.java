@@ -59,6 +59,10 @@ public class QueryStringSplitterTest {
             contains("select 'Hello comment -- test;';", "select 2"));
         assertThat(QueryStringSplitter.splitQuery("select 'Hello comment /* bla */;';select 2"),
             contains("select 'Hello comment /* bla */;';", "select 2"));
+        assertThat(QueryStringSplitter.splitQuery("insert into doc.test (col) values ('aaa'';')"),
+            contains("insert into doc.test (col) values ('aaa'';')"));
+        assertThat(QueryStringSplitter.splitQuery("insert into doc.test (col) values ('aaa' '';')"),
+            contains("insert into doc.test (col) values ('aaa' '';", "')"));
     }
 
     @Test
