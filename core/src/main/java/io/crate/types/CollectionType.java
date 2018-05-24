@@ -92,11 +92,6 @@ public abstract class CollectionType extends DataType {
     public abstract CollectionType newInstance(DataType innerType);
 
     @Override
-    public boolean isNumeric() {
-        return innerType.isNumeric();
-    }
-
-    @Override
     public int compareTo(Object o) {
         if (!(o instanceof CollectionType)) return -1;
         return Integer.compare(innerType.id(), ((CollectionType) o).innerType().id());
