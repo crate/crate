@@ -22,7 +22,9 @@
 
 package io.crate.discovery;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import io.crate.plugin.SrvPlugin;
+import io.crate.test.integration.NettyLeakDetectionFilter;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -39,6 +41,7 @@ import java.util.Collections;
 import static org.elasticsearch.common.settings.Settings.builder;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 0, transportClientRatio = 0)
+@ThreadLeakFilters(filters = {NettyLeakDetectionFilter.class})
 public class SrvDiscoveryIntegrationTest extends ESIntegTestCase {
 
     @Before

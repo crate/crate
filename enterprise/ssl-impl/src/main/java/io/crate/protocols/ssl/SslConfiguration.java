@@ -46,6 +46,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
@@ -77,9 +78,18 @@ import static io.crate.Constants.KEYSTORE_DEFAULT_TYPE;
 @SuppressWarnings("WeakerAccess")
 public final class SslConfiguration {
 
+    private static final String KEYSTORE_TYPE = "keystore.type";
+
     private SslConfiguration() {}
 
     public static SslContext buildSslContext(Settings settings) {
+        // Under JDK10 "keystore.type" is set to pkcs12, which breaks our tests
+        // Need to investigate if this is a testing only issue or a real issue
+        // so meanwhile we restore behaviour prior to
+        // https://github.com/netty/netty/commit/ab9f0a0fda23e9c254cca9b18f5c19090b6c63ef
+        String keyStoreType = Security.getProperty(KEYSTORE_TYPE);
+        Security.setProperty(KEYSTORE_TYPE, "jks");
+
         try {
             KeyStoreSettings keyStoreSettings = new KeyStoreSettings(settings);
 
@@ -126,6 +136,8 @@ public final class SslConfiguration {
             throw e;
         } catch (Exception e) {
             throw new SslConfigurationException("Failed to build SSL configuration", e);
+        } finally {
+            Security.setProperty(KEYSTORE_TYPE, keyStoreType);
         }
     }
 

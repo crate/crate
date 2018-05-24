@@ -22,6 +22,7 @@
 package io.crate.test.integration;
 
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.test.GroovyTestSanitizer;
@@ -34,6 +35,7 @@ import org.mockito.MockitoAnnotations;
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 @ThreadLeakLingering(linger = 5000) // 5 sec lingering
 @Listeners({SystemPropsTestLoggingListener.class})
+@ThreadLeakFilters(filters = {NettyLeakDetectionFilter.class})
 public abstract class CrateUnitTest extends ESTestCase {
 
     static {

@@ -20,7 +20,7 @@ package io.crate.auth;
 
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.test.integration.CrateUnitTest;
-import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
@@ -86,7 +86,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
             .forServer(ssc.certificate(), ssc.privateKey())
             .trustManager(InsecureTrustManagerFactory.INSTANCE)
             .startTls(false)
-            .build().newHandler(ByteBufAllocator.DEFAULT);
+            .build().newHandler(UnpooledByteBufAllocator.DEFAULT);
         sslSession = sslHandler.engine().getSession();
     }
 
