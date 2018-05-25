@@ -501,7 +501,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 indexShard.shardId(), item.opType(), item.id(), version, item.source().utf8ToString());
         }
         return indexShard.prepareIndexOnPrimary(
-            sourceToParse, version, item.versionType(), -1, request.isRetry());
+            // Do not use item.versionType() here, it might have been changed to VersionType.EXTERNAL
+            // for writing the version on the replica. We might end up here again because the ShardUpsertRequest
+            // failed before all items could be processed. The request will then be retried.
+            // For primaries, we always want to use VersionType.INTERNAL.
+            sourceToParse, version, VersionType.INTERNAL, -1, request.isRetry());
     }
 
     private Engine.Index updateMappingIfRequired(ShardUpsertRequest request,
