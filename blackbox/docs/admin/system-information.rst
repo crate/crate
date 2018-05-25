@@ -1042,6 +1042,40 @@ Every request that queries data or manipulates data is considered a "job" if it
 is a valid query. Requests that are not valid queries (for example, a request
 that tries to query a non-existent table) will not show up as jobs.
 
+Jobs Metrics
+------------
+
+The ``sys.jobs_metrics`` table provides an overview of the query latency in the
+cluster for each node. Jobs metrics are not persisted across node restarts.
+
+.. note::
+
+  In order to reduce the memory requirements for these metrics, the times are
+  statistically sampled and therefore may have slight inaccuracies.
+
+``sys.jobs_metrics`` Table Schema
+.................................
+
++------------------------------------+----------------------------------------------------+---------------+
+| Column Name                        | Description                                        |  Return Type  |
++====================================+====================================================+===============+
+| ``node``                           | An object containing the id and name of the node   | ``OBJECT``    |
+|                                    | on which the metrics have been sampled.            |               |
++------------------------------------+----------------------------------------------------+---------------+
+| ``total_count``                    | Total number of queries executed                   | ``LONG``      |
++------------------------------------+----------------------------------------------------+---------------+
+| ``mean``                           | The mean query latency in ms                       | ``DOUBLE``    |
++------------------------------------+----------------------------------------------------+---------------+
+| ``stdev``                          | The standard deviation of the query latencies      | ``DOUBLE``    |
++------------------------------------+----------------------------------------------------+---------------+
+| ``max``                            | The maximum query latency in ms                    | ``LONG``      |
++------------------------------------+----------------------------------------------------+---------------+
+| ``min``                            | The minimum query latency in ms                    | ``LONG``      |
++------------------------------------+----------------------------------------------------+---------------+
+| ``percentiles``                    | An object containing different percentiles         | ``OBJECT``    |
++------------------------------------+----------------------------------------------------+---------------+
+
+
 .. _sys-operations:
 
 Operations

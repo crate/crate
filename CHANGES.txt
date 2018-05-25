@@ -18,6 +18,8 @@ Breaking Changes
 Changes
 =======
 
+- Added a ``sys.jobs_metrics`` table which contains query latency information.
+
 Fixes
 =====
 

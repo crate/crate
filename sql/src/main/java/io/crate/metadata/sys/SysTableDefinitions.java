@@ -112,6 +112,10 @@ public class SysTableDefinitions {
             SysHealthTableInfo.expressions(),
             (user, tableHealth) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableHealth.fqn())
         ));
+        tableDefinitions.put(SysMetricsTableInfo.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(jobsLogs.metrics()),
+            SysMetricsTableInfo.expressions(clusterService::localNode)
+        ));
     }
 
     public StaticTableDefinition<?> get(RelationName relationName) {
