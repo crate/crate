@@ -92,13 +92,13 @@ public class SystemCollectSource implements CollectSource {
     Function<Iterable, Iterable<? extends Row>> toRowsIterableTransformation(RoutedCollectPhase collectPhase,
                                                                              ReferenceResolver<?> referenceResolver,
                                                                              boolean requiresRepeat) {
-        return objects -> dataIterableToRowsIterable(collectPhase, referenceResolver, requiresRepeat, objects);
+        return objects -> recordsToRows(collectPhase, referenceResolver, requiresRepeat, objects);
     }
 
-    private Iterable<? extends Row> dataIterableToRowsIterable(RoutedCollectPhase collectPhase,
-                                                               ReferenceResolver<?> referenceResolver,
-                                                               boolean requiresRepeat,
-                                                               Iterable<?> data) {
+    private Iterable<? extends Row> recordsToRows(RoutedCollectPhase collectPhase,
+                                                  ReferenceResolver<?> referenceResolver,
+                                                  boolean requiresRepeat,
+                                                  Iterable<?> data) {
         if (requiresRepeat) {
             data = ImmutableList.copyOf(data);
         }
@@ -123,11 +123,14 @@ public class SystemCollectSource implements CollectSource {
         StaticTableDefinition<?> tableDefinition = tableDefinition(relationName);
 
         return BatchIteratorCollectorBridge.newInstance(
-            () -> tableDefinition.getIterable(collectPhase.user()).get().thenApply(dataIterable ->
+            () -> tableDefinition.retrieveRecords(collectPhase.user()).thenApply(records ->
                 InMemoryBatchIterator.of(
-                    dataIterableToRowsIterable(collectPhase,
+                    recordsToRows(
+                        collectPhase,
                         tableDefinition.getReferenceResolver(),
-                        requiresScroll, dataIterable),
+                        requiresScroll,
+                        records
+                    ),
                     SENTINEL
                 )),
             consumer

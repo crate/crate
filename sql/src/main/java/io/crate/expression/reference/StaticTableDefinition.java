@@ -67,8 +67,8 @@ public class StaticTableDefinition<T> {
         this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
     }
 
-    public Supplier<CompletableFuture<? extends Iterable<T>>> getIterable(@Nullable User user) {
-        return () -> recordsForUser.apply(user);
+    public CompletableFuture<? extends Iterable<T>> retrieveRecords(@Nullable User user) {
+        return recordsForUser.apply(user);
     }
 
     public StaticTableReferenceResolver<T> getReferenceResolver() {
