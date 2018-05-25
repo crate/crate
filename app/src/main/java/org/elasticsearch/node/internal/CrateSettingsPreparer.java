@@ -26,6 +26,7 @@ import com.google.common.base.Charsets;
 import io.crate.Constants;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.settings.CrateSetting;
+import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cli.UserException;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.logging.LogConfigurator;
@@ -168,6 +169,8 @@ public class CrateSettingsPreparer {
             return names;
         } catch (IOException e) {
             throw new RuntimeException("Could not read node names list", e);
+        } finally {
+            IOUtils.closeWhileHandlingException(input);
         }
     }
 }
