@@ -18,6 +18,8 @@ Breaking Changes
 Changes
 =======
 
+- Added a ``sys.jobs_metrics`` table which contains query latency information.
+
 - The setting ``es.api.enabled`` has been marked as deprecated and will be
   removed in a future version. Once removed it will no longer be possible to
   use the ES API.

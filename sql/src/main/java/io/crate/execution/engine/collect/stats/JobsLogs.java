@@ -27,6 +27,8 @@ import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
+import io.crate.metadata.sys.SysMetricsTableInfo;
+import org.HdrHistogram.ConcurrentHistogram;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
@@ -34,9 +36,12 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BooleanSupplier;
+
+import static java.util.Collections.singletonList;
 
 /**
  * JobsLogs is responsible for adding jobs and operations of that node.
@@ -66,6 +71,7 @@ public class JobsLogs {
 
     private final LongAdder activeRequests = new LongAdder();
     private final BooleanSupplier enabled;
+    private final ConcurrentHistogram histogram = new ConcurrentHistogram(TimeUnit.MINUTES.toMillis(10), 3);
 
     public JobsLogs(BooleanSupplier enabled) {
         this.enabled = enabled;
@@ -112,7 +118,9 @@ public class JobsLogs {
             return;
         }
         LogSink<JobContextLog> jobContextLogs = jobsLog.get();
-        jobContextLogs.add(new JobContextLog(jobContext, errorMessage));
+        JobContextLog contextLog = new JobContextLog(jobContext, errorMessage);
+        histogram.recordValue(contextLog.ended() - contextLog.started());
+        jobContextLogs.add(contextLog);
     }
 
     /**
@@ -134,6 +142,10 @@ public class JobsLogs {
                 uniqueOperationId(operationId, jobId),
                 new OperationContext(operationId, jobId, name, System.currentTimeMillis()));
         }
+    }
+
+    public Iterable<SysMetricsTableInfo.ClassifiedHist> metrics() {
+        return singletonList(new SysMetricsTableInfo.ClassifiedHist(histogram.copy(), "total"));
     }
 
     public void operationFinished(int operationId, UUID jobId, @Nullable String errorMessage, long usedBytes) {

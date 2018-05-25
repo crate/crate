@@ -88,6 +88,7 @@ number of replicas.
     | sys                | health                  | BASE TABLE |             NULL | NULL               |
     | sys                | jobs                    | BASE TABLE |             NULL | NULL               |
     | sys                | jobs_log                | BASE TABLE |             NULL | NULL               |
+    | sys                | jobs_metrics            | BASE TABLE |             NULL | NULL               |
     | sys                | node_checks             | BASE TABLE |             NULL | NULL               |
     | sys                | nodes                   | BASE TABLE |             NULL | NULL               |
     | sys                | operations              | BASE TABLE |             NULL | NULL               |
@@ -99,7 +100,7 @@ number of replicas.
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 32 rows in set (... sec)
+    SELECT 33 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`partitioned_tables`)
