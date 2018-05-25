@@ -18,11 +18,5 @@ Breaking Changes
 Changes
 =======
 
-- Improved the performance of password authentication for connections that are
-  re-used.
-
 Fixes
 =====
-
-- Fixed a streaming issue which could result in wrong version numbers of items
-  on replica shards.
