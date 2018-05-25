@@ -58,18 +58,14 @@ import static org.elasticsearch.transport.TcpTransport.PORT;
 public class CrateSettingsPreparer {
 
     public static Environment prepareEnvironment(Map<String, String> cmdLineSettings, Path configPath) throws UserException {
+        // just create enough settings to build the environment, to get the config dir
         Settings.Builder settingsBuilder = Settings.builder();
         settingsBuilder.putProperties(cmdLineSettings, Function.identity());
         settingsBuilder.replacePropertyPlaceholders();
         Environment env = new Environment(settingsBuilder.build(), configPath);
 
-        try {
-            // Logging needs to be initialized before any Crate logging code runs
-            LogConfigurator.registerErrorListener();
-            LogConfigurator.configure(env);
-        } catch (IOException e) {
-            throw new UserException(1, "Couldn't read log4j2.properties configuration file.", e);
-        }
+        // add error listener before everything else
+        LogConfigurator.registerErrorListener();
 
         Path path = env.configFile().resolve("crate.yml");
         if (Files.exists(path)) {
@@ -80,14 +76,22 @@ public class CrateSettingsPreparer {
             }
         }
 
-        // Override settings with settings from the command-line
+        // re-initialize settings now that the config file has been loaded
         settingsBuilder.putProperties(cmdLineSettings, Function.identity());
         settingsBuilder.replacePropertyPlaceholders();
 
-        validateKnownSettings(settingsBuilder);
+        // apply Crate defaults BEFORE configuring logging, because the default cluster name influences the log file name
         applyCrateDefaults(settingsBuilder);
-
         env = new Environment(settingsBuilder.build(), env.configFile());
+
+        try {
+            LogConfigurator.configure(env);
+        } catch (IOException e) {
+            throw new UserException(1, "Couldn't read log4j2.properties configuration file.", e);
+        }
+
+        // validating settings initializes loggers in the Crate code, therefore we must do it only AFTER configuration
+        validateKnownSettings(settingsBuilder);
 
         // we put back the path.logs so we can use it in the logging configuration file
         settingsBuilder.put(

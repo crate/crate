@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed the default log file name to ``crate.log`` if no cluster name was
+  explicitly specified in the settings.
+
 - Fixed an issue that caused a ``ClassCastException`` to be thrown when querying
   the ``sys.health`` table on a cluster that has ``blob`` tables.
 
