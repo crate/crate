@@ -40,7 +40,6 @@ import io.crate.auth.user.UserManager;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbols;
@@ -60,6 +59,7 @@ import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -71,6 +71,7 @@ import java.util.Locale;
 import java.util.Set;
 
 import static io.crate.action.sql.Session.UNNAMED;
+import static io.crate.exceptions.SQLExceptions.createSQLActionException;
 
 @Singleton
 public class RestSQLAction extends BaseRestHandler {
@@ -179,12 +180,17 @@ public class RestSQLAction extends BaseRestHandler {
             session.bind(UNNAMED, UNNAMED, args, null);
             Session.DescribeResult describeResult = session.describe('P', UNNAMED);
             List<Field> outputFields = describeResult.getFields();
+
             if (outputFields == null) {
                 return channel -> {
                     try {
-                        ResultReceiver resultReceiver = new RestRowCountReceiver(
-                            channel, sessionContext, startTime,
-                            request.paramAsBoolean("types", false));
+                        RestRowCountReceiver resultReceiver = new RestRowCountReceiver(
+                            channel.newBuilder(),
+                            startTime,
+                            request.paramAsBoolean("types", false)
+                        );
+                        resultReceiver.completionFuture()
+                            .whenComplete((xContent, t) -> resultToChannel(xContent, t, sessionContext, channel));
                         session.execute(UNNAMED, 0, resultReceiver);
                         session.sync().thenAccept(ignored -> session.close());
                     } catch (Throwable t) {
@@ -194,15 +200,16 @@ public class RestSQLAction extends BaseRestHandler {
             }
             return channel -> {
                 try {
-                    ResultReceiver resultReceiver = new RestResultSetReceiver(
-                        channel,
-                        sessionContext,
+                    RestResultSetReceiver resultReceiver = new RestResultSetReceiver(
+                        channel.newBuilder(),
                         outputFields,
                         startTime,
                         new RowAccounting(
                             Symbols.typeView(outputFields),
                             new RamAccountingContext("http-result", circuitBreaker)),
                         request.paramAsBoolean("types", false));
+                    resultReceiver.completionFuture()
+                        .whenComplete((xContent, t) -> resultToChannel(xContent, t, sessionContext, channel));
                     session.execute(UNNAMED, 0, resultReceiver);
                     session.sync().thenAccept(ignored -> session.close());
                 } catch (Throwable t) {
@@ -214,6 +221,22 @@ public class RestSQLAction extends BaseRestHandler {
                 errorResponse(channel, t, sessionContext);
                 session.close();
             };
+        }
+    }
+
+    private void resultToChannel(XContentBuilder xContent,
+                                 @Nullable Throwable t,
+                                 ExceptionAuthorizedValidator exceptionAuthorizedValidator,
+                                 RestChannel channel) {
+        if (t == null) {
+            channel.sendResponse(new BytesRestResponse(RestStatus.OK, xContent));
+        } else {
+            try {
+                channel.sendResponse(
+                    new CrateThrowableRestResponse(channel, createSQLActionException(t, exceptionAuthorizedValidator)));
+            } catch (IOException e) {
+                logger.error("Failed to send failure response", e);
+            }
         }
     }
 
@@ -249,7 +272,7 @@ public class RestSQLAction extends BaseRestHandler {
                 session.sync().whenComplete((Object result, Throwable t) -> {
                     if (t == null) {
                         try {
-                            XContentBuilder builder = ResultToXContentBuilder.builder(channel)
+                            XContentBuilder builder = ResultToXContentBuilder.builder(channel.newBuilder())
                                 .cols(Collections.emptyList())
                                 .duration(startTime)
                                 .bulkRows(results).build();
@@ -273,7 +296,7 @@ public class RestSQLAction extends BaseRestHandler {
 
     private void errorResponse(RestChannel channel, Throwable t, ExceptionAuthorizedValidator exceptionAuthorizedValidator) {
         try {
-            channel.sendResponse(new CrateThrowableRestResponse(channel, SQLExceptions.createSQLActionException(t, exceptionAuthorizedValidator)));
+            channel.sendResponse(new CrateThrowableRestResponse(channel, createSQLActionException(t, exceptionAuthorizedValidator)));
         } catch (Throwable e) {
             logger.error("failed to send failure response", e);
         }

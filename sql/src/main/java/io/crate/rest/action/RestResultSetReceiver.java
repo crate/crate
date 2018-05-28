@@ -22,61 +22,41 @@
 
 package io.crate.rest.action;
 
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.expression.symbol.Field;
+import io.crate.action.sql.ResultReceiver;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import io.crate.expression.symbol.Field;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestStatus;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
-import static io.crate.exceptions.SQLExceptions.createSQLActionException;
+class RestResultSetReceiver implements ResultReceiver {
 
-class RestResultSetReceiver extends BaseResultReceiver {
-
-    private static final Logger LOGGER = Loggers.getLogger(RestResultSetReceiver.class);
-
-    private final RestChannel channel;
-    private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
     private final List<Field> outputFields;
     private final ResultToXContentBuilder builder;
-    private long startTime;
+    private final long startTimeNs;
     private final RowAccounting rowAccounting;
+    private final CompletableFuture<XContentBuilder> result = new CompletableFuture<>();
+
     private long rowCount;
 
-    RestResultSetReceiver(RestChannel channel,
-                          ExceptionAuthorizedValidator exceptionAuthorizedValidator,
+    RestResultSetReceiver(XContentBuilder builder,
                           List<Field> outputFields,
-                          long startTime,
+                          long startTimeNs,
                           RowAccounting rowAccounting,
-                          boolean includeTypesOnResponse) {
-        this.channel = channel;
-        this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
+                          boolean includeTypesOnResponse) throws IOException {
         this.outputFields = outputFields;
-        this.startTime = startTime;
+        this.startTimeNs = startTimeNs;
         this.rowAccounting = rowAccounting;
-        ResultToXContentBuilder tmpBuilder;
-        try {
-            tmpBuilder = ResultToXContentBuilder.builder(channel);
-            tmpBuilder.cols(outputFields);
-            if (includeTypesOnResponse) {
-                tmpBuilder.colTypes(outputFields);
-            }
-            tmpBuilder.startRows();
-        } catch (IOException e) {
-            tmpBuilder = null;
-            fail(e);
+        this.builder = ResultToXContentBuilder.builder(builder);
+        this.builder.cols(outputFields);
+        if (includeTypesOnResponse) {
+            this.builder.colTypes(outputFields);
         }
-        assert tmpBuilder != null : "tmpBuilder must not be null";
-        builder = tmpBuilder;
+        this.builder.startRows();
     }
 
     @Override
@@ -91,21 +71,16 @@ class RestResultSetReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public void allFinished(boolean interrupted) {
-        BytesRestResponse response;
-        try {
-            response = new BytesRestResponse(RestStatus.OK, finishBuilder());
-        } catch (Throwable t) {
-            fail(t);
-            return;
-        }
+    public void batchFinished() {
+        fail(new IllegalStateException("Incremental result streaming not supported via HTTP"));
+    }
 
+    @Override
+    public void allFinished(boolean interrupted) {
         try {
-            channel.sendResponse(response);
-            super.allFinished(interrupted);
-        } catch (Throwable e) {
-            LOGGER.error("Failed to send final response.", e);
-            super.fail(e);
+            result.complete(finishBuilder());
+        } catch (IOException e) {
+            result.completeExceptionally(e);
         } finally {
             rowAccounting.close();
         }
@@ -113,22 +88,20 @@ class RestResultSetReceiver extends BaseResultReceiver {
 
     @Override
     public void fail(@Nonnull Throwable t) {
-        try {
-            channel.sendResponse(new CrateThrowableRestResponse(channel,
-                createSQLActionException(t, exceptionAuthorizedValidator)));
-        } catch (Throwable e) {
-            LOGGER.error("Failed to send error response for failed request.", e, t);
-        } finally {
-            rowAccounting.close();
-            super.fail(t);
-        }
+        result.completeExceptionally(t);
+        rowAccounting.close();
     }
 
     XContentBuilder finishBuilder() throws IOException {
         return builder
             .finishRows()
             .rowCount(rowCount)
-            .duration(startTime)
+            .duration(startTimeNs)
             .build();
+    }
+
+    @Override
+    public CompletableFuture<XContentBuilder> completionFuture() {
+        return result;
     }
 }

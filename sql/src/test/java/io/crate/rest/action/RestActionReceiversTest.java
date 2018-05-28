@@ -23,13 +23,13 @@
 package io.crate.rest.action;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.Symbols;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyRelation;
@@ -38,15 +38,11 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.rest.RestChannel;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class RestActionReceiversTest extends CrateUnitTest {
 
@@ -73,20 +69,13 @@ public class RestActionReceiversTest extends CrateUnitTest {
         return s.replaceAll(",\"duration\":[^,}]+", "");
     }
 
-    private static RestChannel newChannel() throws IOException {
-        RestChannel channel = mock(RestChannel.class);
-        XContentBuilder xContentBuilder = JsonXContent.contentBuilder();
-        when(channel.newBuilder()).thenReturn(xContentBuilder);
-        return channel;
-    }
-
     @Test
     public void testRestRowCountReceiver() throws Exception {
-        RestRowCountReceiver receiver = new RestRowCountReceiver(newChannel(), t -> {}, 0L, true);
+        RestRowCountReceiver receiver = new RestRowCountReceiver(JsonXContent.contentBuilder(), 0L, true);
         receiver.setNextRow(row);
         XContentBuilder actualBuilder = receiver.finishBuilder();
 
-        ResultToXContentBuilder builder = ResultToXContentBuilder.builder(newChannel());
+        ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.contentBuilder());
         builder.cols(Collections.<Field>emptyList());
         builder.colTypes(Collections.<Field>emptyList());
         builder.startRows();
@@ -100,8 +89,7 @@ public class RestActionReceiversTest extends CrateUnitTest {
     @Test
     public void testRestResultSetReceiver() throws Exception {
         RestResultSetReceiver receiver = new RestResultSetReceiver(
-            newChannel(),
-            t -> {},
+            JsonXContent.contentBuilder(),
             fields,
             0L,
             new RowAccounting(Symbols.typeView(fields), new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"))),
@@ -112,7 +100,7 @@ public class RestActionReceiversTest extends CrateUnitTest {
         }
         XContentBuilder actualBuilder = receiver.finishBuilder();
 
-        ResultToXContentBuilder builder = ResultToXContentBuilder.builder(newChannel());
+        ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.contentBuilder());
         builder.cols(fields);
         builder.colTypes(fields);
         builder.startRows();
@@ -132,7 +120,7 @@ public class RestActionReceiversTest extends CrateUnitTest {
             new RestBulkRowCountReceiver.Result(null, 2),
             new RestBulkRowCountReceiver.Result(null, 3)
         };
-        ResultToXContentBuilder builder = ResultToXContentBuilder.builder(newChannel())
+        ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.contentBuilder())
             .bulkRows(results);
         String s = builder.build().string();
         assertEquals(s, "{\"results\":[{\"rowcount\":1},{\"rowcount\":2},{\"rowcount\":3}]}");

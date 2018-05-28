@@ -22,12 +22,11 @@
 
 package io.crate.rest.action;
 
-import io.crate.expression.symbol.Field;
 import io.crate.data.Row;
+import io.crate.expression.symbol.Field;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.RestChannel;
 
 import java.io.IOException;
 import java.util.List;
@@ -47,13 +46,13 @@ class ResultToXContentBuilder {
 
     private final XContentBuilder builder;
 
-    private ResultToXContentBuilder(RestChannel channel) throws IOException {
-        builder = channel.newBuilder();
+    private ResultToXContentBuilder(XContentBuilder builder) throws IOException {
+        this.builder = builder;
         builder.startObject();
     }
 
-    static ResultToXContentBuilder builder(RestChannel channel) throws IOException {
-        return new ResultToXContentBuilder(channel);
+    static ResultToXContentBuilder builder(XContentBuilder builder) throws IOException {
+        return new ResultToXContentBuilder(builder);
     }
 
     ResultToXContentBuilder cols(List<Field> fields) throws IOException {

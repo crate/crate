@@ -22,53 +22,30 @@
 
 package io.crate.rest.action;
 
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.expression.symbol.Field;
+import io.crate.action.sql.ResultReceiver;
 import io.crate.data.Row;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestStatus;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
 
-class RestRowCountReceiver extends BaseResultReceiver {
+class RestRowCountReceiver implements ResultReceiver {
 
-    private static final Logger LOGGER = Loggers.getLogger(RestRowCountReceiver.class);
-
-    private final RestChannel channel;
-    private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
-    private final long startTime;
+    private final long startTimeNs;
     private final boolean includeTypes;
-    private long rowCount;
     private final ResultToXContentBuilder builder;
+    private final CompletableFuture<XContentBuilder> result = new CompletableFuture<>();
 
-    RestRowCountReceiver(RestChannel channel,
-                         ExceptionAuthorizedValidator exceptionAuthorizedValidator,
-                         long startTime,
-                         boolean includeTypes) {
-        this.channel = channel;
-        this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
-        this.startTime = startTime;
+    private long rowCount;
+
+    RestRowCountReceiver(XContentBuilder builder,
+                         long startTimeNs,
+                         boolean includeTypes) throws IOException {
+        this.startTimeNs = startTimeNs;
         this.includeTypes = includeTypes;
-        builder = builder();
-        assert builder != null : "builder should not be null";
-    }
-
-    private ResultToXContentBuilder builder() {
-        ResultToXContentBuilder builder = null;
-        try {
-            builder = ResultToXContentBuilder.builder(channel);
-        } catch (IOException e) {
-            fail(e);
-        }
-        return builder;
+        this.builder = ResultToXContentBuilder.builder(builder);
     }
 
     @Override
@@ -76,38 +53,40 @@ class RestRowCountReceiver extends BaseResultReceiver {
         rowCount = (long) row.get(0);
     }
 
+    @Override
+    public void batchFinished() {
+        fail(new IllegalStateException("Incremental result streaming not supported via HTTP"));
+    }
+
     XContentBuilder finishBuilder() throws IOException {
-        builder.cols(Collections.<Field>emptyList());
+        builder.cols(Collections.emptyList());
         if (includeTypes) {
-            builder.colTypes(Collections.<Field>emptyList());
+            builder.colTypes(Collections.emptyList());
         }
         builder.startRows()
             .addRow(Row.EMPTY, 0)
             .finishRows()
             .rowCount(rowCount)
-            .duration(startTime);
+            .duration(startTimeNs);
         return builder.build();
     }
 
     @Override
     public void allFinished(boolean interrupted) {
         try {
-            channel.sendResponse(new BytesRestResponse(RestStatus.OK, finishBuilder()));
-            super.allFinished(interrupted);
-        } catch (Throwable e) {
-            fail(e);
+            result.complete(finishBuilder());
+        } catch (IOException e) {
+            result.completeExceptionally(e);
         }
     }
 
     @Override
     public void fail(@Nonnull Throwable t) {
-        try {
-            channel.sendResponse(new CrateThrowableRestResponse(channel,
-                SQLExceptions.createSQLActionException(t, exceptionAuthorizedValidator)));
-        } catch (Throwable e) {
-            LOGGER.error("failed to send failure response", e);
-        } finally {
-            super.fail(t);
-        }
+        result.completeExceptionally(t);
+    }
+
+    @Override
+    public CompletableFuture<XContentBuilder> completionFuture() {
+        return result;
     }
 }
