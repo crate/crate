@@ -87,8 +87,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private final Function<L, Integer> hashBuilderForLeft;
     private final Function<R, Integer> hashBuilderForRight;
     private final Supplier<Integer> blockSizeSupplier;
+    private final IntObjectHashMap<List<Object[]>> buffer;
 
-    private IntObjectHashMap<List<Object[]>> buffer;
     private int blockSize;
     private int numberOfRowsInBuffer = 0;
     private boolean leftBatchHasItems = false;
@@ -108,6 +108,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
         this.blockSizeSupplier = blockSizeSupplier;
+        // resized upon block size calculation
+        this.buffer = new IntObjectHashMap<>(0);
         recreateBuffer();
         // initially 1 page/batch is loaded
         numberOfLeftBatchesLoadedForBlock = 1;
@@ -162,7 +164,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
 
     private void recreateBuffer() {
         blockSize = blockSizeSupplier.get();
-        this.buffer = new IntObjectHashMap<>(this.blockSize);
+        buffer.release();
+        buffer.ensureCapacity(blockSize);
         numberOfRowsInBuffer = 0;
 
         // A batch is not guaranteed to deliver PAGE_SIZE number of rows. It could be more or less.
