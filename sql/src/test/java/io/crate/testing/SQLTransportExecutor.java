@@ -41,6 +41,7 @@ import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.shade.org.postgresql.util.ServerErrorMessage;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionFuture;
@@ -58,7 +59,6 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.rest.RestStatus;
 import org.hamcrest.Matchers;
 
 import javax.annotation.Nonnull;
@@ -315,10 +315,10 @@ public class SQLTransportExecutor {
             throw new SQLActionException(
                 e.getMessage(),
                 0,
-                RestStatus.BAD_REQUEST,
+                HttpResponseStatus.BAD_REQUEST,
                 stacktrace);
         } catch (SQLException e) {
-            throw new SQLActionException(e.getMessage(), 0, RestStatus.BAD_REQUEST);
+            throw new SQLActionException(e.getMessage(), 0, HttpResponseStatus.BAD_REQUEST);
         }
     }
 

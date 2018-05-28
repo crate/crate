@@ -23,48 +23,23 @@ package io.crate.rest.action;
 
 import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestResponse;
-import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import java.io.IOException;
 
 import static io.crate.exceptions.Exceptions.userFriendlyMessage;
 
 
-class CrateThrowableRestResponse extends RestResponse {
+class HTTPErrorFormatter {
 
-    private final RestStatus status;
-    private final BytesReference content;
-    private final String contentType;
-
-    CrateThrowableRestResponse(RestChannel channel, SQLActionException t) throws IOException {
-        status = t.status();
-        if (channel.request().method() == RestRequest.Method.HEAD) {
-            this.content = BytesArray.EMPTY;
-            this.contentType = BytesRestResponse.TEXT_CONTENT_TYPE;
-        } else {
-            XContentBuilder builder = convert(
-                channel.newErrorBuilder(), t, channel.request().paramAsBoolean("error_trace", false));
-            this.content = builder.bytes();
-            this.contentType = builder.contentType().mediaType();
-        }
-    }
-
-    private static XContentBuilder convert(XContentBuilder builder, Throwable t, boolean includeErrorTrace) throws IOException {
-        int errorCode = t instanceof SQLActionException ? ((SQLActionException) t).errorCode() : 5000;
-
+    public static XContentBuilder convert(SQLActionException t, boolean includeErrorTrace) throws IOException {
         // @formatter:off
-        builder
+        XContentBuilder builder = JsonXContent.contentBuilder()
             .startObject()
                 .startObject("error")
                     .field("message", userFriendlyMessage(t))
-                    .field("code", errorCode)
+                    .field("code", t.errorCode())
                 .endObject();
         // @formatter:on
 
@@ -72,21 +47,6 @@ class CrateThrowableRestResponse extends RestResponse {
             builder.field("error_trace", ExceptionsHelper.stackTrace(t));
         }
         return builder.endObject();
-    }
-
-    @Override
-    public String contentType() {
-        return contentType;
-    }
-
-    @Override
-    public BytesReference content() {
-        return content;
-    }
-
-    @Override
-    public RestStatus status() {
-        return status;
     }
 }
 

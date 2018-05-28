@@ -63,13 +63,14 @@ public final class SQLRequestParser {
     }
 
     public static SQLRequestParseContext parseSource(BytesReference source) throws SQLParseException {
+        if (source.length() == 0) {
+            throw new SQLParseException("Missing request body");
+        }
         XContentParser parser = null;
         try {
             SQLRequestParseContext parseContext = new SQLRequestParseContext();
-            if (source != null && source.length() != 0) {
-                parser = XContentFactory.xContent(XContentType.JSON).createParser(NamedXContentRegistry.EMPTY, source);
-                parse(parseContext, parser);
-            }
+            parser = XContentFactory.xContent(XContentType.JSON).createParser(NamedXContentRegistry.EMPTY, source);
+            parse(parseContext, parser);
             validate(parseContext);
             return parseContext;
         } catch (Exception e) {

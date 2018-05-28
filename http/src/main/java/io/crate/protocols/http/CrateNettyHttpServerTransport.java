@@ -71,17 +71,20 @@ public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
 
     protected class CrateHttpChannelHandler extends HttpChannelHandler {
 
+        private final CrateNettyHttpServerTransport transport;
+
         CrateHttpChannelHandler(CrateNettyHttpServerTransport transport,
                                 boolean detailedErrorsEnabled,
                                 ThreadPool threadPool) {
             super(transport, detailedErrorsEnabled, threadPool.getThreadContext());
+            this.transport = transport;
         }
 
         @Override
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
             ChannelPipeline pipeline = ch.pipeline();
-            pipelineRegistry.registerItems(pipeline);
+            pipelineRegistry.registerItems(pipeline, transport.getCorsConfig());
         }
     }
 

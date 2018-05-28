@@ -23,22 +23,13 @@
 package io.crate.rest.action;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.auth.AuthSettings;
 import io.crate.auth.user.UserManager;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyUserManager;
-import io.netty.handler.codec.http.HttpHeaderNames;
 import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.test.rest.FakeRestRequest;
-import org.junit.Test;
 
-import java.util.Collections;
-
-import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
 public class RestSQLActionTest extends CrateUnitTest {
@@ -49,53 +40,4 @@ public class RestSQLActionTest extends CrateUnitTest {
     private final RestController restController = mock(RestController.class);
     private final CrateCircuitBreakerService circuitBreakerService = mock(CrateCircuitBreakerService.class);
 
-    @Test
-    public void testDefaultUserIfHttpHeaderNotPresent() throws Exception {
-        RestSQLAction restSQLAction = new RestSQLAction(
-            Settings.EMPTY,
-            restController,
-            sqlOperations,
-            USER_MANAGER_PROVIDER,
-            circuitBreakerService
-        );
-        RestRequest request = new FakeRestRequest.Builder(xContentRegistry())
-            .withHeaders(Collections.emptyMap())
-            .build();
-        assertThat(restSQLAction.userFromRequest(request).name(), is("crate"));
-    }
-
-    @Test
-    public void testSettingUserIfHttpHeaderNotPresent() throws Exception {
-        Settings settings = Settings.builder()
-            .put(AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.getKey(), "trillian")
-            .build();
-        RestSQLAction restSQLAction = new RestSQLAction(
-            settings,
-            restController,
-            sqlOperations,
-            USER_MANAGER_PROVIDER,
-            circuitBreakerService
-        );
-        RestRequest request = new FakeRestRequest.Builder(xContentRegistry())
-            .withHeaders(Collections.emptyMap())
-            .build();
-        assertThat(restSQLAction.userFromRequest(request).name(), is("trillian"));
-    }
-
-    @Test
-    public void testUserIfHttpBasicAuthIsPresent() {
-        RestSQLAction restSQLAction = new RestSQLAction(
-            Settings.EMPTY,
-            restController,
-            sqlOperations,
-            USER_MANAGER_PROVIDER,
-            circuitBreakerService
-        );
-        RestRequest request = new FakeRestRequest.Builder(xContentRegistry())
-            .withHeaders(
-                Collections.singletonMap(HttpHeaderNames.AUTHORIZATION.toString(),
-                    Collections.singletonList("Basic QWxhZGRpbjpPcGVuU2VzYW1l")))
-            .build();
-        assertThat(restSQLAction.userFromRequest(request).name(), is("Aladdin"));
-    }
 }

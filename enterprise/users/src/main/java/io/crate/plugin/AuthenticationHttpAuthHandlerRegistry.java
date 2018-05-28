@@ -37,7 +37,7 @@ public class AuthenticationHttpAuthHandlerRegistry {
         PipelineRegistry.ChannelPipelineItem pipelineItem = new PipelineRegistry.ChannelPipelineItem(
             "blob_handler",
             "auth_handler",
-            () -> new HttpAuthUpstreamHandler(settings, authentication)
+            ignored -> new HttpAuthUpstreamHandler(settings, authentication)
         );
         pipelineRegistry.addBefore(pipelineItem);
     }

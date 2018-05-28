@@ -27,13 +27,25 @@ the statement is sent as value associated to the key ``stmt``.
 A simple ``SELECT`` statement can be submitted like this::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST '127.0.0.1:4200/_sql?pretty' \
+    ... -X POST '127.0.0.1:4200/_sql' \
     ... -d '{"stmt":"select name, position from locations order by id limit 2"}'
     {
-      "cols" : [ "name", "position" ],
-      "rows" : [ [ "North West Ripple", 1 ], [ "Arkintoofle Minor", 3 ] ],
-      "rowcount" : 2,
-      "duration" : ...
+      "cols": [
+        "name",
+        "position"
+      ],
+      "rows": [
+        [
+          "North West Ripple",
+          1
+        ],
+        [
+          "Arkintoofle Minor",
+          3
+        ]
+      ],
+      "rowcount": 2,
+      "duration": ...
     }
 
 .. NOTE::
@@ -59,7 +71,7 @@ The placeholders will then be substituted with values from an array that is
 expected under the ``args`` key::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST '127.0.0.1:4200/_sql?pretty' -d@- <<- EOF
+    ... -X POST '127.0.0.1:4200/_sql' -d@- <<- EOF
     ... {
     ...   "stmt":
     ...     "select date,position from locations
@@ -68,10 +80,22 @@ expected under the ``args`` key::
     ... }
     ... EOF
     {
-      "cols" : [ "date", "position" ],
-      "rows" : [ [ 308534400000, 1 ], [ 308534400000, 2 ] ],
-      "rowcount" : 2,
-      "duration" : ...
+      "cols": [
+        "date",
+        "position"
+      ],
+      "rows": [
+        [
+          308534400000,
+          1
+        ],
+        [
+          308534400000,
+          2
+        ]
+      ],
+      "rowcount": 2,
+      "duration": ...
     }
 
 .. NOTE::
@@ -88,7 +112,7 @@ expected under the ``args`` key::
 The same query using question marks as placeholders looks like this::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST '127.0.0.1:4200/_sql?pretty' -d@- <<- EOF
+    ... -X POST '127.0.0.1:4200/_sql' -d@- <<- EOF
     ... {
     ...   "stmt":
     ...     "select date,position from locations
@@ -97,10 +121,22 @@ The same query using question marks as placeholders looks like this::
     ... }
     ... EOF
     {
-      "cols" : [ "date", "position" ],
-      "rows" : [ [ 308534400000, 1 ], [ 308534400000, 2 ] ],
-      "rowcount" : 2,
-      "duration" : ...
+      "cols": [
+        "date",
+        "position"
+      ],
+      "rows": [
+        [
+          308534400000,
+          1
+        ],
+        [
+          308534400000,
+          2
+        ]
+      ],
+      "rowcount": 2,
+      "duration": ...
     }
 
 .. NOTE::
@@ -116,17 +152,29 @@ It is possible to set a default schema while querying the CrateDB cluster via
 ``Default-Schema`` header with the specified schema name::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST '127.0.0.1:4200/_sql?pretty' \
+    ... -X POST '127.0.0.1:4200/_sql' \
     ... -H 'Default-Schema: doc' -d@- <<- EOF
     ... {
     ...   "stmt":"select name, position from locations order by id limit 2"
     ... }
     ... EOF
     {
-      "cols" : [ "name", "position" ],
-      "rows" : [ [ "North West Ripple", 1 ], [ "Arkintoofle Minor", 3 ] ],
-      "rowcount" : 2,
-      "duration" : ...
+      "cols": [
+        "name",
+        "position"
+      ],
+      "rows": [
+        [
+          "North West Ripple",
+          1
+        ],
+        [
+          "Arkintoofle Minor",
+          3
+        ]
+      ],
+      "rowcount": 2,
+      "duration": ...
     }
 
 If the schema name is not specified in the header, the default ``doc`` schema
@@ -143,7 +191,7 @@ In order to get the list of column data types, a ``types`` query parameter must
 be passed to the request::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST '127.0.0.1:4200/_sql?types&pretty' -d@- <<- EOF
+    ... -X POST '127.0.0.1:4200/_sql?types' -d@- <<- EOF
     ... {
     ...   "stmt":
     ...     "select date, position from locations
@@ -152,11 +200,26 @@ be passed to the request::
     ... }
     ... EOF
     {
-      "cols" : [ "date", "position" ],
-      "col_types" : [ 11, 9 ],
-      "rows" : [ [ 308534400000, 1 ], [ 308534400000, 2 ] ],
-      "rowcount" : 2,
-      "duration" : ...
+      "cols": [
+        "date",
+        "position"
+      ],
+      "col_types": [
+        11,
+        9
+      ],
+      "rows": [
+        [
+          308534400000,
+          1
+        ],
+        [
+          308534400000,
+          2
+        ]
+      ],
+      "rowcount": 2,
+      "duration": ...
     }
 
 Collection data types like ``Set`` or ``Array`` are displayed as a list where
@@ -236,7 +299,7 @@ The following example describes how to issue an insert bulk operation and
 insert three records at once::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST '127.0.0.1:4200/_sql?pretty' -d@- <<- EOF
+    ... -X POST '127.0.0.1:4200/_sql' -d@- <<- EOF
     ... {
     ...   "stmt": "INSERT INTO locations (id, name, kind, description)
     ...           VALUES (?, ?, ?, ?)",
@@ -248,16 +311,19 @@ insert three records at once::
     ... }
     ... EOF
     {
-      "cols" : [ ],
-      "duration" : ...,
-      "results" : [ {
-        "rowcount" : 1
-      }, {
-        "rowcount" : 1
-      }, {
-        "rowcount" : 1
-      } ]
-    <BLANKLINE>
+      "cols": [],
+      "duration": ...,
+      "results": [
+        {
+          "rowcount": 1
+        },
+        {
+          "rowcount": 1
+        },
+        {
+          "rowcount": 1
+        }
+      ]
     }
 
 Error Handling
@@ -271,15 +337,15 @@ Client libraries should use the error code to translate the error into an
 appropriate exception::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST '127.0.0.1:4200/_sql?pretty' -d@- <<- EOF
+    ... -X POST '127.0.0.1:4200/_sql' -d@- <<- EOF
     ... {
     ...   "stmt":"select name, position from foo.locations"
     ... }
     ... EOF
     {
-      "error" : {
-        "message" : "SQLActionException[SchemaUnknownException: Schema 'foo' unknown]",
-        "code" : 4045
+      "error": {
+        "message": "SQLActionException[SchemaUnknownException: Schema 'foo' unknown]",
+        "code": 4045
       }
     }
 
@@ -287,17 +353,17 @@ To get more insight into what exactly went wrong an additional ``error_trace``
 GET parameter can be specified to return the stack trace::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST '127.0.0.1:4200/_sql?pretty&error_trace=true' -d@- <<- EOF
+    ... -X POST '127.0.0.1:4200/_sql?error_trace=true' -d@- <<- EOF
     ... {
     ...   "stmt":"select name, position from foo.locations"
     ... }
     ... EOF
     {
-      "error" : {
-        "message" : "SQLActionException[SchemaUnknownException: Schema 'foo' unknown]",
-        "code" : 4045
+      "error": {
+        "message": "SQLActionException[SchemaUnknownException: Schema 'foo' unknown]",
+        "code": 4045
       },
-      "error_trace" : "..."
+      "error_trace": "..."
     }
 
 .. NOTE::
@@ -394,7 +460,7 @@ resulting object may contain an ``error_message`` depending on the resulting
 error::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST '127.0.0.1:4200/_sql?pretty' -d@- <<- EOF
+    ... -X POST '127.0.0.1:4200/_sql' -d@- <<- EOF
     ... {
     ...   "stmt": "INSERT into locations (name, id) values (?,?)",
     ...   "bulk_args": [
@@ -404,13 +470,16 @@ error::
     ... }
     ... EOF
     {
-      "cols" : [ ],
-      "duration" : ...,
-      "results" : [ {
-        "rowcount" : 1
-      }, {
-        "rowcount" : -2
-      } ]
+      "cols": [],
+      "duration": ...,
+      "results": [
+        {
+          "rowcount": 1
+        },
+        {
+          "rowcount": -2
+        }
+      ]
     }
 
 .. NOTE::

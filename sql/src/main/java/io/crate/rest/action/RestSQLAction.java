@@ -22,281 +22,32 @@
 
 package io.crate.rest.action;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
-import io.crate.action.sql.Option;
-import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.SessionContext;
-import io.crate.action.sql.parser.SQLRequestParseContext;
-import io.crate.action.sql.parser.SQLRequestParser;
-import io.crate.auth.AuthSettings;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
-import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.RowAccounting;
-import io.crate.exceptions.SQLParseException;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.Symbols;
-import io.crate.rest.CrateRestMainAction;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import org.elasticsearch.client.node.NodeClient;
+import io.crate.plugin.PipelineRegistry;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.BaseRestHandler;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestStatus;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-
-import static io.crate.action.sql.Session.UNNAMED;
-import static io.crate.exceptions.SQLExceptions.createSQLActionException;
 
 @Singleton
-public class RestSQLAction extends BaseRestHandler {
-
-    private static final String REQUEST_HEADER_USER = "User";
-    private static final String REQUEST_HEADER_SCHEMA = "Default-Schema";
-    private static final int DEFAULT_SOFT_LIMIT = 10_000;
-
-    private final SQLOperations sqlOperations;
-    private final UserManager userManager;
-    private final CircuitBreaker circuitBreaker;
+public class RestSQLAction {
 
     @SuppressWarnings("WeakerAccess")
     @Inject
     public RestSQLAction(Settings settings,
-                         RestController controller,
                          SQLOperations sqlOperations,
+                         PipelineRegistry pipelineRegistry,
                          Provider<UserManager> userManagerProvider,
                          CrateCircuitBreakerService breakerService) {
-        super(settings);
-        this.sqlOperations = sqlOperations;
-        this.userManager = userManagerProvider.get();
-        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
-
-        controller.registerHandler(RestRequest.Method.POST, "/_sql", this);
-    }
-
-    private static void sendBadRequest(RestChannel channel, String errorMsg) throws IOException {
-        channel.sendResponse(new CrateThrowableRestResponse(
-            channel,
-            new SQLActionException(errorMsg, 4000, RestStatus.BAD_REQUEST)
+        CircuitBreaker circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
+        UserManager userManager = userManagerProvider.get();
+        pipelineRegistry.addBefore(new PipelineRegistry.ChannelPipelineItem(
+            "handler",
+            "sql_handler",
+            corsConfig -> new SqlHttpHandler(settings, sqlOperations, circuitBreaker, userManager, corsConfig)
         ));
-    }
-
-    @Override
-    public String getName() {
-        return "sql";
-    }
-
-    @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
-        if (!request.hasContent()) {
-            return channel -> sendBadRequest(channel, "missing request body");
-        }
-        SQLRequestParseContext context;
-        try {
-            context = SQLRequestParser.parseSource(request.content());
-        } catch (SQLParseException e) {
-            StringWriter stackTrace = new StringWriter();
-            e.printStackTrace(new PrintWriter(stackTrace));
-            return channel -> channel.sendResponse(
-                new CrateThrowableRestResponse(
-                    channel,
-                    new SQLActionException(e.getMessage(), 4000, RestStatus.BAD_REQUEST, e.getStackTrace()))
-            );
-        }
-
-        Object[] args = context.args();
-        Object[][] bulkArgs = context.bulkArgs();
-        if (args != null && args.length > 0 && bulkArgs != null && bulkArgs.length > 0) {
-            return channel -> sendBadRequest(channel, "request body contains args and bulk_args. It's forbidden to provide both");
-        }
-        if (args == null && bulkArgs != null) {
-            return executeBulkRequest(context, request);
-        } else {
-            return executeSimpleRequest(context, request);
-        }
-    }
-
-    @Override
-    protected Set<String> responseParams() {
-        return ImmutableSet.of("types");
-    }
-
-    private static Set<Option> toOptions(RestRequest request) {
-        String user = request.header(REQUEST_HEADER_USER);
-        if (user != null && !user.isEmpty() && user.toLowerCase(Locale.ENGLISH).contains("odbc")) {
-            return EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT);
-        }
-        return Option.NONE;
-    }
-
-    @VisibleForTesting
-    User userFromRequest(RestRequest request) {
-        String username = CrateRestMainAction.extractCredentialsFromHttpBasicAuthHeader(
-            request.header(HttpHeaderNames.AUTHORIZATION.toString())).v1();
-
-        // Fallback to trusted user from configuration
-        if (username == null || username.isEmpty()) {
-            username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
-        }
-        return userManager.findUser(username);
-    }
-
-    private RestChannelConsumer executeSimpleRequest(SQLRequestParseContext context, final RestRequest request) {
-        Session session = sqlOperations.createSession(
-            request.header(REQUEST_HEADER_SCHEMA),
-            userFromRequest(request),
-            toOptions(request),
-            DEFAULT_SOFT_LIMIT);
-        SessionContext sessionContext = session.sessionContext();
-        try {
-            final long startTime = System.nanoTime();
-            session.parse(UNNAMED, context.stmt(), Collections.emptyList());
-            List<Object> args = context.args() == null ? Collections.emptyList() : Arrays.asList(context.args());
-            session.bind(UNNAMED, UNNAMED, args, null);
-            Session.DescribeResult describeResult = session.describe('P', UNNAMED);
-            List<Field> outputFields = describeResult.getFields();
-
-            if (outputFields == null) {
-                return channel -> {
-                    try {
-                        RestRowCountReceiver resultReceiver = new RestRowCountReceiver(
-                            channel.newBuilder(),
-                            startTime,
-                            request.paramAsBoolean("types", false)
-                        );
-                        resultReceiver.completionFuture()
-                            .whenComplete((xContent, t) -> resultToChannel(xContent, t, sessionContext, channel));
-                        session.execute(UNNAMED, 0, resultReceiver);
-                        session.sync().thenAccept(ignored -> session.close());
-                    } catch (Throwable t) {
-                        errorResponse(channel, t, sessionContext);
-                    }
-                };
-            }
-            return channel -> {
-                try {
-                    RestResultSetReceiver resultReceiver = new RestResultSetReceiver(
-                        channel.newBuilder(),
-                        outputFields,
-                        startTime,
-                        new RowAccounting(
-                            Symbols.typeView(outputFields),
-                            new RamAccountingContext("http-result", circuitBreaker)),
-                        request.paramAsBoolean("types", false));
-                    resultReceiver.completionFuture()
-                        .whenComplete((xContent, t) -> resultToChannel(xContent, t, sessionContext, channel));
-                    session.execute(UNNAMED, 0, resultReceiver);
-                    session.sync().thenAccept(ignored -> session.close());
-                } catch (Throwable t) {
-                    errorResponse(channel, t, sessionContext);
-                }
-            };
-        } catch (Throwable t) {
-            return channel -> {
-                errorResponse(channel, t, sessionContext);
-                session.close();
-            };
-        }
-    }
-
-    private void resultToChannel(XContentBuilder xContent,
-                                 @Nullable Throwable t,
-                                 ExceptionAuthorizedValidator exceptionAuthorizedValidator,
-                                 RestChannel channel) {
-        if (t == null) {
-            channel.sendResponse(new BytesRestResponse(RestStatus.OK, xContent));
-        } else {
-            try {
-                channel.sendResponse(
-                    new CrateThrowableRestResponse(channel, createSQLActionException(t, exceptionAuthorizedValidator)));
-            } catch (IOException e) {
-                logger.error("Failed to send failure response", e);
-            }
-        }
-    }
-
-    private RestChannelConsumer executeBulkRequest(SQLRequestParseContext context, final RestRequest request) {
-        Session session = sqlOperations.createSession(
-            request.header(REQUEST_HEADER_SCHEMA),
-            userFromRequest(request),
-            toOptions(request),
-            DEFAULT_SOFT_LIMIT);
-        SessionContext sessionContext = session.sessionContext();
-        try {
-            final long startTime = System.nanoTime();
-            session.parse(UNNAMED, context.stmt(), Collections.emptyList());
-            Object[][] bulkArgs = context.bulkArgs();
-            final RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[bulkArgs.length];
-            for (int i = 0; i < bulkArgs.length; i++) {
-                session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
-                ResultReceiver resultReceiver = new RestBulkRowCountReceiver(results, i);
-                session.execute(UNNAMED, 0, resultReceiver);
-            }
-            if (results.length > 0) {
-                ensureNoResultSet(session);
-            }
-            return channel -> {
-                session.sync().whenComplete((Object result, Throwable t) -> {
-                    if (t == null) {
-                        try {
-                            XContentBuilder builder = ResultToXContentBuilder.builder(channel.newBuilder())
-                                .cols(Collections.emptyList())
-                                .duration(startTime)
-                                .bulkRows(results).build();
-                            channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
-                        } catch (Throwable e) {
-                            errorResponse(channel, e, sessionContext);
-                        }
-                    } else {
-                        errorResponse(channel, t, sessionContext);
-                    }
-                    session.close();
-                });
-            };
-        } catch (Throwable t) {
-            return channel -> {
-                errorResponse(channel, t, sessionContext);
-                session.close();
-            };
-        }
-    }
-
-    private static void ensureNoResultSet(Session session) {
-        if (session.describe('P', UNNAMED).getFields() != null) {
-            throw new UnsupportedOperationException(
-                "Bulk operations for statements that return result sets is not supported");
-        }
-    }
-
-    private void errorResponse(RestChannel channel, Throwable t, ExceptionAuthorizedValidator exceptionAuthorizedValidator) {
-        try {
-            channel.sendResponse(new CrateThrowableRestResponse(channel, createSQLActionException(t, exceptionAuthorizedValidator)));
-        } catch (Throwable e) {
-            logger.error("failed to send failure response", e);
-        }
     }
 }

@@ -27,6 +27,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
@@ -41,7 +42,6 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.repositories.RepositoryMissingException;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.InvalidSnapshotNameException;
 import org.elasticsearch.snapshots.SnapshotCreationException;
 import org.elasticsearch.snapshots.SnapshotMissingException;
@@ -130,33 +130,33 @@ public class SQLExceptions {
 
 
         int errorCode = 5000;
-        RestStatus restStatus = RestStatus.INTERNAL_SERVER_ERROR;
+        HttpResponseStatus httpStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
         if (e instanceof CrateException) {
             CrateException crateException = (CrateException) e;
             if (e instanceof ValidationException) {
                 errorCode = 4000 + crateException.errorCode();
-                restStatus = RestStatus.BAD_REQUEST;
+                httpStatus = HttpResponseStatus.BAD_REQUEST;
             } else if (e instanceof UnauthorizedException) {
                 errorCode = 4010 + crateException.errorCode();
-                restStatus = RestStatus.UNAUTHORIZED;
+                httpStatus = HttpResponseStatus.UNAUTHORIZED;
             } else if (e instanceof ReadOnlyException) {
                 errorCode = 4030 + crateException.errorCode();
-                restStatus = RestStatus.FORBIDDEN;
+                httpStatus = HttpResponseStatus.FORBIDDEN;
             } else if (e instanceof ResourceUnknownException) {
                 errorCode = 4040 + crateException.errorCode();
-                restStatus = RestStatus.NOT_FOUND;
+                httpStatus = HttpResponseStatus.NOT_FOUND;
             } else if (e instanceof ConflictException) {
                 errorCode = 4090 + crateException.errorCode();
-                restStatus = RestStatus.CONFLICT;
+                httpStatus = HttpResponseStatus.CONFLICT;
             } else if (e instanceof UnhandledServerException) {
                 errorCode = 5000 + crateException.errorCode();
             }
         } else if (e instanceof ParsingException) {
             errorCode = 4000;
-            restStatus = RestStatus.BAD_REQUEST;
+            httpStatus = HttpResponseStatus.BAD_REQUEST;
         } else if (e instanceof MapperParsingException) {
             errorCode = 4000;
-            restStatus = RestStatus.BAD_REQUEST;
+            httpStatus = HttpResponseStatus.BAD_REQUEST;
         }
 
         String message = e.getMessage();
@@ -173,7 +173,7 @@ public class SQLExceptions {
         } else {
             message = e.getClass().getSimpleName() + ": " + message;
         }
-        return new SQLActionException(message, errorCode, restStatus, e.getStackTrace());
+        return new SQLActionException(message, errorCode, httpStatus, e.getStackTrace());
     }
 
     private static Throwable esToCrateException(Throwable e) {

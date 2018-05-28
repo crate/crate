@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
-class RestRowCountReceiver implements ResultReceiver {
+class RestRowCountReceiver implements ResultReceiver<XContentBuilder> {
 
     private final long startTimeNs;
     private final boolean includeTypes;

@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-class RestResultSetReceiver implements ResultReceiver {
+class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
 
     private final List<Field> outputFields;
     private final ResultToXContentBuilder builder;

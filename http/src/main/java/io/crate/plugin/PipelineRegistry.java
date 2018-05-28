@@ -28,10 +28,11 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 /**
  * The PipelineRegistry takes care of adding handlers to the existing
@@ -57,14 +58,14 @@ public class PipelineRegistry {
 
         final String base;
         final String name;
-        final Supplier<ChannelHandler> handlerFactory;
+        final Function<Netty4CorsConfig, ChannelHandler> handlerFactory;
 
         /**
          * @param base              the name of the existing handler in the pipeline before/after which the new handler should be added
          * @param name              the name of the new handler that should be added to the pipeline
          * @param handlerFactory    a supplier that provides a new instance of the handler
          */
-        public ChannelPipelineItem(String base, String name, Supplier<ChannelHandler> handlerFactory) {
+        public ChannelPipelineItem(String base, String name, Function<Netty4CorsConfig, ChannelHandler> handlerFactory) {
             this.base = base;
             this.name = name;
             this.handlerFactory = handlerFactory;
@@ -89,9 +90,9 @@ public class PipelineRegistry {
         this.sslContextProvider = sslContextProvider;
     }
 
-    public void registerItems(ChannelPipeline pipeline) {
+    public void registerItems(ChannelPipeline pipeline, Netty4CorsConfig corsConfig) {
         for (PipelineRegistry.ChannelPipelineItem item : addBeforeList) {
-            pipeline.addBefore(item.base, item.name, item.handlerFactory.get());
+            pipeline.addBefore(item.base, item.name, item.handlerFactory.apply(corsConfig));
         }
 
         if (sslContextProvider != null) {

@@ -88,7 +88,7 @@ public class BlobService extends AbstractLifecycleComponent {
     protected void doStart() throws ElasticsearchException {
         piplineRegistry.addBefore(
             new PipelineRegistry.ChannelPipelineItem(
-                "aggregator", "blob_handler", () -> new HttpBlobHandler(this, blobIndicesService))
+                "aggregator", "blob_handler", ignored -> new HttpBlobHandler(this, blobIndicesService))
         );
 
         blobHeadRequestHandler.registerHandler();

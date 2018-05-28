@@ -24,7 +24,7 @@ package io.crate.concurrent;
 
 import java.util.concurrent.CompletableFuture;
 
-public interface CompletionListenable {
+public interface CompletionListenable<T> {
 
-    CompletableFuture<?> completionFuture();
+    CompletableFuture<T> completionFuture();
 }

@@ -32,7 +32,7 @@ import static org.junit.Assert.assertThat;
 public class PipelineRegistryTest {
 
     private static PipelineRegistry.ChannelPipelineItem channelPipelineItem(String base, String name) {
-        return new PipelineRegistry.ChannelPipelineItem(base, name, () -> new SimpleChannelInboundHandler() {
+        return new PipelineRegistry.ChannelPipelineItem(base, name, (f) -> new SimpleChannelInboundHandler() {
             @Override
             protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
 

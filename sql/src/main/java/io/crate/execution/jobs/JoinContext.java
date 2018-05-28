@@ -39,7 +39,7 @@ class JoinContext extends AbstractExecutionSubContext implements DownstreamExecu
 
     JoinContext(Logger logger,
                 JoinPhase joinPhase,
-                CompletionListenable completionListenable,
+                CompletionListenable<?> completionListenable,
                 @Nullable PageBucketReceiver leftBucketReceiver,
                 @Nullable PageBucketReceiver rightBucketReceiver) {
         super(joinPhase.phaseId(), logger);

@@ -21,7 +21,7 @@
 
 package io.crate.action.sql;
 
-import org.elasticsearch.rest.RestStatus;
+import io.netty.handler.codec.http.HttpResponseStatus;
 
 /**
  * This exception must be the only one which is thrown by our <code>TransportSQLAction</code>,
@@ -35,10 +35,10 @@ import org.elasticsearch.rest.RestStatus;
  */
 public class SQLActionException extends RuntimeException {
 
-    private final RestStatus status;
+    private final HttpResponseStatus status;
     private final int errorCode;
 
-    public SQLActionException(String message, int errorCode, RestStatus status) {
+    public SQLActionException(String message, int errorCode, HttpResponseStatus status) {
         super(message);
         this.status = status;
         this.errorCode = errorCode;
@@ -53,7 +53,7 @@ public class SQLActionException extends RuntimeException {
      * @param status             the rest status
      * @param stackTraceElements the stacktrace as array
      */
-    public SQLActionException(String message, int errorCode, RestStatus status, StackTraceElement[] stackTraceElements) {
+    public SQLActionException(String message, int errorCode, HttpResponseStatus status, StackTraceElement[] stackTraceElements) {
         this(message, errorCode, status);
         assert stackTraceElements != null : "stackTraceElements must not be null";
         setStackTrace(stackTraceElements);
@@ -62,10 +62,9 @@ public class SQLActionException extends RuntimeException {
     /**
      * Return the rest status code defined on construction
      */
-    public RestStatus status() {
+    public HttpResponseStatus status() {
         return status;
     }
-
 
     /**
      * Return the error code given defined on construction

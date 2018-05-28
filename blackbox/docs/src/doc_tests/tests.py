@@ -31,6 +31,7 @@ import re
 import random
 import tempfile
 import logging
+import subprocess
 from functools import partial
 from . import process_test
 from testutils.paths import crate_path, project_path
@@ -118,10 +119,15 @@ def bash_transform(s):
     if s.startswith("crash"):
         s = re.search(r"crash\s+-c\s+\"(.*?)\"", s).group(1)
         return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
-    return (
-        r'import subprocess;'
-        r'print(subprocess.check_output(r"""%s""",stderr=subprocess.STDOUT,shell=True).decode("utf-8"))' % s
-    ) + '\n'
+    return (r'pretty_print(sh("""%s""").stdout.decode("utf-8"))' % s) + '\n'
+
+
+def pretty_print(s):
+    try:
+        d = json.loads(s)
+        print(json.dumps(d, indent=2))
+    except json.decoder.JSONDecodeError:
+        print(s)
 
 
 def crash_transform(s):
@@ -135,7 +141,7 @@ def crash_transform(s):
 
 
 bash_parser = zc.customdoctests.DocTestParser(
-    ps1='sh\$', comment_prefix='#', transform=bash_transform)
+    ps1=r'sh\$', comment_prefix='#', transform=bash_transform)
 
 crash_parser = zc.customdoctests.DocTestParser(
     ps1='cr>', comment_prefix='#', transform=crash_transform)
@@ -429,7 +435,17 @@ def create_doctest_suite():
 
     for fn in doctest_files('general/blobs.rst',
                             'interfaces/http.rst',):
-        s = docsuite(fn, parser=bash_parser, setUp=setUpLocations)
+        s = docsuite(fn, parser=bash_parser, setUp=setUpLocations, globs={
+            'sh': partial(
+                subprocess.run,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=60,
+                shell=True
+            ),
+            'pretty_print': pretty_print
+        })
         s.layer = crate_layer
         tests.append(s)
 

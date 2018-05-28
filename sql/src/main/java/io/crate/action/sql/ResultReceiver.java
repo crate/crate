@@ -30,7 +30,7 @@ import javax.annotation.Nonnull;
 /**
  * Used via {@link RowConsumerToResultReceiver} to receive results from the execution of a plan
  */
-public interface ResultReceiver extends CompletionListenable {
+public interface ResultReceiver<T> extends CompletionListenable<T> {
 
     void setNextRow(Row row);
 
