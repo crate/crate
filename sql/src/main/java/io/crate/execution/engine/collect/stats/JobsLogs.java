@@ -92,7 +92,7 @@ public class JobsLogs {
      * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
      */
-    public void logExecutionStart(UUID jobId, String statement, @Nullable User user) {
+    public void logExecutionStart(UUID jobId, String statement, User user) {
         activeRequests.increment();
         if (!isEnabled()) {
             return;

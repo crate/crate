@@ -19,6 +19,7 @@
 package io.crate.beans;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.auth.user.User;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
@@ -34,13 +35,13 @@ import static org.junit.Assert.assertThat;
 public class QueryStatsTest {
 
     private final List<JobContextLog> log = ImmutableList.of(
-        new JobContextLog(new JobContext(UUID.randomUUID(), "select name", 100L, null), null, 150L),
-        new JobContextLog(new JobContext(UUID.randomUUID(), "select name", 300L, null), null, 320L),
-        new JobContextLog(new JobContext(UUID.randomUUID(), "update t1 set x = 10", 400L, null), null, 420L),
-        new JobContextLog(new JobContext(UUID.randomUUID(), "insert into t1 (x) values (20)", 111L, null), null, 130L),
-        new JobContextLog(new JobContext(UUID.randomUUID(), "delete from t1", 410L, null), null, 415L),
-        new JobContextLog(new JobContext(UUID.randomUUID(), "delete from t1", 110L, null), null, 120L),
-        new JobContextLog(new JobContext(UUID.randomUUID(), "create table t1 (x int)", 105L, null), null, 106L)
+        new JobContextLog(new JobContext(UUID.randomUUID(), "select name", 100L, User.CRATE_USER), null, 150L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "select name", 300L, User.CRATE_USER), null, 320L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "update t1 set x = 10", 400L, User.CRATE_USER), null, 420L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "insert into t1 (x) values (20)", 111L, User.CRATE_USER), null, 130L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "delete from t1", 410L, User.CRATE_USER), null, 415L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "delete from t1", 110L, User.CRATE_USER), null, 120L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "create table t1 (x int)", 105L, User.CRATE_USER), null, 106L)
     );
 
     @Test
