@@ -22,21 +22,27 @@
 package io.crate.expression.reference.sys.job;
 
 import io.crate.auth.user.User;
+import io.crate.planner.operators.StatementClassifier.Classification;
 
+import javax.annotation.Nullable;
 import java.util.UUID;
 
 public class JobContext {
 
-    public final UUID id;
-    public final String username;
-    public final String stmt;
-    public final long started;
+    private final UUID id;
+    private final String username;
+    private final String stmt;
+    private final long started;
+    @Nullable
+    private final Classification classification;
 
-    public JobContext(UUID id, String stmt, long started, User user) {
+    public JobContext(UUID id, String stmt, long started, User user,
+                      @Nullable Classification classification) {
         this.id = id;
         this.stmt = stmt;
         this.started = started;
         this.username = user.name();
+        this.classification = classification;
     }
 
     public UUID id() {
@@ -53,5 +59,10 @@ public class JobContext {
 
     public long started() {
         return started;
+    }
+
+    @Nullable
+    public Classification classification() {
+        return classification;
     }
 }

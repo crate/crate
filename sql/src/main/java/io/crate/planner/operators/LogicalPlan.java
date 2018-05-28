@@ -233,4 +233,8 @@ public interface LogicalPlan extends Plan {
     }
 
     <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context);
+
+    default StatementType type() {
+        return StatementType.SELECT;
+    }
 }

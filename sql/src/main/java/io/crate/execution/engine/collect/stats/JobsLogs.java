@@ -27,8 +27,8 @@ import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
-import io.crate.metadata.sys.SysMetricsTableInfo;
-import org.HdrHistogram.ConcurrentHistogram;
+import io.crate.metadata.sys.ClassifiedHistograms;
+import io.crate.planner.operators.StatementClassifier;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
@@ -36,12 +36,10 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BooleanSupplier;
 
-import static java.util.Collections.singletonList;
 
 /**
  * JobsLogs is responsible for adding jobs and operations of that node.
@@ -71,7 +69,7 @@ public class JobsLogs {
 
     private final LongAdder activeRequests = new LongAdder();
     private final BooleanSupplier enabled;
-    private final ConcurrentHistogram histogram = new ConcurrentHistogram(TimeUnit.MINUTES.toMillis(10), 3);
+    private final ClassifiedHistograms histograms = new ClassifiedHistograms();
 
     public JobsLogs(BooleanSupplier enabled) {
         this.enabled = enabled;
@@ -98,12 +96,12 @@ public class JobsLogs {
      * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
      */
-    public void logExecutionStart(UUID jobId, String statement, User user) {
+    public void logExecutionStart(UUID jobId, String statement, User user, StatementClassifier.Classification classification) {
         activeRequests.increment();
         if (!isEnabled()) {
             return;
         }
-        jobsTable.put(jobId, new JobContext(jobId, statement, System.currentTimeMillis(), user));
+        jobsTable.put(jobId, new JobContext(jobId, statement, System.currentTimeMillis(), user, classification));
     }
 
     /**
@@ -119,20 +117,27 @@ public class JobsLogs {
         }
         LogSink<JobContextLog> jobContextLogs = jobsLog.get();
         JobContextLog contextLog = new JobContextLog(jobContext, errorMessage);
-        histogram.recordValue(contextLog.ended() - contextLog.started());
+        addToHistogram(contextLog);
         jobContextLogs.add(contextLog);
+    }
+
+    private void addToHistogram(JobContextLog log) {
+        StatementClassifier.Classification classification = log.classification();
+        assert classification != null : "A job must have a classificiation";
+        histograms.getOrCreate(classification)
+            .recordValue(log.ended() - log.started());
     }
 
     /**
      * Create a entry into `sys.jobs_log`
-     * This method can be used instead of {@link #logExecutionEnd(UUID, String)} if there was no {@link #logExecutionStart(UUID, String, User)}
+     * This method can be used instead of {@link #logExecutionEnd(UUID, String)} if there was no {@link #logExecutionStart(UUID, String, User, StatementClassifier.Classification)}
      * Call because an error happened during parse, analysis or plan.
      * <p>
-     * {@link #logExecutionStart(UUID, String, User)} is only called after a Plan has been created and execution starts.
+     * {@link #logExecutionStart(UUID, String, User, StatementClassifier.Classification)} is only called after a Plan has been created and execution starts.
      */
-    public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage, @Nullable User user) {
+    public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage, User user) {
         LogSink<JobContextLog> jobContextLogs = jobsLog.get();
-        JobContext jobContext = new JobContext(jobId, stmt, System.currentTimeMillis(), user);
+        JobContext jobContext = new JobContext(jobId, stmt, System.currentTimeMillis(), user, null);
         jobContextLogs.add(new JobContextLog(jobContext, errorMessage));
     }
 
@@ -144,8 +149,8 @@ public class JobsLogs {
         }
     }
 
-    public Iterable<SysMetricsTableInfo.ClassifiedHist> metrics() {
-        return singletonList(new SysMetricsTableInfo.ClassifiedHist(histogram.copy(), "total"));
+    public Iterable<ClassifiedHistograms.ClassifiedHistogram> metrics() {
+        return histograms;
     }
 
     public void operationFinished(int operationId, UUID jobId, @Nullable String errorMessage, long usedBytes) {
@@ -191,4 +196,7 @@ public class JobsLogs {
         jobsLog.set(sink);
     }
 
+    void resetMetricHistograms() {
+        histograms.reset();
+    }
 }

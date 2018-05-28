@@ -46,7 +46,6 @@ import java.util.concurrent.CompletableFuture;
 @Deprecated
 public class LegacyUpsertById implements Plan {
 
-
     /**
      * A single update item.
      */
@@ -169,6 +168,11 @@ public class LegacyUpsertById implements Plan {
 
     public List<Item> items() {
         return items;
+    }
+
+    @Override
+    public StatementType type() {
+        return StatementType.INSERT;
     }
 
     @Override

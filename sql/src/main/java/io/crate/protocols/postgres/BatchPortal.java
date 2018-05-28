@@ -43,6 +43,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.StatementClassifier;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
@@ -170,7 +171,8 @@ class BatchPortal extends AbstractPortal {
                 throw t;
             }
             ResultReceiver resultReceiver = resultReceivers.get(i);
-            jobsLogs.logExecutionStart(jobId, stmt, sessionContext.user());
+            StatementClassifier.Classification classification = StatementClassifier.classify(plan);
+            jobsLogs.logExecutionStart(jobId, stmt, sessionContext.user(), classification);
             JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
 
             resultReceiver.completionFuture()

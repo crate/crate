@@ -22,6 +22,7 @@
 package io.crate.expression.reference.sys.job;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.planner.operators.StatementClassifier;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
@@ -49,7 +50,7 @@ public class JobContextLog implements ContextLog {
     }
 
     public UUID id() {
-        return jobContext.id;
+        return jobContext.id();
     }
 
     @Nullable
@@ -58,11 +59,16 @@ public class JobContextLog implements ContextLog {
     }
 
     public String statement() {
-        return jobContext.stmt;
+        return jobContext.stmt();
     }
 
     public long started() {
-        return jobContext.started;
+        return jobContext.started();
+    }
+
+    @Nullable
+    public StatementClassifier.Classification classification() {
+        return jobContext.classification();
     }
 
     @Override

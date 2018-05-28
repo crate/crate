@@ -40,6 +40,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.StatementClassifier;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
@@ -166,7 +167,8 @@ class BulkPortal extends AbstractPortal {
             jobsLogs.logPreExecutionFailure(jobId, query, SQLExceptions.messageOf(t), sessionContext.user());
             throw t;
         }
-        jobsLogs.logExecutionStart(jobId, query, sessionContext.user());
+        StatementClassifier.Classification classification = StatementClassifier.classify(plan);
+        jobsLogs.logExecutionStart(jobId, query, sessionContext.user(), classification);
         synced = true;
         return executeBulk(portalContext.getExecutor(), plan, plannerContext, jobId, jobsLogs, bulkParams);
     }

@@ -1046,7 +1046,10 @@ Jobs Metrics
 ------------
 
 The ``sys.jobs_metrics`` table provides an overview of the query latency in the
-cluster for each node. Jobs metrics are not persisted across node restarts.
+cluster. Jobs metrics are not persisted across node restarts.
+
+The metrics are aggregated for each node and each unique classification of the
+statements.
 
 .. note::
 
@@ -1056,25 +1059,34 @@ cluster for each node. Jobs metrics are not persisted across node restarts.
 ``sys.jobs_metrics`` Table Schema
 .................................
 
-+------------------------------------+----------------------------------------------------+---------------+
-| Column Name                        | Description                                        |  Return Type  |
-+====================================+====================================================+===============+
-| ``node``                           | An object containing the id and name of the node   | ``OBJECT``    |
-|                                    | on which the metrics have been sampled.            |               |
-+------------------------------------+----------------------------------------------------+---------------+
-| ``total_count``                    | Total number of queries executed                   | ``LONG``      |
-+------------------------------------+----------------------------------------------------+---------------+
-| ``mean``                           | The mean query latency in ms                       | ``DOUBLE``    |
-+------------------------------------+----------------------------------------------------+---------------+
-| ``stdev``                          | The standard deviation of the query latencies      | ``DOUBLE``    |
-+------------------------------------+----------------------------------------------------+---------------+
-| ``max``                            | The maximum query latency in ms                    | ``LONG``      |
-+------------------------------------+----------------------------------------------------+---------------+
-| ``min``                            | The minimum query latency in ms                    | ``LONG``      |
-+------------------------------------+----------------------------------------------------+---------------+
-| ``percentiles``                    | An object containing different percentiles         | ``OBJECT``    |
-+------------------------------------+----------------------------------------------------+---------------+
-
++------------------------------+----------------------------------------------------+------------------+
+| Column Name                  | Description                                        |  Return Type     |
++==============================+====================================================+==================+
+| ``node``                     | An object containing the id and name of the node   | ``OBJECT``       |
+|                              | on which the metrics have been sampled.            |                  |
++------------------------------+----------------------------------------------------+------------------+
+| ``classification``           | An object containing the statement classification. | ``OBJECT``       |
++------------------------------+----------------------------------------------------+------------------+
+| ``classification['type']``   | The general type of the statement. Types are:      | ``STRING``       |
+|                              | ``INSERT``, ``SELECT``, ``UPDATE``, ``DELETE``,    |                  |
+|                              | ``COPY``, ``DDL``, and ``MANAGEMENT``.             |                  |
++------------------------------+----------------------------------------------------+------------------+
+| ``classification['labels']`` | Labels are only available for certain statement    | ``STRING_ARRAY`` |
+|                              | types that can be classified more accurately than  |                  |
+|                              | just by their type.                                |                  |
++------------------------------+----------------------------------------------------+------------------+
+| ``total_count``              | Total number of queries executed                   | ``LONG``         |
++------------------------------+----------------------------------------------------+------------------+
+| ``stdev``                    | The standard deviation of the query latencies      | ``DOUBLE``       |
++------------------------------+----------------------------------------------------+------------------+
+| ``mean``                     | The mean query latency in ms                       | ``DOUBLE``       |
++------------------------------+----------------------------------------------------+------------------+
+| ``max``                      | The maximum query latency in ms                    | ``LONG``         |
++------------------------------+----------------------------------------------------+------------------+
+| ``min``                      | The minimum query latency in ms                    | ``LONG``         |
++------------------------------+----------------------------------------------------+------------------+
+| ``percentiles``              | An object containing different percentiles         | ``OBJECT``       |
++------------------------------+----------------------------------------------------+------------------+
 
 .. _sys-operations:
 
