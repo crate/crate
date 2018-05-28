@@ -34,6 +34,7 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
@@ -103,6 +104,11 @@ public class CrateRestMainAction implements RestHandler {
         Logger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
         if (esApiEnabled) {
             logger.warn("Unofficial Elasticsearch HTTP REST API is enabled");
+            DeprecationLogger deprecationLogger = new DeprecationLogger(logger);
+            deprecationLogger.deprecated(
+                "\"es.api.enabled\" is deprecated and will be removed in a future version." +
+                "Please use SQL instead and if that is not possible create a feature request " +
+                "on https://github.com/crate/crate/issues explaining your use-case.");
         }
         controller.registerHandler(GET, PATH, this);
         controller.registerHandler(HEAD, PATH, this);

@@ -18,6 +18,12 @@ Breaking Changes
 Changes
 =======
 
+- The setting ``es.api.enabled`` has been marked as deprecated and will be
+  removed in a future version. Once removed it will no longer be possible to
+  use the ES API.
+  Please create feature requests if you're using the ES API and cannot use the
+  SQL interface as substitute.
+
 - Introduced the ``EXPLAIN ANALYZE`` statement for query profiling.
 
 - Added `typbasetype` column to the `pg_catalog.pg_type` table.

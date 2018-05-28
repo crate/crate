@@ -517,6 +517,8 @@ Elasticsearch HTTP REST API
 
   .. WARNING::
 
+    This setting is deprecated and will be removed in the future.
+
     Manipulating your data via elasticsearch API and not via SQL might result
     in inconsistent data. You have been warned!
 
