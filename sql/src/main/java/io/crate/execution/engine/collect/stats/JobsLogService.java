@@ -203,6 +203,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             isEnabled = false;
             updateOperationSink(0, TimeValue.timeValueSeconds(0));
             updateJobSink(0, TimeValue.timeValueSeconds(0));
+            jobsLogs.resetMetricHistograms();
         }
     }
 

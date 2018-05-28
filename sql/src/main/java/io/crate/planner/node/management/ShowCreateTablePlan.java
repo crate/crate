@@ -46,6 +46,11 @@ public class ShowCreateTablePlan implements Plan {
     }
 
     @Override
+    public StatementType type() {
+        return StatementType.MANAGEMENT;
+    }
+
+    @Override
     public void execute(DependencyCarrier executor,
                         PlannerContext plannerContext,
                         RowConsumer consumer,

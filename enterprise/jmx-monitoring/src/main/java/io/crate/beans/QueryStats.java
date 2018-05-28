@@ -18,30 +18,23 @@
 
 package io.crate.beans;
 
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.reference.sys.job.JobContextLog;
+import io.crate.planner.Plan.StatementType;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.function.Supplier;
 
 
 public class QueryStats implements QueryStatsMBean {
 
-    static class Commands {
-        static final String TOTAL = "total";
-        static final String UNCLASSIFIED = "unclassified";
-
-        static final String SELECT = "select";
-        static final String INSERT = "insert";
-        static final String UPDATE = "update";
-        static final String DELETE = "delete";
-    }
+    private static final Set<StatementType> CLASSIFIED_STATEMENT_TYPES =
+        ImmutableSet.of(StatementType.SELECT, StatementType.INSERT, StatementType.UPDATE, StatementType.DELETE);
 
     static class Metric {
 
@@ -71,7 +64,6 @@ public class QueryStats implements QueryStatsMBean {
     }
 
     public static final String NAME = "io.crate.monitoring:type=QueryStats";
-    private static final Pattern COMMAND_PATTERN = Pattern.compile("^\\s*(select|insert|update|delete).*");
     private static final Metric DEFAULT_METRIC = new Metric(0, 0) {
 
         @Override
@@ -90,15 +82,15 @@ public class QueryStats implements QueryStatsMBean {
         }
     };
 
-    private final Supplier<Map<String, Metric>> metricByCommand;
+    private final Supplier<Map<StatementType, Metric>> metricByStmtType;
 
     private volatile long lastUpdateTsInMillis = System.currentTimeMillis();
 
     public QueryStats(JobsLogs jobsLogs) {
-        metricByCommand = Suppliers.memoizeWithExpiration(
+        metricByStmtType = Suppliers.memoizeWithExpiration(
             () -> {
                 long currentTs = System.currentTimeMillis();
-                Map<String, Metric> metricByCommand = createMetricsMap(jobsLogs.jobsLog(), currentTs, lastUpdateTsInMillis);
+                Map<StatementType, Metric> metricByCommand = createMetricsMap(jobsLogs.jobsLog(), currentTs, lastUpdateTsInMillis);
                 lastUpdateTsInMillis = currentTs;
                 return metricByCommand;
             },
@@ -107,8 +99,8 @@ public class QueryStats implements QueryStatsMBean {
         );
     }
 
-    static Map<String, Metric> createMetricsMap(Iterable<JobContextLog> logEntries, long currentTs, long lastUpdateTs) {
-        Map<String, Metric> metricsByCommand = new HashMap<>();
+    static Map<StatementType, Metric> createMetricsMap(Iterable<JobContextLog> logEntries, long currentTs, long lastUpdateTs) {
+        Map<StatementType, Metric> metricsByStmtType = new HashMap<>();
         long elapsedSinceLastUpdateInMs = currentTs - lastUpdateTs;
 
         Metric total = new Metric(0, elapsedSinceLastUpdateInMs);
@@ -116,10 +108,9 @@ public class QueryStats implements QueryStatsMBean {
             if (logEntry.started() < lastUpdateTs || logEntry.started() > currentTs) {
                 continue;
             }
-            String command = getCommand(logEntry.statement());
             long duration = logEntry.ended() - logEntry.started();
             total.inc(duration);
-            metricsByCommand.compute(command, (key, oldMetric) -> {
+            metricsByStmtType.compute(classificationType(logEntry), (key, oldMetric) -> {
                 if (oldMetric == null) {
                     return new Metric(duration, elapsedSinceLastUpdateInMs);
                 }
@@ -127,66 +118,64 @@ public class QueryStats implements QueryStatsMBean {
                 return oldMetric;
             });
         }
-        metricsByCommand.put(Commands.TOTAL, total);
-        return metricsByCommand;
+        metricsByStmtType.put(StatementType.ALL, total);
+        return metricsByStmtType;
     }
 
-    private static String getCommand(String statement) {
-        Matcher matcher = COMMAND_PATTERN.matcher(statement.toLowerCase(Locale.ENGLISH));
-        if (matcher.find()) {
-            return matcher.group(1);
-        } else {
-            return Commands.UNCLASSIFIED;
+    private static StatementType classificationType(JobContextLog logEntry) {
+        if (logEntry.classification() == null || !CLASSIFIED_STATEMENT_TYPES.contains(logEntry.classification().type())) {
+            return StatementType.UNDEFINED;
         }
+        return logEntry.classification().type();
     }
 
     @Override
     public double getSelectQueryFrequency() {
-        return metricByCommand.get().getOrDefault(Commands.SELECT, DEFAULT_METRIC).statementsPerSec();
+        return metricByStmtType.get().getOrDefault(StatementType.SELECT, DEFAULT_METRIC).statementsPerSec();
     }
 
     @Override
     public double getInsertQueryFrequency() {
-        return metricByCommand.get().getOrDefault(Commands.INSERT, DEFAULT_METRIC).statementsPerSec();
+        return metricByStmtType.get().getOrDefault(StatementType.INSERT, DEFAULT_METRIC).statementsPerSec();
     }
 
     @Override
     public double getUpdateQueryFrequency() {
-        return metricByCommand.get().getOrDefault(Commands.UPDATE, DEFAULT_METRIC).statementsPerSec();
+        return metricByStmtType.get().getOrDefault(StatementType.UPDATE, DEFAULT_METRIC).statementsPerSec();
     }
 
     @Override
     public double getDeleteQueryFrequency() {
-        return metricByCommand.get().getOrDefault(Commands.DELETE, DEFAULT_METRIC).statementsPerSec();
-    }
-
-    @Override
-    public double getSelectQueryAverageDuration() {
-        return metricByCommand.get().getOrDefault(Commands.SELECT, DEFAULT_METRIC).avgDurationInMs();
-    }
-
-    @Override
-    public double getInsertQueryAverageDuration() {
-        return metricByCommand.get().getOrDefault(Commands.INSERT, DEFAULT_METRIC).avgDurationInMs();
-    }
-
-    @Override
-    public double getUpdateQueryAverageDuration() {
-        return metricByCommand.get().getOrDefault(Commands.UPDATE, DEFAULT_METRIC).avgDurationInMs();
-    }
-
-    @Override
-    public double getDeleteQueryAverageDuration() {
-        return metricByCommand.get().getOrDefault(Commands.DELETE, DEFAULT_METRIC).avgDurationInMs();
+        return metricByStmtType.get().getOrDefault(StatementType.DELETE, DEFAULT_METRIC).statementsPerSec();
     }
 
     @Override
     public double getOverallQueryFrequency() {
-        return metricByCommand.get().getOrDefault(Commands.TOTAL, DEFAULT_METRIC).statementsPerSec();
+        return metricByStmtType.get().getOrDefault(StatementType.ALL, DEFAULT_METRIC).statementsPerSec();
+    }
+
+    @Override
+    public double getSelectQueryAverageDuration() {
+        return metricByStmtType.get().getOrDefault(StatementType.SELECT, DEFAULT_METRIC).avgDurationInMs();
+    }
+
+    @Override
+    public double getInsertQueryAverageDuration() {
+        return metricByStmtType.get().getOrDefault(StatementType.INSERT, DEFAULT_METRIC).avgDurationInMs();
+    }
+
+    @Override
+    public double getUpdateQueryAverageDuration() {
+        return metricByStmtType.get().getOrDefault(StatementType.UPDATE, DEFAULT_METRIC).avgDurationInMs();
+    }
+
+    @Override
+    public double getDeleteQueryAverageDuration() {
+        return metricByStmtType.get().getOrDefault(StatementType.DELETE, DEFAULT_METRIC).avgDurationInMs();
     }
 
     @Override
     public double getOverallQueryAverageDuration() {
-        return metricByCommand.get().getOrDefault(Commands.TOTAL, DEFAULT_METRIC).avgDurationInMs();
+        return metricByStmtType.get().getOrDefault(StatementType.ALL, DEFAULT_METRIC).avgDurationInMs();
     }
 }

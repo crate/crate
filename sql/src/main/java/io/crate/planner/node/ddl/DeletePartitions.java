@@ -61,6 +61,11 @@ public class DeletePartitions implements Plan {
     }
 
     @Override
+    public StatementType type() {
+        return StatementType.DELETE;
+    }
+
+    @Override
     public void execute(DependencyCarrier executor,
                         PlannerContext plannerContext,
                         RowConsumer consumer,

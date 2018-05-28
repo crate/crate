@@ -43,6 +43,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.StatementClassifier;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
@@ -211,7 +212,7 @@ public class SimplePortal extends AbstractPortal {
             );
         }
 
-        jobsLogs.logExecutionStart(jobId, query, sessionContext.user());
+        jobsLogs.logExecutionStart(jobId, query, sessionContext.user(), StatementClassifier.classify(plan));
         JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
         CompletableFuture<?> completableFuture = resultReceiver.completionFuture()
             .whenComplete(jobsLogsUpdateListener);

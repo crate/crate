@@ -34,6 +34,24 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface Plan {
 
+    enum StatementType {
+        INSERT,
+        SELECT,
+        UPDATE,
+        DELETE,
+        COPY,
+        DDL,
+        MANAGEMENT,
+        UNDEFINED,
+        /**
+         * ALL is used in {@link io.crate.beans.QueryStats} as a key to hold the aggregation of all other query types.
+         * This type must never be used to classify a plan.
+         */
+        ALL,
+    }
+
+    StatementType type();
+
     void execute(DependencyCarrier executor,
                  PlannerContext plannerContext,
                  RowConsumer consumer,

@@ -63,6 +63,11 @@ public final class UpdateById implements Plan {
     }
 
     @Override
+    public StatementType type() {
+        return StatementType.UPDATE;
+    }
+
+    @Override
     public void execute(DependencyCarrier executor,
                         PlannerContext plannerCtx,
                         RowConsumer consumer,

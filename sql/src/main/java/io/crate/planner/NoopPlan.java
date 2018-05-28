@@ -39,6 +39,11 @@ public final class NoopPlan implements Plan {
     }
 
     @Override
+    public StatementType type() {
+        return StatementType.UNDEFINED;
+    }
+
+    @Override
     public void execute(DependencyCarrier executor,
                         PlannerContext plannerContext,
                         RowConsumer consumer,

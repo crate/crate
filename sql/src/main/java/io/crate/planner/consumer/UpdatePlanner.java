@@ -138,6 +138,11 @@ public final class UpdatePlanner {
         }
 
         @Override
+        public StatementType type() {
+            return StatementType.UPDATE;
+        }
+
+        @Override
         public void execute(DependencyCarrier executor,
                             PlannerContext plannerContext,
                             RowConsumer consumer,

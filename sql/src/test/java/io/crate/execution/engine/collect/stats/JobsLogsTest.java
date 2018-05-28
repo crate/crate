@@ -31,6 +31,8 @@ import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
+import io.crate.planner.Plan;
+import io.crate.planner.operators.StatementClassifier;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -38,6 +40,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.set.Sets;
+import org.elasticsearch.index.analysis.PreConfiguredCharFilter;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.hamcrest.Matchers;
@@ -46,6 +49,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -201,8 +205,11 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
         JobsLogService stats = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
 
+        StatementClassifier.Classification classification =
+            new StatementClassifier.Classification(Plan.StatementType.SELECT, Collections.singleton("Collect"));
+
         stats.jobsLogSink.add(new JobContextLog(
-            new JobContext(UUID.randomUUID(), "select 1", 1L, User.CRATE_USER), null));
+            new JobContext(UUID.randomUUID(), "select 1", 1L, User.CRATE_USER, classification), null));
 
         clusterSettings.applySettings(Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
@@ -227,8 +234,11 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
         User user = User.of("arthur");
 
-        JobContext jobContext = new JobContext(UUID.randomUUID(), "select 1", 1L, user);
-        jobsLogs.logExecutionStart(jobContext.id, jobContext.stmt, user);
+        StatementClassifier.Classification classification =
+            new StatementClassifier.Classification(Plan.StatementType.SELECT, Collections.singleton("Collect"));
+
+        JobContext jobContext = new JobContext(UUID.randomUUID(), "select 1", 1L, user, classification);
+        jobsLogs.logExecutionStart(jobContext.id(), jobContext.stmt(), user, classification);
         List<JobContext> jobsEntries = ImmutableList.copyOf(jobsLogs.activeJobs().iterator());
 
         assertThat(jobsEntries.size(), is(1));

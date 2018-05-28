@@ -44,6 +44,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.StatementClassifier;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.JobsLogsUpdateListener;
@@ -183,7 +184,8 @@ public class Session implements AutoCloseable {
             jobsLogs.logPreExecutionFailure(jobId, statement, SQLExceptions.messageOf(t), sessionContext.user());
             throw t;
         }
-        jobsLogs.logExecutionStart(jobId, statement, sessionContext.user());
+        StatementClassifier.Classification classification = StatementClassifier.classify(plan);
+        jobsLogs.logExecutionStart(jobId, statement, sessionContext.user(), classification);
         resultReceiver.completionFuture().whenComplete(new JobsLogsUpdateListener(jobId, jobsLogs));
 
         if (!analyzedStatement.isWriteOperation()) {

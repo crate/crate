@@ -41,6 +41,11 @@ public final class CreateViewPlan implements Plan {
     }
 
     @Override
+    public StatementType type() {
+        return StatementType.DDL;
+    }
+
+    @Override
     public void execute(DependencyCarrier dependencies,
                         PlannerContext plannerContext,
                         RowConsumer consumer,

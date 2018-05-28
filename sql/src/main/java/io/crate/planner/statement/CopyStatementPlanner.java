@@ -105,6 +105,11 @@ public final class CopyStatementPlanner {
         }
 
         @Override
+        public StatementType type() {
+            return StatementType.COPY;
+        }
+
+        @Override
         public void execute(DependencyCarrier executor,
                             PlannerContext plannerContext,
                             RowConsumer consumer,
@@ -125,6 +130,11 @@ public final class CopyStatementPlanner {
 
         CopyFrom(CopyFromAnalyzedStatement copyFrom) {
             this.copyFrom = copyFrom;
+        }
+
+        @Override
+        public StatementType type() {
+            return StatementType.COPY;
         }
 
         @Override
