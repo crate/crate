@@ -20,6 +20,3 @@ Changes
 
 Fixes
 =====
-
-- Fixed a bug which could produce invalid row version numbers under high load
-  scenarios. These version numbers would prevent updating the affected rows.
