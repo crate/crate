@@ -4,20 +4,25 @@
 Configuration
 =============
 
-CrateDB ships with sensible defaults, so no configuration is needed for basic,
-single node use.
+CrateDB ships with sensible defaults, so configuration is typically not needed
+for basic, single node use.
 
-CrateDB is typically configured via a configuration file located at
-``config/crate.yml`` within the install directory.
+CrateDB can be configured via configuration files. These files are located in
+the ``config`` directory inside the :ref:`CRATE_HOME <conf-env-crate-home>`
+directory.
 
-The location of the config directory can be specified at startup like so:
+The configuration directory can changed via the ``path.conf`` setting, like so:
 
 .. code-block:: sh
 
-    sh$ ./bin/crate -Cpath.conf=/path/to/config/dir
+    sh$ ./bin/crate -Cpath.conf=<CUSTOM_CONFIG_DIR>
 
-The configuration file distributed with CrateDB has a commented out listing of
-every available setting.
+Here, replace ``<CUSTOM_CONFIG_DIR>`` with the path to your custom
+configuration directory.
+
+The primary configuration file is named ``crate.yml``. The default version of
+this file has a commented out listing of every available setting. (Some
+features, such as :ref:`logging <conf-logging>`, use feature-specific files.)
 
 Settings can be configured via the config file or via the ``-C`` option at
 startup. So, for example, you can set the cluster name at startup, like so:
