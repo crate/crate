@@ -158,7 +158,7 @@ This would overload our ``my_multiply`` function with more arguments::
     If you call a function without a schema name, CrateDB will look it up in
     the built-in functions first and only then in the user-defined functions
     with the schema of the current session (see
-    :ref:`conf-session-settings`).
+    :ref:`search_path <conf-session-search-path>`).
 
     **Therefore a built-in function with the same name as a user-defined
     function will hide the latter, even if it contains a different set of

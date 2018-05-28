@@ -1,22 +1,23 @@
-.. highlight:: sh
+.. _conf-session:
 
-.. _conf-session-settings:
+================
+Session Settings
+================
 
-==========================
-Session Setting Parameters
-==========================
+The section documents settings that only apply to the currently connected client
+session. Currently, there is only one of these settings.
 
-The section lists the session setting parameters supported by CrateDB.
+.. SEEALSO::
 
-Parameters can be set with the ``SET/SET SESSION`` statement, see
-:ref:`ref-set`.
+    Settings can be changed during a session with :ref:`ref-set`.
 
-**search_path**
-  | *Default:* ``doc``
+.. _conf-session-search-path:
 
-  This parameter holds the default schema for a session that should be used
-  when no schema is provided in queries.
+``search_path``: *schema name* (default: ``doc``)
+  The default schema for a session when no schema is provided.
 
-  The value of ``search_path`` can be either a string or a comma-separated
-  list of strings. However, CrateDB only considers the first element when a
-  list is provided.
+  This setting mirrors the PostgreSQL `search_path`_ setting. However,
+  while CrateDB will accept a list of schemas, for the time being, only the
+  first one is used.
+
+.. _search_path: https://www.postgresql.org/docs/8.1/static/ddl-schemas.html#DDL-SCHEMAS-PATH
