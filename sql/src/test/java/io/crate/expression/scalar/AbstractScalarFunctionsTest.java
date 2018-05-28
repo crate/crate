@@ -271,7 +271,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     }
 
     protected Symbol normalize(String functionName, Symbol... args) {
-        return normalize(new TransactionContext(SessionContext.create()), functionName, args);
+        return normalize(new TransactionContext(SessionContext.systemSessionContext()), functionName, args);
     }
 
     private class AssertingInput implements Input {

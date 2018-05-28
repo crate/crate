@@ -43,7 +43,7 @@ public class BulkPortalTest extends CrateUnitTest {
             Mockito.mock(ResultSetReceiver.class),
             1,
             Collections.emptyList(),
-            SessionContext.create(),
+            SessionContext.systemSessionContext(),
             Mockito.mock(AbstractPortal.PortalContext.class)
         );
 

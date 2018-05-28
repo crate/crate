@@ -68,7 +68,7 @@ public class WhereClauseTest {
     public void testNormalizeEliminatesNulls() {
         WhereClause where = new WhereClause(sqlExpressions.asSymbol("null or x = 10 or a = null"));
         WhereClause normalizedWhere = where.normalize(
-            EvaluatingNormalizer.functionOnlyNormalizer(getFunctions()), new TransactionContext());
+            EvaluatingNormalizer.functionOnlyNormalizer(getFunctions()), TransactionContext.systemTransactionContext());
         assertThat(normalizedWhere.query(), is(sqlExpressions.asSymbol("x = 10")));
     }
 

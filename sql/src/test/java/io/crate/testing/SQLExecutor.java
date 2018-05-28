@@ -394,7 +394,7 @@ public class SQLExecutor {
         public Builder addPartitionedTable(String createTableStmt, String... partitions) throws IOException {
             CreateTable stmt = (CreateTable) SqlParser.createStatement(createTableStmt);
             CreateTableAnalyzedStatement analyzedStmt = createTableStatementAnalyzer.analyze(
-                stmt, ParameterContext.EMPTY, new TransactionContext(SessionContext.create()));
+                stmt, ParameterContext.EMPTY, new TransactionContext(SessionContext.systemSessionContext()));
             if (!analyzedStmt.isPartitioned()) {
                 throw new IllegalArgumentException("use addTable(..) to add non partitioned tables");
             }
@@ -438,7 +438,7 @@ public class SQLExecutor {
         public Builder addTable(String createTableStmt) throws IOException {
             CreateTable stmt = (CreateTable) SqlParser.createStatement(createTableStmt);
             CreateTableAnalyzedStatement analyzedStmt = createTableStatementAnalyzer.analyze(
-                stmt, ParameterContext.EMPTY, new TransactionContext(SessionContext.create()));
+                stmt, ParameterContext.EMPTY, new TransactionContext(SessionContext.systemSessionContext()));
 
             if (analyzedStmt.isPartitioned()) {
                 throw new IllegalArgumentException("use addPartitionedTable(..) to add partitioned tables");

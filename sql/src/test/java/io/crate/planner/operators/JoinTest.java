@@ -51,7 +51,6 @@ import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
-import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -63,7 +62,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private Functions functions = getFunctions();
     private ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
     private PlannerContext plannerCtx;
-    private TransactionContext txnCtx = new TransactionContext();
+    private TransactionContext txnCtx = TransactionContext.systemTransactionContext();
 
     @Before
     public void setUpExecutor() {

@@ -94,7 +94,7 @@ public class SqlExpressions {
         }
         injector = modulesBuilder.createInjector();
         functions = injector.getInstance(Functions.class);
-        transactionContext = new TransactionContext(SessionContext.create(user));
+        transactionContext = new TransactionContext(new SessionContext(null, user, s -> {}, e -> {}));
         expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             transactionContext,

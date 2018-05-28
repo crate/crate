@@ -108,7 +108,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = tableInfo.getRouting(
             clusterService().state(),
             routingProvider,
-            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.create());
+            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
         Reference clusterNameRef = new Reference(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterNameExpression.NAME)), RowGranularity.CLUSTER, DataTypes.STRING);
         RoutedCollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
         Bucket result = collect(collectNode);
@@ -130,7 +130,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = tablesTableInfo.getRouting(
             clusterService().state(),
             routingProvider,
-            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.create());
+            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
         List<Symbol> toCollect = new ArrayList<>();
         for (Reference reference : tablesTableInfo.columns()) {
             toCollect.add(reference);
@@ -156,7 +156,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = tableInfo.getRouting(
             clusterService().state(),
             routingProvider,
-            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.create());
+            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
         List<Symbol> toCollect = new ArrayList<>();
         for (Reference ref : tableInfo.columns()) {
             toCollect.add(ref);

@@ -58,7 +58,7 @@ public class RandomFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void normalizeReference() {
         Function function = new Function(random.info(), Collections.<Symbol>emptyList());
-        Function normalized = (Function) random.normalizeSymbol(function, new TransactionContext(SessionContext.create()));
+        Function normalized = (Function) random.normalizeSymbol(function, new TransactionContext(SessionContext.systemSessionContext()));
         assertThat(normalized, sameInstance(function));
     }
 

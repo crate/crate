@@ -79,7 +79,7 @@ public class PreExecutionBenchmark {
             .build();
         selectStatement = SqlParser.createStatement("select name from users");
         selectAnalysis =
-            e.analyzer.boundAnalyze(selectStatement, new TransactionContext(SessionContext.create()), ParameterContext.EMPTY);
+            e.analyzer.boundAnalyze(selectStatement, new TransactionContext(SessionContext.systemSessionContext()), ParameterContext.EMPTY);
         plannerContext = e.getPlannerContext(clusterService.state(), new Random(dummySeed));
     }
 
@@ -106,7 +106,7 @@ public class PreExecutionBenchmark {
 
     @Benchmark
     public Analysis measureAnalyzeSimpleSelect() {
-        return e.analyzer.boundAnalyze(selectStatement, new TransactionContext(SessionContext.create()), ParameterContext.EMPTY);
+        return e.analyzer.boundAnalyze(selectStatement, new TransactionContext(SessionContext.systemSessionContext()), ParameterContext.EMPTY);
     }
 
     @Benchmark

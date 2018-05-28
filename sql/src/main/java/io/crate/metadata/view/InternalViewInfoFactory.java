@@ -64,10 +64,11 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
         List<Reference> columns;
         try {
             AnalyzedRelation relation = analyzerProvider.get()
-                .analyze(parsedStmt, new TransactionContext(), ParameterContext.EMPTY);
+                .analyze(parsedStmt, TransactionContext.systemTransactionContext(), ParameterContext.EMPTY);
             final List<Reference> collectedColumns = new ArrayList<>(relation.fields().size());
             relation.fields()
-                .forEach(field -> collectedColumns.add(new Reference(new ReferenceIdent(ident, field.outputName()), RowGranularity.DOC, field.valueType())));
+                .forEach(field -> collectedColumns.add(
+                    new Reference(new ReferenceIdent(ident, field.outputName()), RowGranularity.DOC, field.valueType())));
             columns = collectedColumns;
         } catch (ResourceUnknownException e) {
             // Return ViewInfo with no columns in case the statement could not be analyzed,

@@ -103,7 +103,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         paramTypeHints = ParamTypeHints.EMPTY;
         DummyRelation dummyRelation = new DummyRelation("obj.x", "myObj.x", "myObj.x.AbC");
         dummySources = ImmutableMap.of(new QualifiedName("foo"), dummyRelation);
-        transactionContext = new TransactionContext();
+        transactionContext = TransactionContext.systemTransactionContext();
         context = new ExpressionAnalysisContext();
         functions = getFunctions();
         executor = SQLExecutor.builder(clusterService)
@@ -118,7 +118,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUnsupportedExpressionCurrentDate() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression current_time");
-        SessionContext sessionContext = SessionContext.create();
+        SessionContext sessionContext = SessionContext.systemSessionContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions, transactionContext, paramTypeHints,
             new FullQualifiedNameFieldProvider(
@@ -211,7 +211,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new QualifiedName("t1"), tr1,
             new QualifiedName("t2"), tr2
         );
-        SessionContext sessionContext = SessionContext.create();
+        SessionContext sessionContext = SessionContext.systemSessionContext();
         TransactionContext transactionContext = new TransactionContext(sessionContext);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
@@ -260,19 +260,19 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             Collections.singletonList(Literal.BOOLEAN_FALSE),
             localContext,
             functions,
-            new TransactionContext());
+            TransactionContext.systemTransactionContext());
         Symbol fn2 = ExpressionAnalyzer.allocateFunction(
             functionName,
             Collections.singletonList(Literal.BOOLEAN_FALSE),
             localContext,
             functions,
-            new TransactionContext());
+            TransactionContext.systemTransactionContext());
         Symbol fn3 = ExpressionAnalyzer.allocateFunction(
             functionName,
             Collections.singletonList(Literal.BOOLEAN_TRUE),
             localContext,
             functions,
-            new TransactionContext());
+            TransactionContext.systemTransactionContext());
 
         // different instances
         assertThat(fn1, allOf(

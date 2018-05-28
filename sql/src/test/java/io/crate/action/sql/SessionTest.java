@@ -113,7 +113,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
-            SessionContext.create());
+            SessionContext.systemSessionContext());
 
         session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
         assertThat(session.getParamType("S_1", 0), is(DataTypes.UNDEFINED));
@@ -135,7 +135,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(TableDefinitions.USER_TABLE_INFO).build();
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("delete from users where name = ?"),
-            SessionContext.create(),
+            SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
         Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
@@ -149,7 +149,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(TableDefinitions.USER_TABLE_INFO).build();
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("update users set name = ? || '_updated' where id = ?"),
-            SessionContext.create(),
+            SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
         Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
@@ -163,7 +163,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(TableDefinitions.USER_TABLE_INFO).build();
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?)"),
-            SessionContext.create(),
+            SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
         Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
@@ -181,7 +181,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
                                       "WHERE name = ?)"),
-            SessionContext.create(),
+            SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
         Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
@@ -199,7 +199,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?) " +
                                       "ON DUPLICATE KEY UPDATE name = ?"),
-            SessionContext.create(),
+            SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
         Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
@@ -210,7 +210,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
                                       "WHERE name = ?) ON DUPLICATE KEY UPDATE name = ?"),
-            SessionContext.create(),
+            SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
         typeExtractor = new Session.ParameterTypeExtractor();
@@ -230,7 +230,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
-            SessionContext.create());
+            SessionContext.systemSessionContext());
 
         session.parse("S_1", "select name from sys.cluster;", Collections.emptyList());
         session.bind("Portal", "S_1", Collections.emptyList(), null);
@@ -264,7 +264,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
-            SessionContext.create());
+            SessionContext.systemSessionContext());
 
         session.parse("S_1", "select * from sys.cluster;", Collections.emptyList());
         session.bind("Portal", "S_1", Collections.emptyList(), null);
@@ -290,7 +290,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
-            SessionContext.create());
+            SessionContext.systemSessionContext());
 
         session.parse("test_prep_stmt", "select * from sys.cluster;", Collections.emptyList());
         session.bind("Portal", "test_prep_stmt", Collections.emptyList(), null);

@@ -532,7 +532,7 @@ public class ProjectionToProjectorVisitor
 
         private final RamAccountingContext ramAccountingContext;
         private final UUID jobId;
-        private final TransactionContext transactionContext = new TransactionContext(SessionContext.create());
+        private final TransactionContext transactionContext = new TransactionContext(SessionContext.systemSessionContext());
 
         public Context(RamAccountingContext ramAccountingContext, UUID jobId) {
             this.ramAccountingContext = ramAccountingContext;

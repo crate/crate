@@ -206,7 +206,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             new RoutingProvider(Randomness.get().nextInt(), new String[0]),
             WhereClause.MATCH_ALL,
             RoutingProvider.ShardSelection.ANY,
-            SessionContext.create());
+            SessionContext.systemSessionContext());
         RoutedCollectPhase collectNode = getCollectNode(
             Arrays.asList(
                 new Reference(new ReferenceIdent(relationName, "id"),

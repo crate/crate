@@ -46,7 +46,7 @@ public class NullEliminatorTest extends CrateUnitTest {
 
     private void assertReplacedAndNormalized(String expression, String expectedString) {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
-        assertReplaced(expression, expectedString,  s -> normalizer.normalize(s, new TransactionContext()));
+        assertReplaced(expression, expectedString,  s -> normalizer.normalize(s, TransactionContext.systemTransactionContext()));
     }
 
     private void assertReplaced(String expression, String expectedString, Function<Symbol, Symbol> postProcessor) {

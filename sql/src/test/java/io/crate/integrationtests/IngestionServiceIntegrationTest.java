@@ -91,7 +91,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
             this.inputFactory = new InputFactory(functions);
             this.ingestionService = ingestionService;
             this.expressionAnalysisContext = new ExpressionAnalysisContext();
-            TransactionContext transactionContext = new TransactionContext(SessionContext.create());
+            TransactionContext transactionContext = new TransactionContext(SessionContext.systemSessionContext());
             this.expressionAnalyzer = new ExpressionAnalyzer(
                 functions, transactionContext, null, inputColumnProvider, null);
         }

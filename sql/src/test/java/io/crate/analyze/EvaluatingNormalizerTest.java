@@ -41,7 +41,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
     private Functions functions;
     private Reference dummyLoadInfo;
 
-    private final TransactionContext transactionContext = new TransactionContext(SessionContext.create());
+    private final TransactionContext transactionContext = new TransactionContext(SessionContext.systemSessionContext());
 
     @Before
     public void prepare() throws Exception {

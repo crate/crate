@@ -38,8 +38,8 @@ public class TransactionContext {
     private final SessionContext sessionContext;
     private Long currentTimeMillis = null;
 
-    public TransactionContext() {
-        this(SessionContext.create());
+    public static TransactionContext systemTransactionContext() {
+        return new TransactionContext(SessionContext.systemSessionContext());
     }
 
     public TransactionContext(SessionContext sessionContext) {

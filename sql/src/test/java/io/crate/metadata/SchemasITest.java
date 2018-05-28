@@ -78,7 +78,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
             routingProvider,
             WhereClause.MATCH_ALL,
             RoutingProvider.ShardSelection.ANY,
-            SessionContext.create()
+            SessionContext.systemSessionContext()
         );
 
         Set<String> nodes = routing.nodes();
@@ -140,7 +140,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         TableInfo ti = schemas.getTableInfo(new RelationName("sys", "nodes"));
         ClusterService clusterService = clusterService();
         Routing routing = ti.getRouting(
-            clusterService.state(), routingProvider, null, null, SessionContext.create());
+            clusterService.state(), routingProvider, null, null, SessionContext.systemSessionContext());
         assertTrue(routing.hasLocations());
         assertEquals(1, routing.nodes().size());
         for (Map<String, List<Integer>> indices : routing.locations().values()) {
@@ -157,7 +157,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         TableInfo ti = schemas.getTableInfo(new RelationName("sys", "shards"));
         ClusterService clusterService = clusterService();
         Routing routing = ti.getRouting(
-            clusterService.state(), routingProvider, null, null, SessionContext.create());
+            clusterService.state(), routingProvider, null, null, SessionContext.systemSessionContext());
 
         Set<String> tables = new HashSet<>();
         Set<String> expectedTables = Sets.newHashSet(getFqn("t2"), getFqn("t3"));
@@ -177,7 +177,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         TableInfo ti = schemas.getTableInfo(new RelationName("sys", "cluster"));
         ClusterService clusterService = clusterService();
         assertThat(ti.getRouting(
-            clusterService.state(), routingProvider, null, null, SessionContext.create()
+            clusterService.state(), routingProvider, null, null, SessionContext.systemSessionContext()
         ).locations().size(), is(1));
     }
 }

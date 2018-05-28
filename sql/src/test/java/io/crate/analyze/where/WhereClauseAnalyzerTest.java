@@ -79,7 +79,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
         .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
         .map());
-    private final TransactionContext transactionContext = new TransactionContext(SessionContext.create());
+    private final TransactionContext transactionContext = new TransactionContext(SessionContext.systemSessionContext());
     private SQLExecutor e;
 
     @Before

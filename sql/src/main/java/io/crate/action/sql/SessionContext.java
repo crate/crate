@@ -46,6 +46,13 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     private boolean semiJoinsRewriteEnabled;
     private boolean hashJoinEnabled = true;
 
+    /**
+     * Creates a new SessionContext suitable to use as system SessionContext
+     */
+    public static SessionContext systemSessionContext() {
+        return new SessionContext(null, User.CRATE_USER, s -> { }, e -> { });
+    }
+
     public SessionContext(@Nullable String defaultSchema,
                           User user,
                           StatementAuthorizedValidator statementAuthorizedValidator,
@@ -122,20 +129,5 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     @Override
     public void ensureStatementAuthorized(AnalyzedStatement statement) {
         statementAuthorizedValidator.ensureStatementAuthorized(statement);
-    }
-
-    /**
-     * Creates a new SessionContext with default settings.
-     */
-    public static SessionContext create() {
-        return create(User.CRATE_USER);
-    }
-
-    /**
-     * Creates a new SessionContext with a specific user.
-     * Note: User can only set at the beginning of session.
-     */
-    public static SessionContext create(User user) {
-        return new SessionContext(null, user, s -> { }, t -> { });
     }
 }
