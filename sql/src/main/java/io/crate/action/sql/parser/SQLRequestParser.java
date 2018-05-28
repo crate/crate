@@ -39,9 +39,7 @@ import org.elasticsearch.common.xcontent.XContentType;
  * }
  *     </pre>
  */
-public class SQLXContentSourceParser {
-
-    private final SQLXContentSourceContext context;
+public final class SQLRequestParser {
 
     static final class Fields {
         static final String STMT = "stmt";
@@ -55,24 +53,25 @@ public class SQLXContentSourceParser {
         Fields.BULK_ARGS, (SQLParseElement) new SQLBulkArgsParseElement()
     );
 
-    public SQLXContentSourceParser(SQLXContentSourceContext context) {
-        this.context = context;
+    private SQLRequestParser() {
     }
 
-    private void validate() throws SQLParseSourceException {
-        if (context.stmt() == null) {
+    private static void validate(SQLRequestParseContext parseContext) throws SQLParseSourceException {
+        if (parseContext.stmt() == null) {
             throw new SQLParseSourceException("Field [stmt] was not defined");
         }
     }
 
-    public void parseSource(BytesReference source) throws SQLParseException {
+    public static SQLRequestParseContext parseSource(BytesReference source) throws SQLParseException {
         XContentParser parser = null;
         try {
+            SQLRequestParseContext parseContext = new SQLRequestParseContext();
             if (source != null && source.length() != 0) {
                 parser = XContentFactory.xContent(XContentType.JSON).createParser(NamedXContentRegistry.EMPTY, source);
-                parse(parser);
+                parse(parseContext, parser);
             }
-            validate();
+            validate(parseContext);
+            return parseContext;
         } catch (Exception e) {
             String sSource = "_na_";
             try {
@@ -88,7 +87,7 @@ public class SQLXContentSourceParser {
         }
     }
 
-    public void parse(XContentParser parser) throws Exception {
+    public static void parse(SQLRequestParseContext parseContext, XContentParser parser) throws Exception {
         XContentParser.Token token;
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
@@ -98,7 +97,7 @@ public class SQLXContentSourceParser {
                 if (element == null) {
                     throw new SQLParseException("No parser for element [" + fieldName + "]");
                 }
-                element.parse(parser, context);
+                element.parse(parser, parseContext);
             } else if (token == null) {
                 break;
             }

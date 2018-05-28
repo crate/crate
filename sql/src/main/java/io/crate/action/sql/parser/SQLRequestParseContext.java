@@ -24,7 +24,7 @@ package io.crate.action.sql.parser;
 /**
  * Context for information gathered by parsing an XContent based sql request
  */
-public class SQLXContentSourceContext {
+public final class SQLRequestParseContext {
 
     private String stmt;
     private Object[] args;

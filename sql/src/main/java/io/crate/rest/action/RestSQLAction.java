@@ -31,8 +31,8 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
-import io.crate.action.sql.parser.SQLXContentSourceContext;
-import io.crate.action.sql.parser.SQLXContentSourceParser;
+import io.crate.action.sql.parser.SQLRequestParseContext;
+import io.crate.action.sql.parser.SQLRequestParser;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.auth.user.User;
@@ -115,11 +115,9 @@ public class RestSQLAction extends BaseRestHandler {
         if (!request.hasContent()) {
             return channel -> sendBadRequest(channel, "missing request body");
         }
-
-        SQLXContentSourceContext context = new SQLXContentSourceContext();
-        SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
+        SQLRequestParseContext context;
         try {
-            parser.parseSource(request.content());
+            context = SQLRequestParser.parseSource(request.content());
         } catch (SQLParseException e) {
             StringWriter stackTrace = new StringWriter();
             e.printStackTrace(new PrintWriter(stackTrace));
@@ -167,7 +165,7 @@ public class RestSQLAction extends BaseRestHandler {
         return userManager.findUser(username);
     }
 
-    private RestChannelConsumer executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request) {
+    private RestChannelConsumer executeSimpleRequest(SQLRequestParseContext context, final RestRequest request) {
         Session session = sqlOperations.createSession(
             request.header(REQUEST_HEADER_SCHEMA),
             userFromRequest(request),
@@ -219,7 +217,7 @@ public class RestSQLAction extends BaseRestHandler {
         }
     }
 
-    private RestChannelConsumer executeBulkRequest(SQLXContentSourceContext context, final RestRequest request) {
+    private RestChannelConsumer executeBulkRequest(SQLRequestParseContext context, final RestRequest request) {
         Session session = sqlOperations.createSession(
             request.header(REQUEST_HEADER_SCHEMA),
             userFromRequest(request),

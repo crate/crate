@@ -31,7 +31,7 @@ import java.util.List;
 class SQLBulkArgsParseElement extends SQLArgsParseElement implements SQLParseElement {
 
     @Override
-    public void parse(XContentParser parser, SQLXContentSourceContext context) throws Exception {
+    public void parse(XContentParser parser, SQLRequestParseContext context) throws Exception {
         XContentParser.Token token = parser.currentToken();
 
         if (token != XContentParser.Token.START_ARRAY) {

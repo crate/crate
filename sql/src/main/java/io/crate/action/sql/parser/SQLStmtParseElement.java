@@ -25,15 +25,15 @@ import org.elasticsearch.common.xcontent.XContentParser;
 
 /**
  * used to parse the "stmt" element that is expected to be in requests
- * parsed by the io.crate.action.sql.parser.SQLXContentSourceParser
+ * parsed by the io.crate.action.sql.parser.SQLRequestParser
  * <p>
- * Fills the stmt in the io.crate.action.sql.parser.SQLXContentSourceContext.
+ * Fills the stmt in the io.crate.action.sql.parser.SQLRequestParseContext.
  * </p>
  */
 class SQLStmtParseElement implements SQLParseElement {
 
     @Override
-    public void parse(XContentParser parser, SQLXContentSourceContext context) throws Exception {
+    public void parse(XContentParser parser, SQLRequestParseContext context) throws Exception {
         XContentParser.Token token = parser.currentToken();
 
         if (!token.isValue()) {
