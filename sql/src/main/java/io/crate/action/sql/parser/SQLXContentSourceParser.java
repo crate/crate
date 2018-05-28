@@ -69,7 +69,7 @@ public class SQLXContentSourceParser {
         XContentParser parser = null;
         try {
             if (source != null && source.length() != 0) {
-                parser = XContentFactory.xContent(source).createParser(NamedXContentRegistry.EMPTY, source);
+                parser = XContentFactory.xContent(XContentType.JSON).createParser(NamedXContentRegistry.EMPTY, source);
                 parse(parser);
             }
             validate();
