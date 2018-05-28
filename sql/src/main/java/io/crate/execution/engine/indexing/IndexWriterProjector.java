@@ -62,7 +62,7 @@ import java.util.function.Supplier;
 
 public class IndexWriterProjector implements Projector {
 
-    private final ShardingUpsertExecutor<ShardUpsertRequest, ShardUpsertRequest.Item> shardingUpsertExecutor;
+    private final ShardingUpsertExecutor shardingUpsertExecutor;
 
     public IndexWriterProjector(ClusterService clusterService,
                                 NodeJobsCounter nodeJobsCounter,
@@ -108,7 +108,7 @@ public class IndexWriterProjector implements Projector {
         Function<String, ShardUpsertRequest.Item> itemFactory = id ->
             new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null);
 
-        shardingUpsertExecutor = new ShardingUpsertExecutor<>(
+        shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
             nodeJobsCounter,
             scheduler,

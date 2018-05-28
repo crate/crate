@@ -28,8 +28,8 @@ import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.jobs.NodeJobsCounter;
@@ -68,7 +68,7 @@ import java.util.function.Supplier;
 
 import static io.crate.execution.jobs.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
 
-public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
+public class ShardingUpsertExecutor
     implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<? extends Row>>> {
 
     public static final CrateSetting<TimeValue> BULK_REQUEST_TIMEOUT_SETTING = CrateSetting.of(Setting.positiveTimeSetting(
@@ -78,33 +78,33 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
     private static final Logger LOGGER = Loggers.getLogger(ShardingUpsertExecutor.class);
 
-    private final GroupRowsByShard<TReq, TItem> grouper;
+    private final GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper;
     private final NodeJobsCounter nodeJobsCounter;
     private final ScheduledExecutorService scheduler;
     private final Executor executor;
     private final int bulkSize;
     private final UUID jobId;
-    private final Function<ShardId, TReq> requestFactory;
-    private final BulkRequestExecutor<TReq> requestExecutor;
+    private final Function<ShardId, ShardUpsertRequest> requestFactory;
+    private final BulkRequestExecutor<ShardUpsertRequest> requestExecutor;
     private final TransportCreatePartitionsAction createPartitionsAction;
-    private final BulkShardCreationLimiter<TReq, TItem> bulkShardCreationLimiter;
+    private final BulkShardCreationLimiter<ShardUpsertRequest, ShardUpsertRequest.Item> bulkShardCreationLimiter;
     private volatile boolean createPartitionsRequestOngoing = false;
 
-    public ShardingUpsertExecutor(ClusterService clusterService,
-                                  NodeJobsCounter nodeJobsCounter,
-                                  ScheduledExecutorService scheduler,
-                                  Executor executor,
-                                  int bulkSize,
-                                  UUID jobId,
-                                  RowShardResolver rowShardResolver,
-                                  Function<String, TItem> itemFactory,
-                                  Function<ShardId, TReq> requestFactory,
-                                  List<? extends CollectExpression<Row, ?>> expressions,
-                                  Supplier<String> indexNameResolver,
-                                  boolean autoCreateIndices,
-                                  BulkRequestExecutor<TReq> requestExecutor,
-                                  TransportCreatePartitionsAction createPartitionsAction,
-                                  Settings tableSettings) {
+    ShardingUpsertExecutor(ClusterService clusterService,
+                           NodeJobsCounter nodeJobsCounter,
+                           ScheduledExecutorService scheduler,
+                           Executor executor,
+                           int bulkSize,
+                           UUID jobId,
+                           RowShardResolver rowShardResolver,
+                           Function<String, ShardUpsertRequest.Item> itemFactory,
+                           Function<ShardId, ShardUpsertRequest> requestFactory,
+                           List<? extends CollectExpression<Row, ?>> expressions,
+                           Supplier<String> indexNameResolver,
+                           boolean autoCreateIndices,
+                           BulkRequestExecutor<ShardUpsertRequest> requestExecutor,
+                           TransportCreatePartitionsAction createPartitionsAction,
+                           Settings tableSettings) {
         this.nodeJobsCounter = nodeJobsCounter;
         this.scheduler = scheduler;
         this.executor = executor;
@@ -125,7 +125,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
             clusterService.state().nodes().getDataNodes().size());
     }
 
-    public CompletableFuture<Long> execute(ShardedRequests<TReq, TItem> requests) {
+    public CompletableFuture<Long> execute(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests) {
         if (requests.itemsByMissingIndex.isEmpty()) {
             return execRequests(requests.itemsByShard);
         }
@@ -138,15 +138,15 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
             });
     }
 
-    private CompletableFuture<Long> execRequests(Map<ShardLocation, TReq> itemsByShard) {
+    private CompletableFuture<Long> execRequests(Map<ShardLocation, ShardUpsertRequest> itemsByShard) {
         final AtomicInteger numRequests = new AtomicInteger(itemsByShard.size());
         final AtomicLong rowCount = new AtomicLong(0L);
         final AtomicReference<Exception> interrupt = new AtomicReference<>(null);
         final CompletableFuture<Long> rowCountFuture = new CompletableFuture<>();
-        Iterator<Map.Entry<ShardLocation, TReq>> it = itemsByShard.entrySet().iterator();
+        Iterator<Map.Entry<ShardLocation, ShardUpsertRequest>> it = itemsByShard.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<ShardLocation, TReq> entry = it.next();
-            TReq request = entry.getValue();
+            Map.Entry<ShardLocation, ShardUpsertRequest> entry = it.next();
+            ShardUpsertRequest request = entry.getValue();
             it.remove();
 
             String nodeId = entry.getKey().nodeId;
@@ -169,14 +169,15 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     }
 
 
-    private CompletableFuture<CreatePartitionsResponse> createPartitions(Map<String, List<ShardedRequests.ItemAndRouting<TItem>>> itemsByMissingIndex) {
+    private CompletableFuture<CreatePartitionsResponse> createPartitions(
+        Map<String, List<ShardedRequests.ItemAndRouting<ShardUpsertRequest.Item>>> itemsByMissingIndex) {
         FutureActionListener<CreatePartitionsResponse, CreatePartitionsResponse> listener = FutureActionListener.newInstance();
         createPartitionsAction.execute(
             new CreatePartitionsRequest(itemsByMissingIndex.keySet(), jobId), listener);
         return listener;
     }
 
-    private boolean shouldPause(ShardedRequests<TReq, TItem> requests) {
+    private boolean shouldPause(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests) {
         if (createPartitionsRequestOngoing) {
             LOGGER.debug("partition creation in progress, will pause");
             return true;
@@ -194,20 +195,21 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
 
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator<Row> batchIterator) {
-        BatchIterator<ShardedRequests<TReq, TItem>> reqBatchIterator =
+        BatchIterator<ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item>> reqBatchIterator =
             BatchIterators.partition(batchIterator, bulkSize, () -> new ShardedRequests<>(requestFactory), grouper,
                 bulkShardCreationLimiter);
 
-        BatchIteratorBackpressureExecutor<ShardedRequests<TReq, TItem>, Long> executor = new BatchIteratorBackpressureExecutor<>(
-            scheduler,
-            this.executor,
-            reqBatchIterator,
-            this::execute,
-            (a, b) -> a + b,
-            0L,
-            this::shouldPause,
-            BACKOFF_POLICY
-        );
+        BatchIteratorBackpressureExecutor<ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item>, Long> executor =
+            new BatchIteratorBackpressureExecutor<>(
+                scheduler,
+                this.executor,
+                reqBatchIterator,
+                this::execute,
+                (a, b) -> a + b,
+                0L,
+                this::shouldPause,
+                BACKOFF_POLICY
+            );
         return executor.consumeIteratorAndExecute()
             .thenApply(rowCount -> Collections.singletonList(new Row1(rowCount)));
     }
