@@ -64,6 +64,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     private final String copyFilePath =
         Paths.get(getClass().getResource("/essetup/data/copy").toURI()).toUri().toString();
+    private final String copyFilePathShared =
+        Paths.get(getClass().getResource("/essetup/data/copy/shared").toURI()).toUri().toString();
     private final String nestedArrayCopyFilePath =
         Paths.get(getClass().getResource("/essetup/data/nested_array").toURI()).toUri().toString();
 
@@ -167,31 +169,17 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromDirectory() throws Exception {
+    public void testCopyFromFilePattern() {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext) with (number_of_replicas=0)");
         ensureYellow();
 
-        execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
-        assertEquals(3L, response.rowCount());
+        execute("copy quotes from ?", new Object[]{copyFilePathShared + "*.json"});
+        assertEquals(6L, response.rowCount());
         refresh();
 
         execute("select * from quotes");
-        assertEquals(3L, response.rowCount());
-    }
-
-    @Test
-    public void testCopyFromFilePattern() throws Exception {
-        execute("create table quotes (id int primary key, " +
-                "quote string index using fulltext) with (number_of_replicas=0)");
-        ensureYellow();
-
-        execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
-        assertEquals(3L, response.rowCount());
-        refresh();
-
-        execute("select * from quotes");
-        assertEquals(3L, response.rowCount());
+        assertEquals(6L, response.rowCount());
     }
 
     @Test
