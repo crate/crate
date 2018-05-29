@@ -29,16 +29,16 @@ import io.crate.types.DataType;
 import java.util.ArrayList;
 import java.util.Collection;
 
-public class RowAccounting {
+public class RowAccountingWithEstimators implements RowAccounting {
 
     private final RamAccountingContext ramAccountingContext;
     private final ArrayList<SizeEstimator<Object>> estimators;
     private int extraSizePerRow = 0;
 
     /**
-     * See {@link RowAccounting#RowAccounting(Collection, RamAccountingContext, int)}
+     * See {@link RowAccountingWithEstimators#RowAccountingWithEstimators(Collection, RamAccountingContext, int)}
      */
-    public RowAccounting(Collection<? extends DataType> columnTypes, RamAccountingContext ramAccountingContext) {
+    public RowAccountingWithEstimators(Collection<? extends DataType> columnTypes, RamAccountingContext ramAccountingContext) {
         this.estimators = new ArrayList<>(columnTypes.size());
         for (DataType columnType : columnTypes) {
             estimators.add(SizeEstimatorFactory.create(columnType));
@@ -52,9 +52,9 @@ public class RowAccounting {
      * @param extraSizePerRow       Extra size that need to be calculated per row. E.g. {@link HashInnerJoinBatchIterator}
      *                              might instantiate an ArrayList per row used for the internal hash->row buffer
      */
-    public RowAccounting(Collection<? extends DataType> columnTypes,
-                         RamAccountingContext ramAccountingContext,
-                         int extraSizePerRow) {
+    public RowAccountingWithEstimators(Collection<? extends DataType> columnTypes,
+                                       RamAccountingContext ramAccountingContext,
+                                       int extraSizePerRow) {
         this(columnTypes, ramAccountingContext);
         this.extraSizePerRow = extraSizePerRow;
     }
@@ -64,6 +64,7 @@ public class RowAccounting {
      *
      * This should only be used if the values are stored/buffered in another in-memory data structure.
      */
+    @Override
     public void accountForAndMaybeBreak(Row row) {
         assert row.numColumns() == estimators.size() : "Size of row must match the number of estimators";
 
@@ -76,11 +77,13 @@ public class RowAccounting {
         ramAccountingContext.addBytes(size);
     }
 
+    @Override
+    public void release() {
+        ramAccountingContext.release();
+    }
+
     public void close() {
         ramAccountingContext.close();
     }
 
-    public void release() {
-        ramAccountingContext.release();
-    }
 }

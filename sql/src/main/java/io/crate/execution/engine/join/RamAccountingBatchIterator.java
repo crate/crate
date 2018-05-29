@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.join;
 
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.ForwardingBatchIterator;
 import io.crate.data.Row;
@@ -40,9 +40,9 @@ import javax.annotation.Nonnull;
 public class RamAccountingBatchIterator<T extends Row> extends ForwardingBatchIterator<T> {
 
     private final BatchIterator<T> delegateBatchIterator;
-    private final RowAccounting rowAccounting;
+    private final RowAccountingWithEstimators rowAccounting;
 
-    public RamAccountingBatchIterator(BatchIterator<T> delegatePagingIterator, RowAccounting rowAccounting) {
+    public RamAccountingBatchIterator(BatchIterator<T> delegatePagingIterator, RowAccountingWithEstimators rowAccounting) {
         this.delegateBatchIterator = delegatePagingIterator;
         this.rowAccounting = rowAccounting;
     }

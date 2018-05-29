@@ -22,6 +22,7 @@
 
 package io.crate.data.join;
 
+import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 
 import java.util.function.Predicate;
@@ -29,7 +30,7 @@ import java.util.function.Predicate;
 /**
  * BatchIterator implementations for Joins
  * <ul>
- * <li>{@link #crossJoin(BatchIterator, BatchIterator, ElementCombiner)}</li>
+ * <li>{@link #crossJoin(BatchIterator, BatchIterator, ElementCombiner, BlockSizeCalculator)}</li>
  * <li>{@link #leftJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
  * <li>{@link #rightJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
  * <li>{@link #fullOuterJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
@@ -57,8 +58,10 @@ public final class JoinBatchIterators {
      */
     public static <L, R, C> BatchIterator<C> crossJoin(BatchIterator<L> left,
                                                        BatchIterator<R> right,
-                                                       ElementCombiner<L, R, C> combiner) {
-        return new CrossJoinNLBatchIterator<>(left, right, combiner);
+                                                       ElementCombiner<L, R, C> combiner,
+                                                       BlockSizeCalculator blockSizeCalculator,
+                                                       RowAccounting rowAccounting) {
+        return new CrossJoinBlockNLBatchIterator<>(left, right, combiner, blockSizeCalculator, rowAccounting);
     }
 
     /**

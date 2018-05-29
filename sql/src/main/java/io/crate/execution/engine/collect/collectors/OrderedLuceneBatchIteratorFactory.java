@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -54,7 +54,7 @@ public class OrderedLuceneBatchIteratorFactory {
 
     public static BatchIterator<Row> newInstance(List<OrderedDocCollector> orderedDocCollectors,
                                                  Comparator<Row> rowComparator,
-                                                 RowAccounting rowAccounting,
+                                                 RowAccountingWithEstimators rowAccounting,
                                                  Executor executor,
                                                  boolean requiresScroll) {
         return new Factory(
@@ -72,7 +72,7 @@ public class OrderedLuceneBatchIteratorFactory {
 
         Factory(List<OrderedDocCollector> orderedDocCollectors,
                 Comparator<Row> rowComparator,
-                RowAccounting rowAccounting,
+                RowAccountingWithEstimators rowAccounting,
                 Executor executor,
                 boolean requiresScroll) {
             this.orderedDocCollectors = orderedDocCollectors;

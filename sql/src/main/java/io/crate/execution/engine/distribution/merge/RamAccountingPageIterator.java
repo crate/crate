@@ -22,7 +22,7 @@
 package io.crate.execution.engine.distribution.merge;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.Row;
 
 /**
@@ -32,9 +32,9 @@ public class RamAccountingPageIterator<TKey> implements PagingIterator<TKey, Row
 
     @VisibleForTesting
     final PagingIterator<TKey, Row> delegatePagingIterator;
-    private final RowAccounting rowAccounting;
+    private final RowAccountingWithEstimators rowAccounting;
 
-    public RamAccountingPageIterator(PagingIterator<TKey, Row> delegatePagingIterator, RowAccounting rowAccounting) {
+    public RamAccountingPageIterator(PagingIterator<TKey, Row> delegatePagingIterator, RowAccountingWithEstimators rowAccounting) {
         this.delegatePagingIterator = delegatePagingIterator;
         this.rowAccounting = rowAccounting;
     }

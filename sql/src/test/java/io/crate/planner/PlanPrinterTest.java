@@ -109,6 +109,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                    "joinType=CROSS, distribution={distributedByColumn=0, type=BROADCAST}, " +
                    "projections=[" +
                        "{type=Eval, outputs=IC{0, integer}, IC{1, long}}, " +
+                       "{type=OrderByTopN, limit=-1, offset=0, outputs=IC{0, integer}, IC{1, long}, orderBy=[IC{0, integer} ASC]}, " +
                        "{type=Fetch, outputs=IC{0, integer}, Fetch{IC{1, long}, Ref{doc.t2._doc['y'], integer}}, fetchSize="));
         // fetchSize depends on machine's heap size
         assertThat(mapStr, containsString("}]}}}}, " +

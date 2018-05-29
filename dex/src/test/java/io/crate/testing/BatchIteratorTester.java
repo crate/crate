@@ -28,18 +28,23 @@ import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 import org.hamcrest.Matchers;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
@@ -56,14 +61,23 @@ public class BatchIteratorTester {
         this.it = it;
     }
 
+    public void verifyResultAndEdgeCaseBehaviour(List<Object[]> expectedResult,
+                                                 @Nullable Consumer<BatchIterator> verifyAfterProperConsumption) throws Exception {
+        BatchIterator<Row> firstBatchIterator = this.it.get();
+        testProperConsumption(firstBatchIterator, expectedResult);
+        if (verifyAfterProperConsumption != null) {
+            verifyAfterProperConsumption.accept(firstBatchIterator);
+        }
+        testBehaviourAfterClose(this.it.get());
+        testIteratorAccessFromDifferentThreads(this.it.get(), expectedResult);
+        testIllegalNextBatchCall(this.it.get());
+        testMoveNextAfterMoveNextReturnedFalse(this.it.get());
+        testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(this.it.get());
+        testAllLoadedNeverRaises(this.it);
+    }
+
     public void verifyResultAndEdgeCaseBehaviour(List<Object[]> expectedResult) throws Exception {
-        testProperConsumption(it.get(), expectedResult);
-        testBehaviourAfterClose(it.get());
-        testIteratorAccessFromDifferentThreads(it.get(), expectedResult);
-        testIllegalNextBatchCall(it.get());
-        testMoveNextAfterMoveNextReturnedFalse(it.get());
-        testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(it.get());
-        testAllLoadedNeverRaises(it);
+        verifyResultAndEdgeCaseBehaviour(expectedResult, null);
     }
 
     private void testAllLoadedNeverRaises(Supplier<BatchIterator<Row>> batchIterator) {
@@ -122,8 +136,19 @@ public class BatchIteratorTester {
                 return firstElement.materialize();
             }, executor);
 
-            assertThat(firstRow.get(10, TimeUnit.SECONDS), is(expectedResult.get(0)));
-            assertThat(secondRow.get(10, TimeUnit.SECONDS), is(expectedResult.get(1)));
+            Object[] firstItem = firstRow.get(10, TimeUnit.SECONDS);
+            Object[] secondItem = secondRow.get(10, TimeUnit.SECONDS);
+            assertThat(expectedResult, hasItem(firstItem));
+            assertThat(expectedResult, hasItem(secondItem));
+
+            // retrieve and check the remaining items
+            TestingRowConsumer consumer = new TestingRowConsumer();
+            consumer.accept(it, null);
+            List<Object[]> result = consumer.getResult();
+            assertThat(result.size(), is(expectedResult.size() - 2));
+            result.add(firstItem);
+            result.add(secondItem);
+            assertThat(expectedResult, containsInAnyOrder(result.toArray()));
         } finally {
             executor.shutdownNow();
             executor.awaitTermination(5, TimeUnit.SECONDS);
@@ -173,7 +198,7 @@ public class BatchIteratorTester {
         if (expected.isEmpty()) {
             assertThat(actual, empty());
         } else {
-            assertThat(actual, Matchers.contains(expected.toArray(new Object[0])));
+            assertThat(actual, containsInAnyOrder(expected.toArray()));
         }
     }
 

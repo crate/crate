@@ -24,8 +24,8 @@ package io.crate.execution.engine.join;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.RowAccounting;
-import io.crate.breaker.RowAccountingTest;
+import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.RowAccountingWithEstimatorsTest;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.test.integration.CrateUnitTest;
@@ -67,7 +67,7 @@ public class RamAccountingBatchIteratorTest extends CrateUnitTest {
     public void testNoCircuitBreaking() throws Exception {
         BatchIterator<Row> batchIterator = new RamAccountingBatchIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(new BytesRef("a"), new BytesRef("b"), new BytesRef("c"))),
-            new RowAccounting(
+            new RowAccountingWithEstimators(
                 ImmutableList.of(DataTypes.STRING),
                 new RamAccountingContext("test", NOOP_CIRCUIT_BREAKER)));
 
@@ -84,14 +84,14 @@ public class RamAccountingBatchIteratorTest extends CrateUnitTest {
         BatchIterator<Row> batchIterator = new RamAccountingBatchIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(new BytesRef("aaa"), new BytesRef("bbb"), new BytesRef("ccc"),
                                                          new BytesRef("ddd"), new BytesRef("eee"), new BytesRef("fff"))),
-            new RowAccounting(
+            new RowAccountingWithEstimators(
                 ImmutableList.of(DataTypes.STRING),
                 new RamAccountingContext(
                     "test",
                     new MemoryCircuitBreaker(
                         new ByteSizeValue(34, ByteSizeUnit.BYTES),
                         1,
-                        Loggers.getLogger(RowAccountingTest.class)))));
+                        Loggers.getLogger(RowAccountingWithEstimatorsTest.class)))));
 
         expectedException.expect(CircuitBreakingException.class);
         expectedException.expectMessage(

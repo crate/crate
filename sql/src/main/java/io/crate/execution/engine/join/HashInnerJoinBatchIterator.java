@@ -27,6 +27,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
+import io.crate.data.join.BlockSizeCalculator;
 import io.crate.data.join.ElementCombiner;
 import io.crate.data.join.JoinBatchIterator;
 
@@ -36,7 +37,6 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 /**
  * <pre>
@@ -86,7 +86,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private final UnsafeArrayRow leftRow = new UnsafeArrayRow();
     private final Function<L, Integer> hashBuilderForLeft;
     private final Function<R, Integer> hashBuilderForRight;
-    private final Supplier<Integer> blockSizeSupplier;
+    private final BlockSizeCalculator blockSizeSupplier;
     private final IntObjectHashMap<List<Object[]>> buffer;
 
     private int blockSize;
@@ -102,7 +102,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                                       Predicate<C> joinCondition,
                                       Function<L, Integer> hashBuilderForLeft,
                                       Function<R, Integer> hashBuilderForRight,
-                                      Supplier<Integer> blockSizeSupplier) {
+                                      BlockSizeCalculator blockSizeSupplier) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
@@ -163,7 +163,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     }
 
     private void recreateBuffer() {
-        blockSize = blockSizeSupplier.get();
+        blockSize = blockSizeSupplier.calculateBlockSize();
         buffer.release();
         buffer.ensureCapacity(blockSize);
         numberOfRowsInBuffer = 0;

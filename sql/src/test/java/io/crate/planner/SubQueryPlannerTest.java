@@ -156,6 +156,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         List<Projection> projections = nl.joinPhase().projections();
         assertThat(projections, Matchers.contains(
             instanceOf(EvalProjection.class),
+            instanceOf(OrderedTopNProjection.class),
             isTopN(10, 0),
             instanceOf(EvalProjection.class),
             instanceOf(OrderedTopNProjection.class),
@@ -163,7 +164,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
             instanceOf(EvalProjection.class)
         ));
         assertThat(projections.get(0).outputs(), isSQL("INPUT(0), INPUT(1)"));
-        assertThat(projections.get(5).outputs(), isSQL("INPUT(1)"));
+        assertThat(projections.get(6).outputs(), isSQL("INPUT(1)"));
     }
 
     @Test

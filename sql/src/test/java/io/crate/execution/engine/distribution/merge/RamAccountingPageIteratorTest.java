@@ -25,8 +25,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.RowAccounting;
-import io.crate.breaker.RowAccountingTest;
+import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.RowAccountingWithEstimatorsTest;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.expression.symbol.Literal;
@@ -126,7 +126,7 @@ public class RamAccountingPageIteratorTest extends CrateUnitTest {
             2,
             true,
             null,
-            () -> new RowAccounting(ImmutableList.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING),
+            () -> new RowAccountingWithEstimators(ImmutableList.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING),
                                     new RamAccountingContext("test", NOOP_CIRCUIT_BREAKER)));
         assertThat(pagingIterator, instanceOf(RamAccountingPageIterator.class));
         assertThat(((RamAccountingPageIterator) pagingIterator).delegatePagingIterator,
@@ -148,13 +148,13 @@ public class RamAccountingPageIteratorTest extends CrateUnitTest {
             2,
             true,
             null,
-            () -> new RowAccounting(ImmutableList.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING),
+            () -> new RowAccountingWithEstimators(ImmutableList.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING),
                                     new RamAccountingContext(
                                         "test",
                                         new MemoryCircuitBreaker(
                                             new ByteSizeValue(197, ByteSizeUnit.BYTES),
                                             1,
-                                            Loggers.getLogger(RowAccountingTest.class)))));
+                                            Loggers.getLogger(RowAccountingWithEstimatorsTest.class)))));
 
         expectedException.expect(CircuitBreakingException.class);
         expectedException.expectMessage(

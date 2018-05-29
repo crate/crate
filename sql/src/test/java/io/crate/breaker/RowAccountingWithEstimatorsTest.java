@@ -36,7 +36,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 
-public class RowAccountingTest extends CrateUnitTest {
+public class RowAccountingWithEstimatorsTest extends CrateUnitTest {
 
     private long originalBufferSize;
 
@@ -53,11 +53,11 @@ public class RowAccountingTest extends CrateUnitTest {
 
     @Test
     public void testCircuitBreakingWorks() throws Exception {
-        RowAccounting rowAccounting = new RowAccounting(Collections.singletonList(DataTypes.INTEGER),
+        RowAccounting rowAccounting = new RowAccountingWithEstimators(Collections.singletonList(DataTypes.INTEGER),
             new RamAccountingContext(
                 "test",
                 new MemoryCircuitBreaker(
-                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, Loggers.getLogger(RowAccountingTest.class))
+                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, Loggers.getLogger(RowAccountingWithEstimatorsTest.class))
             ));
 
         expectedException.expect(CircuitBreakingException.class);
@@ -66,11 +66,11 @@ public class RowAccountingTest extends CrateUnitTest {
 
     @Test
     public void testCircuitBreakingWorksWithExtraSizePerRow() throws Exception {
-        RowAccounting rowAccounting = new RowAccounting(Collections.singletonList(DataTypes.INTEGER),
+        RowAccounting rowAccounting = new RowAccountingWithEstimators(Collections.singletonList(DataTypes.INTEGER),
             new RamAccountingContext(
                 "test",
                 new MemoryCircuitBreaker(
-                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, Loggers.getLogger(RowAccountingTest.class))
+                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, Loggers.getLogger(RowAccountingWithEstimatorsTest.class))
             ),
             2);
 

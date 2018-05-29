@@ -38,6 +38,7 @@ import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
@@ -68,7 +69,7 @@ class NestedLoopJoin extends TwoInputPlan {
     private final Symbol joinCondition;
     private final AnalyzedRelation topMostLeftRelation;
     private final JoinType joinType;
-    private final boolean hasOuterJoins;
+    private final boolean orderByCanBePushedDown;
 
     private final boolean isFiltered;
 
@@ -77,7 +78,7 @@ class NestedLoopJoin extends TwoInputPlan {
                    JoinType joinType,
                    @Nullable Symbol joinCondition,
                    boolean isFiltered,
-                   boolean hasOuterJoins,
+                   boolean orderByCanBePushedDown,
                    AnalyzedRelation topMostLeftRelation) {
         super(lhs, rhs, new ArrayList<>());
         this.joinType = joinType;
@@ -90,7 +91,7 @@ class NestedLoopJoin extends TwoInputPlan {
         }
         this.topMostLeftRelation = topMostLeftRelation;
         this.joinCondition = joinCondition;
-        this.hasOuterJoins = hasOuterJoins;
+        this.orderByCanBePushedDown = orderByCanBePushedDown;
     }
 
     JoinType joinType() {
@@ -176,7 +177,10 @@ class NestedLoopJoin extends TwoInputPlan {
             rightLogicalPlan.outputs().size(),
             joinExecutionNodesAndMergePhases.v1(),
             joinType,
-            joinInput
+            joinInput,
+            Symbols.typeView(leftLogicalPlan.outputs()),
+            lhs.estimatedRowSize(),
+            lhs.numExpectedRows()
         );
         return new Join(
             nlPhase,
@@ -237,7 +241,7 @@ class NestedLoopJoin extends TwoInputPlan {
             joinType,
             joinCondition,
             isFiltered,
-            hasOuterJoins,
+            orderByCanBePushedDown,
             topMostLeftRelation);
     }
 
@@ -267,7 +271,7 @@ class NestedLoopJoin extends TwoInputPlan {
              *   - that relation happens to be on the left-side of the join
              *   - there is no outer join involved in the whole join (outer joins may create null rows - breaking the ordering)
              */
-            if (hasOuterJoins == false) {
+            if (orderByCanBePushedDown) {
                 Set<AnalyzedRelation> relationsInOrderBy =
                     Collections.newSetFromMap(new IdentityHashMap<>());
                 Consumer<Field> gatherRelations = f -> relationsInOrderBy.add(f.relation());

@@ -26,7 +26,7 @@ package io.crate.execution.engine.collect.collectors;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.exceptions.CircuitBreakingException;
@@ -73,7 +73,7 @@ import static org.mockito.Mockito.mock;
 
 public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
 
-    private static final RowAccounting ROW_ACCOUNTING = new RowAccounting(Collections.singleton(LongType.INSTANCE),
+    private static final RowAccountingWithEstimators ROW_ACCOUNTING = new RowAccountingWithEstimators(Collections.singleton(LongType.INSTANCE),
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA))
     );
 
@@ -137,7 +137,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
 
     @Test
     public void testSingleCollectorOrderedLuceneBatchIteratorTripsCircuitBreaker() throws Exception {
-        RowAccounting rowAccounting = mock(RowAccounting.class);
+        RowAccountingWithEstimators rowAccounting = mock(RowAccountingWithEstimators.class);
         CircuitBreakingException circuitBreakingException = new CircuitBreakingException("tripped circuit breaker");
         doThrow(circuitBreakingException)
             .when(rowAccounting).accountForAndMaybeBreak(any(Row.class));
@@ -154,7 +154,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
 
     @Test
     public void testOrderedLuceneBatchIteratorWithMultipleCollectorsTripsCircuitBreaker() throws Exception {
-        RowAccounting rowAccounting = mock(RowAccounting.class);
+        RowAccountingWithEstimators rowAccounting = mock(RowAccountingWithEstimators.class);
         CircuitBreakingException circuitBreakingException = new CircuitBreakingException("tripped circuit breaker");
         doThrow(circuitBreakingException)
             .when(rowAccounting).accountForAndMaybeBreak(any(Row.class));

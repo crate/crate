@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.join;
 
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.ListenableBatchIterator;
@@ -52,7 +52,7 @@ public class HashJoinOperation implements CompletionListenable {
                              Predicate<Row> joinPredicate,
                              List<Symbol> joinLeftInputs,
                              List<Symbol> joinRightInputs,
-                             RowAccounting rowAccounting,
+                             RowAccountingWithEstimators rowAccounting,
                              InputFactory inputFactory,
                              CircuitBreaker circuitBreaker,
                              long estimatedRowSizeForLeft,
@@ -72,7 +72,7 @@ public class HashJoinOperation implements CompletionListenable {
                             getHashBuilderFromSymbols(inputFactory, joinLeftInputs),
                             getHashBuilderFromSymbols(inputFactory, joinRightInputs),
                             rowAccounting,
-                            new BlockSizeCalculator(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)
+                            new RamBlockSizeCalculator(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)
                         ), completionFuture);
                         nlResultConsumer.accept(joinIterator, null);
                     } catch (Exception e) {
@@ -119,8 +119,8 @@ public class HashJoinOperation implements CompletionListenable {
                                                              Predicate<Row> joinCondition,
                                                              Function<Row, Integer> hashBuilderForLeft,
                                                              Function<Row, Integer> hashBuilderForRight,
-                                                             RowAccounting rowAccounting,
-                                                             BlockSizeCalculator blockSizeCalculator) {
+                                                             RowAccountingWithEstimators rowAccounting,
+                                                             RamBlockSizeCalculator blockSizeCalculator) {
         CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
         return new HashInnerJoinBatchIterator<>(
             new RamAccountingBatchIterator<>(left, rowAccounting),

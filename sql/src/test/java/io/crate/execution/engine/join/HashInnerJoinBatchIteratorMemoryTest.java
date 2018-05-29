@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.join;
 
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.join.CombinedRow;
@@ -61,7 +61,7 @@ public class HashInnerJoinBatchIteratorMemoryTest {
     public void testReleaseAccountingRows() throws Exception {
         TestRamAccountingBatchIterator leftIterator = new TestRamAccountingBatchIterator(
             new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 12), 3, 3, null),
-            mock(RowAccounting.class));
+            mock(RowAccountingWithEstimators.class));
         BatchIterator<Row> rightIterator = new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 2, 4, null);
 
         when(circuitBreaker.getLimit()).thenReturn(110L);
@@ -86,7 +86,7 @@ public class HashInnerJoinBatchIteratorMemoryTest {
 
         private int countCallsForReleaseMem = 0;
 
-        private TestRamAccountingBatchIterator(BatchIterator<Row> delegatePagingIterator, RowAccounting rowAccounting) {
+        private TestRamAccountingBatchIterator(BatchIterator<Row> delegatePagingIterator, RowAccountingWithEstimators rowAccounting) {
             super(delegatePagingIterator, rowAccounting);
         }
 

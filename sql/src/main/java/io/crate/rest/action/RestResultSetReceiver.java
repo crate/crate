@@ -23,7 +23,7 @@
 package io.crate.rest.action;
 
 import io.crate.action.sql.ResultReceiver;
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Field;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -38,7 +38,7 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
     private final List<Field> outputFields;
     private final ResultToXContentBuilder builder;
     private final long startTimeNs;
-    private final RowAccounting rowAccounting;
+    private final RowAccountingWithEstimators rowAccounting;
     private final CompletableFuture<XContentBuilder> result = new CompletableFuture<>();
 
     private long rowCount;
@@ -46,7 +46,7 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
     RestResultSetReceiver(XContentBuilder builder,
                           List<Field> outputFields,
                           long startTimeNs,
-                          RowAccounting rowAccounting,
+                          RowAccountingWithEstimators rowAccounting,
                           boolean includeTypesOnResponse) throws IOException {
         this.outputFields = outputFields;
         this.startTimeNs = startTimeNs;

@@ -25,7 +25,7 @@ package io.crate.execution.engine.collect.collectors;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.engine.sort.OrderingByPosition;
@@ -73,7 +73,7 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Benchmark)
 public class OrderedLuceneBatchIteratorBenchmark {
 
-    private static final RowAccounting ROW_ACCOUNTING = new RowAccounting(Collections.singleton(LongType.INSTANCE),
+    private static final RowAccountingWithEstimators ROW_ACCOUNTING = new RowAccountingWithEstimators(Collections.singleton(LongType.INSTANCE),
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA))
     );
 

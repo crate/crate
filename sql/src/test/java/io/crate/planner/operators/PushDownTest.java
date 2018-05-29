@@ -28,6 +28,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
@@ -91,6 +92,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    @Ignore("We can't push down orderBy anymore with the block nested loop algorithm")
     public void testOrderByOnJoinPushedDown() {
         LogicalPlan plan = plan("select t1.a, t2.b from t1 inner join t2 on t1.a = t2.b order by t1.a");
         assertThat(plan, isPlan(sqlExecutor.functions(),  "NestedLoopJoin[\n" +
@@ -104,6 +106,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    @Ignore("We can't push down orderBy anymore with the block nested loop algorithm")
     public void testOrderByOnJoinWithMultipleRelationsPushedDown() {
         LogicalPlan plan = plan("select t1.a, t2.b, t3.a from t1 " +
                                 "inner join t2 on t1.a = t2.b " +
@@ -126,6 +129,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    @Ignore("We can't push down orderBy anymore with the block nested loop algorithm")
     public void testOrderByOnJoinWithUncollectedColumnPushedDown() {
         LogicalPlan plan = plan("select t2.y, t2.b, t1.i from t1 inner join t2 on t1.a = t2.b order by t1.x desc");
         assertThat(plan, isPlan(sqlExecutor.functions(), "FetchOrEval[y, b, i]\n" +
@@ -209,6 +213,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    @Ignore("We can't push down orderBy anymore with the block nested loop algorithm")
     public void testOrderByIsPushedDownToLeftSide() {
         sqlExecutor.getSessionContext().setHashJoinEnabled(false);
         // differs from testOrderByOnJoinPushedDown in that here the ORDER BY expression is not part of the outputs
