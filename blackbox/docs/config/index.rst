@@ -65,7 +65,6 @@ settings will override configuration file settings.
    session
    logging
    environment
-   system
    enterprise
 
 
