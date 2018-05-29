@@ -1,145 +1,114 @@
-.. highlight:: sh
-
-.. _conf-environment-variables:
+.. _conf-env:
 
 =====================
 Environment Variables
 =====================
+
+CrateDB can be configured with some `environment variables`_.
+
+There are many different ways to set environment variables, depending on how
+CrateDB is being deployed.
+
+Here is a trivial example::
+
+    sh$ export CRATE_HOME=/tmp/crate
+    sh$ ./bin/crate
+
+Here, we set ``CRATE_HOME`` to ``/tmp/crate``, export it so that
+sub-processes of the shell have access, and then start CrateDB.
 
 .. rubric:: Table of Contents
 
 .. contents::
    :local:
 
-.. _env-crate-home:
+.. _conf-env-app:
 
-``CRATE_HOME``
+Application Variables
+=====================
+
+.. _conf-env-crate-home:
+
+``CRATE_HOME``: *directory path*
+  The home directory of the CrateDB installation.
+
+  This directory is used as the root for the :ref:`configuration directory
+  <config>`, data directory, log directory, and so on.
+
+  If you have installed CrateDB from a package, this variable should be set
+  for you.
+
+  If you are installing manually, in most cases, this should be set to the
+  directory from which you would normally execute ``bin/crate``, i.e. the root
+  directory of the `expanded tarball`_.
+
+.. _conf-env-java:
+
+Java Variables
 ==============
 
-Specifies the home directory of the installation, it is used to find default
-file paths like e.g. ``config/crate.yml`` or the default data directory
-location. This variable is usally defined at the by-distribution shipped
-start-up script. In most cases it is the parent directory of the directory
-containing the ``bin/crate`` executable.
+.. _conf-env-java-general:
 
-:CRATE_HOME:
-  Home directory of CrateDB installation.
+General
+-------
 
-  Used to refer to default config files, data locations, log files, etc.
-  All configured relative paths will use this directory as a parent.
+.. _conf-env-java-opts:
 
-``CRATE_JAVA_OPTS``
-===================
+``CRATE_JAVA_OPTS``: *Java options*
+  The Java options to use when running CrateDB.
 
-This variable allows you to set `Java options`_ for CrateDB, such as as the
-thread stack size.
+  For example, you could change the stack size like this::
 
-For example, to change the stack size in order to avoid stack overflow
-exceptions::
+      CRATE_JAVA_OPTS=-Xss500k
 
-    CRATE_JAVA_OPTS=-Xss500k
+  .. SEEALSO::
 
-.. _`Java options`: http://docs.oracle.com/javase/7/docs/technotes/tools/windows/java.html#CBBIJCHG
+      For more information about Java options, consult the documentation for
+      `Microsoft Windows`_  or `Unix-like operating systems`_.
 
-.. _crate-heap-size:
+.. _Unix-like operating systems: https://docs.oracle.com/javase/8/docs/technotes/tools/unix/java.html
+.. _Microsoft Windows: https://docs.oracle.com/javase/8/docs/technotes/tools/windows/java.html
 
-``CRATE_HEAP_SIZE``
-===================
+.. _conf-env-heap-size:
 
-This variable specifies the amount of memory that can be used by the JVM.
+``CRATE_HEAP_SIZE``: *size*
+  The Java heap size, i.e. the amount of memory that can be used.
 
-The value of the environment variable can be suffixed with ``g`` or ``m``. For
-example::
+  You can set the heap size to four gigabytes like this::
 
-    CRATE_HEAP_SIZE=4g
+      CRATE_HEAP_SIZE=4g
 
-Certain operations in CrateDB require a lot of records to be hold in memory at
-a time. If the amount of heap that can be allocated by the JVM is too low these
-operations would fail with an OutOfMemory exception.
+  .. TIP::
 
-So it's important to choose a value high enough for the intended use-case. But
-there are two limitations:
+      Use ``g`` for gigabytes or ``m`` for megabytes.
 
-Use max. 50% of available RAM
------------------------------
+.. _conf-env-dump-path:
 
-Be aware that there is also another user of memory besides CrateDB's HEAP: our
-underlying storage engine `Lucene`_. It leverages the underlying OS for caching
-in-memory data structures by design. `Lucene`_ indexes are split in several
-segment files, every file is immutable and will never change. This makes them
-super cache-friendly and the underlying OS will keep hot segments resident in
-memory for faster access. So if all system memory is assigned to CrateDB's
-HEAP, there won't be any left-over for `Lucene`_ which can cause serious
-performance impacts.
+``CRATE_HEAP_DUMP_PATH``: *file or directory path* (default: varies)
+  The directory to be used for heap dumps in the case of a crash.
 
-.. NOTE::
+  If a directory path is configured, new heap dumps will be written to that
+  directory every time CrateDB crashes.
 
-   A good recommendation is to assign 50% of the available memory to CrateDB's
-   HEAP while leaving the other 50% free. It will not get unused, `Lucene`_
-   will use whatever is left-over.
+  If a file path is configured (i.e. the last node of the path is non-existent
+  or exists and is a file) CrateDB will overwrite that file with a heap dump
+  every time it crashes.
 
-.. _Lucene: https://lucene.apache.org/
+  Default values are as follows:
 
-Never use more than 30.5 Gigabyte
----------------------------------
+  - For `basic installations`_, the process working directory
 
-In order to save on precious memory on x64 systems the Hotspot Java Virtual
-Machine uses a technique called `Compressed Ordinary object pointers (oops)
-<Compressed Oops>`_.
+  - If you have installed `a CrateDB Linux package`_, ``/var/lib/crate``
 
-These are pointers to java objects in the heap that only consume 32 Bit, which
-saves you lots of space. The actual native 64 bit pointers are computed by
-scaling the 32 bit value by a factor of 8 and add it to a base heap address.
-This allows the JVM to address about 32 GB of heap.
+  - When running `CrateDB on Docker`_, ``/data/data``
 
-If you configure your heap to more than 32 GB `Compressed Oops`_ cannot be used
-anymore. In effect, there will be much less space available in the heap as
-object pointers now consume twice as much.
+  .. CAUTION::
 
-This boundary should be considered an upper bound for the heap size of any JVM
-application.
+      Make sure that there is enough disk space available for heap dumps.
 
-.. NOTE::
-
-   In order to ensure that `Compressed Oops`_ are used no matter what JVM
-   CrateDB runs on, configuring the heap to a value less than or equal to *30.5
-   GB* (``30500m``) is suggested, as some JVMs only support `Compressed Oops`_
-   up to that value.
-
-.. _`Compressed Oops`: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops
-
-Running CrateDB on machines with huge RAM
------------------------------------------
-
-If hardware with much more RAM is available, it is suggested to run more than
-one CrateDB instance on that machine with each one having a heap size of around
-30.5 GB (``30500m``). But still leave half of the available RAM to `Lucene`_.
-
-In this case consider adding: ``cluster.routing.allocation.same_shard.host:
-true`` to your config. This will prevent allocating primary and replica of the
-same shard on the same machine even if more than one instances running on it.
-
-``CRATE_GC_*``
-==============
-
-There are various environment variables to control garbage collection logging
-for CrateDB.
-
-See :ref:`conf-logging-gc`.
-
-``CRATE_HEAP_DUMP_PATH``
-========================
-
-CrateDB will create a heap dump in case of a crash caused by an out of memory
-error. It is necessary to make sure that there is enough disk space available
-so that this heap dump could be created. The location of this heap dump can be
-set via the ``CRATE_HEAP_DUMP_PATH`` environment variable.
-
-:CRATE_HEAP_DUMP_PATH:
-  | Path to a directory or file where the heap dump will be created. If a
-    directory is specified, each time a heap dump is generated a new file will be
-    created. If a path to a file is specified it will overwrite that each time.
-  | *Default for .tar.gz:* The working directory
-  | *Default for .rpm:*  /var/lib/crate
-  | *Default for .deb:* /var/lib/crate
-  | *Default for Docker:* /data/data
+.. _basic installations: https://crate.io/docs/crate/getting-started/en/latest/install-run/basic.html
+.. _a CrateDB Linux package: https://crate.io/docs/crate/getting-started/en/latest/install-run/special/linux.html
+.. _CrateDB on Docker: https://crate.io/docs/crate/getting-started/en/latest/install-run/special/docker.html
+.. _Java options: http://docs.oracle.com/javase/7/docs/technotes/tools/windows/java.html#CBBIJCHG
+.. _environment variables: https://en.wikipedia.org/wiki/Environment_variable
+.. _expanded tarball: https://crate.io/docs/crate/getting-started/en/latest/install-run/basic.html

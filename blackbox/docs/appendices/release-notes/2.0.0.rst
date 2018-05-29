@@ -313,9 +313,10 @@ Heap Size
 
 If you have previously set or configured ``CRATE_MIN_MEM`` or ``CRATE_MAX_MEM``
 in your startup scripts or environment, you must remove both, and replace them
-with a single variable ``CRATE_HEAP_SIZE``. The :ref:`crate-heap-size` variable
-sets both the minimum and maximum memory to allocate, and should be set to
-whatever your previous ``CRATE_MAX_MEM`` was set to.
+with a single variable ``CRATE_HEAP_SIZE``. The :ref:`CRATE_HEAP_SIZE
+<conf-env-heap-size>` variable sets both the minimum and maximum memory to
+allocate, and should be set to whatever your previous ``CRATE_MAX_MEM`` was set
+to.
 
 .. _enterprise edition: https://crate.io/enterprise-edition/
 

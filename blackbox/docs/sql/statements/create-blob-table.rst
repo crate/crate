@@ -46,5 +46,5 @@ Specifies a custom path for storing blob data of a blob table.
 
   The path can be either absolute or relative and must be
   creatable/writable by the user CrateDB is running as. A relative path
-  value is relative to :ref:`env-crate-home`. This path take precedence
-  over any global configured value.
+  value is relative to :ref:`CRATE_HOME <conf-env-crate-home>`. This path take
+  precedence over any global configured value.

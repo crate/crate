@@ -138,7 +138,7 @@ collection logging.
 
 :CRATE_GC_LOG_DIR:
   | Log file directory.
-  | *Default for .tar.gz:* :ref:`env-crate-home`/logs
+  | *Default for .tar.gz:* :ref:`CRATE_HOME <conf-env-crate-home>`/logs
   | *Default for .rpm:* /var/log/crate
   | *Default for .deb:* /var/log/crate
 

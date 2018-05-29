@@ -915,8 +915,9 @@ each of them, the breaker limit can be set.
   | *Default:*    ``5%``
   | *Runtime:*   ``yes``
 
-  The maximum memory that can be used from :ref:`crate-heap-size` for the
-  :ref:`sys.jobs_log <sys-logs>` table on each node.
+  The maximum memory that can be used from :ref:`CRATE_HEAP_SIZE
+  <conf-env-heap-size>` for the :ref:`sys.jobs_log <sys-logs>` table on each
+  node.
 
   When this memory limit is reached, the job log circuit breaker logs an error
   message and clears the :ref:`sys.jobs_log <sys-logs>` table completely.
@@ -927,8 +928,9 @@ each of them, the breaker limit can be set.
   | *Default:*    ``5%``
   | *Runtime:*   ``yes``
 
-  The maximum memory that can be used from :ref:`crate-heap-size` for the
-  :ref:`sys.operations_log <sys-logs>` table on each node.
+  The maximum memory that can be used from :ref:`CRATE_HEAP_SIZE
+  <conf-env-heap-size>` for the :ref:`sys.operations_log <sys-logs>` table on
+  each node.
 
   When this memory limit is reached, the operations log circuit breaker logs an
   error message and clears the :ref:`sys.operations_log <sys-logs>` table

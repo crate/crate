@@ -38,7 +38,7 @@ disk.
 The custom blob data path can be set either globally by config or while
 creating a blob table. The path can be either absolute or relative and must be
 creatable/writable by the user CrateDB is running as. A relative path value is
-relative to :ref:`env-crate-home`.
+relative to :ref:`CRATE_HOME <conf-env-crate-home>`.
 
 Blob data will be stored under this path with the following layout::
 
