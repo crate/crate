@@ -52,33 +52,29 @@ class CrateThrowableRestResponse extends RestResponse {
             this.content = BytesArray.EMPTY;
             this.contentType = BytesRestResponse.TEXT_CONTENT_TYPE;
         } else {
-            XContentBuilder builder = convert(channel, t);
+            XContentBuilder builder = convert(
+                channel.newErrorBuilder(), t, channel.request().paramAsBoolean("error_trace", false));
             this.content = builder.bytes();
             this.contentType = builder.contentType().mediaType();
         }
     }
 
-    private static XContentBuilder convert(RestChannel channel, Throwable t) throws IOException {
-        XContentBuilder builder = channel.newBuilder().startObject()
-            .startObject("error");
+    private static XContentBuilder convert(XContentBuilder builder, Throwable t, boolean includeErrorTrace) throws IOException {
+        int errorCode = t instanceof SQLActionException ? ((SQLActionException) t).errorCode() : 5000;
 
-        SQLActionException sqlActionException = null;
-        builder.field("message", userFriendlyMessage(t));
-        if (t instanceof SQLActionException) {
-            sqlActionException = (SQLActionException) t;
-            builder.field("code", sqlActionException.errorCode());
-        } else {
-            builder.field("code", 5000);
-        }
+        // @formatter:off
+        builder
+            .startObject()
+                .startObject("error")
+                    .field("message", userFriendlyMessage(t))
+                    .field("code", errorCode)
+                .endObject();
+        // @formatter:on
 
-        builder.endObject();
-
-        if (t != null && channel.request().paramAsBoolean("error_trace", false)
-            && sqlActionException != null) {
+        if (includeErrorTrace) {
             builder.field("error_trace", ExceptionsHelper.stackTrace(t));
         }
-        builder.endObject();
-        return builder;
+        return builder.endObject();
     }
 
     @Override
