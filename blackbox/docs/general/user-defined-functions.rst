@@ -12,7 +12,7 @@ User-Defined Functions
 .. NOTE::
 
    The :ref:`udf_lang_js` language is an experimental feature and is disabled
-   by default. You can enable the :ref:`conf_lang_js_enabled` via the
+   by default. You can enable the :ref:`conf-node-lang-js` via the
    configuration file.
 
 .. rubric:: Table of Contents
@@ -231,8 +231,8 @@ are are not available.
 .. NOTE::
 
    The :ref:`udf_lang_js` language is an experimental feature and is disabled
-   by default. You can enable the :ref:`conf_lang_js_enabled` via the
-   configuration file.
+   by default. You can enable the :ref:`conf-node-lang-js` via the configuration
+   file.
 
 Supported Types
 ...............

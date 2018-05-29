@@ -27,8 +27,8 @@ Breaking Changes
    added to the CrateDB SQL dialect: ``RETURNS``, ``CALLED``, ``REPLACE``,
    ``FUNCTION``, ``LANGUAGE``, ``INPUT``
 
- - The :ref:`conf_enterprise_license` setting is set to ``true`` by default.
-   This enables the CrateDB `Enterprise Edition`_.
+ - The :ref:`conf-node-enterprise-license` setting is set to ``true`` by
+   default. This enables the CrateDB `Enterprise Edition`_.
 
    Enabling this setting requires a valid enterprise license for production
    use.
