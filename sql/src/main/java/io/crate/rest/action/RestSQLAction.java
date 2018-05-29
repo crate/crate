@@ -24,7 +24,6 @@ package io.crate.rest.action;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLActionException;
@@ -252,15 +251,10 @@ public class RestSQLAction extends BaseRestHandler {
             session.parse(UNNAMED, context.stmt(), Collections.emptyList());
             Object[][] bulkArgs = context.bulkArgs();
             final RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[bulkArgs.length];
-            if (results.length == 0) {
-                session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
-                session.execute(UNNAMED, 0, new BaseResultReceiver());
-            } else {
-                for (int i = 0; i < bulkArgs.length; i++) {
-                    session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
-                    ResultReceiver resultReceiver = new RestBulkRowCountReceiver(results, i);
-                    session.execute(UNNAMED, 0, resultReceiver);
-                }
+            for (int i = 0; i < bulkArgs.length; i++) {
+                session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
+                ResultReceiver resultReceiver = new RestBulkRowCountReceiver(results, i);
+                session.execute(UNNAMED, 0, resultReceiver);
             }
             Session.DescribeResult describeResult = session.describe('P', UNNAMED);
             List<Field> outputColumns = describeResult.getFields();
