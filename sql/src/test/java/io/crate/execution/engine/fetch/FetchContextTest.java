@@ -23,14 +23,15 @@ package io.crate.execution.engine.fetch;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.core.collections.TreeMapBuilder;
+import io.crate.execution.dsl.phases.FetchPhase;
+import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.RelationName;
 import io.crate.planner.fetch.IndexBaseBuilder;
-import io.crate.execution.dsl.phases.FetchPhase;
+import io.crate.profile.ProfilingContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -65,7 +66,7 @@ public class FetchContextTest extends CrateDummyClusterServiceUnitTest {
                 HashMultimap.create(),
                 ImmutableList.of()),
             "dummy",
-            new SharedShardContexts(mock(IndicesService.class)),
+            new SharedShardContexts(mock(IndicesService.class), new ProfilingContext(false)),
             clusterService.state().getMetaData(),
             Collections.emptyList());
 
@@ -103,7 +104,7 @@ public class FetchContextTest extends CrateDummyClusterServiceUnitTest {
                 tableIndices,
                 ImmutableList.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
             "dummy",
-            new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS)),
+            new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS), new ProfilingContext(false)),
             metaData,
             ImmutableList.of(routing));
 

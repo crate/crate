@@ -23,7 +23,9 @@
 package io.crate.profile;
 
 import com.google.common.collect.ImmutableMap;
+import org.elasticsearch.search.profile.query.QueryProfiler;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -39,11 +41,14 @@ public class ProfilingContext {
     private final boolean enabled;
     private final ImmutableMap.Builder<String, Long> map;
     private final Function<String, TimeMeasurable> measureableFactory;
+    @Nullable
+    private final QueryProfiler queryProfiler;
 
     public ProfilingContext(boolean enabled) {
         this.enabled = enabled;
         this.map = ImmutableMap.builder();
         this.measureableFactory = enabled ? InternalTimeMeasurable::new : NoopTimeMeasurable::new;
+        this.queryProfiler = enabled ? new QueryProfiler() : null;
     }
 
     public boolean enabled() {
@@ -69,5 +74,10 @@ public class ProfilingContext {
 
     public TimeMeasurable createMeasurable(String name) {
         return measureableFactory.apply(name);
+    }
+
+    @Nullable
+    public QueryProfiler queryProfiler() {
+        return queryProfiler;
     }
 }

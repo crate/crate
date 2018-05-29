@@ -33,12 +33,16 @@ import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.TimeMeasurable;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.search.profile.ProfileResult;
+import org.elasticsearch.search.profile.query.QueryProfiler;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -80,7 +84,7 @@ public class JobExecutionContext implements CompletionListenable {
         private final List<ExecutionSubContext> subContexts = new ArrayList<>();
         private final Collection<String> participatingNodes;
 
-        private boolean enableProfiling = false;
+        private ProfilingContext profilingContext;
 
         Builder(UUID jobId, String coordinatorNode, Collection<String> participatingNodes, JobsLogs jobsLogs) {
             this.jobId = jobId;
@@ -89,8 +93,8 @@ public class JobExecutionContext implements CompletionListenable {
             this.jobsLogs = jobsLogs;
         }
 
-        public Builder enableProfiling(boolean enable) {
-            this.enableProfiling = enable;
+        public Builder profilingContext(ProfilingContext profilingContext) {
+            this.profilingContext = profilingContext;
             return this;
         }
 
@@ -107,7 +111,7 @@ public class JobExecutionContext implements CompletionListenable {
         }
 
         JobExecutionContext build() throws Exception {
-            return new JobExecutionContext(jobId, coordinatorNode, participatingNodes, jobsLogs, subContexts, enableProfiling);
+            return new JobExecutionContext(jobId, coordinatorNode, participatingNodes, jobsLogs, subContexts, profilingContext);
         }
     }
 
@@ -117,7 +121,7 @@ public class JobExecutionContext implements CompletionListenable {
                                 Collection<String> participatingNodes,
                                 JobsLogs jobsLogs,
                                 List<ExecutionSubContext> orderedContexts,
-                                boolean enableProfiling) throws Exception {
+                                ProfilingContext profilingContext) throws Exception {
         this.coordinatorNodeId = coordinatorNodeId;
         this.participatedNodes = participatingNodes;
         this.jobId = jobId;
@@ -125,7 +129,7 @@ public class JobExecutionContext implements CompletionListenable {
 
         int numContexts = orderedContexts.size();
 
-        profiler = new ProfilingContext(enableProfiling);
+        profiler = profilingContext;
         if (profiler.enabled()) {
             subContextTimers = new ConcurrentHashMap<>(numContexts);
             profilingFuture = new CompletableFuture<>();
@@ -282,7 +286,19 @@ public class JobExecutionContext implements CompletionListenable {
 
     @VisibleForTesting
     Map<String, Long> executionTimes() {
-        return ImmutableMap.copyOf(profiler.getAsMap());
+        return ImmutableMap.copyOf(this.profiler.getAsMap());
+    }
+
+    Map<String, Map<String, Long>> queryBreakdownTimes() {
+        if(profiler.queryProfiler() != null) {
+            MapBuilder<String, Map<String, Long>> queryTimesMap = MapBuilder.newMapBuilder();
+            List<ProfileResult> profileTree = profiler.queryProfiler().getTree();
+            if(profileTree != null) {
+                profileTree.forEach((ProfileResult result) -> queryTimesMap.put(result.getLuceneDescription(), result.getTimeBreakdown()));
+            }
+            return queryTimesMap.immutableMap();
+        }
+        return Collections.emptyMap();
     }
 
     @Override
@@ -309,6 +325,7 @@ public class JobExecutionContext implements CompletionListenable {
 
         /**
          * Remove subcontext and finish {@link JobExecutionContext}
+         *
          * @return true if removed subcontext was the last subcontext, otherwise false
          */
         private boolean removeAndFinishIfNeeded() {

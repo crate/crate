@@ -22,9 +22,12 @@
 
 package io.crate.execution.jobs;
 
+import io.crate.profile.ProfilingContext;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.search.profile.query.QueryProfiler;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,16 +37,21 @@ public class SharedShardContexts {
 
     private final IndicesService indicesService;
     private final Map<ShardId, SharedShardContext> allocatedShards = new HashMap<>();
+    @Nullable
+    private QueryProfiler profiler;
     private int readerId = 0;
 
-    public SharedShardContexts(IndicesService indicesService) {
+    public SharedShardContexts(IndicesService indicesService, ProfilingContext profilingContext) {
         this.indicesService = indicesService;
+        if (profilingContext.enabled()) {
+            profiler = profilingContext.queryProfiler();
+        }
     }
-
 
     public SharedShardContext createContext(ShardId shardId, int readerId) {
         assert !allocatedShards.containsKey(shardId) : "shardId shouldn't have been allocated yet";
-        SharedShardContext sharedShardContext = new SharedShardContext(indicesService, shardId, readerId);
+        SharedShardContext sharedShardContext =
+            new SharedShardContext(indicesService, shardId, readerId, profiler);
         allocatedShards.put(shardId, sharedShardContext);
         return sharedShardContext;
     }
@@ -51,7 +59,7 @@ public class SharedShardContexts {
     public SharedShardContext getOrCreateContext(ShardId shardId) {
         SharedShardContext sharedShardContext = allocatedShards.get(shardId);
         if (sharedShardContext == null) {
-            sharedShardContext = new SharedShardContext(indicesService, shardId, readerId);
+            sharedShardContext = new SharedShardContext(indicesService, shardId, readerId, profiler);
             allocatedShards.put(shardId, sharedShardContext);
             readerId++;
         }

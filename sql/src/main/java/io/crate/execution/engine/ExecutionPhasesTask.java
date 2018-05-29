@@ -43,6 +43,7 @@ import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobRequest;
 import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.profile.ProfilingContext;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.indices.IndicesService;
@@ -196,10 +197,12 @@ public class ExecutionPhasesTask {
         List<Tuple<ExecutionPhase, RowConsumer>> handlerPhaseAndReceiver = createHandlerPhaseAndReceivers(
             handlerPhases, handlerConsumers, initializationTracker);
 
+        ProfilingContext profilingContext = new ProfilingContext(enableProfiling);
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNodeId, operationByServer.keySet())
-            .enableProfiling(enableProfiling);
+            .profilingContext(profilingContext);
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService, profilingContext);
         List<CompletableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnHandler(
-            localNodeOperations, builder, handlerPhaseAndReceiver, new SharedShardContexts(indicesService));
+            localNodeOperations, builder, handlerPhaseAndReceiver, sharedShardContexts);
         JobExecutionContext localJobContext = jobContextService.createContext(builder);
 
         List<PageBucketReceiver> pageBucketReceivers = getHandlerBucketReceivers(localJobContext, handlerPhaseAndReceiver);

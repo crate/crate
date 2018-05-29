@@ -30,6 +30,7 @@ import io.crate.execution.engine.collect.MapSideDataCollectOperation;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.profile.ProfilingContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.IntegerType;
@@ -157,7 +158,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
     public void testEnablingProfilingGathersExecutionTimes() throws Throwable {
         JobExecutionContext.Builder builder =
             new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
-        builder.enableProfiling(true);
+        builder.profilingContext(new ProfilingContext(true));
 
         AbstractExecutionSubContextTest.TestingExecutionSubContext ctx1 = new AbstractExecutionSubContextTest.TestingExecutionSubContext(1);
         builder.addSubContext(ctx1);
