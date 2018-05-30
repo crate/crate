@@ -93,7 +93,8 @@ public class ShardReferenceResolver {
             new ShardPartitionIdentExpression(shardId));
         builder.put(SysShardsTableInfo.ReferenceIdents.PATH, new ShardPathExpression(indexShard));
         builder.put(SysShardsTableInfo.ReferenceIdents.BLOB_PATH, new LiteralNestableInput<>(null));
-        builder.put(SysShardsTableInfo.ReferenceIdents.MIN_LUCENE_VERSION,
+        builder.put(
+            SysShardsTableInfo.ReferenceIdents.MIN_LUCENE_VERSION,
             new ShardMinLuceneVersionExpression(indexShard));
         builder.put(SysShardsTableInfo.ReferenceIdents.RECOVERY, new ShardRecoveryExpression(indexShard));
         builder.put(SysShardsTableInfo.ReferenceIdents.NODE, new NodeNestableInput(clusterService.localNode()));
