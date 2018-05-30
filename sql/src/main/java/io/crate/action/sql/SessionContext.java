@@ -43,7 +43,7 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
 
     private String defaultSchema;
-    private boolean semiJoinsRewriteEnabled;
+    private boolean semiJoinsRewriteEnabled = false;
     private boolean hashJoinEnabled = true;
 
     /**
@@ -129,5 +129,11 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     @Override
     public void ensureStatementAuthorized(AnalyzedStatement statement) {
         statementAuthorizedValidator.ensureStatementAuthorized(statement);
+    }
+
+    public void resetToDefaults() {
+        resetSchema();
+        semiJoinsRewriteEnabled = false;
+        hashJoinEnabled = true;
     }
 }

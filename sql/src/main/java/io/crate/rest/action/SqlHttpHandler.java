@@ -27,6 +27,7 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.SessionContext;
 import io.crate.action.sql.parser.SQLRequestParseContext;
 import io.crate.action.sql.parser.SQLRequestParser;
 import io.crate.auth.AuthSettings;
@@ -110,7 +111,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
     protected void channelRead0(ChannelHandlerContext ctx, HttpPipelinedRequest msg) {
         FullHttpRequest request = (FullHttpRequest) msg.last();
         if (request.uri().startsWith("/_sql")) {
-            createNewSession(request);
+            ensureSession(request);
             Map<String, List<String>> parameters = new QueryStringDecoder(request.uri()).parameters();
             ByteBuf content = request.content();
             handleSQLRequest(content, paramContainFlag(parameters, "types"))
@@ -217,13 +218,28 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
         }
     }
 
-    private void createNewSession(FullHttpRequest request) {
-        session = sqlOperations.createSession(
-            request.headers().get(REQUEST_HEADER_SCHEMA),
-            userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION)),
-            optionsFromUserHeader(request.headers().get(REQUEST_HEADER_USER)),
-            DEFAULT_SOFT_LIMIT
-        );
+    private void ensureSession(FullHttpRequest request) {
+        String defaultSchema = request.headers().get(REQUEST_HEADER_SCHEMA);
+        User user = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
+        Set<Option> options = optionsFromUserHeader(request.headers().get(REQUEST_HEADER_USER));
+        if (session == null) {
+            session = sqlOperations.createSession(defaultSchema, user, options, DEFAULT_SOFT_LIMIT);
+        } else if (optionsChanged(user, options, session.sessionContext())) {
+            session.close();
+            session = sqlOperations.createSession(defaultSchema, user, options, DEFAULT_SOFT_LIMIT);
+        } else {
+            // We don't want to keep "set session" settings across requests yet to not mess with clients doing
+            // per request round-robin
+            SessionContext sessionContext = session.sessionContext();
+            sessionContext.resetToDefaults();
+            if (defaultSchema != null) {
+                sessionContext.setDefaultSchema(defaultSchema);
+            }
+        }
+    }
+
+    private static boolean optionsChanged(User user, Set<Option> options, SessionContext sessionContext) {
+        return !sessionContext.user().equals(user) || !sessionContext.options().equals(options);
     }
 
     private CompletableFuture<XContentBuilder> executeSimpleRequest(Session session,
