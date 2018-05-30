@@ -21,10 +21,7 @@
 
 package io.crate.action.sql;
 
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.rest.RestStatus;
-
-import java.util.List;
 
 /**
  * This exception must be the only one which is thrown by our <code>TransportSQLAction</code>,
@@ -36,16 +33,15 @@ import java.util.List;
  * dependencies of nested exceptions, so a client doesn't need to know about all classes
  * related to these nested exceptions.
  */
-public class SQLActionException extends ElasticsearchException {
-
-    private static final String ERROR_CODE_KEY = "cr.ec";
+public class SQLActionException extends RuntimeException {
 
     private final RestStatus status;
+    private final int errorCode;
 
     public SQLActionException(String message, int errorCode, RestStatus status) {
         super(message);
         this.status = status;
-        addHeader(ERROR_CODE_KEY, Integer.toString(errorCode));
+        this.errorCode = errorCode;
     }
 
     /**
@@ -75,12 +71,9 @@ public class SQLActionException extends ElasticsearchException {
      * Return the error code given defined on construction
      */
     public int errorCode() {
-        List<String> errorCodeHeader = getHeader(ERROR_CODE_KEY);
-        assert errorCodeHeader != null : "errorCodeHeader must not be null";
-        return Integer.parseInt(errorCodeHeader.get(0));
+        return errorCode;
     }
 
-    @Override
     public String getDetailedMessage() {
         return status + " " + errorCode() + " " + super.getMessage();
     }

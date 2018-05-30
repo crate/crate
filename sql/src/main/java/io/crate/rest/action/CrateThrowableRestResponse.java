@@ -22,7 +22,6 @@
 package io.crate.rest.action;
 
 import io.crate.action.sql.SQLActionException;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -44,10 +43,8 @@ class CrateThrowableRestResponse extends RestResponse {
     private final BytesReference content;
     private final String contentType;
 
-    CrateThrowableRestResponse(RestChannel channel, Throwable t) throws IOException {
-        status = (t instanceof ElasticsearchException) ?
-            ((ElasticsearchException) t).status() :
-            RestStatus.INTERNAL_SERVER_ERROR;
+    CrateThrowableRestResponse(RestChannel channel, SQLActionException t) throws IOException {
+        status = t.status();
         if (channel.request().method() == RestRequest.Method.HEAD) {
             this.content = BytesArray.EMPTY;
             this.contentType = BytesRestResponse.TEXT_CONTENT_TYPE;
