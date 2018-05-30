@@ -22,38 +22,39 @@
 
 package io.crate.execution.engine.profile;
 
+import io.crate.profile.ProfilingResult;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 
 public class NodeCollectProfileResponse extends TransportResponse {
 
-    private Map<String, Long> durationByContextIdent = Collections.emptyMap();
+    private ProfilingResult nodeProfilingResult = null;
 
-    NodeCollectProfileResponse(Map<String, Long> durationByContextIdent) {
-        this.durationByContextIdent = durationByContextIdent;
+    NodeCollectProfileResponse(ProfilingResult nodeProfilingResult) {
+        this.nodeProfilingResult = nodeProfilingResult;
     }
 
     NodeCollectProfileResponse() {
     }
 
-    Map<String, Long> durationByContextIdent() {
-        return durationByContextIdent;
+    public ProfilingResult nodeProfilingResult() {
+        return nodeProfilingResult;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        durationByContextIdent = in.readMap(StreamInput::readString, StreamInput::readVLong);
+        // TODO: read the profiling result
+        //        durationByContextIdent = in.readMap(StreamInput::readString, StreamInput::readVLong);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeMap(durationByContextIdent, StreamOutput::writeString, StreamOutput::writeVLong);
+        // TODO: write the profiling result
+//        out.writeMap(durationByContextIdent, StreamOutput::writeString, StreamOutput::writeVLong);
     }
 }

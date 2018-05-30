@@ -22,10 +22,12 @@
 
 package io.crate.execution.engine.profile;
 
+import io.crate.profile.ProfilingResult;
+
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public interface CollectProfileOperation {
 
-    CompletableFuture<Map<String, Long>> collect(String nodeId);
+    CompletableFuture<ProfilingResult> collect(String nodeId);
 }

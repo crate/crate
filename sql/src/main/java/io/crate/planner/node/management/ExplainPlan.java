@@ -25,19 +25,16 @@ package io.crate.planner.node.management;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.RowConsumerToResultReceiver;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.NodeOperationGrouper;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.engine.profile.TransportCollectProfileNodeAction;
 import io.crate.execution.engine.profile.TransportCollectProfileOperation;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.planner.operators.LogicalPlanner;
-import io.crate.profile.TimeMeasurable;
-import io.crate.profile.ProfilingContext;
-import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.data.RowConsumer;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
@@ -45,17 +42,24 @@ import io.crate.planner.PlanPrinter;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.ExplainLogicalPlan;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.statement.CopyStatementPlanner;
+import io.crate.profile.ProfilingContext;
+import io.crate.profile.ProfilingResult;
+import io.crate.profile.TimeMeasurable;
 import org.elasticsearch.common.collect.MapBuilder;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
@@ -144,8 +148,8 @@ public class ExplainPlan implements Plan {
         return (ignored, t) -> {
             context.stopAndAddMeasurable(timeMeasurable);
             if (t == null) {
-                OneRowActionListener<Map<String, Map<String, Long>>> actionListener =
-                    new OneRowActionListener<>(consumer, resp -> buildResponse(context.getAsMap(), resp));
+                OneRowActionListener<List<ProfilingResult>> actionListener =
+                    new OneRowActionListener<>(consumer, resp -> buildResponse(context.getResults(), resp));
                 collectTimingResults(jobId, executor, operationTree.nodeOperations())
                     .whenComplete(actionListener);
             } else {
@@ -160,37 +164,37 @@ public class ExplainPlan implements Plan {
         return new TransportCollectProfileOperation(nodeAction, jobId);
     }
 
-    private Row buildResponse(Map<String, Long> apeTimings, Map<String, Map<String, Long>> nodeTimings) {
+    private Row buildResponse(Collection<ProfilingResult> apeTimings, List<ProfilingResult> nodeResults) {
         MapBuilder<String, Object> mapBuilder = MapBuilder.newMapBuilder();
-        apeTimings.forEach(mapBuilder::put);
+//        apeTimings.forEach(mapBuilder::put);
 
         MapBuilder<String, Object> executionTimingsMap = MapBuilder.newMapBuilder();
-        nodeTimings.forEach(executionTimingsMap::put);
-        executionTimingsMap.put("Total", apeTimings.get(Phase.Execute.name()));
+//        nodeResults.forEach(executionTimingsMap::put);
+//        executionTimingsMap.put("Total", apeTimings.get(Phase.Execute.name()));
 
         mapBuilder.put(Phase.Execute.name(), executionTimingsMap.immutableMap());
         return new Row1(mapBuilder.immutableMap());
     }
 
-    private CompletableFuture<Map<String, Map<String, Long>>> collectTimingResults(UUID jobId,
-                                                                                   DependencyCarrier executor,
-                                                                                   Collection<NodeOperation> nodeOperations) {
+    private CompletableFuture<List<ProfilingResult>> collectTimingResults(UUID jobId,
+                                                                    DependencyCarrier executor,
+                                                                    Collection<NodeOperation> nodeOperations) {
         Set<String> nodeIds = NodeOperationGrouper.groupByServer(nodeOperations).keySet();
 
         if (nodeIds.size() > 0) {
-            CompletableFuture<Map<String, Map<String, Long>>> resultFuture = new CompletableFuture<>();
+            CompletableFuture<List<ProfilingResult>> resultFuture = new CompletableFuture<>();
             TransportCollectProfileOperation collectProfileOperation = getTransportCollectProfileOperation(executor, jobId);
 
-            ConcurrentHashMap<String, Map<String, Long>> mergedMap = new ConcurrentHashMap<>(nodeIds.size());
+            List<ProfilingResult> results = Collections.synchronizedList(new ArrayList<>(nodeIds.size()));
             AtomicInteger counter = new AtomicInteger(nodeIds.size());
 
             for (String nodeId : nodeIds) {
                 collectProfileOperation.collect(nodeId)
-                    .whenComplete((map, throwable) -> {
+                    .whenComplete((profilingResult, throwable) -> {
                         if (throwable == null) {
-                            mergedMap.put(nodeId, map);
+                            results.add(profilingResult);
                             if (counter.decrementAndGet() == 0) {
-                                resultFuture.complete(mergedMap);
+                                resultFuture.complete(results);
                             }
                         } else {
                             resultFuture.completeExceptionally(throwable);
@@ -204,7 +208,7 @@ public class ExplainPlan implements Plan {
                 .transportActionProvider()
                 .transportCollectProfileNodeAction()
                 .collectExecutionTimesAndFinishContext(jobId)
-                .thenApply(timings -> Collections.singletonMap(executor.localNodeId(), timings));
+                .thenApply(Collections::singletonList);
         }
     }
 
