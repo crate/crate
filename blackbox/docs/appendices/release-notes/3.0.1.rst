@@ -1,0 +1,70 @@
+.. _version_3.0.1:
+
+=============
+Version 3.0.1
+=============
+
+Released on 2018/05/30.
+
+.. NOTE::
+
+   If you are upgrading a cluster, you must be running CrateDB 2.0.4 or higher
+   before you upgrade to 3.0.1.
+
+   We recommend that you upgrade to the latest 2.3 release before moving to
+   3.0.1.
+
+   You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
+   version will require a `full restart upgrade`_.
+
+   When restarting, CrateDB will migrate indexes to a newer format. Depending
+   on the amount of data, this may delay node start-up time.
+
+   Please consult the :ref:`version_3.0.0_upgrade_notes` before upgrading.
+
+.. WARNING::
+
+    Tables that were created prior to upgrading to CrateDB 2.x will not
+    function with 3.0 and must be recreated before moving to 3.0.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` while running a
+    2.x release into a new table, or by `inserting the data into a new table`_.
+
+.. WARNING::
+
+   Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Changelog
+=========
+
+Fixes
+-----
+
+- Fixed an issue that caused the CrateDB process CPU calculation in the
+  Admin-UI to be false.
+
+- Fixed the default log file name to ``crate.log`` if no cluster name was
+  explicitly specified in the settings.
+
+- Fixed an issue that caused a ``ClassCastException`` to be thrown when
+  querying the ``sys.health`` table on a cluster that has ``blob`` tables.
+
+- Fixed support for views with aliased literals in select list / groupBy /
+  orderBy.
+
+- Fixed a bug affecting the Postgres Wire Protocol's Simple Query mode and
+  queries which contained strings with escaped single quotes and semicolons,
+  e.g. ``'Hello ''Joe'';'``.
+
+- Fixed an issue in the Postgres Wire Protocol's Simple Query mode which would
+  send an empty statement if the query string contained trailing whitespace.

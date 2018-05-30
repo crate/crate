@@ -21,21 +21,3 @@ Changes
 Fixes
 =====
 
-- Fixed an issue that caused the CrateDB process CPU calculation in the
-  Admin-UI to be false.
-
-- Fixed the default log file name to ``crate.log`` if no cluster name was
-  explicitly specified in the settings.
-
-- Fixed an issue that caused a ``ClassCastException`` to be thrown when querying
-  the ``sys.health`` table on a cluster that has ``blob`` tables.
-
-- Fixed support for views with aliased literals in select list / groupBy /
-  orderBy.
-
-- Fixed a bug affecting the Postgres Wire Protocol's Simple Query mode and
-  queries which contained strings with escaped single quotes and semicolons,
-  e.g. `'Hello ''Joe'';'`.
-
-- Fixed an issue in the Postgres Wire Protocol's Simple Query mode which would
-  send an empty statement if the query string contained trailing whitespace.
