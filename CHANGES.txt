@@ -25,5 +25,8 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could cause a cluster check warning, telling the user to
+  upgrade tables which do not require upgrades.
+
 - Fixed an issue that could cause ``HTTP`` requests using empty ``bulk_args``
   to fail.

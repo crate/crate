@@ -71,7 +71,8 @@ public class BlobShardReferenceResolver {
             new LiteralNestableInput<>(false));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PATH, new ShardPathExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.BLOB_PATH, new BlobShardBlobPathExpression(blobShard));
-        implementations.put(SysShardsTableInfo.ReferenceIdents.MIN_LUCENE_VERSION,
+        implementations.put(
+            SysShardsTableInfo.ReferenceIdents.MIN_LUCENE_VERSION,
             new ShardMinLuceneVersionExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.RECOVERY, new ShardRecoveryExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.NODE, new NodeNestableInput(localNode));
