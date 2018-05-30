@@ -45,7 +45,7 @@ public class Variance implements Streamable {
         count++;
     }
 
-    public synchronized double result() {
+    public double result() {
         if (count == 0) {
             return Double.NaN;
         }
