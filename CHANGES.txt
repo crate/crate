@@ -21,3 +21,5 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could cause ``HTTP`` requests using empty ``bulk_args``
+  to fail.

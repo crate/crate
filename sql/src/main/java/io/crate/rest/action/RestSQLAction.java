@@ -133,7 +133,7 @@ public class RestSQLAction extends BaseRestHandler {
         if (args != null && args.length > 0 && bulkArgs != null && bulkArgs.length > 0) {
             return channel -> sendBadRequest(channel, "request body contains args and bulk_args. It's forbidden to provide both");
         }
-        if (bulkArgs != null && bulkArgs.length > 0) {
+        if (args == null && bulkArgs != null) {
             return executeBulkRequest(context, request);
         } else {
             return executeSimpleRequest(context, request);
@@ -256,11 +256,8 @@ public class RestSQLAction extends BaseRestHandler {
                 ResultReceiver resultReceiver = new RestBulkRowCountReceiver(results, i);
                 session.execute(UNNAMED, 0, resultReceiver);
             }
-            Session.DescribeResult describeResult = session.describe('P', UNNAMED);
-            List<Field> outputColumns = describeResult.getFields();
-            if (outputColumns != null) {
-                throw new UnsupportedOperationException(
-                    "Bulk operations for statements that return result sets is not supported");
+            if (results.length > 0) {
+                ensureNoResultSet(session);
             }
             return channel -> {
                 session.sync().whenComplete((Object result, Throwable t) -> {
@@ -285,6 +282,13 @@ public class RestSQLAction extends BaseRestHandler {
                 errorResponse(channel, t, sessionContext);
                 session.close();
             };
+        }
+    }
+
+    private static void ensureNoResultSet(Session session) {
+        if (session.describe('P', UNNAMED).getFields() != null) {
+            throw new UnsupportedOperationException(
+                "Bulk operations for statements that return result sets is not supported");
         }
     }
 
