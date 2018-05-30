@@ -69,6 +69,15 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    public void testEmptyBulkArgsWithStatementContainingParameters() throws IOException {
+        execute("create table doc.t (id int primary key) with (number_of_replicas = 0)");
+        CloseableHttpResponse response = post("{\"stmt\": \"delete from t where id = ?\", \"bulk_args\": []}");
+        assertThat(response.getStatusLine().getStatusCode(), is(200));
+        String bodyAsString = EntityUtils.toString(response.getEntity());
+        assertThat(bodyAsString, startsWith("{\"cols\":[],\"duration\":"));
+    }
+
+    @Test
     public void testSetCustomSchema() throws IOException {
         execute("create table custom.foo (id string)");
         Header[] headers = new Header[]{
