@@ -25,6 +25,7 @@ package io.crate.execution.engine.distribution;
 import io.crate.Streamer;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
+import io.crate.data.Row;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.FailingBatchIterator;
@@ -46,7 +47,7 @@ import static org.hamcrest.Matchers.is;
 @SuppressWarnings("ConstantConditions")
 public class SingleBucketBuilderTest extends CrateUnitTest {
 
-    private SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(new Streamer[]{DataTypes.LONG.streamer()});
+    private SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()});
     private ExecutorService executor;
 
     @Before
@@ -73,8 +74,8 @@ public class SingleBucketBuilderTest extends CrateUnitTest {
 
     @Test
     public void testSingleBucketBuilderWithBatchedSource() throws Exception {
-        BatchIterator iterator = TestingBatchIterators.range(0, 4);
-        bucketBuilder.accept(new BatchSimulatingIterator(iterator, 2, 2, executor), null);
+        BatchIterator<Row> iterator = TestingBatchIterators.range(0, 4);
+        bucketBuilder.accept(new BatchSimulatingIterator<>(iterator, 2, 2, executor), null);
         Bucket rows = bucketBuilder.completionFuture().get(10, TimeUnit.SECONDS);
         assertThat(TestingHelpers.printedTable(rows),
             is("0\n" +
@@ -85,7 +86,7 @@ public class SingleBucketBuilderTest extends CrateUnitTest {
 
     @Test
     public void testConsumeFailingBatchIterator() throws Exception {
-        FailingBatchIterator iterator = new FailingBatchIterator(TestingBatchIterators.range(0, 4), 2);
+        FailingBatchIterator<Row> iterator = new FailingBatchIterator<>(TestingBatchIterators.range(0, 4), 2);
         bucketBuilder.accept(iterator, null);
 
         try {

@@ -52,7 +52,7 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     }
 
     @Override
-    public Streamer<?> streamer() {
+    public Streamer<Byte> streamer() {
         return this;
     }
 
@@ -90,10 +90,10 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Object v) throws IOException {
+    public void writeValueTo(StreamOutput out, Byte v) throws IOException {
         out.writeBoolean(v == null);
         if (v != null) {
-            out.writeByte(((Number) v).byteValue());
+            out.writeByte(v);
         }
     }
 

@@ -26,9 +26,9 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
@@ -139,7 +139,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         }
 
         @Override
-        public Streamer<?> streamer() {
+        public Streamer<GeometricMeanState> streamer() {
             return this;
         }
 
@@ -166,9 +166,8 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         }
 
         @Override
-        public void writeValueTo(StreamOutput out, Object v) throws IOException {
-            GeometricMeanState state = (GeometricMeanState) v;
-            state.writeTo(out);
+        public void writeValueTo(StreamOutput out, GeometricMeanState v) throws IOException {
+            v.writeTo(out);
         }
     }
 

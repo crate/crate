@@ -43,8 +43,8 @@ class TDigestStateType extends DataType<TDigestState> implements Streamer<TDiges
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Object v) throws IOException {
-        TDigestState.write((TDigestState) v, out);
+    public void writeValueTo(StreamOutput out, TDigestState v) throws IOException {
+        TDigestState.write(v, out);
     }
 
     @Override
@@ -63,7 +63,7 @@ class TDigestStateType extends DataType<TDigestState> implements Streamer<TDiges
     }
 
     @Override
-    public Streamer<?> streamer() {
+    public Streamer<TDigestState> streamer() {
         return this;
     }
 

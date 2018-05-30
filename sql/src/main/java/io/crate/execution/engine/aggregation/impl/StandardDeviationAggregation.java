@@ -25,10 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.statistics.StandardDeviation;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
@@ -105,7 +105,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
 
         @Override
-        public Streamer<?> streamer() {
+        public Streamer<StdDevState> streamer() {
             return this;
         }
 
@@ -132,9 +132,8 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
 
         @Override
-        public void writeValueTo(StreamOutput out, Object v) throws IOException {
-            StdDevState state = (StdDevState) v;
-            state.stdDev.writeTo(out);
+        public void writeValueTo(StreamOutput out, StdDevState v) throws IOException {
+            v.stdDev.writeTo(out);
         }
     }
 

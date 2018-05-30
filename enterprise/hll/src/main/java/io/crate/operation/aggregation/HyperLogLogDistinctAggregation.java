@@ -239,7 +239,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
 
         @Override
-        public Streamer<?> streamer() {
+        public Streamer<HllState> streamer() {
             return this;
         }
 
@@ -263,9 +263,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
 
         @Override
-        public void writeValueTo(StreamOutput out, Object v) throws IOException {
-            HyperLogLogDistinctAggregation.HllState hllState = (HyperLogLogDistinctAggregation.HllState) v;
-            hllState.writeTo(out);
+        public void writeValueTo(StreamOutput out, HllState v) throws IOException {
+            v.writeTo(out);
         }
     }
 

@@ -89,10 +89,10 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Object v) throws IOException {
+    public void writeValueTo(StreamOutput out, Integer v) throws IOException {
         out.writeBoolean(v == null);
         if (v != null) {
-            out.writeInt(((Number) v).intValue());
+            out.writeInt(v);
         }
     }
 
