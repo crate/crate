@@ -52,7 +52,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     }
 
     @Override
-    public Streamer<?> streamer() {
+    public Streamer<Short> streamer() {
         return this;
     }
 
@@ -88,10 +88,10 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Object v) throws IOException {
+    public void writeValueTo(StreamOutput out, Short v) throws IOException {
         out.writeBoolean(v == null);
         if (v != null) {
-            out.writeShort(((Number) v).shortValue());
+            out.writeShort(v);
         }
     }
 

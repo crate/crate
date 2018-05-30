@@ -52,7 +52,7 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
     }
 
     @Override
-    public Streamer<?> streamer() {
+    public Streamer<Object> streamer() {
         return this;
     }
 

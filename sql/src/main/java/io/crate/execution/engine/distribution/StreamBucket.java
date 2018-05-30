@@ -67,7 +67,8 @@ public class StreamBucket implements Bucket, Streamable {
 
             size++;
             for (int i = 0; i < row.numColumns(); i++) {
-                streamers[i].writeValueTo(out, row.get(i));
+                //noinspection unchecked
+                ((Streamer) streamers[i]).writeValueTo(out, row.get(i));
             }
             if (ramAccountingContext != null) {
                 ramAccountingContext.addBytes(out.size() - prevOutSize);

@@ -25,9 +25,9 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
@@ -119,7 +119,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         }
 
         @Override
-        public Streamer<?> streamer() {
+        public Streamer<AverageState> streamer() {
             return this;
         }
 
@@ -143,10 +143,9 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         }
 
         @Override
-        public void writeValueTo(StreamOutput out, Object v) throws IOException {
-            AverageState averageState = (AverageState) v;
-            out.writeDouble(averageState.sum);
-            out.writeVLong(averageState.count);
+        public void writeValueTo(StreamOutput out, AverageState v) throws IOException {
+            out.writeDouble(v.sum);
+            out.writeVLong(v.count);
         }
 
         @Override

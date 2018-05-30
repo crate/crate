@@ -334,8 +334,8 @@ public final class DataTypes {
         }
     }
 
-    public static Streamer<?>[] getStreamers(Collection<? extends DataType> dataTypes) {
-        Streamer<?>[] streamer = new Streamer[dataTypes.size()];
+    public static Streamer[] getStreamers(Collection<? extends DataType> dataTypes) {
+        Streamer[] streamer = new Streamer[dataTypes.size()];
         int idx = 0;
         for (DataType dataType : dataTypes) {
             streamer[idx] = dataType.streamer();

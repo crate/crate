@@ -52,7 +52,7 @@ public class NotSupportedType extends DataType<Void> {
     }
 
     @Override
-    public Streamer<?> streamer() {
+    public Streamer<Void> streamer() {
         return null;
     }
 

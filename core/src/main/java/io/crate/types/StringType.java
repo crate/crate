@@ -110,7 +110,7 @@ public class StringType extends DataType<BytesRef> implements Streamer<BytesRef>
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Object v) throws IOException {
+    public void writeValueTo(StreamOutput out, BytesRef v) throws IOException {
         // .writeBytesRef isn't used here because it will convert null values to empty bytesRefs
         // to distinguish between null and an empty bytesRef
         // 1 is always added to the length so that
@@ -120,9 +120,8 @@ public class StringType extends DataType<BytesRef> implements Streamer<BytesRef>
         if (v == null) {
             out.writeVInt(0);
         } else {
-            BytesRef bytesRef = (BytesRef) v;
-            out.writeVInt(bytesRef.length + 1);
-            out.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
+            out.writeVInt(v.length + 1);
+            out.writeBytes(v.bytes, v.offset, v.length);
         }
     }
 }

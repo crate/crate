@@ -25,10 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.statistics.Variance;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
@@ -106,7 +106,7 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
         }
 
         @Override
-        public Streamer<?> streamer() {
+        public Streamer<VarianceState> streamer() {
             return this;
         }
 
@@ -128,9 +128,8 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
         }
 
         @Override
-        public void writeValueTo(StreamOutput out, Object v) throws IOException {
-            VarianceState state = (VarianceState) v;
-            state.variance.writeTo(out);
+        public void writeValueTo(StreamOutput out, VarianceState v) throws IOException {
+            v.variance.writeTo(out);
         }
 
         @Override

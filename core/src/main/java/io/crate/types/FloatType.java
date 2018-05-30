@@ -52,7 +52,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     }
 
     @Override
-    public Streamer<?> streamer() {
+    public Streamer<Float> streamer() {
         return this;
     }
 
@@ -88,10 +88,10 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Object v) throws IOException {
+    public void writeValueTo(StreamOutput out, Float v) throws IOException {
         out.writeBoolean(v == null);
         if (v != null) {
-            out.writeFloat(((Number) v).floatValue());
+            out.writeFloat(v);
         }
     }
 

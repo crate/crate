@@ -49,7 +49,7 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     }
 
     @Override
-    public Streamer<?> streamer() {
+    public Streamer<Long> streamer() {
         return this;
     }
 
@@ -142,10 +142,10 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Object v) throws IOException {
+    public void writeValueTo(StreamOutput out, Long v) throws IOException {
         out.writeBoolean(v == null);
         if (v != null) {
-            out.writeLong(((Number) v).longValue());
+            out.writeLong(v);
         }
     }
 

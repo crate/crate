@@ -52,7 +52,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     }
 
     @Override
-    public Streamer<?> streamer() {
+    public Streamer<Double> streamer() {
         return this;
     }
 
@@ -84,10 +84,10 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Object v) throws IOException {
+    public void writeValueTo(StreamOutput out, Double v) throws IOException {
         out.writeBoolean(v == null);
         if (v != null) {
-            out.writeDouble(((Number) v).doubleValue());
+            out.writeDouble(v);
         }
     }
 

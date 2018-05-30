@@ -63,7 +63,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     }
 
     @Override
-    public Streamer<?> streamer() {
+    public Streamer<Boolean> streamer() {
         return this;
     }
 
@@ -112,8 +112,8 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Object v) throws IOException {
-        out.writeOptionalBoolean((Boolean) v);
+    public void writeValueTo(StreamOutput out, Boolean v) throws IOException {
+        out.writeOptionalBoolean(v);
     }
 
     @Override

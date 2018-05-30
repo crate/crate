@@ -22,15 +22,15 @@
 package io.crate.types;
 
 import com.google.common.base.Preconditions;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.exception.InvalidShapeException;
-import org.locationtech.spatial4j.io.WKTReader;
-import org.locationtech.spatial4j.shape.Point;
 import io.crate.Streamer;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.exception.InvalidShapeException;
+import org.locationtech.spatial4j.io.WKTReader;
+import org.locationtech.spatial4j.shape.Point;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -63,7 +63,7 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
     }
 
     @Override
-    public Streamer<?> streamer() {
+    public Streamer<Double[]> streamer() {
         return this;
     }
 
@@ -158,12 +158,11 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Object v) throws IOException {
-        if (v == null) {
+    public void writeValueTo(StreamOutput out, Double[] point) throws IOException {
+        if (point == null) {
             out.writeBoolean(false);
         } else {
             out.writeBoolean(true);
-            Double[] point = (Double[]) v;
             out.writeDouble(point[0]);
             out.writeDouble(point[1]);
         }

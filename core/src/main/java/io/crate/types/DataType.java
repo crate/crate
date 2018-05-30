@@ -76,7 +76,7 @@ public abstract class DataType<T> implements Comparable, Streamable {
 
     public abstract String getName();
 
-    public abstract Streamer<?> streamer();
+    public abstract Streamer<T> streamer();
 
     public abstract T value(Object value) throws IllegalArgumentException, ClassCastException;
 

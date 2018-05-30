@@ -57,7 +57,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    public Streamer<?> streamer() {
+    public Streamer<Map<String, Object>> streamer() {
         return this;
     }
 
@@ -95,7 +95,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Object v) throws IOException {
+    public void writeValueTo(StreamOutput out, Map<String, Object> v) throws IOException {
         out.writeGenericValue(v);
     }
 }

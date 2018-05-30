@@ -221,7 +221,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         }
 
         @Override
-        public Streamer<?> streamer() {
+        public Streamer<LongState> streamer() {
             return this;
         }
 
@@ -245,9 +245,8 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         }
 
         @Override
-        public void writeValueTo(StreamOutput out, Object v) throws IOException {
-            LongState longState = (LongState) v;
-            out.writeVLong(longState.value);
+        public void writeValueTo(StreamOutput out, LongState v) throws IOException {
+            out.writeVLong(v.value);
         }
 
         @Override

@@ -30,5 +30,5 @@ public interface Streamer<T> {
 
     T readValueFrom(StreamInput in) throws IOException;
 
-    void writeValueTo(StreamOutput out, Object v) throws IOException;
+    void writeValueTo(StreamOutput out, T v) throws IOException;
 }

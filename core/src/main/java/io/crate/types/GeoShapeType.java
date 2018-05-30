@@ -21,14 +21,14 @@
 
 package io.crate.types;
 
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.shape.Shape;
 import io.crate.Streamer;
 import io.crate.geo.GeoJSONUtils;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.Shape;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -58,7 +58,7 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     @Override
-    public Streamer<?> streamer() {
+    public Streamer<Map<String, Object>> streamer() {
         return this;
     }
 
@@ -110,7 +110,7 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Object v) throws IOException {
-        out.writeMap((Map<String, Object>) v);
+    public void writeValueTo(StreamOutput out, Map<String, Object> v) throws IOException {
+        out.writeMap(v);
     }
 }

@@ -60,7 +60,7 @@ public class ArrayTypeTest extends CrateUnitTest {
     public void testValueSerialization() throws Exception {
         ArrayType arrayType = new ArrayType(StringType.INSTANCE);
 
-        Streamer<?> streamer = arrayType.streamer();
+        Streamer streamer = arrayType.streamer();
 
         BytesRef[] serArray = new BytesRef[]{
             new BytesRef("foo"),
@@ -80,7 +80,7 @@ public class ArrayTypeTest extends CrateUnitTest {
     public void testNullValues() throws Exception {
         ArrayType arrayType = new ArrayType(StringType.INSTANCE);
 
-        Streamer<?> streamer = arrayType.streamer();
+        Streamer streamer = arrayType.streamer();
 
         BytesStreamOutput out = new BytesStreamOutput();
 
