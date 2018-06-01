@@ -58,8 +58,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
@@ -166,11 +164,11 @@ public class ExplainPlan implements Plan {
 
     private Row buildResponse(Collection<ProfilingResult> apeTimings, List<ProfilingResult> nodeResults) {
         MapBuilder<String, Object> mapBuilder = MapBuilder.newMapBuilder();
-//        apeTimings.forEach(mapBuilder::put);
+        // apeTimings.forEach(mapBuilder::put);
 
         MapBuilder<String, Object> executionTimingsMap = MapBuilder.newMapBuilder();
-//        nodeResults.forEach(executionTimingsMap::put);
-//        executionTimingsMap.put("Total", apeTimings.get(Phase.Execute.name()));
+        // nodeResults.forEach(executionTimingsMap::put);
+        // executionTimingsMap.put("Total", apeTimings.get(Phase.Execute.name()));
 
         mapBuilder.put(Phase.Execute.name(), executionTimingsMap.immutableMap());
         return new Row1(mapBuilder.immutableMap());

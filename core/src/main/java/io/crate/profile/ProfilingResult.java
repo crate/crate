@@ -136,7 +136,7 @@ public class ProfilingResult {
         metadata.put("type", profileResult.getQueryName());
         Map<String, Long> timeBreakdownNanos = profileResult.getTimeBreakdown();
         Map<String, Long> timeBreakdownMillis = new HashMap<>(timeBreakdownNanos.size());
-        timeBreakdownNanos.forEach((k, v) -> timeBreakdownMillis.put(k, v/1_000_000L));
+        timeBreakdownNanos.forEach((k, v) -> timeBreakdownMillis.put(k, v / 1_000_000L));
         ProfilingResult convertedResult = new ProfilingResult(profileResult.getLuceneDescription(),
             timeBreakdownMillis, metadata, null);
 

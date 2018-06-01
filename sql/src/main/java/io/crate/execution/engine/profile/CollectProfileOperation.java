@@ -24,7 +24,6 @@ package io.crate.execution.engine.profile;
 
 import io.crate.profile.ProfilingResult;
 
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public interface CollectProfileOperation {
