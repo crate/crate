@@ -27,6 +27,7 @@ import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardPathExpression;
 import io.crate.expression.reference.sys.shard.ShardRecoveryStateExpression;
+import io.crate.expression.reference.sys.shard.ShardSizeExpression;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
@@ -63,6 +64,7 @@ import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -352,5 +354,12 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         };
 
         assertNull(shardRecoveryStateExpression.value());
+    }
+
+    @Test
+    public void testShardSizeExpressionWhenIndexShardHasBeenClosed() {
+        IndexShard mock = Mockito.mock(IndexShard.class);
+        ShardSizeExpression shardSizeExpression = new ShardSizeExpression(mock);
+        assertThat(shardSizeExpression.value(), is(0L));
     }
 }

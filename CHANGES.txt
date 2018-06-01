@@ -26,3 +26,6 @@ Fixes
 
 - Fixed an issue that could cause ``HTTP`` requests using empty ``bulk_args``
   to fail.
+
+- Fixed NullPointerException which could be thrown when deleting a table and
+  querying `size` from the `sys.shards` table.
