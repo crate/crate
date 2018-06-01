@@ -23,8 +23,8 @@
 package io.crate.execution.engine.collect;
 
 import com.google.common.collect.Lists;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
@@ -70,6 +70,7 @@ public class ShardCollectorProviderTest extends SQLTransportIntegrationTest {
         assertNoShardEntriesLeftInShardCollectSource();
     }
 
+    @Test
     public void testQuerySysShardsWhileDropTable() throws Exception {
         execute("create table t1 (x int)");
         execute("create table t2 (x int)");
