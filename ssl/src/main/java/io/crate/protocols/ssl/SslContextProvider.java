@@ -24,10 +24,11 @@ package io.crate.protocols.ssl;
 
 import io.crate.plugin.PipelineRegistry;
 import io.netty.handler.ssl.SslContext;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.lang.reflect.InvocationTargetException;
@@ -40,21 +41,23 @@ import java.lang.reflect.InvocationTargetException;
 @Singleton
 public class SslContextProvider implements Provider<SslContext> {
 
-    private static final Logger LOG = Logger.getLogger(SslContextProvider.class);
     private static final String SSL_CONTEXT_CLAZZ = "io.crate.protocols.ssl.SslConfiguration";
     private static final String SSL_CONTEXT_METHOD_NAME = "buildSslContext";
 
     private final Settings settings;
+    private final Logger logger;
     private SslContext sslContext;
 
     @Inject
     public SslContextProvider(Settings settings, PipelineRegistry pipelineRegistry) {
         this.settings = settings;
+        logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
+
         if (SslConfigSettings.isHttpsEnabled(settings)) {
             pipelineRegistry.registerSslContextProvider(this);
-            LOG.info("HTTP SSL support is enabled.");
+            logger.info("HTTP SSL support is enabled.");
         } else {
-            LOG.info("HTTP SSL support is disabled.");
+            logger.info("HTTP SSL support is disabled.");
         }
     }
 
