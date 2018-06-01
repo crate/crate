@@ -50,7 +50,6 @@ import io.crate.planner.statement.CopyStatementPlanner;
 import org.elasticsearch.common.collect.MapBuilder;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -154,7 +153,7 @@ public class ExplainPlan implements Plan {
         };
     }
 
-    private TransportCollectProfileOperation getTransportCollectProfileOperation(DependencyCarrier executor, UUID jobId) {
+    private TransportCollectProfileOperation getRemoteCollectOperation(DependencyCarrier executor, UUID jobId) {
         TransportCollectProfileNodeAction nodeAction = executor.transportActionProvider()
             .transportCollectProfileNodeAction();
         return new TransportCollectProfileOperation(nodeAction, jobId);
@@ -177,35 +176,46 @@ public class ExplainPlan implements Plan {
                                                                                    Collection<NodeOperation> nodeOperations) {
         Set<String> nodeIds = NodeOperationGrouper.groupByServer(nodeOperations).keySet();
 
-        if (nodeIds.size() > 0) {
-            CompletableFuture<Map<String, Map<String, Long>>> resultFuture = new CompletableFuture<>();
-            TransportCollectProfileOperation collectProfileOperation = getTransportCollectProfileOperation(executor, jobId);
+        CompletableFuture<Map<String, Map<String, Long>>> resultFuture = new CompletableFuture<>();
+        TransportCollectProfileOperation remoteCollectOperation = getRemoteCollectOperation(executor, jobId);
 
-            ConcurrentHashMap<String, Map<String, Long>> mergedMap = new ConcurrentHashMap<>(nodeIds.size());
-            AtomicInteger counter = new AtomicInteger(nodeIds.size());
+        ConcurrentHashMap<String, Map<String, Long>> timingsByNodeId = new ConcurrentHashMap<>(nodeIds.size());
+        boolean needsCollectLocal = !nodeIds.contains(executor.localNodeId());
 
-            for (String nodeId : nodeIds) {
-                collectProfileOperation.collect(nodeId)
-                    .whenComplete((map, throwable) -> {
-                        if (throwable == null) {
-                            mergedMap.put(nodeId, map);
-                            if (counter.decrementAndGet() == 0) {
-                                resultFuture.complete(mergedMap);
-                            }
-                        } else {
-                            resultFuture.completeExceptionally(throwable);
-                        }
-                    });
-            }
-            return resultFuture;
-        } else {
-            // Collect from local JobExecutionContext
-            return executor
+        AtomicInteger remainingCollectOps = new AtomicInteger(nodeIds.size());
+        if (needsCollectLocal) {
+            remainingCollectOps.incrementAndGet();
+        }
+
+        for (String nodeId : nodeIds) {
+            remoteCollectOperation.collect(nodeId)
+                .whenComplete(mergeResultsAndCompleteFuture(resultFuture, timingsByNodeId, remainingCollectOps, nodeId));
+        }
+
+        if (needsCollectLocal) {
+            executor
                 .transportActionProvider()
                 .transportCollectProfileNodeAction()
                 .collectExecutionTimesAndFinishContext(jobId)
-                .thenApply(timings -> Collections.singletonMap(executor.localNodeId(), timings));
+                .whenComplete(mergeResultsAndCompleteFuture(resultFuture, timingsByNodeId, remainingCollectOps, executor.localNodeId()));
         }
+        return resultFuture;
+    }
+
+    private static BiConsumer<Map<String, Long>, Throwable> mergeResultsAndCompleteFuture(CompletableFuture<Map<String, Map<String, Long>>> resultFuture,
+                                                                                          ConcurrentHashMap<String, Map<String, Long>> timingsByNodeId,
+                                                                                          AtomicInteger remainingOperations,
+                                                                                          String nodeId) {
+        return (map, throwable) -> {
+            if (throwable == null) {
+                timingsByNodeId.put(nodeId, map);
+                if (remainingOperations.decrementAndGet() == 0) {
+                    resultFuture.complete(timingsByNodeId);
+                }
+            } else {
+                resultFuture.completeExceptionally(throwable);
+            }
+        };
     }
 
     @VisibleForTesting
