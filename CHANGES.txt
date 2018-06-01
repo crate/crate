@@ -18,6 +18,8 @@ Breaking Changes
 Changes
 =======
 
+- Introduced the ``EXPLAIN ANALYZE`` statement for query profiling.
+
 - Added `typbasetype` column to the `pg_catalog.pg_type` table.
 
 - Added support for `SHOW TRANSACTION_ISOLATION` statement.
