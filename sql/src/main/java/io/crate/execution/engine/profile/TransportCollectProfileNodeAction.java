@@ -28,14 +28,13 @@ import io.crate.execution.jobs.JobExecutionContext;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.Transports;
+import io.crate.profile.ProfilingResult;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Collections;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -84,10 +83,10 @@ public class TransportCollectProfileNodeAction implements NodeAction<NodeCollect
     /**
      * @return a future that is completed with a map of unique subcontext names (id+name) and their execution times in ms
      */
-    public CompletableFuture<Map<String, Long>> collectExecutionTimesAndFinishContext(UUID jobId) {
+    public CompletableFuture<ProfilingResult> collectExecutionTimesAndFinishContext(UUID jobId) {
         JobExecutionContext context = jobContextService.getContextOrNull(jobId);
         if (context == null) {
-            return CompletableFuture.completedFuture(Collections.emptyMap());
+            return CompletableFuture.completedFuture(null);
         } else {
             return context.finishProfiling();
         }
@@ -95,7 +94,7 @@ public class TransportCollectProfileNodeAction implements NodeAction<NodeCollect
 
     public void execute(String nodeId,
                         NodeCollectProfileRequest request,
-                        FutureActionListener<NodeCollectProfileResponse, Map<String, Long>> listener) {
+                        FutureActionListener<NodeCollectProfileResponse, ProfilingResult> listener) {
         transports.sendRequest(TRANSPORT_ACTION, nodeId, request, listener,
             new ActionListenerResponseHandler<>(listener, NodeCollectProfileResponse::new));
     }

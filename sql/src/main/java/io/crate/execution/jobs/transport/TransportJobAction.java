@@ -31,6 +31,7 @@ import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.Transports;
+import io.crate.profile.ProfilingContext;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.common.inject.Inject;
@@ -78,10 +79,11 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
     @Override
     public CompletableFuture<JobResponse> nodeOperation(final JobRequest request) {
+        ProfilingContext profilingContext = new ProfilingContext(request.enableProfiling());
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService, profilingContext);
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(request.jobId(), request.coordinatorNodeId(), Collections.emptySet())
-            .enableProfiling(request.enableProfiling());
+            .profilingContext(profilingContext);
 
-        SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
         List<CompletableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnRemote(
             request.nodeOperations(), contextBuilder, sharedShardContexts);
 

@@ -23,21 +23,22 @@
 package io.crate.execution.engine.collect.collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.execution.jobs.transport.JobRequest;
-import io.crate.execution.jobs.transport.JobResponse;
-import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.execution.jobs.kill.KillJobsRequest;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.dsl.phases.NodeOperation;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.engine.collect.CrateCollector;
+import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
 import io.crate.execution.jobs.PageDownstreamContext;
-import io.crate.execution.dsl.phases.NodeOperation;
-import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.jobs.kill.KillJobsRequest;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.transport.JobRequest;
+import io.crate.execution.jobs.transport.JobResponse;
+import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.profile.ProfilingContext;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -159,7 +160,7 @@ public class RemoteCollector implements CrateCollector {
 
     private JobExecutionContext.Builder createPageDownstreamContext() {
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNode, Collections.emptySet())
-            .enableProfiling(enableProfiling);
+            .profilingContext(new ProfilingContext(enableProfiling));
 
         PassThroughPagingIterator<Integer, Row> pagingIterator;
         if (scrollRequired) {

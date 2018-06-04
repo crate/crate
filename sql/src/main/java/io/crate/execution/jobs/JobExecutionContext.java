@@ -24,16 +24,17 @@ package io.crate.execution.jobs;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.profile.ProfilingContext;
+import io.crate.profile.ProfilingResult;
 import io.crate.profile.TimeMeasurable;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.search.profile.ProfileResult;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -41,7 +42,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -70,7 +70,7 @@ public class JobExecutionContext implements CompletionListenable {
     @Nullable
     private final ConcurrentHashMap<Integer, TimeMeasurable> subContextTimers;
     @Nullable
-    private final CompletableFuture<Map<String, Long>> profilingFuture;
+    private final CompletableFuture<ProfilingResult> profilingFuture;
 
     public static class Builder {
 
@@ -80,7 +80,7 @@ public class JobExecutionContext implements CompletionListenable {
         private final List<ExecutionSubContext> subContexts = new ArrayList<>();
         private final Collection<String> participatingNodes;
 
-        private boolean enableProfiling = false;
+        private ProfilingContext profilingContext;
 
         Builder(UUID jobId, String coordinatorNode, Collection<String> participatingNodes, JobsLogs jobsLogs) {
             this.jobId = jobId;
@@ -89,8 +89,8 @@ public class JobExecutionContext implements CompletionListenable {
             this.jobsLogs = jobsLogs;
         }
 
-        public Builder enableProfiling(boolean enable) {
-            this.enableProfiling = enable;
+        public Builder profilingContext(ProfilingContext profilingContext) {
+            this.profilingContext = profilingContext;
             return this;
         }
 
@@ -107,7 +107,7 @@ public class JobExecutionContext implements CompletionListenable {
         }
 
         JobExecutionContext build() throws Exception {
-            return new JobExecutionContext(jobId, coordinatorNode, participatingNodes, jobsLogs, subContexts, enableProfiling);
+            return new JobExecutionContext(jobId, coordinatorNode, participatingNodes, jobsLogs, subContexts, profilingContext);
         }
     }
 
@@ -117,7 +117,7 @@ public class JobExecutionContext implements CompletionListenable {
                                 Collection<String> participatingNodes,
                                 JobsLogs jobsLogs,
                                 List<ExecutionSubContext> orderedContexts,
-                                boolean enableProfiling) throws Exception {
+                                ProfilingContext profilingContext) throws Exception {
         this.coordinatorNodeId = coordinatorNodeId;
         this.participatedNodes = participatingNodes;
         this.jobId = jobId;
@@ -125,7 +125,7 @@ public class JobExecutionContext implements CompletionListenable {
 
         int numContexts = orderedContexts.size();
 
-        profiler = new ProfilingContext(enableProfiling);
+        profiler = profilingContext;
         if (profiler.enabled()) {
             subContextTimers = new ConcurrentHashMap<>(numContexts);
             profilingFuture = new CompletableFuture<>();
@@ -260,7 +260,7 @@ public class JobExecutionContext implements CompletionListenable {
         if (profiler.enabled()) {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Profiling is enabled. JobExecutionContext will not be closed until results are collected!");
-                LOGGER.trace("Profiling results for job {}: {}", jobId, profiler.getAsMap());
+                LOGGER.trace("Profiling results for job {}: {}", jobId, profiler.getResults());
             }
             assert profilingFuture != null : "profilingFuture must not be null";
             profilingFuture.complete(executionTimes());
@@ -269,7 +269,7 @@ public class JobExecutionContext implements CompletionListenable {
         }
     }
 
-    public CompletableFuture<Map<String, Long>> finishProfiling() {
+    public CompletableFuture<ProfilingResult> finishProfiling() {
         if (!profiler.enabled()) {
             // sanity check
             IllegalStateException stateException = new IllegalStateException(
@@ -281,8 +281,30 @@ public class JobExecutionContext implements CompletionListenable {
     }
 
     @VisibleForTesting
-    Map<String, Long> executionTimes() {
-        return ImmutableMap.copyOf(profiler.getAsMap());
+    ProfilingResult executionTimes() {
+        // TODO is this the right nodeId?! - or maybe use a dummy key and workout the nodes later?
+        ProfilingResult executionProfilingResult = this.profiler.materializeResultFromCurrentTimings(coordinatorNodeId);
+        List<ProfilingResult> queryBreakdownResults = queryBreakdownTimes();
+        if (queryBreakdownResults != null) {
+            ProfilingResult queryParentResult = new ProfilingResult("Query", null, null, queryBreakdownResults);
+            executionProfilingResult.addChildResult(queryParentResult);
+        }
+        return executionProfilingResult;
+    }
+
+    @Nullable
+    List<ProfilingResult> queryBreakdownTimes() {
+        if (profiler.queryProfiler() != null) {
+            List<ProfileResult> profileTree = profiler.queryProfiler().getTree();
+            if (profileTree != null && profileTree.isEmpty() == false) {
+                List<ProfilingResult> queryResults = new ArrayList<>();
+                for (ProfileResult profileResult : profileTree) {
+                    queryResults.add(ProfilingResult.fromProfileResult(profileResult));
+                }
+                return queryResults;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -309,6 +331,7 @@ public class JobExecutionContext implements CompletionListenable {
 
         /**
          * Remove subcontext and finish {@link JobExecutionContext}
+         *
          * @return true if removed subcontext was the last subcontext, otherwise false
          */
         private boolean removeAndFinishIfNeeded() {

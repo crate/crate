@@ -47,6 +47,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.profile.ProfilingContext;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -233,7 +234,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     private Bucket collect(RoutedCollectPhase collectNode) throws Throwable {
         ContextPreparer contextPreparer = internalCluster().getDataNodeInstance(ContextPreparer.class);
         JobContextService contextService = internalCluster().getDataNodeInstance(JobContextService.class);
-        SharedShardContexts sharedShardContexts = new SharedShardContexts(internalCluster().getDataNodeInstance(IndicesService.class));
+        SharedShardContexts sharedShardContexts =
+            new SharedShardContexts(internalCluster().getDataNodeInstance(IndicesService.class), new ProfilingContext(false));
         JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
         NodeOperation nodeOperation = NodeOperation.withDirectResponse(collectNode, mock(ExecutionPhase.class), (byte) 0,
             "remoteNode");
