@@ -26,7 +26,7 @@ import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.Name;
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.join.CombinedRow;
@@ -128,7 +128,7 @@ public class HashInnerJoinBatchIteratorTest {
     }
 
     private static RamAccountingBatchIterator<Row> of(BatchIterator<Row> batchIterator) {
-        return new RamAccountingBatchIterator<>(batchIterator, mock(RowAccounting.class));
+        return new RamAccountingBatchIterator<>(batchIterator, mock(RowAccountingWithEstimators.class));
     }
 
     @Test

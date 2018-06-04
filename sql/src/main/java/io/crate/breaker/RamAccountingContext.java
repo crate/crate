@@ -32,7 +32,7 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 
 @ThreadSafe
-public class RamAccountingContext {
+public class RamAccountingContext implements RamAccounting {
 
     // this must not be final so tests could adjust it
     // Flush every 2mb
@@ -65,6 +65,7 @@ public class RamAccountingContext {
      * @param bytes bytes to be added
      * @throws CircuitBreakingException in case the breaker tripped
      */
+    @Override
     public void addBytes(long bytes) throws CircuitBreakingException {
         addBytes(bytes, true);
     }
@@ -149,6 +150,7 @@ public class RamAccountingContext {
      * A remaining flush buffer will not be flushed to avoid breaking on close.
      * (all ram operations expected to be finished at this point)
      */
+    @Override
     public void close() {
         if (closed) {
             return;
@@ -171,6 +173,7 @@ public class RamAccountingContext {
      * to be reused in a multi-phase operation where a subsequent phase needs to make decisions based on the available
      * memory after the previous phase completed (and needs to be unloaded/released from the breaker)
      */
+    @Override
     public void release() {
         if (totalBytes.get() != 0) {
             if (logger.isTraceEnabled() && totalBytes() > FLUSH_BUFFER_SIZE) {

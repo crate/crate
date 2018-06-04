@@ -25,7 +25,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.blob.v2.BlobIndicesService;
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.AsyncCompositeBatchIterator;
 import io.crate.data.BatchIterator;
 import io.crate.data.Buckets;
@@ -405,7 +405,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     orderBy.reverseFlags(),
                     orderBy.nullsFirst()
                 ),
-                new RowAccounting(columnTypes, jobCollectContext.queryPhaseRamAccountingContext()),
+                new RowAccountingWithEstimators(columnTypes, jobCollectContext.queryPhaseRamAccountingContext()),
                 executor,
                 consumer.requiresScroll()
             ),

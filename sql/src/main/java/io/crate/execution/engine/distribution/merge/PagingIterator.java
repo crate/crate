@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.Row;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.planner.PositionalOrderBy;
@@ -61,7 +61,7 @@ public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
     static <TKey> PagingIterator<TKey, Row> create(int numUpstreams,
                                                    boolean requiresRepeat,
                                                    @Nullable PositionalOrderBy orderBy,
-                                                   Supplier<RowAccounting> rowAccountingSupplier) {
+                                                   Supplier<RowAccountingWithEstimators> rowAccountingSupplier) {
         PagingIterator<TKey, Row> pagingIterator;
         if (numUpstreams == 1 || orderBy == null) {
             if (requiresRepeat) {

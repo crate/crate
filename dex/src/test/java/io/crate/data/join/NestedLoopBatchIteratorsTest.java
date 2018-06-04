@@ -40,12 +40,10 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import static io.crate.data.SentinelRow.SENTINEL;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 public class NestedLoopBatchIteratorsTest {
 
-    private ArrayList<Object[]> threeXThreeRows;
     private ArrayList<Object[]> leftJoinResult;
     private ArrayList<Object[]> rightJoinResult;
     private ArrayList<Object[]> fullJoinResult;
@@ -58,13 +56,6 @@ public class NestedLoopBatchIteratorsTest {
 
     @Before
     public void setUp() {
-        threeXThreeRows = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                threeXThreeRows.add(new Object[] { i, j });
-            }
-        }
-
         leftJoinResult = new ArrayList<>();
         leftJoinResult.add(new Object[] { 0, null });
         leftJoinResult.add(new Object[] { 1, null });
@@ -96,67 +87,6 @@ public class NestedLoopBatchIteratorsTest {
         antiJoinResult.add(new Object[] { 1 });
         antiJoinResult.add(new Object[] { 4 });
     }
-
-    @Test
-    public void testNestedLoopBatchIterator() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
-            () -> JoinBatchIterators.crossJoin(
-                TestingBatchIterators.range(0, 3),
-                TestingBatchIterators.range(0, 3),
-                new CombinedRow(1, 1)
-            )
-        );
-        tester.verifyResultAndEdgeCaseBehaviour(threeXThreeRows);
-    }
-
-    @Test
-    public void testNestedLoopWithBatchedSource() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
-            () -> JoinBatchIterators.crossJoin(
-                new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 3), 2, 2, null),
-                new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 3), 2, 2, null),
-                new CombinedRow(1, 1)
-            )
-        );
-        tester.verifyResultAndEdgeCaseBehaviour(threeXThreeRows);
-    }
-
-    @Test
-    public void testNestedLoopLeftAndRightEmpty() throws Exception {
-        BatchIterator<Row> iterator = JoinBatchIterators.crossJoin(
-            InMemoryBatchIterator.empty(SENTINEL),
-            InMemoryBatchIterator.empty(SENTINEL),
-            new CombinedRow(0, 0)
-        );
-        TestingRowConsumer consumer = new TestingRowConsumer();
-        consumer.accept(iterator, null);
-        assertThat(consumer.getResult(), Matchers.empty());
-    }
-
-    @Test
-    public void testNestedLoopLeftEmpty() throws Exception {
-        BatchIterator<Row> iterator = JoinBatchIterators.crossJoin(
-            InMemoryBatchIterator.empty(SENTINEL),
-            TestingBatchIterators.range(0, 5),
-            new CombinedRow(0, 1)
-        );
-        TestingRowConsumer consumer = new TestingRowConsumer();
-        consumer.accept(iterator, null);
-        assertThat(consumer.getResult(), Matchers.empty());
-    }
-
-    @Test
-    public void testNestedLoopRightEmpty() throws Exception {
-        BatchIterator<Row> iterator = JoinBatchIterators.crossJoin(
-            TestingBatchIterators.range(0, 5),
-            InMemoryBatchIterator.empty(SENTINEL),
-            new CombinedRow(1, 0)
-        );
-        TestingRowConsumer consumer = new TestingRowConsumer();
-        consumer.accept(iterator, null);
-        assertThat(consumer.getResult(), Matchers.empty());
-    }
-
 
     @Test
     public void testLeftJoin() throws Exception {
@@ -228,25 +158,6 @@ public class NestedLoopBatchIteratorsTest {
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(fullJoinResult);
-    }
-
-    @Test
-    public void testMoveToStartWhileRightSideIsActive() {
-        BatchIterator<Row> batchIterator = JoinBatchIterators.crossJoin(
-            TestingBatchIterators.range(0, 3),
-            TestingBatchIterators.range(10, 20),
-            new CombinedRow(1, 1)
-        );
-
-        assertThat(batchIterator.moveNext(), is(true));
-        assertThat(batchIterator.currentElement().get(0), is(0));
-        assertThat(batchIterator.currentElement().get(1), is(10));
-
-        batchIterator.moveToStart();
-
-        assertThat(batchIterator.moveNext(), is(true));
-        assertThat(batchIterator.currentElement().get(0), is(0));
-        assertThat(batchIterator.currentElement().get(1), is(10));
     }
 
     @Test

@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.join;
 
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -63,7 +63,7 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
             TestingBatchIterators.ofValues(Arrays.asList(1, 2, 4)), 1, 2, null);
         RamAccountingBatchIterator<Row> leftIterator = new RamAccountingBatchIterator<>(
             leftSimulatingIterator,
-            mock(RowAccounting.class));
+            mock(RowAccountingWithEstimators.class));
         BatchSimulatingIterator<Row> rightIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(2, 0, 4, 5)), 2, 1, null);
 
@@ -95,7 +95,7 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
             TestingBatchIterators.ofValues(Arrays.asList(1, 2, 3, 4)), 2, 1, null);
         RamAccountingBatchIterator<Row> leftIterator = new RamAccountingBatchIterator<>(
             leftSimulatingIterator,
-            mock(RowAccounting.class));
+            mock(RowAccountingWithEstimators.class));
         BatchSimulatingIterator<Row> rightIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(2, 0, 4, 5)), 2, 1, null);
 

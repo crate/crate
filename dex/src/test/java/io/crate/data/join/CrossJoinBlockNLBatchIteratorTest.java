@@ -1,0 +1,242 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+package io.crate.data.join;
+
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import io.crate.breaker.RowAccounting;
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.TestingBatchIterators;
+import io.crate.testing.TestingRowConsumer;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Supplier;
+
+import static io.crate.data.SentinelRow.SENTINEL;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasItemInArray;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+public class CrossJoinBlockNLBatchIteratorTest {
+
+    private final int id;
+    private final Supplier<BatchIterator<Row>> left;
+    private final Supplier<BatchIterator<Row>> right;
+    private final BlockSizeCalculator blockSizeCalculator;
+    private final TestingRowAccounting testingRowAccounting;
+    private final List<Object[]> expectedResults;
+    private int expectedRowsLeft;
+    private int expectedRowsRight;
+
+    public CrossJoinBlockNLBatchIteratorTest(@Name("id") int id,
+                                             Supplier<BatchIterator<Row>> left,
+                                             Supplier<BatchIterator<Row>> right,
+                                             BlockSizeCalculator blockSizeCalculator) throws Exception {
+
+        this.id = id;
+        this.left = left;
+        this.right = right;
+        this.blockSizeCalculator = blockSizeCalculator;
+        this.testingRowAccounting = new TestingRowAccounting();
+        this.expectedResults = createExpectedResult(left.get(), right.get());
+    }
+
+    private List<Object[]> createExpectedResult(BatchIterator<Row> left, BatchIterator<Row> right) throws Exception {
+        TestingRowConsumer leftConsumer = new TestingRowConsumer();
+        leftConsumer.accept(left, null);
+        TestingRowConsumer rightConsumer = new TestingRowConsumer();
+        rightConsumer.accept(right, null);
+
+        List<Object[]> expectedResults = new ArrayList<>();
+
+        List<Object[]> leftResults = leftConsumer.getResult();
+        List<Object[]> rightResults = rightConsumer.getResult();
+        expectedRowsLeft = leftResults.size();
+        expectedRowsRight = rightResults.size();
+
+        for (Object[] leftRow : leftResults) {
+            for (Object[] rightRow : rightResults) {
+                Object[] combinedRow = Arrays.copyOf(leftRow, leftRow.length + rightRow.length);
+                System.arraycopy(rightRow, 0, combinedRow, leftRow.length, rightRow.length);
+                expectedResults.add(combinedRow);
+            }
+        }
+        return expectedResults;
+    }
+
+    @ParametersFactory
+    public static Iterable<Object[]> parameters() {
+        return Arrays.asList(
+            $(0, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 1),
+            $(1, () -> TestingBatchIterators.range(0, 1), () -> TestingBatchIterators.range(0, 5), () -> 2),
+            $(2, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 3),
+            $(3, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 10),
+            $(4, () -> TestingBatchIterators.range(0, 1), () -> TestingBatchIterators.range(0, 5), () -> 100),
+            $(5, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 10000),
+            $(6, () -> TestingBatchIterators.range(0, 100), () -> TestingBatchIterators.range(0, 30), () -> 1),
+            $(7, () -> TestingBatchIterators.range(0, 10), () -> TestingBatchIterators.range(0, 500), () -> 2),
+            $(8, () -> TestingBatchIterators.range(0, 30), () -> TestingBatchIterators.range(0, 300), () -> 3),
+            $(9, () -> TestingBatchIterators.range(0, 300), () -> TestingBatchIterators.range(0, 30), () -> 10),
+            $(10, () -> TestingBatchIterators.range(0, 100), () -> TestingBatchIterators.range(0, 50), () -> 100),
+            $(11, () -> TestingBatchIterators.range(0, 30), () -> TestingBatchIterators.range(0, 300), () -> 10000)
+        );
+    }
+
+    private static Object[] $(int id,
+                              Supplier<BatchIterator<Row>> left,
+                              Supplier<BatchIterator<Row>> right,
+                              BlockSizeCalculator blockSize) {
+        return new Object[]{
+            id, left, right, blockSize
+        };
+    }
+
+    @Test
+    public void testNestedLoopBatchIterator() throws Exception {
+        BatchIteratorTester tester = new BatchIteratorTester(
+            () -> JoinBatchIterators.crossJoin(
+                left.get(),
+                right.get(),
+                new CombinedRow(1, 1),
+                blockSizeCalculator,
+                testingRowAccounting
+            )
+        );
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResults,
+            it -> {
+                assertThat(testingRowAccounting.numRows, is(expectedRowsLeft));
+                assertThat(testingRowAccounting.numReleaseCalled, greaterThan(expectedRowsLeft / blockSizeCalculator.calculateBlockSize()));
+            });
+    }
+
+    @Test
+    public void testNestedLoopWithBatchedSource() throws Exception {
+        int batchSize = 50;
+        BatchIteratorTester tester = new BatchIteratorTester(
+            () -> JoinBatchIterators.crossJoin(
+                new BatchSimulatingIterator<>(left.get(), batchSize, expectedRowsLeft / batchSize + 1, null),
+                new BatchSimulatingIterator<>(right.get(), batchSize, expectedRowsRight / batchSize + 1, null),
+                new CombinedRow(1, 1),
+                blockSizeCalculator,
+                testingRowAccounting
+            )
+        );
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResults,
+            it -> {
+                assertThat(testingRowAccounting.numRows, is(expectedRowsLeft));
+                assertThat(testingRowAccounting.numReleaseCalled, greaterThan(expectedRowsLeft / blockSizeCalculator.calculateBlockSize()));
+            });
+    }
+
+    @Test
+    public void testNestedLoopLeftAndRightEmpty() throws Exception {
+        BatchIterator<Row> iterator = JoinBatchIterators.crossJoin(
+            InMemoryBatchIterator.empty(SENTINEL),
+            InMemoryBatchIterator.empty(SENTINEL),
+            new CombinedRow(0, 0),
+            blockSizeCalculator,
+            testingRowAccounting
+        );
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(iterator, null);
+        assertThat(consumer.getResult(), Matchers.empty());
+    }
+
+    @Test
+    public void testNestedLoopLeftEmpty() throws Exception {
+        BatchIterator<Row> iterator = JoinBatchIterators.crossJoin(
+            InMemoryBatchIterator.empty(SENTINEL),
+            right.get(),
+            new CombinedRow(0, 1),
+            blockSizeCalculator,
+            testingRowAccounting
+        );
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(iterator, null);
+        assertThat(consumer.getResult(), Matchers.empty());
+    }
+
+    @Test
+    public void testNestedLoopRightEmpty() throws Exception {
+        BatchIterator<Row> iterator = JoinBatchIterators.crossJoin(
+            left.get(),
+            InMemoryBatchIterator.empty(SENTINEL),
+            new CombinedRow(1, 0),
+            blockSizeCalculator,
+            testingRowAccounting
+        );
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(iterator, null);
+        assertThat(consumer.getResult(), Matchers.empty());
+    }
+
+    @Test
+    public void testMoveToStartWhileRightSideIsActive() {
+        BatchIterator<Row> batchIterator = JoinBatchIterators.crossJoin(
+            left.get(),
+            right.get(),
+            new CombinedRow(1, 1),
+            blockSizeCalculator,
+            testingRowAccounting
+        );
+
+        assertThat(batchIterator.moveNext(), is(true));
+        assertThat(expectedResults.toArray(), hasItemInArray(batchIterator.currentElement().materialize()));
+
+        batchIterator.moveToStart();
+
+        assertThat(batchIterator.moveNext(), is(true));
+        assertThat(expectedResults.toArray(), hasItemInArray(batchIterator.currentElement().materialize()));
+    }
+
+    private static class TestingRowAccounting implements RowAccounting {
+
+        int numRows;
+        int numReleaseCalled;
+
+        @Override
+        public void accountForAndMaybeBreak(Row row) {
+            numRows++;
+        }
+
+        @Override
+        public void release() {
+            numReleaseCalled++;
+        }
+    }
+}
