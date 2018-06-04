@@ -84,7 +84,7 @@ public class TransportCollectProfileNodeAction implements NodeAction<NodeCollect
     /**
      * @return a future that is completed with a map of unique subcontext names (id+name) and their execution times in ms
      */
-    public CompletableFuture<Map<String, Long>> collectExecutionTimesAndFinishContext(UUID jobId) {
+    public CompletableFuture<Map<String, Object>> collectExecutionTimesAndFinishContext(UUID jobId) {
         JobExecutionContext context = jobContextService.getContextOrNull(jobId);
         if (context == null) {
             return CompletableFuture.completedFuture(Collections.emptyMap());
@@ -95,7 +95,7 @@ public class TransportCollectProfileNodeAction implements NodeAction<NodeCollect
 
     public void execute(String nodeId,
                         NodeCollectProfileRequest request,
-                        FutureActionListener<NodeCollectProfileResponse, Map<String, Long>> listener) {
+                        FutureActionListener<NodeCollectProfileResponse, Map<String, Object>> listener) {
         transports.sendRequest(TRANSPORT_ACTION, nodeId, request, listener,
             new ActionListenerResponseHandler<>(listener, NodeCollectProfileResponse::new));
     }

@@ -23,13 +23,14 @@ package io.crate.execution.jobs;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RowGranularity;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.profile.ProfilingContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.IntegerType;
@@ -157,7 +158,8 @@ public class JobExecutionContextTest extends CrateUnitTest {
     public void testEnablingProfilingGathersExecutionTimes() throws Throwable {
         JobExecutionContext.Builder builder =
             new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
-        builder.enableProfiling(true);
+        ProfilingContext profilingContext = new ProfilingContext(Collections::emptyList);
+        builder.profilingContext(profilingContext);
 
         AbstractExecutionSubContextTest.TestingExecutionSubContext ctx1 = new AbstractExecutionSubContextTest.TestingExecutionSubContext(1);
         builder.addSubContext(ctx1);
@@ -171,8 +173,12 @@ public class JobExecutionContextTest extends CrateUnitTest {
         // kill because the testing subcontexts would run infinitely
         jobExecutionContext.kill();
         assertTrue(jobExecutionContext.executionTimes().containsKey("1-TestingExecutionSubContext"));
-        assertThat(jobExecutionContext.executionTimes().get("1-TestingExecutionSubContext"), Matchers.greaterThan(0L));
+        assertThat(
+            ((double) jobExecutionContext.executionTimes().get("1-TestingExecutionSubContext")),
+            Matchers.greaterThan(0d));
         assertTrue(jobExecutionContext.executionTimes().containsKey("2-TestingExecutionSubContext"));
-        assertThat(jobExecutionContext.executionTimes().get("2-TestingExecutionSubContext"), Matchers.greaterThan(0L));
+        assertThat(
+            ((double) jobExecutionContext.executionTimes().get("2-TestingExecutionSubContext")),
+            Matchers.greaterThan(0d));
     }
 }

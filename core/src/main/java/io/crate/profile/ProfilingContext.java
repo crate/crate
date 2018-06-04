@@ -23,8 +23,13 @@
 package io.crate.profile;
 
 import com.google.common.collect.ImmutableMap;
+import org.elasticsearch.search.profile.ProfileResult;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Simple stop watch type class that can be used as a context across multiple layers (analyzer, planner, executor)
@@ -35,17 +40,45 @@ import java.util.Map;
  */
 public class ProfilingContext {
 
-    private final ImmutableMap.Builder<String, Long> durationInMSByTimer;
+    private static final double NS_TO_MS_FACTOR = 1_000_000.0d;
+    private final ImmutableMap.Builder<String, Double> durationInMSByTimer;
+    private final Supplier<List<ProfileResult>> queryProfilingResults;
 
-    public ProfilingContext() {
+    public ProfilingContext(Supplier<List<ProfileResult>> queryProfilingResults) {
+        this.queryProfilingResults = queryProfilingResults;
         this.durationInMSByTimer = ImmutableMap.builder();
     }
 
-    /**
-     * @return a read-only map containing the duration per timer
-     */
-    public Map<String, Long> getDurationInMSByTimer() {
-        return durationInMSByTimer.build();
+    public Map<String, Object> getDurationInMSByTimer() {
+        ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
+        builder.putAll(durationInMSByTimer.build());
+        ArrayList<Map<String, Object>> queryTimings = new ArrayList<>();
+        for (ProfileResult profileResult : queryProfilingResults.get()) {
+            queryTimings.add(resultAsMap(profileResult));
+        }
+        if (!queryTimings.isEmpty()) {
+            builder.put("QueryBreakdown", queryTimings);
+        }
+        return builder.build();
+    }
+
+    private static Map<String, Object> resultAsMap(ProfileResult profileResult) {
+        ImmutableMap.Builder<String, Object> queryTimingsBuilder = ImmutableMap.<String, Object>builder()
+            .put("QueryName", profileResult.getQueryName())
+            .put("QueryDescription", profileResult.getLuceneDescription())
+            .put("Time", profileResult.getTime() / NS_TO_MS_FACTOR)
+            .put("BreakDown", profileResult.getTimeBreakdown().entrySet().stream()
+                .collect(Collectors.toMap(
+                    Map.Entry::getKey,
+                    e -> e.getKey().endsWith("_count") ? e.getValue() : e.getValue() / NS_TO_MS_FACTOR))
+            );
+        List<Map<String, Object>> children = profileResult.getProfiledChildren().stream()
+            .map(ProfilingContext::resultAsMap)
+            .collect(Collectors.toList());
+        if (!children.isEmpty()) {
+            queryTimingsBuilder.put("Children", children);
+        }
+        return queryTimingsBuilder.build();
     }
 
     public Timer createAndStartTimer(String name) {
@@ -56,7 +89,7 @@ public class ProfilingContext {
 
     public void stopTimerAndStoreDuration(Timer timer) {
         timer.stop();
-        durationInMSByTimer.put(timer.name(), timer.durationNanos() / 1_000_000L);
+        durationInMSByTimer.put(timer.name(), timer.durationNanos() / NS_TO_MS_FACTOR);
     }
 
     public Timer createTimer(String name) {

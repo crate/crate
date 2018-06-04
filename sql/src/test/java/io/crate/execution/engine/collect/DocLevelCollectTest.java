@@ -67,6 +67,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.UnaryOperator;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
@@ -233,7 +234,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     private Bucket collect(RoutedCollectPhase collectNode) throws Throwable {
         ContextPreparer contextPreparer = internalCluster().getDataNodeInstance(ContextPreparer.class);
         JobContextService contextService = internalCluster().getDataNodeInstance(JobContextService.class);
-        SharedShardContexts sharedShardContexts = new SharedShardContexts(internalCluster().getDataNodeInstance(IndicesService.class));
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(
+            internalCluster().getDataNodeInstance(IndicesService.class), UnaryOperator.identity());
         JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
         NodeOperation nodeOperation = NodeOperation.withDirectResponse(collectNode, mock(ExecutionPhase.class), (byte) 0,
             "remoteNode");

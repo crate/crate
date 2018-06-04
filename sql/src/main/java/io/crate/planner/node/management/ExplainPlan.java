@@ -146,7 +146,7 @@ public class ExplainPlan implements Plan {
         return (ignored, t) -> {
             context.stopTimerAndStoreDuration(timer);
             if (t == null) {
-                OneRowActionListener<Map<String, Map<String, Long>>> actionListener =
+                OneRowActionListener<Map<String, Map<String, Object>>> actionListener =
                     new OneRowActionListener<>(consumer, resp -> buildResponse(context.getDurationInMSByTimer(), resp));
                 collectTimingResults(jobId, executor, operationTree.nodeOperations())
                     .whenComplete(actionListener);
@@ -162,7 +162,7 @@ public class ExplainPlan implements Plan {
         return new TransportCollectProfileOperation(nodeAction, jobId);
     }
 
-    private Row buildResponse(Map<String, Long> apeTimings, Map<String, Map<String, Long>> nodeTimings) {
+    private Row buildResponse(Map<String, Object> apeTimings, Map<String, Map<String, Object>> nodeTimings) {
         MapBuilder<String, Object> mapBuilder = MapBuilder.newMapBuilder();
         apeTimings.forEach(mapBuilder::put);
 
@@ -174,15 +174,15 @@ public class ExplainPlan implements Plan {
         return new Row1(mapBuilder.immutableMap());
     }
 
-    private CompletableFuture<Map<String, Map<String, Long>>> collectTimingResults(UUID jobId,
-                                                                                   DependencyCarrier executor,
-                                                                                   Collection<NodeOperation> nodeOperations) {
+    private CompletableFuture<Map<String, Map<String, Object>>> collectTimingResults(UUID jobId,
+                                                                                     DependencyCarrier executor,
+                                                                                     Collection<NodeOperation> nodeOperations) {
         Set<String> nodeIds = NodeOperationGrouper.groupByServer(nodeOperations).keySet();
 
-        CompletableFuture<Map<String, Map<String, Long>>> resultFuture = new CompletableFuture<>();
+        CompletableFuture<Map<String, Map<String, Object>>> resultFuture = new CompletableFuture<>();
         TransportCollectProfileOperation remoteCollectOperation = getRemoteCollectOperation(executor, jobId);
 
-        ConcurrentHashMap<String, Map<String, Long>> timingsByNodeId = new ConcurrentHashMap<>(nodeIds.size());
+        ConcurrentHashMap<String, Map<String, Object>> timingsByNodeId = new ConcurrentHashMap<>(nodeIds.size());
         boolean needsCollectLocal = !nodeIds.contains(executor.localNodeId());
 
         AtomicInteger remainingCollectOps = new AtomicInteger(nodeIds.size());
@@ -205,10 +205,10 @@ public class ExplainPlan implements Plan {
         return resultFuture;
     }
 
-    private static BiConsumer<Map<String, Long>, Throwable> mergeResultsAndCompleteFuture(CompletableFuture<Map<String, Map<String, Long>>> resultFuture,
-                                                                                          ConcurrentHashMap<String, Map<String, Long>> timingsByNodeId,
-                                                                                          AtomicInteger remainingOperations,
-                                                                                          String nodeId) {
+    private static BiConsumer<Map<String, Object>, Throwable> mergeResultsAndCompleteFuture(CompletableFuture<Map<String, Map<String, Object>>> resultFuture,
+                                                                                            ConcurrentHashMap<String, Map<String, Object>> timingsByNodeId,
+                                                                                            AtomicInteger remainingOperations,
+                                                                                            String nodeId) {
         return (map, throwable) -> {
             if (throwable == null) {
                 timingsByNodeId.put(nodeId, map);

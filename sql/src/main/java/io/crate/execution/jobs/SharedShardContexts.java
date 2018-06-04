@@ -22,28 +22,32 @@
 
 package io.crate.execution.jobs;
 
+import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 @NotThreadSafe
 public class SharedShardContexts {
 
     private final IndicesService indicesService;
+    private final UnaryOperator<IndexSearcher> wrapSearcher;
     private final Map<ShardId, SharedShardContext> allocatedShards = new HashMap<>();
     private int readerId = 0;
 
-    public SharedShardContexts(IndicesService indicesService) {
+    public SharedShardContexts(IndicesService indicesService, UnaryOperator<IndexSearcher> wrapSearcher) {
         this.indicesService = indicesService;
+        this.wrapSearcher = wrapSearcher;
     }
 
 
     public SharedShardContext createContext(ShardId shardId, int readerId) {
         assert !allocatedShards.containsKey(shardId) : "shardId shouldn't have been allocated yet";
-        SharedShardContext sharedShardContext = new SharedShardContext(indicesService, shardId, readerId);
+        SharedShardContext sharedShardContext = new SharedShardContext(indicesService, shardId, readerId, wrapSearcher);
         allocatedShards.put(shardId, sharedShardContext);
         return sharedShardContext;
     }
@@ -51,7 +55,7 @@ public class SharedShardContexts {
     public SharedShardContext getOrCreateContext(ShardId shardId) {
         SharedShardContext sharedShardContext = allocatedShards.get(shardId);
         if (sharedShardContext == null) {
-            sharedShardContext = new SharedShardContext(indicesService, shardId, readerId);
+            sharedShardContext = new SharedShardContext(indicesService, shardId, readerId, wrapSearcher);
             allocatedShards.put(shardId, sharedShardContext);
             readerId++;
         }

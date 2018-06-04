@@ -36,6 +36,7 @@ import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.jobs.ContextPreparer;
 import io.crate.execution.jobs.DownstreamExecutionSubContext;
 import io.crate.execution.jobs.ExecutionSubContext;
+import io.crate.execution.jobs.InstrumentedIndexSearcher;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
 import io.crate.execution.jobs.PageBucketReceiver;
@@ -43,9 +44,11 @@ import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobRequest;
 import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.profile.ProfilingContext;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.search.profile.query.QueryProfiler;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -56,6 +59,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 
@@ -196,10 +200,13 @@ public class ExecutionPhasesTask {
         List<Tuple<ExecutionPhase, RowConsumer>> handlerPhaseAndReceiver = createHandlerPhaseAndReceivers(
             handlerPhases, handlerConsumers, initializationTracker);
 
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNodeId, operationByServer.keySet())
-            .enableProfiling(enableProfiling);
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNodeId, operationByServer.keySet());
+        SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(builder);
         List<CompletableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnHandler(
-            localNodeOperations, builder, handlerPhaseAndReceiver, new SharedShardContexts(indicesService));
+            localNodeOperations,
+            builder,
+            handlerPhaseAndReceiver,
+            sharedShardContexts);
         JobExecutionContext localJobContext = jobContextService.createContext(builder);
 
         List<PageBucketReceiver> pageBucketReceivers = getHandlerBucketReceivers(localJobContext, handlerPhaseAndReceiver);
@@ -237,6 +244,20 @@ public class ExecutionPhasesTask {
         }
         sendJobRequests(
             localNodeId, operationByServer, pageBucketReceivers, handlerPhaseAndReceiver, bucketIdx, initializationTracker);
+    }
+
+    private SharedShardContexts maybeInstrumentProfiler(JobExecutionContext.Builder builder) {
+        if (enableProfiling) {
+            QueryProfiler queryProfiler = new QueryProfiler();
+            ProfilingContext profilingContext = new ProfilingContext(queryProfiler::getTree);
+            builder.profilingContext(profilingContext);
+            return new SharedShardContexts(
+                indicesService,
+                indexSearcher -> new InstrumentedIndexSearcher(indexSearcher.getIndexReader(), queryProfiler)
+            );
+        } else {
+            return new SharedShardContexts(indicesService, UnaryOperator.identity());
+        }
     }
 
     private void accountFailureForRemoteOperations(Map<String, Collection<NodeOperation>> operationByServer,

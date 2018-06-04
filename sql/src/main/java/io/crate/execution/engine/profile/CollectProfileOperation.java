@@ -27,5 +27,5 @@ import java.util.concurrent.CompletableFuture;
 
 public interface CollectProfileOperation {
 
-    CompletableFuture<Map<String, Long>> collect(String nodeId);
+    CompletableFuture<Map<String, Object>> collect(String nodeId);
 }

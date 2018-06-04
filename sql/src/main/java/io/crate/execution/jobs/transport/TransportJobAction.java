@@ -25,23 +25,27 @@ package io.crate.execution.jobs.transport;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Bucket;
 import io.crate.execution.jobs.ContextPreparer;
+import io.crate.execution.jobs.InstrumentedIndexSearcher;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.Transports;
+import io.crate.profile.ProfilingContext;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.search.profile.query.QueryProfiler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.UnaryOperator;
 
 @Singleton
 public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
@@ -78,10 +82,11 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
     @Override
     public CompletableFuture<JobResponse> nodeOperation(final JobRequest request) {
-        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(request.jobId(), request.coordinatorNodeId(), Collections.emptySet())
-            .enableProfiling(request.enableProfiling());
+        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(
+            request.jobId(), request.coordinatorNodeId(), Collections.emptySet());
 
-        SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
+        SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(request.enableProfiling(), contextBuilder);
+
         List<CompletableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnRemote(
             request.nodeOperations(), contextBuilder, sharedShardContexts);
 
@@ -96,6 +101,21 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
             return CompletableFuture.completedFuture(new JobResponse());
         } else {
             return CompletableFutures.allAsList(directResponseFutures).thenApply(JobResponse::new);
+        }
+    }
+
+    private SharedShardContexts maybeInstrumentProfiler(boolean enableProfiling, JobExecutionContext.Builder contextBuilder) {
+        if (enableProfiling) {
+            QueryProfiler queryProfiler = new QueryProfiler();
+            ProfilingContext profilingContext = new ProfilingContext(queryProfiler::getTree);
+            contextBuilder.profilingContext(profilingContext);
+
+            return new SharedShardContexts(
+                indicesService,
+                indexSearcher -> new InstrumentedIndexSearcher(indexSearcher.getIndexReader(), queryProfiler)
+            );
+        } else {
+            return new SharedShardContexts(indicesService, UnaryOperator.identity());
         }
     }
 }

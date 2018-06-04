@@ -32,28 +32,28 @@ import java.util.Map;
 
 public class NodeCollectProfileResponse extends TransportResponse {
 
-    private Map<String, Long> durationByContextIdent = Collections.emptyMap();
+    private Map<String, Object> durationByContextIdent = Collections.emptyMap();
 
-    NodeCollectProfileResponse(Map<String, Long> durationByContextIdent) {
+    NodeCollectProfileResponse(Map<String, Object> durationByContextIdent) {
         this.durationByContextIdent = durationByContextIdent;
     }
 
     NodeCollectProfileResponse() {
     }
 
-    Map<String, Long> durationByContextIdent() {
+    Map<String, Object> durationByContextIdent() {
         return durationByContextIdent;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        durationByContextIdent = in.readMap(StreamInput::readString, StreamInput::readVLong);
+        durationByContextIdent = in.readMap();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeMap(durationByContextIdent, StreamOutput::writeString, StreamOutput::writeVLong);
+        out.writeMap(durationByContextIdent);
     }
 }

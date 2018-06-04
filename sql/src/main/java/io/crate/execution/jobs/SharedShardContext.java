@@ -36,6 +36,7 @@ import org.elasticsearch.indices.IndicesService;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.UnaryOperator;
 
 @NotThreadSafe
 public class SharedShardContext {
@@ -45,20 +46,26 @@ public class SharedShardContext {
     private final IndicesService indicesService;
     private final ShardId shardId;
     private final int readerId;
+    private final UnaryOperator<IndexSearcher> wrapSearcher;
 
     private RefCountSearcher searcher;
     private IndexService indexService;
     private IndexShard indexShard;
 
-    SharedShardContext(IndicesService indicesService, ShardId shardId, int readerId) {
+    SharedShardContext(IndicesService indicesService,
+                       ShardId shardId,
+                       int readerId,
+                       UnaryOperator<IndexSearcher> wrapSearcher) {
         this.indicesService = indicesService;
         this.shardId = shardId;
         this.readerId = readerId;
+        this.wrapSearcher = wrapSearcher;
     }
 
     public Engine.Searcher acquireSearcher() throws IndexNotFoundException {
         if (searcher == null) {
-            searcher = new RefCountSearcher(indexShard().acquireSearcher("shared-shard-context"));
+            Engine.Searcher searcher = indexShard().acquireSearcher("shared-shard-context");
+            this.searcher = RefCountSearcher.create(searcher, wrapSearcher);
         }
         searcher.inc();
         return searcher;
@@ -87,24 +94,18 @@ public class SharedShardContext {
         private final AtomicInteger refs = new AtomicInteger();
         private final Engine.Searcher searcher;
 
-        RefCountSearcher(Engine.Searcher searcher) {
-            super(searcher.source(), searcher.searcher());
-            this.searcher = searcher;
+        static RefCountSearcher create(Engine.Searcher searcher, UnaryOperator<IndexSearcher> wrapSearcher) {
+            return new RefCountSearcher(searcher, wrapSearcher.apply(searcher.searcher()));
         }
 
-        @Override
-        public String source() {
-            return searcher.source();
+        private RefCountSearcher(Engine.Searcher searcher, IndexSearcher indexSearcher) {
+            super(searcher.source(), indexSearcher);
+            this.searcher = searcher;
         }
 
         @Override
         public IndexReader reader() {
             return searcher.reader();
-        }
-
-        @Override
-        public IndexSearcher searcher() {
-            return searcher.searcher();
         }
 
         @Override

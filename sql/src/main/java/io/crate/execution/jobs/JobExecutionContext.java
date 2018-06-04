@@ -72,7 +72,7 @@ public class JobExecutionContext implements CompletionListenable {
     @Nullable
     private final ConcurrentHashMap<Integer, Timer> subContextTimers;
     @Nullable
-    private final CompletableFuture<Map<String, Long>> profilingFuture;
+    private final CompletableFuture<Map<String, Object>> profilingFuture;
 
     public static class Builder {
 
@@ -82,7 +82,8 @@ public class JobExecutionContext implements CompletionListenable {
         private final List<ExecutionSubContext> subContexts = new ArrayList<>();
         private final Collection<String> participatingNodes;
 
-        private boolean enableProfiling = false;
+        @Nullable
+        private ProfilingContext profilingContext = null;
 
         Builder(UUID jobId, String coordinatorNode, Collection<String> participatingNodes, JobsLogs jobsLogs) {
             this.jobId = jobId;
@@ -91,8 +92,8 @@ public class JobExecutionContext implements CompletionListenable {
             this.jobsLogs = jobsLogs;
         }
 
-        public Builder enableProfiling(boolean enable) {
-            this.enableProfiling = enable;
+        public Builder profilingContext(ProfilingContext profilingContext) {
+            this.profilingContext = profilingContext;
             return this;
         }
 
@@ -109,7 +110,8 @@ public class JobExecutionContext implements CompletionListenable {
         }
 
         JobExecutionContext build() throws Exception {
-            return new JobExecutionContext(jobId, coordinatorNode, participatingNodes, jobsLogs, subContexts, enableProfiling);
+            return new JobExecutionContext(
+                jobId, coordinatorNode, participatingNodes, jobsLogs, subContexts, profilingContext);
         }
     }
 
@@ -119,7 +121,7 @@ public class JobExecutionContext implements CompletionListenable {
                                 Collection<String> participatingNodes,
                                 JobsLogs jobsLogs,
                                 List<ExecutionSubContext> orderedContexts,
-                                boolean enableProfiling) throws Exception {
+                                @Nullable ProfilingContext profilingContext) throws Exception {
         this.coordinatorNodeId = coordinatorNodeId;
         this.participatedNodes = participatingNodes;
         this.jobId = jobId;
@@ -127,14 +129,14 @@ public class JobExecutionContext implements CompletionListenable {
 
         int numContexts = orderedContexts.size();
 
-        if (enableProfiling) {
-            profiler = new ProfilingContext();
-            subContextTimers = new ConcurrentHashMap<>(numContexts);
-            profilingFuture = new CompletableFuture<>();
-        } else {
+        if (profilingContext == null) {
             subContextTimers = null;
             profilingFuture = null;
             profiler = null;
+        } else {
+            profiler = profilingContext;
+            subContextTimers = new ConcurrentHashMap<>(numContexts);
+            profilingFuture = new CompletableFuture<>();
         }
 
         orderedContextIds = new IntArrayList(numContexts);
@@ -265,13 +267,18 @@ public class JobExecutionContext implements CompletionListenable {
                 LOGGER.trace("Profiling results for job {}: {}", jobId, profiler.getDurationInMSByTimer());
             }
             assert profilingFuture != null : "profilingFuture must not be null";
-            profilingFuture.complete(executionTimes());
+            try {
+                Map<String, Object> executionTimes = executionTimes();
+                profilingFuture.complete(executionTimes);
+            } catch (Throwable t) {
+                profilingFuture.completeExceptionally(t);
+            }
         } else {
             close();
         }
     }
 
-    public CompletableFuture<Map<String, Long>> finishProfiling() {
+    public CompletableFuture<Map<String, Object>> finishProfiling() {
         if (profiler == null) {
             // sanity check
             IllegalStateException stateException = new IllegalStateException(
@@ -283,7 +290,7 @@ public class JobExecutionContext implements CompletionListenable {
     }
 
     @VisibleForTesting
-    Map<String, Long> executionTimes() {
+    Map<String, Object> executionTimes() {
         if (profiler == null) {
             return Collections.emptyMap();
         }

@@ -39,8 +39,8 @@ public class TransportCollectProfileOperation implements CollectProfileOperation
     }
 
     @Override
-    public CompletableFuture<Map<String, Long>> collect(String nodeId) {
-        FutureActionListener<NodeCollectProfileResponse, Map<String, Long>> listener =
+    public CompletableFuture<Map<String, Object>> collect(String nodeId) {
+        FutureActionListener<NodeCollectProfileResponse, Map<String, Object>> listener =
             new FutureActionListener<>(NodeCollectProfileResponse::durationByContextIdent);
         transportAction.execute(nodeId, new NodeCollectProfileRequest(jobId), listener);
         return listener;

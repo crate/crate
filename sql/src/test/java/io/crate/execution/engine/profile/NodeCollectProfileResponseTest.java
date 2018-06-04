@@ -36,7 +36,7 @@ public class NodeCollectProfileResponseTest {
 
     @Test
     public void testStreaming() throws Exception {
-        Map<String, Long> timings = new HashMap<>();
+        Map<String, Object> timings = new HashMap<>();
         timings.put("node1", 1000L);
         NodeCollectProfileResponse originalResponse = new NodeCollectProfileResponse(timings);
 

@@ -26,6 +26,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,6 +36,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -49,8 +51,8 @@ public class ExplainAnalyzeIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testExplainAnalyzeReportsExecutionTimesOnBothNodes() {
-        execute("explain analyze select * from locations order by date desc");
+    public void testExplainAnalyzeReportsExecutionTimesOnBothNodesInclQueryBreakdown() {
+        execute("explain analyze select * from locations where name like 'a%' or name = 'foo' order by date desc");
 
         Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
         Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
@@ -61,7 +63,14 @@ public class ExplainAnalyzeIntegrationTest extends SQLTransportIntegrationTest {
         DiscoveryNodes nodes = clusterService().state().nodes();
         for (DiscoveryNode discoveryNode : nodes) {
             if (discoveryNode.isDataNode()) {
-                assertThat(executeAnalysis.get(discoveryNode.getId()), is(notNullValue()));
+                Object actual = executeAnalysis.get(discoveryNode.getId());
+                assertThat(actual, instanceOf(Map.class));
+
+                Map<String, Object> timings = (Map) actual;
+                assertThat(timings, Matchers.hasKey("QueryBreakdown"));
+
+                Map<String, Object> queryBreakdown = ((Map) ((List) timings.get("QueryBreakdown")).get(0));
+                assertThat(queryBreakdown, Matchers.hasEntry("QueryName", "BooleanQuery"));
             }
         }
     }
