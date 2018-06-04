@@ -25,7 +25,6 @@ package io.crate.profile;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * Simple stop watch type class that can be used as a context across multiple layers (analyzer, planner, executor)
@@ -36,18 +35,10 @@ import java.util.function.Function;
  */
 public class ProfilingContext {
 
-    private final boolean enabled;
     private final ImmutableMap.Builder<String, Long> durationInMSByTimer;
-    private final Function<String, Timer> createTimer;
 
-    public ProfilingContext(boolean enabled) {
-        this.enabled = enabled;
+    public ProfilingContext() {
         this.durationInMSByTimer = ImmutableMap.builder();
-        this.createTimer = enabled ? InternalTimer::new : NoopTimer::new;
-    }
-
-    public boolean enabled() {
-        return enabled;
     }
 
     /**
@@ -65,12 +56,10 @@ public class ProfilingContext {
 
     public void stopTimerAndStoreDuration(Timer timer) {
         timer.stop();
-        if (enabled) {
-            durationInMSByTimer.put(timer.name(), timer.durationNanos() / 1_000_000L);
-        }
+        durationInMSByTimer.put(timer.name(), timer.durationNanos() / 1_000_000L);
     }
 
     public Timer createTimer(String name) {
-        return createTimer.apply(name);
+        return new Timer(name);
     }
 }

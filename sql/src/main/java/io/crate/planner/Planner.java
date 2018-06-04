@@ -43,8 +43,6 @@ import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
 import io.crate.analyze.KillAnalyzedStatement;
-import io.crate.profile.Timer;
-import io.crate.profile.ProfilingContext;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
@@ -68,6 +66,8 @@ import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.statement.CopyStatementPlanner;
 import io.crate.planner.statement.DeletePlanner;
 import io.crate.planner.statement.SetSessionPlan;
+import io.crate.profile.ProfilingContext;
+import io.crate.profile.Timer;
 import io.crate.sql.tree.Expression;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
@@ -290,10 +290,14 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, PlannerContext context) {
         ProfilingContext ctx = explainAnalyzedStatement.context();
-        Timer timer = ctx.createAndStartTimer(ExplainPlan.Phase.Plan.name());
-        Plan subPlan = process(explainAnalyzedStatement.statement(), context);
-        ctx.stopTimerAndStoreDuration(timer);
-        return new ExplainPlan(subPlan, ctx);
+        if (ctx == null) {
+            return new ExplainPlan(process(explainAnalyzedStatement.statement(), context), null);
+        } else {
+            Timer timer = ctx.createAndStartTimer(ExplainPlan.Phase.Plan.name());
+            Plan subPlan = process(explainAnalyzedStatement.statement(), context);
+            ctx.stopTimerAndStoreDuration(timer);
+            return new ExplainPlan(subPlan, ctx);
+        }
     }
 
     @Override

@@ -24,8 +24,8 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.expression.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.symbol.Field;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
@@ -34,6 +34,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
@@ -58,6 +59,7 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
         return statement;
     }
 
+    @Nullable
     public ProfilingContext context() {
         return context;
     }

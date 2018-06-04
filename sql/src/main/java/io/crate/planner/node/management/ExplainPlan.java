@@ -25,19 +25,16 @@ package io.crate.planner.node.management;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.RowConsumerToResultReceiver;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.NodeOperationGrouper;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.engine.profile.TransportCollectProfileNodeAction;
 import io.crate.execution.engine.profile.TransportCollectProfileOperation;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.planner.operators.LogicalPlanner;
-import io.crate.profile.Timer;
-import io.crate.profile.ProfilingContext;
-import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.data.RowConsumer;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
@@ -45,10 +42,14 @@ import io.crate.planner.PlanPrinter;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.ExplainLogicalPlan;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.statement.CopyStatementPlanner;
+import io.crate.profile.ProfilingContext;
+import io.crate.profile.Timer;
 import org.elasticsearch.common.collect.MapBuilder;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -69,9 +70,10 @@ public class ExplainPlan implements Plan {
     }
 
     private final Plan subPlan;
+    @Nullable
     private final ProfilingContext context;
 
-    public ExplainPlan(Plan subExecutionPlan, ProfilingContext context) {
+    public ExplainPlan(Plan subExecutionPlan, @Nullable ProfilingContext context) {
         this.subPlan = subExecutionPlan;
         this.context = context;
     }
@@ -86,7 +88,7 @@ public class ExplainPlan implements Plan {
                         RowConsumer consumer,
                         Row params,
                         SubQueryResults subQueryResults) {
-        if (context.enabled()) {
+        if (context != null) {
             assert subPlan instanceof LogicalPlan : "subPlan must be a LogicalPlan";
             LogicalPlan plan = (LogicalPlan) subPlan;
             /**
@@ -106,7 +108,7 @@ public class ExplainPlan implements Plan {
                 resultReceiver.completionFuture()
                     .whenComplete(createResultConsumer(executor, consumer, jobId, timer, operationTree));
 
-                LogicalPlanner.executeNodeOpTree(executor, jobId, noopRowConsumer, context.enabled(), operationTree);
+                LogicalPlanner.executeNodeOpTree(executor, jobId, noopRowConsumer, true, operationTree);
             } else {
                 consumer.accept(null,
                     new UnsupportedOperationException("EXPLAIN ANALYZE does not support profiling multi-phase plans, " +
@@ -140,6 +142,7 @@ public class ExplainPlan implements Plan {
                                                              UUID jobId,
                                                              Timer timer,
                                                              NodeOperationTree operationTree) {
+        assert context != null : "profilingContext must be available if createResultconsumer is used";
         return (ignored, t) -> {
             context.stopTimerAndStoreDuration(timer);
             if (t == null) {
@@ -220,6 +223,6 @@ public class ExplainPlan implements Plan {
 
     @VisibleForTesting
     public boolean doAnalyze() {
-        return context.enabled();
+        return context != null;
     }
 }

@@ -24,8 +24,8 @@ package io.crate.analyze;
 
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.planner.node.management.ExplainPlan;
-import io.crate.profile.Timer;
 import io.crate.profile.ProfilingContext;
+import io.crate.profile.Timer;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.CopyFrom;
@@ -42,11 +42,19 @@ public class ExplainStatementAnalyzer {
     }
 
     public ExplainAnalyzedStatement analyze(Explain node, Analysis analysis) {
-        ProfilingContext profilingContext = new ProfilingContext(node.isAnalyze());
         CHECK_VISITOR.process(node.getStatement(), null);
-        Timer timer = profilingContext.createAndStartTimer(ExplainPlan.Phase.Analyze.name());
-        AnalyzedStatement subStatement = analyzer.analyzedStatement(node.getStatement(), analysis);
-        profilingContext.stopTimerAndStoreDuration(timer);
+
+        final AnalyzedStatement subStatement;
+        ProfilingContext profilingContext;
+        if (node.isAnalyze()) {
+            profilingContext = new ProfilingContext();
+            Timer timer = profilingContext.createAndStartTimer(ExplainPlan.Phase.Analyze.name());
+            subStatement = analyzer.analyzedStatement(node.getStatement(), analysis);
+            profilingContext.stopTimerAndStoreDuration(timer);
+        } else {
+            profilingContext = null;
+            subStatement = analyzer.analyzedStatement(node.getStatement(), analysis);
+        }
         String columnName = SqlFormatter.formatSql(node);
         ExplainAnalyzedStatement explainAnalyzedStatement =
             new ExplainAnalyzedStatement(columnName, subStatement, profilingContext);

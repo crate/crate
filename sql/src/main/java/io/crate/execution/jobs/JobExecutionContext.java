@@ -38,6 +38,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -63,6 +64,8 @@ public class JobExecutionContext implements CompletionListenable {
     private final CompletableFuture<Void> finishedFuture = new CompletableFuture<>();
     private final AtomicBoolean killSubContextsOngoing = new AtomicBoolean(false);
     private final Collection<String> participatedNodes;
+
+    @Nullable
     private final ProfilingContext profiler;
     private volatile Throwable failure;
 
@@ -124,13 +127,14 @@ public class JobExecutionContext implements CompletionListenable {
 
         int numContexts = orderedContexts.size();
 
-        profiler = new ProfilingContext(enableProfiling);
-        if (profiler.enabled()) {
+        if (enableProfiling) {
+            profiler = new ProfilingContext();
             subContextTimers = new ConcurrentHashMap<>(numContexts);
             profilingFuture = new CompletableFuture<>();
         } else {
             subContextTimers = null;
             profilingFuture = null;
+            profiler = null;
         }
 
         orderedContextIds = new IntArrayList(numContexts);
@@ -147,8 +151,7 @@ public class JobExecutionContext implements CompletionListenable {
             if (subContexts.put(subContextId, context) != null) {
                 throw new IllegalArgumentException("ExecutionSubContext for " + subContextId + " already added");
             }
-            if (profiler.enabled()) {
-                assert subContextTimers != null : "subContextTimers must not be null";
+            if (profiler != null) {
                 String subContextName = String.format(Locale.ROOT, "%d-%s", context.id(), context.name());
                 if (subContextTimers.put(subContextId, profiler.createTimer(subContextName)) != null) {
                     throw new IllegalArgumentException("Timer for " + subContextId + " already added");
@@ -198,7 +201,7 @@ public class JobExecutionContext implements CompletionListenable {
             if (subContext == null || closed.get()) {
                 break; // got killed before start was called
             }
-            if (profiler.enabled()) {
+            if (profiler != null) {
                 assert subContextTimers != null : "subContextTimers must not be null";
                 subContextTimers.get(id.value).start();
             }
@@ -256,7 +259,7 @@ public class JobExecutionContext implements CompletionListenable {
     }
 
     private void finish() {
-        if (profiler.enabled()) {
+        if (profiler != null) {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Profiling is enabled. JobExecutionContext will not be closed until results are collected!");
                 LOGGER.trace("Profiling results for job {}: {}", jobId, profiler.getDurationInMSByTimer());
@@ -269,7 +272,7 @@ public class JobExecutionContext implements CompletionListenable {
     }
 
     public CompletableFuture<Map<String, Long>> finishProfiling() {
-        if (!profiler.enabled()) {
+        if (profiler == null) {
             // sanity check
             IllegalStateException stateException = new IllegalStateException(
                 String.format(Locale.ENGLISH, "Tried to finish profiling job [id=%s], but profiling is not enabled.", jobId));
@@ -281,6 +284,9 @@ public class JobExecutionContext implements CompletionListenable {
 
     @VisibleForTesting
     Map<String, Long> executionTimes() {
+        if (profiler == null) {
+            return Collections.emptyMap();
+        }
         return profiler.getDurationInMSByTimer();
     }
 
@@ -342,7 +348,7 @@ public class JobExecutionContext implements CompletionListenable {
 
         @Override
         public void accept(CompletionState completionState, Throwable throwable) {
-            if (profiler.enabled()) {
+            if (profiler != null) {
                 stopSubContextTimer();
             }
             if (throwable == null) {
@@ -353,6 +359,7 @@ public class JobExecutionContext implements CompletionListenable {
         }
 
         private void stopSubContextTimer() {
+            assert profiler != null : "profiler must not be null";
             assert subContextTimers != null : "subContextTimers must not be null";
             Timer removed = subContextTimers.remove(id);
             assert removed != null : "removed must not be null";

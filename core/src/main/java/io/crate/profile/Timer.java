@@ -22,13 +22,41 @@
 
 package io.crate.profile;
 
-public interface Timer {
+public final class Timer {
 
-    String name();
+    private final String name;
+    private long duration;
+    private long startTime;
+    private boolean running;
 
-    void start();
+    Timer(String name) {
+        this.name = name;
+        this.running = false;
+    }
 
-    void stop();
+    public String name() {
+        return name;
+    }
 
-    long durationNanos();
+    public void start() {
+        if (running) {
+            throw new IllegalStateException("Timer is already running");
+        } else {
+            running = true;
+            startTime = System.nanoTime();
+        }
+    }
+
+    public void stop() {
+        if (!running) {
+            throw new IllegalStateException("Timer is not running and cannot be stopped");
+        } else {
+            duration += System.nanoTime() - startTime;
+            running = false;
+        }
+    }
+
+    public long durationNanos() {
+        return duration;
+    }
 }
