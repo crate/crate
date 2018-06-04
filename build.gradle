@@ -3,14 +3,14 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'de.thetaphi:forbiddenapis:2.3'
-        classpath "gradle.plugin.com.github.spotbugs:gradlePlugin:1.6.0"
+        classpath 'de.thetaphi:forbiddenapis:2.5'
+        classpath "gradle.plugin.com.github.spotbugs:spotbugs-gradle-plugin:1.6.2"
     }
 }
 
 plugins {
     id 'com.github.johnrengelman.shadow' version '2.0.2'
-    id 'com.github.spotbugs' version '1.6.0'
+    id 'com.github.spotbugs' version '1.6.2'
 }
 
 
