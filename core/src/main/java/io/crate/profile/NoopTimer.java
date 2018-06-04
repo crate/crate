@@ -22,13 +22,29 @@
 
 package io.crate.profile;
 
-public interface TimeMeasurable {
+public class NoopTimer implements Timer {
 
-    String name();
+    private final String name;
 
-    void start();
+    NoopTimer(String name) {
+        this.name = name;
+    }
 
-    void stop();
+    @Override
+    public String name() {
+        return name;
+    }
 
-    long durationNanos();
+    @Override
+    public void start() {
+    }
+
+    @Override
+    public void stop() {
+    }
+
+    @Override
+    public long durationNanos() {
+        return 0;
+    }
 }

@@ -32,7 +32,7 @@ import io.crate.execution.engine.profile.TransportCollectProfileNodeAction;
 import io.crate.execution.engine.profile.TransportCollectProfileOperation;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.operators.LogicalPlanner;
-import io.crate.profile.TimeMeasurable;
+import io.crate.profile.Timer;
 import io.crate.profile.ProfilingContext;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -97,14 +97,14 @@ public class ExplainPlan implements Plan {
                 BaseResultReceiver resultReceiver = new BaseResultReceiver();
                 RowConsumer noopRowConsumer = new RowConsumerToResultReceiver(resultReceiver, 0);
 
-                TimeMeasurable timeMeasurable = context.createMeasurable(Phase.Execute.name());
-                timeMeasurable.start();
+                Timer timer = context.createTimer(Phase.Execute.name());
+                timer.start();
 
                 NodeOperationTree operationTree = LogicalPlanner.getNodeOperationTree(
                     plan, executor, plannerContext, params, subQueryResults);
 
                 resultReceiver.completionFuture()
-                    .whenComplete(createResultConsumer(executor, consumer, jobId, timeMeasurable, operationTree));
+                    .whenComplete(createResultConsumer(executor, consumer, jobId, timer, operationTree));
 
                 LogicalPlanner.executeNodeOpTree(executor, jobId, noopRowConsumer, context.enabled(), operationTree);
             } else {
@@ -138,13 +138,13 @@ public class ExplainPlan implements Plan {
     private BiConsumer<Void, Throwable> createResultConsumer(DependencyCarrier executor,
                                                              RowConsumer consumer,
                                                              UUID jobId,
-                                                             TimeMeasurable timeMeasurable,
+                                                             Timer timer,
                                                              NodeOperationTree operationTree) {
         return (ignored, t) -> {
-            context.stopAndAddMeasurable(timeMeasurable);
+            context.stopTimerAndStoreDuration(timer);
             if (t == null) {
                 OneRowActionListener<Map<String, Map<String, Long>>> actionListener =
-                    new OneRowActionListener<>(consumer, resp -> buildResponse(context.getAsMap(), resp));
+                    new OneRowActionListener<>(consumer, resp -> buildResponse(context.getDurationInMSByTimer(), resp));
                 collectTimingResults(jobId, executor, operationTree.nodeOperations())
                     .whenComplete(actionListener);
             } else {

@@ -37,37 +37,40 @@ import java.util.function.Function;
 public class ProfilingContext {
 
     private final boolean enabled;
-    private final ImmutableMap.Builder<String, Long> map;
-    private final Function<String, TimeMeasurable> measureableFactory;
+    private final ImmutableMap.Builder<String, Long> durationInMSByTimer;
+    private final Function<String, Timer> createTimer;
 
     public ProfilingContext(boolean enabled) {
         this.enabled = enabled;
-        this.map = ImmutableMap.builder();
-        this.measureableFactory = enabled ? InternalTimeMeasurable::new : NoopTimeMeasurable::new;
+        this.durationInMSByTimer = ImmutableMap.builder();
+        this.createTimer = enabled ? InternalTimer::new : NoopTimer::new;
     }
 
     public boolean enabled() {
         return enabled;
     }
 
-    public Map<String, Long> getAsMap() {
-        return map.build();
+    /**
+     * @return a read-only map containing the duration per timer
+     */
+    public Map<String, Long> getDurationInMSByTimer() {
+        return durationInMSByTimer.build();
     }
 
-    public TimeMeasurable createAndStartMeasurable(String name) {
-        TimeMeasurable timer = createMeasurable(name);
+    public Timer createAndStartTimer(String name) {
+        Timer timer = createTimer(name);
         timer.start();
         return timer;
     }
 
-    public void stopAndAddMeasurable(TimeMeasurable measurable) {
-        measurable.stop();
+    public void stopTimerAndStoreDuration(Timer timer) {
+        timer.stop();
         if (enabled) {
-            map.put(measurable.name(), measurable.durationNanos() / 1_000_000L);
+            durationInMSByTimer.put(timer.name(), timer.durationNanos() / 1_000_000L);
         }
     }
 
-    public TimeMeasurable createMeasurable(String name) {
-        return measureableFactory.apply(name);
+    public Timer createTimer(String name) {
+        return createTimer.apply(name);
     }
 }

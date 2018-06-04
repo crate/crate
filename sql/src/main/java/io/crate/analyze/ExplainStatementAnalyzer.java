@@ -24,7 +24,7 @@ package io.crate.analyze;
 
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.planner.node.management.ExplainPlan;
-import io.crate.profile.TimeMeasurable;
+import io.crate.profile.Timer;
 import io.crate.profile.ProfilingContext;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.AstVisitor;
@@ -44,9 +44,9 @@ public class ExplainStatementAnalyzer {
     public ExplainAnalyzedStatement analyze(Explain node, Analysis analysis) {
         ProfilingContext profilingContext = new ProfilingContext(node.isAnalyze());
         CHECK_VISITOR.process(node.getStatement(), null);
-        TimeMeasurable timeMeasurable = profilingContext.createAndStartMeasurable(ExplainPlan.Phase.Analyze.name());
+        Timer timer = profilingContext.createAndStartTimer(ExplainPlan.Phase.Analyze.name());
         AnalyzedStatement subStatement = analyzer.analyzedStatement(node.getStatement(), analysis);
-        profilingContext.stopAndAddMeasurable(timeMeasurable);
+        profilingContext.stopTimerAndStoreDuration(timer);
         String columnName = SqlFormatter.formatSql(node);
         ExplainAnalyzedStatement explainAnalyzedStatement =
             new ExplainAnalyzedStatement(columnName, subStatement, profilingContext);

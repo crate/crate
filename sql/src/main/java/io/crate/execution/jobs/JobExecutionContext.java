@@ -24,14 +24,13 @@ package io.crate.execution.jobs;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.profile.ProfilingContext;
-import io.crate.profile.TimeMeasurable;
+import io.crate.profile.Timer;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -68,7 +67,7 @@ public class JobExecutionContext implements CompletionListenable {
     private volatile Throwable failure;
 
     @Nullable
-    private final ConcurrentHashMap<Integer, TimeMeasurable> subContextTimers;
+    private final ConcurrentHashMap<Integer, Timer> subContextTimers;
     @Nullable
     private final CompletableFuture<Map<String, Long>> profilingFuture;
 
@@ -151,8 +150,8 @@ public class JobExecutionContext implements CompletionListenable {
             if (profiler.enabled()) {
                 assert subContextTimers != null : "subContextTimers must not be null";
                 String subContextName = String.format(Locale.ROOT, "%d-%s", context.id(), context.name());
-                if (subContextTimers.put(subContextId, profiler.createMeasurable(subContextName)) != null) {
-                    throw new IllegalArgumentException("TimeMeasurable for " + subContextId + " already added");
+                if (subContextTimers.put(subContextId, profiler.createTimer(subContextName)) != null) {
+                    throw new IllegalArgumentException("Timer for " + subContextId + " already added");
                 }
             }
             if (traceEnabled) {
@@ -260,7 +259,7 @@ public class JobExecutionContext implements CompletionListenable {
         if (profiler.enabled()) {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Profiling is enabled. JobExecutionContext will not be closed until results are collected!");
-                LOGGER.trace("Profiling results for job {}: {}", jobId, profiler.getAsMap());
+                LOGGER.trace("Profiling results for job {}: {}", jobId, profiler.getDurationInMSByTimer());
             }
             assert profilingFuture != null : "profilingFuture must not be null";
             profilingFuture.complete(executionTimes());
@@ -282,7 +281,7 @@ public class JobExecutionContext implements CompletionListenable {
 
     @VisibleForTesting
     Map<String, Long> executionTimes() {
-        return ImmutableMap.copyOf(profiler.getAsMap());
+        return profiler.getDurationInMSByTimer();
     }
 
     @Override
@@ -355,9 +354,9 @@ public class JobExecutionContext implements CompletionListenable {
 
         private void stopSubContextTimer() {
             assert subContextTimers != null : "subContextTimers must not be null";
-            TimeMeasurable removed = subContextTimers.remove(id);
+            Timer removed = subContextTimers.remove(id);
             assert removed != null : "removed must not be null";
-            profiler.stopAndAddMeasurable(removed);
+            profiler.stopTimerAndStoreDuration(removed);
         }
     }
 }

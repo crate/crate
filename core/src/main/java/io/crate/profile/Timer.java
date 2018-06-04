@@ -22,45 +22,13 @@
 
 package io.crate.profile;
 
-public class InternalTimeMeasurable implements TimeMeasurable {
+public interface Timer {
 
-    private final String name;
-    private long duration;
-    private long startTime;
-    private boolean running;
+    String name();
 
-    InternalTimeMeasurable(String name) {
-        this.name = name;
-        this.running = false;
-    }
+    void start();
 
-    @Override
-    public String name() {
-        return name;
-    }
+    void stop();
 
-    @Override
-    public void start() {
-        if (running) {
-            throw new IllegalStateException("Timer is already running");
-        } else {
-            running = true;
-            startTime = System.nanoTime();
-        }
-    }
-
-    @Override
-    public void stop() {
-        if (!running) {
-            throw new IllegalStateException("Timer is not running and cannot be stopped");
-        } else {
-            duration += System.nanoTime() - startTime;
-            running = false;
-        }
-    }
-
-    @Override
-    public long durationNanos() {
-        return duration;
-    }
+    long durationNanos();
 }

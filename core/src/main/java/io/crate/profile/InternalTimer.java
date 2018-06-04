@@ -22,12 +22,16 @@
 
 package io.crate.profile;
 
-public class NoopTimeMeasurable implements TimeMeasurable {
+public class InternalTimer implements Timer {
 
     private final String name;
+    private long duration;
+    private long startTime;
+    private boolean running;
 
-    NoopTimeMeasurable(String name) {
+    InternalTimer(String name) {
         this.name = name;
+        this.running = false;
     }
 
     @Override
@@ -37,14 +41,26 @@ public class NoopTimeMeasurable implements TimeMeasurable {
 
     @Override
     public void start() {
+        if (running) {
+            throw new IllegalStateException("Timer is already running");
+        } else {
+            running = true;
+            startTime = System.nanoTime();
+        }
     }
 
     @Override
     public void stop() {
+        if (!running) {
+            throw new IllegalStateException("Timer is not running and cannot be stopped");
+        } else {
+            duration += System.nanoTime() - startTime;
+            running = false;
+        }
     }
 
     @Override
     public long durationNanos() {
-        return 0;
+        return duration;
     }
 }
