@@ -67,11 +67,11 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
         if (value instanceof BytesRef) {
             return Byte.parseByte(((BytesRef) value).utf8ToString());
         }
-        Integer val = ((Number) value).intValue();
+        int val = ((Number) value).intValue();
         if (val < Byte.MIN_VALUE || Byte.MAX_VALUE < val) {
             throw new IllegalArgumentException("byte value out of range: " + val);
         }
-        return val.byteValue();
+        return (byte) val;
     }
 
     @Override

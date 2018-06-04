@@ -23,11 +23,11 @@ package io.crate.expression.scalar;
 
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
@@ -69,7 +69,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         assert index instanceof Integer : "second argument must be of type integer";
 
         // 1 based arrays as SQL standard says
-        Integer idx = (Integer) index - 1;
+        int idx = (int) index - 1;
         try {
             if (element instanceof List) {
                 return ((List) element).get(idx);

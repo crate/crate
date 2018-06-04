@@ -50,7 +50,7 @@ public class IpType extends StringType {
             validate((String) value);
             return new BytesRef((String) value);
         } else {
-            Long longIp = ((Number) value).longValue();
+            long longIp = ((Number) value).longValue();
             if (longIp < 0) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Failed to convert long value: %s to ipv4 address)",
                     longIp));

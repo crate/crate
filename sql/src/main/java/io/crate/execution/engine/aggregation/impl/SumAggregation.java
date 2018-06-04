@@ -24,9 +24,9 @@ package io.crate.execution.engine.aggregation.impl;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -44,7 +44,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     public static void register(AggregationImplModule mod) {
 
         final BinaryOperator<Long> longAddImpl = (n1, n2) -> {
-            Long r = n1 + n2;
+            long r = n1 + n2;
             // Overflow if both arguments have the opposite sign of the result
             if (((n1 ^ r) & (n2 ^ r)) < 0) {
                 throw new ArithmeticException("long overflow");

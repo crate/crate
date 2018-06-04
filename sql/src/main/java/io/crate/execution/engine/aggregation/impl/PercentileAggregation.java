@@ -135,8 +135,8 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
         Double[] percentiles = new Double[state.fractions().length];
         if (info.returnType() instanceof ArrayType) {
             for (int i = 0; i < state.fractions().length; i++) {
-                Double percentile = state.quantile(state.fractions()[i]);
-                if (percentile.isNaN()) {
+                double percentile = state.quantile(state.fractions()[i]);
+                if (Double.isNaN(percentile)) {
                     percentiles[i] = null;
                 } else {
                     percentiles[i] = percentile;
@@ -144,8 +144,8 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
             }
             return percentiles;
         } else {
-            Double percentile = state.quantile(state.fractions()[0]);
-            if (percentile.isNaN()) {
+            double percentile = state.quantile(state.fractions()[0]);
+            if (Double.isNaN(percentile)) {
                 return null;
             } else {
                 return percentile;

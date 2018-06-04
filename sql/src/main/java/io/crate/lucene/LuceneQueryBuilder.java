@@ -1002,7 +1002,7 @@ public class LuceneQueryBuilder {
                 }
                 Query query = getQuery(inner, context);
                 if (query == null) return null;
-                Boolean negate = !(Boolean) outerPair.input().value();
+                boolean negate = !(Boolean) outerPair.input().value();
                 if (negate) {
                     return Queries.not(query);
                 } else {

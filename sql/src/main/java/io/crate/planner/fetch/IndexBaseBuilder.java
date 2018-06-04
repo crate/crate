@@ -43,7 +43,7 @@ public final class IndexBaseBuilder {
     }
 
     public TreeMap<String, Integer> build() {
-        Integer currentBase = 0;
+        int currentBase = 0;
         for (Map.Entry<String, Integer> entry : baseByIndex.entrySet()) {
             Integer maxId = entry.getValue();
             entry.setValue(currentBase);

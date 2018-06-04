@@ -514,8 +514,8 @@ public class SysInfo {
                     if (!lines.isEmpty()) {
                         String[] parts = lines.get(0).split(" ");
                         if (parts.length == 2) {
-                            Double uptimeMillis = Float.parseFloat(parts[1]) * 1000.0;
-                            return uptimeMillis.longValue();
+                            double uptimeMillis = Float.parseFloat(parts[1]) * 1000.0;
+                            return (long) uptimeMillis;
                         }
                     }
                 } catch (IOException e) {
