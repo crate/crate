@@ -36,6 +36,78 @@ timings of the different phases of the plan are returned.
    in-depth details.
 
 
+The output of ``EXPLAIN ANALYZE`` also includes a break down of the query
+execution if the statement being explained involves queries which are executed
+using Lucene.
+
+The output includes verbose low level information per queried shard. Since SQL
+query expressions do not always have a direct 1:1 mapping to Lucene queries the
+output may be more complex but in most cases it should still be possible to
+identify the most expensive parts of a query expression.
+Some familiarity with Lucene helps in interpreting the output.
+
+A short excerpt of a query breakdown looks like this::
+
+    {
+      "QueryName": "PointRangeQuery",
+      "QueryDescription": "x:[1 TO 1]",
+      "Time": 0.004096,
+      "BreakDown": {
+        "score": 0,
+        "match_count": 0,
+        "build_scorer_count": 0,
+        "create_weight": 0.004095,
+        "next_doc": 0,
+        "match": 0,
+        "score_count": 0,
+        "next_doc_count": 0,
+        "create_weight_count": 1,
+        "build_scorer": 0,
+        "advance_count": 0,
+        "advance": 0
+      }
+    }
+
+The time values are in milliseconds. Fields suffixed with ``_count`` indicate
+how often an operation was invoked.
+
++-----------------------------------+-----------------------------------+
+| field                             | description                       |
++===================================+===================================+
+| ``create_weight``                 | A ``Weight`` object is created    |
+|                                   | for a query and acts as a         |
+|                                   | temporary object containing       |
+|                                   | state. This metric shows how long |
+|                                   | this process took.                |
++-----------------------------------+-----------------------------------+
+| ``build_scorer``                  | A ``Scorer`` object is used to    |
+|                                   | iterate over documents matching   |
+|                                   | the query and generate scores for |
+|                                   | them. Note that this includes     |
+|                                   | only the time to create the       |
+|                                   | scorer, not that actual time      |
+|                                   | spent on the iteration.           |
++-----------------------------------+-----------------------------------+
+| ``score``                         | Shows the time it takes to score  |
+|                                   | a particular document via its     |
+|                                   | ``Scorer``.                       |
++-----------------------------------+-----------------------------------+
+| ``next_doc``                      | Shows the time it takes to        |
+|                                   | determine which document is the   |
+|                                   | next match.                       |
++-----------------------------------+-----------------------------------+
+| ``advance``                       | A lower level version of          |
+|                                   | ``next_doc``.                     |
++-----------------------------------+-----------------------------------+
+| ``match``                         | Some queries use a two-phase      |
+|                                   | execution, doing an               |
+|                                   | ``approximation`` first, and then |
+|                                   | a second more expensive phase.    |
+|                                   | This metric measures the second   |
+|                                   | phase.                            |
++-----------------------------------+-----------------------------------+
+
+
 Parameters
 ==========
 
