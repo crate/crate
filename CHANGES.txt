@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Handle ``STRING_ARRAY`` as argument type for user-defined functions correctly
+  to prevent an ``ArrayStoreException``.
+
 - Fixed an issue that could cause ``HTTP`` requests using empty ``bulk_args``
   to fail.
 

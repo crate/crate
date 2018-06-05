@@ -33,6 +33,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -298,9 +299,18 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     @Test
     public void testEvaluateBytesRefInArrayIsConvertedToString() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.STRING, ImmutableList.of(new ArrayType(new ArrayType(DataTypes.STRING))),
+        registerUserDefinedFunction("f", DataTypes.STRING, ImmutableList.of(new ArrayType(DataTypes.STRING_ARRAY)),
             "function f(arr) { return arr[0][0]; }");
         assertEvaluate("f(array_string_array)", "foo",
-            Literal.of(new Object[][]{new Object[]{new BytesRef("foo")}}, new ArrayType(new ArrayType(DataTypes.STRING))));
+            Literal.of(new Object[][]{new Object[]{new BytesRef("foo")}}, new ArrayType(DataTypes.STRING_ARRAY)));
+    }
+
+    @Test
+    public void testStringArrayTypeArgument() throws Exception {
+        registerUserDefinedFunction("f", DataTypes.STRING, ImmutableList.of(DataTypes.STRING_ARRAY),
+            "function f(a) { return Array.prototype.join.call(a, '.'); }");
+        assertEvaluate("f(['a', 'b'])", is("a.b"));
+        assertEvaluate("f(['a', 'b'])", is("a.b"),
+            Literal.of(new BytesRef[]{BytesRefs.toBytesRef("a"), BytesRefs.toBytesRef("b")}, DataTypes.STRING_ARRAY));
     }
 }
