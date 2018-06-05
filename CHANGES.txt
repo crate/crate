@@ -18,6 +18,9 @@ Breaking Changes
 Changes
 =======
 
+- Added support for ``COPY FROM ... RETURN SUMMARY`` which will return a result
+  set with detailed error reporting of imported rows.
+
 - Added a ``sys.jobs_metrics`` table which contains query latency information.
 
 - The setting ``es.api.enabled`` has been marked as deprecated and will be
