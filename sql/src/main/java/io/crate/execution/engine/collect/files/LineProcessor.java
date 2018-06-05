@@ -40,6 +40,7 @@ public class LineProcessor {
     }
 
     void startWithUri(URI currentUri) {
+        lineContext.resetCurrentLineNumber();
         lineContext.currentUri(currentUri);
     }
 
@@ -48,6 +49,7 @@ public class LineProcessor {
     }
 
     public void process(String line) throws IOException {
+        lineContext.incrementCurrentLineNumber();
         byte[] jsonByteArray = lineParser.getByteArray(line);
         lineContext.rawSource(jsonByteArray);
     }

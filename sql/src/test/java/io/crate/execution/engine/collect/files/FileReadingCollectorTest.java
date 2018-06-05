@@ -38,7 +38,7 @@ import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.reference.file.SourceLineExpression;
-import io.crate.expression.reference.file.UriFailureExpression;
+import io.crate.expression.reference.file.SourceUriFailureExpression;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -285,7 +285,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         Reference raw = createReference(SourceLineExpression.COLUMN_NAME, DataTypes.STRING);
         inputs.add(ctx.add(raw));
         if (collectSourceUriFailure) {
-            Reference sourceUriFailure = createReference(UriFailureExpression.COLUMN_NAME, DataTypes.STRING);
+            Reference sourceUriFailure = createReference(SourceUriFailureExpression.COLUMN_NAME, DataTypes.STRING);
             //noinspection unchecked
             sourceUriFailureInput = (Input<String>) ctx.add(sourceUriFailure);
             inputs.add(sourceUriFailureInput);

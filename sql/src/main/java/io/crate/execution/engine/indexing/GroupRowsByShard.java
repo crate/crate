@@ -60,6 +60,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private final BiConsumer<ShardedRequests, String> itemFailureRecorder;
     private final Predicate<ShardedRequests> hasSourceUriFailure;
     private final Input<BytesRef> sourceUriInput;
+    private final Input<Long> lineNumberInput;
 
     GroupRowsByShard(ClusterService clusterService,
                      RowShardResolver rowShardResolver,
@@ -70,6 +71,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                      BiConsumer<ShardedRequests, String> itemFailureRecorder,
                      Predicate<ShardedRequests> hasSourceUriFailure,
                      Input<BytesRef> sourceUriInput,
+                     Input<Long> lineNumberInput,
                      boolean autoCreateIndices) {
         assert expressions instanceof RandomAccess
             : "expressions should be a RandomAccess list for zero allocation iterations";
@@ -83,6 +85,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         this.itemFailureRecorder = itemFailureRecorder;
         this.hasSourceUriFailure = hasSourceUriFailure;
         this.sourceUriInput = sourceUriInput;
+        this.lineNumberInput = lineNumberInput;
         this.autoCreateIndices = autoCreateIndices;
     }
 
@@ -107,11 +110,14 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             String indexName = indexNameResolver.get();
             String routing = rowShardResolver.routing();
             BytesRef sourceUri = sourceUriInput.value();
+            Long lineNumber = lineNumberInput.value();
+
+            RowSourceInfo rowSourceInfo = RowSourceInfo.emptyMarkerOrNewInstance(sourceUri, lineNumber);
             ShardLocation shardLocation = getShardLocation(indexName, id, routing);
             if (shardLocation == null) {
-                shardedRequests.add(item, indexName, routing, sourceUri);
+                shardedRequests.add(item, indexName, routing, rowSourceInfo);
             } else {
-                shardedRequests.add(item, shardLocation, sourceUri);
+                shardedRequests.add(item, shardLocation, rowSourceInfo);
             }
         } catch (Throwable t) {
             itemFailureRecorder.accept(shardedRequests, t.getMessage());
@@ -153,20 +159,20 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
      * @throws IllegalStateException if a shardLocation still can't be resolved
      */
     void reResolveShardLocations(ShardedRequests<TReq, TItem> requests) {
-        Iterator<Map.Entry<String, List<ShardedRequests.ItemAndRoutingAndSourceUri<TItem>>>> entryIt =
+        Iterator<Map.Entry<String, List<ShardedRequests.ItemAndRoutingAndSourceInfo<TItem>>>> entryIt =
             requests.itemsByMissingIndex.entrySet().iterator();
         while (entryIt.hasNext()) {
-            Map.Entry<String, List<ShardedRequests.ItemAndRoutingAndSourceUri<TItem>>> e = entryIt.next();
-            List<ShardedRequests.ItemAndRoutingAndSourceUri<TItem>> items = e.getValue();
-            Iterator<ShardedRequests.ItemAndRoutingAndSourceUri<TItem>> it = items.iterator();
+            Map.Entry<String, List<ShardedRequests.ItemAndRoutingAndSourceInfo<TItem>>> e = entryIt.next();
+            List<ShardedRequests.ItemAndRoutingAndSourceInfo<TItem>> items = e.getValue();
+            Iterator<ShardedRequests.ItemAndRoutingAndSourceInfo<TItem>> it = items.iterator();
             while (it.hasNext()) {
-                ShardedRequests.ItemAndRoutingAndSourceUri<TItem> itemAndRoutingAndSourceUri = it.next();
+                ShardedRequests.ItemAndRoutingAndSourceInfo<TItem> itemAndRoutingAndSourceInfo = it.next();
                 ShardLocation shardLocation =
-                    getShardLocation(e.getKey(), itemAndRoutingAndSourceUri.item.id(), itemAndRoutingAndSourceUri.routing);
+                    getShardLocation(e.getKey(), itemAndRoutingAndSourceInfo.item.id(), itemAndRoutingAndSourceInfo.routing);
                 if (shardLocation == null) {
                     throw new IllegalStateException("shardLocation not resolvable after createIndices");
                 }
-                requests.add(itemAndRoutingAndSourceUri.item, shardLocation, itemAndRoutingAndSourceUri.sourceUri);
+                requests.add(itemAndRoutingAndSourceInfo.item, shardLocation, itemAndRoutingAndSourceInfo.rowSourceInfo);
                 it.remove();
             }
             if (items.isEmpty()) {

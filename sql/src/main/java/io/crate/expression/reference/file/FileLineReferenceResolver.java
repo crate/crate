@@ -37,8 +37,9 @@ public final class FileLineReferenceResolver {
         ImmutableMap.of(
             SourceLineExpression.COLUMN_NAME, SourceLineExpression::new,
             SourceAsMapLineExpression.COLUMN_NAME, SourceAsMapLineExpression::new,
-            CurrentUriLineExpression.COLUMN_NAME, CurrentUriLineExpression::new,
-            UriFailureExpression.COLUMN_NAME, UriFailureExpression::new);
+            SourceUriExpression.COLUMN_NAME, SourceUriExpression::new,
+            SourceUriFailureExpression.COLUMN_NAME, SourceUriFailureExpression::new,
+            SourceLineNumberExpression.COLUMN_NAME, SourceLineNumberExpression::new);
 
     private FileLineReferenceResolver() {
     }

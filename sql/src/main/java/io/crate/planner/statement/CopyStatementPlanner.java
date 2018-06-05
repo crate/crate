@@ -42,8 +42,9 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.pipeline.TopN;
-import io.crate.expression.reference.file.CurrentUriLineExpression;
-import io.crate.expression.reference.file.UriFailureExpression;
+import io.crate.expression.reference.file.SourceUriExpression;
+import io.crate.expression.reference.file.SourceLineNumberExpression;
+import io.crate.expression.reference.file.SourceUriFailureExpression;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -212,10 +213,13 @@ public final class CopyStatementPlanner {
         boolean isReturnSummary = copyFrom instanceof CopyFromReturnSummaryAnalyzedStatement;
         if (isReturnSummary) {
             final InputColumn sourceUriSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
-            toCollect.add(CurrentUriLineExpression.getReferenceForRelation(table.ident()));
+            toCollect.add(SourceUriExpression.getReferenceForRelation(table.ident()));
 
             final InputColumn sourceUriFailureSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
-            toCollect.add(UriFailureExpression.getReferenceForRelation(table.ident()));
+            toCollect.add(SourceUriFailureExpression.getReferenceForRelation(table.ident()));
+
+            final InputColumn lineNumberSymbol = new InputColumn(toCollect.size(), DataTypes.LONG);
+            toCollect.add(SourceLineNumberExpression.getReferenceForRelation(table.ident()));
 
             List<? extends Symbol> fields = ((CopyFromReturnSummaryAnalyzedStatement) copyFrom).fields();
             projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
@@ -236,7 +240,8 @@ public final class CopyStatementPlanner {
                 projectionOutputs,
                 table.isPartitioned(), // autoCreateIndices
                 sourceUriSymbol,
-                sourceUriFailureSymbol
+                sourceUriFailureSymbol,
+                lineNumberSymbol
             );
         } else {
             sourceIndexWriterProjection = new SourceIndexWriterProjection(

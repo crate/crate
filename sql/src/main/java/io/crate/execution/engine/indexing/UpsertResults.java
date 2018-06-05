@@ -28,8 +28,11 @@ import io.crate.data.RowN;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -51,13 +54,13 @@ class UpsertResults {
         result.successRowCount += successRowCount;
     }
 
-    void addResult(BytesRef uri, @Nullable String failureMessage) {
+    void addResult(BytesRef uri, @Nullable String failureMessage, long lineNumber) {
         Result result = getResultSafe(uri);
         if (failureMessage == null) {
             result.successRowCount += 1;
         } else {
             result.errorRowCount += 1;
-            result.updateErrorCount(failureMessage, 1L);
+            result.updateErrorCount(failureMessage, Collections.singletonList(lineNumber), 1L);
         }
     }
 
@@ -65,7 +68,7 @@ class UpsertResults {
         assert uri != null : "expecting URI argument not to be null";
         Result result = getResultSafe(uri);
         result.sourceUriFailure = true;
-        result.updateErrorCount(uriFailure, 1L);
+        result.updateErrorCount(uriFailure, Collections.emptyList(), 1L);
     }
 
     private Result getResultSafe(@Nullable BytesRef uri) {
@@ -110,6 +113,7 @@ class UpsertResults {
     static class Result {
 
         private static final String ERROR_COUNT_KEY = "count";
+        private static final String LINE_NUMBERS_KEY = "line_numbers";
 
         long successRowCount = 0;
         long errorRowCount = 0;
@@ -123,20 +127,30 @@ class UpsertResults {
                 sourceUriFailure = upsertResult.sourceUriFailure;
             }
             for (Map.Entry<String, Map<String, Object>> entry : upsertResult.errors.entrySet()) {
-                updateErrorCount(entry.getKey(), (Long) entry.getValue().get(ERROR_COUNT_KEY));
+                Map<String, Object> val = entry.getValue();
+                //noinspection unchecked
+                List<Long> lineNumbers = (List<Long>) val.get(LINE_NUMBERS_KEY);
+                Long errorCnt = (Long) val.get(ERROR_COUNT_KEY);
+                updateErrorCount(entry.getKey(), lineNumbers, errorCnt);
             }
         }
 
-        private void updateErrorCount(String msg, Long increaseBy) {
+        private void updateErrorCount(String msg, List<Long> lineNumbers, Long increaseBy) {
             Map<String, Object> errorEntry = errors.get(msg);
             Long cnt = 0L;
+            List<Long> currentLineNumbers;
             if (errorEntry == null) {
                 errorEntry = new HashMap<>(1);
                 errors.put(msg, errorEntry);
+                currentLineNumbers = new ArrayList<>(lineNumbers);
             } else {
                 cnt = (Long) errorEntry.get(ERROR_COUNT_KEY);
+                //noinspection unchecked
+                currentLineNumbers = (List<Long>) errorEntry.get(LINE_NUMBERS_KEY);
+                currentLineNumbers.addAll(lineNumbers);
             }
             errorEntry.put(ERROR_COUNT_KEY, cnt + increaseBy);
+            errorEntry.put(LINE_NUMBERS_KEY, currentLineNumbers);
         }
     }
 }

@@ -26,7 +26,6 @@ import io.crate.execution.dml.ShardRequest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.shard.ShardId;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,10 +34,10 @@ import java.util.function.Function;
 
 public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item> {
 
-    final Map<String, List<ItemAndRoutingAndSourceUri<TItem>>> itemsByMissingIndex = new HashMap<>();
-    final Map<BytesRef, List<String>> itemsWithFailureBySourceUri = new HashMap<>();
+    final Map<String, List<ItemAndRoutingAndSourceInfo<TItem>>> itemsByMissingIndex = new HashMap<>();
+    final Map<BytesRef, List<ReadFailureAndLineNumber>> itemsWithFailureBySourceUri = new HashMap<>();
     final Map<BytesRef, String> sourceUrisWithFailure = new HashMap<>();
-    final List<BytesRef> sourceUriOfItems = new ArrayList<>();
+    final List<RowSourceInfo> rowSourceInfos = new ArrayList<>();
     final Map<ShardLocation, TReq> itemsByShard = new HashMap<>();
 
     private final Function<ShardId, TReq> requestFactory;
@@ -48,16 +47,16 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     /**
      * @param requestFactory function to create a request
      */
-    public ShardedRequests(Function<ShardId, TReq> requestFactory) {
+    ShardedRequests(Function<ShardId, TReq> requestFactory) {
         this.requestFactory = requestFactory;
     }
 
-    public void add(TItem item, String indexName, String routing, @Nullable BytesRef sourceUri) {
-        List<ItemAndRoutingAndSourceUri<TItem>> items = itemsByMissingIndex.computeIfAbsent(indexName, k -> new ArrayList<>());
-        items.add(new ItemAndRoutingAndSourceUri<>(item, routing, sourceUri));
+    public void add(TItem item, String indexName, String routing, RowSourceInfo rowSourceInfo) {
+        List<ItemAndRoutingAndSourceInfo<TItem>> items = itemsByMissingIndex.computeIfAbsent(indexName, k -> new ArrayList<>());
+        items.add(new ItemAndRoutingAndSourceInfo<>(item, routing, rowSourceInfo));
     }
 
-    public void add(TItem item, ShardLocation shardLocation, @Nullable BytesRef sourceUri) {
+    public void add(TItem item, ShardLocation shardLocation, RowSourceInfo rowSourceInfo) {
         TReq req = itemsByShard.get(shardLocation);
         if (req == null) {
             req = requestFactory.apply(shardLocation.shardId);
@@ -65,12 +64,13 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         }
         location++;
         req.add(location, item);
-        sourceUriOfItems.add(sourceUri);
+        rowSourceInfos.add(rowSourceInfo);
     }
 
-    void addFailedItem(BytesRef sourceUri, String readFailure) {
-        List<String> itemsWithFailure = itemsWithFailureBySourceUri.computeIfAbsent(sourceUri, k -> new ArrayList<>());
-        itemsWithFailure.add(readFailure);
+    void addFailedItem(BytesRef sourceUri, String readFailure, Long lineNumber) {
+        List<ReadFailureAndLineNumber> itemsWithFailure = itemsWithFailureBySourceUri.computeIfAbsent(
+            sourceUri, k -> new ArrayList<>());
+        itemsWithFailure.add(new ReadFailureAndLineNumber(readFailure, lineNumber));
     }
 
     void addFailedUri(BytesRef sourceUri, String uriReadFailure) {
@@ -78,16 +78,25 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         sourceUrisWithFailure.put(sourceUri, uriReadFailure);
     }
 
-    static class ItemAndRoutingAndSourceUri<TItem> {
+    static class ItemAndRoutingAndSourceInfo<TItem> {
         final TItem item;
         final String routing;
-        @Nullable
-        final BytesRef sourceUri;
+        final RowSourceInfo rowSourceInfo;
 
-        ItemAndRoutingAndSourceUri(TItem item, String routing, @Nullable BytesRef sourceUri) {
+        ItemAndRoutingAndSourceInfo(TItem item, String routing, RowSourceInfo rowSourceInfo) {
             this.item = item;
             this.routing = routing;
-            this.sourceUri = sourceUri;
+            this.rowSourceInfo = rowSourceInfo;
+        }
+    }
+
+    static class ReadFailureAndLineNumber {
+        final String readFailure;
+        final long lineNumber;
+
+        ReadFailureAndLineNumber(String readFailure, long lineNumber) {
+            this.readFailure = readFailure;
+            this.lineNumber = lineNumber;
         }
     }
 }

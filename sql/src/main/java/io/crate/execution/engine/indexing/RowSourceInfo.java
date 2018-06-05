@@ -22,26 +22,31 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.data.Row;
-import io.crate.execution.dml.ShardResponse;
+import org.apache.lucene.util.BytesRef;
 
-import java.util.List;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import javax.annotation.Nullable;
 
-public interface UpsertResultCollector {
+class RowSourceInfo {
 
-    Supplier<UpsertResults> supplier();
+    static final RowSourceInfo EMPTY_INSTANCE = new RowSourceInfo();
 
-    Accumulator accumulator();
+    static RowSourceInfo emptyMarkerOrNewInstance(@Nullable BytesRef sourceUri, @Nullable Long lineNumber) {
+        if (sourceUri != null && lineNumber != null) {
+            return new RowSourceInfo(sourceUri, lineNumber);
+        }
+        return EMPTY_INSTANCE;
+    }
 
-    BinaryOperator<UpsertResults> combiner();
+    final BytesRef sourceUri;
+    final long lineNumber;
 
-    Function<UpsertResults, Iterable<Row>> finisher();
+    private RowSourceInfo(BytesRef sourceUri, Long lineNumber) {
+        this.sourceUri = sourceUri;
+        this.lineNumber = lineNumber;
+    }
 
-    interface Accumulator {
-
-        void accept(UpsertResults upsertResults, ShardResponse shardResponse, List<RowSourceInfo> rowSourceInfos);
+    private RowSourceInfo() {
+        this.sourceUri = null;
+        this.lineNumber = 0;
     }
 }

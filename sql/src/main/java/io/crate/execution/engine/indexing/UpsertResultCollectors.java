@@ -82,7 +82,7 @@ final class UpsertResultCollectors {
         @SuppressWarnings("unused")
         void processShardResponse(UpsertResults upsertResults,
                                   ShardResponse shardResponse,
-                                  List<BytesRef> sourceUrisOfItemsIgnored) {
+                                  List<RowSourceInfo> rowSourceInfosIgnored) {
             synchronized (lock) {
                 upsertResults.addResult(shardResponse.successRowCount());
             }
@@ -124,15 +124,18 @@ final class UpsertResultCollectors {
             return UpsertResults::rowsIterable;
         }
 
-        void processShardResponse(UpsertResults upsertResults, ShardResponse shardResponse, List<BytesRef> sourceUrisOfItems) {
+        void processShardResponse(UpsertResults upsertResults,
+                                  ShardResponse shardResponse,
+                                  List<RowSourceInfo> rowSourceInfos) {
             synchronized (lock) {
                 List<ShardResponse.Failure> failures = shardResponse.failures();
                 IntArrayList locations = shardResponse.itemIndices();
                 for (int i = 0; i < failures.size(); i++) {
                     ShardResponse.Failure failure = failures.get(i);
                     int location = locations.get(i);
-                    BytesRef sourceUri = sourceUrisOfItems.get(location);
-                    upsertResults.addResult(sourceUri, failure == null ? null : failure.message());
+                    RowSourceInfo rowSourceInfo = rowSourceInfos.get(location);
+                    String msg = failure == null ? null : failure.message();
+                    upsertResults.addResult(rowSourceInfo.sourceUri, msg, rowSourceInfo.lineNumber);
                 }
             }
         }

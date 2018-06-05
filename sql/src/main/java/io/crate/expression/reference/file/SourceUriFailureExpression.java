@@ -32,7 +32,7 @@ import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 
-public class UriFailureExpression extends LineCollectorExpression<String> {
+public class SourceUriFailureExpression extends LineCollectorExpression<String> {
 
     public static final String COLUMN_NAME = "_uri_failure";
     private static final ColumnIdent COLUMN_IDENT = new ColumnIdent(COLUMN_NAME);

@@ -39,7 +39,7 @@ public class UpsertResultContext {
 
     public static UpsertResultContext forRowCount() {
         return new UpsertResultContext(
-            () -> null, () -> null, Collections.emptyList(), UpsertResultCollectors.newRowCountCollector()) {
+            () -> null, () -> null, () -> null, Collections.emptyList(), UpsertResultCollectors.newRowCountCollector()) {
 
             @Override
             BiConsumer<ShardedRequests, String> getItemFailureRecorder() {
@@ -61,10 +61,13 @@ public class UpsertResultContext {
         Input<BytesRef> sourceUriInput = (Input<BytesRef>) ctxSourceInfo.add(projection.sourceUri());
         //noinspection unchecked
         Input<String> sourceUriFailureInput = (Input<String>) ctxSourceInfo.add(projection.sourceUriFailure());
+        //noinspection unchecked
+        Input<Long> lineNumberInput = (Input<Long>) ctxSourceInfo.add(projection.lineNumber());
 
         return new UpsertResultContext(
             sourceUriInput,
             sourceUriFailureInput,
+            lineNumberInput,
             ctxSourceInfo.expressions(),
             UpsertResultCollectors.newSummaryCollector(discoveryNode));
     }
@@ -72,21 +75,28 @@ public class UpsertResultContext {
 
     private final Input<BytesRef> sourceUriInput;
     private final Input<String> sourceUriFailureInput;
+    private final Input<Long> lineNumberInput;
     private final List<? extends CollectExpression<Row, ?>> sourceInfoExpressions;
     private final UpsertResultCollector resultCollector;
 
     private UpsertResultContext(Input<BytesRef> sourceUriInput,
                                 Input<String> sourceUriFailureInput,
+                                Input<Long> lineNumberInput,
                                 List<? extends CollectExpression<Row, ?>> sourceInfoExpressions,
                                 UpsertResultCollector resultCollector) {
         this.sourceUriInput = sourceUriInput;
         this.sourceUriFailureInput = sourceUriFailureInput;
+        this.lineNumberInput = lineNumberInput;
         this.sourceInfoExpressions = sourceInfoExpressions;
         this.resultCollector = resultCollector;
     }
 
     Input<BytesRef> getSourceUriInput() {
         return sourceUriInput;
+    }
+
+    Input<Long> getLineNumberInput() {
+        return lineNumberInput;
     }
 
     List<? extends CollectExpression<Row, ?>> getSourceInfoExpressions() {
@@ -98,7 +108,7 @@ public class UpsertResultContext {
     }
 
     BiConsumer<ShardedRequests, String> getItemFailureRecorder() {
-        return (s, f) -> s.addFailedItem(sourceUriInput.value(), f);
+        return (s, f) -> s.addFailedItem(sourceUriInput.value(), f, lineNumberInput.value());
     }
 
     Predicate<ShardedRequests> getHasSourceUriFailureChecker() {

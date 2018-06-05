@@ -123,6 +123,7 @@ public class ShardingUpsertExecutor
             upsertResultContext.getItemFailureRecorder(),
             upsertResultContext.getHasSourceUriFailureChecker(),
             upsertResultContext.getSourceUriInput(),
+            upsertResultContext.getLineNumberInput(),
             autoCreateIndices
         );
         bulkShardCreationLimiter = new BulkShardCreationLimiter<>(tableSettings,
@@ -136,14 +137,14 @@ public class ShardingUpsertExecutor
         collectFailingItems(requests, upsertResults);
 
         if (requests.itemsByMissingIndex.isEmpty()) {
-            return execRequests(requests.itemsByShard, requests.sourceUriOfItems, upsertResults);
+            return execRequests(requests.itemsByShard, requests.rowSourceInfos, upsertResults);
         }
         createPartitionsRequestOngoing = true;
         return createPartitions(requests.itemsByMissingIndex)
             .thenCompose(resp -> {
                 grouper.reResolveShardLocations(requests);
                 createPartitionsRequestOngoing = false;
-                return execRequests(requests.itemsByShard, requests.sourceUriOfItems, upsertResults);
+                return execRequests(requests.itemsByShard, requests.rowSourceInfos, upsertResults);
             });
     }
 
@@ -156,16 +157,16 @@ public class ShardingUpsertExecutor
 
     private static void collectFailingItems(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests,
                                             final UpsertResults upsertResults) {
-        for (Map.Entry<BytesRef, List<String>> entry : requests.itemsWithFailureBySourceUri.entrySet()) {
+        for (Map.Entry<BytesRef, List<ShardedRequests.ReadFailureAndLineNumber>> entry : requests.itemsWithFailureBySourceUri.entrySet()) {
             BytesRef sourceUri = entry.getKey();
-            for (String readFailure : entry.getValue()) {
-                upsertResults.addResult(sourceUri, readFailure);
+            for (ShardedRequests.ReadFailureAndLineNumber readFailureAndLineNumber : entry.getValue()) {
+                upsertResults.addResult(sourceUri, readFailureAndLineNumber.readFailure, readFailureAndLineNumber.lineNumber);
             }
         }
     }
 
     private CompletableFuture<UpsertResults> execRequests(Map<ShardLocation, ShardUpsertRequest> itemsByShard,
-                                                          List<BytesRef> sourceUrisOfItems,
+                                                          List<RowSourceInfo> rowSourceInfos,
                                                           final UpsertResults upsertResults) {
         if (itemsByShard.isEmpty()) {
             // could be that processing the source uri only results in errors, so no items per shard exists
@@ -189,7 +190,7 @@ public class ShardingUpsertExecutor
                     interrupt,
                     upsertResults,
                     resultCollector.accumulator(),
-                    sourceUrisOfItems,
+                    rowSourceInfos,
                     resultFuture);
 
             listener = new RetryListener<>(
@@ -208,7 +209,7 @@ public class ShardingUpsertExecutor
 
 
     private CompletableFuture<CreatePartitionsResponse> createPartitions(
-        Map<String, List<ShardedRequests.ItemAndRoutingAndSourceUri<ShardUpsertRequest.Item>>> itemsByMissingIndex) {
+        Map<String, List<ShardedRequests.ItemAndRoutingAndSourceInfo<ShardUpsertRequest.Item>>> itemsByMissingIndex) {
         FutureActionListener<CreatePartitionsResponse, CreatePartitionsResponse> listener = FutureActionListener.newInstance();
         createPartitionsAction.execute(
             new CreatePartitionsRequest(itemsByMissingIndex.keySet(), jobId), listener);
@@ -255,7 +256,7 @@ public class ShardingUpsertExecutor
     private class ShardResponseActionListener implements ActionListener<ShardResponse> {
         private final String operationNodeId;
         private final UpsertResultCollector.Accumulator resultAccumulator;
-        private final List<BytesRef> sourceUrisOfItems;
+        private final List<RowSourceInfo> rowSourceInfos;
         private final UpsertResults upsertResults;
         private final AtomicInteger numRequests;
         private final AtomicReference<Exception> interrupt;
@@ -266,21 +267,21 @@ public class ShardingUpsertExecutor
                                     AtomicReference<Exception> interrupt,
                                     UpsertResults upsertResults,
                                     UpsertResultCollector.Accumulator resultAccumulator,
-                                    List<BytesRef> sourceUrisOfItems,
+                                    List<RowSourceInfo> rowSourceInfos,
                                     CompletableFuture<UpsertResults> upsertResultFuture) {
             this.operationNodeId = operationNodeId;
             this.numRequests = numRequests;
             this.interrupt = interrupt;
             this.upsertResults = upsertResults;
             this.resultAccumulator = resultAccumulator;
-            this.sourceUrisOfItems = sourceUrisOfItems;
+            this.rowSourceInfos = rowSourceInfos;
             this.upsertResultFuture = upsertResultFuture;
         }
 
         @Override
         public void onResponse(ShardResponse shardResponse) {
             nodeJobsCounter.decrement(operationNodeId);
-            resultAccumulator.accept(upsertResults, shardResponse, sourceUrisOfItems);
+            resultAccumulator.accept(upsertResults, shardResponse, rowSourceInfos);
             maybeSetInterrupt(shardResponse.failure());
             countdown();
         }

@@ -29,29 +29,28 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 
-public class CurrentUriLineExpression extends LineCollectorExpression<BytesRef> {
+public class SourceLineNumberExpression extends LineCollectorExpression<Long> {
 
-    public static final String COLUMN_NAME = "_uri";
+    public static final String COLUMN_NAME = "_line_number";
     private static final ColumnIdent COLUMN_IDENT = new ColumnIdent(COLUMN_NAME);
-
-    private LineContext context;
-
-    @Override
-    public void startCollect(LineContext context) {
-        this.context = context;
-    }
-
-    @Override
-    public BytesRef value() {
-        return context.currentUri();
-    }
 
     public static Reference getReferenceForRelation(RelationName relationName) {
         return new Reference(
             new ReferenceIdent(relationName, COLUMN_IDENT),
             RowGranularity.DOC,
-            DataTypes.STRING);
+            DataTypes.LONG);
+    }
+
+    private LineContext lineContext;
+
+    @Override
+    public void startCollect(LineContext lineContext) {
+        this.lineContext = lineContext;
+    }
+
+    @Override
+    public Long value() {
+        return lineContext.getCurrentLineNumber();
     }
 }

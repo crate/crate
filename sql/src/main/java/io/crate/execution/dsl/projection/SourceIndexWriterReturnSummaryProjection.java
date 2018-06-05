@@ -41,6 +41,7 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
 
     private final InputColumn sourceUri;
     private final InputColumn sourceUriFailure;
+    private final InputColumn lineNumber;
 
     public SourceIndexWriterReturnSummaryProjection(RelationName relationName,
                                                     @Nullable String partitionIdent,
@@ -57,17 +58,20 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
                                                     List<? extends Symbol> outputs,
                                                     boolean autoCreateIndices,
                                                     InputColumn sourceUri,
-                                                    InputColumn sourceUriFailure) {
+                                                    InputColumn sourceUriFailure,
+                                                    InputColumn lineNumber) {
         super(relationName,partitionIdent, rawSourceReference, rawSourcePtr, primaryKeys, partitionedBySymbols,
             clusteredByColumn, settings, includes, excludes, idSymbols, clusteredBySymbol, outputs, autoCreateIndices);
         this.sourceUri = sourceUri;
         this.sourceUriFailure = sourceUriFailure;
+        this.lineNumber = lineNumber;
     }
 
     SourceIndexWriterReturnSummaryProjection(StreamInput in) throws IOException {
         super(in);
         sourceUri = (InputColumn) Symbols.fromStream(in);
         sourceUriFailure = (InputColumn) Symbols.fromStream(in);
+        lineNumber = (InputColumn) Symbols.fromStream(in);
     }
 
     public InputColumn sourceUri() {
@@ -76,6 +80,10 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
 
     public InputColumn sourceUriFailure() {
         return sourceUriFailure;
+    }
+
+    public InputColumn lineNumber() {
+        return lineNumber;
     }
 
     @Override
@@ -88,6 +96,7 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
         super.writeTo(out);
         Symbols.toStream(sourceUri, out);
         Symbols.toStream(sourceUriFailure, out);
+        Symbols.toStream(lineNumber, out);
     }
 
     @Override
@@ -97,11 +106,12 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
         if (!super.equals(o)) return false;
         SourceIndexWriterReturnSummaryProjection that = (SourceIndexWriterReturnSummaryProjection) o;
         return Objects.equals(sourceUri, that.sourceUri) &&
-               Objects.equals(sourceUriFailure, that.sourceUriFailure);
+               Objects.equals(sourceUriFailure, that.sourceUriFailure) &&
+               Objects.equals(lineNumber, that.lineNumber);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), sourceUri, sourceUriFailure);
+        return Objects.hash(super.hashCode(), sourceUri, sourceUriFailure, lineNumber);
     }
 }

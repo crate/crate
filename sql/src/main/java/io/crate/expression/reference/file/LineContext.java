@@ -40,6 +40,7 @@ public class LineContext {
     private Map<String, Object> parsedSource;
     private BytesRef currentUri;
     private String currentUriFailure;
+    private long currentLineNumber = 0;
 
     @Nullable
     BytesRef sourceAsBytesRef() {
@@ -103,5 +104,17 @@ public class LineContext {
     @Nullable
     String getCurrentUriFailure() {
         return currentUriFailure;
+    }
+
+    public void resetCurrentLineNumber() {
+        currentLineNumber = 0;
+    }
+
+    public void incrementCurrentLineNumber() {
+        currentLineNumber++;
+    }
+
+    long getCurrentLineNumber() {
+        return currentLineNumber;
     }
 }
