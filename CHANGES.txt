@@ -28,9 +28,9 @@ Changes
 
 - Introduced the ``EXPLAIN ANALYZE`` statement for query profiling.
 
-- Added `typbasetype` column to the `pg_catalog.pg_type` table.
+- Added ``typbasetype`` column to the ``pg_catalog.pg_type`` table.
 
-- Added support for `SHOW TRANSACTION_ISOLATION` statement.
+- Added support for the ``SHOW TRANSACTION_ISOLATION`` statement.
 
 Fixes
 =====
@@ -44,5 +44,5 @@ Fixes
 - Fixed an issue that could cause ``HTTP`` requests using empty ``bulk_args``
   to fail.
 
-- Fixed NullPointerException which could be thrown when deleting a table and
-  querying `size` from the `sys.shards` table.
+- Fixed ``NullPointerException`` which could be thrown when deleting a table
+  and querying the ``size`` column from the ``sys.shards`` table.
