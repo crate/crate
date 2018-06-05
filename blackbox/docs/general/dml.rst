@@ -474,6 +474,9 @@ This wildcard can also be used to only match certain files::
     cr> refresh table quotes;
     REFRESH OK, 1 row affected (... sec)
 
+Import With Detailed Error Reporting
+....................................
+
 If the ``RETURN_SUMMARY`` clause is specified, a result set containing information
 about failures and successfully imported records is returned.
 
