@@ -35,8 +35,13 @@ class URLFileInputTest extends CrateUnitTest {
         File file = new File(tempDir.toFile(), "dont_exists")
         URLFileInput input = new URLFileInput(file.toURI());
 
+        String expectedMessage = "dont_exists (No such file or directory)";
+        if (isRunningOnWindows()) {
+            expectedMessage = "dont_exists (The system cannot find the file specified)"
+        }
+
         expectedException.expect(FileNotFoundException.class);
-        expectedException.expectMessage("/dont_exists (No such file or directory)");
+        expectedException.expectMessage(expectedMessage);
         input.getStream(file.toURI());
     }
 }
