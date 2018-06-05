@@ -35,6 +35,9 @@ Changes
 Fixes
 =====
 
+- Handle ``STRING_ARRAY`` as argument type for user-defined functions correctly
+  to prevent an ``ArrayStoreException``.
+
 - Fixed an issue that could cause a cluster check warning, telling the user to
   upgrade tables which do not require upgrades.
 

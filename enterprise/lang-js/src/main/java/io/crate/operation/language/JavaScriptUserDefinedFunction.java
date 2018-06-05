@@ -34,6 +34,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.script.Bindings;
 import javax.script.ScriptException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -142,7 +143,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         } else if (value instanceof Map) {
             convertBytesRefToStringInMap((Map<String, Object>) value);
         } else if (value instanceof Object[]) {
-            convertBytesRefToStringInList((Object[]) value);
+            value = convertBytesRefToStringInList((Object[]) value);
         }
         return value;
     }
@@ -153,23 +154,24 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
             if (item instanceof BytesRef) {
                 entry.setValue(BytesRefs.toString(entry.getValue()));
             } else if (item instanceof Object[]) {
-                convertBytesRefToStringInList((Object[]) item);
-                entry.setValue(item);
+                entry.setValue(convertBytesRefToStringInList((Object[]) item));
             } else if (item instanceof Map) {
                 convertBytesRefToStringInMap((Map<String, Object>) entry.getValue());
             }
         }
     }
 
-    private static void convertBytesRefToStringInList(Object[] value) {
-        for (int i = 0; i < value.length; i++) {
-            Object item = value[i];
+    private static Object[] convertBytesRefToStringInList(Object[] value) {
+        Object[] converted = Arrays.copyOf(value, value.length, Object[].class);
+        for (int i = 0; i < converted.length; i++) {
+            Object item = converted[i];
             if (item instanceof BytesRef) {
-                value[i] = BytesRefs.toString(item);
+                converted[i] = BytesRefs.toString(item);
             } else if (item instanceof Object[]) {
-                convertBytesRefToStringInList((Object[]) value[i]);
+                converted[i] = convertBytesRefToStringInList((Object[]) item);
             }
         }
+        return converted;
     }
 
     private Object convertScriptResult(ScriptObjectMirror scriptObject) {
