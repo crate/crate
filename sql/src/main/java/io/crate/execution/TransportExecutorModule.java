@@ -34,7 +34,7 @@ import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
 import io.crate.execution.engine.distribution.TransportDistributedResultAction;
 import io.crate.execution.engine.fetch.TransportFetchNodeAction;
 import io.crate.execution.engine.profile.TransportCollectProfileNodeAction;
-import io.crate.execution.jobs.ContextPreparer;
+import io.crate.execution.jobs.JobSetup;
 import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
@@ -46,7 +46,7 @@ public class TransportExecutorModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(TransportActionProvider.class).asEagerSingleton();
-        bind(ContextPreparer.class).asEagerSingleton();
+        bind(JobSetup.class).asEagerSingleton();
         bind(LuceneQueryBuilder.class).asEagerSingleton();
 
         bind(TransportJobAction.class).asEagerSingleton();

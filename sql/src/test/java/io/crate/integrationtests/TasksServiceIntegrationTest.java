@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.execution.jobs.JobContextService;
-import io.crate.execution.jobs.JobExecutionContext;
+import io.crate.execution.jobs.RootTask;
+import io.crate.execution.jobs.TasksService;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -32,15 +32,15 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
 
-public class JobContextIntegrationTest extends SQLTransportIntegrationTest {
+public class TasksServiceIntegrationTest extends SQLTransportIntegrationTest {
 
     Setup setup = new Setup(sqlExecutor);
 
     @Test
-    public void testAllContextAreClosed() throws Exception {
+    public void testAllTasksAreClosed() throws Exception {
         // lets create some contexts which must be closed after statement execution
 
-        // group-by query (job collect context with sub-contexts + PageDownstreamContext are created)
+        // group-by query (job collect context with sub-contexts + DistResultRXTask are created)
         setup.groupBySetup();
         execute("select age, name from characters group by 1, 2");
 
@@ -65,20 +65,20 @@ public class JobContextIntegrationTest extends SQLTransportIntegrationTest {
         // get by id (ESJobContext is created)
         execute("select * from upserts where id = 1");
 
-        // count (CountContext is created)
+        // count (CountTask is created)
         execute("select count(*) from upserts");
 
 
-        // now check if all contexts are gone
-        final Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
-        activeContexts.setAccessible(true);
+        // now check if all tasks are gone
+        final Field activeTasks = TasksService.class.getDeclaredField("activeTasks");
+        activeTasks.setAccessible(true);
 
         assertBusy(() -> {
-                for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
-                    Map<UUID, JobExecutionContext> contextMap = null;
+                for (TasksService tasksService : internalCluster().getInstances(TasksService.class)) {
+                    Map<UUID, RootTask> tasksByJobId;
                     try {
-                        contextMap = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
-                        assertThat(contextMap.size(), is(0));
+                        tasksByJobId = (Map<UUID, RootTask>) activeTasks.get(tasksService);
+                        assertThat(tasksByJobId.size(), is(0));
                     } catch (Exception e) {
                         fail(e.getMessage());
                     }

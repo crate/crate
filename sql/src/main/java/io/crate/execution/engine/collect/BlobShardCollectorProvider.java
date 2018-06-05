@@ -65,7 +65,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
     @Override
     protected CrateCollector.Builder getBuilder(RoutedCollectPhase collectPhase,
                                                 boolean requiresScroll,
-                                                JobCollectContext jobCollectContext) {
+                                                CollectTask collectTask) {
         return RowsCollector.builder(getBlobRows(collectPhase, requiresScroll));
     }
 
@@ -80,7 +80,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
 
     public OrderedDocCollector getOrderedCollector(RoutedCollectPhase collectPhase,
                                                    SharedShardContext sharedShardContext,
-                                                   JobCollectContext jobCollectContext,
+                                                   CollectTask collectTask,
                                                    boolean requiresRepeat) {
         RoutedCollectPhase normalizedCollectPhase = collectPhase.normalize(shardNormalizer, null);
         return new BlobOrderedDocCollector(blobShard.indexShard().shardId(), getBlobRows(normalizedCollectPhase, requiresRepeat));

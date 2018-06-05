@@ -21,7 +21,7 @@
 
 package io.crate.execution.jobs.kill;
 
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
@@ -38,19 +38,19 @@ import static org.mockito.Mockito.verify;
 public class TransportKillAllNodeActionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void testKillIsCalledOnJobContextService() throws Exception {
-        JobContextService jobContextService = mock(JobContextService.class, Answers.RETURNS_MOCKS.get());
+    public void testKillIsCalledOnTasks() throws Exception {
+        TasksService tasksService = mock(TasksService.class, Answers.RETURNS_MOCKS.get());
 
         TransportKillAllNodeAction transportKillAllNodeAction = new TransportKillAllNodeAction(
             Settings.EMPTY,
-            jobContextService,
+            tasksService,
             clusterService,
             MockTransportService.createNewService(
                 Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings())
         );
 
         transportKillAllNodeAction.nodeOperation(new KillAllRequest()).get(5, TimeUnit.SECONDS);
-        verify(jobContextService, times(1)).killAll();
+        verify(tasksService, times(1)).killAll();
     }
 
 }

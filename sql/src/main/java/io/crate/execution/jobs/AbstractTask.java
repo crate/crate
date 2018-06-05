@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class AbstractExecutionSubContext implements ExecutionSubContext {
+public abstract class AbstractTask implements Task {
 
     protected final Logger logger;
     protected final int id;
@@ -39,7 +39,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     private final CompletionState completionState = new CompletionState();
     private final CompletableFuture<CompletionState> future = new CompletableFuture<>();
 
-    protected AbstractExecutionSubContext(int id, Logger logger) {
+    protected AbstractTask(int id, Logger logger) {
         this.id = id;
         this.logger = logger;
     }

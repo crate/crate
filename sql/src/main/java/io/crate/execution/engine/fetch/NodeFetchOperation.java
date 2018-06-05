@@ -30,8 +30,8 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.distribution.StreamBucket;
-import io.crate.execution.jobs.JobContextService;
-import io.crate.execution.jobs.JobExecutionContext;
+import io.crate.execution.jobs.RootTask;
+import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Symbols;
@@ -58,23 +58,23 @@ public class NodeFetchOperation {
 
     private final Executor executor;
     private final JobsLogs jobsLogs;
-    private final JobContextService jobContextService;
+    private final TasksService tasksService;
     private final CircuitBreaker circuitBreaker;
 
     private static class TableFetchInfo {
 
         private final Streamer<?>[] streamers;
         private final Collection<Reference> refs;
-        private final FetchContext fetchContext;
+        private final FetchTask fetchTask;
 
-        TableFetchInfo(Collection<Reference> refs, FetchContext fetchContext) {
+        TableFetchInfo(Collection<Reference> refs, FetchTask fetchTask) {
             this.refs = refs;
-            this.fetchContext = fetchContext;
+            this.fetchTask = fetchTask;
             this.streamers = Symbols.streamerArray(refs);
         }
 
         FetchCollector createCollector(int readerId, RamAccountingContext ramAccountingContext) {
-            IndexService indexService = fetchContext.indexService(readerId);
+            IndexService indexService = fetchTask.indexService(readerId);
             LuceneReferenceResolver resolver = new LuceneReferenceResolver(
                 indexService.mapperService()::fullName, indexService.getIndexSettings());
             ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());
@@ -84,7 +84,7 @@ public class NodeFetchOperation {
             return new FetchCollector(
                 exprs,
                 streamers,
-                fetchContext.searcher(readerId),
+                fetchTask.searcher(readerId),
                 indexService.fieldData(),
                 ramAccountingContext,
                 readerId
@@ -94,38 +94,38 @@ public class NodeFetchOperation {
 
     public NodeFetchOperation(Executor executor,
                               JobsLogs jobsLogs,
-                              JobContextService jobContextService,
+                              TasksService tasksService,
                               CircuitBreaker circuitBreaker) {
         this.executor = executor;
         this.jobsLogs = jobsLogs;
-        this.jobContextService = jobContextService;
+        this.tasksService = tasksService;
         this.circuitBreaker = circuitBreaker;
     }
 
     public CompletableFuture<IntObjectMap<StreamBucket>> fetch(UUID jobId,
                                                                int phaseId,
                                                                @Nullable IntObjectMap<? extends IntContainer> docIdsToFetch,
-                                                               boolean closeContextOnFinish) {
+                                                               boolean closeTaskOnFinish) {
         CompletableFuture<IntObjectMap<StreamBucket>> resultFuture = new CompletableFuture<>();
         logStartAndSetupLogFinished(jobId, phaseId, resultFuture);
 
         if (docIdsToFetch == null) {
-            if (closeContextOnFinish) {
-                tryCloseContext(jobId, phaseId);
+            if (closeTaskOnFinish) {
+                tryCloseTask(jobId, phaseId);
             }
             resultFuture.complete(new IntObjectHashMap<>(0));
             return resultFuture;
         }
 
-        JobExecutionContext context = jobContextService.getContext(jobId);
-        FetchContext fetchContext = context.getSubContext(phaseId);
+        RootTask context = tasksService.getTask(jobId);
+        FetchTask fetchTask = context.getTask(phaseId);
         try {
-            doFetch(fetchContext, resultFuture, docIdsToFetch);
+            doFetch(fetchTask, resultFuture, docIdsToFetch);
         } catch (Throwable t) {
             resultFuture.completeExceptionally(t);
         }
-        if (closeContextOnFinish) {
-            return resultFuture.whenComplete(new CloseContextCallback(fetchContext));
+        if (closeTaskOnFinish) {
+            return resultFuture.whenComplete(new CloseTaskCallback(fetchTask));
         }
         return resultFuture;
     }
@@ -141,44 +141,44 @@ public class NodeFetchOperation {
         });
     }
 
-    private void tryCloseContext(UUID jobId, int phaseId) {
-        JobExecutionContext ctx = jobContextService.getContextOrNull(jobId);
-        if (ctx != null) {
-            FetchContext fetchContext = ctx.getSubContextOrNull(phaseId);
-            if (fetchContext != null) {
-                fetchContext.close();
+    private void tryCloseTask(UUID jobId, int phaseId) {
+        RootTask rootTask = tasksService.getTaskOrNull(jobId);
+        if (rootTask != null) {
+            FetchTask fetchTask = rootTask.getTaskOrNull(phaseId);
+            if (fetchTask != null) {
+                fetchTask.close();
             }
         }
     }
 
-    private HashMap<RelationName, TableFetchInfo> getTableFetchInfos(FetchContext fetchContext) {
-        HashMap<RelationName, TableFetchInfo> result = new HashMap<>(fetchContext.toFetch().size());
-        for (Map.Entry<RelationName, Collection<Reference>> entry : fetchContext.toFetch().entrySet()) {
-            TableFetchInfo tableFetchInfo = new TableFetchInfo(entry.getValue(), fetchContext);
+    private HashMap<RelationName, TableFetchInfo> getTableFetchInfos(FetchTask fetchTask) {
+        HashMap<RelationName, TableFetchInfo> result = new HashMap<>(fetchTask.toFetch().size());
+        for (Map.Entry<RelationName, Collection<Reference>> entry : fetchTask.toFetch().entrySet()) {
+            TableFetchInfo tableFetchInfo = new TableFetchInfo(entry.getValue(), fetchTask);
             result.put(entry.getKey(), tableFetchInfo);
         }
         return result;
     }
 
-    private void doFetch(FetchContext fetchContext,
+    private void doFetch(FetchTask fetchTask,
                          CompletableFuture<IntObjectMap<StreamBucket>> resultFuture,
                          IntObjectMap<? extends IntContainer> toFetch) throws Exception {
 
         final IntObjectHashMap<StreamBucket> fetched = new IntObjectHashMap<>(toFetch.size());
-        HashMap<RelationName, TableFetchInfo> tableFetchInfos = getTableFetchInfos(fetchContext);
+        HashMap<RelationName, TableFetchInfo> tableFetchInfos = getTableFetchInfos(fetchTask);
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>(null);
         final AtomicInteger threadLatch = new AtomicInteger(toFetch.size());
 
-        // RamAccountingContext is per doFetch call instead of per FetchContext/fetchPhase
+        // RamAccountingContext is per doFetch call instead of per FetchTask/fetchPhase
         // To be able to free up the memory count when the operation is complete
-        RamAccountingContext ramAccountingContext = new RamAccountingContext("fetch-" + fetchContext.id(), circuitBreaker);
+        RamAccountingContext ramAccountingContext = new RamAccountingContext("fetch-" + fetchTask.id(), circuitBreaker);
         resultFuture.whenComplete((r, f) -> ramAccountingContext.close());
 
         for (IntObjectCursor<? extends IntContainer> toFetchCursor : toFetch) {
             final int readerId = toFetchCursor.key;
             final IntContainer docIds = toFetchCursor.value;
 
-            RelationName ident = fetchContext.tableIdent(readerId);
+            RelationName ident = fetchTask.tableIdent(readerId);
             final TableFetchInfo tfi = tableFetchInfos.get(ident);
             assert tfi != null : "tfi must not be null";
 
@@ -190,7 +190,7 @@ public class NodeFetchOperation {
                 lastThrowable,
                 threadLatch,
                 resultFuture,
-                fetchContext.isKilled()
+                fetchTask.isKilled()
             );
             try {
                 executor.execute(runnable);

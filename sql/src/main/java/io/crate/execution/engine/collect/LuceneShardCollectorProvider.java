@@ -93,9 +93,9 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     @Override
     protected CrateCollector.Builder getBuilder(RoutedCollectPhase collectPhase,
                                                 boolean requiresScroll,
-                                                JobCollectContext jobCollectContext) {
+                                                CollectTask collectTask) {
         ShardId shardId = indexShard.shardId();
-        SharedShardContext sharedShardContext = jobCollectContext.sharedShardContexts().getOrCreateContext(shardId);
+        SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.acquireSearcher();
         IndexShard indexShard = sharedShardContext.indexShard();
         try {
@@ -107,7 +107,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 queryShardContext,
                 sharedShardContext.indexService().cache()
             );
-            jobCollectContext.addSearcher(sharedShardContext.readerId(), searcher);
+            collectTask.addSearcher(sharedShardContext.readerId(), searcher);
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
                 docInputFactory.extractImplementations(collectPhase);
 
@@ -117,7 +117,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 queryContext.minScore(),
                 Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
                 getCollectorContext(sharedShardContext.readerId(), docCtx, queryShardContext::getForField),
-                jobCollectContext.queryPhaseRamAccountingContext(),
+                collectTask.queryPhaseRamAccountingContext(),
                 docCtx.topLevelInputs(),
                 docCtx.expressions()
             );
@@ -130,7 +130,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     @Override
     public OrderedDocCollector getOrderedCollector(RoutedCollectPhase phase,
                                                    SharedShardContext sharedShardContext,
-                                                   JobCollectContext jobCollectContext,
+                                                   CollectTask collectTask,
                                                    boolean requiresRepeat) {
         RoutedCollectPhase collectPhase = phase.normalize(shardNormalizer, null);
 
@@ -149,7 +149,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 queryShardContext,
                 indexService.cache()
             );
-            jobCollectContext.addSearcher(sharedShardContext.readerId(), searcher);
+            collectTask.addSearcher(sharedShardContext.readerId(), searcher);
             ctx = docInputFactory.extractImplementations(collectPhase);
             collectorContext = getCollectorContext(sharedShardContext.readerId(), ctx, queryShardContext::getForField);
         } catch (Throwable t) {

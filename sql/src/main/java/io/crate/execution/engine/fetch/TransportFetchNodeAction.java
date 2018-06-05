@@ -30,7 +30,7 @@ import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.execution.support.Transports;
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
@@ -55,13 +55,13 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                                     Transports transports,
                                     ThreadPool threadPool,
                                     JobsLogs jobsLogs,
-                                    JobContextService jobContextService,
+                                    TasksService tasksService,
                                     CrateCircuitBreakerService circuitBreakerService) {
         this.transports = transports;
         this.nodeFetchOperation = new NodeFetchOperation(
             threadPool.executor(ThreadPool.Names.SEARCH),
             jobsLogs,
-            jobContextService,
+            tasksService,
             circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY)
         );
 
@@ -70,7 +70,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
             NodeFetchRequest::new,
             EXECUTOR_NAME,
             // force execution because this handler might receive empty close requests which
-            // need to be processed to not leak the FetchContext.
+            // need to be processed to not leak the FetchTask.
             // This shouldn't cause too much of an issue because fetch requests always happen after a query phase.
             // If the threadPool is overloaded the query phase would fail first.
             true,

@@ -23,6 +23,7 @@
 package io.crate.execution.engine.collect.sources;
 
 import com.google.common.collect.Iterables;
+import io.crate.execution.engine.collect.CollectTask;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.data.RowConsumer;
 import io.crate.execution.TransportActionProvider;
@@ -38,7 +39,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.expression.InputFactory;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.collect.RowsCollector;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
@@ -185,7 +185,7 @@ public class CollectSourceResolver {
     private static class VoidCollectSource implements CollectSource {
 
         @Override
-        public CrateCollector getCollector(CollectPhase collectPhase, RowConsumer consumer, JobCollectContext jobCollectContext) {
+        public CrateCollector getCollector(CollectPhase collectPhase, RowConsumer consumer, CollectTask collectTask) {
             return RowsCollector.empty(consumer);
         }
     }

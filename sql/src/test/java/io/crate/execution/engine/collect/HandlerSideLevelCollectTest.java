@@ -118,8 +118,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     private Bucket collect(RoutedCollectPhase collectPhase) throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        CrateCollector collector = operation.createCollector(collectPhase, consumer, mock(JobCollectContext.class));
-        operation.launchCollector(collector, JobCollectContext.threadPoolName(collectPhase));
+        CrateCollector collector = operation.createCollector(collectPhase, consumer, mock(CollectTask.class));
+        operation.launchCollector(collector, CollectTask.threadPoolName(collectPhase));
         return new CollectionBucket(consumer.getResult());
     }
 

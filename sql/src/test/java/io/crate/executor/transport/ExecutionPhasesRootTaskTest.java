@@ -46,7 +46,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
-public class ExecutionPhasesTaskTest {
+public class ExecutionPhasesRootTaskTest {
 
     @Test
     public void testGroupByServer() throws Exception {

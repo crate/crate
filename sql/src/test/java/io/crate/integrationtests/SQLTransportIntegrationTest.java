@@ -39,8 +39,8 @@ import io.crate.data.Row;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
-import io.crate.execution.jobs.JobContextService;
-import io.crate.execution.jobs.JobExecutionContext;
+import io.crate.execution.jobs.TasksService;
+import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -242,18 +242,18 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     @After
-    public void assertNoJobExecutionContextAreLeftOpen() throws Exception {
-        final Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
+    public void assertNoTasksAreLeftOpen() throws Exception {
+        final Field activeTasks = TasksService.class.getDeclaredField("activeTasks");
         final Field activeOperationsSb = TransportShardAction.class.getDeclaredField("activeOperations");
 
-        activeContexts.setAccessible(true);
+        activeTasks.setAccessible(true);
         activeOperationsSb.setAccessible(true);
         try {
             assertBusy(() -> {
-                for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
+                for (TasksService tasksService : internalCluster().getInstances(TasksService.class)) {
                     try {
                         //noinspection unchecked
-                        Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
+                        Map<UUID, RootTask> contexts = (Map<UUID, RootTask>) activeTasks.get(tasksService);
                         assertThat(contexts.size(), is(0));
                     } catch (IllegalAccessException e) {
                         throw new RuntimeException(e);
@@ -280,10 +280,10 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             StringBuilder errorMessageBuilder = new StringBuilder();
             String[] nodeNames = internalCluster().getNodeNames();
             for (String nodeName : nodeNames) {
-                JobContextService jobContextService = internalCluster().getInstance(JobContextService.class, nodeName);
+                TasksService tasksService = internalCluster().getInstance(TasksService.class, nodeName);
                 try {
                     //noinspection unchecked
-                    Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
+                    Map<UUID, RootTask> contexts = (Map<UUID, RootTask>) activeTasks.get(tasksService);
                     String contextsString = contexts.toString();
                     if (!"{}".equals(contextsString)) {
                         errorMessageBuilder.append("## node: ");

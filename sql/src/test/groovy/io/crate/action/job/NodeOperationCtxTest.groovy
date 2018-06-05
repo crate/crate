@@ -24,7 +24,7 @@ package io.crate.action.job
 
 import com.carrotsearch.hppc.IntArrayList
 import io.crate.execution.dsl.phases.NodeOperation
-import io.crate.execution.jobs.ContextPreparer
+import io.crate.execution.jobs.JobSetup
 import io.crate.planner.distribution.DistributionInfo
 import io.crate.testing.StubPhases
 import org.junit.Test
@@ -37,7 +37,7 @@ class NodeOperationCtxTest {
         def p2 = StubPhases.newPhase(1, "n1", "n2")
         def p3 = StubPhases.newPhase(2, "n2")
 
-        def opCtx = new ContextPreparer.NodeOperationCtx("n1", [
+        def opCtx = new JobSetup.NodeOperationCtx("n1", [
                 NodeOperation.withDownstream(p1, p2, (byte)0),
                 NodeOperation.withDownstream(p2, p3, (byte)0)])
 
@@ -50,7 +50,7 @@ class NodeOperationCtxTest {
     @Test
     void testFindLeafWithNodeOperationsThatHaveNoLeaf() {
         def p1 = StubPhases.newPhase(0, "n1");
-        def opCtx = new ContextPreparer.NodeOperationCtx("n1", [NodeOperation.withDownstream(p1, p1, (byte)0)])
+        def opCtx = new JobSetup.NodeOperationCtx("n1", [NodeOperation.withDownstream(p1, p1, (byte)0)])
 
         opCtx.findLeafs().size() == 0;
     }
@@ -59,7 +59,7 @@ class NodeOperationCtxTest {
     void testIsUpstreamOnSameNodeWithSameNodeOptimization() throws Exception {
         def p1 = StubPhases.newUpstreamPhase(0, DistributionInfo.DEFAULT_BROADCAST, "n1")
         def p2 = StubPhases.newPhase(1, "n1")
-        def opCtx = new ContextPreparer.NodeOperationCtx("n1", [NodeOperation.withDownstream(p1, p2, (byte)0)])
+        def opCtx = new JobSetup.NodeOperationCtx("n1", [NodeOperation.withDownstream(p1, p2, (byte)0)])
 
         // withDownstream set DistributionInfo to SAME_NODE because both phases are on n1
         assert opCtx.upstreamsAreOnSameNode(1)
@@ -69,7 +69,7 @@ class NodeOperationCtxTest {
     void testIsUpstreamOnSameNodeWithUpstreamOnOtherNode() throws Exception {
         def p1 = StubPhases.newUpstreamPhase(0, DistributionInfo.DEFAULT_BROADCAST, "n2")
         def p2 = StubPhases.newPhase(1, "n1")
-        def opCtx = new ContextPreparer.NodeOperationCtx("n1", [NodeOperation.withDownstream(p1, p2, (byte)0)])
+        def opCtx = new JobSetup.NodeOperationCtx("n1", [NodeOperation.withDownstream(p1, p2, (byte)0)])
 
         assert !opCtx.upstreamsAreOnSameNode(1)
     }
@@ -80,7 +80,7 @@ class NodeOperationCtxTest {
         def p2 = StubPhases.newUpstreamPhase(2, DistributionInfo.DEFAULT_SAME_NODE, "n2")
         def p3 = StubPhases.newPhase(3, "n2")
 
-        def opCtx = new ContextPreparer.NodeOperationCtx("n1",[
+        def opCtx = new JobSetup.NodeOperationCtx("n1",[
                 NodeOperation.withDownstream(p1, p3, (byte)0),
                 NodeOperation.withDownstream(p2, p3, (byte)0)])
 

@@ -27,7 +27,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobRequest;
@@ -87,7 +87,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         transportKillJobsNodeAction = mock(TransportKillJobsNodeAction.class);
         consumer = new TestingRowConsumer();
 
-        JobContextService jobContextService = new JobContextService(
+        TasksService tasksService = new TasksService(
             Settings.EMPTY,
             clusterService,
             new JobsLogs(() -> true));
@@ -97,7 +97,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             "remoteNode",
             transportJobAction,
             transportKillJobsNodeAction,
-            jobContextService,
+            tasksService,
             mock(RamAccountingContext.class),
             consumer,
             collectPhase

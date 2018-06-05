@@ -22,10 +22,10 @@
 
 package io.crate.execution.engine;
 
-import io.crate.execution.jobs.ContextPreparer;
+import io.crate.execution.jobs.JobSetup;
 import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -39,37 +39,37 @@ import java.util.UUID;
 public final class PhasesTaskFactory {
 
     private final ClusterService clusterService;
-    private final ContextPreparer contextPreparer;
-    private final JobContextService jobContextService;
+    private final JobSetup jobSetup;
+    private final TasksService tasksService;
     private final IndicesService indicesService;
     private final TransportJobAction jobAction;
     private final TransportKillJobsNodeAction killJobsNodeAction;
 
     @Inject
     public PhasesTaskFactory(ClusterService clusterService,
-                             ContextPreparer contextPreparer,
-                             JobContextService jobContextService,
+                             JobSetup jobSetup,
+                             TasksService tasksService,
                              IndicesService indicesService,
                              TransportJobAction jobAction,
                              TransportKillJobsNodeAction killJobsNodeAction) {
         this.clusterService = clusterService;
-        this.contextPreparer = contextPreparer;
-        this.jobContextService = jobContextService;
+        this.jobSetup = jobSetup;
+        this.tasksService = tasksService;
         this.indicesService = indicesService;
         this.jobAction = jobAction;
         this.killJobsNodeAction = killJobsNodeAction;
     }
 
-    public ExecutionPhasesTask create(UUID jobId, List<NodeOperationTree> nodeOperationTreeList) {
+    public JobLauncher create(UUID jobId, List<NodeOperationTree> nodeOperationTreeList) {
         return create(jobId, nodeOperationTreeList, false);
     }
 
-    public ExecutionPhasesTask create(UUID jobId, List<NodeOperationTree> nodeOperationTreeList, boolean enableProfiling) {
-        return new ExecutionPhasesTask(
+    public JobLauncher create(UUID jobId, List<NodeOperationTree> nodeOperationTreeList, boolean enableProfiling) {
+        return new JobLauncher(
             jobId,
             clusterService,
-            contextPreparer,
-            jobContextService,
+            jobSetup,
+            tasksService,
             indicesService,
             jobAction,
             killJobsNodeAction,

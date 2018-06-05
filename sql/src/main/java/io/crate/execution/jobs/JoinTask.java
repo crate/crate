@@ -27,7 +27,7 @@ import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 
-class JoinContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext {
+class JoinTask extends AbstractTask implements DownstreamRXTask {
 
     private final JoinPhase joinPhase;
 
@@ -37,11 +37,11 @@ class JoinContext extends AbstractExecutionSubContext implements DownstreamExecu
     @Nullable
     private final PageBucketReceiver rightBucketReceiver;
 
-    JoinContext(Logger logger,
-                JoinPhase joinPhase,
-                CompletionListenable<?> completionListenable,
-                @Nullable PageBucketReceiver leftBucketReceiver,
-                @Nullable PageBucketReceiver rightBucketReceiver) {
+    JoinTask(Logger logger,
+             JoinPhase joinPhase,
+             CompletionListenable<?> completionListenable,
+             @Nullable PageBucketReceiver leftBucketReceiver,
+             @Nullable PageBucketReceiver rightBucketReceiver) {
         super(joinPhase.phaseId(), logger);
 
         this.joinPhase = joinPhase;
@@ -78,7 +78,7 @@ class JoinContext extends AbstractExecutionSubContext implements DownstreamExecu
 
     @Override
     public String toString() {
-        return "JoinContext{" +
+        return "JoinTask{" +
                "id=" + id() +
                ", leftCtx=" + leftBucketReceiver +
                ", rightCtx=" + rightBucketReceiver +

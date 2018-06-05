@@ -24,10 +24,10 @@ package io.crate.execution.jobs.transport;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Bucket;
-import io.crate.execution.jobs.ContextPreparer;
+import io.crate.execution.jobs.JobSetup;
 import io.crate.execution.jobs.InstrumentedIndexSearcher;
-import io.crate.execution.jobs.JobContextService;
-import io.crate.execution.jobs.JobExecutionContext;
+import io.crate.execution.jobs.RootTask;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
@@ -55,19 +55,19 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
     private final IndicesService indicesService;
     private final Transports transports;
-    private final JobContextService jobContextService;
-    private final ContextPreparer contextPreparer;
+    private final TasksService tasksService;
+    private final JobSetup jobSetup;
 
     @Inject
     public TransportJobAction(TransportService transportService,
                               IndicesService indicesService,
                               Transports transports,
-                              JobContextService jobContextService,
-                              ContextPreparer contextPreparer) {
+                              TasksService tasksService,
+                              JobSetup jobSetup) {
         this.indicesService = indicesService;
         this.transports = transports;
-        this.jobContextService = jobContextService;
-        this.contextPreparer = contextPreparer;
+        this.tasksService = tasksService;
+        this.jobSetup = jobSetup;
         transportService.registerRequestHandler(
             ACTION_NAME,
             JobRequest::new,
@@ -82,16 +82,16 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
     @Override
     public CompletableFuture<JobResponse> nodeOperation(final JobRequest request) {
-        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(
+        RootTask.Builder contextBuilder = tasksService.newBuilder(
             request.jobId(), request.coordinatorNodeId(), Collections.emptySet());
 
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(request.enableProfiling(), contextBuilder);
 
-        List<CompletableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnRemote(
+        List<CompletableFuture<Bucket>> directResponseFutures = jobSetup.prepareOnRemote(
             request.nodeOperations(), contextBuilder, sharedShardContexts);
 
         try {
-            JobExecutionContext context = jobContextService.createContext(contextBuilder);
+            RootTask context = tasksService.createTask(contextBuilder);
             context.start();
         } catch (Throwable t) {
             return CompletableFutures.failedFuture(t);
@@ -104,7 +104,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         }
     }
 
-    private SharedShardContexts maybeInstrumentProfiler(boolean enableProfiling, JobExecutionContext.Builder contextBuilder) {
+    private SharedShardContexts maybeInstrumentProfiler(boolean enableProfiling, RootTask.Builder contextBuilder) {
         if (enableProfiling) {
             QueryProfiler queryProfiler = new QueryProfiler();
             ProfilingContext profilingContext = new ProfilingContext(queryProfiler::getTree);

@@ -40,9 +40,9 @@ import java.util.concurrent.CompletableFuture;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
-public class CountContext extends AbstractExecutionSubContext {
+public class CountTask extends AbstractTask {
 
-    private static final Logger LOGGER = Loggers.getLogger(CountContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(CountTask.class);
 
     private final CountPhase countPhase;
     private final CountOperation countOperation;
@@ -50,10 +50,10 @@ public class CountContext extends AbstractExecutionSubContext {
     private final Map<String, List<Integer>> indexShardMap;
     private CompletableFuture<Long> countFuture;
 
-    CountContext(CountPhase countPhase,
-                 CountOperation countOperation,
-                 RowConsumer consumer,
-                 Map<String, List<Integer>> indexShardMap) {
+    CountTask(CountPhase countPhase,
+              CountOperation countOperation,
+              RowConsumer consumer,
+              Map<String, List<Integer>> indexShardMap) {
         super(countPhase.phaseId(), LOGGER);
         this.countPhase = countPhase;
         this.countOperation = countOperation;

@@ -26,7 +26,7 @@ import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -119,14 +119,14 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                                  TransportService transportService,
                                                  SchemaUpdateClient schemaUpdateClient,
                                                  ActionFilters actionFilters,
-                                                 JobContextService jobContextService,
+                                                 TasksService tasksService,
                                                  IndicesService indicesService,
                                                  ShardStateAction shardStateAction,
                                                  Functions functions,
                                                  Schemas schemas,
                                                  IndexNameExpressionResolver indexNameExpressionResolver) {
             super(settings, threadPool, clusterService, transportService, schemaUpdateClient, actionFilters,
-                jobContextService, indicesService, shardStateAction, functions, schemas, indexNameExpressionResolver);
+                tasksService, indicesService, shardStateAction, functions, schemas, indexNameExpressionResolver);
         }
 
         @Override
@@ -179,7 +179,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             MockTransportService.createNewService(Settings.EMPTY, Version.V_6_0_1, THREAD_POOL, clusterService.getClusterSettings()),
             mock(SchemaUpdateClient.class),
             mock(ActionFilters.class),
-            mock(JobContextService.class),
+            mock(TasksService.class),
             indicesService,
             mock(ShardStateAction.class),
             functions,

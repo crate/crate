@@ -44,9 +44,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class JobCollectContextTest extends RandomizedTest {
+public class CollectTaskTest extends RandomizedTest {
 
-    private JobCollectContext jobCollectContext;
+    private CollectTask collectTask;
     private RoutedCollectPhase collectPhase;
     private String localNodeId;
 
@@ -60,7 +60,7 @@ public class JobCollectContextTest extends RandomizedTest {
         when(routing.containsShards(localNodeId)).thenReturn(true);
         when(collectPhase.routing()).thenReturn(routing);
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
-        jobCollectContext = new JobCollectContext(
+        collectTask = new CollectTask(
             collectPhase,
             mock(MapSideDataCollectOperation.class),
             ramAccountingContext,
@@ -73,8 +73,8 @@ public class JobCollectContextTest extends RandomizedTest {
         Engine.Searcher mock1 = mock(Engine.Searcher.class);
         Engine.Searcher mock2 = mock(Engine.Searcher.class);
         try {
-            jobCollectContext.addSearcher(1, mock1);
-            jobCollectContext.addSearcher(1, mock2);
+            collectTask.addSearcher(1, mock1);
+            collectTask.addSearcher(1, mock2);
 
             assertFalse(true); // second addContext call should have raised an exception
         } catch (IllegalArgumentException e) {
@@ -88,10 +88,10 @@ public class JobCollectContextTest extends RandomizedTest {
         Engine.Searcher mock1 = mock(Engine.Searcher.class);
         Engine.Searcher mock2 = mock(Engine.Searcher.class);
 
-        jobCollectContext.addSearcher(1, mock1);
-        jobCollectContext.addSearcher(2, mock2);
+        collectTask.addSearcher(1, mock1);
+        collectTask.addSearcher(2, mock2);
 
-        jobCollectContext.close();
+        collectTask.close();
 
         verify(mock1, times(1)).close();
         verify(mock2, times(1)).close();
@@ -103,7 +103,7 @@ public class JobCollectContextTest extends RandomizedTest {
         Engine.Searcher mock1 = mock(Engine.Searcher.class);
         MapSideDataCollectOperation collectOperationMock = mock(MapSideDataCollectOperation.class);
 
-        JobCollectContext jobCtx = new JobCollectContext(
+        CollectTask jobCtx = new CollectTask(
             collectPhase,
             collectOperationMock,
             ramAccountingContext,
@@ -126,7 +126,7 @@ public class JobCollectContextTest extends RandomizedTest {
 
     @Test
     public void testThreadPoolNameForDocTables() throws Exception {
-        String threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase);
+        String threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
     }
 
@@ -139,29 +139,29 @@ public class JobCollectContextTest extends RandomizedTest {
 
         // sys.cluster (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.CLUSTER);
-        String threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase);
+        String threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
 
         // partition values only of a partitioned doc table (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.PARTITION);
-        threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase);
+        threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
 
         // sys.nodes (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.NODE);
-        threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase);
+        threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.MANAGEMENT));
 
         // sys.shards
         when(routing.containsShards(localNodeId)).thenReturn(true);
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.SHARD);
-        threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase);
+        threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.MANAGEMENT));
         when(routing.containsShards(localNodeId)).thenReturn(false);
 
         // information_schema.*
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
-        threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase);
+        threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
     }
 }

@@ -24,9 +24,9 @@ package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
 import io.crate.data.Bucket;
-import io.crate.exceptions.ContextMissingException;
+import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.support.Transports;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -51,12 +51,12 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
 
     @Test
     public void testKillIsInvokedIfContextIsNotFound() throws InterruptedException, TimeoutException {
-        JobContextService jobContextService = new JobContextService(
+        TasksService tasksService = new TasksService(
             Settings.EMPTY, clusterService, new JobsLogs(() -> false));
         TransportKillJobsNodeAction killJobsAction = mock(TransportKillJobsNodeAction.class);
         TransportDistributedResultAction transportDistributedResultAction = new TransportDistributedResultAction(
             mock(Transports.class),
-            jobContextService,
+            tasksService,
             THREAD_POOL,
             mock(TransportService.class),
             clusterService,
@@ -69,9 +69,9 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
             transportDistributedResultAction.nodeOperation(
                 new DistributedResultRequest(UUID.randomUUID(), 0, (byte) 0, 0, new Streamer[0], Bucket.EMPTY, true)
             ).get(5, TimeUnit.SECONDS);
-            fail("nodeOperation call should fail with ContextMissingException");
+            fail("nodeOperation call should fail with TaskMissing");
         } catch (ExecutionException e) {
-            assertThat(e.getCause(), Matchers.instanceOf(ContextMissingException.class));
+            assertThat(e.getCause(), Matchers.instanceOf(TaskMissing.class));
         }
 
         verify(killJobsAction, times(1)).broadcast(any(), any(), any());

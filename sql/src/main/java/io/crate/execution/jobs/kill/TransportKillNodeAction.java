@@ -25,7 +25,7 @@ package io.crate.execution.jobs.kill;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -49,19 +49,19 @@ import java.util.stream.StreamSupport;
 abstract class TransportKillNodeAction<Request extends TransportRequest> extends AbstractComponent
     implements NodeAction<Request, KillResponse>, Callable<Request> {
 
-    protected final JobContextService jobContextService;
+    protected final TasksService tasksService;
     protected final ClusterService clusterService;
     protected final TransportService transportService;
     protected final String name;
 
     TransportKillNodeAction(String name,
                             Settings settings,
-                            JobContextService jobContextService,
+                            TasksService tasksService,
                             ClusterService clusterService,
                             TransportService transportService,
                             Supplier<Request> requestSupplier) {
         super(settings);
-        this.jobContextService = jobContextService;
+        this.tasksService = tasksService;
         this.clusterService = clusterService;
         this.transportService = transportService;
         this.name = name;

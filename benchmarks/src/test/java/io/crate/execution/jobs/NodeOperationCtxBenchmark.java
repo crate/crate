@@ -82,7 +82,7 @@ public class NodeOperationCtxBenchmark {
 
     @Benchmark
     public Iterable<? extends IntCursor> measureCreateNodeOperationCtxPlusFindLeafs() {
-        ContextPreparer.NodeOperationCtx ctx = new ContextPreparer.NodeOperationCtx("n1", nodeOperations);
+        JobSetup.NodeOperationCtx ctx = new JobSetup.NodeOperationCtx("n1", nodeOperations);
         return ctx.findLeafs();
     }
 }

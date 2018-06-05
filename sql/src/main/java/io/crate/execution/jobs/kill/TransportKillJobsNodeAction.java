@@ -21,7 +21,7 @@
 
 package io.crate.execution.jobs.kill;
 
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -35,15 +35,15 @@ public class TransportKillJobsNodeAction extends TransportKillNodeAction<KillJob
 
     @Inject
     public TransportKillJobsNodeAction(Settings settings,
-                                       JobContextService jobContextService,
+                                       TasksService tasksService,
                                        ClusterService clusterService,
                                        TransportService transportService) {
-        super("crate/sql/kill_jobs", settings, jobContextService, clusterService, transportService, KillJobsRequest::new);
+        super("crate/sql/kill_jobs", settings, tasksService, clusterService, transportService, KillJobsRequest::new);
     }
 
     @Override
     protected CompletableFuture<Integer> doKill(KillJobsRequest request) {
-        return jobContextService.killJobs(request.toKill());
+        return tasksService.killJobs(request.toKill());
     }
 
     @Override

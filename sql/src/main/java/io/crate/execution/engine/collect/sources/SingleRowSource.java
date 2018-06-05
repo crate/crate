@@ -26,9 +26,9 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.collect.RowsCollector;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
@@ -52,7 +52,7 @@ public class SingleRowSource implements CollectSource {
     }
 
     @Override
-    public CrateCollector getCollector(CollectPhase phase, RowConsumer consumer, JobCollectContext jobCollectContext) {
+    public CrateCollector getCollector(CollectPhase phase, RowConsumer consumer, CollectTask collectTask) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         collectPhase = collectPhase.normalize(clusterNormalizer, null);
 

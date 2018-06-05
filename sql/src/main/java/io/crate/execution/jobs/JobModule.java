@@ -28,6 +28,6 @@ public class JobModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(JobContextService.class).asEagerSingleton();
+        bind(TasksService.class).asEagerSingleton();
     }
 }

@@ -34,7 +34,7 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.Symbol;
@@ -121,7 +121,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       TransportService transportService,
                                       SchemaUpdateClient schemaUpdateClient,
                                       ActionFilters actionFilters,
-                                      JobContextService jobContextService,
+                                      TasksService tasksService,
                                       IndicesService indicesService,
                                       ShardStateAction shardStateAction,
                                       Functions functions,
@@ -131,7 +131,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest::new, schemaUpdateClient);
         this.schemas = schemas;
         this.inputFactory = new InputFactory(functions);
-        jobContextService.addListener(this);
+        tasksService.addListener(this);
     }
 
     @Override

@@ -58,16 +58,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class PageDownstreamContextTest extends CrateUnitTest {
+public class DistResultRXTaskTest extends CrateUnitTest {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
-    private PageDownstreamContext getPageDownstreamContext(TestingRowConsumer batchConsumer,
-                                                           PagingIterator<Integer, Row> pagingIterator,
-                                                           int numBuckets) {
-        return new PageDownstreamContext(
-            Loggers.getLogger(PageDownstreamContext.class),
+    private DistResultRXTask getPageDownstreamContext(TestingRowConsumer batchConsumer,
+                                                      PagingIterator<Integer, Row> pagingIterator,
+                                                      int numBuckets) {
+        return new DistResultRXTask(
+            Loggers.getLogger(DistResultRXTask.class),
             "n1",
             1,
             "dummy",
@@ -98,7 +98,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
     @Test
     public void testKillCallsDownstream() throws Throwable {
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
-        PageDownstreamContext ctx = getPageDownstreamContext(batchConsumer, PassThroughPagingIterator.oneShot(), 3);
+        DistResultRXTask ctx = getPageDownstreamContext(batchConsumer, PassThroughPagingIterator.oneShot(), 3);
 
         final AtomicReference<Throwable> throwable = new AtomicReference<>();
         ctx.completionFuture().whenComplete((r, t) -> {
@@ -119,7 +119,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
     @Test
     public void testPagingWithSortedPagingIterator() throws Throwable {
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
-        PageDownstreamContext ctx = getPageDownstreamContext(
+        DistResultRXTask ctx = getPageDownstreamContext(
             batchConsumer,
             new SortedPagingIterator<>(Comparator.comparingInt(r -> (int)r.get(0)), false),
             2
@@ -159,7 +159,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
     @Test
     public void testListenersCalledWhenOtherUpstreamIsFailing() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        PageDownstreamContext ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
+        DistResultRXTask ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
 
         PageResultListener listener = mock(PageResultListener.class);
         ctx.setBucket(0, Bucket.EMPTY, false, listener);
@@ -171,7 +171,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
     @Test
     public void testListenerCalledAfterOthersHasFailed() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        PageDownstreamContext ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
+        DistResultRXTask ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
 
         ctx.failure(0, new Exception("dummy"));
         PageResultListener listener = mock(PageResultListener.class);
@@ -183,7 +183,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
     @Test
     public void testSetBucketOnAKilledCtxReleasesListener() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        PageDownstreamContext ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
+        DistResultRXTask ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
         ctx.kill(new InterruptedException("killed"));
 
         CompletableFuture<Void> listenerReleased = new CompletableFuture<>();
@@ -196,7 +196,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
     @Test
     public void testNonSequentialBucketIds() throws Exception {
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
-        PageDownstreamContext ctx = getPageDownstreamContext(
+        DistResultRXTask ctx = getPageDownstreamContext(
             batchConsumer,
             PassThroughPagingIterator.oneShot(),
             3

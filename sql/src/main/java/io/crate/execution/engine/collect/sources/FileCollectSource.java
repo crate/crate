@@ -22,6 +22,7 @@
 package io.crate.execution.engine.collect.sources;
 
 import io.crate.analyze.CopyFromAnalyzedStatement;
+import io.crate.execution.engine.collect.CollectTask;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.data.RowConsumer;
@@ -30,7 +31,6 @@ import io.crate.metadata.Functions;
 import io.crate.expression.InputFactory;
 import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
@@ -63,7 +63,7 @@ public class FileCollectSource implements CollectSource {
     }
 
     @Override
-    public CrateCollector getCollector(CollectPhase collectPhase, RowConsumer consumer, JobCollectContext jobCollectContext) {
+    public CrateCollector getCollector(CollectPhase collectPhase, RowConsumer consumer, CollectTask collectTask) {
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);

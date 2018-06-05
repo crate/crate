@@ -21,40 +21,13 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.concurrent.CompletionListenable;
-
 import javax.annotation.Nullable;
-import java.util.concurrent.CompletableFuture;
 
-public interface ExecutionSubContext extends CompletionListenable {
+/**
+ * An Task which receives data from an upstream.
+ */
+public interface DownstreamRXTask {
 
-
-    /**
-     * In the prepare phase implementations of this interface can allocate any resources.
-     * Exception are required to be thrown directly and must not be set on the downstream.
-     */
-    void prepare() throws Exception;
-
-    /**
-     * In the start phase implementations of this interface are required to start any executors.
-     * <p>
-     * In this phase failures must not be propagated to downstream phases directly.
-     * <p>
-     * However, it is ok for the started executors to use their downstreams to propagate failures.
-     */
-    void start();
-
-    void kill(@Nullable Throwable throwable);
-
-    String name();
-
-    int id();
-
-    /**
-     * Hook to cleanup the resources of this context. This might be called at any time in the lifecycle of the context.
-     */
-    void cleanup();
-
-    @Override
-    CompletableFuture<CompletionState> completionFuture();
+    @Nullable
+    PageBucketReceiver getBucketReceiver(byte inputId);
 }

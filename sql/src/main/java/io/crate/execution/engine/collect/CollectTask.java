@@ -29,7 +29,7 @@ import io.crate.data.ListenableRowConsumer;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.jobs.AbstractExecutionSubContext;
+import io.crate.execution.jobs.AbstractTask;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.RowGranularity;
 import org.apache.logging.log4j.Logger;
@@ -42,9 +42,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Locale;
 
-public class JobCollectContext extends AbstractExecutionSubContext {
+public class CollectTask extends AbstractTask {
 
-    private static final Logger LOGGER = Loggers.getLogger(JobCollectContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(CollectTask.class);
 
     private final CollectPhase collectPhase;
     private final MapSideDataCollectOperation collectOperation;
@@ -58,11 +58,11 @@ public class JobCollectContext extends AbstractExecutionSubContext {
 
     private CrateCollector collector = null;
 
-    public JobCollectContext(final CollectPhase collectPhase,
-                             MapSideDataCollectOperation collectOperation,
-                             RamAccountingContext queryPhaseRamAccountingContext,
-                             RowConsumer consumer,
-                             SharedShardContexts sharedShardContexts) {
+    public CollectTask(final CollectPhase collectPhase,
+                       MapSideDataCollectOperation collectOperation,
+                       RamAccountingContext queryPhaseRamAccountingContext,
+                       RowConsumer consumer,
+                       SharedShardContexts sharedShardContexts) {
         super(collectPhase.phaseId(), LOGGER);
         this.collectPhase = collectPhase;
         this.collectOperation = collectOperation;
@@ -127,7 +127,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
 
     @Override
     public String toString() {
-        return "JobCollectContext{" +
+        return "CollectTask{" +
                "id=" + id +
                ", sharedContexts=" + sharedShardContexts +
                ", consumer=" + consumer +

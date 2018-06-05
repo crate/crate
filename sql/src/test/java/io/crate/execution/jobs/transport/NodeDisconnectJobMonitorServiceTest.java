@@ -22,11 +22,11 @@
 
 package io.crate.execution.jobs.transport;
 
-import io.crate.exceptions.ContextMissingException;
+import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.execution.jobs.DummySubContext;
-import io.crate.execution.jobs.JobContextService;
-import io.crate.execution.jobs.JobExecutionContext;
+import io.crate.execution.jobs.DummyTask;
+import io.crate.execution.jobs.RootTask;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -50,20 +50,20 @@ import static org.mockito.Mockito.verify;
 
 public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServiceUnitTest {
 
-    private JobContextService jobContextService() throws Exception {
-        return new JobContextService(Settings.EMPTY, clusterService, new JobsLogs(() -> true));
+    private TasksService tasksInstance() throws Exception {
+        return new TasksService(Settings.EMPTY, clusterService, new JobsLogs(() -> true));
     }
 
     @Test
     public void testOnNodeDisconnectedKillsJobOriginatingFromThatNode() throws Exception {
-        JobContextService jobContextService = jobContextService();
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID());
-        builder.addSubContext(new DummySubContext());
-        JobExecutionContext context = jobContextService.createContext(builder);
+        TasksService tasksService = tasksInstance();
+        RootTask.Builder builder = tasksService.newBuilder(UUID.randomUUID());
+        builder.addTask(new DummyTask());
+        RootTask context = tasksService.createTask(builder);
 
         NodeDisconnectJobMonitorService monitorService = new NodeDisconnectJobMonitorService(
             Settings.EMPTY,
-            jobContextService,
+            tasksService,
             mock(TransportService.class),
             mock(TransportKillJobsNodeAction.class));
 
@@ -72,31 +72,31 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
             buildNewFakeTransportAddress(),
             Version.CURRENT));
 
-        expectedException.expect(ContextMissingException.class);
-        jobContextService.getContext(context.jobId());
+        expectedException.expect(TaskMissing.class);
+        tasksService.getTask(context.jobId());
     }
 
     @Test
     public void testOnParticipatingNodeDisconnectedKillsJob() throws Exception {
-        JobContextService jobContextService = jobContextService();
+        TasksService tasksService = tasksInstance();
 
         DiscoveryNode coordinator = newNode("coordinator");
         DiscoveryNode dataNode = newNode("dataNode");
 
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID(), coordinator.getId(), Arrays.asList(coordinator.getId(), dataNode.getId()));
-        builder.addSubContext(new DummySubContext());
-        jobContextService.createContext(builder);
+        RootTask.Builder builder = tasksService.newBuilder(UUID.randomUUID(), coordinator.getId(), Arrays.asList(coordinator.getId(), dataNode.getId()));
+        builder.addTask(new DummyTask());
+        tasksService.createTask(builder);
 
         // add a second job that is coordinated by the other node to make sure the the broadcast logic is run
         // even though there are jobs coordinated by the disconnected node
-        builder = jobContextService.newBuilder(UUID.randomUUID(), dataNode.getId(), Collections.emptySet());
-        builder.addSubContext(new DummySubContext());
-        jobContextService.createContext(builder);
+        builder = tasksService.newBuilder(UUID.randomUUID(), dataNode.getId(), Collections.emptySet());
+        builder.addTask(new DummyTask());
+        tasksService.createTask(builder);
 
         TransportKillJobsNodeAction killAction = mock(TransportKillJobsNodeAction.class);
         NodeDisconnectJobMonitorService monitorService = new NodeDisconnectJobMonitorService(
             Settings.EMPTY,
-            jobContextService,
+            tasksService,
             mock(TransportService.class),
             killAction);
 

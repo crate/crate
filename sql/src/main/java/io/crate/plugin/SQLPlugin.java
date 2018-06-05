@@ -33,7 +33,7 @@ import io.crate.execution.TransportExecutorModule;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.collect.CollectOperationModule;
 import io.crate.execution.engine.collect.files.FileCollectModule;
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.JobModule;
 import io.crate.execution.jobs.transport.NodeDisconnectJobMonitorService;
 import io.crate.expression.operator.OperatorModule;
@@ -171,7 +171,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             DecommissioningService.class,
             NodeDisconnectJobMonitorService.class,
             PostgresNetty.class,
-            JobContextService.class,
+            TasksService.class,
             Schemas.class,
             ArrayMapperService.class,
             IngestionService.class);

@@ -47,9 +47,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public final class PKLookupContext extends AbstractExecutionSubContext {
+public final class PKLookupTask extends AbstractTask {
 
-    private static final Logger LOGGER = Loggers.getLogger(PKLookupContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(PKLookupTask.class);
     private final UUID jobId;
     private final RamAccountingContext ramAccountingContext;
     private final PKLookupOperation pkLookupOperation;
@@ -61,17 +61,17 @@ public final class PKLookupContext extends AbstractExecutionSubContext {
     private final List<CollectExpression<GetResponse, ?>> expressions;
     private final String name;
 
-    PKLookupContext(UUID jobId,
-                    int phaseId,
-                    String name,
-                    RamAccountingContext ramAccountingContext,
-                    InputFactory inputFactory,
-                    PKLookupOperation pkLookupOperation,
-                    List<ColumnIdent> partitionedByColumns,
-                    List<Symbol> toCollect,
-                    Map<ShardId, List<PKAndVersion>> idsByShard,
-                    Collection<? extends Projection> shardProjections,
-                    RowConsumer consumer) {
+    PKLookupTask(UUID jobId,
+                 int phaseId,
+                 String name,
+                 RamAccountingContext ramAccountingContext,
+                 InputFactory inputFactory,
+                 PKLookupOperation pkLookupOperation,
+                 List<ColumnIdent> partitionedByColumns,
+                 List<Symbol> toCollect,
+                 Map<ShardId, List<PKAndVersion>> idsByShard,
+                 Collection<? extends Projection> shardProjections,
+                 RowConsumer consumer) {
         super(phaseId, LOGGER);
         this.jobId = jobId;
         this.name = name;

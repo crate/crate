@@ -29,10 +29,10 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.jobs.ContextPreparer;
-import io.crate.execution.jobs.JobContextService;
-import io.crate.execution.jobs.JobExecutionContext;
+import io.crate.execution.jobs.JobSetup;
+import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.execution.jobs.TasksService;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -232,18 +232,18 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     private Bucket collect(RoutedCollectPhase collectNode) throws Throwable {
-        ContextPreparer contextPreparer = internalCluster().getDataNodeInstance(ContextPreparer.class);
-        JobContextService contextService = internalCluster().getDataNodeInstance(JobContextService.class);
+        JobSetup jobSetup = internalCluster().getDataNodeInstance(JobSetup.class);
+        TasksService tasksService = internalCluster().getDataNodeInstance(TasksService.class);
         SharedShardContexts sharedShardContexts = new SharedShardContexts(
             internalCluster().getDataNodeInstance(IndicesService.class), UnaryOperator.identity());
-        JobExecutionContext.Builder builder = contextService.newBuilder(collectNode.jobId());
+        RootTask.Builder builder = tasksService.newBuilder(collectNode.jobId());
         NodeOperation nodeOperation = NodeOperation.withDirectResponse(collectNode, mock(ExecutionPhase.class), (byte) 0,
             "remoteNode");
 
-        List<CompletableFuture<Bucket>> results = contextPreparer.prepareOnRemote(
+        List<CompletableFuture<Bucket>> results = jobSetup.prepareOnRemote(
             ImmutableList.of(nodeOperation), builder, sharedShardContexts);
-        JobExecutionContext context = contextService.createContext(builder);
-        context.start();
+        RootTask rootTask = tasksService.createTask(builder);
+        rootTask.start();
         return results.get(0).get(2, TimeUnit.SECONDS);
     }
 }

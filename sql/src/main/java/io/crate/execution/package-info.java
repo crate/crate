@@ -36,17 +36,17 @@
  *     This should give you a high level overview:
  * </p>
  * <ul>
- *     <li>The entry point on the handler node: {@link io.crate.execution.engine.ExecutionPhasesTask}</li>
+ *     <li>The entry point on the handler node: {@link io.crate.execution.engine.JobLauncher}</li>
  *     <li>The entry point on remote nodes: {@link io.crate.execution.jobs.transport.TransportJobAction}</li>
- *     <li>Both of the above use {@link io.crate.execution.jobs.ContextPreparer}
- *     to setup {@link io.crate.execution.jobs.JobExecutionContext}, which contains the
- *     {@link io.crate.execution.jobs.ExecutionSubContext}s which model the operations that should be executed</li>
+ *     <li>Both of the above use {@link io.crate.execution.jobs.JobSetup}
+ *     to setup {@link io.crate.execution.jobs.RootTask}, which contains the
+ *     {@link io.crate.execution.jobs.Task}s which model the operations that should be executed</li>
  *     <li>
  *         There are different kind of contexts, which model different operations. Most often used are:
  *         <ul>
- *             <li>{@link io.crate.execution.engine.collect.JobCollectContext} which is used to collect data;
+ *             <li>{@link io.crate.execution.engine.collect.CollectTask} which is used to collect data;
  *             E.g. from Lucene or in-memory structures. Created based on a {@link io.crate.execution.dsl.phases.CollectPhase}</li>
- *             <li>{@link io.crate.execution.jobs.PageDownstreamContext} which is used to process data from an upstream executionPhase.
+ *             <li>{@link io.crate.execution.jobs.DistResultRXTask} which is used to process data from an upstream executionPhase.
  *             Created based on a {@link io.crate.execution.dsl.phases.MergePhase}</li>
  *         </ul>
  *     </li>
@@ -64,7 +64,7 @@
  *       - We've a chain/pipeline of {@link io.crate.data.BatchIterator}s
  *       - We've a {@link io.crate.data.RowConsumer}
  *
- *       (both setup within the ContextPreparer and part of a ExecutionSubContext)
+ *       (both setup within the JobSetup and part of a Task)
  *
  *       - The "trigger" is that {@link io.crate.data.RowConsumer#accept(io.crate.data.BatchIterator, java.lang.Throwable)} is called (push)
  *       - The RowConsumer consumes the BatchIterator (pull)
@@ -98,29 +98,29 @@
  * </p>
  *
  * <pre>
- *     - On the handler the {@link io.crate.execution.engine.ExecutionPhasesTask}:
- *       - Creates a local {@link io.crate.execution.jobs.JobExecutionContext} that contains:
- *          - A {@link io.crate.execution.engine.collect.JobCollectContext}
- *          - Two {@link io.crate.execution.jobs.PageDownstreamContext}, one for each MergePhase
+ *     - On the handler the {@link io.crate.execution.engine.JobLauncher}:
+ *       - Creates a local {@link io.crate.execution.jobs.RootTask} that contains:
+ *          - A {@link io.crate.execution.engine.collect.CollectTask}
+ *          - Two {@link io.crate.execution.jobs.DistResultRXTask}, one for each MergePhase
  *       - Sends a {@link io.crate.execution.jobs.transport.JobRequest} to n2
  *
  *     - {@link io.crate.execution.jobs.transport.TransportJobAction} receives and creates
- *        - A {@link io.crate.execution.engine.collect.JobCollectContext}
- *        - One {@link io.crate.execution.jobs.PageDownstreamContext}
+ *        - A {@link io.crate.execution.engine.collect.CollectTask}
+ *        - One {@link io.crate.execution.jobs.DistResultRXTask}
  *
- *     - {@link io.crate.execution.jobs.JobExecutionContext#start()} triggers the start method on the sub-contexts which will:
+ *     - {@link io.crate.execution.jobs.RootTask#start()} triggers the start method on the sub-contexts which will:
  *
  *       - Initiate the collect operation
  *       (This means a RowConsumer, in this case a {@link io.crate.execution.engine.distribution.DistributingConsumer}, will receive a {@link io.crate.data.BatchIterator};
  *       consume its data and forward its result.
  *
  *       - The data is received by {@link io.crate.execution.engine.distribution.TransportDistributedResultAction}
- *       which looks up a {@link io.crate.execution.jobs.PageDownstreamContext} to process it.
+ *       which looks up a {@link io.crate.execution.jobs.DistResultRXTask} to process it.
  *
  *       This fills up a {@link io.crate.data.BatchIterator} with the data that was received and also invokes a {@link io.crate.data.RowConsumer}
  *       (again a {@link io.crate.execution.engine.distribution.DistributingConsumer}).
  *
- *       - Again, the data is received by a {@link io.crate.execution.jobs.PageDownstreamContext} (MergePhase on the handler)
+ *       - Again, the data is received by a {@link io.crate.execution.jobs.DistResultRXTask} (MergePhase on the handler)
  *         and made available to a {@link io.crate.data.RowConsumer} via a {@link io.crate.data.BatchIterator}.
  *         The RowConsumer here is a {@link io.crate.action.sql.RowConsumerToResultReceiver}, which forwards the result to a client.
  *
@@ -139,7 +139,7 @@
  *          |
  *       TransportDistributedResultAction (also receives results from n2)
  *          |
- *       PageDownstreamContext
+ *       DistResultRXTask
  *          |
  *       BatchIterator (the whole pipeline e.g. BatchPagingIterator -> CollectingBatchIterator -> ...)
  *          |
@@ -150,7 +150,7 @@
  *          |
  *       TransportDistributedResultAction  (also receives results from n2)
  *          |
- *       PageDownstreamContext
+ *       DistResultRXTask
  *          |
  *       BatchIterator (the whole pipeline e.g. BatchPagingIterator -> LimitingBatchIterator -> ...)
  *          |

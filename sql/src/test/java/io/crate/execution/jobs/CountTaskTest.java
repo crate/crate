@@ -46,7 +46,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class CountContextTest extends CrateUnitTest {
+public class CountTaskTest extends CrateUnitTest {
 
     private static CountPhase countPhaseWithId(int phaseId) {
         return new CountPhase(phaseId,
@@ -63,25 +63,25 @@ public class CountContextTest extends CrateUnitTest {
         CountOperation countOperation = mock(CountOperation.class);
         when(countOperation.count(anyMap(), any(Symbol.class))).thenReturn(future);
 
-        CountContext countContext = new CountContext(countPhaseWithId(1), countOperation, new TestingRowConsumer(), null);
-        countContext.prepare();
-        countContext.start();
+        CountTask countTask = new CountTask(countPhaseWithId(1), countOperation, new TestingRowConsumer(), null);
+        countTask.prepare();
+        countTask.start();
         future.complete(1L);
-        assertTrue(countContext.isClosed());
+        assertTrue(countTask.isClosed());
         // assure that there was no exception
-        countContext.completionFuture().get();
+        countTask.completionFuture().get();
 
         // on error
         future = new CompletableFuture<>();
         when(countOperation.count(anyMap(), any(Symbol.class))).thenReturn(future);
 
-        countContext = new CountContext(countPhaseWithId(2), countOperation, new TestingRowConsumer(), null);
-        countContext.prepare();
-        countContext.start();
+        countTask = new CountTask(countPhaseWithId(2), countOperation, new TestingRowConsumer(), null);
+        countTask.prepare();
+        countTask.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
-        assertTrue(countContext.isClosed());
+        assertTrue(countTask.isClosed());
         expectedException.expectCause(CauseMatcher.cause(UnhandledServerException.class));
-        countContext.completionFuture().get();
+        countTask.completionFuture().get();
     }
 
     @Test
@@ -89,14 +89,14 @@ public class CountContextTest extends CrateUnitTest {
         CompletableFuture<Long> future = mock(CompletableFuture.class);
         CountOperation countOperation = new FakeCountOperation(future);
 
-        CountContext countContext = new CountContext(countPhaseWithId(1), countOperation, new TestingRowConsumer(), null);
+        CountTask countTask = new CountTask(countPhaseWithId(1), countOperation, new TestingRowConsumer(), null);
 
-        countContext.prepare();
-        countContext.start();
-        countContext.kill(null);
+        countTask.prepare();
+        countTask.start();
+        countTask.kill(null);
 
         verify(future, times(1)).cancel(true);
-        assertTrue(countContext.isClosed());
+        assertTrue(countTask.isClosed());
     }
 
     private static class FakeCountOperation implements CountOperation {

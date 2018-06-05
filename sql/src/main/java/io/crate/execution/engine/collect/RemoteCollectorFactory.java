@@ -31,7 +31,7 @@ import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.collect.collectors.RemoteCollector;
 import io.crate.execution.engine.collect.collectors.ShardStateAwareRemoteCollector;
 import io.crate.execution.engine.collect.sources.ShardCollectorProviderFactory;
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionInfo;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -59,19 +59,19 @@ public class RemoteCollectorFactory {
     private static final int SENDER_PHASE_ID = 0;
 
     private final ClusterService clusterService;
-    private final JobContextService jobContextService;
+    private final TasksService tasksService;
     private final TransportActionProvider transportActionProvider;
     private final ThreadPool threadPool;
     private final IndicesService indicesService;
 
     @Inject
     public RemoteCollectorFactory(ClusterService clusterService,
-                                  JobContextService jobContextService,
+                                  TasksService tasksService,
                                   TransportActionProvider transportActionProvider,
                                   IndicesService indicesService,
                                   ThreadPool threadPool) {
         this.clusterService = clusterService;
-        this.jobContextService = jobContextService;
+        this.tasksService = tasksService;
         this.transportActionProvider = transportActionProvider;
         this.indicesService = indicesService;
         this.threadPool = threadPool;
@@ -85,7 +85,7 @@ public class RemoteCollectorFactory {
      */
     public CrateCollector.Builder createCollector(ShardId shardId,
                                                   RoutedCollectPhase collectPhase,
-                                                  JobCollectContext jobCollectContext,
+                                                  CollectTask collectTask,
                                                   ShardCollectorProviderFactory shardCollectorProviderFactory) {
         final UUID childJobId = UUID.randomUUID(); // new job because subContexts can't be merged into an existing job
         return consumer -> new ShardStateAwareRemoteCollector(
@@ -93,20 +93,20 @@ public class RemoteCollectorFactory {
             consumer,
             clusterService,
             indicesService,
-            getLocalCollectorProvider(shardCollectorProviderFactory, collectPhase, jobCollectContext, consumer),
-            getRemoteCollectorProvider(childJobId, shardId, collectPhase, jobCollectContext, consumer),
+            getLocalCollectorProvider(shardCollectorProviderFactory, collectPhase, collectTask, consumer),
+            getRemoteCollectorProvider(childJobId, shardId, collectPhase, collectTask, consumer),
             threadPool.executor(ThreadPool.Names.SEARCH),
             threadPool.getThreadContext());
     }
 
     private Function<IndexShard, CrateCollector> getLocalCollectorProvider(ShardCollectorProviderFactory shardCollectorProviderFactory,
                                                                            RoutedCollectPhase collectPhase,
-                                                                           JobCollectContext jobCollectContext,
+                                                                           CollectTask collectTask,
                                                                            RowConsumer consumer) {
         return indexShard -> {
             try {
                 return shardCollectorProviderFactory.create(indexShard)
-                    .getCollectorBuilder(collectPhase, consumer.requiresScroll(), jobCollectContext)
+                    .getCollectorBuilder(collectPhase, consumer.requiresScroll(), collectTask)
                     .build(consumer);
             } catch (Exception e) {
                 Exceptions.rethrowUnchecked(e);
@@ -118,11 +118,11 @@ public class RemoteCollectorFactory {
     private Function<String, RemoteCollector> getRemoteCollectorProvider(UUID jobId,
                                                                          ShardId shardId,
                                                                          RoutedCollectPhase collectPhase,
-                                                                         JobCollectContext jobCollectContext,
+                                                                         CollectTask collectTask,
                                                                          RowConsumer consumer) {
         String localNode = clusterService.localNode().getId();
         return remoteNode -> new RemoteCollector(jobId, localNode, remoteNode, transportActionProvider.transportJobInitAction(), transportActionProvider.transportKillJobsNodeAction(),
-            jobContextService, jobCollectContext.queryPhaseRamAccountingContext(), consumer, createRemoteCollectPhase(jobId, collectPhase, shardId, remoteNode));
+            tasksService, collectTask.queryPhaseRamAccountingContext(), consumer, createRemoteCollectPhase(jobId, collectPhase, shardId, remoteNode));
     }
 
     private RoutedCollectPhase createRemoteCollectPhase(UUID childJobId,

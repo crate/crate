@@ -21,14 +21,14 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.data.CollectionBucket;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
-import io.crate.execution.engine.collect.sources.CollectSourceResolver;
-import io.crate.execution.engine.collect.sources.FileCollectSource;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.engine.collect.sources.CollectSourceResolver;
+import io.crate.execution.engine.collect.sources.FileCollectSource;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
@@ -89,11 +89,11 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
             false,
             FileUriCollectPhase.InputFormat.JSON
         );
-        String threadPoolName = JobCollectContext.threadPoolName(collectNode);
+        String threadPoolName = CollectTask.threadPoolName(collectNode);
 
         TestingRowConsumer consumer = new TestingRowConsumer();
-        JobCollectContext jobCollectContext = mock(JobCollectContext.class);
-        CrateCollector collectors = collectOperation.createCollector(collectNode, consumer, jobCollectContext);
+        CollectTask collectTask = mock(CollectTask.class);
+        CrateCollector collectors = collectOperation.createCollector(collectNode, consumer, collectTask);
         collectOperation.launchCollector(collectors, threadPoolName);
         assertThat(new CollectionBucket(consumer.getResult()), contains(
             isRow("Arthur", 38),

@@ -24,20 +24,20 @@ package io.crate.execution.engine.fetch;
 
 import java.util.function.BiConsumer;
 
-class CloseContextCallback implements BiConsumer<Object, Throwable> {
+class CloseTaskCallback implements BiConsumer<Object, Throwable> {
 
-    private final FetchContext fetchContext;
+    private final FetchTask fetchTask;
 
-    CloseContextCallback(FetchContext fetchContext) {
-        this.fetchContext = fetchContext;
+    CloseTaskCallback(FetchTask fetchTask) {
+        this.fetchTask = fetchTask;
     }
 
     @Override
     public void accept(Object o, Throwable throwable) {
         if (throwable == null) {
-            fetchContext.close();
+            fetchTask.close();
         } else {
-            fetchContext.kill(throwable);
+            fetchTask.kill(throwable);
         }
     }
 }

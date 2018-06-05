@@ -22,7 +22,7 @@
 package io.crate.execution.jobs.kill;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
@@ -42,10 +42,10 @@ public class TransportKillJobsNodeActionTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testKillIsCalledOnJobContextService() throws Exception {
-        JobContextService jobContextService = mock(JobContextService.class, Answers.RETURNS_MOCKS.get());
+        TasksService tasksService = mock(TasksService.class, Answers.RETURNS_MOCKS.get());
         TransportKillJobsNodeAction transportKillJobsNodeAction = new TransportKillJobsNodeAction(
             Settings.EMPTY,
-            jobContextService,
+            tasksService,
             clusterService,
             MockTransportService.createNewService(
                 Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings())
@@ -54,6 +54,6 @@ public class TransportKillJobsNodeActionTest extends CrateDummyClusterServiceUni
         List<UUID> toKill = ImmutableList.of(UUID.randomUUID(), UUID.randomUUID());
 
         transportKillJobsNodeAction.nodeOperation(new KillJobsRequest(toKill)).get(5, TimeUnit.SECONDS);
-        verify(jobContextService, times(1)).killJobs(toKill);
+        verify(tasksService, times(1)).killJobs(toKill);
     }
 }

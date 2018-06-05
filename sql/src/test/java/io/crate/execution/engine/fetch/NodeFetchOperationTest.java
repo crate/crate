@@ -24,7 +24,7 @@ package io.crate.execution.engine.fetch;
 
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.MoreExecutors;
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -44,7 +44,7 @@ public class NodeFetchOperationTest extends CrateDummyClusterServiceUnitTest {
         NodeFetchOperation fetchOperation = new NodeFetchOperation(
             MoreExecutors.directExecutor(),
             jobsLogs,
-            new JobContextService(Settings.EMPTY, clusterService, jobsLogs),
+            new TasksService(Settings.EMPTY, clusterService, jobsLogs),
             new NoopCircuitBreaker("dummy"));
 
         fetchOperation.fetch(UUID.randomUUID(), 1, null, true).get(5, TimeUnit.SECONDS);

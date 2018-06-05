@@ -24,10 +24,10 @@ package io.crate.execution.engine.distribution;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletableFutures;
-import io.crate.exceptions.ContextMissingException;
-import io.crate.execution.jobs.DownstreamExecutionSubContext;
-import io.crate.execution.jobs.JobContextService;
-import io.crate.execution.jobs.JobExecutionContext;
+import io.crate.exceptions.TaskMissing;
+import io.crate.execution.jobs.DownstreamRXTask;
+import io.crate.execution.jobs.TasksService;
+import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.PageResultListener;
 import io.crate.execution.jobs.kill.KillJobsRequest;
@@ -65,7 +65,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
     private static final String EXECUTOR_NAME = ThreadPool.Names.SEARCH;
 
     private final Transports transports;
-    private final JobContextService jobContextService;
+    private final TasksService tasksService;
     private final ScheduledExecutorService scheduler;
     private final ClusterService clusterService;
     private final TransportKillJobsNodeAction killJobsAction;
@@ -74,14 +74,14 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
 
     @Inject
     public TransportDistributedResultAction(Transports transports,
-                                            JobContextService jobContextService,
+                                            TasksService tasksService,
                                             ThreadPool threadPool,
                                             TransportService transportService,
                                             ClusterService clusterService,
                                             TransportKillJobsNodeAction killJobsAction,
                                             Settings settings) {
         this(transports,
-            jobContextService,
+            tasksService,
             threadPool,
             transportService,
             clusterService,
@@ -92,7 +92,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
 
     @VisibleForTesting
     TransportDistributedResultAction(Transports transports,
-                                     JobContextService jobContextService,
+                                     TasksService tasksService,
                                      ThreadPool threadPool,
                                      TransportService transportService,
                                      ClusterService clusterService,
@@ -101,7 +101,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
                                      BackoffPolicy backoffPolicy) {
         super(settings);
         this.transports = transports;
-        this.jobContextService = jobContextService;
+        this.tasksService = tasksService;
         this.executor = threadPool.executor(EXECUTOR_NAME);
         scheduler = threadPool.scheduler();
         this.clusterService = clusterService;
@@ -126,23 +126,23 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
 
     private CompletableFuture<DistributedResultResponse> nodeOperation(final DistributedResultRequest request,
                                                                        @Nullable Iterator<TimeValue> retryDelay) {
-        JobExecutionContext context = jobContextService.getContextOrNull(request.jobId());
-        if (context == null) {
+        RootTask rootTask = tasksService.getTaskOrNull(request.jobId());
+        if (rootTask == null) {
             return retryOrFailureResponse(request, retryDelay);
         }
 
-        DownstreamExecutionSubContext executionContext;
+        DownstreamRXTask rxTask;
         try {
-            executionContext = context.getSubContext(request.executionPhaseId());
+            rxTask = rootTask.getTask(request.executionPhaseId());
         } catch (ClassCastException e) {
             return CompletableFutures.failedFuture(
                 new IllegalStateException(String.format(Locale.ENGLISH,
-                    "Found execution context for %d but it's not a downstream context", request.executionPhaseId()), e));
+                    "Found execution rootTask for %d but it's not a downstream rootTask", request.executionPhaseId()), e));
         } catch (Throwable t) {
             return CompletableFutures.failedFuture(t);
         }
 
-        PageBucketReceiver pageBucketReceiver = executionContext.getBucketReceiver(request.executionPhaseInputId());
+        PageBucketReceiver pageBucketReceiver = rxTask.getBucketReceiver(request.executionPhaseInputId());
         if (pageBucketReceiver == null) {
             return CompletableFutures.failedFuture(new IllegalStateException(String.format(Locale.ENGLISH,
                 "Couldn't find BucketReciever for input %d", request.executionPhaseInputId())));
@@ -207,7 +207,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
                 }
             }, excludedNodeIds);
             return CompletableFutures.failedFuture(
-                new ContextMissingException(ContextMissingException.ContextType.JOB_EXECUTION_CONTEXT, request.jobId()));
+                new TaskMissing(TaskMissing.Type.ROOT, request.jobId()));
         }
     }
 

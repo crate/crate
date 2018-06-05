@@ -24,7 +24,7 @@ package io.crate.execution.engine.fetch;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.execution.dsl.phases.FetchPhase;
-import io.crate.execution.jobs.AbstractExecutionSubContext;
+import io.crate.execution.jobs.AbstractTask;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.IndexParts;
@@ -53,9 +53,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class FetchContext extends AbstractExecutionSubContext {
+public class FetchTask extends AbstractTask {
 
-    private static final Logger LOGGER = Loggers.getLogger(FetchContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(FetchTask.class);
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final IntObjectHashMap<SharedShardContext> shardContexts = new IntObjectHashMap<>();
     private final FetchPhase phase;
@@ -67,11 +67,11 @@ public class FetchContext extends AbstractExecutionSubContext {
     private final Map<RelationName, Collection<Reference>> toFetch;
     private final AtomicBoolean isKilled = new AtomicBoolean(false);
 
-    public FetchContext(FetchPhase phase,
-                        String localNodeId,
-                        SharedShardContexts sharedShardContexts,
-                        MetaData metaData,
-                        Iterable<? extends Routing> routingIterable) {
+    public FetchTask(FetchPhase phase,
+                     String localNodeId,
+                     SharedShardContexts sharedShardContexts,
+                     MetaData metaData,
+                     Iterable<? extends Routing> routingIterable) {
         super(phase.phaseId(), LOGGER);
         this.phase = phase;
         this.localNodeId = localNodeId;
@@ -204,7 +204,7 @@ public class FetchContext extends AbstractExecutionSubContext {
 
     @Override
     public String toString() {
-        return "FetchContext{" +
+        return "FetchTask{" +
                "phase=" + phase.phaseId() +
                ", searchers=" + searchers.keys() +
                '}';

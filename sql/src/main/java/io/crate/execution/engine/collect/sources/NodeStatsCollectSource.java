@@ -31,8 +31,8 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
+import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.collect.RowsCollector;
 import io.crate.execution.engine.collect.collectors.NodeStatsIterator;
 import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
@@ -74,7 +74,7 @@ public class NodeStatsCollectSource implements CollectSource {
     }
 
     @Override
-    public CrateCollector getCollector(CollectPhase phase, RowConsumer consumer, JobCollectContext jobCollectContext) {
+    public CrateCollector getCollector(CollectPhase phase, RowConsumer consumer, CollectTask collectTask) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         if (!QueryClause.canMatch(collectPhase.where())) {
             return RowsCollector.empty(consumer);

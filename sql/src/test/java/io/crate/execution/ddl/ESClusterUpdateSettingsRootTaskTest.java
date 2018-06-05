@@ -39,7 +39,7 @@ import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
 
-public class ESClusterUpdateSettingsTaskTest extends CrateUnitTest {
+public class ESClusterUpdateSettingsRootTaskTest extends CrateUnitTest {
 
     @Test
     public void testUpdateSettingsWithStringValue() throws Exception {

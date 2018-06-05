@@ -22,8 +22,8 @@
 package io.crate.execution.engine.collect.sources;
 
 import io.crate.data.RowConsumer;
+import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -39,16 +39,16 @@ public class ProjectorSetupCollectSource implements CollectSource {
     }
 
     @Override
-    public CrateCollector getCollector(CollectPhase collectPhase, RowConsumer consumer, JobCollectContext jobCollectContext) {
+    public CrateCollector getCollector(CollectPhase collectPhase, RowConsumer consumer, CollectTask collectTask) {
         return sourceDelegate.getCollector(
             collectPhase,
             ProjectingRowConsumer.create(
                 consumer,
                 collectPhase.projections(),
                 collectPhase.jobId(),
-                jobCollectContext.queryPhaseRamAccountingContext(),
+                collectTask.queryPhaseRamAccountingContext(),
                 projectorFactory),
-            jobCollectContext
+            collectTask
         );
     }
 }

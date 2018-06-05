@@ -22,9 +22,9 @@
 package io.crate.execution.engine.collect;
 
 import io.crate.data.RowConsumer;
+import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.engine.collect.sources.CollectSource;
 import io.crate.execution.engine.collect.sources.CollectSourceResolver;
-import io.crate.execution.dsl.phases.CollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -68,9 +68,9 @@ public class MapSideDataCollectOperation {
      */
     public CrateCollector createCollector(CollectPhase collectPhase,
                                           RowConsumer consumer,
-                                          final JobCollectContext jobCollectContext) {
+                                          final CollectTask collectTask) {
         CollectSource service = collectSourceResolver.getService(collectPhase);
-        return service.getCollector(collectPhase, consumer, jobCollectContext);
+        return service.getCollector(collectPhase, consumer, collectTask);
     }
 
     public void launchCollector(@Nonnull CrateCollector collector, String threadPoolName) throws RejectedExecutionException {

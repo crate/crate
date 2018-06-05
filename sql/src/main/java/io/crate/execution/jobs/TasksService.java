@@ -24,7 +24,7 @@ package io.crate.execution.jobs;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.crate.concurrent.CountdownFutureCallback;
-import io.crate.exceptions.ContextMissingException;
+import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.kill.KillAllListener;
 import org.elasticsearch.ElasticsearchException;
@@ -48,17 +48,17 @@ import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 @Singleton
-public class JobContextService extends AbstractLifecycleComponent {
+public class TasksService extends AbstractLifecycleComponent {
 
     private final ClusterService clusterService;
     private final JobsLogs jobsLogs;
-    private final ConcurrentMap<UUID, JobExecutionContext> activeContexts =
+    private final ConcurrentMap<UUID, RootTask> activeTasks =
         ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
-    private final List<KillAllListener> killAllListeners = Collections.synchronizedList(new ArrayList<KillAllListener>());
+    private final List<KillAllListener> killAllListeners = Collections.synchronizedList(new ArrayList<>());
 
     @Inject
-    public JobContextService(Settings settings, ClusterService clusterService, JobsLogs jobsLogs) {
+    public TasksService(Settings settings, ClusterService clusterService, JobsLogs jobsLogs) {
         super(settings);
         this.clusterService = clusterService;
         this.jobsLogs = jobsLogs;
@@ -70,8 +70,8 @@ public class JobContextService extends AbstractLifecycleComponent {
 
     @Override
     protected void doStop() throws ElasticsearchException {
-        for (JobExecutionContext context : activeContexts.values()) {
-            context.kill();
+        for (RootTask rootTask : activeTasks.values()) {
+            rootTask.kill();
         }
     }
 
@@ -83,72 +83,72 @@ public class JobContextService extends AbstractLifecycleComponent {
     protected void doClose() throws ElasticsearchException {
     }
 
-    public JobExecutionContext getContext(UUID jobId) {
-        JobExecutionContext context = activeContexts.get(jobId);
-        if (context == null) {
-            throw new ContextMissingException(ContextMissingException.ContextType.JOB_EXECUTION_CONTEXT, jobId);
+    public RootTask getTask(UUID jobId) {
+        RootTask rootTask = activeTasks.get(jobId);
+        if (rootTask == null) {
+            throw new TaskMissing(TaskMissing.Type.ROOT, jobId);
         }
-        return context;
+        return rootTask;
     }
 
     public Stream<UUID> getJobIdsByCoordinatorNode(final String coordinatorNodeId) {
-        return activeContexts.values()
+        return activeTasks.values()
             .stream()
-            .filter(jobExecutionContext -> jobExecutionContext.coordinatorNodeId().equals(coordinatorNodeId))
-            .map(JobExecutionContext::jobId);
+            .filter(task -> task.coordinatorNodeId().equals(coordinatorNodeId))
+            .map(RootTask::jobId);
     }
 
     public Stream<UUID> getJobIdsByParticipatingNodes(final String nodeId) {
-        return activeContexts.values().stream()
+        return activeTasks.values().stream()
             .filter(i -> i.participatingNodes().contains(nodeId))
-            .map(JobExecutionContext::jobId);
+            .map(RootTask::jobId);
     }
 
     @Nullable
-    public JobExecutionContext getContextOrNull(UUID jobId) {
-        return activeContexts.get(jobId);
+    public RootTask getTaskOrNull(UUID jobId) {
+        return activeTasks.get(jobId);
     }
 
     @VisibleForTesting
-    public JobExecutionContext.Builder newBuilder(UUID jobId) {
-        return new JobExecutionContext.Builder(jobId, clusterService.localNode().getId(), Collections.emptySet(), jobsLogs);
+    public RootTask.Builder newBuilder(UUID jobId) {
+        return new RootTask.Builder(jobId, clusterService.localNode().getId(), Collections.emptySet(), jobsLogs);
     }
 
-    public JobExecutionContext.Builder newBuilder(UUID jobId, String coordinatorNodeId, Collection<String> participatingNodes) {
-        return new JobExecutionContext.Builder(jobId, coordinatorNodeId, participatingNodes, jobsLogs);
+    public RootTask.Builder newBuilder(UUID jobId, String coordinatorNodeId, Collection<String> participatingNodes) {
+        return new RootTask.Builder(jobId, coordinatorNodeId, participatingNodes, jobsLogs);
     }
 
     public int numActive() {
-        return activeContexts.size();
+        return activeTasks.size();
     }
 
-    public JobExecutionContext createContext(JobExecutionContext.Builder contextBuilder) throws Exception {
-        if (contextBuilder.isEmpty()) {
-            throw new IllegalArgumentException("JobExecutionContext.Builder must at least contain 1 SubExecutionContext");
+    public RootTask createTask(RootTask.Builder builder) throws Exception {
+        if (builder.isEmpty()) {
+            throw new IllegalArgumentException("RootTask.Builder must at least contain 1 Task");
         }
-        final UUID jobId = contextBuilder.jobId();
-        JobExecutionContext newContext = contextBuilder.build();
+        final UUID jobId = builder.jobId();
+        RootTask newRootTask = builder.build();
 
-        JobContextCallback jobContextCallback = new JobContextCallback(jobId);
-        newContext.completionFuture().whenComplete(jobContextCallback);
+        TaskCallback taskCallback = new TaskCallback(jobId);
+        newRootTask.completionFuture().whenComplete(taskCallback);
 
-        JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
+        RootTask existing = activeTasks.putIfAbsent(jobId, newRootTask);
         if (existing != null) {
             throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "context for job %s already exists:%n%s", jobId, existing));
+                String.format(Locale.ENGLISH, "task for job %s already exists:%n%s", jobId, existing));
         }
         if (logger.isTraceEnabled()) {
-            logger.trace("JobExecutionContext created for job {},  activeContexts: {}",
-                jobId, activeContexts.size());
+            logger.trace("Task created for job {},  activeTasks: {}",
+                jobId, activeTasks.size());
         }
-        return newContext;
+        return newRootTask;
     }
 
 
     /**
-     * kills all contexts which are active at the time of the call of this method.
+     * kills all tasks which are active at the time of the call of this method.
      *
-     * @return a future holding the number of contexts kill was called on, the future is finished when all contexts
+     * @return a future holding the number of tasks kill was called on, the future is finished when all tasks
      * are completed and never fails.
      */
     public CompletableFuture<Integer> killAll() {
@@ -159,19 +159,19 @@ public class JobContextService extends AbstractLifecycleComponent {
                 logger.error("Failed to call killAllJobs on listener {}", t, killAllListener);
             }
         }
-        Collection<UUID> toKill = ImmutableList.copyOf(activeContexts.keySet());
+        Collection<UUID> toKill = ImmutableList.copyOf(activeTasks.keySet());
         if (toKill.isEmpty()) {
             return CompletableFuture.completedFuture(0);
         }
-        return killContexts(toKill);
+        return killTasks(toKill);
     }
 
-    private CompletableFuture<Integer> killContexts(Collection<UUID> toKill) {
+    private CompletableFuture<Integer> killTasks(Collection<UUID> toKill) {
         assert !toKill.isEmpty() : "toKill must not be empty";
         int numKilled = 0;
         CountdownFutureCallback countDownFuture = new CountdownFutureCallback(toKill.size());
         for (UUID jobId : toKill) {
-            JobExecutionContext ctx = activeContexts.get(jobId);
+            RootTask ctx = activeTasks.get(jobId);
             if (ctx != null) {
                 ctx.completionFuture().whenComplete(countDownFuture);
                 ctx.kill();
@@ -195,23 +195,23 @@ public class JobContextService extends AbstractLifecycleComponent {
                 }
             }
         }
-        return killContexts(toKill);
+        return killTasks(toKill);
     }
 
-    private class JobContextCallback implements BiConsumer<Void, Throwable> {
+    private class TaskCallback implements BiConsumer<Void, Throwable> {
 
         private final UUID jobId;
 
-        JobContextCallback(UUID jobId) {
+        TaskCallback(UUID jobId) {
             this.jobId = jobId;
         }
 
         @Override
         public void accept(Void aVoid, Throwable throwable) {
-            activeContexts.remove(jobId);
+            activeTasks.remove(jobId);
             if (logger.isTraceEnabled()) {
-                logger.trace("JobExecutionContext removed from active contexts: jobId={} remainingContexts={} failure={}",
-                    jobId, activeContexts.size(), throwable);
+                logger.trace("RootTask removed from active tasks: jobId={} remainingTasks={} failure={}",
+                    jobId, activeTasks.size(), throwable);
             }
         }
     }

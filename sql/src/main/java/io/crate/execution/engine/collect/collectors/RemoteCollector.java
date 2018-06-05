@@ -30,9 +30,9 @@ import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
-import io.crate.execution.jobs.JobContextService;
-import io.crate.execution.jobs.JobExecutionContext;
-import io.crate.execution.jobs.PageDownstreamContext;
+import io.crate.execution.jobs.DistResultRXTask;
+import io.crate.execution.jobs.RootTask;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobRequest;
@@ -57,7 +57,7 @@ public class RemoteCollector implements CrateCollector {
     private final String remoteNode;
     private final TransportJobAction transportJobAction;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
-    private final JobContextService jobContextService;
+    private final TasksService tasksService;
     private final RamAccountingContext ramAccountingContext;
     private final RowConsumer consumer;
     private final RoutedCollectPhase collectPhase;
@@ -65,7 +65,7 @@ public class RemoteCollector implements CrateCollector {
     private final Object killLock = new Object();
     private final boolean scrollRequired;
     private final boolean enableProfiling;
-    private JobExecutionContext context = null;
+    private RootTask context = null;
     private boolean collectorKilled = false;
 
     public RemoteCollector(UUID jobId,
@@ -73,7 +73,7 @@ public class RemoteCollector implements CrateCollector {
                            String remoteNode,
                            TransportJobAction transportJobAction,
                            TransportKillJobsNodeAction transportKillJobsNodeAction,
-                           JobContextService jobContextService,
+                           TasksService tasksService,
                            RamAccountingContext ramAccountingContext,
                            RowConsumer consumer,
                            RoutedCollectPhase collectPhase) {
@@ -83,14 +83,14 @@ public class RemoteCollector implements CrateCollector {
 
         /*
          * We don't wanna profile the timings of the remote execution context, because the remoteCollect is already
-         * part of the subcontext duration of the original JobExecutionContext profiling.
+         * part of the subcontext duration of the original Task profiling.
          */
         this.enableProfiling = false;
 
         this.scrollRequired = consumer.requiresScroll();
         this.transportJobAction = transportJobAction;
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
-        this.jobContextService = jobContextService;
+        this.tasksService = tasksService;
         this.ramAccountingContext = ramAccountingContext;
         this.consumer = consumer;
         this.collectPhase = collectPhase;
@@ -104,14 +104,14 @@ public class RemoteCollector implements CrateCollector {
 
     @VisibleForTesting
     boolean createLocalContext() {
-        JobExecutionContext.Builder builder = createPageDownstreamContext();
+        RootTask.Builder builder = createPageDownstreamContext();
         try {
             synchronized (killLock) {
                 if (collectorKilled) {
                     consumer.accept(null, new InterruptedException());
                     return false;
                 }
-                context = jobContextService.createContext(builder);
+                context = tasksService.createTask(builder);
                 context.start();
                 return true;
             }
@@ -157,8 +157,8 @@ public class RemoteCollector implements CrateCollector {
         }
     }
 
-    private JobExecutionContext.Builder createPageDownstreamContext() {
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNode, Collections.emptySet());
+    private RootTask.Builder createPageDownstreamContext() {
+        RootTask.Builder builder = tasksService.newBuilder(jobId, localNode, Collections.emptySet());
 
         PassThroughPagingIterator<Integer, Row> pagingIterator;
         if (scrollRequired) {
@@ -166,7 +166,7 @@ public class RemoteCollector implements CrateCollector {
         } else {
             pagingIterator = PassThroughPagingIterator.oneShot();
         }
-        builder.addSubContext(new PageDownstreamContext(
+        builder.addTask(new DistResultRXTask(
             LOGGER,
             localNode,
             RECEIVER_PHASE_ID,

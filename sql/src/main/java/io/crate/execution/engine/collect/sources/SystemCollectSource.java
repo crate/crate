@@ -32,8 +32,8 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
+import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.collect.RowsTransformer;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
@@ -112,7 +112,7 @@ public class SystemCollectSource implements CollectSource {
     @Override
     public CrateCollector getCollector(CollectPhase phase,
                                        RowConsumer consumer,
-                                       JobCollectContext jobCollectContext) {
+                                       CollectTask collectTask) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
 
         boolean requiresScroll = consumer.requiresScroll();

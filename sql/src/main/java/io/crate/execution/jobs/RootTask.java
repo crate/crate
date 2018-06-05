@@ -26,8 +26,8 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.CompletionListenable;
-import io.crate.exceptions.ContextMissingException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
@@ -50,19 +50,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
-public class JobExecutionContext implements CompletionListenable {
+public class RootTask implements CompletionListenable {
 
-    private static final Logger LOGGER = Loggers.getLogger(JobExecutionContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(RootTask.class);
 
     private final UUID jobId;
-    private final ConcurrentMap<Integer, ExecutionSubContext> subContexts;
-    private final AtomicInteger numSubContexts;
-    private final IntArrayList orderedContextIds;
+    private final ConcurrentMap<Integer, Task> tasksByPhaseId;
+    private final AtomicInteger numTasks;
+    private final IntArrayList orderedTaskIds;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final String coordinatorNodeId;
     private final JobsLogs jobsLogs;
     private final CompletableFuture<Void> finishedFuture = new CompletableFuture<>();
-    private final AtomicBoolean killSubContextsOngoing = new AtomicBoolean(false);
+    private final AtomicBoolean killTasksOngoing = new AtomicBoolean(false);
     private final Collection<String> participatedNodes;
 
     @Nullable
@@ -70,7 +70,7 @@ public class JobExecutionContext implements CompletionListenable {
     private volatile Throwable failure;
 
     @Nullable
-    private final ConcurrentHashMap<Integer, Timer> subContextTimers;
+    private final ConcurrentHashMap<Integer, Timer> taskTimersByPhaseId;
     @Nullable
     private final CompletableFuture<Map<String, Object>> profilingFuture;
 
@@ -79,7 +79,7 @@ public class JobExecutionContext implements CompletionListenable {
         private final UUID jobId;
         private final String coordinatorNode;
         private final JobsLogs jobsLogs;
-        private final List<ExecutionSubContext> subContexts = new ArrayList<>();
+        private final List<Task> tasks = new ArrayList<>();
         private final Collection<String> participatingNodes;
 
         @Nullable
@@ -97,73 +97,73 @@ public class JobExecutionContext implements CompletionListenable {
             return this;
         }
 
-        public void addSubContext(ExecutionSubContext subContext) {
-            subContexts.add(subContext);
+        public void addTask(Task task) {
+            tasks.add(task);
         }
 
         boolean isEmpty() {
-            return subContexts.isEmpty();
+            return tasks.isEmpty();
         }
 
         public UUID jobId() {
             return jobId;
         }
 
-        JobExecutionContext build() throws Exception {
-            return new JobExecutionContext(
-                jobId, coordinatorNode, participatingNodes, jobsLogs, subContexts, profilingContext);
+        RootTask build() throws Exception {
+            return new RootTask(
+                jobId, coordinatorNode, participatingNodes, jobsLogs, tasks, profilingContext);
         }
     }
 
 
-    private JobExecutionContext(UUID jobId,
-                                String coordinatorNodeId,
-                                Collection<String> participatingNodes,
-                                JobsLogs jobsLogs,
-                                List<ExecutionSubContext> orderedContexts,
-                                @Nullable ProfilingContext profilingContext) throws Exception {
+    private RootTask(UUID jobId,
+                     String coordinatorNodeId,
+                     Collection<String> participatingNodes,
+                     JobsLogs jobsLogs,
+                     List<Task> orderedTasks,
+                     @Nullable ProfilingContext profilingContext) throws Exception {
         this.coordinatorNodeId = coordinatorNodeId;
         this.participatedNodes = participatingNodes;
         this.jobId = jobId;
         this.jobsLogs = jobsLogs;
 
-        int numContexts = orderedContexts.size();
+        int numTasks = orderedTasks.size();
 
         if (profilingContext == null) {
-            subContextTimers = null;
+            taskTimersByPhaseId = null;
             profilingFuture = null;
             profiler = null;
         } else {
             profiler = profilingContext;
-            subContextTimers = new ConcurrentHashMap<>(numContexts);
+            taskTimersByPhaseId = new ConcurrentHashMap<>(numTasks);
             profilingFuture = new CompletableFuture<>();
         }
 
-        orderedContextIds = new IntArrayList(numContexts);
-        subContexts = new ConcurrentHashMap<>(numContexts);
-        numSubContexts = new AtomicInteger(numContexts);
+        orderedTaskIds = new IntArrayList(numTasks);
+        tasksByPhaseId = new ConcurrentHashMap<>(numTasks);
+        this.numTasks = new AtomicInteger(numTasks);
 
         boolean traceEnabled = LOGGER.isTraceEnabled();
-        for (ExecutionSubContext context : orderedContexts) {
-            int subContextId = context.id();
-            orderedContextIds.add(subContextId);
+        for (Task task : orderedTasks) {
+            int phaseId = task.id();
+            orderedTaskIds.add(phaseId);
 
-            context.completionFuture().whenComplete(new RemoveSubContextListener(subContextId));
+            task.completionFuture().whenComplete(new RemoveTaskListener(phaseId));
 
-            if (subContexts.put(subContextId, context) != null) {
-                throw new IllegalArgumentException("ExecutionSubContext for " + subContextId + " already added");
+            if (tasksByPhaseId.put(phaseId, task) != null) {
+                throw new IllegalArgumentException("Task for " + phaseId + " already added");
             }
             if (profiler != null) {
-                String subContextName = String.format(Locale.ROOT, "%d-%s", context.id(), context.name());
-                if (subContextTimers.put(subContextId, profiler.createTimer(subContextName)) != null) {
-                    throw new IllegalArgumentException("Timer for " + subContextId + " already added");
+                String subContextName = String.format(Locale.ROOT, "%d-%s", task.id(), task.name());
+                if (taskTimersByPhaseId.put(phaseId, profiler.createTimer(subContextName)) != null) {
+                    throw new IllegalArgumentException("Timer for " + phaseId + " already added");
                 }
             }
             if (traceEnabled) {
-                LOGGER.trace("adding subContext {}, now there are {} subContexts", subContextId, subContexts.size());
+                LOGGER.trace("adding subContext {}, now there are {} tasksByPhaseId", phaseId, tasksByPhaseId.size());
             }
         }
-        prepare(orderedContexts);
+        prepare(orderedTasks);
     }
 
     public UUID jobId() {
@@ -178,18 +178,18 @@ public class JobExecutionContext implements CompletionListenable {
         return participatedNodes;
     }
 
-    private void prepare(List<ExecutionSubContext> orderedContexts) throws Exception {
-        for (int i = 0; i < orderedContextIds.size(); i++) {
-            int id = orderedContextIds.get(i);
-            ExecutionSubContext subContext = orderedContexts.get(i);
-            jobsLogs.operationStarted(id, jobId, subContext.name());
+    private void prepare(List<Task> orderedTasks) throws Exception {
+        for (int i = 0; i < orderedTaskIds.size(); i++) {
+            int id = orderedTaskIds.get(i);
+            Task task = orderedTasks.get(i);
+            jobsLogs.operationStarted(id, jobId, task.name());
             try {
-                subContext.prepare();
+                task.prepare();
             } catch (Exception e) {
                 for (; i >= 0; i--) {
-                    id = orderedContextIds.get(i);
-                    subContext = orderedContexts.get(i);
-                    subContext.cleanup();
+                    id = orderedTaskIds.get(i);
+                    task = orderedTasks.get(i);
+                    task.cleanup();
                     jobsLogs.operationFinished(id, jobId, "Prepare: " + SQLExceptions.messageOf(e), -1);
                 }
                 throw e;
@@ -198,16 +198,16 @@ public class JobExecutionContext implements CompletionListenable {
     }
 
     public void start() throws Throwable {
-        for (IntCursor id : orderedContextIds) {
-            ExecutionSubContext subContext = subContexts.get(id.value);
-            if (subContext == null || closed.get()) {
+        for (IntCursor id : orderedTaskIds) {
+            Task task = tasksByPhaseId.get(id.value);
+            if (task == null || closed.get()) {
                 break; // got killed before start was called
             }
             if (profiler != null) {
-                assert subContextTimers != null : "subContextTimers must not be null";
-                subContextTimers.get(id.value).start();
+                assert taskTimersByPhaseId != null : "taskTimersByPhaseId must not be null";
+                taskTimersByPhaseId.get(id.value).start();
             }
-            subContext.start();
+            task.start();
         }
         if (failure != null) {
             throw failure;
@@ -215,36 +215,36 @@ public class JobExecutionContext implements CompletionListenable {
     }
 
     @Nullable
-    public <T extends ExecutionSubContext> T getSubContextOrNull(int executionNodeId) {
+    public <T extends Task> T getTaskOrNull(int phaseId) {
         //noinspection unchecked
-        return (T) subContexts.get(executionNodeId);
+        return (T) tasksByPhaseId.get(phaseId);
     }
 
-    public <T extends ExecutionSubContext> T getSubContext(int executionNodeId) throws ContextMissingException {
-        T subContext = getSubContextOrNull(executionNodeId);
-        if (subContext == null) {
-            throw new ContextMissingException(ContextMissingException.ContextType.SUB_CONTEXT, jobId, executionNodeId);
+    public <T extends Task> T getTask(int phaseId) throws TaskMissing {
+        T task = getTaskOrNull(phaseId);
+        if (task == null) {
+            throw new TaskMissing(TaskMissing.Type.CHILD, jobId, phaseId);
         }
-        return subContext;
+        return task;
     }
 
     /**
-     * Issues a kill on all active subcontexts. This method returns immediately. The caller should use the future
-     * returned by {@link CompletionListenable#completionFuture()} to track EOL of the context.
+     * Issues a kill on all active tasks. This method returns immediately. The caller should use the future
+     * returned by {@link CompletionListenable#completionFuture()} to track EOL of the task.
      *
-     * @return the number of contexts on which kill was called
+     * @return the number of tasks on which kill was called
      */
     public long kill() {
         int numKilled = 0;
         if (!closed.getAndSet(true)) {
-            LOGGER.trace("kill called on JobExecutionContext {}", jobId);
-            if (numSubContexts.get() == 0) {
+            LOGGER.trace("kill called on Task {}", jobId);
+            if (numTasks.get() == 0) {
                 finish();
             } else {
-                for (ExecutionSubContext executionSubContext : subContexts.values()) {
+                for (Task task : tasksByPhaseId.values()) {
                     // kill will trigger the ContextCallback onClose too
-                    // so it is not necessary to remove the executionSubContext from the map here as it will be done in the callback
-                    executionSubContext.kill(null);
+                    // so it is not necessary to remove the task from the map here as it will be done in the callback
+                    task.kill(null);
                     numKilled++;
                 }
             }
@@ -263,7 +263,7 @@ public class JobExecutionContext implements CompletionListenable {
     private void finish() {
         if (profiler != null) {
             if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("Profiling is enabled. JobExecutionContext will not be closed until results are collected!");
+                LOGGER.trace("Profiling is enabled. Task will not be closed until results are collected!");
                 LOGGER.trace("Profiling results for job {}: {}", jobId, profiler.getDurationInMSByTimer());
             }
             assert profilingFuture != null : "profilingFuture must not be null";
@@ -304,29 +304,29 @@ public class JobExecutionContext implements CompletionListenable {
 
     @Override
     public String toString() {
-        return "JobExecutionContext{" +
+        return "Task{" +
                "id=" + jobId +
-               ", subContexts=" + subContexts.values() +
+               ", tasksByPhaseId=" + tasksByPhaseId.values() +
                ", closed=" + closed +
                '}';
     }
 
-    private class RemoveSubContextListener implements BiConsumer<CompletionState, Throwable> {
+    private final class RemoveTaskListener implements BiConsumer<CompletionState, Throwable> {
 
         private final int id;
 
-        private RemoveSubContextListener(int id) {
+        private RemoveTaskListener(int id) {
             this.id = id;
         }
 
         /**
-         * Remove subcontext and finish {@link JobExecutionContext}
-         * @return true if removed subcontext was the last subcontext, otherwise false
+         * Remove task and finish {@link RootTask}
+         * @return true if removed task was the last task, otherwise false
          */
         private boolean removeAndFinishIfNeeded() {
-            ExecutionSubContext removed = subContexts.remove(id);
+            Task removed = tasksByPhaseId.remove(id);
             assert removed != null : "removed must not be null";
-            if (numSubContexts.decrementAndGet() == 0) {
+            if (numTasks.decrementAndGet() == 0) {
                 finish();
                 return true;
             }
@@ -345,9 +345,9 @@ public class JobExecutionContext implements CompletionListenable {
             if (removeAndFinishIfNeeded()) {
                 return;
             }
-            if (killSubContextsOngoing.compareAndSet(false, true)) {
-                LOGGER.trace("onFailure killing all other subContexts..");
-                for (ExecutionSubContext subContext : subContexts.values()) {
+            if (killTasksOngoing.compareAndSet(false, true)) {
+                LOGGER.trace("onFailure killing all other tasksByPhaseId..");
+                for (Task subContext : tasksByPhaseId.values()) {
                     subContext.kill(t);
                 }
             }
@@ -356,7 +356,7 @@ public class JobExecutionContext implements CompletionListenable {
         @Override
         public void accept(CompletionState completionState, Throwable throwable) {
             if (profiler != null) {
-                stopSubContextTimer();
+                stopTaskTimer();
             }
             if (throwable == null) {
                 onSuccess(completionState);
@@ -365,10 +365,10 @@ public class JobExecutionContext implements CompletionListenable {
             }
         }
 
-        private void stopSubContextTimer() {
+        private void stopTaskTimer() {
             assert profiler != null : "profiler must not be null";
-            assert subContextTimers != null : "subContextTimers must not be null";
-            Timer removed = subContextTimers.remove(id);
+            assert taskTimersByPhaseId != null : "taskTimersByPhaseId must not be null";
+            Timer removed = taskTimersByPhaseId.remove(id);
             assert removed != null : "removed must not be null";
             profiler.stopTimerAndStoreDuration(removed);
         }

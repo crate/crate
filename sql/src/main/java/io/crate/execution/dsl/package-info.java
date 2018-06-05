@@ -93,10 +93,10 @@
  * </p>
  *
  * <p>
- *  Each phase usually results in 1 {@link io.crate.execution.jobs.ExecutionSubContext} being created.
+ *  Each phase usually results in 1 {@link io.crate.execution.jobs.Task} being created.
  *  These contexts contain the execution logic.
  *  (There may be some exceptions to this -
- *  e.g. multiple phases may be merged at execution time into 1 ExecutionSubContext for optimization purposes)
+ *  e.g. multiple phases may be merged at execution time into 1 Task for optimization purposes)
  * </p>
  *
  *

@@ -25,15 +25,15 @@ package io.crate.execution.jobs;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
-public class DummySubContext extends AbstractExecutionSubContext {
+public class DummyTask extends AbstractTask {
 
-    private static final Logger LOGGER = Loggers.getLogger(DummySubContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(DummyTask.class);
 
-    public DummySubContext() {
+    public DummyTask() {
         this(1);
     }
 
-    public DummySubContext(int id) {
+    public DummyTask(int id) {
         super(id, LOGGER);
     }
 

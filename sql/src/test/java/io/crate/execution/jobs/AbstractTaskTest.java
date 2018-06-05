@@ -38,21 +38,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.greaterThan;
 
-public class AbstractExecutionSubContextTest extends CrateUnitTest {
+public class AbstractTaskTest extends CrateUnitTest {
 
-    private TestingExecutionSubContext ctx;
+    private TestingTask testingTask;
 
     private Runnable killRunnable = new Runnable() {
         @Override
         public void run() {
-            ctx.kill(null);
+            testingTask.kill(null);
         }
     };
 
     private Runnable closeRunnable = new Runnable() {
         @Override
         public void run() {
-            ctx.close();
+            testingTask.close();
         }
     };
 
@@ -60,7 +60,7 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        ctx = new TestingExecutionSubContext();
+        testingTask = new TestingTask();
     }
 
     private void runAsync(Runnable task, int calls) {
@@ -79,20 +79,20 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
         }
     }
 
-    public static class TestingExecutionSubContext extends AbstractExecutionSubContext {
+    public static class TestingTask extends AbstractTask {
 
-        private static final Logger LOGGER = Loggers.getLogger(TestingExecutionSubContext.class);
+        private static final Logger LOGGER = Loggers.getLogger(TestingTask.class);
 
         final AtomicInteger numPrepare = new AtomicInteger();
         final AtomicInteger numStart = new AtomicInteger();
         final AtomicInteger numClose = new AtomicInteger();
         final AtomicInteger numKill = new AtomicInteger();
 
-        TestingExecutionSubContext(int id) {
+        TestingTask(int id) {
             super(id, LOGGER);
         }
 
-        public TestingExecutionSubContext() {
+        public TestingTask() {
             this(0);
         }
 
@@ -134,38 +134,38 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
 
     @Test
     public void testNormalSequence() throws Exception {
-        TestingExecutionSubContext ctx = new TestingExecutionSubContext();
-        ctx.prepare();
-        ctx.start();
-        ctx.close();
-        assertThat(ctx.stats(), contains(1, 1, 1, 0));
+        TestingTask task = new TestingTask();
+        task.prepare();
+        task.start();
+        task.close();
+        assertThat(task.stats(), contains(1, 1, 1, 0));
     }
 
     @Test
     public void testCloseAfterPrepare() throws Exception {
-        TestingExecutionSubContext ctx = new TestingExecutionSubContext();
-        ctx.prepare();
-        ctx.close();
-        ctx.start();
-        ctx.close();
-        assertThat(ctx.stats(), contains(1, 0, 1, 0));
+        TestingTask task = new TestingTask();
+        task.prepare();
+        task.close();
+        task.start();
+        task.close();
+        assertThat(task.stats(), contains(1, 0, 1, 0));
     }
 
     @Test
     public void testParallelClose() throws Exception {
-        ctx.prepare();
-        ctx.start();
+        testingTask.prepare();
+        testingTask.start();
         runAsync(closeRunnable, 3);
-        assertThat(ctx.stats(), contains(1, 1, 1, 0));
+        assertThat(testingTask.stats(), contains(1, 1, 1, 0));
     }
 
     @Test
     public void testParallelKill() throws Exception {
-        ctx.prepare();
-        ctx.start();
+        testingTask.prepare();
+        testingTask.start();
         runAsync(killRunnable, 3);
-        assertThat(ctx.stats(), contains(1, 1, 0, 1));
-        assertThat(ctx.numKill.get(), greaterThan(0));
+        assertThat(testingTask.stats(), contains(1, 1, 0, 1));
+        assertThat(testingTask.numKill.get(), greaterThan(0));
     }
 
 }

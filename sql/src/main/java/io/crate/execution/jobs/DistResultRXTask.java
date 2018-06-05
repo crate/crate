@@ -42,10 +42,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * A {@link DownstreamExecutionSubContext} which receives paged buckets from upstreams
+ * A {@link DownstreamRXTask} which receives paged buckets from upstreams
  * and forwards the merged bucket results to the consumers for further processing.
  */
-public class PageDownstreamContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext, PageBucketReceiver {
+public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, PageBucketReceiver {
 
     private final String name;
     private final Object lock = new Object();
@@ -65,15 +65,15 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private Throwable lastThrowable = null;
     private volatile boolean receivingFirstPage = true;
 
-    public PageDownstreamContext(Logger logger,
-                                 String nodeName,
-                                 int id,
-                                 String name,
-                                 RowConsumer rowConsumer,
-                                 PagingIterator<Integer, Row> pagingIterator,
-                                 Streamer<?>[] streamers,
-                                 RamAccountingContext ramAccountingContext,
-                                 int numBuckets) {
+    public DistResultRXTask(Logger logger,
+                            String nodeName,
+                            int id,
+                            String name,
+                            RowConsumer rowConsumer,
+                            PagingIterator<Integer, Row> pagingIterator,
+                            Streamer<?>[] streamers,
+                            RamAccountingContext ramAccountingContext,
+                            int numBuckets) {
         super(id, logger);
         this.nodeName = nodeName;
         this.name = name;
@@ -347,7 +347,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     @Override
     public String toString() {
-        return "PageDownstreamContext{" +
+        return "DistResultRXTask{" +
                "id=" + id() +
                ", numBuckets=" + numBuckets +
                ", exhausted=" + exhausted +
@@ -357,8 +357,8 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     /**
      * The default behavior is to receive all upstream buckets,
-     * regardless of the input id. For a {@link DownstreamExecutionSubContext}
-     * which uses the inputId, see {@link JoinContext}.
+     * regardless of the input id. For a {@link DownstreamRXTask}
+     * which uses the inputId, see {@link JoinTask}.
      */
     @Nullable
     @Override

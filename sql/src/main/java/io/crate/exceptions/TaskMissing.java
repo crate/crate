@@ -24,29 +24,28 @@ package io.crate.exceptions;
 import java.util.Locale;
 import java.util.UUID;
 
-public class ContextMissingException extends UnhandledServerException {
+public final class TaskMissing extends UnhandledServerException {
 
-    public enum ContextType {
-        JOB_EXECUTION_CONTEXT("JobExecutionContext"),
-        SUB_CONTEXT("ExecutionSubContext");
+    public enum Type {
+        ROOT("RootTask"),
+        CHILD("Task");
 
-        private final String contextType;
+        private final String name;
 
-        ContextType(String type) {
-            contextType = type;
+        Type(String name) {
+            this.name = name;
         }
 
-        public String contextType() {
-            return contextType;
+        public String friendlyName() {
+            return name;
         }
     }
 
-    public ContextMissingException(ContextType type, UUID jobId) {
-        super(String.format(Locale.ENGLISH, "%s for job %s not found", type.contextType(), jobId));
+    public TaskMissing(Type type, UUID jobId) {
+        super(String.format(Locale.ENGLISH, "%s for job %s not found", type.friendlyName(), jobId));
     }
 
-    public ContextMissingException(ContextType type, UUID jobId, int contextId) {
-        super(String.format(Locale.ENGLISH, "%s for job %s with id '%d' not found", type.contextType(), jobId, contextId));
+    public TaskMissing(Type type, UUID jobId, int phaseId) {
+        super(String.format(Locale.ENGLISH, "%s for job %s with id '%d' not found", type.friendlyName(), jobId, phaseId));
     }
-
 }

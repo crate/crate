@@ -22,7 +22,7 @@
 
 package io.crate.execution.jobs.transport;
 
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import org.apache.logging.log4j.Logger;
@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 @Singleton
 public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent implements TransportConnectionListener {
 
-    private final JobContextService jobContextService;
+    private final TasksService tasksService;
     private final TransportService transportService;
 
     private final TransportKillJobsNodeAction killJobsNodeAction;
@@ -55,11 +55,11 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
 
     @Inject
     public NodeDisconnectJobMonitorService(Settings settings,
-                                           JobContextService jobContextService,
+                                           TasksService tasksService,
                                            TransportService transportService,
                                            TransportKillJobsNodeAction killJobsNodeAction) {
         super(settings);
-        this.jobContextService = jobContextService;
+        this.tasksService = tasksService;
         this.transportService = transportService;
         this.killJobsNodeAction = killJobsNodeAction;
     }
@@ -110,7 +110,7 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
      * </pre>
      */
     private void broadcastKillToParticipatingNodes(DiscoveryNode deadNode) {
-        List<UUID> affectedJobs = jobContextService
+        List<UUID> affectedJobs = tasksService
             .getJobIdsByParticipatingNodes(deadNode.getId()).collect(Collectors.toList());
         if (affectedJobs.isEmpty()) {
             return;
@@ -149,12 +149,12 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
      * </pre>
      */
     private void killJobsCoordinatedBy(DiscoveryNode deadNode) {
-        List<UUID> jobsStartedByDeadNode = jobContextService
+        List<UUID> jobsStartedByDeadNode = tasksService
             .getJobIdsByCoordinatorNode(deadNode.getId()).collect(Collectors.toList());
         if (jobsStartedByDeadNode.isEmpty()) {
             return;
         }
-        jobContextService.killJobs(jobsStartedByDeadNode);
+        tasksService.killJobs(jobsStartedByDeadNode);
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Killed {} jobs started by disconnected node={}", jobsStartedByDeadNode.size(), deadNode.getId());
         }

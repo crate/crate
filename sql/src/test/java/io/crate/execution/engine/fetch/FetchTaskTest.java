@@ -54,11 +54,11 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_C
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.mock;
 
-public class FetchContextTest extends CrateDummyClusterServiceUnitTest {
+public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetIndexServiceForInvalidReaderId() throws Exception {
-        final FetchContext context = new FetchContext(
+        final FetchTask context = new FetchTask(
             new FetchPhase(
                 1,
                 null,
@@ -96,7 +96,7 @@ public class FetchContextTest extends CrateDummyClusterServiceUnitTest {
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
                 .build(), true)
             .build();
-        final FetchContext context = new FetchContext(
+        final FetchTask context = new FetchTask(
             new FetchPhase(
                 1,
                 null,

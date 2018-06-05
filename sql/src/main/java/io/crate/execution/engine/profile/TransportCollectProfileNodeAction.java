@@ -23,8 +23,8 @@
 package io.crate.execution.engine.profile;
 
 import io.crate.action.FutureActionListener;
-import io.crate.execution.jobs.JobContextService;
-import io.crate.execution.jobs.JobExecutionContext;
+import io.crate.execution.jobs.RootTask;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.Transports;
@@ -40,12 +40,12 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Transport action to collect profiling results from the {@link JobExecutionContext}.
+ * Transport action to collect profiling results from the {@link RootTask}.
  *
- * Profiling of the JobExecutionContext is enabled when performing an <code>EXPLAIN ANALYZE</code> statements.
+ * Profiling of the Task is enabled when performing an <code>EXPLAIN ANALYZE</code> statements.
  * EXPLAIN ANALYZE is done in a 2-phase execution:
  *
- *   * In the first step the profiled statement is executed and the measurements are written to the JobExecutionContext.
+ *   * In the first step the profiled statement is executed and the measurements are written to the Task.
  *   * In the second step, these measurements are collected from the JobExecutionContexts on each node. This transport
  *     action is used to perform the collect operation.
  *
@@ -57,14 +57,14 @@ public class TransportCollectProfileNodeAction implements NodeAction<NodeCollect
     private static final String EXECUTOR = ThreadPool.Names.SEARCH;
 
     private final Transports transports;
-    private final JobContextService jobContextService;
+    private final TasksService tasksService;
 
     @Inject
     public TransportCollectProfileNodeAction(TransportService transportService,
                                              Transports transports,
-                                             JobContextService jobContextService) {
+                                             TasksService tasksService) {
         this.transports = transports;
-        this.jobContextService = jobContextService;
+        this.tasksService = tasksService;
 
         transportService.registerRequestHandler(
             TRANSPORT_ACTION,
@@ -85,11 +85,11 @@ public class TransportCollectProfileNodeAction implements NodeAction<NodeCollect
      * @return a future that is completed with a map of unique subcontext names (id+name) and their execution times in ms
      */
     public CompletableFuture<Map<String, Object>> collectExecutionTimesAndFinishContext(UUID jobId) {
-        JobExecutionContext context = jobContextService.getContextOrNull(jobId);
-        if (context == null) {
+        RootTask rootTask = tasksService.getTaskOrNull(jobId);
+        if (rootTask == null) {
             return CompletableFuture.completedFuture(Collections.emptyMap());
         } else {
-            return context.finishProfiling();
+            return rootTask.finishProfiling();
         }
     }
 

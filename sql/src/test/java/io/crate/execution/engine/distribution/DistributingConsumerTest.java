@@ -27,7 +27,7 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
-import io.crate.execution.jobs.PageDownstreamContext;
+import io.crate.execution.jobs.DistResultRXTask;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchSimulatingIterator;
@@ -69,8 +69,8 @@ public class DistributingConsumerTest extends CrateUnitTest {
         try {
             Streamer<?>[] streamers = {DataTypes.INTEGER.streamer()};
             TestingRowConsumer collectingConsumer = new TestingRowConsumer();
-            PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(streamers, collectingConsumer);
-            TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, pageDownstreamContext);
+            DistResultRXTask distResultRXTask = createPageDownstreamContext(streamers, collectingConsumer);
+            TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, distResultRXTask);
             DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
 
             BatchSimulatingIterator<Row> batchSimulatingIterator =
@@ -100,8 +100,8 @@ public class DistributingConsumerTest extends CrateUnitTest {
     public void testDistributingConsumerForwardsFailure() throws Exception {
         Streamer<?>[] streamers = { DataTypes.INTEGER.streamer() };
         TestingRowConsumer collectingConsumer = new TestingRowConsumer();
-        PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(streamers, collectingConsumer);
-        TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, pageDownstreamContext);
+        DistResultRXTask distResultRXTask = createPageDownstreamContext(streamers, collectingConsumer);
+        TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, distResultRXTask);
         DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
 
         distributingConsumer.accept(null, new CompletionException(new IllegalArgumentException("foobar")));
@@ -115,8 +115,8 @@ public class DistributingConsumerTest extends CrateUnitTest {
     public void testFailureOnAllLoadedIsForwarded() throws Exception {
         Streamer<?>[] streamers = { DataTypes.INTEGER.streamer() };
         TestingRowConsumer collectingConsumer = new TestingRowConsumer();
-        PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(streamers, collectingConsumer);
-        TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, pageDownstreamContext);
+        DistResultRXTask distResultRXTask = createPageDownstreamContext(streamers, collectingConsumer);
+        TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, distResultRXTask);
         DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
 
         distributingConsumer.accept(FailingBatchIterator.failOnAllLoaded(), null);
@@ -141,8 +141,8 @@ public class DistributingConsumerTest extends CrateUnitTest {
         );
     }
 
-    private PageDownstreamContext createPageDownstreamContext(Streamer<?>[] streamers, TestingRowConsumer collectingConsumer) {
-        return new PageDownstreamContext(
+    private DistResultRXTask createPageDownstreamContext(Streamer<?>[] streamers, TestingRowConsumer collectingConsumer) {
+        return new DistResultRXTask(
                 logger,
                 "n1",
                 1,
@@ -155,7 +155,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
             );
     }
 
-    private TransportDistributedResultAction createFakeTransport(Streamer<?>[] streamers, PageDownstreamContext pageDownstreamContext) {
+    private TransportDistributedResultAction createFakeTransport(Streamer<?>[] streamers, DistResultRXTask distResultRXTask) {
         TransportDistributedResultAction distributedResultAction = mock(TransportDistributedResultAction.class);
         doAnswer((InvocationOnMock invocationOnMock) -> {
             Object[] args = invocationOnMock.getArguments();
@@ -164,16 +164,16 @@ public class DistributingConsumerTest extends CrateUnitTest {
             Throwable throwable = resultRequest.throwable();
             if (throwable == null) {
                 resultRequest.streamers(streamers);
-                pageDownstreamContext.setBucket(
+                distResultRXTask.setBucket(
                     resultRequest.bucketIdx(),
                     resultRequest.rows(),
                     resultRequest.isLast(),
                     needMore -> listener.onResponse(new DistributedResultResponse(needMore)));
             } else {
                 if (resultRequest.isKilled()) {
-                    pageDownstreamContext.killed(resultRequest.bucketIdx(), throwable);
+                    distResultRXTask.killed(resultRequest.bucketIdx(), throwable);
                 } else {
-                    pageDownstreamContext.failure(resultRequest.bucketIdx(), throwable);
+                    distResultRXTask.failure(resultRequest.bucketIdx(), throwable);
                 }
             }
             return null;

@@ -100,8 +100,8 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 assertThat(exception, instanceOf(SQLActionException.class));
                 assertThat(exception.toString(), anyOf(
                     containsString("Job killed"), // CancellationException
-                    containsString("JobExecutionContext for job"), // ContextMissingException when job execution context not found
-                    containsString("SearchContext for job") // ContextMissingException when search context not found
+                    containsString("Task for job"), // TaskMissing when job execution context not found
+                    containsString("SearchContext for job") // TaskMissing when search context not found
                 ));
             }
         } finally {

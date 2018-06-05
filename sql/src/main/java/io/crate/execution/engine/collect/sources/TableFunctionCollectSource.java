@@ -31,7 +31,7 @@ import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.execution.engine.collect.JobCollectContext;
+import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.RowsCollector;
 import io.crate.execution.engine.collect.RowsTransformer;
 import io.crate.execution.engine.collect.ValueAndInputRow;
@@ -61,7 +61,7 @@ public class TableFunctionCollectSource implements CollectSource {
     @Override
     public CrateCollector getCollector(CollectPhase collectPhase,
                                        RowConsumer consumer,
-                                       JobCollectContext jobCollectContext) {
+                                       CollectTask collectTask) {
         TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
         TableFunctionImplementation functionImplementation = phase.functionImplementation();
         TableInfo tableInfo = functionImplementation.createTableInfo();

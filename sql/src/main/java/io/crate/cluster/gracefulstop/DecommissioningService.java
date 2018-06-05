@@ -25,7 +25,7 @@ package io.crate.cluster.gracefulstop;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.TasksService;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.Constants;
@@ -98,7 +98,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                                   final ClusterService clusterService,
                                   JobsLogs jobsLogs,
                                   SQLOperations sqlOperations,
-                                  JobContextService jobContextService,
+                                  TasksService tasksService,
                                   final TransportClusterHealthAction healthAction,
                                   final TransportClusterUpdateSettingsAction updateSettingsAction) {
 
@@ -108,7 +108,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
             jobsLogs,
             Executors.newSingleThreadScheduledExecutor(),
             sqlOperations,
-            jobContextService::numActive,
+            tasksService::numActive,
             null,
             healthAction,
             updateSettingsAction);

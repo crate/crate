@@ -33,14 +33,14 @@ import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.NodeOperationGrouper;
 import io.crate.execution.dsl.phases.NodeOperationTree;
-import io.crate.execution.jobs.ContextPreparer;
-import io.crate.execution.jobs.DownstreamExecutionSubContext;
-import io.crate.execution.jobs.ExecutionSubContext;
+import io.crate.execution.jobs.DownstreamRXTask;
 import io.crate.execution.jobs.InstrumentedIndexSearcher;
-import io.crate.execution.jobs.JobContextService;
-import io.crate.execution.jobs.JobExecutionContext;
+import io.crate.execution.jobs.JobSetup;
 import io.crate.execution.jobs.PageBucketReceiver;
+import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.execution.jobs.Task;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobRequest;
 import io.crate.execution.jobs.transport.TransportJobAction;
@@ -70,14 +70,14 @@ import java.util.stream.Collectors;
  * <pre>
  * Direct Result:
  *
- *       N1   N2    N3  // <-- job context created via jobRequests using TransportJobAction
+ *       N1   N2    N3  // <-- job created via jobRequests using TransportJobAction
  *        ^    ^    ^
  *        |    |    |
  *        +----+----+
  *             |
  *             |        // result is received via DirectResponseFutures
  *             v
- *            N1        // <-- job context created via ContextPreparer.prepareOnHandler
+ *            N1        // <-- job created via JobSetup.prepareOnHandler
  *             |
  *          BatchConsumer
  *
@@ -93,38 +93,38 @@ import java.util.stream.Collectors;
  *        +----+----+            |
  *             |                 |  result is received via
  *             |                 v  TransportDistributedResultAction
- *            N1<----------------+  and passed into a PageDownstreamContext
+ *            N1<----------------+  and passed into a DistResultRXTask
  *             |
  *          BatchConsumer
  * </pre>
  **/
-public class ExecutionPhasesTask {
+public final class JobLauncher {
 
     private final TransportJobAction transportJobAction;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final List<NodeOperationTree> nodeOperationTrees;
     private final UUID jobId;
     private final ClusterService clusterService;
-    private ContextPreparer contextPreparer;
-    private final JobContextService jobContextService;
+    private final JobSetup jobSetup;
+    private final TasksService tasksService;
     private final IndicesService indicesService;
     private final boolean enableProfiling;
 
     private boolean hasDirectResponse;
 
-    ExecutionPhasesTask(UUID jobId,
-                        ClusterService clusterService,
-                        ContextPreparer contextPreparer,
-                        JobContextService jobContextService,
-                        IndicesService indicesService,
-                        TransportJobAction transportJobAction,
-                        TransportKillJobsNodeAction transportKillJobsNodeAction,
-                        List<NodeOperationTree> nodeOperationTrees,
-                        boolean enableProfiling) {
+    JobLauncher(UUID jobId,
+                ClusterService clusterService,
+                JobSetup jobSetup,
+                TasksService tasksService,
+                IndicesService indicesService,
+                TransportJobAction transportJobAction,
+                TransportKillJobsNodeAction transportKillJobsNodeAction,
+                List<NodeOperationTree> nodeOperationTrees,
+                boolean enableProfiling) {
         this.jobId = jobId;
         this.clusterService = clusterService;
-        this.contextPreparer = contextPreparer;
-        this.jobContextService = jobContextService;
+        this.jobSetup = jobSetup;
+        this.tasksService = tasksService;
         this.indicesService = indicesService;
         this.transportJobAction = transportJobAction;
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
@@ -149,7 +149,7 @@ public class ExecutionPhasesTask {
         List<ExecutionPhase> handlerPhases = Collections.singletonList(nodeOperationTree.leaf());
         List<RowConsumer> handlerConsumers = Collections.singletonList(consumer);
         try {
-            setupContext(operationByServer, handlerPhases, handlerConsumers);
+            setupTasks(operationByServer, handlerPhases, handlerConsumers);
         } catch (Throwable throwable) {
             consumer.accept(null, throwable);
         }
@@ -177,16 +177,16 @@ public class ExecutionPhasesTask {
             handlerPhases.add(nodeOperationTree.leaf());
         }
         try {
-            setupContext(operationByServer, handlerPhases, handlerConsumers);
+            setupTasks(operationByServer, handlerPhases, handlerConsumers);
         } catch (Throwable throwable) {
             return Collections.singletonList(CompletableFutures.failedFuture(throwable));
         }
         return results;
     }
 
-    private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,
-                              List<ExecutionPhase> handlerPhases,
-                              List<RowConsumer> handlerConsumers) throws Throwable {
+    private void setupTasks(Map<String, Collection<NodeOperation>> operationByServer,
+                            List<ExecutionPhase> handlerPhases,
+                            List<RowConsumer> handlerConsumers) throws Throwable {
         assert handlerPhases.size() == handlerConsumers.size() : "handlerPhases size must match handlerConsumers size";
 
         String localNodeId = clusterService.localNode().getId();
@@ -194,22 +194,22 @@ public class ExecutionPhasesTask {
         if (localNodeOperations == null) {
             localNodeOperations = Collections.emptyList();
         }
-        // + 1 for localJobContext which is always created
+        // + 1 for localTask which is always created
         InitializationTracker initializationTracker = new InitializationTracker(operationByServer.size() + 1);
 
         List<Tuple<ExecutionPhase, RowConsumer>> handlerPhaseAndReceiver = createHandlerPhaseAndReceivers(
             handlerPhases, handlerConsumers, initializationTracker);
 
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNodeId, operationByServer.keySet());
+        RootTask.Builder builder = tasksService.newBuilder(jobId, localNodeId, operationByServer.keySet());
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(builder);
-        List<CompletableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnHandler(
+        List<CompletableFuture<Bucket>> directResponseFutures = jobSetup.prepareOnHandler(
             localNodeOperations,
             builder,
             handlerPhaseAndReceiver,
             sharedShardContexts);
-        JobExecutionContext localJobContext = jobContextService.createContext(builder);
+        RootTask localTask = tasksService.createTask(builder);
 
-        List<PageBucketReceiver> pageBucketReceivers = getHandlerBucketReceivers(localJobContext, handlerPhaseAndReceiver);
+        List<PageBucketReceiver> pageBucketReceivers = getHandlerBucketReceivers(localTask, handlerPhaseAndReceiver);
         int bucketIdx = 0;
 
         /*
@@ -227,14 +227,14 @@ public class ExecutionPhasesTask {
             try {
                 // initializationTracker for localNodeOperations is triggered via SetBucketCallback
 
-                localJobContext.start();
+                localTask.start();
             } catch (Throwable t) {
                 accountFailureForRemoteOperations(operationByServer, initializationTracker, handlerPhaseAndReceiver, t);
                 return;
             }
         } else {
             try {
-                localJobContext.start();
+                localTask.start();
                 initializationTracker.jobInitialized();
             } catch (Throwable t) {
                 initializationTracker.jobInitializationFailed(t);
@@ -246,7 +246,7 @@ public class ExecutionPhasesTask {
             localNodeId, operationByServer, pageBucketReceivers, handlerPhaseAndReceiver, bucketIdx, initializationTracker);
     }
 
-    private SharedShardContexts maybeInstrumentProfiler(JobExecutionContext.Builder builder) {
+    private SharedShardContexts maybeInstrumentProfiler(RootTask.Builder builder) {
         if (enableProfiling) {
             QueryProfiler queryProfiler = new QueryProfiler();
             ProfilingContext profilingContext = new ProfilingContext(queryProfiler::getTree);
@@ -305,13 +305,13 @@ public class ExecutionPhasesTask {
         }
     }
 
-    private List<PageBucketReceiver> getHandlerBucketReceivers(JobExecutionContext jobExecutionContext,
+    private List<PageBucketReceiver> getHandlerBucketReceivers(RootTask rootTask,
                                                                List<Tuple<ExecutionPhase, RowConsumer>> handlerPhases) {
         final List<PageBucketReceiver> pageBucketReceivers = new ArrayList<>(handlerPhases.size());
         for (Tuple<ExecutionPhase, ?> handlerPhase : handlerPhases) {
-            ExecutionSubContext ctx = jobExecutionContext.getSubContextOrNull(handlerPhase.v1().phaseId());
-            if (ctx instanceof DownstreamExecutionSubContext) {
-                PageBucketReceiver pageBucketReceiver = ((DownstreamExecutionSubContext) ctx).getBucketReceiver((byte) 0);
+            Task ctx = rootTask.getTaskOrNull(handlerPhase.v1().phaseId());
+            if (ctx instanceof DownstreamRXTask) {
+                PageBucketReceiver pageBucketReceiver = ((DownstreamRXTask) ctx).getBucketReceiver((byte) 0);
                 pageBucketReceivers.add(pageBucketReceiver);
             }
         }

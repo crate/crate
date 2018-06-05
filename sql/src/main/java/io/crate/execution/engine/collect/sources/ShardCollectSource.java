@@ -39,8 +39,8 @@ import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
+import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.collect.RemoteCollectorFactory;
 import io.crate.execution.engine.collect.RowsCollector;
 import io.crate.execution.engine.collect.ShardCollectorProvider;
@@ -123,7 +123,7 @@ import static io.crate.data.SentinelRow.SENTINEL;
  * For grouping and aggregation operations it's advantageous to run them concurrently. This can be done
  * if there are multiple shards.
  * <p>
- * Since there is just a single Collector returned by {@link #getCollector(CollectPhase, RowConsumer, JobCollectContext)}
+ * Since there is just a single Collector returned by {@link #getCollector(CollectPhase, RowConsumer, CollectTask)}
  * and there is only a single {@link RowConsumer} receiving a {@link BatchIterator} which cannot be consumed concurrently
  * the following pattern is used:
  * <p>
@@ -293,7 +293,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     @Override
     public CrateCollector getCollector(CollectPhase phase,
                                        RowConsumer lastConsumer,
-                                       JobCollectContext jobCollectContext) {
+                                       CollectTask collectTask) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
 
@@ -304,7 +304,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             lastConsumer,
             Projections.nodeProjections(normalizedPhase.projections()),
             collectPhase.jobId(),
-            jobCollectContext.queryPhaseRamAccountingContext(),
+            collectTask.queryPhaseRamAccountingContext(),
             sharedProjectorFactory
         );
         if (normalizedPhase.maxRowGranularity() == RowGranularity.SHARD) {
@@ -318,7 +318,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             return createMultiShardScoreDocCollector(
                 normalizedPhase,
                 firstConsumer,
-                jobCollectContext,
+                collectTask,
                 localNodeId
             );
         }
@@ -332,7 +332,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         Map<String, List<Integer>> indexShards = locations.get(localNodeId);
         if (indexShards != null) {
             builders.addAll(
-                getDocCollectors(jobCollectContext, normalizedPhase, lastConsumer.requiresScroll(), indexShards));
+                getDocCollectors(collectTask, normalizedPhase, lastConsumer.requiresScroll(), indexShards));
         }
 
         switch (builders.size()) {
@@ -358,11 +358,11 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
     private CrateCollector createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,
                                                              RowConsumer consumer,
-                                                             JobCollectContext jobCollectContext,
+                                                             CollectTask collectTask,
                                                              String localNodeId) {
 
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
-        SharedShardContexts sharedShardContexts = jobCollectContext.sharedShardContexts();
+        SharedShardContexts sharedShardContexts = collectTask.sharedShardContexts();
         Map<String, List<Integer>> indexShards = locations.get(localNodeId);
         List<OrderedDocCollector> orderedDocCollectors = new ArrayList<>();
         MetaData metaData = clusterService.state().metaData();
@@ -376,9 +376,10 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
-                    orderedDocCollectors.add(shardCollectorProvider.getOrderedCollector(collectPhase,
+                    orderedDocCollectors.add(shardCollectorProvider.getOrderedCollector(
+                        collectPhase,
                         context,
-                        jobCollectContext,
+                        collectTask,
                         consumer.requiresScroll()));
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
@@ -405,7 +406,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     orderBy.reverseFlags(),
                     orderBy.nullsFirst()
                 ),
-                new RowAccounting(columnTypes, jobCollectContext.queryPhaseRamAccountingContext()),
+                new RowAccounting(columnTypes, collectTask.queryPhaseRamAccountingContext()),
                 executor,
                 consumer.requiresScroll()
             ),
@@ -425,7 +426,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         return shardCollectorProvider;
     }
 
-    private Collection<CrateCollector.Builder> getDocCollectors(JobCollectContext jobCollectContext,
+    private Collection<CrateCollector.Builder> getDocCollectors(CollectTask collectTask,
                                                                 RoutedCollectPhase collectPhase,
                                                                 boolean requiresScroll,
                                                                 Map<String, List<Integer>> indexShards) {
@@ -457,18 +458,18 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     CrateCollector.Builder collector = shardCollectorProvider.getCollectorBuilder(
                         collectPhase,
                         requiresScroll,
-                        jobCollectContext
+                        collectTask
                     );
                     crateCollectors.add(collector);
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     // If toCollect contains a docId it means that this is a QueryThenFetch operation.
-                    // In such a case RemoteCollect cannot be used because on that node the FetchContext is missing
+                    // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
                     // and the reader required in the fetchPhase would be missing.
                     if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
                         throw e;
                     }
                     crateCollectors.add(remoteCollectorFactory.createCollector(
-                        shardId, collectPhase, jobCollectContext, shardCollectorProviderFactory));
+                        shardId, collectPhase, collectTask, shardCollectorProviderFactory));
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 } catch (IndexNotFoundException e) {

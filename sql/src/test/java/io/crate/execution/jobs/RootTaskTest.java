@@ -24,7 +24,7 @@ package io.crate.execution.jobs;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.engine.collect.JobCollectContext;
+import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
@@ -44,6 +44,7 @@ import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
@@ -55,36 +56,36 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class JobExecutionContextTest extends CrateUnitTest {
+public class RootTaskTest extends CrateUnitTest {
 
     private String coordinatorNode = "dummyNode";
 
     @Test
     public void testAddTheSameContextTwiceThrowsAnError() throws Exception {
-        JobExecutionContext.Builder builder =
-            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
-        builder.addSubContext(new AbstractExecutionSubContextTest.TestingExecutionSubContext());
+        RootTask.Builder builder =
+            new RootTask.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+        builder.addTask(new AbstractTaskTest.TestingTask());
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("ExecutionSubContext for 0 already added");
-        builder.addSubContext(new AbstractExecutionSubContextTest.TestingExecutionSubContext());
+        expectedException.expectMessage("Task for 0 already added");
+        builder.addTask(new AbstractTaskTest.TestingTask());
         builder.build();
     }
 
     @Test
     public void testKillPropagatesToSubContexts() throws Exception {
-        JobExecutionContext.Builder builder =
-            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+        RootTask.Builder builder =
+            new RootTask.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
 
 
-        AbstractExecutionSubContextTest.TestingExecutionSubContext ctx1 = new AbstractExecutionSubContextTest.TestingExecutionSubContext(1);
-        AbstractExecutionSubContextTest.TestingExecutionSubContext ctx2 = new AbstractExecutionSubContextTest.TestingExecutionSubContext(2);
+        AbstractTaskTest.TestingTask ctx1 = new AbstractTaskTest.TestingTask(1);
+        AbstractTaskTest.TestingTask ctx2 = new AbstractTaskTest.TestingTask(2);
 
-        builder.addSubContext(ctx1);
-        builder.addSubContext(ctx2);
-        JobExecutionContext jobExecutionContext = builder.build();
+        builder.addTask(ctx1);
+        builder.addTask(ctx2);
+        RootTask rootTask = builder.build();
 
-        assertThat(jobExecutionContext.kill(), is(2L));
-        assertThat(jobExecutionContext.kill(), is(0L)); // second call is ignored, only killed once
+        assertThat(rootTask.kill(), is(2L));
+        assertThat(rootTask.kill(), is(0L)); // second call is ignored, only killed once
 
         assertThat(ctx1.numKill.get(), is(1));
         assertThat(ctx2.numKill.get(), is(1));
@@ -93,19 +94,19 @@ public class JobExecutionContextTest extends CrateUnitTest {
     @Test
     public void testErrorMessageIsIncludedInStatsTableOnFailure() throws Exception {
         JobsLogs jobsLogs = mock(JobsLogs.class);
-        JobExecutionContext.Builder builder =
-            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), jobsLogs);
+        RootTask.Builder builder =
+            new RootTask.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), jobsLogs);
 
-        ExecutionSubContext executionSubContext = new AbstractExecutionSubContext(0, logger) {
+        Task task = new AbstractTask(0, logger) {
             @Override
             public String name() {
                 return "dummy";
             }
         };
-        builder.addSubContext(executionSubContext);
+        builder.addTask(task);
         builder.build();
 
-        executionSubContext.kill(new IllegalStateException("dummy"));
+        task.kill(new IllegalStateException("dummy"));
         verify(jobsLogs).operationFinished(anyInt(), any(UUID.class), eq("dummy"), anyLong());
     }
 
@@ -118,18 +119,18 @@ public class JobExecutionContextTest extends CrateUnitTest {
         when(collectPhase.routing()).thenReturn(routing);
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
 
-        JobExecutionContext.Builder builder =
-            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+        RootTask.Builder builder =
+            new RootTask.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
 
-        JobCollectContext jobCollectContext = new JobCollectContext(
+        CollectTask collectChildTask = new CollectTask(
             collectPhase,
             mock(MapSideDataCollectOperation.class),
             mock(RamAccountingContext.class),
             new TestingRowConsumer(),
             mock(SharedShardContexts.class));
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
-        PageDownstreamContext pageDownstreamContext = spy(new PageDownstreamContext(
-            Loggers.getLogger(PageDownstreamContext.class),
+        DistResultRXTask distResultRXTask = spy(new DistResultRXTask(
+            Loggers.getLogger(DistResultRXTask.class),
             "n1",
             2, "dummy",
             batchConsumer,
@@ -138,47 +139,47 @@ public class JobExecutionContextTest extends CrateUnitTest {
             mock(RamAccountingContext.class),
             1));
 
-        builder.addSubContext(jobCollectContext);
-        builder.addSubContext(pageDownstreamContext);
-        JobExecutionContext jobExecutionContext = builder.build();
+        builder.addTask(collectChildTask);
+        builder.addTask(distResultRXTask);
+        RootTask rootTask = builder.build();
 
         Exception failure = new Exception("failure!");
-        jobCollectContext.close(failure);
+        collectChildTask.close(failure);
         // other contexts must be killed with same failure
-        verify(pageDownstreamContext, times(1)).innerKill(failure);
+        verify(distResultRXTask, times(1)).innerKill(failure);
 
-        final Field subContexts = JobExecutionContext.class.getDeclaredField("subContexts");
-        subContexts.setAccessible(true);
-        int size = ((ConcurrentMap<Integer, ExecutionSubContext>) subContexts.get(jobExecutionContext)).size();
+        final Field tasksByPhaseId = RootTask.class.getDeclaredField("tasksByPhaseId");
+        tasksByPhaseId.setAccessible(true);
+        int size = ((ConcurrentMap<Integer, Task>) tasksByPhaseId.get(rootTask)).size();
 
         assertThat(size, is(0));
     }
 
     @Test
     public void testEnablingProfilingGathersExecutionTimes() throws Throwable {
-        JobExecutionContext.Builder builder =
-            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+        RootTask.Builder builder =
+            new RootTask.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
         ProfilingContext profilingContext = new ProfilingContext(Collections::emptyList);
         builder.profilingContext(profilingContext);
 
-        AbstractExecutionSubContextTest.TestingExecutionSubContext ctx1 = new AbstractExecutionSubContextTest.TestingExecutionSubContext(1);
-        builder.addSubContext(ctx1);
-        AbstractExecutionSubContextTest.TestingExecutionSubContext ctx2 = new AbstractExecutionSubContextTest.TestingExecutionSubContext(2);
-        builder.addSubContext(ctx2);
-        JobExecutionContext jobExecutionContext = builder.build();
+        AbstractTaskTest.TestingTask ctx1 = new AbstractTaskTest.TestingTask(1);
+        builder.addTask(ctx1);
+        AbstractTaskTest.TestingTask ctx2 = new AbstractTaskTest.TestingTask(2);
+        builder.addTask(ctx2);
+        RootTask rootTask = builder.build();
 
-        jobExecutionContext.start();
+        rootTask.start();
         // fake execution time so we can sure the measurement is > 0
         Thread.sleep(5L);
         // kill because the testing subcontexts would run infinitely
-        jobExecutionContext.kill();
-        assertTrue(jobExecutionContext.executionTimes().containsKey("1-TestingExecutionSubContext"));
+        rootTask.kill();
+        assertThat(rootTask.executionTimes(), hasKey("1-TestingTask"));
         assertThat(
-            ((double) jobExecutionContext.executionTimes().get("1-TestingExecutionSubContext")),
+            ((double) rootTask.executionTimes().get("1-TestingTask")),
             Matchers.greaterThan(0d));
-        assertTrue(jobExecutionContext.executionTimes().containsKey("2-TestingExecutionSubContext"));
+        assertTrue(rootTask.executionTimes().containsKey("2-TestingTask"));
         assertThat(
-            ((double) jobExecutionContext.executionTimes().get("2-TestingExecutionSubContext")),
+            ((double) rootTask.executionTimes().get("2-TestingTask")),
             Matchers.greaterThan(0d));
     }
 }

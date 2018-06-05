@@ -121,7 +121,7 @@ public abstract class ShardCollectorProvider {
      */
     public CrateCollector.Builder getCollectorBuilder(RoutedCollectPhase collectPhase,
                                                       boolean requiresScroll,
-                                                      JobCollectContext jobCollectContext) throws Exception {
+                                                      CollectTask collectTask) throws Exception {
         assert collectPhase.orderBy() ==
                null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
         RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, null);
@@ -131,7 +131,7 @@ public abstract class ShardCollectorProvider {
             builder = RowsCollector.emptyBuilder();
         } else {
             assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
-            builder = getBuilder(normalizedCollectNode, requiresScroll, jobCollectContext);
+            builder = getBuilder(normalizedCollectNode, requiresScroll, collectTask);
         }
 
         Collection<? extends Projection> shardProjections = Projections.shardProjections(collectPhase.projections());
@@ -150,7 +150,7 @@ public abstract class ShardCollectorProvider {
                         consumer,
                         shardProjections,
                         normalizedCollectNode.jobId(),
-                        jobCollectContext.queryPhaseRamAccountingContext(),
+                        collectTask.queryPhaseRamAccountingContext(),
                         projectorFactory
                     );
                 }
@@ -160,12 +160,12 @@ public abstract class ShardCollectorProvider {
 
     protected abstract CrateCollector.Builder getBuilder(RoutedCollectPhase collectPhase,
                                                          boolean requiresScroll,
-                                                         JobCollectContext jobCollectContext);
+                                                         CollectTask collectTask);
 
 
     public abstract OrderedDocCollector getOrderedCollector(RoutedCollectPhase collectPhase,
                                                             SharedShardContext sharedShardContext,
-                                                            JobCollectContext jobCollectContext,
+                                                            CollectTask collectTask,
                                                             boolean requiresRepeat);
 
     public ProjectorFactory getProjectorFactory() {
