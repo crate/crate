@@ -23,15 +23,15 @@
 package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
+import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -84,7 +84,7 @@ public class MapFunction extends Scalar<Object, Object> {
     @Override
     public final Object evaluate(Input<Object>... args) {
         Map<String, Object> m = new HashMap<>(args.length / 2, 1.0f);
-        for (int i = 0; i < args.length; i += 2) {
+        for (int i = 0; i < args.length - 1; i += 2) {
             m.put(BytesRefs.toBytesRef(args[i].value()).utf8ToString(), args[i + 1].value());
         }
         return m;
