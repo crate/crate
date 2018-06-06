@@ -29,16 +29,21 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.List;
+
+import static io.crate.metadata.RowContextCollectorExpression.forFunction;
+import static io.crate.metadata.RowContextCollectorExpression.objToBytesRef;
+import static io.crate.metadata.RowContextCollectorExpression.withNullableProperty;
 
 public class SysJobsLogTableInfo extends StaticTableInfo {
 
@@ -52,22 +57,34 @@ public class SysJobsLogTableInfo extends StaticTableInfo {
         public static final ColumnIdent STARTED = new ColumnIdent("started");
         static final ColumnIdent ENDED = new ColumnIdent("ended");
         public static final ColumnIdent ERROR = new ColumnIdent("error");
+        static final ColumnIdent CLASS = new ColumnIdent("classification");
+        static final ColumnIdent CLASS_TYPE = new ColumnIdent("classification", "type");
+        static final ColumnIdent CLASS_LABELS = new ColumnIdent("classification", "labels");
     }
 
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<JobContextLog>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<JobContextLog>>builder()
-            .put(SysJobsLogTableInfo.Columns.ID,
-                () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::id))
-            .put(SysJobsTableInfo.Columns.USERNAME,
-                () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::username))
-            .put(SysJobsLogTableInfo.Columns.STMT,
-                () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::statement))
-            .put(SysJobsLogTableInfo.Columns.STARTED,
-                () -> RowContextCollectorExpression.forFunction(JobContextLog::started))
-            .put(SysJobsLogTableInfo.Columns.ENDED,
-                () -> RowContextCollectorExpression.forFunction(JobContextLog::ended))
-            .put(SysJobsLogTableInfo.Columns.ERROR,
-                () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::errorMessage))
+            .put(SysJobsLogTableInfo.Columns.ID, () -> objToBytesRef(JobContextLog::id))
+            .put(SysJobsTableInfo.Columns.USERNAME, () -> objToBytesRef(JobContextLog::username))
+            .put(SysJobsLogTableInfo.Columns.STMT, () -> objToBytesRef(JobContextLog::statement))
+            .put(SysJobsLogTableInfo.Columns.STARTED, () -> forFunction(JobContextLog::started))
+            .put(SysJobsLogTableInfo.Columns.ENDED, () -> forFunction(JobContextLog::ended))
+            .put(SysJobsLogTableInfo.Columns.ERROR, () -> objToBytesRef(JobContextLog::errorMessage))
+            .put(Columns.CLASS, () -> withNullableProperty(JobContextLog::classification, c -> ImmutableMap.builder()
+                .put("type", new BytesRef(c.type().name()))
+                .put("labels", c.labels()
+                    .stream()
+                    .map(BytesRefs::toBytesRef)
+                    .toArray(BytesRef[]::new)
+                )
+                .build()
+            ))
+            .put(Columns.CLASS_TYPE, () -> withNullableProperty(JobContextLog::classification, c -> new BytesRef(c.type().name())))
+            .put(Columns.CLASS_LABELS, () -> withNullableProperty(JobContextLog::classification, c -> c.labels()
+                .stream()
+                .map(BytesRefs::toBytesRef)
+                .toArray(BytesRef[]::new)
+            ))
             .build();
     }
 
@@ -78,7 +95,11 @@ public class SysJobsLogTableInfo extends StaticTableInfo {
             .register(Columns.STMT, DataTypes.STRING)
             .register(Columns.STARTED, DataTypes.TIMESTAMP)
             .register(Columns.ENDED, DataTypes.TIMESTAMP)
-            .register(Columns.ERROR, DataTypes.STRING), PRIMARY_KEYS);
+            .register(Columns.ERROR, DataTypes.STRING)
+            .register(Columns.CLASS, DataTypes.OBJECT)
+            .register(Columns.CLASS_TYPE, DataTypes.STRING)
+            .register(Columns.CLASS_LABELS, DataTypes.STRING_ARRAY),
+            PRIMARY_KEYS);
     }
 
     @Override

@@ -43,6 +43,21 @@ public abstract class RowContextCollectorExpression<TRow, TReturnValue> implemen
         return forFunction(fun.andThen(BytesRefs::toBytesRef));
     }
 
+    public static <TRow, TIntermediate> RowCollectExpression<TRow, Object> withNullableProperty(Function<TRow, TIntermediate> getProperty,
+                                                                                                Function<TIntermediate, Object> extractValue) {
+        return new RowContextCollectorExpression<TRow, Object>() {
+
+            @Override
+            public Object value() {
+                TIntermediate intermediate = getProperty.apply(row);
+                if (intermediate == null) {
+                    return null;
+                }
+                return extractValue.apply(intermediate);
+            }
+        };
+    }
+
     private static class FuncExpression<TRow, TReturnVal> extends RowContextCollectorExpression<TRow, TReturnVal> {
 
         private final Function<TRow, TReturnVal> f;

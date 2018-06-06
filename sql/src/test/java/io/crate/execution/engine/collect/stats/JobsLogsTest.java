@@ -40,7 +40,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.set.Sets;
-import org.elasticsearch.index.analysis.PreConfiguredCharFilter;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.hamcrest.Matchers;
@@ -59,6 +58,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -244,6 +244,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(jobsEntries.size(), is(1));
         assertThat(jobsEntries.get(0).username(), is(user.name()));
         assertThat(jobsEntries.get(0).stmt(), is("select 1"));
+        assertThat(jobsEntries.get(0).classification(), is(classification));
     }
 
     @Test
@@ -260,6 +261,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(jobsLogEntries.get(0).username(), is(user.name()));
         assertThat(jobsLogEntries.get(0).statement(), is("select foo"));
         assertThat(jobsLogEntries.get(0).errorMessage(), is("stmt error"));
+        assertThat(jobsLogEntries.get(0).classification(), nullValue());
     }
 
     @Test
@@ -286,7 +288,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testLowerBoundScheduler() throws NoSuchMethodException {
+    public void testLowerBoundScheduler() {
         assertThat(JobsLogService.clearInterval(TimeValue.timeValueMillis(1L)), is(1000L));
         assertThat(JobsLogService.clearInterval(TimeValue.timeValueSeconds(8L)), is(1000L));
         assertThat(JobsLogService.clearInterval(TimeValue.timeValueSeconds(10L)), is(1000L));

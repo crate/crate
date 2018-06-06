@@ -18,6 +18,8 @@ Breaking Changes
 Changes
 =======
 
+- Expose statement classification in ``sys.jobs_log`` table.
+
 - Added a ``sys.jobs_metrics`` table which contains query latency information.
 
 - The setting ``es.api.enabled`` has been marked as deprecated and will be
