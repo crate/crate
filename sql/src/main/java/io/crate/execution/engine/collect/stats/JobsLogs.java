@@ -123,7 +123,7 @@ public class JobsLogs {
 
     private void addToHistogram(JobContextLog log) {
         StatementClassifier.Classification classification = log.classification();
-        assert classification != null : "A job must have a classificiation";
+        assert classification != null : "A job must have a classification";
         histograms.getOrCreate(classification)
             .recordValue(log.ended() - log.started());
     }

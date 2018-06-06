@@ -101,7 +101,7 @@ public class SysMetricsTableInfo extends StaticTableInfo {
             .put(Columns.MEAN, () -> forFunction(h -> h.histogram().getMean()))
             .put(Columns.STDEV, () -> forFunction(h -> h.histogram().getStdDeviation()))
             .put(Columns.MAX, () -> forFunction(h -> h.histogram().getMaxValue()))
-            .put(Columns.MIN, () -> forFunction(h -> h.histogram().getTotalCount() == 0 ? 0 : h.histogram().getMinNonZeroValue()))
+            .put(Columns.MIN, () -> forFunction(h -> h.histogram().getMinValue() == Long.MAX_VALUE ? 0L : h.histogram().getMinValue()))
             .put(Columns.PERCENTILES, () -> forFunction(h -> ImmutableMap.builder()
                 .put("25", h.histogram().getValueAtPercentile(25.0))
                 .put("50", h.histogram().getValueAtPercentile(50.0))
