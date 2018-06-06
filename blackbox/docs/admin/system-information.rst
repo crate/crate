@@ -1091,6 +1091,30 @@ statements.
 | ``percentiles``              | An object containing different percentiles         | ``OBJECT``       |
 +------------------------------+----------------------------------------------------+------------------+
 
+Classification
+..............
+
+Certain statement types (such as ``SELECT`` statements) have additional labels
+in their classification. These labels are the names of the logical plan
+operators that are involved in the query.
+
+For example, the following ``UNION`` statement::
+
+    SELECT name FROM t1 where id = 1
+    UNION ALL
+    SELECT name FROM t2 where id < 2
+
+would result in the following labels:
+
+* ``Union``` for the UNION ALL
+* ``Get`` for the left SELECT
+* ``Collect`` for the right SELECT
+
+.. note::
+
+    Labels may be subject to change as they only represent internal properties
+    of the statement!
+
 .. _sys-operations:
 
 Operations
