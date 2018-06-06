@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
-public class RootTask implements CompletionListenable {
+public class RootTask implements CompletionListenable<Void> {
 
     private static final Logger LOGGER = Loggers.getLogger(RootTask.class);
 
