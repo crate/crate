@@ -24,10 +24,8 @@ package io.crate.execution.jobs;
 import io.crate.concurrent.CompletionListenable;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.CompletableFuture;
 
-public interface Task extends CompletionListenable {
-
+public interface Task extends CompletionListenable<CompletionState> {
 
     /**
      * In the prepare phase implementations of this interface can allocate any resources.
@@ -54,7 +52,4 @@ public interface Task extends CompletionListenable {
      * Hook to cleanup the resources of this context. This might be called at any time in the lifecycle of the context.
      */
     void cleanup();
-
-    @Override
-    CompletableFuture<CompletionState> completionFuture();
 }

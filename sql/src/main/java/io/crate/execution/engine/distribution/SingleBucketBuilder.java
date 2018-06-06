@@ -34,7 +34,7 @@ import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 
 
-public class SingleBucketBuilder implements RowConsumer, CompletionListenable {
+public class SingleBucketBuilder implements RowConsumer, CompletionListenable<Bucket> {
 
     private final Streamer<?>[] streamers;
     private final CompletableFuture<Bucket> bucketFuture = new CompletableFuture<>();
