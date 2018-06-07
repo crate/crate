@@ -25,9 +25,9 @@ package io.crate.planner.operators;
 import io.crate.planner.Plan;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Utility to classify SQL statements based on their {@link Plan}.
@@ -44,7 +44,7 @@ import java.util.Set;
  *
  * <pre>
  *     type = SELECT
- *     labels = [FetchOrEval, Collect, Order]
+ *     labels = [Collect, FetchOrEval, Order]
  * </pre>
  */
 public final class StatementClassifier {
@@ -56,7 +56,7 @@ public final class StatementClassifier {
 
     public static Classification classify(Plan plan) {
         if (plan instanceof LogicalPlan) {
-            HashSet<String> classes = new HashSet<>();
+            Set<String> classes = new TreeSet<>();
             CLASS_EXTRACTOR.process((LogicalPlan) plan, classes);
             return new Classification(plan.type(), classes);
         } else {

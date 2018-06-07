@@ -22,13 +22,13 @@
 
 package io.crate.planner.operators;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.planner.Plan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
@@ -47,46 +47,46 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan("SELECT 1");
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), is(ImmutableSet.of("Collect")));
+        assertThat(classification.labels(), contains("Collect"));
 
         plan = e.logicalPlan("SELECT * FROM users WHERE id = 1");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), is(ImmutableSet.of("Get")));
+        assertThat(classification.labels(), contains("Get"));
 
         plan = e.logicalPlan("SELECT * FROM users ORDER BY id");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), is(ImmutableSet.of("Order", "Collect", "FetchOrEval")));
+        assertThat(classification.labels(), contains("Collect", "FetchOrEval", "Order"));
 
         plan = e.logicalPlan("SELECT a.id, b.id FROM users a, users b WHERE a.id = b.id");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), is(ImmutableSet.of("HashJoin", "Collect")));
+        assertThat(classification.labels(), contains("Collect", "HashJoin"));
 
         plan = e.logicalPlan("SELECT a.id, b.id FROM users a, users b WHERE a.id > b.id");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), is(ImmutableSet.of("Collect", "NestedLoopJoin")));
+        assertThat(classification.labels(), contains("Collect", "NestedLoopJoin"));
 
         plan = e.logicalPlan("SELECT id FROM users UNION ALL SELECT id FROM users");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), is(ImmutableSet.of("Collect", "Union")));
+        assertThat(classification.labels(), contains("Collect", "Union"));
 
         plan = e.logicalPlan("SELECT count(*) FROM users");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), is(ImmutableSet.of("Count")));
+        assertThat(classification.labels(), contains("Count"));
 
         plan = e.logicalPlan("SELECT count(*), name FROM users GROUP BY 2");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), is(ImmutableSet.of("Collect", "GroupHashAggregate", "FetchOrEval")));
+        assertThat(classification.labels(), contains("Collect", "FetchOrEval", "GroupHashAggregate"));
 
         plan = e.logicalPlan("SELECT * FROM users WHERE id = (SELECT 1) OR name = (SELECT 'Arthur')");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), is(ImmutableSet.of("Collect", "MultiPhase")));
+        assertThat(classification.labels(), contains("Collect", "MultiPhase"));
     }
 }
