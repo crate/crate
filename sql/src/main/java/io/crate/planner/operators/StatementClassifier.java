@@ -175,7 +175,7 @@ public final class StatementClassifier {
         @Override
         public Void visitInsert(Insert logicalPlan, Set<String> context) {
             process(logicalPlan.source, context);
-            return visitPlan(logicalPlan, context);
+            return null;
         }
 
         @Override

@@ -102,4 +102,9 @@ public class Insert extends OneInputPlan {
     public List<Projection> projections() {
         return projections;
     }
+
+    @Override
+    public StatementType type() {
+        return StatementType.INSERT;
+    }
 }

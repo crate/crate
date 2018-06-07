@@ -639,8 +639,7 @@ public class SQLExecutor {
     }
 
     public <T extends LogicalPlan> T logicalPlan(String statement) {
-        AnalyzedStatement stmt = analyzer.unboundAnalyze(
-            SqlParser.createStatement(statement), sessionContext, ParamTypeHints.EMPTY);
+        AnalyzedStatement stmt = analyze(statement, ParameterContext.EMPTY);
         if (stmt instanceof AnalyzedRelation) {
             // unboundAnalyze currently doesn't normalize; which breaks LogicalPlan building for joins
             // because the subRelations are not yet QueriedRelations.
