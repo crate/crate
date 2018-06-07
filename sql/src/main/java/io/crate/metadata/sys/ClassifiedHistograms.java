@@ -56,7 +56,11 @@ public class ClassifiedHistograms implements Iterable<ClassifiedHistograms.Class
         }
     }
 
-    public ConcurrentHistogram getOrCreate(Classification classification) {
+    public void recordValue(Classification classification, long duration) {
+        getOrCreate(classification).recordValue(Math.min(duration, HIGHEST_TRACKABLE_VALUE));
+    }
+
+    private ConcurrentHistogram getOrCreate(Classification classification) {
         ConcurrentHistogram histogram = histograms.get(classification);
         if (histogram == null) {
             histogram = new ConcurrentHistogram(HIGHEST_TRACKABLE_VALUE, NUMBER_OF_SIGNIFICANT_VALUE_DIGITS);

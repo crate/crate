@@ -1055,6 +1055,9 @@ statements.
 
   In order to reduce the memory requirements for these metrics, the times are
   statistically sampled and therefore may have slight inaccuracies.
+  In addition, durations are only tracked up to 10 minutes. Statements taking
+  longer than that are capped to 10 minutes.
+
 
 ``sys.jobs_metrics`` Table Schema
 .................................
