@@ -107,6 +107,12 @@ how often an operation was invoked.
 |                                   | phase.                            |
 +-----------------------------------+-----------------------------------+
 
+.. NOTE::
+
+   Individual timings of the different phases and queries that are profiled do
+   not sum up to the ``Total``. This is because there is usually additional
+   initialization that is not measured. Also, certain phases do overlap during
+   their execution.
 
 Parameters
 ==========
