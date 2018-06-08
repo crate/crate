@@ -23,6 +23,7 @@ package io.crate.execution.engine.collect.sources;
 
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.data.BatchIterator;
+import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
@@ -72,7 +73,7 @@ public class FileCollectSource implements CollectSource {
 
         List<String> fileUris;
         fileUris = targetUriToStringList(fileUriCollectPhase.targetUri());
-        BatchIterator fileReadingIterator = FileReadingIterator.newInstance(
+        BatchIterator<Row> fileReadingIterator = FileReadingIterator.newInstance(
             fileUris,
             ctx.topLevelInputs(),
             ctx.expressions(),
