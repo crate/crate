@@ -22,21 +22,21 @@
 package io.crate.execution.engine.collect.sources;
 
 import io.crate.analyze.CopyFromAnalyzedStatement;
-import io.crate.execution.engine.collect.CollectTask;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.ValueSymbolVisitor;
-import io.crate.data.RowConsumer;
 import io.crate.data.BatchIterator;
-import io.crate.metadata.Functions;
-import io.crate.expression.InputFactory;
+import io.crate.data.RowConsumer;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
+import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
+import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
-import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.ValueSymbolVisitor;
+import io.crate.metadata.Functions;
 import io.crate.types.CollectionType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -44,6 +44,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -69,10 +70,6 @@ public class FileCollectSource implements CollectSource {
             inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);
         ctx.add(collectPhase.toCollect());
 
-        String[] readers = fileUriCollectPhase.nodeIds().toArray(
-            new String[fileUriCollectPhase.nodeIds().size()]);
-        Arrays.sort(readers);
-
         List<String> fileUris;
         fileUris = targetUriToStringList(fileUriCollectPhase.targetUri());
         BatchIterator fileReadingIterator = FileReadingIterator.newInstance(
@@ -82,12 +79,18 @@ public class FileCollectSource implements CollectSource {
             fileUriCollectPhase.compression(),
             fileInputFactoryMap,
             fileUriCollectPhase.sharedStorage(),
-            readers.length,
-            Arrays.binarySearch(readers, clusterService.state().nodes().getLocalNodeId()),
+            fileUriCollectPhase.nodeIds().size(),
+            getReaderNumber(fileUriCollectPhase.nodeIds(), clusterService.state().nodes().getLocalNodeId()),
             fileUriCollectPhase.inputFormat()
         );
 
         return BatchIteratorCollectorBridge.newInstance(fileReadingIterator, consumer);
+    }
+
+    private static int getReaderNumber(Collection<String> nodeIds, String localNodeId) {
+        String[] readers = nodeIds.toArray(new String[0]);
+        Arrays.sort(readers);
+        return Arrays.binarySearch(readers, localNodeId);
     }
 
     private static List<String> targetUriToStringList(Symbol targetUri) {
