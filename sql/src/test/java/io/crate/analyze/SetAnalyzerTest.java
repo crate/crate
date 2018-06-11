@@ -178,6 +178,7 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 "stats.enabled",
                 "stats.jobs_log_size",
                 "stats.jobs_log_expiration",
+                "stats.jobs_log_filter",
                 "stats.operations_log_size",
                 "stats.operations_log_expiration",
                 "stats.service.interval")

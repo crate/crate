@@ -22,8 +22,8 @@
 
 package io.crate.metadata.settings;
 
-import io.crate.expression.NestableInput;
 import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.settings.CrateSetting;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -66,6 +66,7 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
     public void testSettingsByNamePrefix() {
         assertThat(CrateSettings.settingNamesByPrefix("stats.jobs_log"), containsInAnyOrder(
             JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(),
+            JobsLogService.STATS_JOBS_LOG_FILTER.getKey(),
             JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey()
             ));
     }

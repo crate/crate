@@ -56,12 +56,15 @@ settings::
 
 ::
 
-    cr> select settings['stats'] from sys.cluster;
-    +--...--------------------------------------------------------------------------------------------------------------------------------------...--+
-    | settings['stats']                                                                                                                              |
-    +--...--------------------------------------------------------------------------------------------------------------------------------------...--+
-    | {... "enabled": true, "jobs_log_expiration": "0s", "jobs_log_size": 2048, "operations_log_expiration": "0s", "operations_log_size": 8192, ...} |
-    +--...--------------------------------------------------------------------------------------------------------------------------------------...--+
+    cr> SELECT 
+    ...   settings['stats']['jobs_log_size'] AS jobs_size,
+    ...   settings['stats']['operations_log_size'] AS op_size 
+    ... FROM sys.cluster;
+    +-----------+---------+
+    | jobs_size | op_size |
+    +-----------+---------+
+    |      2048 |    8192 |
+    +-----------+---------+
     SELECT 1 row in set (... sec)
 
 Using the ``RESET`` statement, a setting will be reset to either on node
@@ -72,12 +75,15 @@ startup defined configuration file value or to its default value::
 
 ::
 
-    cr> select settings['stats'] from sys.cluster;
-    +--...---------------------------------------------------------------------------------------------------------------------------------------...--+
-    | settings['stats']                                                                                                                               |
-    +--...---------------------------------------------------------------------------------------------------------------------------------------...--+
-    | {... "enabled": true, "jobs_log_expiration": "0s", "jobs_log_size": 2048, "operations_log_expiration": "0s", "operations_log_size": 10000, ...} |
-    +--...---------------------------------------------------------------------------------------------------------------------------------------...--+
+    cr> SELECT 
+    ...   settings['stats']['jobs_log_size'] AS jobs_size,
+    ...   settings['stats']['operations_log_size'] AS op_size 
+    ... FROM sys.cluster;
+    +-----------+---------+
+    | jobs_size | op_size |
+    +-----------+---------+
+    |      2048 |   10000 |
+    +-----------+---------+
     SELECT 1 row in set (... sec)
 
 ``RESET`` can also be done on objects::
@@ -87,10 +93,13 @@ startup defined configuration file value or to its default value::
 
 ::
 
-    cr> select settings['stats'] from sys.cluster;
-    +--...----------------------------------------------------------------------------------------------------------------------------------------...--+
-    | settings['stats']                                                                                                                                |
-    +--...----------------------------------------------------------------------------------------------------------------------------------------...--+
-    | {... "enabled": true, "jobs_log_expiration": "0s", "jobs_log_size": 10000, "operations_log_expiration": "0s", "operations_log_size": 10000, ...} |
-    +--...----------------------------------------------------------------------------------------------------------------------------------------...--+
+    cr> SELECT 
+    ...   settings['stats']['jobs_log_size'] AS jobs_size,
+    ...   settings['stats']['operations_log_size'] AS op_size 
+    ... FROM sys.cluster;
+    +-----------+---------+
+    | jobs_size | op_size |
+    +-----------+---------+
+    |     10000 |   10000 |
+    +-----------+---------+
     SELECT 1 row in set (... sec)

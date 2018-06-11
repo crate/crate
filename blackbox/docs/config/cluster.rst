@@ -89,6 +89,22 @@ Collecting Stats
      :ref:`stats.operations_log_expiration <stats.operations_log_expiration>`
      settings are disabled, jobs will not be recorded.
 
+**stats.jobs_log_filter**
+  | *Default:* ``true`` (Include all jobs)
+  | *Runtime:* ``yes``
+
+  An expression to determine if a job should be recorded into ``sys.jobs_log``.
+  The expression must evaluate to a boolean. If it evaluates to ``true`` the
+  statement will show up ``sys.jobs_log`` until it's evicted due to one of the
+  other rules. (expiration or size limit reached).
+
+  The expression may reference all columns contained in ``sys.jobs_log``. A
+  common use case is to include only jobs that took a certain amount of time to
+  execute::
+
+    cr> SET GLOBAL "stats.jobs_log_filter" = 'ended - started > 100';
+
+
 .. _stats.operations_log_size:
 
 **stats.operations_log_size**

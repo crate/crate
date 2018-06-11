@@ -78,6 +78,7 @@ public final class CrateSettings implements ClusterStateListener {
             JobsLogService.STATS_ENABLED_SETTING,
             JobsLogService.STATS_JOBS_LOG_SIZE_SETTING,
             JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING,
+            JobsLogService.STATS_JOBS_LOG_FILTER,
             JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING,
             JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING,
             TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING,

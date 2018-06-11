@@ -23,6 +23,7 @@
 package io.crate.execution.engine.collect.stats;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import io.crate.auth.user.User;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
@@ -57,6 +58,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -90,14 +92,39 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDefaultSettings() {
-        JobsLogService stats = new JobsLogService(Settings.EMPTY, clusterSettings, scheduler, breakerService);
+        JobsLogService stats = new JobsLogService(Settings.EMPTY, clusterSettings, getFunctions(), scheduler, breakerService);
         assertThat(stats.isEnabled(), is(true));
         assertThat(stats.jobsLogSize, is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault()));
         assertThat(stats.operationsLogSize, is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
         assertThat(stats.jobsLogExpiration, is(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault()));
         assertThat(stats.operationsLogExpiration, is(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault()));
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
+        assertThat(stats.jobsLogSink, Matchers.instanceOf(FilteredLogSink.class));
         assertThat(stats.operationsLogSink, Matchers.instanceOf(QueueSink.class));
+    }
+
+    @Test
+    public void testEntriesCanBeRejectedWithFilter() {
+        Settings settings = Settings.builder()
+            .put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "stmt like 'select%'")
+            .build();
+        JobsLogService stats = new JobsLogService(settings, clusterSettings, getFunctions(), scheduler, breakerService);
+
+        stats.jobsLogSink.add(new JobContextLog(
+            new JobContext(UUID.randomUUID(), "insert into", 10L, User.CRATE_USER, null), null, 20L));
+        stats.jobsLogSink.add(new JobContextLog(
+            new JobContext(UUID.randomUUID(), "select * from t1", 10L, User.CRATE_USER, null), null, 20L));
+
+        assertThat(Iterables.size(stats.jobsLogSink), is(1));
+    }
+
+    @Test
+    public void testErrorIsRaisedInitiallyOnInvalidFilterExpression() {
+        Settings settings = Settings.builder()
+            .put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "invalid_column = 10")
+            .build();
+
+        expectedException.expectMessage("Invalid filter expression: invalid_column = 10: Column invalid_column unknown");
+        new JobsLogService(settings, clusterSettings, getFunctions(), scheduler, breakerService);
     }
 
     @Test
@@ -111,7 +138,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 100)
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100)
             .build();
-        JobsLogService stats = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
+        JobsLogService stats = new JobsLogService(settings, clusterSettings, getFunctions(), scheduler, breakerService);
 
         assertThat(stats.isEnabled(), is(false));
         assertThat(stats.jobsLogSize, is(100));
@@ -125,7 +152,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(stats.isEnabled(), is(true));
         assertThat(stats.jobsLogSize, is(100));
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
+        assertThat(stats.jobsLogSink, Matchers.instanceOf(FilteredLogSink.class));
         assertThat(stats.operationsLogSize, is(100));
         assertThat(stats.operationsLogSink, Matchers.instanceOf(QueueSink.class));
     }
@@ -137,13 +164,13 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 100)
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100)
             .build();
-        JobsLogService stats = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
+        JobsLogService stats = new JobsLogService(settings, clusterSettings, getFunctions(), scheduler, breakerService);
 
         // sinks are still of type QueueSink
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
+        assertThat(stats.jobsLogSink, Matchers.instanceOf(FilteredLogSink.class));
         assertThat(stats.operationsLogSink, Matchers.instanceOf(QueueSink.class));
 
-        assertThat(inspectRamAccountingQueue((QueueSink) stats.jobsLogSink),
+        assertThat(inspectRamAccountingQueue((QueueSink) ((FilteredLogSink) stats.jobsLogSink).delegate),
             Matchers.instanceOf(BlockingEvictingQueue.class));
         assertThat(inspectRamAccountingQueue((QueueSink) stats.operationsLogSink),
             Matchers.instanceOf(BlockingEvictingQueue.class));
@@ -153,7 +180,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getKey(), "10s")
             .build());
 
-        assertThat(inspectRamAccountingQueue((QueueSink) stats.jobsLogSink),
+        assertThat(inspectRamAccountingQueue((QueueSink) ((FilteredLogSink<JobContextLog>) stats.jobsLogSink).delegate),
             Matchers.instanceOf(ConcurrentLinkedDeque.class));
         assertThat(inspectRamAccountingQueue((QueueSink) stats.operationsLogSink),
             Matchers.instanceOf(ConcurrentLinkedDeque.class));
@@ -174,8 +201,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 200)
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
             .build());
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
-        assertThat(inspectRamAccountingQueue((QueueSink) stats.jobsLogSink),
+        assertThat(stats.jobsLogSink, Matchers.instanceOf(FilteredLogSink.class));
+        assertThat(inspectRamAccountingQueue((QueueSink) ((FilteredLogSink<JobContextLog>) stats.jobsLogSink).delegate),
             Matchers.instanceOf(BlockingEvictingQueue.class));
         assertThat(stats.operationsLogSink, Matchers.instanceOf(QueueSink.class));
         assertThat(inspectRamAccountingQueue((QueueSink) stats.operationsLogSink),
@@ -203,7 +230,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     public void testLogsArentWipedOnSizeChange() {
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
-        JobsLogService stats = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
+        JobsLogService stats = new JobsLogService(settings, clusterSettings, getFunctions(), scheduler, breakerService);
 
         StatementClassifier.Classification classification =
             new StatementClassifier.Classification(Plan.StatementType.SELECT, Collections.singleton("Collect"));

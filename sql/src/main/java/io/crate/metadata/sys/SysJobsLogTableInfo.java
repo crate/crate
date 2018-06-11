@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -33,7 +34,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.expression.reference.sys.job.JobContextLog;
+import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
@@ -47,8 +48,10 @@ import static io.crate.metadata.NestableContextCollectorExpression.withNullableP
 
 public class SysJobsLogTableInfo extends StaticTableInfo {
 
-    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "jobs_log");
     private static final List<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.ID);
+
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "jobs_log");
+    public static final TableInfo INSTANCE = new SysJobsLogTableInfo();
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
@@ -88,7 +91,7 @@ public class SysJobsLogTableInfo extends StaticTableInfo {
             .build();
     }
 
-    SysJobsLogTableInfo() {
+    private SysJobsLogTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
             .register(Columns.ID, DataTypes.STRING)
             .register(Columns.USERNAME, DataTypes.STRING)
