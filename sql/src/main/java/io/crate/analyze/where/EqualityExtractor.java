@@ -33,6 +33,8 @@ import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -397,20 +399,22 @@ public class EqualityExtractor {
         public Symbol visitFunction(Function function, Context context) {
 
             String functionName = function.info().ident().name();
+            List<Symbol> arguments = function.arguments();
+            Symbol firstArg = arguments.get(0);
+
             if (functionName.equals(EqOperator.NAME)) {
-                if (function.arguments().get(0) instanceof Reference) {
+                if (firstArg instanceof Reference && SymbolVisitors.any(Symbols.IS_COLUMN, arguments.get(1)) == false) {
                     Comparison comparison = context.comparisons.get(
-                        ((Reference) function.arguments().get(0)).column());
+                        ((Reference) firstArg).column());
                     if (comparison != null) {
                         context.proxyBelow = true;
                         return comparison.add(function);
                     }
                 }
-            } else if (functionName.equals(AnyOperators.Names.EQ) &&
-                       function.arguments().get(1).symbolType().isValueSymbol()) {
+            } else if (functionName.equals(AnyOperators.Names.EQ) && arguments.get(1).symbolType().isValueSymbol()) {
                 // ref = any ([1,2,3])
-                if (function.arguments().get(0) instanceof Reference) {
-                    Reference reference = (Reference) function.arguments().get(0);
+                if (firstArg instanceof Reference) {
+                    Reference reference = (Reference) firstArg;
                     Comparison comparison = context.comparisons.get(reference.column());
                     if (comparison != null) {
                         context.proxyBelow = true;
@@ -420,17 +424,17 @@ public class EqualityExtractor {
             } else if (Operators.LOGICAL_OPERATORS.contains(functionName)) {
                 boolean proxyBelowPre = context.proxyBelow;
                 boolean proxyBelowPost = proxyBelowPre;
-                ArrayList<Symbol> args = new ArrayList<>(function.arguments().size());
-                for (Symbol arg : function.arguments()) {
+                ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
+                for (Symbol arg : arguments) {
                     context.proxyBelow = proxyBelowPre;
-                    args.add(process(arg, context));
+                    newArgs.add(process(arg, context));
                     proxyBelowPost = context.proxyBelow || proxyBelowPost;
                 }
                 context.proxyBelow = proxyBelowPost;
                 if (!context.proxyBelow && function.valueType().equals(DataTypes.BOOLEAN)) {
                     return Literal.BOOLEAN_TRUE;
                 }
-                return new Function(function.info(), args);
+                return new Function(function.info(), newArgs);
             }
             context.seenUnknown = true;
             return Literal.BOOLEAN_TRUE;

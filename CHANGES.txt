@@ -21,6 +21,13 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused an UnsupportedFeatureException to be thrown for
+  queries with a ``WHERE`` clause which contains an equality comparison that
+  references a table column in both sides. E.g.::
+
+    SELECT * FROM t
+    WHERE t.i = abs(t.i)
+
 - Handle ``STRING_ARRAY`` as argument type for user-defined functions correctly
   to prevent an ``ArrayStoreException``.
 
