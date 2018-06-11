@@ -132,7 +132,6 @@ public class NodeStatsContextFieldResolverTest {
         assertThat(context.processStats(), is(nullValue()));
         assertThat(context.osStats(), is(nullValue()));
         assertThat(context.extendedOsStats(), is(nullValue()));
-        assertThat(context.networkStats(), is(nullValue()));
         assertThat(context.threadPools(), is(nullValue()));
         assertThat(context.javaVersion(), is(notNullValue()));
     }

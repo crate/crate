@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node;
 
-import io.crate.monitor.ExtendedNetworkStats;
+import static io.crate.metadata.RowContextCollectorExpression.constant;
 
 public class NodeNetworkStatsExpression extends NestedNodeStatsExpression {
 
@@ -30,13 +30,7 @@ public class NodeNetworkStatsExpression extends NestedNodeStatsExpression {
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
     public NodeNetworkStatsExpression() {
-        childImplementations.put(PROBE_TIMESTAMP, new SimpleNodeStatsExpression<Long>() {
-            @Override
-            public Long innerValue() {
-                ExtendedNetworkStats stats = this.row.networkStats();
-                return stats.timestamp();
-            }
-        });
+        childImplementations.put(PROBE_TIMESTAMP, constant(0L));
         childImplementations.put(TCP, new NodeNetworkTCPStatsExpression());
     }
 }

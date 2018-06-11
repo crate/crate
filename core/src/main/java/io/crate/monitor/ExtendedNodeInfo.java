@@ -41,7 +41,6 @@ import org.elasticsearch.monitor.os.OsStats;
  */
 public class ExtendedNodeInfo {
 
-    private static final ExtendedNetworkStats NETWORK_STATS = new ExtendedNetworkStats(new ExtendedNetworkStats.Tcp());
     private static final ExtendedNetworkInfo NETWORK_INFO = new ExtendedNetworkInfo(ExtendedNetworkInfo.iface());
     private static final ExtendedOsInfo OS_INFO = new ExtendedOsInfo(SysInfo.gather());
     private static final double[] NA_LOAD = new double[]{ -1, -1, -1 };
@@ -53,11 +52,6 @@ public class ExtendedNodeInfo {
     @Inject
     public ExtendedNodeInfo() {
         this.osStatsCache = new ExtendedOsStatsCache(PROBE_CACHE_TIME, osStatsProbe());
-    }
-
-    @Deprecated
-    public ExtendedNetworkStats networkStats() {
-        return NETWORK_STATS;
     }
 
     public ExtendedNetworkInfo networkInfo() {

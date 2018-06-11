@@ -87,7 +87,6 @@ public class NodeStatsContextTest extends CrateUnitTest {
         OsProbe osProbe = OsProbe.getInstance();
         ctx1.osStats(osProbe.osStats());
         ctx1.extendedOsStats(extendedNodeInfo.osStats());
-        ctx1.networkStats(extendedNodeInfo.networkStats());
         ctx1.threadPools(ThreadPools.newInstance(threadPool));
 
         ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
@@ -112,7 +111,6 @@ public class NodeStatsContextTest extends CrateUnitTest {
         assertThat(ctx1.processStats().getTimestamp(), is(ctx2.processStats().getTimestamp()));
         assertThat(ctx1.osStats().getTimestamp(), is(ctx2.osStats().getTimestamp()));
         assertThat(ctx1.extendedOsStats().uptime(), is(ctx2.extendedOsStats().uptime()));
-        assertThat(ctx1.networkStats().timestamp(), is(ctx2.networkStats().timestamp()));
         assertThat(ctx1.threadPools(), is(ctx2.threadPools()));
     }
 
@@ -138,7 +136,6 @@ public class NodeStatsContextTest extends CrateUnitTest {
         assertNull(ctx2.processStats());
         assertNull(ctx2.osStats());
         assertNull(ctx2.extendedOsStats());
-        assertNull(ctx2.networkStats());
         assertNull(ctx2.threadPools());
     }
 

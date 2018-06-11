@@ -35,6 +35,10 @@ public abstract class RowContextCollectorExpression<TRow, TReturnValue> implemen
         this.row = row;
     }
 
+    public static <TRow, TReturnValue> RowCollectExpression<TRow, TReturnValue> constant(TReturnValue val) {
+        return new ConstantRowContextCollectorExpression<>(val);
+    }
+
     public static <TRow, TReturnValue> RowCollectExpression<TRow, TReturnValue> forFunction(Function<TRow, TReturnValue> fun) {
         return new FuncExpression<>(fun);
     }
@@ -69,6 +73,19 @@ public abstract class RowContextCollectorExpression<TRow, TReturnValue> implemen
         @Override
         public TReturnVal value() {
             return f.apply(row);
+        }
+    }
+
+    private static class ConstantRowContextCollectorExpression<TRow, TReturnValue> extends RowContextCollectorExpression<TRow, TReturnValue> {
+        private final TReturnValue val;
+
+        ConstantRowContextCollectorExpression(TReturnValue val) {
+            this.val = val;
+        }
+
+        @Override
+        public TReturnValue value() {
+            return val;
         }
     }
 }

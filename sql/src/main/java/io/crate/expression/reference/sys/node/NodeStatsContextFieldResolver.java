@@ -211,11 +211,7 @@ public class NodeStatsContextFieldResolver {
                     context.threadPools(ThreadPools.newInstance(threadPool));
                 }
             })
-            .put(SysNodesTableInfo.Columns.NETWORK, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    context.networkStats(extendedNodeInfo.networkStats());
-                }
+            .put(SysNodesTableInfo.Columns.NETWORK, context -> {
             })
             .put(SysNodesTableInfo.Columns.OS, new Consumer<NodeStatsContext>() {
                 @Override

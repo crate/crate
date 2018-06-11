@@ -22,11 +22,14 @@
 
 package io.crate.expression.reference.sys.node;
 
-import io.crate.monitor.ExtendedNetworkStats;
 
+import static io.crate.metadata.RowContextCollectorExpression.constant;
+
+/**
+ * The network column of sys.nodes has been deprecated.
+ * They remain available for backward compatibility but everything returns 0.
+ */
 class NodeNetworkTCPStatsExpression extends NestedNodeStatsExpression {
-
-    private static final Long VALUE_UNAVAILABLE = -1L;
 
     private static final String CONNECTIONS = "connections";
     private static final String PACKETS = "packets";
@@ -45,58 +48,12 @@ class NodeNetworkTCPStatsExpression extends NestedNodeStatsExpression {
         private static final String EMBRYONIC_DROPPED = "embryonic_dropped";
 
         TCPConnectionsStatsExpression() {
-            childImplementations.put(INITIATED, new SimpleNodeStatsExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats().tcp();
-                    if (tcp != null) {
-                        return tcp.activeOpens();
-                    }
-                    return VALUE_UNAVAILABLE;
-                }
-            });
-            childImplementations.put(ACCEPTED, new SimpleNodeStatsExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats().tcp();
-                    if (tcp != null) {
-                        return tcp.passiveOpens();
-                    }
-                    return VALUE_UNAVAILABLE;
-                }
-            });
-            childImplementations.put(CURR_ESTABLISHED, new SimpleNodeStatsExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats().tcp();
-                    if (tcp != null) {
-                        return tcp.currEstab();
-                    }
-                    return VALUE_UNAVAILABLE;
-                }
-            });
-            childImplementations.put(DROPPED, new SimpleNodeStatsExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats().tcp();
-                    if (tcp != null) {
-                        return tcp.estabResets();
-                    }
-                    return VALUE_UNAVAILABLE;
-                }
-            });
-            childImplementations.put(EMBRYONIC_DROPPED, new SimpleNodeStatsExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats().tcp();
-                    if (tcp != null) {
-                        return tcp.attemptFails();
-                    }
-                    return VALUE_UNAVAILABLE;
-                }
-            });
+            childImplementations.put(INITIATED, constant(0L));
+            childImplementations.put(ACCEPTED, constant(0L));
+            childImplementations.put(CURR_ESTABLISHED, constant(0L));
+            childImplementations.put(DROPPED, constant(0L));
+            childImplementations.put(EMBRYONIC_DROPPED, constant(0L));
         }
-
     }
 
     private static class TCPPacketsStatsExpression extends NestedNodeStatsExpression {
@@ -108,57 +65,11 @@ class NodeNetworkTCPStatsExpression extends NestedNodeStatsExpression {
         private static final String RST_SENT = "rst_sent";
 
         TCPPacketsStatsExpression() {
-            childImplementations.put(SENT, new SimpleNodeStatsExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats().tcp();
-                    if (tcp != null) {
-                        return tcp.outSegs();
-                    }
-                    return VALUE_UNAVAILABLE;
-                }
-            });
-            childImplementations.put(RECEIVED, new SimpleNodeStatsExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats().tcp();
-                    if (tcp != null) {
-                        return tcp.inSegs();
-                    }
-                    return VALUE_UNAVAILABLE;
-                }
-            });
-            childImplementations.put(RETRANSMITTED, new SimpleNodeStatsExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats().tcp();
-                    if (tcp != null) {
-                        return tcp.retransSegs();
-                    }
-                    return VALUE_UNAVAILABLE;
-                }
-            });
-            childImplementations.put(ERRORS_RECEIVED, new SimpleNodeStatsExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats().tcp();
-                    if (tcp != null) {
-                        return tcp.inErrs();
-                    }
-                    return VALUE_UNAVAILABLE;
-                }
-            });
-            childImplementations.put(RST_SENT, new SimpleNodeStatsExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats().tcp();
-                    if (tcp != null) {
-                        return tcp.outRsts();
-                    }
-                    return VALUE_UNAVAILABLE;
-                }
-            });
+            childImplementations.put(SENT, constant(0L));
+            childImplementations.put(RECEIVED, constant(0L));
+            childImplementations.put(RETRANSMITTED, constant(0L));
+            childImplementations.put(ERRORS_RECEIVED, constant(0L));
+            childImplementations.put(RST_SENT, constant(0L));
         }
-
     }
 }

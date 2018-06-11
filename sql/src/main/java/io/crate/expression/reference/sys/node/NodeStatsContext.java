@@ -24,7 +24,6 @@ package io.crate.expression.reference.sys.node;
 
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.monitor.ExtendedNetworkStats;
 import io.crate.monitor.ExtendedOsStats;
 import io.crate.monitor.ThreadPools;
 import io.crate.types.DataTypes;
@@ -61,7 +60,6 @@ public class NodeStatsContext implements Streamable {
     private ProcessStats processStats;
     private OsStats osStats;
     private ExtendedOsStats extendedOsStats;
-    private ExtendedNetworkStats networkStats;
     private FsInfo fsInfo;
     private ThreadPools threadPools;
 
@@ -153,10 +151,6 @@ public class NodeStatsContext implements Streamable {
         return extendedOsStats;
     }
 
-    public ExtendedNetworkStats networkStats() {
-        return networkStats;
-    }
-
     public ThreadPools threadPools() {
         return threadPools;
     }
@@ -245,10 +239,6 @@ public class NodeStatsContext implements Streamable {
         this.extendedOsStats = extendedOsStats;
     }
 
-    public void networkStats(ExtendedNetworkStats networkStats) {
-        this.networkStats = networkStats;
-    }
-
     public void threadPools(ThreadPools threadPools) {
         this.threadPools = threadPools;
     }
@@ -277,7 +267,6 @@ public class NodeStatsContext implements Streamable {
         osStats = in.readOptionalWriteable(OsStats::new);
         fsInfo = in.readOptionalWriteable(FsInfo::new);
         extendedOsStats = in.readBoolean() ? ExtendedOsStats.readExtendedOsStat(in) : null;
-        networkStats = in.readBoolean() ? ExtendedNetworkStats.readExtendedNetworkStats(in) : null;
         threadPools = in.readBoolean() ? ThreadPools.readThreadPools(in) : null;
 
         osName = DataTypes.STRING.readValueFrom(in);
@@ -318,7 +307,6 @@ public class NodeStatsContext implements Streamable {
         out.writeOptionalWriteable(osStats);
         out.writeOptionalWriteable(fsInfo);
         out.writeOptionalStreamable(extendedOsStats);
-        out.writeOptionalStreamable(networkStats);
         out.writeOptionalStreamable(threadPools);
 
         DataTypes.STRING.writeValueTo(out, osName);
