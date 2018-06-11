@@ -350,4 +350,10 @@ public class EqualityExtractorTest extends CrateUnitTest {
         List<List<Symbol>> matches = analyzeExactX(query("x not in (1, 2, 3)"));
         assertThat(matches, nullValue());
     }
+
+    @Test
+    public void testNoPKExtractionWhenColumnsOnBothSidesOfEqual() {
+        List<List<Symbol>> matches = analyzeExactX(query("x = abs(x)"));
+        assertThat(matches, nullValue());
+    }
 }
