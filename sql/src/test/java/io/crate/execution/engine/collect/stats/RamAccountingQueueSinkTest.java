@@ -129,7 +129,13 @@ public class RamAccountingQueueSinkTest extends CrateUnitTest {
         StatementClassifier.Classification classification =
             new StatementClassifier.Classification(Plan.StatementType.SELECT, Collections.singleton("Collect"));
         ConcurrentLinkedQueue<JobContextLog> q = new ConcurrentLinkedQueue<>();
-        ScheduledFuture<?> task = new TimeExpiring(1_000_000L, 1_000_000L).registerTruncateTask(q, scheduler, TimeValue.timeValueSeconds(1L));
+        ScheduledFuture<?> task = TimeBasedQEviction.scheduleTruncate(
+            1_000_000L,
+            1_000_000L,
+            q,
+            scheduler,
+            TimeValue.timeValueSeconds(1L)
+        );
         q.add(new JobContextLog(new JobContext(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff01"),
             "select 1", 1L, User.CRATE_USER, classification), null, 2000L));
         q.add(new JobContextLog(new JobContext(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff02"),
@@ -137,7 +143,7 @@ public class RamAccountingQueueSinkTest extends CrateUnitTest {
         q.add(new JobContextLog(new JobContext(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff03"),
             "select 1", 1L, User.CRATE_USER, classification), null, 7000L));
 
-        TimeExpiring.removeExpiredLogs(q, 10_000L, 5_000L);
+        TimeBasedQEviction.removeExpiredLogs(q, 10_000L, 5_000L);
         assertThat(q.size(), is(1));
         assertThat(q.iterator().next().id(), is(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff03")));
 
@@ -149,8 +155,7 @@ public class RamAccountingQueueSinkTest extends CrateUnitTest {
         ConcurrentLinkedQueue<NoopLog> q = new ConcurrentLinkedQueue<>();
         RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, breaker(), NOOP_ESTIMATOR);
         TimeValue timeValue = TimeValue.timeValueSeconds(1L);
-        TimeExpiring timeExiring = new TimeExpiring(1000L, 1000L);
-        ScheduledFuture<?> task = timeExiring.registerTruncateTask(q, scheduler, timeValue);
+        ScheduledFuture<?> task = TimeBasedQEviction.scheduleTruncate(1000L, 1000L, q, scheduler, timeValue);
         logSink = new QueueSink<>(ramAccountingQueue, () -> {
             task.cancel(false);
             ramAccountingQueue.close();

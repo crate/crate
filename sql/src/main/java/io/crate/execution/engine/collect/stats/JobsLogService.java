@@ -159,8 +159,14 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             return NoopLogSink.instance();
         } else if (expirationMillis > 0) {
             q = new ConcurrentLinkedDeque<>();
-            TimeExpiring lbTimeExpiring = new TimeExpiring(clearInterval(expiration));
-            ScheduledFuture<?> scheduledFuture = lbTimeExpiring.registerTruncateTask(q, scheduler, expiration);
+            long delay = 0L;
+            ScheduledFuture<?> scheduledFuture = TimeBasedQEviction.scheduleTruncate(
+                delay,
+                clearInterval(expiration),
+                q,
+                scheduler,
+                expiration
+            );
             onClose = () -> scheduledFuture.cancel(false);
         } else {
             q = new BlockingEvictingQueue<>(size);

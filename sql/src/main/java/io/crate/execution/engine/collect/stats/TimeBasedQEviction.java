@@ -31,36 +31,21 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-class TimeExpiring {
+final class TimeBasedQEviction {
 
-    /**
-     * clean interval in milliseconds
-     */
-    private static final long DEFAULT_QUEUE_CLEAN_INTERVAL = 5000L;
-
-    private static TimeExpiring INSTANCE = new TimeExpiring(DEFAULT_QUEUE_CLEAN_INTERVAL, 0L);
-    private final long interval;
-    private final long delay;
-
-    TimeExpiring(long interval, long delay) {
-        this.interval = interval;
-        this.delay = delay;
+    private TimeBasedQEviction() {
     }
 
-    public TimeExpiring(long interval) {
-        this(interval, 0L);
-    }
-
-    public static TimeExpiring instance() {
-        return INSTANCE;
-    }
-
-    public ScheduledFuture<?> registerTruncateTask(Queue<? extends ContextLog> q,
-                                                   ScheduledExecutorService scheduler,
-                                                   TimeValue expiration) {
+    static ScheduledFuture<?> scheduleTruncate(long delayInMs,
+                                               long intervalInMs,
+                                               Queue<? extends ContextLog> q,
+                                               ScheduledExecutorService scheduler,
+                                               TimeValue expiration) {
         return scheduler.scheduleWithFixedDelay(
             () -> removeExpiredLogs(q, System.currentTimeMillis(), expiration.getMillis()),
-            delay, interval, TimeUnit.MILLISECONDS);
+            delayInMs,
+            intervalInMs,
+            TimeUnit.MILLISECONDS);
     }
 
     @VisibleForTesting
