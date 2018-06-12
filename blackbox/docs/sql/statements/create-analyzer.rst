@@ -23,18 +23,25 @@ Synopsis
 ::
 
     CREATE ANALYZER analyzer_name (
-        [ TOKENIZER tokenizer_name
-           [ WITH ( tokenizer_parameter [= value] [, ... ] ) ]
+        [ TOKENIZER
+          {
+              tokenizer_name
+            | custom_name WITH ( type = tokenizer_name, tokenizer_parameter [= value] [, ... ] )
+          }
         ]
         [ TOKEN_FILTERS (
-            { token_filter_name
-              [ WITH ( token_filter_parameter [= value] [, ... ] ) ] }
+            {
+                token_filter_name
+              | custom_name WITH ( type = token_filter_name, token_filter_parameter [= value] [, ... ] )
+            }
             [, ... ]
           )
         ]
         [ CHAR_FILTERS (
-            { char_filter_name
-              [ WITH ( char_filter_parameter [= value] [, ... ] ) ] }
+            {
+                char_filter_name
+              | custom_name WITH ( type = char_filter_name, char_filter_parameter [= value] [, ... ] )
+            }
             [, ... ]
           )
         ]
@@ -78,3 +85,8 @@ Parameters
 
 :char_filter_parameter:
   A name of a parameter for a given char filter.
+
+:custom_name:
+  A custom unqiue name needed when defining custom
+  tokenizers/token_filter/char_filter.
+
