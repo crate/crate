@@ -17,6 +17,11 @@ information and changelog.
 Versions
 ========
 
+.. toctree::
+    :maxdepth: 1
+
+    upcoming
+
 3.x
 ---
 
