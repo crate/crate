@@ -37,21 +37,5 @@ Changes
 Fixes
 =====
 
-- Fixed an issue that caused an UnsupportedFeatureException to be thrown for
-  queries with a ``WHERE`` clause which contains an equality comparison that
-  references a table column in both sides. E.g.::
-
-    SELECT * FROM t
-    WHERE t.i = abs(t.i)
-
 - Handle ``STRING_ARRAY`` as argument type for user-defined functions correctly
   to prevent an ``ArrayStoreException``.
-
-- Fixed an issue that could cause a cluster check warning, telling the user to
-  upgrade tables which do not require upgrades.
-
-- Fixed an issue that could cause ``HTTP`` requests using empty ``bulk_args``
-  to fail.
-
-- Fixed ``NullPointerException`` which could be thrown when deleting a table
-  and querying the ``size`` column from the ``sys.shards`` table.
