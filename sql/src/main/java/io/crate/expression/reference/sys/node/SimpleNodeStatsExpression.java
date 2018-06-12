@@ -22,9 +22,9 @@
 
 package io.crate.expression.reference.sys.node;
 
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 
-public abstract class SimpleNodeStatsExpression<R> extends RowContextCollectorExpression<NodeStatsContext, R> {
+public abstract class SimpleNodeStatsExpression<R> extends NestableContextCollectorExpression<NodeStatsContext, R> {
 
     @Override
     public R value() {

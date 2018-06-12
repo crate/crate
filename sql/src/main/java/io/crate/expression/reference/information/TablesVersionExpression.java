@@ -24,13 +24,13 @@ package io.crate.expression.reference.information;
 
 import io.crate.Version;
 import io.crate.core.collections.Maps;
-import io.crate.expression.reference.RowCollectNestedObjectExpression;
+import io.crate.expression.reference.NestableCollectNestedObjectExpression;
 import io.crate.metadata.RelationInfo;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 
 import java.util.Map;
 
-public class TablesVersionExpression extends RowCollectNestedObjectExpression<RelationInfo> {
+public class TablesVersionExpression extends NestableCollectNestedObjectExpression<RelationInfo> {
 
     public TablesVersionExpression() {
         addChildImplementations();
@@ -49,7 +49,7 @@ public class TablesVersionExpression extends RowCollectNestedObjectExpression<Re
         return Maps.mapOrNullIfNullValues(map);
     }
 
-    static class TableDetailedVersionExpression extends RowCollectNestedObjectExpression<RelationInfo> {
+    static class TableDetailedVersionExpression extends NestableCollectNestedObjectExpression<RelationInfo> {
 
         TableDetailedVersionExpression(Version.Property property) {
             addChildImplementations(property);
@@ -67,7 +67,7 @@ public class TablesVersionExpression extends RowCollectNestedObjectExpression<Re
         }
     }
 
-    static class TableCrateVersionExpression extends RowContextCollectorExpression<RelationInfo, Object> {
+    static class TableCrateVersionExpression extends NestableContextCollectorExpression<RelationInfo, Object> {
 
         private final Version.Property property;
 
@@ -82,7 +82,7 @@ public class TablesVersionExpression extends RowCollectNestedObjectExpression<Re
         }
     }
 
-    static class TableESVersionExpression extends RowContextCollectorExpression<RelationInfo, Object> {
+    static class TableESVersionExpression extends NestableContextCollectorExpression<RelationInfo, Object> {
 
         private final Version.Property property;
 

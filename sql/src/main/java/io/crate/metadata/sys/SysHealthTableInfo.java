@@ -29,7 +29,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -57,19 +57,19 @@ public class SysHealthTableInfo extends StaticTableInfo {
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<TableHealth>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<TableHealth>>builder()
             .put(Columns.TABLE_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(TableHealth::getTableName))
+                () -> NestableContextCollectorExpression.objToBytesRef(TableHealth::getTableName))
             .put(Columns.TABLE_SCHEMA,
-                () -> RowContextCollectorExpression.objToBytesRef(TableHealth::getTableSchema))
+                () -> NestableContextCollectorExpression.objToBytesRef(TableHealth::getTableSchema))
             .put(Columns.PARTITION_IDENT,
-                () -> RowContextCollectorExpression.objToBytesRef(TableHealth::getPartitionIdent))
+                () -> NestableContextCollectorExpression.objToBytesRef(TableHealth::getPartitionIdent))
             .put(Columns.HEALTH,
-                () -> RowContextCollectorExpression.objToBytesRef(TableHealth::getHealth))
+                () -> NestableContextCollectorExpression.objToBytesRef(TableHealth::getHealth))
             .put(Columns.SEVERITY,
-                () -> RowContextCollectorExpression.forFunction(TableHealth::getSeverity))
+                () -> NestableContextCollectorExpression.forFunction(TableHealth::getSeverity))
             .put(Columns.MISSING_SHARDS,
-                () -> RowContextCollectorExpression.forFunction(TableHealth::getMissingShards))
+                () -> NestableContextCollectorExpression.forFunction(TableHealth::getMissingShards))
             .put(Columns.UNDERREPLICATED_SHARDS,
-                () -> RowContextCollectorExpression.forFunction(TableHealth::getUnderreplicatedShards))
+                () -> NestableContextCollectorExpression.forFunction(TableHealth::getUnderreplicatedShards))
             .build();
     }
 

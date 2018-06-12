@@ -25,12 +25,12 @@ package io.crate.expression.reference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.expression.NestableInput;
-import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.NestableCollectExpression;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 
 import java.util.Map;
 
-public class StaticTableReferenceResolver<R> implements ReferenceResolver<RowCollectExpression<R, ?>> {
+public class StaticTableReferenceResolver<R> implements ReferenceResolver<NestableCollectExpression<R, ?>> {
 
     private final Map<ColumnIdent, ? extends RowCollectExpressionFactory<R>> expressionFactories;
 
@@ -39,11 +39,11 @@ public class StaticTableReferenceResolver<R> implements ReferenceResolver<RowCol
     }
 
     @Override
-    public RowCollectExpression<R, ?> getImplementation(Reference ref) {
+    public NestableCollectExpression<R, ?> getImplementation(Reference ref) {
         return rowCollectExpressionFromFactoryMap(expressionFactories, ref);
     }
 
-    private static <R> RowCollectExpression<R, ?> rowCollectExpressionFromFactoryMap(
+    private static <R> NestableCollectExpression<R, ?> rowCollectExpressionFromFactoryMap(
         Map<ColumnIdent, ? extends RowCollectExpressionFactory<R>> factories,
         Reference ref) {
 
@@ -59,7 +59,7 @@ public class StaticTableReferenceResolver<R> implements ReferenceResolver<RowCol
     }
 
 
-    private static <R> RowCollectExpression<R, ?> getImplementationByRootTraversal(
+    private static <R> NestableCollectExpression<R, ?> getImplementationByRootTraversal(
         Map<ColumnIdent, ? extends RowCollectExpressionFactory<R>> innerFactories,
         ColumnIdent columnIdent) {
 
@@ -69,6 +69,6 @@ public class StaticTableReferenceResolver<R> implements ReferenceResolver<RowCol
         }
         NestableInput<?> refImpl = factory.create();
         //noinspection unchecked
-        return (RowCollectExpression<R, ?>) NestableInput.getChildByPath(refImpl, columnIdent.path());
+        return (NestableCollectExpression<R, ?>) NestableInput.getChildByPath(refImpl, columnIdent.path());
     }
 }

@@ -23,7 +23,7 @@
 package io.crate.expression.reference.sys.node;
 
 
-import static io.crate.metadata.RowContextCollectorExpression.constant;
+import static io.crate.metadata.NestableContextCollectorExpression.constant;
 
 /**
  * The network column of sys.nodes has been deprecated.

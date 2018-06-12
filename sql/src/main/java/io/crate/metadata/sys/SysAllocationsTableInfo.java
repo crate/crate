@@ -30,7 +30,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -71,21 +71,21 @@ public class SysAllocationsTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<SysAllocation>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysAllocation>>builder()
             .put(Columns.TABLE_SCHEMA,
-                () -> RowContextCollectorExpression.objToBytesRef(SysAllocation::tableSchema))
+                () -> NestableContextCollectorExpression.objToBytesRef(SysAllocation::tableSchema))
             .put(Columns.TABLE_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(SysAllocation::tableName))
+                () -> NestableContextCollectorExpression.objToBytesRef(SysAllocation::tableName))
             .put(Columns.PARTITION_IDENT,
-                () -> RowContextCollectorExpression.objToBytesRef(SysAllocation::partitionIdent))
+                () -> NestableContextCollectorExpression.objToBytesRef(SysAllocation::partitionIdent))
             .put(Columns.SHARD_ID,
-                () -> RowContextCollectorExpression.forFunction(SysAllocation::shardId))
+                () -> NestableContextCollectorExpression.forFunction(SysAllocation::shardId))
             .put(Columns.NODE_ID,
-                () -> RowContextCollectorExpression.objToBytesRef(SysAllocation::nodeId))
+                () -> NestableContextCollectorExpression.objToBytesRef(SysAllocation::nodeId))
             .put(Columns.PRIMARY,
-                () -> RowContextCollectorExpression.forFunction(SysAllocation::primary))
+                () -> NestableContextCollectorExpression.forFunction(SysAllocation::primary))
             .put(Columns.CURRENT_STATE,
-                () -> RowContextCollectorExpression.objToBytesRef(SysAllocation::currentState))
+                () -> NestableContextCollectorExpression.objToBytesRef(SysAllocation::currentState))
             .put(Columns.EXPLANATION,
-                () -> RowContextCollectorExpression.objToBytesRef(SysAllocation::explanation))
+                () -> NestableContextCollectorExpression.objToBytesRef(SysAllocation::explanation))
             .put(Columns.DECISIONS,
                 () -> new SysAllocationDecisionsExpression<Map<String, Object>>() {
 

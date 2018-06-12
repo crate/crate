@@ -28,7 +28,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -57,14 +57,14 @@ public class SysOperationsLogTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContextLog>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<OperationContextLog>>builder()
             .put(SysOperationsLogTableInfo.Columns.ID,
-                () -> RowContextCollectorExpression.objToBytesRef(OperationContextLog::id))
+                () -> NestableContextCollectorExpression.objToBytesRef(OperationContextLog::id))
             .put(SysOperationsLogTableInfo.Columns.JOB_ID,
-                () -> RowContextCollectorExpression.objToBytesRef(OperationContextLog::jobId))
+                () -> NestableContextCollectorExpression.objToBytesRef(OperationContextLog::jobId))
             .put(SysOperationsLogTableInfo.Columns.NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(OperationContextLog::name))
+                () -> NestableContextCollectorExpression.objToBytesRef(OperationContextLog::name))
             .put(SysOperationsLogTableInfo.Columns.STARTED,
-                () -> RowContextCollectorExpression.forFunction(OperationContextLog::started))
-            .put(SysOperationsLogTableInfo.Columns.USED_BYTES, () -> new RowContextCollectorExpression<OperationContextLog, Long>() {
+                () -> NestableContextCollectorExpression.forFunction(OperationContextLog::started))
+            .put(SysOperationsLogTableInfo.Columns.USED_BYTES, () -> new NestableContextCollectorExpression<OperationContextLog, Long>() {
                 @Override
                 public Long value() {
                     long usedBytes = row.usedBytes();
@@ -75,9 +75,9 @@ public class SysOperationsLogTableInfo extends StaticTableInfo {
                 }
             })
             .put(SysOperationsLogTableInfo.Columns.ERROR,
-                () -> RowContextCollectorExpression.objToBytesRef(OperationContextLog::errorMessage))
+                () -> NestableContextCollectorExpression.objToBytesRef(OperationContextLog::errorMessage))
             .put(SysOperationsLogTableInfo.Columns.ENDED,
-                () -> RowContextCollectorExpression.forFunction(OperationContextLog::ended))
+                () -> NestableContextCollectorExpression.forFunction(OperationContextLog::ended))
             .build();
     }
 

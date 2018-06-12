@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
@@ -65,19 +65,19 @@ public class InformationSqlFeaturesTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<SqlFeatureContext>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SqlFeatureContext>>builder()
             .put(Columns.FEATURE_ID,
-                () -> RowContextCollectorExpression.objToBytesRef(SqlFeatureContext::getFeatureId))
+                () -> NestableContextCollectorExpression.objToBytesRef(SqlFeatureContext::getFeatureId))
             .put(Columns.FEATURE_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(SqlFeatureContext::getFeatureName))
+                () -> NestableContextCollectorExpression.objToBytesRef(SqlFeatureContext::getFeatureName))
             .put(Columns.SUB_FEATURE_ID,
-                () -> RowContextCollectorExpression.objToBytesRef(SqlFeatureContext::getSubFeatureId))
+                () -> NestableContextCollectorExpression.objToBytesRef(SqlFeatureContext::getSubFeatureId))
             .put(Columns.SUB_FEATURE_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(SqlFeatureContext::getSubFeatureName))
+                () -> NestableContextCollectorExpression.objToBytesRef(SqlFeatureContext::getSubFeatureName))
             .put(Columns.IS_SUPPORTED,
-                () -> RowContextCollectorExpression.forFunction(SqlFeatureContext::isSupported))
+                () -> NestableContextCollectorExpression.forFunction(SqlFeatureContext::isSupported))
             .put(Columns.IS_VERIFIED_BY,
-                () -> RowContextCollectorExpression.objToBytesRef(SqlFeatureContext::getIsVerifiedBy))
+                () -> NestableContextCollectorExpression.objToBytesRef(SqlFeatureContext::getIsVerifiedBy))
             .put(Columns.COMMENTS,
-                () -> RowContextCollectorExpression.objToBytesRef(SqlFeatureContext::getComments))
+                () -> NestableContextCollectorExpression.objToBytesRef(SqlFeatureContext::getComments))
             .build();
     }
 

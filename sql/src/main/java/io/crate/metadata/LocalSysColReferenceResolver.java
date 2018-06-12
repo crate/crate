@@ -30,9 +30,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-public class LocalSysColReferenceResolver implements ReferenceResolver<RowCollectExpression<NodeStatsContext, ?>> {
+public class LocalSysColReferenceResolver implements ReferenceResolver<NestableCollectExpression<NodeStatsContext, ?>> {
 
-    private final Map<ColumnIdent, RowCollectExpression<NodeStatsContext, ?>> expressionMap = new HashMap<>();
+    private final Map<ColumnIdent, NestableCollectExpression<NodeStatsContext, ?>> expressionMap = new HashMap<>();
 
     public LocalSysColReferenceResolver(Iterable<ColumnIdent> localAvailable) {
         for (ColumnIdent ident : localAvailable) {
@@ -43,11 +43,11 @@ public class LocalSysColReferenceResolver implements ReferenceResolver<RowCollec
     }
 
     @Override
-    public RowCollectExpression<NodeStatsContext, ?> getImplementation(Reference ref) {
+    public NestableCollectExpression<NodeStatsContext, ?> getImplementation(Reference ref) {
         return expressionMap.get(ref.column());
     }
 
-    public Collection<RowCollectExpression<NodeStatsContext, ?>> expressions() {
+    public Collection<NestableCollectExpression<NodeStatsContext, ?>> expressions() {
         return expressionMap.values();
     }
 }

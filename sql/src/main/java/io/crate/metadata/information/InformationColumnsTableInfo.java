@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.expression.reference.information.ColumnContext;
@@ -122,80 +122,80 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<ColumnContext>> expression() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ColumnContext>>builder()
             .put(Columns.TABLE_SCHEMA,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> r.info.ident().tableIdent().schema()))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.info.ident().tableIdent().schema()))
             .put(Columns.TABLE_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> r.info.ident().tableIdent().name()))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.info.ident().tableIdent().name()))
             .put(Columns.TABLE_CATALOG,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> r.info.ident().tableIdent().schema()))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.info.ident().tableIdent().schema()))
             .put(Columns.COLUMN_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> r.info.column().sqlFqn()))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.info.column().sqlFqn()))
             .put(Columns.ORDINAL_POSITION,
-                () -> RowContextCollectorExpression.forFunction(ColumnContext::getOrdinal))
+                () -> NestableContextCollectorExpression.forFunction(ColumnContext::getOrdinal))
             .put(Columns.DATA_TYPE,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> r.info.valueType().getName()))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.info.valueType().getName()))
             .put(Columns.COLUMN_DEFAULT,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.CHARACTER_MAXIMUM_LENGTH,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.CHARACTER_OCTET_LENGTH,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.NUMERIC_PRECISION,
-                () -> RowContextCollectorExpression.forFunction(r -> PRECISION_BY_TYPE_ID.get(r.info.valueType().id())))
+                () -> NestableContextCollectorExpression.forFunction(r -> PRECISION_BY_TYPE_ID.get(r.info.valueType().id())))
             .put(Columns.NUMERIC_PRECISION_RADIX,
-                () -> RowContextCollectorExpression.forFunction(r -> {
+                () -> NestableContextCollectorExpression.forFunction(r -> {
                     if (DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(r.info.valueType())) {
                         return NUMERIC_PRECISION_RADIX;
                     }
                     return null;
                 }))
             .put(Columns.NUMERIC_SCALE,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.DATETIME_PRECISION,
-                () -> RowContextCollectorExpression.forFunction(r -> {
+                () -> NestableContextCollectorExpression.forFunction(r -> {
                     if (r.info.valueType() == DataTypes.TIMESTAMP) {
                         return DATETIME_PRECISION;
                     }
                     return null;
                 }))
             .put(Columns.INTERVAL_TYPE,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.INTERVAL_PRECISION,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.CHARACTER_SET_CATALOG,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.CHARACTER_SET_SCHEMA,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.CHARACTER_SET_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.COLLATION_CATALOG,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.COLLATION_SCHEMA,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.COLLATION_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.DOMAIN_CATALOG,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.DOMAIN_SCHEMA,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.DOMAIN_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.USER_DEFINED_TYPE_CATALOG,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.USER_DEFINED_TYPE_SCHEMA,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.USER_DEFINED_TYPE_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.CHECK_REFERENCES,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.CHECK_ACTION,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.IS_GENERATED,
-                () -> RowContextCollectorExpression.forFunction(r -> r.info instanceof GeneratedReference))
+                () -> NestableContextCollectorExpression.forFunction(r -> r.info instanceof GeneratedReference))
             .put(Columns.IS_NULLABLE,
-                () -> RowContextCollectorExpression.forFunction(r ->
+                () -> NestableContextCollectorExpression.forFunction(r ->
                     !r.tableInfo.primaryKey().contains(r.info.column()) && r.info.isNullable()))
             .put(Columns.GENERATION_EXPRESSION,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> {
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> {
                     if (r.info instanceof GeneratedReference) {
                         return BytesRefs.toBytesRef(((GeneratedReference) r.info).formattedGeneratedExpression());
                     }

@@ -29,7 +29,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -60,15 +60,15 @@ public class PgTypeTable extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<PGType>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PGType>>builder()
             .put(Columns.OID,
-                () -> RowContextCollectorExpression.forFunction(PGType::oid))
+                () -> NestableContextCollectorExpression.forFunction(PGType::oid))
             .put(Columns.TYPNAME,
-                () -> RowContextCollectorExpression.objToBytesRef(PGType::typName))
+                () -> NestableContextCollectorExpression.objToBytesRef(PGType::typName))
             .put(Columns.TYPDELIM,
-                () -> RowContextCollectorExpression.objToBytesRef(PGType::typDelim))
+                () -> NestableContextCollectorExpression.objToBytesRef(PGType::typDelim))
             .put(Columns.TYPELEM,
-                () -> RowContextCollectorExpression.forFunction(PGType::typElem))
+                () -> NestableContextCollectorExpression.forFunction(PGType::typElem))
             .put(Columns.TYPTYPE,
-                () -> new RowContextCollectorExpression<PGType, BytesRef>() {
+                () -> new NestableContextCollectorExpression<PGType, BytesRef>() {
 
                     @Override
                     public BytesRef value() {
@@ -76,7 +76,7 @@ public class PgTypeTable extends StaticTableInfo {
                     }
                 })
             .put(Columns.TYPBASETYPE,
-                () -> new RowContextCollectorExpression<PGType, Integer>() {
+                () -> new NestableContextCollectorExpression<PGType, Integer>() {
 
                     @Override
                     public Integer value() {

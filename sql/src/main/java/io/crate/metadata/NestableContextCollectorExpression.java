@@ -26,7 +26,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.function.Function;
 
-public abstract class RowContextCollectorExpression<TRow, TReturnValue> implements RowCollectExpression<TRow, TReturnValue> {
+public abstract class NestableContextCollectorExpression<TRow, TReturnValue> implements NestableCollectExpression<TRow, TReturnValue> {
 
     protected TRow row;
 
@@ -35,21 +35,21 @@ public abstract class RowContextCollectorExpression<TRow, TReturnValue> implemen
         this.row = row;
     }
 
-    public static <TRow, TReturnValue> RowCollectExpression<TRow, TReturnValue> constant(TReturnValue val) {
-        return new ConstantRowContextCollectorExpression<>(val);
+    public static <TRow, TReturnValue> NestableCollectExpression<TRow, TReturnValue> constant(TReturnValue val) {
+        return new ConstantNestableContextCollectorExpression<>(val);
     }
 
-    public static <TRow, TReturnValue> RowCollectExpression<TRow, TReturnValue> forFunction(Function<TRow, TReturnValue> fun) {
+    public static <TRow, TReturnValue> NestableCollectExpression<TRow, TReturnValue> forFunction(Function<TRow, TReturnValue> fun) {
         return new FuncExpression<>(fun);
     }
 
-    public static <TRow> RowCollectExpression<TRow, BytesRef> objToBytesRef(Function<TRow, Object> fun) {
+    public static <TRow> NestableCollectExpression<TRow, BytesRef> objToBytesRef(Function<TRow, Object> fun) {
         return forFunction(fun.andThen(BytesRefs::toBytesRef));
     }
 
-    public static <TRow, TIntermediate> RowCollectExpression<TRow, Object> withNullableProperty(Function<TRow, TIntermediate> getProperty,
-                                                                                                Function<TIntermediate, Object> extractValue) {
-        return new RowContextCollectorExpression<TRow, Object>() {
+    public static <TRow, TIntermediate> NestableCollectExpression<TRow, Object> withNullableProperty(Function<TRow, TIntermediate> getProperty,
+                                                                                                     Function<TIntermediate, Object> extractValue) {
+        return new NestableContextCollectorExpression<TRow, Object>() {
 
             @Override
             public Object value() {
@@ -62,7 +62,7 @@ public abstract class RowContextCollectorExpression<TRow, TReturnValue> implemen
         };
     }
 
-    private static class FuncExpression<TRow, TReturnVal> extends RowContextCollectorExpression<TRow, TReturnVal> {
+    private static class FuncExpression<TRow, TReturnVal> extends NestableContextCollectorExpression<TRow, TReturnVal> {
 
         private final Function<TRow, TReturnVal> f;
 
@@ -76,10 +76,10 @@ public abstract class RowContextCollectorExpression<TRow, TReturnValue> implemen
         }
     }
 
-    private static class ConstantRowContextCollectorExpression<TRow, TReturnValue> extends RowContextCollectorExpression<TRow, TReturnValue> {
+    private static class ConstantNestableContextCollectorExpression<TRow, TReturnValue> extends NestableContextCollectorExpression<TRow, TReturnValue> {
         private final TReturnValue val;
 
-        ConstantRowContextCollectorExpression(TReturnValue val) {
+        ConstantNestableContextCollectorExpression(TReturnValue val) {
             this.val = val;
         }
 

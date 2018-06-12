@@ -24,7 +24,7 @@ package io.crate.expression.reference.sys;
 
 import io.crate.data.Input;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.NestableCollectExpression;
 import io.crate.execution.engine.collect.CollectExpression;
 
 import java.util.Collection;
@@ -72,7 +72,7 @@ public interface SysRowUpdater<TRow> {
      * @param expressions a list of row based expressions where {@link CollectExpression#setNextRow(TRow)} will be called.
      * @return a consumer which writes the values upon its invocation
      */
-    default Consumer<Object> newRowWriter(List<ColumnIdent> idents, List<Input<?>> values, Collection<RowCollectExpression<?, ?>> expressions) {
+    default Consumer<Object> newRowWriter(List<ColumnIdent> idents, List<Input<?>> values, Collection<NestableCollectExpression<?, ?>> expressions) {
         assert idents.size() == values.size() : "the number of idents needs to match the number of values";
         List<BiConsumer<TRow, Input<?>>> writers = idents.stream().map(this::getWriter).collect(Collectors.toList());
         return id -> {

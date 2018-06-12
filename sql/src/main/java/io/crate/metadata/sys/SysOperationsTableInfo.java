@@ -29,7 +29,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -61,25 +61,25 @@ public class SysOperationsTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContext>> expressions(Supplier<DiscoveryNode> localNode) {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<OperationContext>>builder()
             .put(SysOperationsTableInfo.Columns.ID,
-                () -> RowContextCollectorExpression.objToBytesRef(OperationContext::id))
+                () -> NestableContextCollectorExpression.objToBytesRef(OperationContext::id))
             .put(SysOperationsTableInfo.Columns.JOB_ID,
-                () -> RowContextCollectorExpression.objToBytesRef(OperationContext::jobId))
+                () -> NestableContextCollectorExpression.objToBytesRef(OperationContext::jobId))
             .put(SysOperationsTableInfo.Columns.NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(OperationContext::name))
+                () -> NestableContextCollectorExpression.objToBytesRef(OperationContext::name))
             .put(SysOperationsTableInfo.Columns.STARTED,
-                () -> RowContextCollectorExpression.forFunction(OperationContext::started))
-            .put(SysOperationsTableInfo.Columns.USED_BYTES, () -> RowContextCollectorExpression.forFunction(r -> {
+                () -> NestableContextCollectorExpression.forFunction(OperationContext::started))
+            .put(SysOperationsTableInfo.Columns.USED_BYTES, () -> NestableContextCollectorExpression.forFunction(r -> {
                 if (r.usedBytes == 0) {
                     return null;
                 }
                 return r.usedBytes;
             }))
-            .put(Columns.NODE, () -> RowContextCollectorExpression.forFunction(ignored -> ImmutableMap.of(
+            .put(Columns.NODE, () -> NestableContextCollectorExpression.forFunction(ignored -> ImmutableMap.of(
                 "id", new BytesRef(localNode.get().getId()),
                 "name", new BytesRef(localNode.get().getName())
             )))
-            .put(Columns.NODE_ID, () -> RowContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getId())))
-            .put(Columns.NODE_NAME, () -> RowContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getName())))
+            .put(Columns.NODE_ID, () -> NestableContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getId())))
+            .put(Columns.NODE_NAME, () -> NestableContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getName())))
             .build();
     }
 

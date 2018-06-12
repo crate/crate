@@ -41,9 +41,9 @@ import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.List;
 
-import static io.crate.metadata.RowContextCollectorExpression.forFunction;
-import static io.crate.metadata.RowContextCollectorExpression.objToBytesRef;
-import static io.crate.metadata.RowContextCollectorExpression.withNullableProperty;
+import static io.crate.metadata.NestableContextCollectorExpression.forFunction;
+import static io.crate.metadata.NestableContextCollectorExpression.objToBytesRef;
+import static io.crate.metadata.NestableContextCollectorExpression.withNullableProperty;
 
 public class SysJobsLogTableInfo extends StaticTableInfo {
 

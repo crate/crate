@@ -25,13 +25,13 @@ package io.crate.expression.reference.partitioned;
 import io.crate.Version;
 import io.crate.core.collections.Maps;
 import io.crate.metadata.PartitionInfo;
-import io.crate.metadata.RowContextCollectorExpression;
-import io.crate.expression.reference.RowCollectNestedObjectExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
+import io.crate.expression.reference.NestableCollectNestedObjectExpression;
 import io.crate.expression.reference.information.TableExpressions;
 
 import java.util.Map;
 
-public class PartitionsVersionExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
+public class PartitionsVersionExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
 
     public PartitionsVersionExpression() {
         addChildImplementations();
@@ -50,7 +50,7 @@ public class PartitionsVersionExpression extends RowCollectNestedObjectExpressio
         return Maps.mapOrNullIfNullValues(map);
     }
 
-    static class PartitionDetailedVersionExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
+    static class PartitionDetailedVersionExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
 
         PartitionDetailedVersionExpression(Version.Property property) {
             addChildImplementations(property);
@@ -68,7 +68,7 @@ public class PartitionsVersionExpression extends RowCollectNestedObjectExpressio
         }
     }
 
-    static class PartitionCrateVersionExpression extends RowContextCollectorExpression<PartitionInfo, Object> {
+    static class PartitionCrateVersionExpression extends NestableContextCollectorExpression<PartitionInfo, Object> {
 
         private final Version.Property property;
 
@@ -83,7 +83,7 @@ public class PartitionsVersionExpression extends RowCollectNestedObjectExpressio
         }
     }
 
-    static class PartitionESVersionExpression extends RowContextCollectorExpression<PartitionInfo, Object> {
+    static class PartitionESVersionExpression extends NestableContextCollectorExpression<PartitionInfo, Object> {
 
         private final Version.Property property;
 

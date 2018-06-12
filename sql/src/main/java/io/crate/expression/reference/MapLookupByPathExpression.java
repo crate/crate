@@ -24,14 +24,14 @@ package io.crate.expression.reference;
 
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.expression.NestableInput;
-import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.NestableCollectExpression;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class MapLookupByPathExpression<T, R> implements RowCollectExpression<T, R> {
+public final class MapLookupByPathExpression<T, R> implements NestableCollectExpression<T, R> {
 
     private final Function<T, Map<String, Object>> getMap;
     private final List<String> path;

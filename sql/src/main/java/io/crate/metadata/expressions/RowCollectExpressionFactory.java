@@ -21,9 +21,9 @@
 
 package io.crate.metadata.expressions;
 
-import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.NestableCollectExpression;
 
 public interface RowCollectExpressionFactory<T> {
 
-    RowCollectExpression<T, ?> create();
+    NestableCollectExpression<T, ?> create();
 }

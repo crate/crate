@@ -25,17 +25,16 @@ package io.crate.expression.reference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.expression.reference.ReferenceResolver;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.metadata.RowContextCollectorExpression.forFunction;
+import static io.crate.metadata.NestableContextCollectorExpression.forFunction;
 
 /**
  * ReferenceResolver implementation which can be used to retrieve {@link CollectExpression}s to extract values from
@@ -58,7 +57,7 @@ public class GetResponseRefResolver implements ReferenceResolver<CollectExpressi
                 return forFunction(GetResponse::getVersion);
 
             case DocSysColumns.Names.ID:
-                return RowContextCollectorExpression.objToBytesRef(GetResponse::getId);
+                return NestableContextCollectorExpression.objToBytesRef(GetResponse::getId);
 
             case DocSysColumns.Names.RAW:
                 return forFunction(r -> r.getSourceAsBytesRef().toBytesRef());

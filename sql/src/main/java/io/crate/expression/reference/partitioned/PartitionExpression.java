@@ -23,9 +23,9 @@ package io.crate.expression.reference.partitioned;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 
-public class PartitionExpression extends RowContextCollectorExpression<PartitionName, Object> {
+public class PartitionExpression extends NestableContextCollectorExpression<PartitionName, Object> {
 
     private final Reference ref;
     private final int valuesIndex;

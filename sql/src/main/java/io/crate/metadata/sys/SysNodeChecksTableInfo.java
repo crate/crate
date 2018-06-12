@@ -30,7 +30,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
@@ -64,19 +64,19 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<SysNodeCheck>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysNodeCheck>>builder()
             .put(SysNodeChecksTableInfo.Columns.ID,
-                () -> RowContextCollectorExpression.forFunction(SysNodeCheck::id))
+                () -> NestableContextCollectorExpression.forFunction(SysNodeCheck::id))
             .put(SysNodeChecksTableInfo.Columns.NODE_ID,
-                () -> RowContextCollectorExpression.objToBytesRef(SysNodeCheck::nodeId))
+                () -> NestableContextCollectorExpression.objToBytesRef(SysNodeCheck::nodeId))
             .put(SysNodeChecksTableInfo.Columns.DESCRIPTION,
-                () -> RowContextCollectorExpression.objToBytesRef(SysNodeCheck::description))
+                () -> NestableContextCollectorExpression.objToBytesRef(SysNodeCheck::description))
             .put(SysNodeChecksTableInfo.Columns.SEVERITY,
-                () -> RowContextCollectorExpression.forFunction((SysNodeCheck x) -> x.severity().value()))
+                () -> NestableContextCollectorExpression.forFunction((SysNodeCheck x) -> x.severity().value()))
             .put(SysNodeChecksTableInfo.Columns.PASSED,
-                () -> RowContextCollectorExpression.forFunction(SysNodeCheck::validate))
+                () -> NestableContextCollectorExpression.forFunction(SysNodeCheck::validate))
             .put(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED,
-                () -> RowContextCollectorExpression.forFunction(SysNodeCheck::acknowledged))
+                () -> NestableContextCollectorExpression.forFunction(SysNodeCheck::acknowledged))
             .put(DocSysColumns.ID,
-                () -> RowContextCollectorExpression.objToBytesRef(SysNodeCheck::rowId))
+                () -> NestableContextCollectorExpression.objToBytesRef(SysNodeCheck::rowId))
             .build();
     }
 

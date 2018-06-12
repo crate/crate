@@ -33,7 +33,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
@@ -140,28 +140,28 @@ public class SysShardsTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>>builder()
             .put(Columns.SCHEMA_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::schemaName))
+                () -> NestableContextCollectorExpression.objToBytesRef(UnassignedShard::schemaName))
             .put(Columns.TABLE_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::tableName))
+                () -> NestableContextCollectorExpression.objToBytesRef(UnassignedShard::tableName))
             .put(Columns.PARTITION_IDENT,
-                () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::partitionIdent))
+                () -> NestableContextCollectorExpression.objToBytesRef(UnassignedShard::partitionIdent))
             .put(Columns.ID,
-                () -> RowContextCollectorExpression.forFunction(UnassignedShard::id))
+                () -> NestableContextCollectorExpression.forFunction(UnassignedShard::id))
             .put(Columns.NUM_DOCS,
-                () -> RowContextCollectorExpression.forFunction(r -> 0L))
+                () -> NestableContextCollectorExpression.forFunction(r -> 0L))
             .put(Columns.PRIMARY,
-                () -> RowContextCollectorExpression.forFunction(UnassignedShard::primary))
+                () -> NestableContextCollectorExpression.forFunction(UnassignedShard::primary))
             .put(Columns.RELOCATING_NODE,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.SIZE,
-                () -> RowContextCollectorExpression.forFunction(r -> 0L))
+                () -> NestableContextCollectorExpression.forFunction(r -> 0L))
             .put(Columns.STATE,
-                () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::state))
+                () -> NestableContextCollectorExpression.objToBytesRef(UnassignedShard::state))
             .put(Columns.ROUTING_STATE,
-                () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::state))
+                () -> NestableContextCollectorExpression.objToBytesRef(UnassignedShard::state))
             .put(Columns.ORPHAN_PARTITION,
-                () -> RowContextCollectorExpression.forFunction(UnassignedShard::orphanedPartition))
-            .put(Columns.RECOVERY, () -> new RowContextCollectorExpression<UnassignedShard, Object>() {
+                () -> NestableContextCollectorExpression.forFunction(UnassignedShard::orphanedPartition))
+            .put(Columns.RECOVERY, () -> new NestableContextCollectorExpression<UnassignedShard, Object>() {
                 @Override
                 public Object value() {
                     return null;
@@ -173,12 +173,12 @@ public class SysShardsTableInfo extends StaticTableInfo {
                 }
             })
             .put(Columns.PATH,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.BLOB_PATH,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
             .put(Columns.MIN_LUCENE_VERSION,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(Columns.NODE, () -> new RowContextCollectorExpression<UnassignedShard, Object>() {
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
+            .put(Columns.NODE, () -> new NestableContextCollectorExpression<UnassignedShard, Object>() {
                 @Override
                 public Object value() {
                     return null; // unassigned shards are on *no* node.

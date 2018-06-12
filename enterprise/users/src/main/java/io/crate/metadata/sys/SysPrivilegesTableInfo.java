@@ -27,7 +27,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -97,37 +97,37 @@ public class SysPrivilegesTableInfo extends StaticTableInfo {
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<PrivilegeRow>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PrivilegeRow>>builder()
-            .put(Columns.GRANTEE, () -> new RowContextCollectorExpression<PrivilegeRow, BytesRef>() {
+            .put(Columns.GRANTEE, () -> new NestableContextCollectorExpression<PrivilegeRow, BytesRef>() {
                 @Override
                 public BytesRef value() {
                     return BytesRefs.toBytesRef(row.grantee);
                 }
             })
-            .put(Columns.GRANTOR, () -> new RowContextCollectorExpression<PrivilegeRow, BytesRef>() {
+            .put(Columns.GRANTOR, () -> new NestableContextCollectorExpression<PrivilegeRow, BytesRef>() {
                 @Override
                 public BytesRef value() {
                     return BytesRefs.toBytesRef(row.privilege.grantor());
                 }
             })
-            .put(Columns.STATE, () -> new RowContextCollectorExpression<PrivilegeRow, BytesRef>() {
+            .put(Columns.STATE, () -> new NestableContextCollectorExpression<PrivilegeRow, BytesRef>() {
                 @Override
                 public BytesRef value() {
                     return BytesRefs.toBytesRef(row.privilege.state());
                 }
             })
-            .put(Columns.TYPE, () -> new RowContextCollectorExpression<PrivilegeRow, BytesRef>() {
+            .put(Columns.TYPE, () -> new NestableContextCollectorExpression<PrivilegeRow, BytesRef>() {
                 @Override
                 public BytesRef value() {
                     return BytesRefs.toBytesRef(row.privilege.ident().type());
                 }
             })
-            .put(Columns.CLASS, () -> new RowContextCollectorExpression<PrivilegeRow, BytesRef>() {
+            .put(Columns.CLASS, () -> new NestableContextCollectorExpression<PrivilegeRow, BytesRef>() {
                 @Override
                 public BytesRef value() {
                     return BytesRefs.toBytesRef(row.privilege.ident().clazz());
                 }
             })
-            .put(Columns.IDENT, () -> new RowContextCollectorExpression<PrivilegeRow, BytesRef>() {
+            .put(Columns.IDENT, () -> new NestableContextCollectorExpression<PrivilegeRow, BytesRef>() {
                 @Override
                 public BytesRef value() {
                     return BytesRefs.toBytesRef(row.privilege.ident().ident());

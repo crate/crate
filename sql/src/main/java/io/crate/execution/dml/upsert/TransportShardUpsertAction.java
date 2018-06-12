@@ -43,7 +43,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
@@ -657,19 +657,19 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             String fqn = columnIdent.fqn();
             switch (fqn) {
                 case DocSysColumns.Names.VERSION:
-                    return RowContextCollectorExpression.forFunction(GetResult::getVersion);
+                    return NestableContextCollectorExpression.forFunction(GetResult::getVersion);
 
                 case DocSysColumns.Names.ID:
-                    return RowContextCollectorExpression.objToBytesRef(GetResult::getId);
+                    return NestableContextCollectorExpression.objToBytesRef(GetResult::getId);
 
                 case DocSysColumns.Names.RAW:
-                    return RowContextCollectorExpression.forFunction(r -> r.sourceRef().toBytesRef());
+                    return NestableContextCollectorExpression.forFunction(r -> r.sourceRef().toBytesRef());
 
                 case DocSysColumns.Names.DOC:
-                    return RowContextCollectorExpression.forFunction(GetResult::getSource);
+                    return NestableContextCollectorExpression.forFunction(GetResult::getSource);
 
                 default:
-                    return RowContextCollectorExpression.forFunction(response -> {
+                    return NestableContextCollectorExpression.forFunction(response -> {
                         if (response == null) {
                             return null;
                         }
@@ -699,7 +699,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 value = suppliedValue;
             }
             if (value != null) {
-                return RowContextCollectorExpression.forFunction(ignored -> ref.valueType().value(value));
+                return NestableContextCollectorExpression.forFunction(ignored -> ref.valueType().value(value));
             }
             return super.getImplementation(ref);
         }

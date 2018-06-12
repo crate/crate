@@ -29,6 +29,6 @@ import io.crate.expression.NestableInput;
  *
  * @param <TReturnValue> The returnType of the expression
  */
-public interface RowCollectExpression<TRow, TReturnValue>
+public interface NestableCollectExpression<TRow, TReturnValue>
     extends CollectExpression<TRow, TReturnValue>, NestableInput<TReturnValue> {
 }

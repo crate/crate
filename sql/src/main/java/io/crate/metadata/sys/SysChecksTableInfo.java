@@ -28,7 +28,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
@@ -54,13 +54,13 @@ public class SysChecksTableInfo extends StaticTableInfo {
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<SysCheck>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysCheck>>builder()
             .put(SysChecksTableInfo.Columns.ID,
-                () -> RowContextCollectorExpression.forFunction(SysCheck::id))
+                () -> NestableContextCollectorExpression.forFunction(SysCheck::id))
             .put(SysChecksTableInfo.Columns.DESCRIPTION,
-                () -> RowContextCollectorExpression.objToBytesRef(SysCheck::description))
+                () -> NestableContextCollectorExpression.objToBytesRef(SysCheck::description))
             .put(SysChecksTableInfo.Columns.SEVERITY,
-                () -> RowContextCollectorExpression.forFunction((SysCheck r) -> r.severity().value()))
+                () -> NestableContextCollectorExpression.forFunction((SysCheck r) -> r.severity().value()))
             .put(SysChecksTableInfo.Columns.PASSED,
-                () -> RowContextCollectorExpression.forFunction(SysCheck::validate))
+                () -> NestableContextCollectorExpression.forFunction(SysCheck::validate))
             .build();
     }
 

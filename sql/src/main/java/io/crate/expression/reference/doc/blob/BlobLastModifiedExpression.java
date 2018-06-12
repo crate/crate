@@ -21,11 +21,11 @@
 
 package io.crate.expression.reference.doc.blob;
 
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 
 import java.io.File;
 
-public class BlobLastModifiedExpression extends RowContextCollectorExpression<File, Long> {
+public class BlobLastModifiedExpression extends NestableContextCollectorExpression<File, Long> {
 
     public static final String COLUMN_NAME = "last_modified";
 

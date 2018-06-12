@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node;
 
-import static io.crate.metadata.RowContextCollectorExpression.constant;
+import static io.crate.metadata.NestableContextCollectorExpression.constant;
 
 public class NodeNetworkStatsExpression extends NestedNodeStatsExpression {
 

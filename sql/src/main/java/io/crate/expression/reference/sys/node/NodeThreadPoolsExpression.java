@@ -23,7 +23,7 @@
 package io.crate.expression.reference.sys.node;
 
 import com.google.common.collect.Lists;
-import io.crate.expression.reference.sys.ArrayTypeRowContextCollectorExpression;
+import io.crate.expression.reference.sys.ArrayTypeNestableContextCollectorExpression;
 import io.crate.monitor.ThreadPools;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -34,7 +34,7 @@ import java.util.Map;
 
 
 public class NodeThreadPoolsExpression
-    extends ArrayTypeRowContextCollectorExpression<NodeStatsContext, Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext>, Object> {
+    extends ArrayTypeNestableContextCollectorExpression<NodeStatsContext, Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext>, Object> {
 
     private static final String POOL_NAME = "name";
     private static final String ACTIVE = "active";

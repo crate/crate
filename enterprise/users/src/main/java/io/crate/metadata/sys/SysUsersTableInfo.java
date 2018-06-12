@@ -26,7 +26,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -77,19 +77,19 @@ public class SysUsersTableInfo extends StaticTableInfo {
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<User>> sysUsersExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<User>>builder()
-            .put(Columns.NAME, () -> new RowContextCollectorExpression<User, BytesRef>() {
+            .put(Columns.NAME, () -> new NestableContextCollectorExpression<User, BytesRef>() {
                 @Override
                 public BytesRef value() {
                     return new BytesRef(row.name());
                 }
             })
-            .put(Columns.SUPERUSER, () -> new RowContextCollectorExpression<User, Boolean>() {
+            .put(Columns.SUPERUSER, () -> new NestableContextCollectorExpression<User, Boolean>() {
                 @Override
                 public Boolean value() {
                     return row.isSuperUser();
                 }
             })
-            .put(Columns.PASSWORD, () -> new RowContextCollectorExpression<User, BytesRef>() {
+            .put(Columns.PASSWORD, () -> new NestableContextCollectorExpression<User, BytesRef>() {
                 @Override
                 public BytesRef value() {
                     return row.password() != null ? PASSWORD_PLACEHOLDER : null;

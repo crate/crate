@@ -30,7 +30,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -60,19 +60,19 @@ public class SysJobsTableInfo extends StaticTableInfo {
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<JobContext>> expressions(Supplier<DiscoveryNode> localNode) {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<JobContext>>builder()
             .put(SysJobsTableInfo.Columns.ID,
-                () -> RowContextCollectorExpression.objToBytesRef(JobContext::id))
+                () -> NestableContextCollectorExpression.objToBytesRef(JobContext::id))
             .put(SysJobsTableInfo.Columns.USERNAME,
-                () -> RowContextCollectorExpression.objToBytesRef(JobContext::username))
+                () -> NestableContextCollectorExpression.objToBytesRef(JobContext::username))
             .put(SysJobsTableInfo.Columns.STMT,
-                () -> RowContextCollectorExpression.objToBytesRef(JobContext::stmt))
+                () -> NestableContextCollectorExpression.objToBytesRef(JobContext::stmt))
             .put(SysJobsTableInfo.Columns.STARTED,
-                () -> RowContextCollectorExpression.forFunction(JobContext::started))
-            .put(Columns.NODE, () -> RowContextCollectorExpression.forFunction(ignored -> ImmutableMap.of(
+                () -> NestableContextCollectorExpression.forFunction(JobContext::started))
+            .put(Columns.NODE, () -> NestableContextCollectorExpression.forFunction(ignored -> ImmutableMap.of(
                 "id", new BytesRef(localNode.get().getId()),
                 "name", new BytesRef(localNode.get().getName())
             )))
-            .put(Columns.NODE_ID, () -> RowContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getId())))
-            .put(Columns.NODE_NAME, () -> RowContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getName())))
+            .put(Columns.NODE_ID, () -> NestableContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getId())))
+            .put(Columns.NODE_NAME, () -> NestableContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getName())))
             .build();
     }
 

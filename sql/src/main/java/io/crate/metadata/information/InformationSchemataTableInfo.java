@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -46,7 +46,7 @@ public class InformationSchemataTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>>builder()
             .put(Columns.SCHEMA_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(SchemaInfo::name)).build();
+                () -> NestableContextCollectorExpression.objToBytesRef(SchemaInfo::name)).build();
     }
 
     private static ColumnRegistrar columnRegistrar() {

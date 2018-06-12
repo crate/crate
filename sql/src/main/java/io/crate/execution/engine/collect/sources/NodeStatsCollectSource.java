@@ -42,7 +42,7 @@ import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.LocalSysColReferenceResolver;
-import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.NestableCollectExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -111,7 +111,7 @@ public class NodeStatsCollectSource implements CollectSource {
         List<DiscoveryNode> newNodes = new ArrayList<>();
         for (DiscoveryNode node : nodes) {
             String nodeId = node.getId();
-            for (RowCollectExpression<NodeStatsContext, ?> expression : localSysColReferenceResolver.expressions()) {
+            for (NestableCollectExpression<NodeStatsContext, ?> expression : localSysColReferenceResolver.expressions()) {
                 expression.setNextRow(new NodeStatsContext(nodeId, node.getName()));
             }
             Symbol normalized = normalizer.normalize(where, null);

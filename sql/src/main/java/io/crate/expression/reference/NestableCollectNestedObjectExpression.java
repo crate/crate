@@ -22,14 +22,14 @@
 package io.crate.expression.reference;
 
 import io.crate.expression.NestableInput;
-import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.NestableCollectExpression;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class RowCollectNestedObjectExpression<R> extends NestedObjectExpression implements RowCollectExpression<R, Map<String, Object>> {
+public abstract class NestableCollectNestedObjectExpression<R> extends NestedObjectExpression implements NestableCollectExpression<R, Map<String, Object>> {
     protected R row;
 
     public void setNextRow(R row) {
@@ -41,9 +41,9 @@ public abstract class RowCollectNestedObjectExpression<R> extends NestedObjectEx
         Map<String, Object> map = new HashMap<>(childImplementations.size());
         for (Map.Entry<String, NestableInput> e : childImplementations.entrySet()) {
             NestableInput nestableInput = e.getValue();
-            if (nestableInput instanceof RowCollectExpression) {
+            if (nestableInput instanceof NestableCollectExpression) {
                 //noinspection unchecked
-                ((RowCollectExpression) nestableInput).setNextRow(this.row);
+                ((NestableCollectExpression) nestableInput).setNextRow(this.row);
             }
             Object value = nestableInput.value();
 

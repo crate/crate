@@ -79,7 +79,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.NestableCollectExpression;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
@@ -496,7 +496,7 @@ public class ProjectionToProjectorVisitor
         List<ColumnIdent> assignmentCols = new ArrayList<>(assignments.size());
 
         RelationName relationName = null;
-        InputFactory.Context<RowCollectExpression<?, ?>> readCtx = null;
+        InputFactory.Context<NestableCollectExpression<?, ?>> readCtx = null;
 
         for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
             Reference ref = e.getKey();

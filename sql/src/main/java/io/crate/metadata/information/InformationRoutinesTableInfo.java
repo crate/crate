@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutineInfo;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -65,21 +65,21 @@ public class InformationRoutinesTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<RoutineInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<RoutineInfo>>builder()
             .put(InformationRoutinesTableInfo.Columns.ROUTINE_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::name))
+                () -> NestableContextCollectorExpression.objToBytesRef(RoutineInfo::name))
             .put(InformationRoutinesTableInfo.Columns.ROUTINE_TYPE,
-                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::type))
+                () -> NestableContextCollectorExpression.objToBytesRef(RoutineInfo::type))
             .put(InformationRoutinesTableInfo.Columns.ROUTINE_SCHEMA,
-                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::schema))
+                () -> NestableContextCollectorExpression.objToBytesRef(RoutineInfo::schema))
             .put(InformationRoutinesTableInfo.Columns.SPECIFIC_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::specificName))
+                () -> NestableContextCollectorExpression.objToBytesRef(RoutineInfo::specificName))
             .put(InformationRoutinesTableInfo.Columns.ROUTINE_BODY,
-                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::body))
+                () -> NestableContextCollectorExpression.objToBytesRef(RoutineInfo::body))
             .put(InformationRoutinesTableInfo.Columns.ROUTINE_DEFINITION,
-                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::definition))
+                () -> NestableContextCollectorExpression.objToBytesRef(RoutineInfo::definition))
             .put(InformationRoutinesTableInfo.Columns.DATA_TYPE,
-                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::dataType))
+                () -> NestableContextCollectorExpression.objToBytesRef(RoutineInfo::dataType))
             .put(InformationRoutinesTableInfo.Columns.IS_DETERMINISTIC,
-                () -> RowContextCollectorExpression.forFunction(RoutineInfo::isDeterministic))
+                () -> NestableContextCollectorExpression.forFunction(RoutineInfo::isDeterministic))
             .build();
     }
 

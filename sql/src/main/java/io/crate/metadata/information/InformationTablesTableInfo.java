@@ -28,7 +28,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RelationInfo;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -185,29 +185,29 @@ public class InformationTablesTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<RelationInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<RelationInfo>>builder()
             .put(InformationTablesTableInfo.Columns.TABLE_SCHEMA,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> r.ident().schema()))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.ident().schema()))
             .put(InformationTablesTableInfo.Columns.TABLE_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> r.ident().name()))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.ident().name()))
             .put(InformationTablesTableInfo.Columns.TABLE_CATALOG,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> r.ident().schema()))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.ident().schema()))
             .put(InformationTablesTableInfo.Columns.TABLE_TYPE,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> r.relationType().pretty()))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.relationType().pretty()))
             .put(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS,
-                () -> RowContextCollectorExpression.forFunction(row -> {
+                () -> NestableContextCollectorExpression.forFunction(row -> {
                     if (row instanceof ShardedTable) {
                         return ((ShardedTable) row).numberOfShards();
                     }
                     return null;
                 }))
             .put(InformationTablesTableInfo.Columns.NUMBER_OF_REPLICAS,
-                () -> RowContextCollectorExpression.objToBytesRef(row -> {
+                () -> NestableContextCollectorExpression.objToBytesRef(row -> {
                     if (row instanceof ShardedTable) {
                         return ((ShardedTable) row).numberOfReplicas();
                     }
                     return null;
                 }))
             .put(InformationTablesTableInfo.Columns.CLUSTERED_BY,
-                () -> RowContextCollectorExpression.objToBytesRef(row -> {
+                () -> NestableContextCollectorExpression.objToBytesRef(row -> {
                     if (row instanceof ShardedTable) {
                         ColumnIdent clusteredBy = ((ShardedTable) row).clusteredBy();
                         if (clusteredBy == null) {
@@ -218,7 +218,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                     return null;
                 }))
             .put(InformationTablesTableInfo.Columns.PARTITIONED_BY,
-                () -> RowContextCollectorExpression.forFunction(row -> {
+                () -> NestableContextCollectorExpression.forFunction(row -> {
                     if (row instanceof DocTableInfo) {
                         List<ColumnIdent> partitionedBy = ((DocTableInfo) row).partitionedBy();
                         if (partitionedBy == null || partitionedBy.isEmpty()) {
@@ -234,42 +234,42 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                     return null;
                 }))
             .put(InformationTablesTableInfo.Columns.COLUMN_POLICY,
-                () -> RowContextCollectorExpression.objToBytesRef(row -> {
+                () -> NestableContextCollectorExpression.objToBytesRef(row -> {
                     if (row instanceof DocTableInfo) {
                         return ((DocTableInfo) row).columnPolicy().value();
                     }
                     return ColumnPolicy.STRICT.value();
                 }))
             .put(InformationTablesTableInfo.Columns.BLOBS_PATH,
-                () -> RowContextCollectorExpression.forFunction(row -> {
+                () -> NestableContextCollectorExpression.forFunction(row -> {
                     if (row instanceof BlobTableInfo) {
                         return ((BlobTableInfo) row).blobsPath();
                     }
                     return null;
                 }))
             .put(InformationTablesTableInfo.Columns.ROUTING_HASH_FUNCTION,
-                () -> RowContextCollectorExpression.objToBytesRef(row -> {
+                () -> NestableContextCollectorExpression.objToBytesRef(row -> {
                     if (row instanceof ShardedTable) {
                         return IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME;
                     }
                     return null;
                 }))
             .put(InformationTablesTableInfo.Columns.CLOSED,
-                () -> RowContextCollectorExpression.forFunction(row -> {
+                () -> NestableContextCollectorExpression.forFunction(row -> {
                     if (row instanceof ShardedTable) {
                         return ((ShardedTable) row).isClosed();
                     }
                     return null;
                 }))
             .put(InformationTablesTableInfo.Columns.SELF_REFERENCING_COLUMN_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(row -> {
+                () -> NestableContextCollectorExpression.objToBytesRef(row -> {
                     if (row instanceof ShardedTable) {
                         return SELF_REFERENCING_COLUMN_NAME;
                     }
                     return null;
                 }))
             .put(InformationTablesTableInfo.Columns.REFERENCE_GENERATION,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> REFERENCE_GENERATION))
+                () -> NestableContextCollectorExpression.objToBytesRef(r -> REFERENCE_GENERATION))
             .put(InformationTablesTableInfo.Columns.TABLE_VERSION, TablesVersionExpression::new)
             .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, TablesSettingsExpression::new
             ).build();

@@ -22,7 +22,7 @@
 package io.crate.expression.reference.information;
 
 import io.crate.analyze.TableParameterInfo;
-import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -47,7 +47,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         childImplementations.put(TablesSettingsUnassignedExpression.NAME, new TablesSettingsUnassignedExpression());
     }
 
-    static class TableParameterExpression extends RowContextCollectorExpression<TableInfo, Object> {
+    static class TableParameterExpression extends NestableContextCollectorExpression<TableInfo, Object> {
 
         private final String paramName;
 
@@ -61,7 +61,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         }
     }
 
-    static class BytesRefTableParameterExpression extends RowContextCollectorExpression<TableInfo, BytesRef> {
+    static class BytesRefTableParameterExpression extends NestableContextCollectorExpression<TableInfo, BytesRef> {
 
         private final String paramName;
 
