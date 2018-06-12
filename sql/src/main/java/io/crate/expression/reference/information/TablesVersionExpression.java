@@ -24,13 +24,13 @@ package io.crate.expression.reference.information;
 
 import io.crate.Version;
 import io.crate.core.collections.Maps;
-import io.crate.expression.reference.NestableCollectNestedObjectExpression;
+import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.metadata.RelationInfo;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 
 import java.util.Map;
 
-public class TablesVersionExpression extends NestableCollectNestedObjectExpression<RelationInfo> {
+public class TablesVersionExpression extends ObjectCollectExpression<RelationInfo> {
 
     public TablesVersionExpression() {
         addChildImplementations();
@@ -49,7 +49,7 @@ public class TablesVersionExpression extends NestableCollectNestedObjectExpressi
         return Maps.mapOrNullIfNullValues(map);
     }
 
-    static class TableDetailedVersionExpression extends NestableCollectNestedObjectExpression<RelationInfo> {
+    static class TableDetailedVersionExpression extends ObjectCollectExpression<RelationInfo> {
 
         TableDetailedVersionExpression(Version.Property property) {
             addChildImplementations(property);

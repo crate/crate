@@ -22,11 +22,11 @@
 
 package io.crate.expression.reference.sys.node;
 
-import io.crate.expression.reference.NestableCollectNestedObjectExpression;
+import io.crate.expression.reference.ObjectCollectExpression;
 
 import java.util.Map;
 
-public abstract class NestedNodeStatsExpression extends NestableCollectNestedObjectExpression<NodeStatsContext> {
+public abstract class NestedNodeStatsExpression extends ObjectCollectExpression<NodeStatsContext> {
 
     @Override
     public Map<String, Object> value() {

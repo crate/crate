@@ -24,11 +24,11 @@ package io.crate.expression.reference.partitioned;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.PartitionInfo;
-import io.crate.expression.reference.NestableCollectNestedObjectExpression;
+import io.crate.expression.reference.ObjectCollectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
-public class PartitionsSettingsExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
+public class PartitionsSettingsExpression extends ObjectCollectExpression<PartitionInfo> {
 
     public PartitionsSettingsExpression() {
         addChildImplementations();
@@ -71,7 +71,7 @@ public class PartitionsSettingsExpression extends NestableCollectNestedObjectExp
         }
     }
 
-    static class PartitionSettingsMappingExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
+    static class PartitionSettingsMappingExpression extends ObjectCollectExpression<PartitionInfo> {
 
         public static final String NAME = "mapping";
 
@@ -80,7 +80,7 @@ public class PartitionsSettingsExpression extends NestableCollectNestedObjectExp
         }
     }
 
-    static class PartitionSettingsMappingTotalFieldsExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
+    static class PartitionSettingsMappingTotalFieldsExpression extends ObjectCollectExpression<PartitionInfo> {
 
         public static final String NAME = "total_fields";
         public static final String LIMIT = "limit";
@@ -90,7 +90,7 @@ public class PartitionsSettingsExpression extends NestableCollectNestedObjectExp
         }
     }
 
-    static class PartitionsSettingsBlocksExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
+    static class PartitionsSettingsBlocksExpression extends ObjectCollectExpression<PartitionInfo> {
 
         public static final String NAME = "blocks";
 
@@ -111,7 +111,7 @@ public class PartitionsSettingsExpression extends NestableCollectNestedObjectExp
         }
     }
 
-    static class PartitionsSettingsRoutingExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
+    static class PartitionsSettingsRoutingExpression extends ObjectCollectExpression<PartitionInfo> {
 
         public static final String NAME = "routing";
 
@@ -124,7 +124,7 @@ public class PartitionsSettingsExpression extends NestableCollectNestedObjectExp
         }
     }
 
-    static class PartitionsSettingsRoutingAllocationExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
+    static class PartitionsSettingsRoutingAllocationExpression extends ObjectCollectExpression<PartitionInfo> {
 
         public static final String NAME = "allocation";
 
@@ -141,7 +141,7 @@ public class PartitionsSettingsExpression extends NestableCollectNestedObjectExp
         }
     }
 
-    static class PartitionsSettingsWarmerExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
+    static class PartitionsSettingsWarmerExpression extends ObjectCollectExpression<PartitionInfo> {
 
         public static final String NAME = "warmer";
 
@@ -156,7 +156,7 @@ public class PartitionsSettingsExpression extends NestableCollectNestedObjectExp
         }
     }
 
-    static class PartitionsSettingsTranslogExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
+    static class PartitionsSettingsTranslogExpression extends ObjectCollectExpression<PartitionInfo> {
 
         public static final String NAME = "translog";
 
@@ -175,7 +175,7 @@ public class PartitionsSettingsExpression extends NestableCollectNestedObjectExp
         }
     }
 
-    static class PartitionsSettingsUnassignedExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
+    static class PartitionsSettingsUnassignedExpression extends ObjectCollectExpression<PartitionInfo> {
 
         public static final String NAME = "unassigned";
 
@@ -189,7 +189,7 @@ public class PartitionsSettingsExpression extends NestableCollectNestedObjectExp
         }
     }
 
-    static class PartitionsSettingsNodeLeftExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
+    static class PartitionsSettingsNodeLeftExpression extends ObjectCollectExpression<PartitionInfo> {
 
         public static final String NAME = "node_left";
 

@@ -25,13 +25,13 @@ package io.crate.expression.reference.partitioned;
 import io.crate.Version;
 import io.crate.core.collections.Maps;
 import io.crate.execution.engine.collect.NestableCollectExpression;
-import io.crate.expression.reference.NestableCollectNestedObjectExpression;
+import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.expression.reference.information.TableExpressions;
 import io.crate.metadata.PartitionInfo;
 
 import java.util.Map;
 
-public class PartitionsVersionExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
+public class PartitionsVersionExpression extends ObjectCollectExpression<PartitionInfo> {
 
     public PartitionsVersionExpression() {
         addChildImplementations();
@@ -50,7 +50,7 @@ public class PartitionsVersionExpression extends NestableCollectNestedObjectExpr
         return Maps.mapOrNullIfNullValues(map);
     }
 
-    static class PartitionDetailedVersionExpression extends NestableCollectNestedObjectExpression<PartitionInfo> {
+    static class PartitionDetailedVersionExpression extends ObjectCollectExpression<PartitionInfo> {
 
         PartitionDetailedVersionExpression(Version.Property property) {
             addChildImplementations(property);

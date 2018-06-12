@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference;
 
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import org.apache.lucene.util.BytesRef;
@@ -29,7 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class NestableCollectNestedObjectExpression<R> extends NestableCollectExpression<R, Map<String, Object>> {
+public abstract class ObjectCollectExpression<R> extends NestableCollectExpression<R, Map<String, Object>> {
 
     protected Map<String, NestableInput> childImplementations = new HashMap<>();
     protected R row;
@@ -48,9 +49,9 @@ public abstract class NestableCollectNestedObjectExpression<R> extends NestableC
         Map<String, Object> map = new HashMap<>(childImplementations.size());
         for (Map.Entry<String, NestableInput> e : childImplementations.entrySet()) {
             NestableInput nestableInput = e.getValue();
-            if (nestableInput instanceof NestableCollectExpression) {
+            if (nestableInput instanceof CollectExpression) {
                 //noinspection unchecked
-                ((NestableCollectExpression) nestableInput).setNextRow(this.row);
+                ((CollectExpression) nestableInput).setNextRow(this.row);
             }
             Object value = nestableInput.value();
 

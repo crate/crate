@@ -23,11 +23,11 @@ package io.crate.expression.reference.information;
 
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.expression.reference.NestableCollectNestedObjectExpression;
+import io.crate.expression.reference.ObjectCollectExpression;
 
 import java.util.Map;
 
-public abstract class AbstractTablesSettingsExpression extends NestableCollectNestedObjectExpression<RelationInfo> {
+public abstract class AbstractTablesSettingsExpression extends ObjectCollectExpression<RelationInfo> {
 
     @Override
     public Map<String, Object> value() {
