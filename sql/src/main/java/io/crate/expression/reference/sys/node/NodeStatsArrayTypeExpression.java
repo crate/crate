@@ -22,10 +22,10 @@
 
 package io.crate.expression.reference.sys.node;
 
-import io.crate.expression.reference.sys.ArrayTypeNestableContextCollectorExpression;
+import io.crate.expression.reference.sys.ArrayTypeNestableContextCollectExpression;
 
 public abstract class NodeStatsArrayTypeExpression<I, R>
-    extends ArrayTypeNestableContextCollectorExpression<NodeStatsContext, I, R> {
+    extends ArrayTypeNestableContextCollectExpression<NodeStatsContext, I, R> {
 
     @Override
     public R[] value() {

@@ -26,11 +26,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -63,23 +63,23 @@ public class SysSummitsTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<SummitsContext>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SummitsContext>>builder()
             .put(SysSummitsTableInfo.Columns.MOUNTAIN,
-                () -> NestableContextCollectorExpression.objToBytesRef(SummitsContext::mountain))
+                () -> NestableCollectExpression.objToBytesRef(SummitsContext::mountain))
             .put(SysSummitsTableInfo.Columns.HEIGHT,
-                () -> NestableContextCollectorExpression.forFunction(SummitsContext::height))
+                () -> NestableCollectExpression.forFunction(SummitsContext::height))
             .put(SysSummitsTableInfo.Columns.PROMINENCE,
-                () -> NestableContextCollectorExpression.forFunction(SummitsContext::prominence))
+                () -> NestableCollectExpression.forFunction(SummitsContext::prominence))
             .put(SysSummitsTableInfo.Columns.COORDINATES,
-                () -> NestableContextCollectorExpression.forFunction(SummitsContext::coordinates))
+                () -> NestableCollectExpression.forFunction(SummitsContext::coordinates))
             .put(SysSummitsTableInfo.Columns.RANGE,
-                () -> NestableContextCollectorExpression.objToBytesRef(SummitsContext::range))
+                () -> NestableCollectExpression.objToBytesRef(SummitsContext::range))
             .put(SysSummitsTableInfo.Columns.CLASSIFICATION,
-                () -> NestableContextCollectorExpression.objToBytesRef(SummitsContext::classification))
+                () -> NestableCollectExpression.objToBytesRef(SummitsContext::classification))
             .put(SysSummitsTableInfo.Columns.REGION,
-                () -> NestableContextCollectorExpression.objToBytesRef(SummitsContext::region))
+                () -> NestableCollectExpression.objToBytesRef(SummitsContext::region))
             .put(SysSummitsTableInfo.Columns.COUNTRY,
-                () -> NestableContextCollectorExpression.objToBytesRef(SummitsContext::country))
+                () -> NestableCollectExpression.objToBytesRef(SummitsContext::country))
             .put(SysSummitsTableInfo.Columns.FIRST_ASCENT,
-                () -> NestableContextCollectorExpression.forFunction(SummitsContext::firstAscent))
+                () -> NestableCollectExpression.forFunction(SummitsContext::firstAscent))
             .build();
     }
 

@@ -21,12 +21,12 @@
 
 package io.crate.expression.reference.doc.blob;
 
-import io.crate.metadata.NestableContextCollectorExpression;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.File;
 
-public class BlobDigestExpression extends NestableContextCollectorExpression<File, BytesRef> {
+public class BlobDigestExpression extends NestableCollectExpression<File, BytesRef> {
 
     public static final String COLUMN_NAME = "digest";
 

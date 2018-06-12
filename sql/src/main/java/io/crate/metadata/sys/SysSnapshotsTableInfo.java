@@ -25,11 +25,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -62,11 +62,11 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<SysSnapshot>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysSnapshot>>builder()
             .put(SysSnapshotsTableInfo.Columns.NAME,
-                () -> NestableContextCollectorExpression.objToBytesRef(SysSnapshot::name))
+                () -> NestableCollectExpression.objToBytesRef(SysSnapshot::name))
             .put(SysSnapshotsTableInfo.Columns.REPOSITORY,
-                () -> NestableContextCollectorExpression.objToBytesRef(SysSnapshot::repository))
+                () -> NestableCollectExpression.objToBytesRef(SysSnapshot::repository))
             .put(SysSnapshotsTableInfo.Columns.CONCRETE_INDICES,
-                () -> NestableContextCollectorExpression.forFunction((SysSnapshot s) -> {
+                () -> NestableCollectExpression.forFunction((SysSnapshot s) -> {
                     List<String> concreteIndices = s.concreteIndices();
                     BytesRef[] indices = new BytesRef[concreteIndices.size()];
                     for (int i = 0; i < concreteIndices.size(); i++) {
@@ -75,13 +75,13 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
                     return indices;
                 }))
             .put(SysSnapshotsTableInfo.Columns.STARTED,
-                () -> NestableContextCollectorExpression.forFunction(SysSnapshot::started))
+                () -> NestableCollectExpression.forFunction(SysSnapshot::started))
             .put(SysSnapshotsTableInfo.Columns.FINISHED,
-                () -> NestableContextCollectorExpression.forFunction(SysSnapshot::finished))
+                () -> NestableCollectExpression.forFunction(SysSnapshot::finished))
             .put(SysSnapshotsTableInfo.Columns.VERSION,
-                () -> NestableContextCollectorExpression.objToBytesRef(SysSnapshot::version))
+                () -> NestableCollectExpression.objToBytesRef(SysSnapshot::version))
             .put(SysSnapshotsTableInfo.Columns.STATE,
-                () -> NestableContextCollectorExpression.objToBytesRef(SysSnapshot::state))
+                () -> NestableCollectExpression.objToBytesRef(SysSnapshot::state))
             .build();
     }
 

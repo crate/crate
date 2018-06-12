@@ -24,12 +24,12 @@ package io.crate.metadata.sys;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -61,25 +61,25 @@ public class SysOperationsTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContext>> expressions(Supplier<DiscoveryNode> localNode) {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<OperationContext>>builder()
             .put(SysOperationsTableInfo.Columns.ID,
-                () -> NestableContextCollectorExpression.objToBytesRef(OperationContext::id))
+                () -> NestableCollectExpression.objToBytesRef(OperationContext::id))
             .put(SysOperationsTableInfo.Columns.JOB_ID,
-                () -> NestableContextCollectorExpression.objToBytesRef(OperationContext::jobId))
+                () -> NestableCollectExpression.objToBytesRef(OperationContext::jobId))
             .put(SysOperationsTableInfo.Columns.NAME,
-                () -> NestableContextCollectorExpression.objToBytesRef(OperationContext::name))
+                () -> NestableCollectExpression.objToBytesRef(OperationContext::name))
             .put(SysOperationsTableInfo.Columns.STARTED,
-                () -> NestableContextCollectorExpression.forFunction(OperationContext::started))
-            .put(SysOperationsTableInfo.Columns.USED_BYTES, () -> NestableContextCollectorExpression.forFunction(r -> {
+                () -> NestableCollectExpression.forFunction(OperationContext::started))
+            .put(SysOperationsTableInfo.Columns.USED_BYTES, () -> NestableCollectExpression.forFunction(r -> {
                 if (r.usedBytes == 0) {
                     return null;
                 }
                 return r.usedBytes;
             }))
-            .put(Columns.NODE, () -> NestableContextCollectorExpression.forFunction(ignored -> ImmutableMap.of(
+            .put(Columns.NODE, () -> NestableCollectExpression.forFunction(ignored -> ImmutableMap.of(
                 "id", new BytesRef(localNode.get().getId()),
                 "name", new BytesRef(localNode.get().getName())
             )))
-            .put(Columns.NODE_ID, () -> NestableContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getId())))
-            .put(Columns.NODE_NAME, () -> NestableContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getName())))
+            .put(Columns.NODE_ID, () -> NestableCollectExpression.forFunction(ignored -> new BytesRef(localNode.get().getId())))
+            .put(Columns.NODE_NAME, () -> NestableCollectExpression.forFunction(ignored -> new BytesRef(localNode.get().getName())))
             .build();
     }
 

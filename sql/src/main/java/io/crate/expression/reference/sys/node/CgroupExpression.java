@@ -22,12 +22,12 @@
 
 package io.crate.expression.reference.sys.node;
 
-import io.crate.metadata.NestableContextCollectorExpression;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.elasticsearch.monitor.os.OsStats;
 
 import java.util.function.Function;
 
-final class CgroupExpression<R> extends NestableContextCollectorExpression<NodeStatsContext, R> {
+final class CgroupExpression<R> extends NestableCollectExpression<NodeStatsContext, R> {
 
     private final Function<OsStats.Cgroup, R> getter;
 

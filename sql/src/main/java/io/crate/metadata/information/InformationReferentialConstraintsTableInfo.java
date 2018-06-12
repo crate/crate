@@ -23,9 +23,9 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -65,23 +65,23 @@ public class InformationReferentialConstraintsTableInfo extends InformationTable
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<Void>>builder()
             .put(Columns.CONSTRAINT_CATALOG,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.objToBytesRef(r -> null))
             .put(Columns.CONSTRAINT_SCHEMA,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.objToBytesRef(r -> null))
             .put(Columns.CONSTRAINT_NAME,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.objToBytesRef(r -> null))
             .put(Columns.UNIQUE_CONSTRAINT_CATALOG,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.objToBytesRef(r -> null))
             .put(Columns.UNIQUE_CONSTRAINT_SCHEMA,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.objToBytesRef(r -> null))
             .put(Columns.UNIQUE_CONSTRAINT_NAME,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.objToBytesRef(r -> null))
             .put(Columns.MATCH_OPTION,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.objToBytesRef(r -> null))
             .put(Columns.UPDATE_RULE,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.objToBytesRef(r -> null))
             .put(Columns.DELETE_RULE,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.objToBytesRef(r -> null))
             .build();
     }
 

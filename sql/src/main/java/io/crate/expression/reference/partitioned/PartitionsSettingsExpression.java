@@ -22,8 +22,8 @@
 package io.crate.expression.reference.partitioned;
 
 import io.crate.analyze.TableParameterInfo;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.PartitionInfo;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.expression.reference.NestableCollectNestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -43,7 +43,7 @@ public class PartitionsSettingsExpression extends NestableCollectNestedObjectExp
         childImplementations.put(PartitionsSettingsUnassignedExpression.NAME, new PartitionsSettingsUnassignedExpression());
     }
 
-    static class PartitionTableParameterExpression extends NestableContextCollectorExpression<PartitionInfo, Object> {
+    static class PartitionTableParameterExpression extends NestableCollectExpression<PartitionInfo, Object> {
 
         private final String paramName;
 
@@ -57,7 +57,7 @@ public class PartitionsSettingsExpression extends NestableCollectNestedObjectExp
         }
     }
 
-    static class BytesRefPartitionTableParameterExpression extends NestableContextCollectorExpression<PartitionInfo, BytesRef> {
+    static class BytesRefPartitionTableParameterExpression extends NestableCollectExpression<PartitionInfo, BytesRef> {
 
         private final String paramName;
 

@@ -24,10 +24,10 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IngestionRuleInfo;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -59,13 +59,13 @@ public class InformationSchemaIngestionRulesTableInfo extends InformationTableIn
     public static Map<ColumnIdent, RowCollectExpressionFactory<IngestionRuleInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<IngestionRuleInfo>>builder()
             .put(Columns.RULE_NAME,
-                () -> NestableContextCollectorExpression.objToBytesRef(IngestionRuleInfo::getName))
+                () -> NestableCollectExpression.objToBytesRef(IngestionRuleInfo::getName))
             .put(Columns.SOURCE_IDENT,
-                () -> NestableContextCollectorExpression.objToBytesRef(IngestionRuleInfo::getSource))
+                () -> NestableCollectExpression.objToBytesRef(IngestionRuleInfo::getSource))
             .put(Columns.TARGET_TABLE,
-                () -> NestableContextCollectorExpression.objToBytesRef(IngestionRuleInfo::getTarget))
+                () -> NestableCollectExpression.objToBytesRef(IngestionRuleInfo::getTarget))
             .put(Columns.CONDITION,
-                () -> NestableContextCollectorExpression.objToBytesRef(IngestionRuleInfo::getCondition))
+                () -> NestableCollectExpression.objToBytesRef(IngestionRuleInfo::getCondition))
             .build();
     }
 

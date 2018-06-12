@@ -23,20 +23,19 @@
 package io.crate.expression.reference;
 
 import io.crate.core.collections.StringObjectMaps;
-import io.crate.expression.NestableInput;
 import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.NestableInput;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class MapLookupByPathExpression<T, R> implements NestableCollectExpression<T, R> {
+public final class MapLookupByPathExpression<T, R> extends NestableCollectExpression<T, R> {
 
     private final Function<T, Map<String, Object>> getMap;
     private final List<String> path;
     private final Function<Object, R> castResultValue;
-    private T state;
 
     public MapLookupByPathExpression(Function<T, Map<String, Object>> getMap,
                                      List<String> path,
@@ -47,13 +46,8 @@ public final class MapLookupByPathExpression<T, R> implements NestableCollectExp
     }
 
     @Override
-    public void setNextRow(T row) {
-        this.state = row;
-    }
-
-    @Override
     public R value() {
-        return castResultValue.apply(StringObjectMaps.fromMapByPath(getMap.apply(state), path));
+        return castResultValue.apply(StringObjectMaps.fromMapByPath(getMap.apply(row), path));
     }
 
     @Override

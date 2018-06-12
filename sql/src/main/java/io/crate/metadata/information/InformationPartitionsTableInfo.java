@@ -23,20 +23,20 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.NestableInput;
+import io.crate.expression.reference.MapLookupByPathExpression;
+import io.crate.expression.reference.partitioned.PartitionsSettingsExpression;
+import io.crate.expression.reference.partitioned.PartitionsVersionExpression;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.expression.NestableInput;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.expression.reference.MapLookupByPathExpression;
-import io.crate.expression.reference.partitioned.PartitionsSettingsExpression;
-import io.crate.expression.reference.partitioned.PartitionsVersionExpression;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.types.DataTypes;
 
@@ -59,14 +59,14 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<PartitionInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PartitionInfo>>builder()
             .put(InformationTablesTableInfo.Columns.TABLE_NAME,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.name().relationName().name()))
+                () -> NestableCollectExpression.objToBytesRef(r -> r.name().relationName().name()))
             .put(Columns.TABLE_SCHEMA,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.name().relationName().schema()))
+                () -> NestableCollectExpression.objToBytesRef(r -> r.name().relationName().schema()))
             .put(InformationTablesTableInfo.Columns.TABLE_TYPE,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> RelationType.BASE_TABLE.pretty()))
+                () -> NestableCollectExpression.objToBytesRef(r -> RelationType.BASE_TABLE.pretty()))
             .put(Columns.PARTITION_IDENT,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.name().ident()))
-            .put(Columns.VALUES, () -> new NestableContextCollectorExpression<PartitionInfo, Object>() {
+                () -> NestableCollectExpression.objToBytesRef(r -> r.name().ident()))
+            .put(Columns.VALUES, () -> new NestableCollectExpression<PartitionInfo, Object>() {
 
                 @Override
                 public Object value() {
@@ -82,13 +82,13 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                 }
             })
             .put(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS,
-                () -> NestableContextCollectorExpression.forFunction(PartitionInfo::numberOfShards))
+                () -> NestableCollectExpression.forFunction(PartitionInfo::numberOfShards))
             .put(InformationTablesTableInfo.Columns.NUMBER_OF_REPLICAS,
-                () -> NestableContextCollectorExpression.objToBytesRef(PartitionInfo::numberOfReplicas))
+                () -> NestableCollectExpression.objToBytesRef(PartitionInfo::numberOfReplicas))
             .put(InformationTablesTableInfo.Columns.ROUTING_HASH_FUNCTION,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME))
+                () -> NestableCollectExpression.objToBytesRef(r -> IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME))
             .put(InformationTablesTableInfo.Columns.CLOSED,
-                () -> NestableContextCollectorExpression.forFunction(PartitionInfo::isClosed))
+                () -> NestableCollectExpression.forFunction(PartitionInfo::isClosed))
             .put(InformationTablesTableInfo.Columns.TABLE_VERSION, PartitionsVersionExpression::new)
             .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, PartitionsSettingsExpression::new)
             .build();

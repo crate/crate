@@ -21,11 +21,11 @@
 
 package io.crate.expression.reference.partitioned;
 
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.NestableContextCollectorExpression;
 
-public class PartitionExpression extends NestableContextCollectorExpression<PartitionName, Object> {
+public class PartitionExpression extends NestableCollectExpression<PartitionName, Object> {
 
     private final Reference ref;
     private final int valuesIndex;

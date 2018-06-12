@@ -24,9 +24,9 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -67,18 +67,18 @@ public class InformationViewsTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<ViewInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ViewInfo>>builder()
             .put(Columns.TABLE_CATALOG,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.ident().schema()))
+                () -> NestableCollectExpression.objToBytesRef(r -> r.ident().schema()))
             .put(Columns.TABLE_SCHEMA,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.ident().schema()))
+                () -> NestableCollectExpression.objToBytesRef(r -> r.ident().schema()))
             .put(Columns.TABLE_NAME,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.ident().name()))
+                () -> NestableCollectExpression.objToBytesRef(r -> r.ident().name()))
             .put(Columns.VIEW_DEFINITION,
-                () -> NestableContextCollectorExpression.objToBytesRef(ViewInfo::definition))
+                () -> NestableCollectExpression.objToBytesRef(ViewInfo::definition))
             .put(Columns.CHECK_OPTION,
-                () -> NestableContextCollectorExpression.forFunction(r -> CHECK_OPTION_NONE))
+                () -> NestableCollectExpression.forFunction(r -> CHECK_OPTION_NONE))
             .put(Columns.IS_UPDATABLE,
-                () -> NestableContextCollectorExpression.forFunction(r -> false))
-            .put(Columns.OWNER, () -> NestableContextCollectorExpression.objToBytesRef(ViewInfo::owner))
+                () -> NestableCollectExpression.forFunction(r -> false))
+            .put(Columns.OWNER, () -> NestableCollectExpression.objToBytesRef(ViewInfo::owner))
             .build();
     }
 

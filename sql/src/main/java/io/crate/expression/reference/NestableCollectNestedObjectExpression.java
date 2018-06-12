@@ -21,19 +21,26 @@
 
 package io.crate.expression.reference;
 
-import io.crate.expression.NestableInput;
 import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.NestableInput;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class NestableCollectNestedObjectExpression<R> extends NestedObjectExpression implements NestableCollectExpression<R, Map<String, Object>> {
+public abstract class NestableCollectNestedObjectExpression<R> extends NestableCollectExpression<R, Map<String, Object>> {
+
+    protected Map<String, NestableInput> childImplementations = new HashMap<>();
     protected R row;
 
     public void setNextRow(R row) {
         this.row = row;
+    }
+
+    @Override
+    public NestableInput getChild(String name) {
+        return childImplementations.get(name);
     }
 
     @Override

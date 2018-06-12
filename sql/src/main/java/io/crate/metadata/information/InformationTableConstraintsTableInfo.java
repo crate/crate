@@ -23,9 +23,9 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -67,23 +67,23 @@ public class InformationTableConstraintsTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<ConstraintInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ConstraintInfo>>builder()
             .put(Columns.CONSTRAINT_CATALOG,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.tableIdent().schema()))
+                () -> NestableCollectExpression.objToBytesRef(r -> r.tableIdent().schema()))
             .put(Columns.CONSTRAINT_SCHEMA,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.tableIdent().schema()))
+                () -> NestableCollectExpression.objToBytesRef(r -> r.tableIdent().schema()))
             .put(Columns.CONSTRAINT_NAME,
-                () -> NestableContextCollectorExpression.objToBytesRef(ConstraintInfo::constraintName))
+                () -> NestableCollectExpression.objToBytesRef(ConstraintInfo::constraintName))
             .put(Columns.TABLE_CATALOG,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.tableIdent().schema()))
+                () -> NestableCollectExpression.objToBytesRef(r -> r.tableIdent().schema()))
             .put(Columns.TABLE_SCHEMA,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.tableIdent().schema()))
+                () -> NestableCollectExpression.objToBytesRef(r -> r.tableIdent().schema()))
             .put(Columns.TABLE_NAME,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.tableIdent().name()))
+                () -> NestableCollectExpression.objToBytesRef(r -> r.tableIdent().name()))
             .put(Columns.CONSTRAINT_TYPE,
-                () -> NestableContextCollectorExpression.objToBytesRef(ConstraintInfo::constraintType))
+                () -> NestableCollectExpression.objToBytesRef(ConstraintInfo::constraintType))
             .put(Columns.IS_DEFERRABLE,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> "NO"))
+                () -> NestableCollectExpression.objToBytesRef(r -> "NO"))
             .put(Columns.INITIALLY_DEFERRED,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> "NO"))
+                () -> NestableCollectExpression.objToBytesRef(r -> "NO"))
             .build();
     }
 

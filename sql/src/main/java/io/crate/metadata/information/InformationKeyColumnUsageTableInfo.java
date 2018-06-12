@@ -32,8 +32,8 @@ import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.types.DataTypes;
 
-import static io.crate.metadata.NestableContextCollectorExpression.forFunction;
-import static io.crate.metadata.NestableContextCollectorExpression.objToBytesRef;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.execution.engine.collect.NestableCollectExpression.objToBytesRef;
 import static io.crate.execution.engine.collect.sources.InformationSchemaIterables.PK_SUFFIX;
 
 /**

@@ -22,11 +22,11 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.expression.reference.sys.ArrayTypeNestableContextCollectorExpression;
+import io.crate.expression.reference.sys.ArrayTypeNestableContextCollectExpression;
 
 import java.util.List;
 
-public abstract class SysAllocationDecisionsExpression<ReturnType> extends ArrayTypeNestableContextCollectorExpression<SysAllocation, SysAllocation.SysAllocationNodeDecision, ReturnType> {
+public abstract class SysAllocationDecisionsExpression<ReturnType> extends ArrayTypeNestableContextCollectExpression<SysAllocation, SysAllocation.SysAllocationNodeDecision, ReturnType> {
 
     @Override
     protected List<SysAllocation.SysAllocationNodeDecision> items() {

@@ -22,12 +22,13 @@
 
 package io.crate.expression.reference.sys;
 
-import io.crate.metadata.NestableContextCollectorExpression;
+
+import io.crate.execution.engine.collect.NestableCollectExpression;
 
 import java.util.List;
 
-public abstract class ArrayTypeNestableContextCollectorExpression<RowType, IterType, ReturnType>
-    extends NestableContextCollectorExpression<RowType, ReturnType[]> {
+public abstract class ArrayTypeNestableContextCollectExpression<RowType, IterType, ReturnType>
+    extends NestableCollectExpression<RowType, ReturnType[]> {
 
     protected abstract List<IterType> items();
 

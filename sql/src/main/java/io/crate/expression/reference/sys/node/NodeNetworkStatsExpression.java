@@ -22,8 +22,6 @@
 
 package io.crate.expression.reference.sys.node;
 
-import static io.crate.metadata.NestableContextCollectorExpression.constant;
-
 public class NodeNetworkStatsExpression extends NestedNodeStatsExpression {
 
     private static final String TCP = "tcp";

@@ -25,12 +25,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -60,19 +60,19 @@ public class SysJobsTableInfo extends StaticTableInfo {
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<JobContext>> expressions(Supplier<DiscoveryNode> localNode) {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<JobContext>>builder()
             .put(SysJobsTableInfo.Columns.ID,
-                () -> NestableContextCollectorExpression.objToBytesRef(JobContext::id))
+                () -> NestableCollectExpression.objToBytesRef(JobContext::id))
             .put(SysJobsTableInfo.Columns.USERNAME,
-                () -> NestableContextCollectorExpression.objToBytesRef(JobContext::username))
+                () -> NestableCollectExpression.objToBytesRef(JobContext::username))
             .put(SysJobsTableInfo.Columns.STMT,
-                () -> NestableContextCollectorExpression.objToBytesRef(JobContext::stmt))
+                () -> NestableCollectExpression.objToBytesRef(JobContext::stmt))
             .put(SysJobsTableInfo.Columns.STARTED,
-                () -> NestableContextCollectorExpression.forFunction(JobContext::started))
-            .put(Columns.NODE, () -> NestableContextCollectorExpression.forFunction(ignored -> ImmutableMap.of(
+                () -> NestableCollectExpression.forFunction(JobContext::started))
+            .put(Columns.NODE, () -> NestableCollectExpression.forFunction(ignored -> ImmutableMap.of(
                 "id", new BytesRef(localNode.get().getId()),
                 "name", new BytesRef(localNode.get().getName())
             )))
-            .put(Columns.NODE_ID, () -> NestableContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getId())))
-            .put(Columns.NODE_NAME, () -> NestableContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getName())))
+            .put(Columns.NODE_ID, () -> NestableCollectExpression.forFunction(ignored -> new BytesRef(localNode.get().getId())))
+            .put(Columns.NODE_NAME, () -> NestableCollectExpression.forFunction(ignored -> new BytesRef(localNode.get().getName())))
             .build();
     }
 

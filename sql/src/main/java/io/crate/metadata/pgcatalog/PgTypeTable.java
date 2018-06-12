@@ -25,11 +25,11 @@ package io.crate.metadata.pgcatalog;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -60,15 +60,15 @@ public class PgTypeTable extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<PGType>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PGType>>builder()
             .put(Columns.OID,
-                () -> NestableContextCollectorExpression.forFunction(PGType::oid))
+                () -> NestableCollectExpression.forFunction(PGType::oid))
             .put(Columns.TYPNAME,
-                () -> NestableContextCollectorExpression.objToBytesRef(PGType::typName))
+                () -> NestableCollectExpression.objToBytesRef(PGType::typName))
             .put(Columns.TYPDELIM,
-                () -> NestableContextCollectorExpression.objToBytesRef(PGType::typDelim))
+                () -> NestableCollectExpression.objToBytesRef(PGType::typDelim))
             .put(Columns.TYPELEM,
-                () -> NestableContextCollectorExpression.forFunction(PGType::typElem))
+                () -> NestableCollectExpression.forFunction(PGType::typElem))
             .put(Columns.TYPTYPE,
-                () -> new NestableContextCollectorExpression<PGType, BytesRef>() {
+                () -> new NestableCollectExpression<PGType, BytesRef>() {
 
                     @Override
                     public BytesRef value() {
@@ -76,7 +76,7 @@ public class PgTypeTable extends StaticTableInfo {
                     }
                 })
             .put(Columns.TYPBASETYPE,
-                () -> new NestableContextCollectorExpression<PGType, Integer>() {
+                () -> new NestableCollectExpression<PGType, Integer>() {
 
                     @Override
                     public Integer value() {

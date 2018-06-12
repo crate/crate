@@ -43,7 +43,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static io.crate.metadata.NestableContextCollectorExpression.forFunction;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 public class SysMetricsTableInfo extends StaticTableInfo {
 

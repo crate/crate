@@ -25,11 +25,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -53,11 +53,11 @@ public class SysRepositoriesTableInfo extends StaticTableInfo {
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<Repository>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<Repository>>builder()
             .put(SysRepositoriesTableInfo.Columns.NAME,
-                () -> NestableContextCollectorExpression.objToBytesRef((Repository r) -> r.getMetadata().name()))
+                () -> NestableCollectExpression.objToBytesRef((Repository r) -> r.getMetadata().name()))
             .put(SysRepositoriesTableInfo.Columns.TYPE,
-                () -> NestableContextCollectorExpression.objToBytesRef((Repository r) -> r.getMetadata().type()))
+                () -> NestableCollectExpression.objToBytesRef((Repository r) -> r.getMetadata().type()))
             .put(SysRepositoriesTableInfo.Columns.SETTINGS,
-                () -> NestableContextCollectorExpression
+                () -> NestableCollectExpression
                     .forFunction((Repository r) -> r.getMetadata().settings().getAsStructuredMap()))
             .build();
     }

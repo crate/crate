@@ -34,6 +34,7 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
@@ -43,7 +44,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
@@ -657,19 +657,19 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             String fqn = columnIdent.fqn();
             switch (fqn) {
                 case DocSysColumns.Names.VERSION:
-                    return NestableContextCollectorExpression.forFunction(GetResult::getVersion);
+                    return NestableCollectExpression.forFunction(GetResult::getVersion);
 
                 case DocSysColumns.Names.ID:
-                    return NestableContextCollectorExpression.objToBytesRef(GetResult::getId);
+                    return NestableCollectExpression.objToBytesRef(GetResult::getId);
 
                 case DocSysColumns.Names.RAW:
-                    return NestableContextCollectorExpression.forFunction(r -> r.sourceRef().toBytesRef());
+                    return NestableCollectExpression.forFunction(r -> r.sourceRef().toBytesRef());
 
                 case DocSysColumns.Names.DOC:
-                    return NestableContextCollectorExpression.forFunction(GetResult::getSource);
+                    return NestableCollectExpression.forFunction(GetResult::getSource);
 
                 default:
-                    return NestableContextCollectorExpression.forFunction(response -> {
+                    return NestableCollectExpression.forFunction(response -> {
                         if (response == null) {
                             return null;
                         }
@@ -699,7 +699,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 value = suppliedValue;
             }
             if (value != null) {
-                return NestableContextCollectorExpression.forFunction(ignored -> ref.valueType().value(value));
+                return NestableCollectExpression.forFunction(ignored -> ref.valueType().value(value));
             }
             return super.getImplementation(ref);
         }

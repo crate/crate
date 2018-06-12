@@ -26,7 +26,7 @@ import io.crate.Version;
 import io.crate.core.collections.Maps;
 import io.crate.expression.reference.NestableCollectNestedObjectExpression;
 import io.crate.metadata.RelationInfo;
-import io.crate.metadata.NestableContextCollectorExpression;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 
 import java.util.Map;
 
@@ -67,7 +67,7 @@ public class TablesVersionExpression extends NestableCollectNestedObjectExpressi
         }
     }
 
-    static class TableCrateVersionExpression extends NestableContextCollectorExpression<RelationInfo, Object> {
+    static class TableCrateVersionExpression extends NestableCollectExpression<RelationInfo, Object> {
 
         private final Version.Property property;
 
@@ -82,7 +82,7 @@ public class TablesVersionExpression extends NestableCollectNestedObjectExpressi
         }
     }
 
-    static class TableESVersionExpression extends NestableContextCollectorExpression<RelationInfo, Object> {
+    static class TableESVersionExpression extends NestableCollectExpression<RelationInfo, Object> {
 
         private final Version.Property property;
 

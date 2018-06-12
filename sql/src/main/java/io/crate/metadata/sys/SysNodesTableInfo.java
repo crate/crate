@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.sys.node.NodeHeapStatsExpression;
 import io.crate.expression.reference.sys.node.NodeLoadStatsExpression;
 import io.crate.expression.reference.sys.node.NodeMemoryStatsExpression;
@@ -46,7 +47,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.NestableContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -223,13 +223,13 @@ public class SysNodesTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>>builder()
             .put(SysNodesTableInfo.Columns.ID,
-                () -> NestableContextCollectorExpression.objToBytesRef(NodeStatsContext::id))
+                () -> NestableCollectExpression.objToBytesRef(NodeStatsContext::id))
             .put(SysNodesTableInfo.Columns.NAME,
-                () -> NestableContextCollectorExpression.objToBytesRef(NodeStatsContext::name))
+                () -> NestableCollectExpression.objToBytesRef(NodeStatsContext::name))
             .put(SysNodesTableInfo.Columns.HOSTNAME,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.isComplete() ? r.hostname() : null))
+                () -> NestableCollectExpression.objToBytesRef(r -> r.isComplete() ? r.hostname() : null))
             .put(SysNodesTableInfo.Columns.REST_URL,
-                () -> NestableContextCollectorExpression.objToBytesRef(r -> r.isComplete() ? r.restUrl() : null))
+                () -> NestableCollectExpression.objToBytesRef(r -> r.isComplete() ? r.restUrl() : null))
             .put(SysNodesTableInfo.Columns.PORT, NodePortStatsExpression::new)
             .put(SysNodesTableInfo.Columns.LOAD, NodeLoadStatsExpression::new)
             .put(SysNodesTableInfo.Columns.MEM, NodeMemoryStatsExpression::new)
@@ -285,19 +285,19 @@ public class SysNodesTableInfo extends StaticTableInfo {
             .put(SysNodesTableInfo.Columns.FS, NodeFsStatsExpression::new)
             .put(SysNodesTableInfo.Columns.FS_TOTAL, NodeFsTotalStatsExpression::new)
             .put(SysNodesTableInfo.Columns.FS_TOTAL_SIZE,
-                () -> NestableContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.size(r.fsInfo().getTotal()) : null))
+                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.size(r.fsInfo().getTotal()) : null))
             .put(SysNodesTableInfo.Columns.FS_TOTAL_USED,
-                () -> NestableContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.used(r.fsInfo().getTotal()) : null))
+                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.used(r.fsInfo().getTotal()) : null))
             .put(SysNodesTableInfo.Columns.FS_TOTAL_AVAILABLE,
-                () -> NestableContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.available(r.fsInfo().getTotal()) : null))
+                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.available(r.fsInfo().getTotal()) : null))
             .put(SysNodesTableInfo.Columns.FS_TOTAL_READS,
-                () -> NestableContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.readOperations(r.fsInfo().getIoStats()) : null))
+                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.readOperations(r.fsInfo().getIoStats()) : null))
             .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_READ,
-                () -> NestableContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.bytesRead(r.fsInfo().getIoStats()) : null))
+                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.bytesRead(r.fsInfo().getIoStats()) : null))
             .put(SysNodesTableInfo.Columns.FS_TOTAL_WRITES,
-                () -> NestableContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.writeOperations(r.fsInfo().getIoStats()) : null))
+                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.writeOperations(r.fsInfo().getIoStats()) : null))
             .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_WRITTEN,
-                () -> NestableContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.bytesWritten(r.fsInfo().getIoStats()) : null))
+                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.bytesWritten(r.fsInfo().getIoStats()) : null))
             .put(SysNodesTableInfo.Columns.FS_DISKS, NodeStatsFsDisksExpression::new)
             .put(SysNodesTableInfo.Columns.FS_DISKS_DEV, () -> new NodeStatsFsArrayExpression<BytesRef>() {
                 @Override
