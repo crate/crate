@@ -22,35 +22,46 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.data.Input;
-import io.crate.execution.engine.collect.NestableCollectExpression;
-import io.crate.expression.InputCondition;
+import io.crate.expression.ExpressionsInput;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.Message;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import java.util.Iterator;
-import java.util.List;
+import java.util.function.Function;
 
 public final class FilteredLogSink<T> implements LogSink<T> {
 
-    private final Input<Boolean> filter;
-    private final List<NestableCollectExpression<T, ?>> filterExpressions;
+    /**
+     * This logger name is documented in the docs for the {@link JobsLogService#STATS_JOBS_LOG_PERSIST_FILTER} setting.
+     * Take care when changing the name.
+     */
+    private static final Logger STATEMENT_LOGGER = Loggers.getLogger("StatementLog");
+    private final ExpressionsInput<T, Boolean> memoryFilter;
+    private final ExpressionsInput<T, Boolean> persistFilter;
+    private final Function<T, Message> createLogMessage;
     final LogSink<T> delegate;
 
-    FilteredLogSink(Input<Boolean> filter,
-                    List<NestableCollectExpression<T, ?>> filterExpressions,
+    FilteredLogSink(ExpressionsInput<T, Boolean> memoryFilter,
+                    ExpressionsInput<T, Boolean> persistFilter,
+                    Function<T, Message> createLogMessage,
                     LogSink<T> delegate) {
-        this.filter = filter;
-        this.filterExpressions = filterExpressions;
+        this.memoryFilter = memoryFilter;
+        this.persistFilter = persistFilter;
+        this.createLogMessage = createLogMessage;
         this.delegate = delegate;
     }
 
     @Override
     public void add(T item) {
-        for (int i = 0; i < filterExpressions.size(); i++) {
-            filterExpressions.get(i).setNextRow(item);
-        }
-        if (InputCondition.matches(filter)) {
+        Boolean recordToMemory = memoryFilter.value(item);
+        if (recordToMemory != null && recordToMemory) {
             delegate.add(item);
+        }
+        Boolean recordToPersistentLog = persistFilter.value(item);
+        if (recordToPersistentLog != null && recordToPersistentLog && STATEMENT_LOGGER.isInfoEnabled()) {
+            STATEMENT_LOGGER.info(createLogMessage.apply(item));
         }
     }
 

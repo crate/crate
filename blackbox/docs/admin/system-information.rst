@@ -169,6 +169,7 @@ applied cluster settings.
     | settings['stats']['enabled']                                                      | boolean      |
     | settings['stats']['jobs_log_expiration']                                          | string       |
     | settings['stats']['jobs_log_filter']                                              | string       |
+    | settings['stats']['jobs_log_persistent_filter']                                   | string       |
     | settings['stats']['jobs_log_size']                                                | integer      |
     | settings['stats']['operations_log_expiration']                                    | string       |
     | settings['stats']['operations_log_size']                                          | integer      |

@@ -67,6 +67,7 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(CrateSettings.settingNamesByPrefix("stats.jobs_log"), containsInAnyOrder(
             JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(),
             JobsLogService.STATS_JOBS_LOG_FILTER.getKey(),
+            JobsLogService.STATS_JOBS_LOG_PERSIST_FILTER.getKey(),
             JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey()
             ));
     }

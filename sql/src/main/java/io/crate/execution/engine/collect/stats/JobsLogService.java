@@ -35,6 +35,7 @@ import io.crate.breaker.SizeEstimator;
 import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.ExpressionsInput;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableReferenceResolver;
@@ -50,7 +51,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.settings.CrateSetting;
 import io.crate.sql.parser.SqlParser;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.collect.Tuple;
+import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -61,14 +62,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.function.Function;
-
-import static org.elasticsearch.common.collect.Tuple.tuple;
 
 /**
  * The JobsLogService is available on each node and holds the meta data of the cluster, such as active jobs and operations.
@@ -96,6 +94,15 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             Setting.Property.Dynamic),
         DataTypes.STRING
     );
+    public static final CrateSetting<String> STATS_JOBS_LOG_PERSIST_FILTER = CrateSetting.of(
+        new Setting<>(
+            "stats.jobs_log_persistent_filter",
+            "false",
+            Function.identity(),
+            Setting.Property.NodeScope,
+            Setting.Property.Dynamic),
+        DataTypes.STRING
+    );
     public static final CrateSetting<Integer> STATS_OPERATIONS_LOG_SIZE_SETTING = CrateSetting.of(Setting.intSetting(
         "stats.operations_log_size", 10_000, 0, Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.INTEGER);
     public static final CrateSetting<TimeValue> STATS_OPERATIONS_LOG_EXPIRATION_SETTING = CrateSetting.of(Setting.timeSetting(
@@ -116,7 +123,9 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     private JobsLogs jobsLogs;
     LogSink<JobContextLog> jobsLogSink = NoopLogSink.instance();
     LogSink<OperationContextLog> operationsLogSink = NoopLogSink.instance();
-    private Tuple<? extends Input<Boolean>, List<NestableCollectExpression<JobContextLog, ?>>> filter;
+
+    private ExpressionsInput<JobContextLog, Boolean> memoryFilter;
+    private ExpressionsInput<JobContextLog, Boolean> persistFilter;
 
     private volatile boolean isEnabled;
     volatile int jobsLogSize;
@@ -158,7 +167,11 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
 
         isEnabled = STATS_ENABLED_SETTING.setting().get(settings);
         jobsLogs = new JobsLogs(this::isEnabled);
-        filter = createFilter(STATS_JOBS_LOG_FILTER.setting().get(settings));
+        memoryFilter = createFilter(
+            STATS_JOBS_LOG_FILTER.setting().get(settings), STATS_JOBS_LOG_FILTER.getKey());
+        persistFilter = createFilter(
+            STATS_JOBS_LOG_PERSIST_FILTER.setting().get(settings), STATS_JOBS_LOG_PERSIST_FILTER.getKey());
+
         setJobsLogSink(
             STATS_JOBS_LOG_SIZE_SETTING.setting().get(settings),
             STATS_JOBS_LOG_EXPIRATION_SETTING.setting().get(settings)
@@ -167,13 +180,30 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             STATS_OPERATIONS_LOG_SIZE_SETTING.setting().get(settings), STATS_OPERATIONS_LOG_EXPIRATION_SETTING.setting().get(settings));
 
         clusterSettings.addSettingsUpdateConsumer(STATS_JOBS_LOG_FILTER.setting(), filter -> {
+            ExpressionsInput<JobContextLog, Boolean> newFilter;
             try {
-                this.filter = createFilter(filter);
+                newFilter = createFilter(filter, STATS_JOBS_LOG_FILTER.getKey());
             } catch (Throwable t) {
                 logger.error("Could not update {}, error: {}", STATS_JOBS_LOG_FILTER.getKey(), t);
                 return;
             }
-            updateJobSink(jobsLogSize, jobsLogExpiration);
+            if (!JobsLogService.this.memoryFilter.equals(newFilter)) {
+                JobsLogService.this.memoryFilter = newFilter;
+                updateJobSink(jobsLogSize, jobsLogExpiration);
+            }
+        });
+        clusterSettings.addSettingsUpdateConsumer(STATS_JOBS_LOG_PERSIST_FILTER.setting(), filter -> {
+            ExpressionsInput<JobContextLog, Boolean> newFilter;
+            try {
+                newFilter = createFilter(filter, STATS_JOBS_LOG_PERSIST_FILTER.getKey());
+            } catch (Throwable t) {
+                logger.error("Could not update {}, error: {}", STATS_JOBS_LOG_PERSIST_FILTER.getKey(), t);
+                return;
+            }
+            if (!JobsLogService.this.persistFilter.equals(newFilter)) {
+                JobsLogService.this.persistFilter = newFilter;
+                updateJobSink(jobsLogSize, jobsLogExpiration);
+            }
         });
         clusterSettings.addSettingsUpdateConsumer(STATS_ENABLED_SETTING.setting(), this::setStatsEnabled);
         clusterSettings.addSettingsUpdateConsumer(
@@ -184,7 +214,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             STATS_OPERATIONS_LOG_SIZE_SETTING.setting(), STATS_OPERATIONS_LOG_EXPIRATION_SETTING.setting(), this::setOperationsLogSink);
     }
 
-    private Tuple<Input<Boolean>, List<NestableCollectExpression<JobContextLog, ?>>> createFilter(String filterExpression) {
+    private ExpressionsInput<JobContextLog, Boolean> createFilter(String filterExpression, String settingName) {
         Symbol filter;
         try {
             filter = normalizer.normalize(
@@ -196,12 +226,12 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         }
         if (!filter.valueType().equals(DataTypes.BOOLEAN)) {
             throw new IllegalArgumentException(
-                "Filter expression for sys.jobs_log must result in a boolean, not: " + filter.valueType());
+                "Filter expression for " + settingName + " must result in a boolean, not: " + filter.valueType());
         }
         InputFactory.Context<NestableCollectExpression<JobContextLog, ?>> ctx = inputFactory.ctxForRefs(refResolver);
         @SuppressWarnings("unchecked")
         Input<Boolean> filterInput = (Input<Boolean>) ctx.add(filter);
-        return tuple(filterInput, ctx.expressions());
+        return new ExpressionsInput<>(filterInput, ctx.expressions());
     }
 
     private void setJobsLogSink(int size, TimeValue expiration) {
@@ -217,8 +247,14 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         LogSink<JobContextLog> sink = createSink(
             size, expiration, JOB_CONTEXT_LOG_ESTIMATOR, CrateCircuitBreakerService.JOBS_LOG);
         LogSink<JobContextLog> newSink = sink.equals(NoopLogSink.instance()) ? sink : new FilteredLogSink<>(
-            filter.v1(),
-            filter.v2(),
+            memoryFilter,
+            persistFilter,
+            jobContextLog -> new ParameterizedMessage(
+                "Statement execution: stmt=\"{}\" duration={}, error=\"{}\"",
+                jobContextLog.statement(),
+                jobContextLog.ended() - jobContextLog.started(),
+                jobContextLog.errorMessage()
+            ),
             sink
         );
         LogSink<JobContextLog> oldSink = jobsLogSink;

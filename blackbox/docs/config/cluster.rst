@@ -90,7 +90,7 @@ Collecting Stats
      settings are disabled, jobs will not be recorded.
 
 **stats.jobs_log_filter**
-  | *Default:* ``true`` (Include all jobs)
+  | *Default:* ``true`` (Include everything)
   | *Runtime:* ``yes``
 
   An expression to determine if a job should be recorded into ``sys.jobs_log``.
@@ -104,6 +104,20 @@ Collecting Stats
 
     cr> SET GLOBAL "stats.jobs_log_filter" = 'ended - started > 100';
 
+**stats.jobs_log_persistent_filter**
+  | *Default:* ``false`` (Include nothing)
+  | *Runtime:* ``yes``
+
+  An expression to determine if a job should also be recorded to the regular
+  ``CrateDB`` log. Entries that match this filter will be logged under the
+  ``StatementLog`` logger with the ``INFO`` level.
+
+  This is similar to ``stats.jobs_log_filter`` except that these entries are
+  persisted to the log file. This should be used with caution and shouldn't be
+  set to an expression that matches many queries as the logging operation will
+  block on IO and can therefore affect performance.
+
+  A common use case is to use this for slow query logging.
 
 .. _stats.operations_log_size:
 
