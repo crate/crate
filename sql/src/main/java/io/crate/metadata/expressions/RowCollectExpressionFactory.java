@@ -21,7 +21,7 @@
 
 package io.crate.metadata.expressions;
 
-import io.crate.metadata.NestableCollectExpression;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 
 public interface RowCollectExpressionFactory<T> {
 

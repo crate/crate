@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 

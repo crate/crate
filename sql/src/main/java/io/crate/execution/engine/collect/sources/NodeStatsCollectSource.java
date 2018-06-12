@@ -42,7 +42,7 @@ import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.LocalSysColReferenceResolver;
-import io.crate.metadata.NestableCollectExpression;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import org.elasticsearch.cluster.node.DiscoveryNode;

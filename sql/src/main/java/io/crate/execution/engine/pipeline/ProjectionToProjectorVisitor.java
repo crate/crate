@@ -79,7 +79,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.NestableCollectExpression;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;

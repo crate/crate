@@ -22,6 +22,7 @@
 
 package io.crate.metadata;
 
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.sys.node.NodeStatsContext;

@@ -24,7 +24,7 @@ package io.crate.expression.reference;
 
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.expression.NestableInput;
-import io.crate.metadata.NestableCollectExpression;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 
 import java.util.ArrayList;
 import java.util.List;

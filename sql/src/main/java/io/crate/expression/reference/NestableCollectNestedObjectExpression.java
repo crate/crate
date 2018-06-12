@@ -22,7 +22,7 @@
 package io.crate.expression.reference;
 
 import io.crate.expression.NestableInput;
-import io.crate.metadata.NestableCollectExpression;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Collections;

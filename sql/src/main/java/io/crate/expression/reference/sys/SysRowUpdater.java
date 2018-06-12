@@ -24,7 +24,7 @@ package io.crate.expression.reference.sys;
 
 import io.crate.data.Input;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.NestableCollectExpression;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.execution.engine.collect.CollectExpression;
 
 import java.util.Collection;
