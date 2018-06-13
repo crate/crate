@@ -366,5 +366,38 @@ is returned::
     cr> DROP FUNCTION utc(long, long, long);
     DROP OK, 1 row affected  (... sec)
 
+Working With ``Array`` Methods
+------------------------------
+
+The JavaScript ``Array`` object has a number of prototype methods you can
+use, such as `join`_, `map`_, `sort`_, `slice`_, `reduce`_, and so on.
+
+Normally, you can call these methods directly from an ``Array`` object, like so:
+
+.. code-block:: js
+
+    function array_join(a, b) {
+        return a.join(b);
+    }
+
+However, when writing JavaScript for use with CrateDB, you must explicitly use
+the prototype method:
+
+.. code-block:: js
+
+    function array_join(a, b) {
+        return Array.prototype.join.call(a, b);
+    }
+
+You must do it like this because arguments are not passed as ``Array`` objects,
+and so do not have the associated prototype methods available. Arguments are instead
+passed as array-like objects.
+
+.. _join: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/join
+.. _map: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
+.. _sort: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
+.. _slice: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/slice
+.. _reduce: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce
+
 .. _Nashorn: http://www.oracle.com/technetwork/articles/java/jf14-nashorn-2126515.html
 .. _ECMAScript 5.1: https://www.ecma-international.org/ecma-262/5.1/
