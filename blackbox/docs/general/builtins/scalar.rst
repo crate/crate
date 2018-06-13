@@ -1777,6 +1777,102 @@ Example::
     SELECT 1 row in set (... sec)
 
 
+
+Special Functions
+=================
+
+.. _ignore3vl:
+
+``ignore3vl(boolean)``
+----------------------
+
+The ``ignore3vl`` function operates on a boolean argument and eliminates the
+`3-valued logic`_ on the whole tree of operators beneath it. More specifically,
+``FALSE`` is evaluated to ``FALSE``, ``TRUE`` to ``TRUE`` and ``NULL`` to
+``FALSE``.
+
+Returns: ``boolean``
+
+.. hide:
+
+    cr> CREATE TABLE IF NOT EXISTS doc.t(
+    ...     int_array_col array(integer)
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+    cr> INSERT INTO doc.t(int_array_col)
+    ...   VALUES ([1,2,3, null]);
+    INSERT OK, 1 row affected (... sec)
+
+    cr> REFRESH table doc.t;
+    REFRESH OK, 1 row affected (... sec)
+
+.. NOTE::
+
+    The main usage of the ``ignore3vl`` function is in the ``WHERE`` clause
+    when a ``NOT`` operator is involved. Such filtering, with
+    `3-valued logic`_, cannot be translated to an optimized query in the
+    internal storage engine, and therefore can result into slow performance.
+    E.g.::
+
+      SELECT * FROM t
+      WHERE NOT 5 = ANY(t.int_array_col);
+
+    If we can ignore the `3-valued logic`_, we can write the query as::
+
+      SELECT * FROM t
+      WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col));
+
+    which will yield better performance (in execution time) than before.
+
+    .. CAUTION::
+
+      If there are NULL values in the `long_array_col`, in the case that
+      `5 = ANY(t.long_array_col)` evaluates to ``NULL``, without the
+      ``ignore3vl``, it would be evaluated as ``NOT NULL`` => ``NULL``,
+      resulting to zero matched rows. With the ``IGNORE3VL`` in place it will
+      be evaluated as ``NOT FALSE`` => ``TRUE`` resulting to all rows matching
+      the filter. E.g::
+
+        cr> SELECT * FROM t
+        ... WHERE NOT 5 = ANY(t.int_array_col);
+        +---------------+
+        | int_array_col |
+        +---------------+
+        +---------------+
+        SELECT 0 rows in set (... sec)
+
+      ::
+
+        cr> SELECT * FROM t
+        ... WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col));
+        +-----------------+
+        | int_array_col   |
+        +-----------------+
+        | [1, 2, 3, null] |
+        +-----------------+
+        SELECT 1 row in set (... sec)
+
+.. hide:
+
+   cr> DROP TABLE IF EXISTS doc.t;
+   DROP OK, 1 row affected (... sec)
+
+
+Synopsis::
+
+    ignore3vl(boolean)
+
+Example::
+
+    cr> SELECT ignore3vl(true) as v1, ignore3vl(false) as v2, ignore3vl(null) as v3 FROM sys.cluster
+    +------+-------+-------+
+    | v1   | v2    | v3    |
+    +------+-------+-------+
+    | TRUE | FALSE | FALSE |
+    +------+-------+-------+
+    SELECT 1 row in set (... sec)
+
 .. rubric:: Footnotes
 
 .. [#MySQL-Docs] http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
@@ -1786,3 +1882,4 @@ Example::
 .. _`MySQL date_format`: http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
 .. _`Haversine formula`: https://en.wikipedia.org/wiki/Haversine_formula
 .. _`CrateDB PDO`: https://crate.io/docs/reference/pdo/usage.html#dsn
+.. _`3-valued logic`: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
