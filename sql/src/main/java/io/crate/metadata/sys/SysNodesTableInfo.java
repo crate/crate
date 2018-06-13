@@ -163,6 +163,8 @@ public class SysNodesTableInfo extends StaticTableInfo {
         static final ColumnIdent CONNECTIONS_PSQL = ColumnIdent.getChild(CONNECTIONS, "psql");
         static final ColumnIdent CONNECTIONS_PSQL_OPEN = ColumnIdent.getChild(CONNECTIONS_PSQL, "open");
         static final ColumnIdent CONNECTIONS_PSQL_TOTAL = ColumnIdent.getChild(CONNECTIONS_PSQL, "total");
+        static final ColumnIdent CONNECTIONS_TRANSPORT = ColumnIdent.getChild(CONNECTIONS, "transport");
+        static final ColumnIdent CONNECTIONS_TRANSPORT_OPEN = ColumnIdent.getChild(CONNECTIONS_TRANSPORT, "open");
 
         public static final ColumnIdent OS = new ColumnIdent(SYS_COL_OS);
         static final ColumnIdent OS_UPTIME = new ColumnIdent(SYS_COL_OS, ImmutableList.of("uptime"));
@@ -405,6 +407,13 @@ public class SysNodesTableInfo extends StaticTableInfo {
                             NodeStatsContext::psqlStats,
                             ConnectionStats::total)
                     )
+                ),
+                Columns.CONNECTIONS_TRANSPORT.path().get(0),
+                new ObjectCollectExpression<NodeStatsContext>(
+                    ImmutableMap.of(
+                        Columns.CONNECTIONS_TRANSPORT_OPEN.path().get(1),
+                        forFunction(NodeStatsContext::openTransportConnections)
+                    )
                 )
             )
         );
@@ -478,6 +487,8 @@ public class SysNodesTableInfo extends StaticTableInfo {
                 .register(Columns.CONNECTIONS_PSQL, DataTypes.OBJECT)
                 .register(Columns.CONNECTIONS_PSQL_OPEN, DataTypes.LONG)
                 .register(Columns.CONNECTIONS_PSQL_TOTAL, DataTypes.LONG)
+                .register(Columns.CONNECTIONS_TRANSPORT, DataTypes.OBJECT)
+                .register(Columns.CONNECTIONS_TRANSPORT_OPEN, DataTypes.LONG)
 
                 .register(Columns.OS, DataTypes.OBJECT)
                 .register(Columns.OS_UPTIME, DataTypes.LONG)

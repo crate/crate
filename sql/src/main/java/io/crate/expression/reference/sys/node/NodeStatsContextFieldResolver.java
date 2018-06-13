@@ -50,6 +50,7 @@ import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.process.ProcessService;
 import org.elasticsearch.node.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
 import java.net.InetAddress;
@@ -59,6 +60,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import static io.crate.expression.reference.sys.node.Ports.portFromAddress;
@@ -74,6 +76,7 @@ public class NodeStatsContextFieldResolver {
     private final ExtendedNodeInfo extendedNodeInfo;
     private final Supplier<ConnectionStats> psqlStats;
     private final Supplier<TransportAddress> boundPostgresAddress;
+    private final LongSupplier numOpenTransportConnections;
     private final ProcessService processService;
     private final OsService osService;
     private final JvmService jvmService;
@@ -84,6 +87,7 @@ public class NodeStatsContextFieldResolver {
     public NodeStatsContextFieldResolver(ClusterService clusterService,
                                          NodeService nodeService,
                                          @Nullable HttpServerTransport httpServerTransport,
+                                         TransportService transportService,
                                          ThreadPool threadPool,
                                          ExtendedNodeInfo extendedNodeInfo,
                                          PostgresNetty postgresNetty) {
@@ -101,7 +105,8 @@ public class NodeStatsContextFieldResolver {
                     return null;
                 }
                 return boundTransportAddress.publishAddress();
-            }
+            },
+            () -> transportService.stats().getServerOpen()
         );
     }
 
@@ -113,7 +118,8 @@ public class NodeStatsContextFieldResolver {
                                   ThreadPool threadPool,
                                   ExtendedNodeInfo extendedNodeInfo,
                                   Supplier<ConnectionStats> psqlStats,
-                                  Supplier<TransportAddress> boundPostgresAddress) {
+                                  Supplier<TransportAddress> boundPostgresAddress,
+                                  LongSupplier numOpenTransportConnections) {
         this.localNode = localNode;
         processService = monitorService.processService();
         osService = monitorService.osService();
@@ -125,6 +131,7 @@ public class NodeStatsContextFieldResolver {
         this.extendedNodeInfo = extendedNodeInfo;
         this.psqlStats = psqlStats;
         this.boundPostgresAddress = boundPostgresAddress;
+        this.numOpenTransportConnections = numOpenTransportConnections;
     }
 
     public NodeStatsContext forTopColumnIdents(Collection<ColumnIdent> topColumnIdents) {
@@ -228,6 +235,7 @@ public class NodeStatsContextFieldResolver {
                 public void accept(NodeStatsContext nodeStatsContext) {
                     nodeStatsContext.httpStats(httpStatsSupplier.get());
                     nodeStatsContext.psqlStats(psqlStats.get());
+                    nodeStatsContext.openTransportConnections(numOpenTransportConnections.getAsLong());
                 }
             })
             .put(SysNodesTableInfo.Columns.OS, new Consumer<NodeStatsContext>() {

@@ -19,8 +19,8 @@ Changes
 =======
 
 - Added a new ``connections`` column to the ``sys.nodes`` table which contains
-  the number of currently open ``HTTP`` connections and the total number of
-  ``HTTP`` connections opened over the life-time of a node.
+  the number of currently open connections per protocol and the total number of
+  connections per protocol opened over the life-time of a node.
 
 - Added support for ``COPY FROM ... RETURN SUMMARY`` which will return a result
   set with detailed error reporting of imported rows.

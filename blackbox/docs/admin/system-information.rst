@@ -605,46 +605,58 @@ in subsequent versions. All ``LONG`` columns always return ``0``.
 ``connections``
 ---------------
 
-+---------------------------------------+-------------------+-------------------+
-| Column Name                           | Description       | Return Type       |
-+=======================================+===================+===================+
-| ``http``                              | Number of         | ``OBJECT``        |
-|                                       | connections       |                   |
-|                                       | established via   |                   |
-|                                       | HTTP              |                   |
-+---------------------------------------+-------------------+-------------------+
-| ``http['open']``                      | The currently     | ``LONG``          |
-|                                       | open connections  |                   |
-|                                       | established via   |                   |
-|                                       | HTTP              |                   |
-+---------------------------------------+-------------------+-------------------+
-| ``http['total']``                     | The total number  | ``LONG``          |
-|                                       | of connections    |                   |
-|                                       | that have been    |                   |
-|                                       | established via   |                   |
-|                                       | HTTP over the     |                   |
-|                                       | life time of a    |                   |
-|                                       | CrateDB node      |                   |
-+---------------------------------------+-------------------+-------------------+
-| ``psql``                              | Number of         | ``OBJECT``        |
-|                                       | connections       |                   |
-|                                       | established via   |                   |
-|                                       | Postgres protocol |                   |
-+---------------------------------------+-------------------+-------------------+
-| ``psql['open']``                      | The currently     | ``LONG``          |
-|                                       | open connections  |                   |
-|                                       | established via   |                   |
-|                                       | Postgres protocol |                   |
-+---------------------------------------+-------------------+-------------------+
-| ``psql['total']``                     | The total number  | ``LONG``          |
-|                                       | of connections    |                   |
-|                                       | that have been    |                   |
-|                                       | established via   |                   |
-|                                       | Postgres protocol |                   |
-|                                       | over the life     |                   |
-|                                       | time of a CrateDB |                   |
-|                                       | node              |                   |
-+---------------------------------------+-------------------+-------------------+
++-------------------------------------+-------------------+-------------------+
+| Column Name                         | Description       | Return Type       |
++=====================================+===================+===================+
+| ``http``                            | Number of         | ``OBJECT``        |
+|                                     | connections       |                   |
+|                                     | established via   |                   |
+|                                     | HTTP              |                   |
++-------------------------------------+-------------------+-------------------+
+| ``http['open']``                    | The currently     | ``LONG``          |
+|                                     | open connections  |                   |
+|                                     | established via   |                   |
+|                                     | HTTP              |                   |
++-------------------------------------+-------------------+-------------------+
+| ``http['total']``                   | The total number  | ``LONG``          |
+|                                     | of connections    |                   |
+|                                     | that have been    |                   |
+|                                     | established via   |                   |
+|                                     | HTTP over the     |                   |
+|                                     | life time of a    |                   |
+|                                     | CrateDB node      |                   |
++-------------------------------------+-------------------+-------------------+
+| ``psql``                            | Number of         | ``OBJECT``        |
+|                                     | connections       |                   |
+|                                     | established via   |                   |
+|                                     | Postgres protocol |                   |
++-------------------------------------+-------------------+-------------------+
+| ``psql['open']``                    | The currently     | ``LONG``          |
+|                                     | open connections  |                   |
+|                                     | established via   |                   |
+|                                     | Postgres protocol |                   |
++-------------------------------------+-------------------+-------------------+
+| ``psql['total']``                   | The total number  | ``LONG``          |
+|                                     | of connections    |                   |
+|                                     | that have been    |                   |
+|                                     | established via   |                   |
+|                                     | Postgres protocol |                   |
+|                                     | over the life     |                   |
+|                                     | time of a CrateDB |                   |
+|                                     | node              |                   |
++-------------------------------------+-------------------+-------------------+
+| ``transport``                       | Number of         | ``OBJECT``        |
+|                                     | connections       |                   |
+|                                     | established via   |                   |
+|                                     | Transport         |                   |
+|                                     | protocol          |                   |
++-------------------------------------+-------------------+-------------------+
+| ``transport['open']``               | The currently     | ``LONG``          |
+|                                     | open connections  |                   |
+|                                     | established via   |                   |
+|                                     | Transport         |                   |
+|                                     | protocol          |                   |
++-------------------------------------+-------------------+-------------------+
 
 
 ``process``

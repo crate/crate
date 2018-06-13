@@ -75,6 +75,7 @@ public class NodeStatsContext implements Streamable {
     private BytesRef jvmName;
     private BytesRef jvmVendor;
     private BytesRef jvmVersion;
+    private long openTransportConnections = 0L;
 
     public NodeStatsContext(String id, String name) {
         this(false);
@@ -195,6 +196,10 @@ public class NodeStatsContext implements Streamable {
         return psqlStats;
     }
 
+    public long openTransportConnections() {
+        return openTransportConnections;
+    }
+
     public void id(BytesRef id) {
         this.id = id;
     }
@@ -263,6 +268,10 @@ public class NodeStatsContext implements Streamable {
         this.psqlStats = psqlStats;
     }
 
+    void openTransportConnections(long openTransportConnections) {
+        this.openTransportConnections = openTransportConnections;
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
         id = DataTypes.STRING.readValueFrom(in);
@@ -290,6 +299,7 @@ public class NodeStatsContext implements Streamable {
         threadPools = in.readBoolean() ? ThreadPools.readThreadPools(in) : null;
         httpStats = in.readOptionalWriteable(HttpStats::new);
         psqlStats = in.readOptionalWriteable(ConnectionStats::new);
+        openTransportConnections = in.readLong();
 
         osName = DataTypes.STRING.readValueFrom(in);
         osArch = DataTypes.STRING.readValueFrom(in);
@@ -332,6 +342,7 @@ public class NodeStatsContext implements Streamable {
         out.writeOptionalStreamable(threadPools);
         out.writeOptionalWriteable(httpStats);
         out.writeOptionalWriteable(psqlStats);
+        out.writeLong(openTransportConnections);
 
         DataTypes.STRING.writeValueTo(out, osName);
         DataTypes.STRING.writeValueTo(out, osArch);
@@ -341,4 +352,5 @@ public class NodeStatsContext implements Streamable {
         DataTypes.STRING.writeValueTo(out, jvmVendor);
         DataTypes.STRING.writeValueTo(out, jvmVersion);
     }
+
 }
