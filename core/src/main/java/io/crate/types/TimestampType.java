@@ -24,8 +24,12 @@ package io.crate.types;
 import io.crate.Streamer;
 import io.crate.TimestampFormat;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-public class TimestampType extends LongType implements Streamer<Long> {
+import java.io.IOException;
+
+public class TimestampType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
 
     public static final TimestampType INSTANCE = new TimestampType();
     public static final int ID = 11;
@@ -39,8 +43,18 @@ public class TimestampType extends LongType implements Streamer<Long> {
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.LongType;
+    }
+
+    @Override
     public String getName() {
         return "timestamp";
+    }
+
+    @Override
+    public Streamer<Long> streamer() {
+        return this;
     }
 
     @Override
@@ -68,11 +82,39 @@ public class TimestampType extends LongType implements Streamer<Long> {
         return (Long) value;
     }
 
+    @Override
+    public int compareValueTo(Long val1, Long val2) {
+        return nullSafeCompareValueTo(val1, val2, Long::compare);
+    }
+
     private Long valueFromString(String s) {
         try {
             return Long.valueOf(s);
         } catch (NumberFormatException e) {
             return TimestampFormat.parseTimestampString(s);
         }
+    }
+
+    @Override
+    public Long readValueFrom(StreamInput in) throws IOException {
+        return in.readBoolean() ? null : in.readLong();
+    }
+
+    @Override
+    public void writeValueTo(StreamOutput out, Long v) throws IOException {
+        out.writeBoolean(v == null);
+        if (v != null) {
+            out.writeLong(v);
+        }
+    }
+
+    @Override
+    public int fixedSize() {
+        return 16; // 8 object overhead, 8 long
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof TimestampType;
     }
 }
