@@ -60,6 +60,10 @@ public class ExplainAnalyzeIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(executeAnalysis, is(notNullValue()));
         assertTrue(executeAnalysis.keySet().contains("Total"));
 
+        Map<String, Map<String, Object>> phasesAnalysis = (Map<String, Map<String, Object>>) executeAnalysis.get("Phases");
+        assertThat(phasesAnalysis, is(notNullValue()));
+        assertThat(phasesAnalysis.size(), is(3));
+
         DiscoveryNodes nodes = clusterService().state().nodes();
         for (DiscoveryNode discoveryNode : nodes) {
             if (discoveryNode.isDataNode()) {

@@ -23,12 +23,14 @@
 package io.crate.planner.node.management;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.NodeOperationGrouper;
 import io.crate.execution.dsl.phases.NodeOperationTree;
@@ -51,8 +53,11 @@ import org.elasticsearch.common.collect.MapBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -152,7 +157,8 @@ public class ExplainPlan implements Plan {
             context.stopTimerAndStoreDuration(timer);
             if (t == null) {
                 OneRowActionListener<Map<String, Map<String, Object>>> actionListener =
-                    new OneRowActionListener<>(consumer, resp -> buildResponse(context.getDurationInMSByTimer(), resp));
+                    new OneRowActionListener<>(consumer,
+                        resp -> buildResponse(context.getDurationInMSByTimer(), resp, operationTree));
                 collectTimingResults(jobId, executor, operationTree.nodeOperations())
                     .whenComplete(actionListener);
             } else {
@@ -167,16 +173,102 @@ public class ExplainPlan implements Plan {
         return new TransportCollectProfileOperation(nodeAction, jobId);
     }
 
-    private Row buildResponse(Map<String, Object> apeTimings, Map<String, Map<String, Object>> nodeTimings) {
+    private Row buildResponse(Map<String, Object> apeTimings,
+                              Map<String, Map<String, Object>> timingsByNodeId,
+                              NodeOperationTree operationTree) {
         MapBuilder<String, Object> mapBuilder = MapBuilder.newMapBuilder();
         apeTimings.forEach(mapBuilder::put);
 
+        // Each node collects the timings for each phase it executes. We want to extract the phases from each node
+        // under a dedicated "Phases" key so it's easier for the user to follow the execution.
+        // So we'll transform the response from what the nodes send which looks like this:
+        //
+        // "Execute": {
+        //      "nodeId1": {"0-collect": 23, "2-fetchPhase": 334, "QueryBreakDown": {...}}
+        //      "nodeId2": {"0-collect": 12, "2-fetchPhase": 222, "QueryBreakDown": {...}}
+        //  }
+        //
+        // To:
+        // "Execute": {
+        //      "Phases": {
+        //         "0-collect": {
+        //              "nodes": {"nodeId1": 23, "nodeId2": 12}
+        //          },
+        //         "2-fetchPhase": {
+        //              "nodes": {"nodeId1": 334, "nodeId2": 222}
+        //          }
+        //      }
+        //      "nodeId1": {"QueryBreakDown": {...}}
+        //      "nodeId2": {"QueryBreakDown": {...}}
+        //  }
+
+        Map<String, Object> phasesTimings = extractPhasesTimingsFrom(timingsByNodeId, operationTree);
+        Map<String, Map<String, Object>> resultNodeTimings = getNodeTimingsWithoutPhases(phasesTimings.keySet(), timingsByNodeId);
         MapBuilder<String, Object> executionTimingsMap = MapBuilder.newMapBuilder();
-        nodeTimings.forEach(executionTimingsMap::put);
+        executionTimingsMap.put("Phases", phasesTimings);
+        resultNodeTimings.forEach(executionTimingsMap::put);
         executionTimingsMap.put("Total", apeTimings.get(Phase.Execute.name()));
 
         mapBuilder.put(Phase.Execute.name(), executionTimingsMap.immutableMap());
         return new Row1(mapBuilder.immutableMap());
+    }
+
+    private static Map<String, Object> extractPhasesTimingsFrom(Map<String, Map<String, Object>> timingsByNodeId,
+                                                                NodeOperationTree operationTree) {
+        Map<String, Object> allPhases = new TreeMap<>();
+        for (NodeOperation operation : operationTree.nodeOperations()) {
+            ExecutionPhase phase = operation.executionPhase();
+            getPhaseTimingsAndAddThemToPhasesMap(phase, timingsByNodeId, allPhases);
+        }
+
+        ExecutionPhase leafExecutionPhase = operationTree.leaf();
+        getPhaseTimingsAndAddThemToPhasesMap(leafExecutionPhase, timingsByNodeId, allPhases);
+
+        return allPhases;
+    }
+
+    private static void getPhaseTimingsAndAddThemToPhasesMap(ExecutionPhase leafExecutionPhase,
+                                                             Map<String, Map<String, Object>> timingsByNodeId,
+                                                             Map<String, Object> allPhases) {
+        String phaseName = ProfilingContext.generateProfilingKey(leafExecutionPhase.phaseId(), leafExecutionPhase.name());
+        Map<String, Object> phaseTimingsAcrossNodes = getPhaseTimingsAcrossNodes(phaseName, timingsByNodeId);
+
+        if (!phaseTimingsAcrossNodes.isEmpty()) {
+            allPhases.put(phaseName, ImmutableMap.of("nodes", phaseTimingsAcrossNodes));
+        }
+    }
+
+    private static Map<String, Object> getPhaseTimingsAcrossNodes(String phaseName,
+                                                                  Map<String, Map<String, Object>> timingsByNodeId) {
+        Map<String, Object> timingsForPhaseAcrossNodes = new HashMap<>();
+        for (Map.Entry<String, Map<String, Object>> nodeToTimingsEntry : timingsByNodeId.entrySet()) {
+            Map<String, Object> timingsForNode = nodeToTimingsEntry.getValue();
+            if (timingsForNode != null) {
+                Object phaseTiming = timingsForNode.get(phaseName);
+                if (phaseTiming != null) {
+                    String node = nodeToTimingsEntry.getKey();
+                    timingsForPhaseAcrossNodes.put(node, phaseTiming);
+                }
+            }
+        }
+
+        return Collections.unmodifiableMap(timingsForPhaseAcrossNodes);
+    }
+
+    private static Map<String, Map<String, Object>> getNodeTimingsWithoutPhases(Set<String> phasesNames,
+                                                                                Map<String, Map<String, Object>> timingsByNodeId) {
+        Map<String, Map<String, Object>> nodeTimingsWithoutPhases = new HashMap<>(timingsByNodeId.size());
+        for (Map.Entry<String, Map<String, Object>> nodeToTimingsEntry : timingsByNodeId.entrySet()) {
+            nodeTimingsWithoutPhases.put(nodeToTimingsEntry.getKey(), new HashMap<>(nodeToTimingsEntry.getValue()));
+        }
+
+        for (Map<String, Object> timings : nodeTimingsWithoutPhases.values()) {
+            for (String phaseToRemove : phasesNames) {
+                timings.remove(phaseToRemove);
+            }
+        }
+
+        return Collections.unmodifiableMap(nodeTimingsWithoutPhases);
     }
 
     private CompletableFuture<Map<String, Map<String, Object>>> collectTimingResults(UUID jobId,

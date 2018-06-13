@@ -95,4 +95,8 @@ public class ProfilingContext {
     public Timer createTimer(String name) {
         return new Timer(name);
     }
+
+    public static String generateProfilingKey(int id, String name) {
+        return id + "-" + name;
+    }
 }

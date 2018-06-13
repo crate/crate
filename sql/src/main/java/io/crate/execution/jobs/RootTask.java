@@ -154,7 +154,7 @@ public class RootTask implements CompletionListenable {
                 throw new IllegalArgumentException("Task for " + phaseId + " already added");
             }
             if (profiler != null) {
-                String subContextName = String.format(Locale.ROOT, "%d-%s", task.id(), task.name());
+                String subContextName = ProfilingContext.generateProfilingKey(task.id(), task.name());
                 if (taskTimersByPhaseId.put(phaseId, profiler.createTimer(subContextName)) != null) {
                     throw new IllegalArgumentException("Timer for " + phaseId + " already added");
                 }
