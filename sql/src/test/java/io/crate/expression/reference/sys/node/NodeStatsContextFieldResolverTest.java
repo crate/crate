@@ -28,6 +28,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
+import io.crate.protocols.ConnectionStats;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpStats;
@@ -80,6 +81,7 @@ public class NodeStatsContextFieldResolverTest {
             () -> new HttpStats(20L, 30L),
             mock(ThreadPool.class),
             new ExtendedNodeInfo(),
+            () -> new ConnectionStats(2L, 4L),
             () -> postgresAddress
         );
     }
@@ -106,6 +108,24 @@ public class NodeStatsContextFieldResolverTest {
         NestableCollectExpression total = (NestableCollectExpression) http.getChild("total");
         total.setNextRow(statsContext);
         assertThat(total.value(), is(30L));
+    }
+
+    @Test
+    public void testNumberOfPSqlConnectionsCanBeRetrieved() {
+        NodeStatsContext statsContext = resolver.forTopColumnIdents(
+            Collections.singletonList(SysNodesTableInfo.Columns.CONNECTIONS));
+        RowCollectExpressionFactory<NodeStatsContext> expressionFactory =
+            SysNodesTableInfo.expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
+        NestableCollectExpression<NodeStatsContext, ?> expression = expressionFactory.create();
+
+        NestableCollectExpression psql = (NestableCollectExpression) expression.getChild("psql");
+        NestableCollectExpression open = (NestableCollectExpression) psql.getChild("open");
+        open.setNextRow(statsContext);
+        assertThat(open.value(), is(2L));
+
+        NestableCollectExpression total = (NestableCollectExpression) psql.getChild("total");
+        total.setNextRow(statsContext);
+        assertThat(total.value(), is(4L));
     }
 
     @Test

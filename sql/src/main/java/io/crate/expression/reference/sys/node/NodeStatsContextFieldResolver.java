@@ -30,6 +30,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ThreadPools;
+import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.postgres.PostgresNetty;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -71,6 +72,7 @@ public class NodeStatsContextFieldResolver {
     private final Supplier<HttpStats> httpStatsSupplier;
     private final ThreadPool threadPool;
     private final ExtendedNodeInfo extendedNodeInfo;
+    private final Supplier<ConnectionStats> psqlStats;
     private final Supplier<TransportAddress> boundPostgresAddress;
     private final ProcessService processService;
     private final OsService osService;
@@ -92,6 +94,7 @@ public class NodeStatsContextFieldResolver {
             () -> httpServerTransport == null ? null : httpServerTransport.stats(),
             threadPool,
             extendedNodeInfo,
+            () -> new ConnectionStats(postgresNetty.openConnections(), postgresNetty.totalConnections()),
             () -> {
                 BoundTransportAddress boundTransportAddress = postgresNetty.boundAddress();
                 if (boundTransportAddress == null) {
@@ -109,6 +112,7 @@ public class NodeStatsContextFieldResolver {
                                   Supplier<HttpStats> httpStatsSupplier,
                                   ThreadPool threadPool,
                                   ExtendedNodeInfo extendedNodeInfo,
+                                  Supplier<ConnectionStats> psqlStats,
                                   Supplier<TransportAddress> boundPostgresAddress) {
         this.localNode = localNode;
         processService = monitorService.processService();
@@ -119,6 +123,7 @@ public class NodeStatsContextFieldResolver {
         this.boundHttpAddress = boundHttpAddress;
         this.threadPool = threadPool;
         this.extendedNodeInfo = extendedNodeInfo;
+        this.psqlStats = psqlStats;
         this.boundPostgresAddress = boundPostgresAddress;
     }
 
@@ -222,6 +227,7 @@ public class NodeStatsContextFieldResolver {
                 @Override
                 public void accept(NodeStatsContext nodeStatsContext) {
                     nodeStatsContext.httpStats(httpStatsSupplier.get());
+                    nodeStatsContext.psqlStats(psqlStats.get());
                 }
             })
             .put(SysNodesTableInfo.Columns.OS, new Consumer<NodeStatsContext>() {

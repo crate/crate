@@ -54,6 +54,7 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.monitor.FsInfoHelpers;
 import io.crate.monitor.ThreadPools;
+import io.crate.protocols.ConnectionStats;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -159,6 +160,9 @@ public class SysNodesTableInfo extends StaticTableInfo {
         static final ColumnIdent CONNECTIONS_HTTP = ColumnIdent.getChild(CONNECTIONS, "http");
         static final ColumnIdent CONNECTIONS_HTTP_OPEN = ColumnIdent.getChild(CONNECTIONS_HTTP, "open");
         static final ColumnIdent CONNECTIONS_HTTP_TOTAL = ColumnIdent.getChild(CONNECTIONS_HTTP, "total");
+        static final ColumnIdent CONNECTIONS_PSQL = ColumnIdent.getChild(CONNECTIONS, "psql");
+        static final ColumnIdent CONNECTIONS_PSQL_OPEN = ColumnIdent.getChild(CONNECTIONS_PSQL, "open");
+        static final ColumnIdent CONNECTIONS_PSQL_TOTAL = ColumnIdent.getChild(CONNECTIONS_PSQL, "total");
 
         public static final ColumnIdent OS = new ColumnIdent(SYS_COL_OS);
         static final ColumnIdent OS_UPTIME = new ColumnIdent(SYS_COL_OS, ImmutableList.of("uptime"));
@@ -369,24 +373,41 @@ public class SysNodesTableInfo extends StaticTableInfo {
                     return BytesRefs.toBytesRef(input.getPath());
                 }
             })
-            .put(Columns.CONNECTIONS, () -> new ObjectCollectExpression<>(
-                ImmutableMap.of(
-                    Columns.CONNECTIONS_HTTP.path().get(0),
-                    new ObjectCollectExpression<NodeStatsContext>(
-                        ImmutableMap.of(
-                            Columns.CONNECTIONS_HTTP_OPEN.path().get(1),
-                            NestableCollectExpression.<NodeStatsContext, HttpStats>withNullableProperty(
-                                NodeStatsContext::httpStats,
-                                HttpStats::getServerOpen),
-                            Columns.CONNECTIONS_HTTP_TOTAL.path().get(1),
-                            NestableCollectExpression.<NodeStatsContext, HttpStats>withNullableProperty(
-                                NodeStatsContext::httpStats,
-                                HttpStats::getTotalOpen)
-                        )
+            .put(Columns.CONNECTIONS, SysNodesTableInfo::createConnectionsExpression)
+            .build();
+    }
+
+    private static ObjectCollectExpression<NodeStatsContext> createConnectionsExpression() {
+        return new ObjectCollectExpression<>(
+            ImmutableMap.of(
+                Columns.CONNECTIONS_HTTP.path().get(0),
+                new ObjectCollectExpression<NodeStatsContext>(
+                    ImmutableMap.of(
+                        Columns.CONNECTIONS_HTTP_OPEN.path().get(1),
+                        NestableCollectExpression.<NodeStatsContext, HttpStats>withNullableProperty(
+                            NodeStatsContext::httpStats,
+                            HttpStats::getServerOpen),
+                        Columns.CONNECTIONS_HTTP_TOTAL.path().get(1),
+                        NestableCollectExpression.<NodeStatsContext, HttpStats>withNullableProperty(
+                            NodeStatsContext::httpStats,
+                            HttpStats::getTotalOpen)
+                    )
+                ),
+                Columns.CONNECTIONS_PSQL.path().get(0),
+                new ObjectCollectExpression<NodeStatsContext>(
+                    ImmutableMap.of(
+                        Columns.CONNECTIONS_PSQL_OPEN.path().get(1),
+                        NestableCollectExpression.<NodeStatsContext, ConnectionStats>withNullableProperty(
+                            NodeStatsContext::psqlStats,
+                            ConnectionStats::open),
+                        Columns.CONNECTIONS_PSQL_TOTAL.path().get(1),
+                        NestableCollectExpression.<NodeStatsContext, ConnectionStats>withNullableProperty(
+                            NodeStatsContext::psqlStats,
+                            ConnectionStats::total)
                     )
                 )
-            ))
-            .build();
+            )
+        );
     }
 
     public SysNodesTableInfo() {
@@ -454,6 +475,9 @@ public class SysNodesTableInfo extends StaticTableInfo {
                 .register(Columns.CONNECTIONS_HTTP, DataTypes.OBJECT)
                 .register(Columns.CONNECTIONS_HTTP_OPEN, DataTypes.LONG)
                 .register(Columns.CONNECTIONS_HTTP_TOTAL, DataTypes.LONG)
+                .register(Columns.CONNECTIONS_PSQL, DataTypes.OBJECT)
+                .register(Columns.CONNECTIONS_PSQL_OPEN, DataTypes.LONG)
+                .register(Columns.CONNECTIONS_PSQL_TOTAL, DataTypes.LONG)
 
                 .register(Columns.OS, DataTypes.OBJECT)
                 .register(Columns.OS_UPTIME, DataTypes.LONG)

@@ -38,7 +38,6 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -52,7 +51,9 @@ import org.elasticsearch.common.transport.PortsRange;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.transport.BindTransportException;
+import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -91,6 +92,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final List<TransportAddress> boundAddresses = new ArrayList<>();
     @Nullable
     private BoundTransportAddress boundAddress;
+    @Nullable
+    private Netty4OpenChannelsHandler openChannels;
 
     @Inject
     public PostgresNetty(Settings settings,
@@ -122,6 +125,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             return;
         }
         bootstrap = CrateChannelBootstrapFactory.newChannelBootstrap("postgres", settings);
+        this.openChannels = new Netty4OpenChannelsHandler(logger);
 
         final SslContext sslContext;
         if (SslConfigSettings.isPSQLSslEnabled(settings)) {
@@ -135,6 +139,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             @Override
             protected void initChannel(Channel ch) throws Exception {
                 ChannelPipeline pipeline = ch.pipeline();
+                pipeline.addLast("open_channels", PostgresNetty.this.openChannels);
                 PostgresWireProtocol postgresWireProtocol =
                     new PostgresWireProtocol(sqlOperations, authentication, sslContext);
                 pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
@@ -237,10 +242,21 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             config.childGroup().shutdownGracefully(0, 5, TimeUnit.SECONDS).awaitUninterruptibly();
             bootstrap = null;
         }
+        if (openChannels != null) {
+            openChannels.close();
+            openChannels = null;
+        }
     }
 
     @Override
     protected void doClose() {
     }
 
+    public long openConnections() {
+        return openChannels == null ? 0L : openChannels.numberOfOpenChannels();
+    }
+
+    public long totalConnections() {
+        return openChannels == null ? 0L : openChannels.totalChannels();
+    }
 }

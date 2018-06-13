@@ -26,6 +26,7 @@ import io.crate.Build;
 import io.crate.Version;
 import io.crate.monitor.ExtendedOsStats;
 import io.crate.monitor.ThreadPools;
+import io.crate.protocols.ConnectionStats;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Constants;
@@ -64,6 +65,7 @@ public class NodeStatsContext implements Streamable {
     private FsInfo fsInfo;
     private ThreadPools threadPools;
     private HttpStats httpStats;
+    private ConnectionStats psqlStats;
 
     private BytesRef osName;
     private BytesRef osArch;
@@ -189,6 +191,10 @@ public class NodeStatsContext implements Streamable {
         return httpStats;
     }
 
+    public ConnectionStats psqlStats() {
+        return psqlStats;
+    }
+
     public void id(BytesRef id) {
         this.id = id;
     }
@@ -253,6 +259,10 @@ public class NodeStatsContext implements Streamable {
         this.httpStats = httpStats;
     }
 
+    public void psqlStats(ConnectionStats psqlStats) {
+        this.psqlStats = psqlStats;
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
         id = DataTypes.STRING.readValueFrom(in);
@@ -279,6 +289,7 @@ public class NodeStatsContext implements Streamable {
         extendedOsStats = in.readBoolean() ? ExtendedOsStats.readExtendedOsStat(in) : null;
         threadPools = in.readBoolean() ? ThreadPools.readThreadPools(in) : null;
         httpStats = in.readOptionalWriteable(HttpStats::new);
+        psqlStats = in.readOptionalWriteable(ConnectionStats::new);
 
         osName = DataTypes.STRING.readValueFrom(in);
         osArch = DataTypes.STRING.readValueFrom(in);
@@ -320,6 +331,7 @@ public class NodeStatsContext implements Streamable {
         out.writeOptionalStreamable(extendedOsStats);
         out.writeOptionalStreamable(threadPools);
         out.writeOptionalWriteable(httpStats);
+        out.writeOptionalWriteable(psqlStats);
 
         DataTypes.STRING.writeValueTo(out, osName);
         DataTypes.STRING.writeValueTo(out, osArch);

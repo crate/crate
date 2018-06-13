@@ -626,6 +626,25 @@ in subsequent versions. All ``LONG`` columns always return ``0``.
 |                                       | life time of a    |                   |
 |                                       | CrateDB node      |                   |
 +---------------------------------------+-------------------+-------------------+
+| ``psql``                              | Number of         | ``OBJECT``        |
+|                                       | connections       |                   |
+|                                       | established via   |                   |
+|                                       | Postgres protocol |                   |
++---------------------------------------+-------------------+-------------------+
+| ``psql['open']``                      | The currently     | ``LONG``          |
+|                                       | open connections  |                   |
+|                                       | established via   |                   |
+|                                       | Postgres protocol |                   |
++---------------------------------------+-------------------+-------------------+
+| ``psql['total']``                     | The total number  | ``LONG``          |
+|                                       | of connections    |                   |
+|                                       | that have been    |                   |
+|                                       | established via   |                   |
+|                                       | Postgres protocol |                   |
+|                                       | over the life     |                   |
+|                                       | time of a CrateDB |                   |
+|                                       | node              |                   |
++---------------------------------------+-------------------+-------------------+
 
 
 ``process``
