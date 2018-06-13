@@ -32,7 +32,7 @@ singleExpression
 
 statement
     : query                                                                          #default
-    | BEGIN                                                                          #begin
+    | BEGIN (WORK | TRANSACTION)? (transactionMode (',' transactionMode)*)?          #begin
     | EXPLAIN (ANALYZE)? statement                                                   #explain
     | OPTIMIZE TABLE tableWithPartitions withProperties?                             #optimize
     | REFRESH TABLE tableWithPartitions                                              #refreshTable
@@ -609,6 +609,19 @@ clazz
     | VIEW
     ;
 
+transactionMode
+    : ISOLATION LEVEL isolationLevel
+    | (READ WRITE | READ ONLY)
+    | (NOT)? DEFERRABLE
+    ;
+
+isolationLevel
+    : SERIALIZABLE
+    | REPEATABLE READ
+    | READ COMMITTED
+    | READ UNCOMMITTED
+    ;
+
 nonReserved
     : ALIAS | ANALYZE | ANALYZER | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
     | COLUMNS | COPY | CURRENT | DATE | DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
@@ -623,6 +636,7 @@ nonReserved
     | PRIVILEGES | SCHEMA | INGEST | RULE | PREPARE
     | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED
     | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION | RETURN | SUMMARY
+    | WORK | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | DEFERRABLE
     ;
 
 SELECT: 'SELECT';
@@ -747,7 +761,21 @@ GEO_SHAPE: 'GEO_SHAPE';
 GLOBAL : 'GLOBAL';
 SESSION : 'SESSION';
 LOCAL : 'LOCAL';
+
 BEGIN: 'BEGIN';
+WORK: 'WORK';
+TRANSACTION: 'TRANSACTION';
+TRANSACTION_ISOLATION: 'TRANSACTION_ISOLATION';
+CHARACTERISTICS: 'CHARACTERISTICS';
+ISOLATION: 'ISOLATION';
+LEVEL: 'LEVEL';
+SERIALIZABLE: 'SERIALIZABLE';
+REPEATABLE: 'REPEATABLE';
+COMMITTED: 'COMMITED';
+UNCOMMITTED: 'UNCOMMITTED';
+READ: 'READ';
+WRITE: 'WRITE';
+DEFERRABLE: 'DEFERRABLE';
 
 RETURNS: 'RETURNS';
 CALLED: 'CALLED';
@@ -769,11 +797,6 @@ DISTRIBUTED: 'DISTRIBUTED';
 CAST: 'CAST';
 TRY_CAST: 'TRY_CAST';
 SHOW: 'SHOW';
-TRANSACTION: 'TRANSACTION';
-TRANSACTION_ISOLATION: 'TRANSACTION_ISOLATION';
-CHARACTERISTICS: 'CHARACTERISTICS';
-ISOLATION: 'ISOLATION';
-LEVEL: 'LEVEL';
 TABLES: 'TABLES';
 SCHEMAS: 'SCHEMAS';
 CATALOGS: 'CATALOGS';
