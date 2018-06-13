@@ -349,6 +349,13 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testTimestampIsCastedToLong() {
+        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        Symbol symbol = expressions.asSymbol("doc.t5.ts :: long");
+        assertThat(symbol.valueType(), is(DataTypes.LONG));
+    }
+
+    @Test
     public void testBetweenIsEagerlyEvaluatedIfPossible() throws Exception {
         Symbol x = expressions.asSymbol("5 between 1 and 10");
         assertThat(x, isLiteral(true));

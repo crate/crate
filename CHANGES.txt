@@ -21,5 +21,8 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that would cause a ``CAST`` from ``TIMESTAMP`` to ``LONG`` to
+  be ignored.
+
 - Handle ``STRING_ARRAY`` as argument type for user-defined functions correctly
   to prevent an ``ArrayStoreException``.
