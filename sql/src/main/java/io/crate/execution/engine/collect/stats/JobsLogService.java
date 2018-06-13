@@ -187,10 +187,8 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
                 logger.error("Could not update {}, error: {}", STATS_JOBS_LOG_FILTER.getKey(), t);
                 return;
             }
-            if (!JobsLogService.this.memoryFilter.equals(newFilter)) {
-                JobsLogService.this.memoryFilter = newFilter;
-                updateJobSink(jobsLogSize, jobsLogExpiration);
-            }
+            JobsLogService.this.memoryFilter = newFilter;
+            updateJobSink(jobsLogSize, jobsLogExpiration);
         });
         clusterSettings.addSettingsUpdateConsumer(STATS_JOBS_LOG_PERSIST_FILTER.setting(), filter -> {
             ExpressionsInput<JobContextLog, Boolean> newFilter;
@@ -200,10 +198,8 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
                 logger.error("Could not update {}, error: {}", STATS_JOBS_LOG_PERSIST_FILTER.getKey(), t);
                 return;
             }
-            if (!JobsLogService.this.persistFilter.equals(newFilter)) {
-                JobsLogService.this.persistFilter = newFilter;
-                updateJobSink(jobsLogSize, jobsLogExpiration);
-            }
+            JobsLogService.this.persistFilter = newFilter;
+            updateJobSink(jobsLogSize, jobsLogExpiration);
         });
         clusterSettings.addSettingsUpdateConsumer(STATS_ENABLED_SETTING.setting(), this::setStatsEnabled);
         clusterSettings.addSettingsUpdateConsumer(
