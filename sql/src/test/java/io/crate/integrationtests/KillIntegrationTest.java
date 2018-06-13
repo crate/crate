@@ -29,8 +29,6 @@ import io.crate.testing.plugin.CrateTestingPlugin;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -100,8 +98,8 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 assertThat(exception, instanceOf(SQLActionException.class));
                 assertThat(exception.toString(), anyOf(
                     containsString("Job killed"), // CancellationException
-                    containsString("Task for job"), // TaskMissing when job execution context not found
-                    containsString("SearchContext for job") // TaskMissing when search context not found
+                    containsString("RootTask for job"), // TaskMissing when root task not found
+                    containsString("Task for job") // TaskMissing when task not found
                 ));
             }
         } finally {
