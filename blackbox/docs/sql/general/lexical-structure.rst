@@ -157,6 +157,8 @@ the SQL standards from SQL-92 to SQL-2011.
     DEFERRED, LOWER, SAVEPOINT,
     DELETE, MAP, SCHEMA,
     DENSE_RANK, MATCH, SCOPE,
+    WORK, SERIALIZABLE, REPEATABLE, COMMITTED
+    UNCOMMITTED, READ, WRITE, DEFERRABLE
 
 Tokens such as ``my_table``, ``id``, ``name``, or ``data`` in the example above
 are **identifiers**, which identify names of tables, columns, and other

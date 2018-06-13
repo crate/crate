@@ -174,6 +174,19 @@ is implemented::
     +-----------------------+
     SHOW 1 row in set (... sec)
 
+Begin Statement
+---------------
+
+For compatibility with the lib/pq driver, the full PostgreSQL syntax of the
+``BEGIN`` statement is implemented, for example::
+
+    cr> BEGIN TRANSACTION ISOLATION LEVEL READ UNCOMMITTED,
+    ...                   READ ONLY,
+    ...                   NOT DEFERRABLE;
+    BEGIN OK, 0 rows affected  (... sec)
+
+The ``BEGIN`` statement and any of its parameters are ignored.
+
 Client Compatibility
 ====================
 
