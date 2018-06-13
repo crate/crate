@@ -85,11 +85,12 @@ class JmxTermClient(object):
                 '-v', 'silent', '-n'
             ],
             stdin=PIPE, stdout=PIPE, stderr=PIPE,
-            env={'JAVA_HOME': JmxTermClient.JAVA_HOME}
+            env={'JAVA_HOME': JmxTermClient.JAVA_HOME},
+            universal_newlines=True
         )
 
         query = 'get -s -b {} {}'.format(bean, attribute)
-        return p.communicate(bytes(query, 'utf-8'))
+        return p.communicate(query)
 
 
 class MonitoringIntegrationTest(unittest.TestCase):
@@ -150,7 +151,7 @@ class MonitoringNodeStatusIntegrationTest(unittest.TestCase):
         if exception:
             raise AssertionError("Unable to get attribute NodeStatus.Ready" + str(exception))
 
-        value = str(value, 'utf-8').rstrip('\n')
+        value = value.rstrip('\n')
         if value != 'true':
             raise AssertionError("The mbean attribute  NodeStatus.Ready has not produced the expected result. " +
                                  "Expected: true, Got: {}".format(value))
@@ -168,7 +169,7 @@ class MonitoringNodeInfoIntegrationTest(unittest.TestCase):
         if exception:
             raise AssertionError("Unable to get attribute NodeInfo.NodeName: " + str(exception))
 
-        nodeName = str(nodeName, 'utf-8').rstrip('\n')
+        nodeName = nodeName.rstrip('\n')
         if nodeName != 'crate-enterprise':
             raise AssertionError("The mbean attribute NodeName has not produced the expected result. " +
                                  "Expected: 'crate-enterprise', Got: {}".format(nodeName))
@@ -183,9 +184,19 @@ class MonitoringNodeInfoIntegrationTest(unittest.TestCase):
         if exception:
             raise AssertionError("Unable to get attribute NodeInfo.NodeName: " + str(exception))
 
-        nodeId = str(nodeId, 'utf-8').rstrip('\n')
+        nodeId = nodeId.rstrip('\n')
         if not nodeId:
             raise AssertionError("The mbean attribute NodeId returned and empty string")
+
+
+class ConnectionsBeanTest(unittest.TestCase):
+
+    def test_number_of_open_connections(self):
+        jmx_client = JmxTermClient(JMX_PORT)
+        stdout, stderr = jmx_client.query_jmx(
+            'io.crate.monitoring:type=Connections', 'HttpOpen')
+        self.assertGreater(int(stdout), 0)
+        self.assertEqual(stderr, '')
 
 
 def test_suite():
@@ -215,6 +226,10 @@ def test_suite():
 
     s = unittest.TestSuite(unittest.makeSuite(MonitoringNodeInfoIntegrationTest))
     s.layer = s.layer = crateLayer
+    suite.addTest(s)
+
+    s = unittest.makeSuite(ConnectionsBeanTest)
+    s.layer = crateLayer
     suite.addTest(s)
 
     # JMX Disabled test

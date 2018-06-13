@@ -165,6 +165,35 @@ NodeInfo can be accessed using the JMX MBean object name
 
    Provides the human friendly name of the node
 
+Connections MBean
+-----------------
+
+The ``Connections`` MBean exposes information about any open connections to a
+``CrateDB`` node.
+
+It can be accessed using the ``io.crate.monitoring:type=Connections`` object
+name and has the following attributes:
+
++----------------------+---------------------------------------------------------+
+| Name                 | Description                                             |
++======================+=========================================================+
+| ``HttpOpen``         | The number of currently established connections via     |
+|                      | HTTP                                                    |
++----------------------+---------------------------------------------------------+
+| ``HttpTotal``        | The number of total connections established via HTTP    |
+|                      | over the life time of a node                            |
++----------------------+---------------------------------------------------------+
+| ``PsqlOpen``         | The number of currently established connections via the |
+|                      | PostgreSQL protocol                                     |
++----------------------+---------------------------------------------------------+
+| ``PsqlTotal``        | The number of total connections established via the     |
+|                      | PostgreSQL protocol over the life time of a node        |
++----------------------+---------------------------------------------------------+
+| ``TransportOpen``    | The number of currently established connections via the |
+|                      | transport protocol                                      |
++----------------------+---------------------------------------------------------+
+
+
 Exposing JMX via HTTP
 =====================
 

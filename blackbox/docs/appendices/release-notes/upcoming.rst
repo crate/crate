@@ -18,6 +18,9 @@ Breaking Changes
 Changes
 =======
 
+- Added a new ``Connections`` MBean for JMX which exposes the number of open
+  connections per protocol.
+
 - Added a new ``connections`` column to the ``sys.nodes`` table which contains
   the number of currently open connections per protocol and the total number of
   connections per protocol opened over the life-time of a node.

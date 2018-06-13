@@ -19,16 +19,22 @@
 package io.crate.plugin;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.beans.Connections;
 import io.crate.beans.NodeInfo;
 import io.crate.beans.NodeStatus;
 import io.crate.beans.QueryStats;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.protocols.ConnectionStats;
+import io.crate.protocols.postgres.PostgresNetty;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nullable;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
@@ -45,12 +51,20 @@ public class CrateMonitor {
     @Inject
     public CrateMonitor(JobsLogs jobsLogs,
                         Settings settings,
+                        PostgresNetty postgresNetty,
+                        @Nullable HttpServerTransport httpServerTransport,
+                        TransportService transportService,
                         SQLOperations sqlOperations,
                         ClusterService clusterService) {
         logger = Loggers.getLogger(CrateMonitor.class, settings);
         registerMBean(QueryStats.NAME, new QueryStats(jobsLogs));
         registerMBean(NodeStatus.NAME, new NodeStatus(sqlOperations::isEnabled));
-        registerMBean(NodeInfo.NAME, new NodeInfo(() -> clusterService.localNode()));
+        registerMBean(NodeInfo.NAME, new NodeInfo(clusterService::localNode));
+        registerMBean(Connections.NAME, new Connections(
+            () -> httpServerTransport == null ? null : httpServerTransport.stats(),
+            () -> new ConnectionStats(postgresNetty.openConnections(), postgresNetty.totalConnections()),
+            () -> transportService.stats().serverOpen()
+        ));
     }
 
     private void registerMBean(String name, Object bean) {
