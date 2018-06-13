@@ -94,3 +94,9 @@ The result of the ``ANY`` construct yields ``null`` if:
     - Arrays of type ``object``
 
     - Objects as ``expressions``
+
+.. NOTE::
+
+    When using ``NOT <value> = ANY(<array_col>)`` the performance of the query
+    could be quite bad. To achieve better performance, consider using the
+    :ref:`ignore3vl function<ignore3vl>`.

@@ -600,6 +600,12 @@ to *get all rows where race['interests'] has no value that equals 'netball'*::
     +--------------+-------------------------------+
     SELECT 1 row in set (... sec)
 
+.. NOTE::
+
+    When using the ``NOT <value> = ANY(<array_col>)`` the performance of the
+    query could be quite bad. To achieve better performance consider using the
+    :ref:`ignore3vl function<ignore3vl>`.
+
 The same behaviour (though different comparison operations involved) holds true
 for operators
 
