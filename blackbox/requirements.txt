@@ -8,6 +8,7 @@ sphinx-csv-filter>=0.2.0
 
 # packages for local dev
 
+pycodestyle==2.4.0
 appdirs==1.4.3
 argh==0.26.2
 Babel==2.4.0
