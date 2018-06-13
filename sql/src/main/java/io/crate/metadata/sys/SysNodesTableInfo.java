@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.expression.reference.sys.node.NodeHeapStatsExpression;
 import io.crate.expression.reference.sys.node.NodeLoadStatsExpression;
 import io.crate.expression.reference.sys.node.NodeMemoryStatsExpression;
@@ -60,9 +61,12 @@ import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.monitor.fs.FsInfo;
 
 import java.util.Map;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 public class SysNodesTableInfo extends StaticTableInfo {
 
@@ -151,6 +155,11 @@ public class SysNodesTableInfo extends StaticTableInfo {
         static final ColumnIdent NETWORK_TCP_PACKETS_ERRORS_RECEIVED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "errors_received"));
         static final ColumnIdent NETWORK_TCP_PACKETS_RST_SENT = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "rst_sent"));
 
+        public static final ColumnIdent CONNECTIONS = new ColumnIdent("connections");
+        static final ColumnIdent CONNECTIONS_HTTP = ColumnIdent.getChild(CONNECTIONS, "http");
+        static final ColumnIdent CONNECTIONS_HTTP_OPEN = ColumnIdent.getChild(CONNECTIONS_HTTP, "open");
+        static final ColumnIdent CONNECTIONS_HTTP_TOTAL = ColumnIdent.getChild(CONNECTIONS_HTTP, "total");
+
         public static final ColumnIdent OS = new ColumnIdent(SYS_COL_OS);
         static final ColumnIdent OS_UPTIME = new ColumnIdent(SYS_COL_OS, ImmutableList.of("uptime"));
         static final ColumnIdent OS_TIMESTAMP = new ColumnIdent(SYS_COL_OS, ImmutableList.of("timestamp"));
@@ -222,144 +231,161 @@ public class SysNodesTableInfo extends StaticTableInfo {
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>>builder()
-            .put(SysNodesTableInfo.Columns.ID,
+            .put(Columns.ID,
                 () -> NestableCollectExpression.objToBytesRef(NodeStatsContext::id))
-            .put(SysNodesTableInfo.Columns.NAME,
+            .put(Columns.NAME,
                 () -> NestableCollectExpression.objToBytesRef(NodeStatsContext::name))
-            .put(SysNodesTableInfo.Columns.HOSTNAME,
+            .put(Columns.HOSTNAME,
                 () -> NestableCollectExpression.objToBytesRef(r -> r.isComplete() ? r.hostname() : null))
-            .put(SysNodesTableInfo.Columns.REST_URL,
+            .put(Columns.REST_URL,
                 () -> NestableCollectExpression.objToBytesRef(r -> r.isComplete() ? r.restUrl() : null))
-            .put(SysNodesTableInfo.Columns.PORT, NodePortStatsExpression::new)
-            .put(SysNodesTableInfo.Columns.LOAD, NodeLoadStatsExpression::new)
-            .put(SysNodesTableInfo.Columns.MEM, NodeMemoryStatsExpression::new)
-            .put(SysNodesTableInfo.Columns.HEAP, NodeHeapStatsExpression::new)
-            .put(SysNodesTableInfo.Columns.VERSION, NodeVersionStatsExpression::new)
-            .put(SysNodesTableInfo.Columns.THREAD_POOLS, NodeThreadPoolsExpression::new)
-            .put(SysNodesTableInfo.Columns.THREAD_POOLS_NAME, () -> new NodeStatsThreadPoolExpression<BytesRef>() {
+            .put(Columns.PORT, NodePortStatsExpression::new)
+            .put(Columns.LOAD, NodeLoadStatsExpression::new)
+            .put(Columns.MEM, NodeMemoryStatsExpression::new)
+            .put(Columns.HEAP, NodeHeapStatsExpression::new)
+            .put(Columns.VERSION, NodeVersionStatsExpression::new)
+            .put(Columns.THREAD_POOLS, NodeThreadPoolsExpression::new)
+            .put(Columns.THREAD_POOLS_NAME, () -> new NodeStatsThreadPoolExpression<BytesRef>() {
                 @Override
                 protected BytesRef valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
                     return input.getKey();
                 }
             })
-            .put(SysNodesTableInfo.Columns.THREAD_POOLS_ACTIVE, () -> new NodeStatsThreadPoolExpression<Integer>() {
+            .put(Columns.THREAD_POOLS_ACTIVE, () -> new NodeStatsThreadPoolExpression<Integer>() {
                 @Override
                 protected Integer valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
                     return input.getValue().activeCount();
                 }
             })
-            .put(SysNodesTableInfo.Columns.THREAD_POOLS_REJECTED, () -> new NodeStatsThreadPoolExpression<Long>() {
+            .put(Columns.THREAD_POOLS_REJECTED, () -> new NodeStatsThreadPoolExpression<Long>() {
                 @Override
                 protected Long valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
                     return input.getValue().rejectedCount();
                 }
             })
-            .put(SysNodesTableInfo.Columns.THREAD_POOLS_LARGEST, () -> new NodeStatsThreadPoolExpression<Integer>() {
+            .put(Columns.THREAD_POOLS_LARGEST, () -> new NodeStatsThreadPoolExpression<Integer>() {
                 @Override
                 protected Integer valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
                     return input.getValue().largestPoolSize();
                 }
             })
-            .put(SysNodesTableInfo.Columns.THREAD_POOLS_COMPLETED, () -> new NodeStatsThreadPoolExpression<Long>() {
+            .put(Columns.THREAD_POOLS_COMPLETED, () -> new NodeStatsThreadPoolExpression<Long>() {
                 @Override
                 protected Long valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
                     return input.getValue().completedTaskCount();
                 }
             })
-            .put(SysNodesTableInfo.Columns.THREAD_POOLS_THREADS, () -> new NodeStatsThreadPoolExpression<Integer>() {
+            .put(Columns.THREAD_POOLS_THREADS, () -> new NodeStatsThreadPoolExpression<Integer>() {
                 @Override
                 protected Integer valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
                     return input.getValue().poolSize();
                 }
             })
-            .put(SysNodesTableInfo.Columns.THREAD_POOLS_QUEUE, () -> new NodeStatsThreadPoolExpression<Integer>() {
+            .put(Columns.THREAD_POOLS_QUEUE, () -> new NodeStatsThreadPoolExpression<Integer>() {
                 @Override
                 protected Integer valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
                     return input.getValue().queueSize();
                 }
             })
-            .put(SysNodesTableInfo.Columns.NETWORK, NodeNetworkStatsExpression::new)
-            .put(SysNodesTableInfo.Columns.OS, NodeOsStatsExpression::new)
-            .put(SysNodesTableInfo.Columns.OS_INFO, NodeOsInfoStatsExpression::new)
-            .put(SysNodesTableInfo.Columns.PROCESS, NodeProcessStatsExpression::new)
-            .put(SysNodesTableInfo.Columns.FS, NodeFsStatsExpression::new)
-            .put(SysNodesTableInfo.Columns.FS_TOTAL, NodeFsTotalStatsExpression::new)
-            .put(SysNodesTableInfo.Columns.FS_TOTAL_SIZE,
-                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.size(r.fsInfo().getTotal()) : null))
-            .put(SysNodesTableInfo.Columns.FS_TOTAL_USED,
-                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.used(r.fsInfo().getTotal()) : null))
-            .put(SysNodesTableInfo.Columns.FS_TOTAL_AVAILABLE,
-                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.available(r.fsInfo().getTotal()) : null))
-            .put(SysNodesTableInfo.Columns.FS_TOTAL_READS,
-                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.readOperations(r.fsInfo().getIoStats()) : null))
-            .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_READ,
-                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.bytesRead(r.fsInfo().getIoStats()) : null))
-            .put(SysNodesTableInfo.Columns.FS_TOTAL_WRITES,
-                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.writeOperations(r.fsInfo().getIoStats()) : null))
-            .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_WRITTEN,
-                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.bytesWritten(r.fsInfo().getIoStats()) : null))
-            .put(SysNodesTableInfo.Columns.FS_DISKS, NodeStatsFsDisksExpression::new)
-            .put(SysNodesTableInfo.Columns.FS_DISKS_DEV, () -> new NodeStatsFsArrayExpression<BytesRef>() {
+            .put(Columns.NETWORK, NodeNetworkStatsExpression::new)
+            .put(Columns.OS, NodeOsStatsExpression::new)
+            .put(Columns.OS_INFO, NodeOsInfoStatsExpression::new)
+            .put(Columns.PROCESS, NodeProcessStatsExpression::new)
+            .put(Columns.FS, NodeFsStatsExpression::new)
+            .put(Columns.FS_TOTAL, NodeFsTotalStatsExpression::new)
+            .put(Columns.FS_TOTAL_SIZE,
+                () -> forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.size(r.fsInfo().getTotal()) : null))
+            .put(Columns.FS_TOTAL_USED,
+                () -> forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.used(r.fsInfo().getTotal()) : null))
+            .put(Columns.FS_TOTAL_AVAILABLE,
+                () -> forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.available(r.fsInfo().getTotal()) : null))
+            .put(Columns.FS_TOTAL_READS,
+                () -> forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.readOperations(r.fsInfo().getIoStats()) : null))
+            .put(Columns.FS_TOTAL_BYTES_READ,
+                () -> forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.bytesRead(r.fsInfo().getIoStats()) : null))
+            .put(Columns.FS_TOTAL_WRITES,
+                () -> forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.writeOperations(r.fsInfo().getIoStats()) : null))
+            .put(Columns.FS_TOTAL_BYTES_WRITTEN,
+                () -> forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.bytesWritten(r.fsInfo().getIoStats()) : null))
+            .put(Columns.FS_DISKS, NodeStatsFsDisksExpression::new)
+            .put(Columns.FS_DISKS_DEV, () -> new NodeStatsFsArrayExpression<BytesRef>() {
                 @Override
                 protected BytesRef valueForItem(FsInfo.Path input) {
                     return BytesRefs.toBytesRef(FsInfoHelpers.Path.dev(input));
                 }
             })
-            .put(SysNodesTableInfo.Columns.FS_DISKS_SIZE, () -> new NodeStatsFsArrayExpression<Long>() {
+            .put(Columns.FS_DISKS_SIZE, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
                 protected Long valueForItem(FsInfo.Path input) {
                     return FsInfoHelpers.Path.size(input);
                 }
             })
-            .put(SysNodesTableInfo.Columns.FS_DISKS_USED, () -> new NodeStatsFsArrayExpression<Long>() {
+            .put(Columns.FS_DISKS_USED, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
                 protected Long valueForItem(FsInfo.Path input) {
                     return FsInfoHelpers.Path.used(input);
                 }
             })
-            .put(SysNodesTableInfo.Columns.FS_DISKS_AVAILABLE, () -> new NodeStatsFsArrayExpression<Long>() {
+            .put(Columns.FS_DISKS_AVAILABLE, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
                 protected Long valueForItem(FsInfo.Path input) {
                     return FsInfoHelpers.Path.available(input);
                 }
             })
-            .put(SysNodesTableInfo.Columns.FS_DISKS_READS, () -> new NodeStatsFsArrayExpression<Long>() {
+            .put(Columns.FS_DISKS_READS, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
                 protected Long valueForItem(FsInfo.Path input) {
                     return -1L;
                 }
             })
-            .put(SysNodesTableInfo.Columns.FS_DISKS_BYTES_READ, () -> new NodeStatsFsArrayExpression<Long>() {
+            .put(Columns.FS_DISKS_BYTES_READ, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
                 protected Long valueForItem(FsInfo.Path input) {
                     return -1L;
                 }
             })
-            .put(SysNodesTableInfo.Columns.FS_DISKS_WRITES, () -> new NodeStatsFsArrayExpression<Long>() {
+            .put(Columns.FS_DISKS_WRITES, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
                 protected Long valueForItem(FsInfo.Path input) {
                     return -1L;
                 }
             })
-            .put(SysNodesTableInfo.Columns.FS_DISKS_BYTES_WRITTEN, () -> new NodeStatsFsArrayExpression<Long>() {
+            .put(Columns.FS_DISKS_BYTES_WRITTEN, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
                 protected Long valueForItem(FsInfo.Path input) {
                     return -1L;
                 }
             })
-            .put(SysNodesTableInfo.Columns.FS_DATA, NodeStatsFsDataExpression::new)
-            .put(SysNodesTableInfo.Columns.FS_DATA_DEV, () -> new NodeStatsFsArrayExpression<BytesRef>() {
+            .put(Columns.FS_DATA, NodeStatsFsDataExpression::new)
+            .put(Columns.FS_DATA_DEV, () -> new NodeStatsFsArrayExpression<BytesRef>() {
                 @Override
                 protected BytesRef valueForItem(FsInfo.Path input) {
                     return BytesRefs.toBytesRef(FsInfoHelpers.Path.dev(input));
                 }
             })
-            .put(SysNodesTableInfo.Columns.FS_DATA_PATH, () -> new NodeStatsFsArrayExpression<BytesRef>() {
+            .put(Columns.FS_DATA_PATH, () -> new NodeStatsFsArrayExpression<BytesRef>() {
                 @Override
                 protected BytesRef valueForItem(FsInfo.Path input) {
                     return BytesRefs.toBytesRef(input.getPath());
                 }
             })
+            .put(Columns.CONNECTIONS, () -> new ObjectCollectExpression<>(
+                ImmutableMap.of(
+                    Columns.CONNECTIONS_HTTP.path().get(0),
+                    new ObjectCollectExpression<NodeStatsContext>(
+                        ImmutableMap.of(
+                            Columns.CONNECTIONS_HTTP_OPEN.path().get(1),
+                            NestableCollectExpression.<NodeStatsContext, HttpStats>withNullableProperty(
+                                NodeStatsContext::httpStats,
+                                HttpStats::getServerOpen),
+                            Columns.CONNECTIONS_HTTP_TOTAL.path().get(1),
+                            NestableCollectExpression.<NodeStatsContext, HttpStats>withNullableProperty(
+                                NodeStatsContext::httpStats,
+                                HttpStats::getTotalOpen)
+                        )
+                    )
+                )
+            ))
             .build();
     }
 
@@ -423,6 +449,11 @@ public class SysNodesTableInfo extends StaticTableInfo {
                 .register(Columns.NETWORK_TCP_PACKETS_RETRANSMITTED, DataTypes.LONG)
                 .register(Columns.NETWORK_TCP_PACKETS_ERRORS_RECEIVED, DataTypes.LONG)
                 .register(Columns.NETWORK_TCP_PACKETS_RST_SENT, DataTypes.LONG)
+
+                .register(Columns.CONNECTIONS, DataTypes.OBJECT)
+                .register(Columns.CONNECTIONS_HTTP, DataTypes.OBJECT)
+                .register(Columns.CONNECTIONS_HTTP_OPEN, DataTypes.LONG)
+                .register(Columns.CONNECTIONS_HTTP_TOTAL, DataTypes.LONG)
 
                 .register(Columns.OS, DataTypes.OBJECT)
                 .register(Columns.OS_UPTIME, DataTypes.LONG)

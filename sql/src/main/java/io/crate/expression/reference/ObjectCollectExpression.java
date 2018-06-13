@@ -30,10 +30,18 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class ObjectCollectExpression<R> extends NestableCollectExpression<R, Map<String, Object>> {
+public class ObjectCollectExpression<R> extends NestableCollectExpression<R, Map<String, Object>> {
 
-    protected Map<String, NestableInput> childImplementations = new HashMap<>();
+    protected final Map<String, NestableInput> childImplementations;
     protected R row;
+
+    public ObjectCollectExpression(Map<String, NestableInput> childImplementations) {
+        this.childImplementations = childImplementations;
+    }
+
+    public ObjectCollectExpression() {
+        this.childImplementations = new HashMap<>();
+    }
 
     public void setNextRow(R row) {
         this.row = row;

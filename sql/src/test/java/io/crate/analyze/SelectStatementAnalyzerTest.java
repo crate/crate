@@ -209,10 +209,26 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testAllColumnNodes() throws Exception {
         QueriedRelation relation = analyze("select id, * from sys.nodes");
         List<String> outputNames = outputNames(relation);
-        assertThat(outputNames.get(0), is("id"));
-        assertThat(outputNames.get(1), is("fs"));
-        assertThat(outputNames.size(), is(16));
-        assertThat(relation.querySpec().outputs().size(), is(16));
+        assertThat(outputNames, contains(
+            "id",
+            "connections",
+            "fs",
+            "heap",
+            "hostname",
+            "id",
+            "load",
+            "mem",
+            "name",
+            "network",
+            "os",
+            "os_info",
+            "port",
+            "process",
+            "rest_url",
+            "thread_pools",
+            "version"
+        ));
+        assertThat(relation.querySpec().outputs().size(), is(outputNames.size()));
     }
 
     @Test

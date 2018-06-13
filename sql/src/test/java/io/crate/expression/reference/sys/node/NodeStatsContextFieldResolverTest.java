@@ -23,11 +23,14 @@
 package io.crate.expression.reference.sys.node;
 
 import com.google.common.collect.ImmutableSet;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
@@ -40,6 +43,7 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
+import java.util.Collections;
 
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static org.hamcrest.CoreMatchers.is;
@@ -73,6 +77,7 @@ public class NodeStatsContextFieldResolverTest {
             () -> discoveryNode,
             monitorService,
             () -> null,
+            () -> new HttpStats(20L, 30L),
             mock(ThreadPool.class),
             new ExtendedNodeInfo(),
             () -> postgresAddress
@@ -83,6 +88,24 @@ public class NodeStatsContextFieldResolverTest {
     public void testEmptyColumnIdents() {
         NodeStatsContext context = resolver.forTopColumnIdents(ImmutableSet.of());
         assertDefaultDiscoveryContext(context);
+    }
+
+    @Test
+    public void testConnectionsHttpLookupAndExpression() {
+        NodeStatsContext statsContext = resolver.forTopColumnIdents(
+            Collections.singletonList(SysNodesTableInfo.Columns.CONNECTIONS));
+        RowCollectExpressionFactory<NodeStatsContext> expressionFactory =
+            SysNodesTableInfo.expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
+        NestableCollectExpression<NodeStatsContext, ?> expression = expressionFactory.create();
+
+        NestableCollectExpression http = (NestableCollectExpression) expression.getChild("http");
+        NestableCollectExpression open = (NestableCollectExpression) http.getChild("open");
+        open.setNextRow(statsContext);
+        assertThat(open.value(), is(20L));
+
+        NestableCollectExpression total = (NestableCollectExpression) http.getChild("total");
+        total.setNextRow(statsContext);
+        assertThat(total.value(), is(30L));
     }
 
     @Test

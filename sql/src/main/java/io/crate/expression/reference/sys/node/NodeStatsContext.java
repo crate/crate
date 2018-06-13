@@ -33,6 +33,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.OsInfo;
@@ -62,6 +63,7 @@ public class NodeStatsContext implements Streamable {
     private ExtendedOsStats extendedOsStats;
     private FsInfo fsInfo;
     private ThreadPools threadPools;
+    private HttpStats httpStats;
 
     private BytesRef osName;
     private BytesRef osArch;
@@ -183,6 +185,10 @@ public class NodeStatsContext implements Streamable {
         return jvmVersion;
     }
 
+    public HttpStats httpStats() {
+        return httpStats;
+    }
+
     public void id(BytesRef id) {
         this.id = id;
     }
@@ -243,6 +249,10 @@ public class NodeStatsContext implements Streamable {
         this.threadPools = threadPools;
     }
 
+    public void httpStats(HttpStats httpStats) {
+        this.httpStats = httpStats;
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
         id = DataTypes.STRING.readValueFrom(in);
@@ -268,6 +278,7 @@ public class NodeStatsContext implements Streamable {
         fsInfo = in.readOptionalWriteable(FsInfo::new);
         extendedOsStats = in.readBoolean() ? ExtendedOsStats.readExtendedOsStat(in) : null;
         threadPools = in.readBoolean() ? ThreadPools.readThreadPools(in) : null;
+        httpStats = in.readOptionalWriteable(HttpStats::new);
 
         osName = DataTypes.STRING.readValueFrom(in);
         osArch = DataTypes.STRING.readValueFrom(in);
@@ -308,6 +319,7 @@ public class NodeStatsContext implements Streamable {
         out.writeOptionalWriteable(fsInfo);
         out.writeOptionalStreamable(extendedOsStats);
         out.writeOptionalStreamable(threadPools);
+        out.writeOptionalWriteable(httpStats);
 
         DataTypes.STRING.writeValueTo(out, osName);
         DataTypes.STRING.writeValueTo(out, osArch);

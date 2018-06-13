@@ -41,6 +41,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.fs.FsService;
 import org.elasticsearch.monitor.jvm.JvmService;
@@ -67,6 +68,7 @@ public class NodeStatsContextFieldResolver {
     private static final Logger LOGGER = Loggers.getLogger(NodeStatsContextFieldResolver.class);
     private final Supplier<DiscoveryNode> localNode;
     private final Supplier<TransportAddress> boundHttpAddress;
+    private final Supplier<HttpStats> httpStatsSupplier;
     private final ThreadPool threadPool;
     private final ExtendedNodeInfo extendedNodeInfo;
     private final Supplier<TransportAddress> boundPostgresAddress;
@@ -87,6 +89,7 @@ public class NodeStatsContextFieldResolver {
             clusterService::localNode,
             nodeService.getMonitorService(),
             () -> httpServerTransport == null ? null : httpServerTransport.info().getAddress().publishAddress(),
+            () -> httpServerTransport == null ? null : httpServerTransport.stats(),
             threadPool,
             extendedNodeInfo,
             () -> {
@@ -103,6 +106,7 @@ public class NodeStatsContextFieldResolver {
     NodeStatsContextFieldResolver(Supplier<DiscoveryNode> localNode,
                                   MonitorService monitorService,
                                   Supplier<TransportAddress> boundHttpAddress,
+                                  Supplier<HttpStats> httpStatsSupplier,
                                   ThreadPool threadPool,
                                   ExtendedNodeInfo extendedNodeInfo,
                                   Supplier<TransportAddress> boundPostgresAddress) {
@@ -111,6 +115,7 @@ public class NodeStatsContextFieldResolver {
         osService = monitorService.osService();
         jvmService = monitorService.jvmService();
         fsService = monitorService.fsService();
+        this.httpStatsSupplier = httpStatsSupplier;
         this.boundHttpAddress = boundHttpAddress;
         this.threadPool = threadPool;
         this.extendedNodeInfo = extendedNodeInfo;
@@ -212,6 +217,12 @@ public class NodeStatsContextFieldResolver {
                 }
             })
             .put(SysNodesTableInfo.Columns.NETWORK, context -> {
+            })
+            .put(SysNodesTableInfo.Columns.CONNECTIONS, new Consumer<NodeStatsContext>() {
+                @Override
+                public void accept(NodeStatsContext nodeStatsContext) {
+                    nodeStatsContext.httpStats(httpStatsSupplier.get());
+                }
             })
             .put(SysNodesTableInfo.Columns.OS, new Consumer<NodeStatsContext>() {
                 @Override
