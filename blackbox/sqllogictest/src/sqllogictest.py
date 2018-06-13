@@ -29,7 +29,7 @@ QUERY_WHITELIST = [re.compile(o, re.IGNORECASE) for o in [
     'SELECT - SUM \\( col1 \\) \\* \\+ col1 FROM tab0 cor0 GROUP BY col1, col1',
 ]]
 
-varchar_to_string = partial(re.compile('VARCHAR\(\d+\)').sub, 'STRING')
+varchar_to_string = partial(re.compile(r'VARCHAR\(\d+\)').sub, 'STRING')
 text_to_string = partial(re.compile('TEXT').sub, 'STRING')
 real_to_double = partial(re.compile('REAL').sub, 'DOUBLE')
 
@@ -88,7 +88,7 @@ def validate_cmp_result(rows, formats, expected_rows):
 
 class Query:
 
-    HASHING_RE = re.compile('(\d+) values hashing to ([a-z0-9]+)')
+    HASHING_RE = re.compile(r'(\d+) values hashing to ([a-z0-9]+)')
     VALID_RESULT_FORMATS = set('TIR')
 
     def __init__(self, cmd):
