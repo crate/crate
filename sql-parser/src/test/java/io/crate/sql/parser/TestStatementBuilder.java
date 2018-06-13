@@ -87,6 +87,13 @@ public class TestStatementBuilder {
     @Test
     public void testBegin() throws Exception {
         printStatement("BEGIN");
+        printStatement("BEGIN WORK");
+        printStatement("BEGIN WORK DEFERRABLE");
+        printStatement("BEGIN TRANSACTION");
+        printStatement("BEGIN TRANSACTION DEFERRABLE");
+        printStatement("BEGIN ISOLATION LEVEL SERIALIZABLE, " +
+                       "      READ WRITE," +
+                       "      NOT DEFERRABLE");
     }
 
     @Test

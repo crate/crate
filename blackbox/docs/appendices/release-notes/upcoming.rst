@@ -18,6 +18,10 @@ Breaking Changes
 Changes
 =======
 
+- Added support for the full PostgreSQL syntax of the ``BEGIN`` statement in
+  order to support the lib/pq Golang driver. The ``BEGIN`` statement and any of
+  its parameters are ignored.
+
 - Added a new scalar function ``ignore3vl`` which eliminates the 3-valued logic
   of null handling for every logical expression beneath it. If 3-valued logic
   is not required, the use of this function in the ``WHERE`` clause beneath a
