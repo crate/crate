@@ -25,10 +25,11 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLOperations;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.shade.org.postgresql.PGProperty;
+import io.crate.shade.org.postgresql.core.TransactionState;
+import io.crate.shade.org.postgresql.jdbc.PgConnection;
 import io.crate.shade.org.postgresql.jdbc.PreferQueryMode;
 import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.shade.org.postgresql.util.PSQLState;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -728,10 +729,16 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(0) // Simulate explicit call by a user through HTTP iface
-    public void test_proper_termination_of_deallocate_through_http_call() throws Exception {
-       execute("DEALLOCATE ALL");
-       assertThat(response.rowCount(), is (0L));
+    public void testTransactionState() throws Exception {
+        Properties properties = new Properties(this.properties);
+        try (PgConnection conn = (PgConnection) DriverManager.getConnection(url(RW), properties)) {
+            Statement statement = conn.createStatement();
+            assertEquals(TransactionState.IDLE, conn.getTransactionState());
+            statement.execute("BEGIN");
+            assertEquals(TransactionState.OPEN, conn.getTransactionState());
+            statement.execute("COMMIT");
+            assertEquals(TransactionState.IDLE, conn.getTransactionState());
+        }
     }
 
     private void assertSelectNameFromSysClusterWorks(Connection conn) throws SQLException {

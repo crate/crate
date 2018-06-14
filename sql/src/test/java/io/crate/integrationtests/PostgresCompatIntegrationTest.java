@@ -28,6 +28,8 @@ import org.junit.Test;
 
 import java.sql.PreparedStatement;
 
+import static org.hamcrest.Matchers.is;
+
 @UseJdbc(value = 1)
 public class PostgresCompatIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -83,6 +85,13 @@ public class PostgresCompatIntegrationTest extends SQLTransportIntegrationTest {
     public void testCommitStatement() {
         execute("COMMIT");
         assertNoErrorResponse(response);
+    }
+
+    @Test
+    @UseJdbc(0) // Simulate explicit call by a user through HTTP protocol
+    public void testProperTerminationOfDeallocateThroughHttpProtocol() {
+        execute("DEALLOCATE ALL");
+        assertThat(response.rowCount(), is(0L));
     }
 
     /**

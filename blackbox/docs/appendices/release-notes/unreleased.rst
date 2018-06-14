@@ -42,6 +42,10 @@ Breaking Changes
 Changes
 =======
 
+- Send transaction state to to Postgres clients. This will improve
+  compatibility with certain clients that check the state when sending
+  ``BEGIN`` and ``COMMIT`` when doing bulk operations.
+
 - Added support for multi line SQL comments, e.g. ``/* multi line */``.
 
 - Improved performance of queries using an array access inside the ``WHERE``

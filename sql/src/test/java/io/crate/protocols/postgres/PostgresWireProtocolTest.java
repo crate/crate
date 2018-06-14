@@ -108,13 +108,18 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testHandleEmptySimpleQuery() throws Exception {
+    public void testHandleEmptySimpleQuery() {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
-                mock(SQLOperations.class),
+                sqlOperations,
                 new AlwaysOKNullAuthentication(),
                 null);
-        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        // send startup message to initialize session
+        // but ignore all following response messages
+        sendStartupMessage(channel);
+        channel.releaseOutbound();
 
         ByteBuf buffer = Unpooled.buffer();
         try {

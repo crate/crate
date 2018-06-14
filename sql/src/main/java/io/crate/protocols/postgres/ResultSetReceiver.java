@@ -26,6 +26,7 @@ import io.crate.action.sql.BaseResultReceiver;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.auth.user.ExceptionAuthorizedValidator;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataType;
 import io.netty.channel.Channel;
 
@@ -42,6 +43,7 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     @Nullable
     private final FormatCodes.FormatCode[] formatCodes;
+    private final TransactionContext.TransactionState txStatus;
 
     private long rowCount = 0;
 
@@ -49,12 +51,15 @@ class ResultSetReceiver extends BaseResultReceiver {
                       Channel channel,
                       ExceptionAuthorizedValidator exceptionAuthorizedValidator,
                       List<? extends DataType> columnTypes,
-                      @Nullable FormatCodes.FormatCode[] formatCodes) {
+                      @Nullable FormatCodes.FormatCode[] formatCodes,
+                      TransactionContext.TransactionState txStatus
+                      ) {
         this.query = query;
         this.channel = channel;
         this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
         this.columnTypes = columnTypes;
         this.formatCodes = formatCodes;
+        this.txStatus = txStatus;
     }
 
     @Override
@@ -66,7 +71,7 @@ class ResultSetReceiver extends BaseResultReceiver {
     @Override
     public void batchFinished() {
         Messages.sendPortalSuspended(channel);
-        Messages.sendReadyForQuery(channel);
+        Messages.sendReadyForQuery(channel, txStatus.message());
     }
 
     @Override

@@ -38,6 +38,26 @@ public class TransactionContext {
     private final SessionContext sessionContext;
     private Long currentTimeMillis = null;
 
+    /**
+     * Naming taken from org.postgres.core.TransactionState
+     * https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/core/TransactionState.java
+     */
+    public enum TransactionState {
+        IDLE('I'),
+        OPEN('T'),
+        FAILED('E');
+
+        private final byte message;
+
+        TransactionState(char message) {
+            this.message = (byte) message;
+        }
+
+        public byte message() {
+            return message;
+        }
+    }
+
     public static TransactionContext systemTransactionContext() {
         return new TransactionContext(SessionContext.systemSessionContext());
     }

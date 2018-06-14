@@ -129,11 +129,11 @@ public class Messages {
      * block; or 'E' if in a failed transaction block (queries will be
      * rejected until block is ended).
      */
-    static void sendReadyForQuery(Channel channel) {
+    static void sendReadyForQuery(Channel channel, byte transactionStatus) {
         ByteBuf buffer = channel.alloc().buffer(6);
         buffer.writeByte('Z');
         buffer.writeInt(5);
-        buffer.writeByte('I');
+        buffer.writeByte(transactionStatus);
         ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
             channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentReadyForQuery"));

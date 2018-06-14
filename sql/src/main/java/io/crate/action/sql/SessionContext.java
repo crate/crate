@@ -28,6 +28,7 @@ import io.crate.auth.user.StatementAuthorizedValidator;
 import io.crate.auth.user.User;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext.TransactionState;
 
 import javax.annotation.Nullable;
 import java.util.Set;
@@ -45,6 +46,8 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     private String defaultSchema;
     private boolean semiJoinsRewriteEnabled = false;
     private boolean hashJoinEnabled = true;
+
+    private TransactionState transactionState = TransactionState.IDLE;
 
     /**
      * Creates a new SessionContext suitable to use as system SessionContext
@@ -135,5 +138,13 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
         resetSchema();
         semiJoinsRewriteEnabled = false;
         hashJoinEnabled = true;
+    }
+
+    TransactionState transactionState() {
+        return transactionState;
+    }
+
+    void transactionState(TransactionState transactionState) {
+        this.transactionState = transactionState;
     }
 }

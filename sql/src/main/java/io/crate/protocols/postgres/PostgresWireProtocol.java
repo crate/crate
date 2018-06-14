@@ -32,7 +32,9 @@ import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
 import io.crate.auth.user.User;
 import io.crate.collections.Lists2;
+import io.crate.concurrent.CompletableFutures;
 import io.crate.expression.symbol.Field;
+import io.crate.metadata.TransactionContext;
 import io.crate.protocols.http.CrateNettyHttpServerTransport;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -259,19 +261,21 @@ class PostgresWireProtocol {
 
     private static class ReadyForQueryCallback implements BiConsumer<Object, Throwable> {
         private final Channel channel;
+        private final byte transactionStatusMessage;
 
-        private ReadyForQueryCallback(Channel channel) {
+        private ReadyForQueryCallback(Channel channel, byte transactionStatusMessage) {
             this.channel = channel;
+            this.transactionStatusMessage = transactionStatusMessage;
         }
 
         @Override
         public void accept(Object result, Throwable t) {
             if (t != null) {
                 if (!(t.getCause() instanceof ClientInterrupted)) {
-                    Messages.sendReadyForQuery(channel);
+                    Messages.sendReadyForQuery(channel, transactionStatusMessage);
                 }
             } else {
-                Messages.sendReadyForQuery(channel);
+                Messages.sendReadyForQuery(channel, transactionStatusMessage);
             }
         }
     }
@@ -431,7 +435,7 @@ class PostgresWireProtocol {
         Messages.sendParameterStatus(channel, "client_encoding", "UTF8");
         Messages.sendParameterStatus(channel, "datestyle", "ISO");
         Messages.sendParameterStatus(channel, "TimeZone", "UTC");
-        Messages.sendReadyForQuery(channel);
+        Messages.sendReadyForQuery(channel, TransactionContext.TransactionState.IDLE.message());
     }
 
     /**
@@ -482,6 +486,7 @@ class PostgresWireProtocol {
             paramTypes.add(dataType);
         }
         session.parse(statementName, query, paramTypes);
+        session.updateTransactionStatusIfNeeded(query);
         Messages.sendParseComplete(channel);
     }
 
@@ -610,7 +615,8 @@ class PostgresWireProtocol {
         } else {
             // query with resultSet
             resultReceiver = new ResultSetReceiver(query, channel, session.sessionContext(), outputTypes,
-                session.getResultFormatCodes(portalName));
+                session.getResultFormatCodes(portalName),
+                session.transactionState());
         }
         session.execute(portalName, maxRows, resultReceiver);
     }
@@ -619,15 +625,16 @@ class PostgresWireProtocol {
         if (ignoreTillSync) {
             ignoreTillSync = false;
             session.clearState();
-            Messages.sendReadyForQuery(channel);
+            Messages.sendReadyForQuery(channel, session.transactionState().message());
             return;
         }
         try {
-            ReadyForQueryCallback readyForQueryCallback = new ReadyForQueryCallback(channel);
+            ReadyForQueryCallback readyForQueryCallback = new ReadyForQueryCallback(channel, session.transactionState().message());
             session.sync().whenComplete(readyForQueryCallback);
         } catch (Throwable t) {
+            session.resetTransactionState();
             Messages.sendErrorResponse(channel, t);
-            Messages.sendReadyForQuery(channel);
+            Messages.sendReadyForQuery(channel, session.transactionState().message());
         }
     }
 
@@ -651,18 +658,15 @@ class PostgresWireProtocol {
         CompletableFuture<?> composedFuture = CompletableFuture.completedFuture(null);
         for (String query : queries) {
             composedFuture = composedFuture.thenCompose(result -> handleSingleQuery(query, channel));
+            session.updateTransactionStatusIfNeeded(query);
         }
-        composedFuture.whenComplete(new ReadyForQueryCallback(channel));
+        composedFuture.whenComplete(new ReadyForQueryCallback(channel, (byte) 'I'));
     }
 
     private CompletableFuture<?> handleSingleQuery(String query, Channel channel) {
-
-        CompletableFuture<?> result = new CompletableFuture<>();
-
         if (query.isEmpty() || ";".equals(query)) {
             Messages.sendEmptyQueryResponse(channel);
-            result.complete(null);
-            return result;
+            return CompletableFuture.completedFuture(null);
         }
 
         try {
@@ -680,7 +684,8 @@ class PostgresWireProtocol {
                     channel,
                     session.sessionContext(),
                     Lists2.copyAndReplace(fields, Field::valueType),
-                    null
+                    null,
+                    session.transactionState()
                 );
                 session.execute("", 0, resultSetReceiver);
             }
@@ -688,8 +693,7 @@ class PostgresWireProtocol {
         } catch (Throwable t) {
             session.clearState();
             Messages.sendErrorResponse(channel, t);
-            result.completeExceptionally(t);
-            return result;
+            return CompletableFutures.failedFuture(t);
         }
     }
 

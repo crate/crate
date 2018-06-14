@@ -66,6 +66,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -488,6 +489,32 @@ public class Session implements AutoCloseable {
         portals.clear();
         preparedStatements.clear();
         pendingExecutions.clear();
+    }
+
+    public TransactionContext.TransactionState transactionState() {
+        return sessionContext.transactionState();
+    }
+
+    public void updateTransactionStatusIfNeeded(String query) {
+        int delim = query.indexOf(" ");
+        if (delim < 0) {
+            return;
+        }
+        String stmtType = query.substring(0, delim).toUpperCase(Locale.ENGLISH);
+        switch (stmtType) {
+            case "BEGIN":
+                sessionContext.transactionState(TransactionContext.TransactionState.OPEN);
+                break;
+            case "COMMIT":
+                sessionContext.transactionState(TransactionContext.TransactionState.IDLE);
+                break;
+            default:
+                break;
+        }
+    }
+
+    public void resetTransactionState() {
+        sessionContext.transactionState(TransactionContext.TransactionState.IDLE);
     }
 
     static class ParameterTypeExtractor extends DefaultTraversalSymbolVisitor<Void, Void> implements Consumer<Symbol> {
