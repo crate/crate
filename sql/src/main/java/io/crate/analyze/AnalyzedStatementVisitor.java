@@ -179,6 +179,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analyzedBegin, context);
     }
 
+    public R visitCommit(AnalyzedCommit analyzedCommit, C context) {
+        return visitAnalyzedStatement(analyzedCommit, context);
+    }
+
     public R visitPrivilegesStatement(PrivilegesAnalyzedStatement analysis, C context) {
         return visitDCLStatement(analysis, context);
     }

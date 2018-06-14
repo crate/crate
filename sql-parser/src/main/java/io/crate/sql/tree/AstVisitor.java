@@ -549,6 +549,10 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
+    public R visitCommit(CommitStatement node, C context) {
+        return visitStatement(node, context);
+    }
+
     public R visitShowTransaction(ShowTransaction showTransaction, C context) {
         return visitStatement(showTransaction, context);
     }

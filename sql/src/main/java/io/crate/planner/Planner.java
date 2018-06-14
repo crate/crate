@@ -24,6 +24,7 @@ package io.crate.planner;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.AnalyzedBegin;
+import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
@@ -141,6 +142,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitBegin(AnalyzedBegin analyzedBegin, PlannerContext context) {
+        return NoopPlan.INSTANCE;
+    }
+
+    @Override
+    public Plan visitCommit(AnalyzedCommit analyzedCommit, PlannerContext context) {
         return NoopPlan.INSTANCE;
     }
 

@@ -41,6 +41,7 @@ import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BeginStatement;
+import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.CreateAnalyzer;
@@ -460,6 +461,11 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitBegin(BeginStatement node, Analysis context) {
             return new AnalyzedBegin();
+        }
+
+        @Override
+        public AnalyzedStatement visitCommit(CommitStatement node, Analysis context) {
+            return new AnalyzedCommit();
         }
 
         @Override

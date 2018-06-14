@@ -56,6 +56,7 @@ import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
@@ -209,6 +210,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitBegin(SqlBaseParser.BeginContext context) {
         return new BeginStatement();
+    }
+
+    @Override
+    public Node visitCommit(SqlBaseParser.CommitContext context) {
+        return new CommitStatement();
     }
 
     @Override

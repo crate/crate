@@ -85,7 +85,7 @@ public class TestStatementBuilder {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
-    public void testBegin() throws Exception {
+    public void testBegin() {
         printStatement("BEGIN");
         printStatement("BEGIN WORK");
         printStatement("BEGIN WORK DEFERRABLE");
@@ -94,6 +94,11 @@ public class TestStatementBuilder {
         printStatement("BEGIN ISOLATION LEVEL SERIALIZABLE, " +
                        "      READ WRITE," +
                        "      NOT DEFERRABLE");
+    }
+
+    @Test
+    public void testCommit() {
+        printStatement("COMMIT");
     }
 
     @Test

@@ -174,18 +174,23 @@ is implemented::
     +-----------------------+
     SHOW 1 row in set (... sec)
 
-Begin Statement
----------------
+BEGIN/COMMIT Statements
+-----------------------
 
-For compatibility with the lib/pq driver, the full PostgreSQL syntax of the
-``BEGIN`` statement is implemented, for example::
+For compatibility with clients that use the Postgres wire protocol, such as the
+Golang lib/pq and pgx drivers, the full PostgreSQL syntax of the ``BEGIN`` and
+``COMMIT`` statements is implemented, for example::
 
     cr> BEGIN TRANSACTION ISOLATION LEVEL READ UNCOMMITTED,
     ...                   READ ONLY,
     ...                   NOT DEFERRABLE;
     BEGIN OK, 0 rows affected  (... sec)
 
-The ``BEGIN`` statement and any of its parameters are ignored.
+    cr> COMMIT
+    COMMIT OK, 0 rows affected  (... sec)
+
+Since CrateDB does not support transactions, both the ``COMMIT`` and the
+``BEGIN`` statement and any of its parameters are ignored.
 
 Client Compatibility
 ====================
