@@ -121,6 +121,8 @@ public class ScalarFunctionModule extends AbstractModule {
         LengthFunction.register(this);
         HashFunctions.register(this);
 
+        Ignore3vlFunction.register(this);
+
         MapFunction.register(this);
         ArrayFunction.register(this);
         ArrayCatFunction.register(this);
