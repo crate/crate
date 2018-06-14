@@ -246,9 +246,10 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             memoryFilter,
             persistFilter,
             jobContextLog -> new ParameterizedMessage(
-                "Statement execution: stmt=\"{}\" duration={}, error=\"{}\"",
+                "Statement execution: stmt=\"{}\" duration={}, user={} error=\"{}\"",
                 jobContextLog.statement(),
                 jobContextLog.ended() - jobContextLog.started(),
+                jobContextLog.username(),
                 jobContextLog.errorMessage()
             ),
             sink
