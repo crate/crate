@@ -34,6 +34,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, transportClientRatio = 0)
@@ -332,5 +333,25 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
 
         execute("SELECT * FROM bag WHERE ob IS NOT NULL");
         assertThat(printedTable(response.rows()), is("2| [{bbb=2}]\n"));
+    }
+
+    @Test
+    public void testNotEqualAnyWithAndWithoutThreeValuedLogic() {
+        execute("create table t1 (a array(integer)) clustered into 2 shards with (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("insert into t1(a) values ([1, 2, 3])");
+        execute("insert into t1(a) values ([1, 2, 3, null])");
+        execute("insert into t1(a) values ([4, 5])");
+        execute("insert into t1(a) values ([4, 5, null])");
+        execute("refresh table t1");
+
+        execute("select * from t1 where not 5 = any(a)");
+        assertThat(printedTable(response.rows()), is("[1, 2, 3]\n"));
+        execute("select * from t1 where not ignore3vl(5 = any(a))");
+        assertThat(printedTable(response.rows()), anyOf(is("[1, 2, 3, NULL]\n" +
+                                                           "[1, 2, 3]\n"),
+                                                        is("[1, 2, 3]\n" +
+                                                           "[1, 2, 3, NULL]\n")));
     }
 }
