@@ -8,9 +8,9 @@ Released on 2017/06/30.
 
 .. WARNING::
 
-   CrateDB 2.x versions prior 2.0.4 (including this version) contain a critical
-   bug which leads to deletion of blob data upon node shutdown. It is
-   recommended to not install those versions.
+    CrateDB 2.x versions prior 2.0.4 (including this version) contain a critical
+    bug which leads to deletion of blob data upon node shutdown. It is
+    recommended to not install those versions.
 
 .. rubric:: Table of Contents
 

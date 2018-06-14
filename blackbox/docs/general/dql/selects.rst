@@ -352,7 +352,7 @@ escape them using a backslash::
     +-------------------------+
     SELECT 1 row in set (... sec)
 
-.. NOTE::
+.. CAUTION::
 
     Queries with a like clause can be quite slow. Especially if the like clause
     starts with a wildcard character. Because in that case CrateDB has to
@@ -998,22 +998,16 @@ This is useful if used in conjunction with aggregation functions::
    have to be used within the group by clause. Otherwise the statement won't
    execute.
 
-.. NOTE::
-
    Grouping will be executed against the real table column when aliases that
    shadow the table columns are used.
-
-.. NOTE::
 
    Grouping on multi-value fields doesn't work. If such a field is encountered
    during a group by operation an error is thrown.
 
-.. NOTE::
+   Additionally, grouping can only be applied to columns with a plain index,
+   which is the default for all columns.
 
-   Grouping can only be applied to columns with a plain index, which is the
-   default for all columns.
-
-   For more information, please refer to :ref:`sql_ddl_index_plain`.
+   For more information, refer to :ref:`sql_ddl_index_plain`.
 
 .. _sql_dql_having:
 

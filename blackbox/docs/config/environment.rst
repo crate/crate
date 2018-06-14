@@ -102,7 +102,7 @@ General
 
   - When running `CrateDB on Docker`_, ``/data/data``
 
-  .. CAUTION::
+  .. WARNING::
 
       Make sure that there is enough disk space available for heap dumps.
 

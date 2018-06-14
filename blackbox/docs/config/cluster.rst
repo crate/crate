@@ -24,7 +24,7 @@ Non-Runtime Cluster Wide Settings
 Cluster wide settings which cannot be changed at runtime need to be specified
 in the configuration of each node in the cluster.
 
-.. NOTE::
+.. CAUTION::
 
    Cluster settings specified via node configurations are required to be
    exactly the same on every node in the cluster for proper operation of the
@@ -44,7 +44,7 @@ Collecting Stats
   A boolean indicating whether or not to collect statistical information about
   the cluster.
 
-  .. NOTE::
+  .. CAUTION::
 
      The collection of statistical information incurs a slight performance
      penalty, as details about every job and operation across the cluster will
@@ -170,7 +170,7 @@ Collecting Stats
 
   If the value provided is ``0`` then the refresh is disabled.
 
-  .. NOTE::
+  .. CAUTION::
 
     Using a very small value can cause a high load on the cluster.
 
@@ -272,7 +272,7 @@ nodes of the cluster:
   to reallocate shards in order to ensure the minimum data availability set
   with ``min_availability``.
 
-  .. NOTE::
+  .. WARNING::
 
      Make sure you have enough nodes and enough disk space for the
      reallocation.

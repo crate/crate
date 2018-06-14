@@ -38,17 +38,15 @@ is reached it leaves the shard unallocated.
 This command allows the enforcement to retry the allocation of shards which
 failed to allocate. See :ref:`ddl_reroute_shards` to get convenient use-cases.
 
-.. NOTE::
-
-    This statement can only be invoked by superusers that already exist in the
-    cluster.
-
 The rowcount defines the number of shards that will be allocated.
 A rowcount of ``-1`` reflects an error or indicates that the statement did not
 get acknowledged.
 
 .. NOTE::
 
-    Keep in mind that this statement only triggers the shard re-allocation and
-    is therefore asynchronous. Unassigned shards with large size will take some
-    time to allocate.
+    This statement can only be invoked by superusers that already exist in the
+    cluster.
+
+    Additionally, keep in mind that this statement only triggers the shard
+    re-allocation and is therefore asynchronous. Unassigned shards with large
+    size will take some time to allocate.

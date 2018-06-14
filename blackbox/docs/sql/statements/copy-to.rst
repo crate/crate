@@ -75,13 +75,10 @@ The resulting string should be a valid URI of one of the supporting schemes:
 If no scheme is given (e.g.: '/path/to/dir') the default uri-scheme ``file://``
 will be used.
 
-.. NOTE::
-
-   If the s3 scheme is used without specifying any credentials an
-   attempt is made to read these information from the AWS_ACCESS_KEY_ID
-   and AWS_SECRET_KEY environment variables. In addition to that the
-   Java System properties aws.accessKeyId and aws.secretKey are also
-   used as a fallback.
+If the s3 scheme is used without specifying any credentials an attempt is made
+to read these information from the AWS_ACCESS_KEY_ID and AWS_SECRET_KEY
+environment variables. In addition to that the Java System properties
+aws.accessKeyId and aws.secretKey are also used as a fallback.
 
 .. NOTE::
 
@@ -89,12 +86,9 @@ will be used.
    as '/', '+' or '='. Such characters must be URI encoded. The same encoding
    as in :ref:`copy_from_s3` applies.
 
-.. NOTE::
-
-   Versions prior to 0.51.x use HTTP for connections to S3. Since 0.51.x
-   these connections are using the HTTPS protocol. Please make sure you
-   update your firewall rules to allow outgoing connections on port
-   ``443``.
+   Additionally, versions prior to 0.51.x use HTTP for connections to S3. Since
+   0.51.x these connections are using the HTTPS protocol. Please make sure you
+   update your firewall rules to allow outgoing connections on port ``443``.
 
 Clauses
 =======

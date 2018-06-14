@@ -50,7 +50,7 @@ multiple alias or table definitions::
 
 .. SEEALSO::
 
-    - :ref:`sql_lexical`
+    :ref:`sql_lexical`
 
 Parameter Reference
 ===================
@@ -100,7 +100,7 @@ the array which should be retrieved.
 
 .. SEEALSO::
 
-    - :ref:`sql_dql_object_arrays_select`
+    :ref:`sql_dql_object_arrays_select`
 
 Object Subscript
 ----------------
@@ -115,7 +115,7 @@ should be retrieved.
 
 .. SEEALSO::
 
-    - :ref:`sql_dql_objects`
+    :ref:`sql_dql_objects`
 
 Function Call
 =============
@@ -139,7 +139,7 @@ A type cast specifies the conversion from one type to another. The syntax is::
 
 .. SEEALSO::
 
-    - :ref:`data-types`
+    :ref:`data-types`
 
 Object Constructor
 ==================
@@ -154,7 +154,7 @@ enclosed in curly brackets::
 
 .. SEEALSO::
 
-    - :ref:`data-type-object-literals`
+    :ref:`data-type-object-literals`
 
 Array Constructor
 =================
@@ -167,7 +167,7 @@ optionally prefixed with ``ARRAY``::
 
 .. SEEALSO::
 
-    - :ref:`data-type-array-literals`
+    :ref:`data-type-array-literals`
 
 Scalar Subquery
 ===============

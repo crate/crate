@@ -243,7 +243,7 @@ Examples::
     cr> insert into my_table4 (id, first_column) values (3, 'wrong');
     SQLActionException[ColumnValidationException: Validation failed for first_column: Cannot cast 'wrong' to type timestamp]
 
-.. NOTE::
+.. CAUTION::
 
     When inserting timestamps smaller than ``-999999999999999`` (equals to
     ``-29719-04-05T22:13:20.001Z``) or bigger than ``999999999999999`` (equals to
@@ -274,11 +274,9 @@ Alternatively a `WKT`_ string can also be used to declare geo points::
 
     Empty geo points are not supported.
 
-.. NOTE::
-
-    If a column is dynamically created the type detection won't recognize
-    neither WKT strings nor double arrays. That means columns of type geo_point
-    must always be declared beforehand.
+    Additionally, if a column is dynamically created the type detection won't
+    recognize neither WKT strings nor double arrays. That means columns of type
+    geo_point must always be declared beforehand.
 
 Create table example::
 

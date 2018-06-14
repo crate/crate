@@ -21,7 +21,7 @@ usage, please consult the :ref:`admin_hba`.
 
 .. NOTE::
 
-   *Secured Communications* is an Enterprise Edition feature.
+   Secured Communications is an Enterprise Edition feature.
 
 .. rubric:: Table of Contents
 
@@ -61,14 +61,13 @@ certificate provided by the node and will determine if the node's certificate
 is valid, trusted, and matches the hostname or IP address it is trying to
 connect to.
 
-.. NOTE::
+.. CAUTION::
 
     Technically, it's possible to disable CA checks for certificates on the
     client. It is strongly recommended however to use certificates signed by
     an official CA or by a private CA (company PKI) that is also known to the
     client. This will help to ensure that establishing trust is as painless
     as possible.
-
 
 See :ref:`ssl_generate_keystore` for information about how to create a keystore.
 

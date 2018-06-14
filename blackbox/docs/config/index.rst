@@ -43,7 +43,7 @@ Settings are applied in the following order:
 Each setting value overwrites any previous value. So, for example, command line
 settings will override configuration file settings.
 
-.. NOTE::
+.. TIP::
 
    Cluster settings can be :ref:`changed at runtime
    <administration-runtime-config>`.
@@ -52,8 +52,8 @@ settings will override configuration file settings.
 
    If you're just getting started with a particular part of CrateDB, we
    recommend you consult the appropriate top-level section of the
-   documentation. The configuration documentation assumes a basic familiarity
-   with the relevant parts of CrateDB.
+   documentation. The rest of this configuration documentation assumes a basic
+   familiarity with the relevant parts of CrateDB.
 
 .. rubric:: Table of Contents
 

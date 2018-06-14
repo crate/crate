@@ -125,20 +125,19 @@ Arguments
    and on user-created tables. Using the ``MATCH`` predicate on system tables is
    not supported.
 
-.. NOTE::
+   One ``MATCH`` predicate cannot combine columns of both relations of a join.
 
-   One MATCH predicate cannot combine columns of both relations of a join.
+   Additionally, ``MATCH`` predicates cannot be used on columns of both
+   relations of a join if they cannot be logically applied to each of them
+   separately. For example:
 
-.. NOTE::
+   This is allowed::
 
-   MATCH predicates cannot be used on columns of both relations of a join if
-   they cannot be logically applied to each of them separately. For example:
+       FROM t1, t2 WHERE match(t1.txt, 'foo') AND match(t2.txt, 'bar');``
 
-   This is allowed: FROM t1, t2 WHERE match(t1.txt, 'foo') AND match(t2.txt,
-   'bar');
+   But this is not::
 
-   But this is not: FROM t1, t2 WHERE match(t1.txt, 'foo') OR match(t2.txt,
-   'bar');
+       FROM t1, t2 WHERE match(t1.txt, 'foo') OR match(t2.txt, 'bar');
 
 .. _predicates_match_types:
 
@@ -435,7 +434,7 @@ text and document because it's a ratio relative to all results, and by
 filtering on :ref:`_score <sql_administration_system_column_score>`, 'all
 results' has already changed.
 
-.. WARNING::
+.. CAUTION::
 
    As noted above :ref:`_score <sql_administration_system_column_score>` is a
    relative number and not comparable across searches. Filtering is therefore

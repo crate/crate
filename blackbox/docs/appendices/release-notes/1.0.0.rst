@@ -8,15 +8,15 @@ Released on 2016/12/05.
 
 .. NOTE::
 
-   If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
-   before you upgrade to 1.0.0.
+    If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
+    before you upgrade to 1.0.0.
 
-   You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
-   version will require a `full restart upgrade`_.
+    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
+    version will require a `full restart upgrade`_.
 
 .. WARNING::
 
-   Before upgrading, you should `back up your data`_.
+    Before upgrading, you should `back up your data`_.
 
 .. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
 .. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html

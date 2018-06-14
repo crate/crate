@@ -83,13 +83,13 @@ Let's insert Austria::
    cr> REFRESH TABLE country;
    REFRESH OK, 1 row affected  (... sec)
 
-.. Warning::
+.. CAUTION::
 
    Geoshapes has to be fully valid by `ISO 19107`_. If you have problems
    importing geo data, they may not be fully valid. In most cases they could be
    repaired using this tool: https://github.com/tudelft3d/prepair
 
-.. Note::
+.. NOTE::
 
    When using a polygon shape that resembles a rectangle, and that
    rectangle is wider than 180 degrees the CrateDB geoshape validator
@@ -161,20 +161,23 @@ spatial relation we want to match. Available ``match_types`` are:
    and on user-created tables. Using the ``MATCH`` predicate on system
    tables is not supported.
 
-.. NOTE::
+   One ``MATCH`` predicate cannot combine columns of both relations of a join.
 
-   One MATCH predicate cannot combine columns of both relations of a join.
+   Additionally, ``MATCH`` predicates cannot be used on columns of both
+   relations of a join if they cannot be logically applied to each of them
+   separately. For example:
 
-.. NOTE::
+   This is allowed::
 
-   MATCH predicates cannot be used on columns of both relations of a join if
-   they cannot be logically applied to each of them separately. For example:
+        FROM t1, t2
+       WHERE match(t1.shape, 'POINT(1.1 2.2)')
+         AND match(t2.shape, 'POINT(3.3 4.4)')
 
-   This is allowed: ``FROM t1, t2 WHERE match(t1.shape, 'POINT(1.1 2.2)') AND
-   match(t2.shape, 'POINT(3.3 4.4)')``
+   But this is not::
 
-   But this is not: ``FROM t1, t2 WHERE match(t1.shape, 'POINT(1.1 2.2)') OR
-   match(t2.shape, 'POINT(3.3 4.4)')``
+        FROM t1, t2
+       WHERE match(t1.shape, 'POINT(1.1 2.2)')
+          OR match(t2.shape, 'POINT(3.3 4.4)')``
 
 Having a table ``countries`` with a ``GEO_SHAPE`` column "geo" indexed using
 ``geohash`` you can query that column using the ``MATCH`` predicate with

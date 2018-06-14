@@ -776,7 +776,7 @@ flag::
   cr> update sys.node_checks set acknowledged = true where id = 1;
   UPDATE OK, 1 row affected (... sec)
 
-.. NOTE::
+.. CAUTION::
 
    Updates on this column are transient, so changed values are lost after the
    affected node is restarted.
@@ -1054,7 +1054,7 @@ Jobs
 ----
 
 The ``sys.jobs`` table is a constantly updated view of all jobs that are
-currently being executed in the cluster. 
+currently being executed in the cluster.
 
 Table Schema
 ............
@@ -1080,7 +1080,7 @@ Table Schema
 | ``username``                       | The user who is executing the statement.           | ``STRING``    |
 +------------------------------------+----------------------------------------------------+---------------+
 
-The field ``username`` corresponds to the :ref:`SESSION_USER <session_user>` 
+The field ``username`` corresponds to the :ref:`SESSION_USER <session_user>`
 that is performing the query::
 
     cr> select stmt, username, started from sys.jobs where stmt like 'sel% from %jobs%';
