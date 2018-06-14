@@ -17,7 +17,7 @@ configured number of shards. Shards are then distributed across the cluster. As
 nodes are added to the cluster, CrateDB will move shards around to achieve
 maximum possible distribution.
 
-.. NOTE::
+.. TIP::
 
    Unpartitioned tables function as a single partition, so unpartitioned tables
    are still split into the configured number of shards.

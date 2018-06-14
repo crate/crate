@@ -1745,11 +1745,9 @@ Example::
     makes `SESSION_USER`_ functionally equivalent to `CURRENT_USER`_. We
     provide it as it's part of the SQL standard.
 
-.. NOTE::
-
-    The `CURRENT_USER`_, `SESSION_USER`_ and `USER`_ functions have a
-    a special SQL syntax, meaning that they must be called without trailing
-    parenthesis (``()``).
+    Additionally, the `CURRENT_USER`_, `SESSION_USER`_ and `USER`_ functions
+    have a a special SQL syntax, meaning that they must be called without
+    trailing parenthesis (``()``).
 
 ``pg_backend_pid()``
 --------------------

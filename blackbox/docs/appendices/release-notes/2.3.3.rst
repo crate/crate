@@ -8,16 +8,16 @@ Released on 2018/02/15.
 
 .. NOTE::
 
-   If you are upgrading a cluster, you must be running CrateDB
-   :ref:`version_1.1.3` or higher before you upgrade to 2.3.3.
+    If you are upgrading a cluster, you must be running CrateDB
+    :ref:`version_1.1.3` or higher before you upgrade to 2.3.3.
 
-   If you want to perform a `rolling upgrade`_, your current CrateDB version
-   number must be at least :ref:`version_2.3.0`. Any upgrade from a version
-   prior to this will require a `full restart upgrade`_.
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_2.3.0`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
 
 .. WARNING::
 
-   Before upgrading, you should `back up your data`_.
+    Before upgrading, you should `back up your data`_.
 
 .. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
 .. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html

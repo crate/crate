@@ -173,7 +173,7 @@ partition belongs to.
 Or if no matching partition table exists, it will be implicitly created during
 restore.
 
-.. NOTE::
+.. CAUTION::
 
     This is only possible with CrateDB version 0.55.5 or greater!
 

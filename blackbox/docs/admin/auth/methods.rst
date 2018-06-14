@@ -8,14 +8,8 @@ There are multiple ways to authenticate against CrateDB.
 
 .. NOTE::
 
-   Authentication methods are an
-   :ref:`enterprise feature <enterprise_features>`.
-
-.. NOTE::
-
-   CrateDB will never leak information about user existence in the case of
-   failed authentication. If you're receiving an error trying to authenticate,
-   first make sure that the user exists.
+   Authentication methods are an :ref:`enterprise feature
+   <enterprise_features>`.
 
 .. rubric:: Table of Contents
 
@@ -80,22 +74,26 @@ Password Authentication Method
 ==============================
 
 When the ``password`` authentication method is used, the client has to provide
-a password additionally to the username. The password is sent from the client
-to the server in **clear text**, which means that unless SSL is enabled, the
-password could potentially be read by anyone sniffing the network.
+a password additionally to the username.
+
+For HTTP, the password must be encoded together with the username with
+``BASE64_`` and sent together prefixed with ``Basic`` as string value for the
+``Authorization`` HTTP header. See also: `HTTP Basic Authentication`_.
+
+The password is sent from the client to the server in **clear text**, which
+means that unless SSL is enabled, the password could potentially be read by
+anyone sniffing the network.
+
+**CrateDB does not store user passwords as clear text!**
+
+CrateDB stores user passwords salted with a per-user salt and hashed using the
+PBKDF2_ key derivation function and the `SHA-512 hash algorithm`_.
 
 .. NOTE::
 
-   For HTTP, the password must be encoded together with the username with
-   ``BASE64_`` and sent together prefixed with ``Basic`` as string value for
-   the ``Authorization`` HTTP header. See also: `HTTP Basic Authentication`_.
-
-.. NOTE::
-
-   **CrateDB does not store user passwords as clear text!**
-
-   CrateDB stores user passwords salted with a per-user salt and hashed using
-   the PBKDF2_ key derivation function and the `SHA-512 hash algorithm`_.
+   CrateDB will never leak information about user existence in the case of
+   failed authentication. If you're receiving an error trying to authenticate,
+   first make sure that the user exists.
 
 .. _auth_cert:
 

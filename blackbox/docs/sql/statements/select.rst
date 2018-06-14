@@ -257,10 +257,8 @@ resulting row of a group by clause.
    would otherwise be more than one possible value to return for an ungrouped
    column.
 
-.. NOTE::
-
-   Grouping can only be applied on indexed fields. For more information, please
-   refer to :ref:`sql_ddl_index_off`.
+   Additionally, grouping can only be applied on indexed fields. For more
+   information, please refer to :ref:`sql_ddl_index_off`.
 
 .. _sql_reference_union:
 
@@ -281,26 +279,18 @@ rows. You can find :ref:`here <sql_union>` sample usage of UNION ALL.
   Can be any SELECT statement.
 
 
-.. NOTE::
+ORDER BY, LIMIT and OFFSET can only be applied after the last SELECT statement
+of the UNION ALL, as they are applied to the complete result of the UNION
+operation. In order to apply an ORDER BY and/or LIMIT and/or OFFSET to any of
+the partial SELECT statements, those statements need to become subqueries.
 
-   ORDER BY, LIMIT and OFFSET can only be applied after the last SELECT
-   statement of the UNION ALL, as they are applied to the complete
-   result of the UNION operation. In order to apply an ORDER BY and/or
-   LIMIT and/or OFFSET to any of the partial SELECT statements, those
-   statements need to become subqueries.
+Column names used in ORDER BY must be position numbers or refer to the outputs
+of the first SELECT statement, and no functions can be applied on top of the
+ORDER BY symbols. To achieve more complex ordering UNION ALL must become a
+subselect and the more complex ORDER BY should be applied on the outer SELECT
+wrapping the UNION ALL subselect.
 
-.. NOTE::
-
-   Column names used in ORDER BY must be position numbers or refer to
-   the outputs of the first SELECT statement, and no functions can be
-   applied on top of the ORDER BY symbols. To achieve more complex
-   ordering UNION ALL must become a subselect and the more complex ORDER
-   BY should be applied on the outer SELECT wrapping the UNION ALL
-   subselect.
-
-.. NOTE::
-
-   Ordering of the outcome is not guaranteed unless ORDER BY is used.
+Ordering of the outcome is not guaranteed unless ORDER BY is used.
 
 .. _sql_reference_order_by:
 
@@ -327,24 +317,21 @@ LAST is specified null values sort after non null values.  If neither is
 specified nulls are considered larger than any value. That means the default
 for ASC is NULLS LAST and the default for DESC is NULLS FIRST.
 
-.. NOTE::
-
-   If two rows are equal according to the leftmost expression, they are
-   compared according to the next expression and so on. If they are equal
-   according to all specified expressions, they are returned in an
-   implementation-dependent order.
-
-.. NOTE::
-
-   Sorting can only be applied on indexed fields. For more information, please
-   refer to :ref:`sql_ddl_index_off`.
+If two rows are equal according to the leftmost expression, they are compared
+according to the next expression and so on. If they are equal according to all
+specified expressions, they are returned in an implementation-dependent order.
 
 Character-string data is sorted by its UTF-8 representation.
 
 .. NOTE::
 
-  Sorting on :ref:`geo_point_data_type`, :ref:`geo_shape_data_type`,
-  :ref:`data-type-array`, and :ref:`object_data_type` is not supported.
+    Sorting can only be applied on indexed fields. For more information, please
+    refer to :ref:`sql_ddl_index_off`.
+
+
+    Additionally, sorting on :ref:`geo_point_data_type`,
+    :ref:`geo_shape_data_type`, :ref:`data-type-array`, and
+    :ref:`object_data_type` is not supported.
 
 ``LIMIT``
 .........

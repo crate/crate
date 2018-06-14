@@ -379,7 +379,7 @@ Sets size of transaction log prior to flushing.
 :value:
   Set ``true`` to disable flushing, otherwise set to ``false``.
 
-.. NOTE::
+.. CAUTION::
 
    It is recommended to use ``disable_flush`` only for short periods of time.
 

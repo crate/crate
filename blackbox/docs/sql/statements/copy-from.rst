@@ -148,11 +148,9 @@ Using the 's3://' URI scheme sets the ``shared`` option implicitly.
    as '/', '+' or '='. These characters must be `URL encoded`_. For a detailed
    explanation read the official `AWS documentation`_.
 
-.. NOTE::
-
-   Versions prior to 0.51.x use HTTP for connections to S3. Since 0.51.x these
-   connections are using the HTTPS protocol. Please make sure you update your
-   firewall rules to allow outgoing connections on port ``443``.
+   Additionally, versions prior to 0.51.x use HTTP for connections to S3. Since
+   0.51.x these connections are using the HTTPS protocol. Please make sure you
+   update your firewall rules to allow outgoing connections on port ``443``.
 
 ``http``, ``https``, and ``jar`` (Java URL protocols)
 .....................................................

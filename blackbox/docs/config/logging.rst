@@ -87,7 +87,7 @@ Possible log levels are the same as for Log4j_: ``TRACE``, ``DEBUG``, ``INFO``,
 ``WARN``, and ``ERROR``. They must be provided as string literals in the
 ``SET`` statement.
 
-.. NOTE::
+.. WARNING::
 
    Be careful using the ``TRACE`` log level because it's extremely verbose,
    can obscure other important log messages and even fill up entire data disks
@@ -119,7 +119,7 @@ collection log files may take up to 1GB of space on your disk.  However, both
 the maximum file size and the amount of kept files can be controlled with the
 environment variables described below.
 
-.. NOTE::
+.. TIP::
 
    The default garbage collection log directory differ for different CrateDB
    distributions. See :ref:`CRATE_GC_LOG_DIR<conf-logging-gc-logdir>` below.

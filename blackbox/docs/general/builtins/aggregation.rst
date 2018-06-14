@@ -307,7 +307,7 @@ returns double values. If a value is negative, all values were null or we got
 no value at all ``NULL`` is returned. If any of the aggregated values is ``0``
 the result will be ``0.0`` as well.
 
-.. NOTE::
+.. CAUTION::
 
     Due to java double precision arithmetic it is possible that any two
     executions of the aggregation function on the same data produce slightly
@@ -350,7 +350,7 @@ Example::
     +--------------------+-------------+
     SELECT 3 rows in set (... sec)
 
-.. NOTE::
+.. CAUTION::
 
     Due to java double precision arithmetic it is possible that any two
     executions of the aggregation function on the same data produce slightly
@@ -381,7 +381,7 @@ Example::
     +--------------------+-------------+
     SELECT 3 rows in set (... sec)
 
-.. NOTE::
+.. CAUTION::
 
     Due to java double precision arithmetic it is possible that any two
     executions of the aggregation function on the same data produce slightly

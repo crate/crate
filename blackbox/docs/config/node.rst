@@ -28,9 +28,9 @@ Basics
   The name of the node. If no name is configured a random one will be
   generated.
 
-.. NOTE::
+  .. NOTE::
 
-   Node names must be unique in a CrateDB cluster.
+      Node names must be unique in a CrateDB cluster.
 
 **node.max_local_storage_nodes**
   | *Default:*    ``1``
@@ -119,17 +119,21 @@ Hosts
   This setting is used by a CrateDB node to publish its own address to the rest
   of the cluster.
 
-  .. NOTE::
+.. TIP::
 
     Apart from IPv4 and IPv6 addresses there are some special values that can
     be used for all above settings:
 
-=========================   =================================================================
-**_local_**                 Any loopback addresses on the system, for example 127.0.0.1.
-**_site_**                  Any site-local addresses on the system, for example 192.168.0.1.
-**_global_**                Any globally-scoped addresses on the system, for example 8.8.8.8.
-**_[networkInterface]_**    Addresses of a network interface, for example _en0_.
-=========================   =================================================================
+    =========================  =================================================
+    ``_local_``                Any loopback addresses on the system, for example
+                               ``127.0.0.1``.
+    ``_site_``                 Any site-local addresses on the system, for
+                               example ``192.168.0.1``.
+    ``_global_``               Any globally-scoped addresses on the system, for
+                               example ``8.8.8.8``.
+    ``_[INTERFACE]_``          Addresses of a network interface, for example
+                               ``_en0_``.
+    =========================  =================================================
 
 .. _conf_ports:
 
@@ -412,10 +416,10 @@ The meaning of the fields of the are as follows:
   | means that the client can be authenticated regardless of SSL/TLS is used
   | or not.
 
-.. NOTE::
+  .. NOTE::
 
-  **auth.host_based.config.${order}.ssl** is available only for ``pg``
-  protocol.
+      **auth.host_based.config.${order}.ssl** is available only for ``pg``
+      protocol.
 
 **Example of config groups:**
 

@@ -74,7 +74,7 @@ The following schema names are reserved and may not be used:
  - information_schema
  - sys
 
-.. NOTE::
+.. TIP::
 
    Schemas are primarily namespaces for tables.
 

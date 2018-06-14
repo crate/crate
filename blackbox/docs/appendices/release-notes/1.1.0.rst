@@ -8,12 +8,12 @@ Released on 2017/03/21.
 
 .. WARNING::
 
-   Do not use this version. This release introduced a bug which caused all
-   partitioned tables to become unusable. The bug was fixed in
-   :ref:`version_1.1.1`.
+    Do not use this version. This release introduced a bug which caused all
+    partitioned tables to become unusable. The bug was fixed in
+    :ref:`version_1.1.1`.
 
-   This version was removed from all release channels. This changelog is kept for
-   information purposes only.
+    This version was removed from all release channels. This changelog is kept
+    for information purposes only.
 
 .. rubric:: Table of Contents
 

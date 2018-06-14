@@ -4,17 +4,6 @@
 User-Defined Functions
 ======================
 
-.. NOTE::
-
-   The :ref:`udf_lang_js` language is an :ref:`enterprise feature
-   <enterprise_features>`.
-
-.. NOTE::
-
-   The :ref:`udf_lang_js` language is an experimental feature and is disabled
-   by default. You can enable the :ref:`conf-node-lang-js` via the
-   configuration file.
-
 .. rubric:: Table of Contents
 
 .. contents::
@@ -148,7 +137,7 @@ This would overload our ``my_multiply`` function with more arguments::
     ...  AS 'function my_multiply(a, b, c) { return a * b * c; }';
     CREATE OK, 1 row affected  (... sec)
 
-.. WARNING::
+.. CAUTION::
 
     It is considered bad practice to create functions that have the same name
     as the CrateDB built-in functions!
@@ -168,7 +157,7 @@ This would overload our ``my_multiply`` function with more arguments::
 Determinism
 ===========
 
-.. WARNING::
+.. CAUTION::
 
     User-defined functions need to be deterministic, meaning that they must
     always return the same result value when called with the same argument
@@ -211,6 +200,11 @@ JavaScript
 
 The UDF language ``javascript`` supports the `ECMAScript 5.1`_ standard.
 
+.. NOTE::
+
+   The JavaScript language is an :ref:`enterprise feature
+   <enterprise_features>`.
+
 CrateDB uses the Java built-in JavaScript engine Nashorn_ to interpret and
 execute functions written in JavaScript. The engine is initialized using the
 ``--no-java`` option which basically restricts all access to Java APIs from
@@ -223,12 +217,7 @@ Also, even though Nashorn runs ECMA-complient JavaScript, objects that are
 normally accessible with a web browser (e.g. ``window``, ``console`` and so on)
 are are not available.
 
-.. NOTE::
-
-   The JavaScript language is an :ref:`enterprise feature
-   <enterprise_features>`.
-
-.. NOTE::
+.. CAUTION::
 
    The :ref:`udf_lang_js` language is an experimental feature and is disabled
    by default. You can enable the :ref:`conf-node-lang-js` via the configuration

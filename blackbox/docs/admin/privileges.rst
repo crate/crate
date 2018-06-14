@@ -5,35 +5,29 @@
 Privileges
 ==========
 
-.. rubric:: Table of Contents
-
-.. contents::
-   :local:
-
-Introduction
-============
+The superuser is allowed to execute any statement without any privilege checks.
 
 The superuser uses ``GRANT``, ``DENY`` and ``REVOKE`` statements to control
 access to the resource. The privileges are either applied on the whole cluster
 or on instances of objects such as schema, or table.
 
+Currently, only ``DQL``, ``DML`` and ``DDL`` privileges can be granted.
+
+Any statements which are not allowed with those privileges, such as ``GRANT``,
+``DENY`` and ``REVOKE``, can only be issued by a superuser.
+
 .. NOTE::
 
-   Privileges are an
-   :ref:`enterprise feature <enterprise_features>`.
+   Privileges are an :ref:`enterprise feature <enterprise_features>`.
 
    When the CrateDB Enterprise Edition is disabled, there will be no user
    privilege checks, and every statement will be executed without the
    validation of privileges.
 
-.. NOTE::
+.. rubric:: Table of Contents
 
-   Superusers are allowed to execute any statement without any privilege
-   checks.
-
-   Currently only ``DQL``, ``DML`` and ``DDL`` privileges can be granted. Any
-   statements which are not allowed with those privileges, such as ``GRANT``,
-   ``DENY`` and ``REVOKE``, can only be issued by a superuser.
+.. contents::
+   :local:
 
 Privilege Types
 ===============
@@ -125,8 +119,6 @@ privilege on all the other tables of the ``doc`` schema::
     on a schema level, CrateDB takes the schema name provided without further
     validation.
 
-.. NOTE::
-
     Privileges can be managed on all schemas and tables of the cluster,
     except the ``information_schema``.
 
@@ -159,7 +151,7 @@ For more information regarding views, please see the
 Behavior of ``GRANT``, ``DENY`` and ``REVOKE``
 ==============================================
 
-.. NOTE::
+.. CAUTION::
 
     Stale permissions might be introduced if ``DDL`` statements were invoked
     while the Enterprise Edition is temporarily disabled. To allow clients

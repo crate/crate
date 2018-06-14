@@ -48,8 +48,9 @@ are supported to alter an existing user account:
 
   ``NULL`` removes the password from the user.
 
-.. NOTE::
+.. CAUTION::
 
-   Passwords cannot be set for the ``crate`` superuser. For security
-   reasons it is recommended to authenticate as ``crate`` using a client
-   certificate.
+    Passwords cannot be set for the ``crate`` superuser.
+
+    For security reasons it is recommended to authenticate as ``crate`` using a
+    client certificate.
