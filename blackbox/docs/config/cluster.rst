@@ -89,6 +89,8 @@ Collecting Stats
      :ref:`stats.operations_log_expiration <stats.operations_log_expiration>`
      settings are disabled, jobs will not be recorded.
 
+.. _stats.jobs_log_filter:
+
 **stats.jobs_log_filter**
   | *Default:* ``true`` (Include everything)
   | *Runtime:* ``yes``
@@ -103,6 +105,8 @@ Collecting Stats
   execute::
 
     cr> SET GLOBAL "stats.jobs_log_filter" = 'ended - started > 100';
+
+.. _stats.jobs_log_persistent_filter:
 
 **stats.jobs_log_persistent_filter**
   | *Default:* ``false`` (Include nothing)

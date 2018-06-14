@@ -1015,38 +1015,43 @@ Jobs, Operations, and Logs
 
 To let you inspect the activities currently taking place in a cluster, CrateDB
 provides system tables that let you track current cluster jobs and operations.
-CrateDB also logs both of these tables.
+See :ref:`Jobs Table <sys-jobs>` and :ref:`Operations Table<sys-operations>`.
 
-By default, these tables are not populated, because tracking jobs and
-operations adds a slight performance overhead.
+Jobs and operations that finished executing are additionally recorded in
+memory. There are two retention policies available to control how many records
+should be kept.
 
-The tracking jobs are stored in memory. The amount of memory that can be
-used to store the jobs is limited by the
-:ref:`Jobs Log Circuit Breaker <stats.breaker.log.jobs.limit>` and
-:ref:`Operations Log Circuit Breaker <stats.breaker.log.operations.limit>`.
-If the memory limit is reached, an error message will be logged and the log
-table will be cleared completely.
-
-You can avoid the tables being cleared completely by configuring a records
-retention policy. We currently support two retention policies.
-
-One option is to configure how many records are to be stored in the logs
-tables. This is configurable using :ref:`Jobs Log Size <stats.jobs_log_size>`
-and :ref:`Operations Log Size <stats.operations_log_size>`. Once the configured
-table size is reached the older log records are deleted as newer records are
-added.
+One option is to configure the maximum number of records which should be kept.
+Once the configured table size is reached, the older log records are deleted as
+newer records are added. This is configurable using :ref:`stats.jobs_log_size
+<stats.jobs_log_size>` and :ref:`stats.operations_log_size
+<stats.operations_log_size>`. 
 
 Another option is to configure an expiration time for the records. In this
 case, the records in the logs tables are periodically cleared if they are older
 than the expiry time. This behaviour is configurable using
-:ref:`Jobs Log Expiration <stats.jobs_log_expiration>` and
-:ref:`Operations Log Expiration <stats.operations_log_expiration>`.
+:ref:`stats.jobs_log_expiration <stats.jobs_log_expiration>` and
+:ref:`stats.operations_log_expiration <stats.operations_log_expiration>`.
 
-If you want to use the jobs and operations tables, you must enable the
-collection of CrateDB statistics with :ref:`ref-set`, like so::
+In addition to these retention policies, there is a memory limit in place
+preventing these tables from taking up too much memory. The amount of memory
+that can be used to store the jobs can be configured using
+:ref:`stats.breaker.log.jobs.limit <stats.breaker.log.jobs.limit>` and
+:ref:`stats.breaker.log.operations.limit <stats.breaker.log.operations.limit>`.
+If the memory limit is reached, an error message will be logged and the log
+table will be cleared completely.
 
-    cr> set global stats.enabled = true;
-    SET OK, 1 row affected (... sec)
+It is also possible to define a filter which must match for jobs to be recorded
+after they finished executing. This can be useful to only record slow queries
+or queries that failed due to an error. This filter can be configured using the
+:ref:`stats.jobs_log_filer <stats.jobs_log_filter>` setting.
+
+Furthermore, there is a second filter setting which also results in a log entry
+in the regular CrateDB log file for all finished jobs that match this filter.
+This can be configured using :ref:`stats.jobs_log_persistent_filter
+<stats.jobs_log_persistent_filter>`. This could be used to create a persistent
+slow query log.
+
 
 .. _sys-jobs:
 
@@ -1265,6 +1270,13 @@ have corresponding log tables: ``sys.jobs_log`` and ``sys.operations_log``.
 |                              | types that can be classified more accurately than  |                  |
 |                              | just by their type.                                |                  |
 +------------------------------+----------------------------------------------------+------------------+
+
+
+.. note::
+
+  You can control which jobs are recorded using the :ref:`stats.jobs_log_filter
+  <stats.jobs_log_filter>`
+
 
 ``sys.operations_log`` Table Schema
 ...................................
