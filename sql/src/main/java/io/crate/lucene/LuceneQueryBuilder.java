@@ -55,6 +55,7 @@ import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.scalar.Ignore3vlFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.scalar.geo.DistanceFunction;
 import io.crate.expression.scalar.geo.WithinFunction;
@@ -494,6 +495,17 @@ public class LuceneQueryBuilder {
             }
         }
 
+        class Ignore3vlQuery implements FunctionToQuery {
+
+            @Nullable
+            @Override
+            public Query apply(Function input, Context context) throws IOException {
+                List<Symbol> args = input.arguments();
+                assert args.size() == 1 : "ignore3vl expects exactly 1 argument, got: " + args.size();
+                return process(args.get(0), context);
+            }
+        }
+
         class NotQuery implements FunctionToQuery {
 
             private class SymbolToNotNullContext {
@@ -534,6 +546,10 @@ public class LuceneQueryBuilder {
                     return STRICT_3VL_FUNCTIONS.contains(symbol.info().ident().name());
                 }
 
+                private boolean isIgnoreThreeValuedLogicFunction(Function symbol) {
+                    return Ignore3vlFunction.NAME.equals(symbol.info().ident().name());
+                }
+
                 @Override
                 public Void visitReference(Reference symbol, SymbolToNotNullContext context) {
                     context.add(symbol);
@@ -542,6 +558,10 @@ public class LuceneQueryBuilder {
 
                 @Override
                 public Void visitFunction(Function symbol, SymbolToNotNullContext context) {
+                    if (isIgnoreThreeValuedLogicFunction(symbol)) {
+                        return null;
+                    }
+
                     if (!isStrictThreeValuedLogicFunction(symbol)) {
                         for (Symbol arg : symbol.arguments()) {
                             process(arg, context);
@@ -1135,6 +1155,7 @@ public class LuceneQueryBuilder {
                 .put(GtOperator.NAME, gtQuery)
                 .put(LikeOperator.NAME, new LikeQuery())
                 .put(NotPredicate.NAME, new NotQuery())
+                .put(Ignore3vlFunction.NAME, new Ignore3vlQuery())
                 .put(IsNullPredicate.NAME, new IsNullQuery())
                 .put(MatchPredicate.NAME, new ToMatchQuery())
                 .put(AnyOperators.Names.EQ, new AnyEqQuery())
