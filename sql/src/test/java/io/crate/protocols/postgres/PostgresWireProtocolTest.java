@@ -30,6 +30,8 @@ import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
+import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.JobKilledException;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.DependencyCarrier;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -391,31 +393,33 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHandleMultipleSimpleQueries() {
-        submitQueriesThroughSimpleQueryMode(false);
+        submitQueriesThroughSimpleQueryMode("first statement; second statement;", null);
         readReadyForQueryMessage(channel);
         assertThat(channel.outboundMessages().size() , is(0));
     }
 
     @Test
     public void testHandleMultipleSimpleQueriesWithQueryFailure() {
-        submitQueriesThroughSimpleQueryMode(true);
-        readErrorResponse(channel);
+        submitQueriesThroughSimpleQueryMode("first statement; second statement;", new RuntimeException("fail"));
+        readErrorResponse(channel, (byte) 110);
         readReadyForQueryMessage(channel);
         assertThat(channel.outboundMessages().size() , is(0));
     }
 
-    private void submitQueriesThroughSimpleQueryMode(boolean failFirstStatement) {
+    @Test
+    public void testKillExceptionSendsReadyForQuery() {
+        submitQueriesThroughSimpleQueryMode("some statement;", new JobKilledException());
+        readErrorResponse(channel, (byte) 104);
+        readReadyForQueryMessage(channel);
+    }
+
+    private void submitQueriesThroughSimpleQueryMode(String statements, @Nullable Throwable failure) {
         SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
         Session session = mock(Session.class);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
         Session.DescribeResult describeResult = mock(Session.DescribeResult.class);
         when(describeResult.getFields()).thenReturn(null);
         when(session.describe(anyChar(), anyString())).thenReturn(describeResult);
-        if (failFirstStatement) {
-            when(session.sync()).thenThrow(new RuntimeException("fail"));
-        } else {
-            when(session.sync()).thenReturn(CompletableFuture.completedFuture(null));
-        }
 
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
@@ -423,6 +427,15 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new AlwaysOKNullAuthentication(),
                 null);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        if (failure != null) {
+            when(session.sync()).thenAnswer(invocationOnMock -> {
+                Messages.sendErrorResponse(channel, failure);
+                return CompletableFutures.failedFuture(failure);
+            });
+        } else {
+            when(session.sync()).thenReturn(CompletableFuture.completedFuture(null));
+        }
 
         sendStartupMessage(channel);
         readAuthenticationOK(channel);
@@ -432,7 +445,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ByteBuf query = Unpooled.buffer();
         try {
             // the actual statements don't have to be valid as they are not executed
-            Messages.writeCString(query, "first statement; second statement;".getBytes(StandardCharsets.UTF_8));
+            Messages.writeCString(query, statements.getBytes(StandardCharsets.UTF_8));
             ctx.handleSimpleQuery(query, channel);
         } finally {
             query.release();
@@ -475,11 +488,11 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         assertThat(responseBytes, is(new byte[]{'Z', 0, 0, 0, 5, 'I'}));
     }
 
-    private static void readErrorResponse(EmbeddedChannel channel) {
+    private static void readErrorResponse(EmbeddedChannel channel, byte len) {
         ByteBuf response = channel.readOutbound();
         byte[] responseBytes = new byte[5];
         response.readBytes(responseBytes);
         // ErrorResponse: 'E' | int32 len | ...
-        assertThat(responseBytes, is(new byte[]{'E', 0, 0, 0, 67}));
+        assertThat(responseBytes, is(new byte[]{'E', 0, 0, 0, len}));
     }
 }

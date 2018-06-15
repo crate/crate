@@ -66,6 +66,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could prevent postgres clients from receiving an error and
+  therefore getting stuck.
+
 - Fixed an issue that would cause a ``CAST`` from ``TIMESTAMP`` to ``LONG`` to
   be ignored.
 

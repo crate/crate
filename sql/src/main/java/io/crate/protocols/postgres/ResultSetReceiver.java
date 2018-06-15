@@ -80,7 +80,7 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        Messages.sendErrorResponse(channel, SQLExceptions.createSQLActionException(throwable, exceptionAuthorizedValidator))
-            .addListener(f -> super.fail(throwable));
+        final Throwable t =  SQLExceptions.createSQLActionException(throwable, exceptionAuthorizedValidator);
+        Messages.sendErrorResponse(channel, t).addListener(f -> super.fail(t));
     }
 }
