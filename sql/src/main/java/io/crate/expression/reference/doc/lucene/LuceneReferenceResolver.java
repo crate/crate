@@ -52,8 +52,6 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.util.Locale;
 
-import static java.util.Objects.requireNonNull;
-
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
     private final FieldTypeLookup fieldTypeLookup;
@@ -91,14 +89,12 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         } else if (UidCollectorExpression.COLUMN_NAME.equals(name)) {
             if (indexSettings.isSingleType()) {
                 // _uid and _id is the same
-                return new IdCollectorExpression(
-                    requireNonNull(fieldTypeLookup.get(IdCollectorExpression.COLUMN_NAME), "_id field must have a fieldType"));
+                return new IdCollectorExpression();
             }
             return new UidCollectorExpression();
         } else if (IdCollectorExpression.COLUMN_NAME.equals(name)) {
             if (indexSettings.isSingleType()) {
-                return new IdCollectorExpression(
-                    requireNonNull(fieldTypeLookup.get(IdCollectorExpression.COLUMN_NAME), "_id field must have a fieldType"));
+                return new IdCollectorExpression();
             }
             return new IdFromUidCollectorExpression();
         } else if (DocCollectorExpression.COLUMN_NAME.equals(name)) {

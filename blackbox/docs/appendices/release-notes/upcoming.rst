@@ -18,6 +18,12 @@ Breaking Changes
 Changes
 =======
 
+- Changed internals for DELETE and UPDATE queries which should generally result
+  in a performance increase for queries which only match a subset of the rows
+  and avoid ``CircuitBreakingException`` errors. But it might result in a
+  slight performance decrease if the queries match all
+  or almost all records.
+
 - Added a new ``Connections`` MBean for JMX which exposes the number of open
   connections per protocol.
 
