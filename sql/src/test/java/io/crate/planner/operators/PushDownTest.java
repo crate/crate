@@ -28,6 +28,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;

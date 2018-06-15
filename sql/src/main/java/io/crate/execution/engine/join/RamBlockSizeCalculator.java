@@ -25,9 +25,12 @@ package io.crate.execution.engine.join;
 import io.crate.data.Paging;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
-import java.util.function.Supplier;
+import java.util.function.IntSupplier;
 
-class BlockSizeCalculator implements Supplier<Integer> {
+/**
+ * Calculates the number of rows to fit in a block, based on the available memory, the number of rows and the row size.
+ */
+public class RamBlockSizeCalculator implements IntSupplier {
 
     static final int DEFAULT_BLOCK_SIZE = Paging.PAGE_SIZE;
 
@@ -35,15 +38,16 @@ class BlockSizeCalculator implements Supplier<Integer> {
     private final long estimatedRowSizeForLeft;
     private final long numberOfRowsForLeft;
 
-    BlockSizeCalculator(CircuitBreaker circuitBreaker,
-                        long estimatedRowSizeForLeft,
-                        long numberOfRowsForLeft) {
+    RamBlockSizeCalculator(CircuitBreaker circuitBreaker,
+                           long estimatedRowSizeForLeft,
+                           long numberOfRowsForLeft) {
         this.circuitBreaker = circuitBreaker;
         this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
         this.numberOfRowsForLeft = numberOfRowsForLeft;
     }
 
-    int calculateBlockSize() {
+    @Override
+    public int getAsInt() {
         if (statisticsUnavailable(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)) {
             return DEFAULT_BLOCK_SIZE;
         }
@@ -66,10 +70,5 @@ class BlockSizeCalculator implements Supplier<Integer> {
                                                  long estimatedRowSizeForLeft,
                                                  long numberOfRowsForLeft) {
         return estimatedRowSizeForLeft <= 0 || numberOfRowsForLeft <= 0 || circuitBreaker.getLimit() == -1;
-    }
-
-    @Override
-    public Integer get() {
-        return calculateBlockSize();
     }
 }

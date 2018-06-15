@@ -24,7 +24,7 @@ package io.crate.rest.action;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
@@ -92,7 +92,7 @@ public class RestActionReceiversTest extends CrateUnitTest {
             JsonXContent.contentBuilder(),
             fields,
             0L,
-            new RowAccounting(Symbols.typeView(fields), new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"))),
+            new RowAccountingWithEstimators(Symbols.typeView(fields), new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"))),
             true
         );
         for (Row row : rows) {

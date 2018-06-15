@@ -24,6 +24,7 @@ package io.crate.data.join;
 
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.CloseAssertingBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -62,7 +63,7 @@ public class RowsBatchIteratorBenchmark {
     private static NoopCircuitBreaker NOOP_CIRCUIT_BREAKER = new NoopCircuitBreaker("dummy");
 
     private final RamAccountingContext ramAccountingContext = new RamAccountingContext("test", NOOP_CIRCUIT_BREAKER);
-    private final RowAccounting rowAccounting = new RowAccounting(Collections.singleton(DataTypes.INTEGER), ramAccountingContext);
+    private final RowAccounting rowAccounting = new RowAccountingWithEstimators(Collections.singleton(DataTypes.INTEGER), ramAccountingContext);
 
     // use materialize to not have shared row instances
     // this is done in the startup, otherwise the allocation costs will make up the majority of the benchmark.
@@ -103,10 +104,38 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeNestedLoopJoin(Blackhole blackhole) {
-        BatchIterator<Row> crossJoin = JoinBatchIterators.crossJoin(
+        BatchIterator<Row> crossJoin = JoinBatchIterators.crossJoinNL(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
             new CombinedRow(1, 1)
+        );
+        while (crossJoin.moveNext()) {
+            blackhole.consume(crossJoin.currentElement().get(0));
+        }
+    }
+
+    @Benchmark
+    public void measureConsumeBlockNestedLoopJoin(Blackhole blackhole) {
+        BatchIterator<Row> crossJoin = JoinBatchIterators.crossJoinBlockNL(
+            InMemoryBatchIterator.of(oneThousandRows, SENTINEL),
+            InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
+            new CombinedRow(1, 1),
+            () -> 1000,
+            new RowAccounting() {
+                @Override
+                public void accountForAndMaybeBreak(Row row) {
+
+                }
+                @Override
+                public void release() {
+
+                }
+
+                @Override
+                public void close() {
+
+                }
+            }
         );
         while (crossJoin.moveNext()) {
             blackhole.consume(crossJoin.currentElement().get(0));

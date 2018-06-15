@@ -215,6 +215,10 @@ public interface LogicalPlan extends Plan {
      */
     Map<LogicalPlan, SelectSymbol> dependencies();
 
+    /**
+     * Returns the total number of rows this logical operation is expected to return.
+     * @return The number of expected rows if available, -1 otherwise.
+     */
     long numExpectedRows();
 
     /**

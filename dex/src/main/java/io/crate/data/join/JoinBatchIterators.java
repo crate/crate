@@ -22,14 +22,18 @@
 
 package io.crate.data.join;
 
+import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
+import io.crate.data.Row;
 
+import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 
 /**
  * BatchIterator implementations for Joins
  * <ul>
- * <li>{@link #crossJoin(BatchIterator, BatchIterator, ElementCombiner)}</li>
+ * <li>{@link #crossJoinNL(BatchIterator, BatchIterator, ElementCombiner)}</li>
+ * <li>{@link #crossJoinBlockNL(BatchIterator, BatchIterator, ElementCombiner, BlockSizeCalculator, RowAccounting)}</li>
  * <li>{@link #leftJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
  * <li>{@link #rightJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
  * <li>{@link #fullOuterJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
@@ -55,10 +59,21 @@ public final class JoinBatchIterators {
     /**
      * Create a NestedLoop BatchIterator that creates a cross-join of {@code left} and {@code right}.
      */
-    public static <L, R, C> BatchIterator<C> crossJoin(BatchIterator<L> left,
-                                                       BatchIterator<R> right,
-                                                       ElementCombiner<L, R, C> combiner) {
+    public static <L, R, C> BatchIterator<C> crossJoinNL(BatchIterator<L> left,
+                                                         BatchIterator<R> right,
+                                                         ElementCombiner<L, R, C> combiner) {
         return new CrossJoinNLBatchIterator<>(left, right, combiner);
+    }
+
+    /**
+     * Create a BlockNestedLoop BatchIterator that creates a cross-join of {@code left} and {@code right}.
+     */
+    public static BatchIterator<Row> crossJoinBlockNL(BatchIterator<Row> left,
+                                                      BatchIterator<Row> right,
+                                                      ElementCombiner<Row, Row, Row> combiner,
+                                                      IntSupplier blockSizeCalculator,
+                                                      RowAccounting rowAccounting) {
+        return new CrossJoinBlockNLBatchIterator(left, right, combiner, blockSizeCalculator, rowAccounting);
     }
 
     /**

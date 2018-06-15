@@ -25,7 +25,10 @@ package io.crate.execution.dsl.phases;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.node.dql.join.JoinType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -35,6 +38,10 @@ import java.util.UUID;
 
 public class NestedLoopPhase extends JoinPhase {
 
+    public final List<DataType> leftSideColumnTypes;
+    public final long estimatedRowsSizeLeft;
+    public final long estimatedNumberOfRowsLeft;
+    public final boolean blockNestedLoop;
 
     public NestedLoopPhase(UUID jobId,
                            int executionNodeId,
@@ -46,7 +53,11 @@ public class NestedLoopPhase extends JoinPhase {
                            int numRightOutputs,
                            Collection<String> executionNodes,
                            JoinType joinType,
-                           @Nullable Symbol joinCondition) {
+                           @Nullable Symbol joinCondition,
+                           List<DataType> leftSideColumnTypes,
+                           long estimatedRowsSizeLeft,
+                           long estimatedNumberOfRowsLeft,
+                           boolean blockNestedLoop) {
         super(
             jobId,
             executionNodeId,
@@ -59,10 +70,28 @@ public class NestedLoopPhase extends JoinPhase {
             executionNodes,
             joinType,
             joinCondition);
+
+        this.leftSideColumnTypes = leftSideColumnTypes;
+        this.estimatedRowsSizeLeft = estimatedRowsSizeLeft;
+        this.estimatedNumberOfRowsLeft = estimatedNumberOfRowsLeft;
+        this.blockNestedLoop = blockNestedLoop;
     }
 
     public NestedLoopPhase(StreamInput in) throws IOException {
         super(in);
+        this.leftSideColumnTypes = DataTypes.listFromStream(in);
+        this.estimatedRowsSizeLeft = in.readZLong();
+        this.estimatedNumberOfRowsLeft = in.readZLong();
+        this.blockNestedLoop = in.readBoolean();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        DataTypes.toStream(leftSideColumnTypes, out);
+        out.writeZLong(estimatedRowsSizeLeft);
+        out.writeZLong(estimatedNumberOfRowsLeft);
+        out.writeBoolean(blockNestedLoop);
     }
 
     @Override

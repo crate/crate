@@ -37,7 +37,7 @@ import com.google.common.base.MoreObjects;
 import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.Bucket;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -610,7 +610,7 @@ public class JobSetup extends AbstractComponent {
                     phase.numUpstreams(),
                     false,
                     phase.orderByPositions(),
-                    () -> new RowAccounting(
+                    () -> new RowAccountingWithEstimators(
                         phase.inputTypes(),
                         RamAccountingContext.forExecutionPhase(circuitBreaker, phase))),
                 DataTypes.getStreamers(phase.inputTypes()),
@@ -697,7 +697,13 @@ public class JobSetup extends AbstractComponent {
                 phase.numRightOutputs(),
                 firstConsumer,
                 joinCondition,
-                phase.joinType());
+                phase.joinType(),
+                circuitBreaker,
+                ramAccountingContext,
+                phase.leftSideColumnTypes,
+                phase.estimatedRowsSizeLeft,
+                phase.estimatedNumberOfRowsLeft,
+                phase.blockNestedLoop);
 
             DistResultRXTask left = pageDownstreamContextForNestedLoop(
                 phase.phaseId(),
@@ -752,7 +758,7 @@ public class JobSetup extends AbstractComponent {
                 //    96 bytes for each ArrayList +
                 //    7 bytes per key for the IntHashObjectHashMap  (should be 4 but the map pre-allocates more)
                 //    7 bytes perv value (pointer from the map to the list) (should be 4 but the map pre-allocates more)
-                new RowAccounting(phase.leftOutputTypes(), ramAccountingContext, 110),
+                new RowAccountingWithEstimators(phase.leftOutputTypes(), ramAccountingContext, 110),
                 inputFactory,
                 circuitBreaker,
                 phase.estimatedRowSizeForLeft(),
@@ -820,7 +826,7 @@ public class JobSetup extends AbstractComponent {
                     mergePhase.numUpstreams(),
                     true,
                     mergePhase.orderByPositions(),
-                    () -> new RowAccounting(
+                    () -> new RowAccountingWithEstimators(
                         mergePhase.inputTypes(),
                         RamAccountingContext.forExecutionPhase(circuitBreaker, mergePhase))),
                 StreamerVisitor.streamersFromOutputs(mergePhase),

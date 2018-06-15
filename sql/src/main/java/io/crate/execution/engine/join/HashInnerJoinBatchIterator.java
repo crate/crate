@@ -35,8 +35,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 /**
  * <pre>
@@ -86,7 +86,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private final UnsafeArrayRow leftRow = new UnsafeArrayRow();
     private final Function<L, Integer> hashBuilderForLeft;
     private final Function<R, Integer> hashBuilderForRight;
-    private final Supplier<Integer> blockSizeSupplier;
+    private final IntSupplier blockSizeSupplier;
     private final IntObjectHashMap<List<Object[]>> buffer;
 
     private int blockSize;
@@ -102,7 +102,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                                       Predicate<C> joinCondition,
                                       Function<L, Integer> hashBuilderForLeft,
                                       Function<R, Integer> hashBuilderForRight,
-                                      Supplier<Integer> blockSizeSupplier) {
+                                      IntSupplier blockSizeSupplier) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
@@ -163,7 +163,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     }
 
     private void recreateBuffer() {
-        blockSize = blockSizeSupplier.get();
+        blockSize = blockSizeSupplier.getAsInt();
         buffer.release();
         buffer.ensureCapacity(blockSize);
         numberOfRowsInBuffer = 0;

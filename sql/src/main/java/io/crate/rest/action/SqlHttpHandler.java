@@ -34,7 +34,7 @@ import io.crate.auth.AuthSettings;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserLookup;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbols;
 import io.crate.rest.CrateRestMainAction;
@@ -259,7 +259,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
                 JsonXContent.contentBuilder(),
                 resultFields,
                 startTimeInNs,
-                new RowAccounting(
+                new RowAccountingWithEstimators(
                     Symbols.typeView(resultFields),
                     new RamAccountingContext("http-result", circuitBreaker)
                 ),

@@ -29,6 +29,7 @@ import io.crate.data.CompositeBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.data.RowN;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.collect.collectors.MultiConsumer;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;

@@ -34,6 +34,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -98,7 +99,11 @@ public class JoinPhaseTest extends CrateUnitTest {
             3,
             Sets.newHashSet("node1", "node2"),
             JoinType.FULL,
-            joinCondition);
+            joinCondition,
+            ImmutableList.of(DataTypes.LONG, DataTypes.STRING, new ArrayType(DataTypes.INTEGER)),
+            32L,
+            100_000,
+            true);
 
         BytesStreamOutput output = new BytesStreamOutput();
         node.writeTo(output);
@@ -116,6 +121,9 @@ public class JoinPhaseTest extends CrateUnitTest {
         assertThat(node.outputTypes(), is(node2.outputTypes()));
         assertThat(node.joinType(), is(node2.joinType()));
         assertThat(node.joinCondition(), is(node2.joinCondition()));
+        assertThat(node.estimatedRowsSizeLeft, is(32L));
+        assertThat(node.estimatedNumberOfRowsLeft, is(100_000L));
+        assertThat(node.blockNestedLoop, is(true));
     }
 
     @Test
