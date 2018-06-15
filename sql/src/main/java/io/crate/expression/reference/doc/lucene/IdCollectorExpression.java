@@ -21,51 +21,75 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.metadata.doc.DocSysColumns;
+import org.apache.lucene.index.FieldInfo;
+import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.Uid;
 
 import java.io.IOException;
 
-public class IdCollectorExpression extends FieldCacheExpression<IndexFieldData, BytesRef> {
+public final class IdCollectorExpression extends LuceneCollectorExpression<BytesRef> {
 
     public static final String COLUMN_NAME = DocSysColumns.ID.name();
+    private final IDVisitor visitor = new IDVisitor();
+    private LeafReader reader;
 
-    private SortedBinaryDocValues values;
-    private BytesRef value;
-
-    public IdCollectorExpression(MappedFieldType mappedFieldType) {
-        super(COLUMN_NAME, mappedFieldType);
+    public IdCollectorExpression() {
+        super(COLUMN_NAME);
     }
 
     @Override
     public void setNextDocId(int docId) throws IOException {
-        super.setNextDocId(docId);
-        if (values.advanceExact(docId)) {
-            switch (values.docValueCount()) {
-                case 1:
-                    value = BytesRef.deepCopyOf(values.nextValue());
-                    break;
-
-                default:
-                    throw new GroupByOnArrayUnsupportedException(columnName);
-            }
-        } else {
-            value = null;
-        }
+        visitor.canStop = false;
+        reader.document(docId, visitor);
     }
 
     @Override
     public BytesRef value() {
-        return value;
+        return visitor.id;
     }
 
     @Override
     public void setNextReader(LeafReaderContext context) {
-        values = indexFieldData.load(context).getBytesValues();
+        reader = context.reader();
+    }
+
+
+    private static class IDVisitor extends StoredFieldVisitor {
+
+        private static final int UTF8 = 0xff;
+
+        private boolean canStop = false;
+        private BytesRef id;
+
+        @Override
+        public Status needsField(FieldInfo fieldInfo) {
+            if (canStop) {
+                return Status.STOP;
+            }
+            if (COLUMN_NAME.equals(fieldInfo.name)) {
+                canStop = true;
+                return Status.YES;
+            }
+            return Status.NO;
+        }
+
+        @Override
+        public void binaryField(FieldInfo fieldInfo, byte[] value) {
+            assert COLUMN_NAME.equals(fieldInfo.name) : "binaryField must only be called for id";
+            id = decodeId(value);
+        }
+
+        static BytesRef decodeId(byte[] idBytes) {
+            final int magicChar = Byte.toUnsignedInt(idBytes[0]);
+            if (magicChar == UTF8) {
+                // handle this directly to avoid BytesRef -> String -> BytesRef round-trip
+                return new BytesRef(idBytes, 1, idBytes.length - 1);
+            }
+            return new BytesRef(Uid.decodeId(idBytes));
+        }
     }
 }
