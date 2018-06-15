@@ -18,6 +18,14 @@ Breaking Changes
 Changes
 =======
 
+- Added a new scalar function ``ignore3vl`` which eliminates the 3-valued logic
+  of null handling for every logical expression beneath it. If 3-valued logic
+  is not required, the use of this function in the ``WHERE`` clause beneath a
+  ``NOT`` operator can boost the query performance significantly. E.g.::
+
+    SELECT * FROM t
+    WHERE NOT IGNORE3VL(5 = ANY(t.int_array_col))
+
 - Changed internals for DELETE and UPDATE queries which should generally result
   in a performance increase for queries which only match a subset of the rows
   and avoid ``CircuitBreakingException`` errors. But it might result in a
