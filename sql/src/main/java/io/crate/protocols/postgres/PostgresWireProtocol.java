@@ -267,8 +267,7 @@ class PostgresWireProtocol {
         @Override
         public void accept(Object result, Throwable t) {
             if (t != null) {
-                if (!(t.getCause() instanceof InterruptedException)) {
-                    Messages.sendErrorResponse(channel, t);
+                if (!(t.getCause() instanceof ClientInterrupted)) {
                     Messages.sendReadyForQuery(channel);
                 }
             } else {
@@ -687,6 +686,7 @@ class PostgresWireProtocol {
             return session.sync();
         } catch (Throwable t) {
             session.clearState();
+            Messages.sendErrorResponse(channel, t);
             result.completeExceptionally(t);
             return result;
         }

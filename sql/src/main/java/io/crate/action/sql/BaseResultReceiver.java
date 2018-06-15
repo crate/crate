@@ -23,6 +23,7 @@
 package io.crate.action.sql;
 
 import io.crate.data.Row;
+import io.crate.protocols.postgres.ClientInterrupted;
 
 import javax.annotation.Nonnull;
 import javax.annotation.OverridingMethodsMustInvokeSuper;
@@ -44,8 +45,7 @@ public class BaseResultReceiver implements ResultReceiver {
     @OverridingMethodsMustInvokeSuper
     public void allFinished(boolean interrupted) {
         if (interrupted) {
-            completionFuture.completeExceptionally(
-                new InterruptedException("Interrupted before finished receiving results"));
+            completionFuture.completeExceptionally(new ClientInterrupted());
         } else {
             completionFuture.complete(null);
         }
