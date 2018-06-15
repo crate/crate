@@ -22,44 +22,66 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.metadata.doc.DocSysColumns;
+import org.apache.lucene.index.FieldInfo;
+import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.RandomAccessOrds;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.io.IOException;
 
-public class IdCollectorExpression extends FieldCacheExpression<IndexOrdinalsFieldData, BytesRef> {
+public final class IdCollectorExpression extends LuceneCollectorExpression<BytesRef> {
 
     public static final String COLUMN_NAME = DocSysColumns.ID.name();
+    private final IDVisitor visitor = new IDVisitor();
+    private LeafReader reader;
 
-    private RandomAccessOrds values;
-    private BytesRef value;
-
-    public IdCollectorExpression(MappedFieldType mappedFieldType) {
-        super(COLUMN_NAME, mappedFieldType);
+    public IdCollectorExpression() {
+        super(COLUMN_NAME);
     }
 
     @Override
-    public void setNextDocId(int doc) {
-        values.setDocument(doc);
-        switch (values.cardinality()) {
-            case 1:
-                value = BytesRef.deepCopyOf(values.lookupOrd(values.ordAt(0)));
-                break;
-            default:
-                throw new IllegalStateException(columnName + " must only have a single value");
+    public void setNextDocId(int docId) {
+        visitor.canStop = false;
+        try {
+            reader.document(docId, visitor);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
     @Override
     public BytesRef value() {
-        return value;
+        return visitor.id;
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
-        values = indexFieldData.load(context).getOrdinalsValues();
+    public void setNextReader(LeafReaderContext context) {
+        reader = context.reader();
+    }
+
+
+    private static class IDVisitor extends StoredFieldVisitor {
+
+        private boolean canStop = false;
+        private BytesRef id;
+
+        @Override
+        public Status needsField(FieldInfo fieldInfo) {
+            if (canStop) {
+                return Status.STOP;
+            }
+            if (COLUMN_NAME.equals(fieldInfo.name)) {
+                canStop = true;
+                return Status.YES;
+            }
+            return Status.NO;
+        }
+
+        @Override
+        public void stringField(FieldInfo fieldInfo, byte[] bytes) {
+            assert COLUMN_NAME.equals(fieldInfo.name) : "binaryField must only be called for id";
+            id = new BytesRef(bytes);
+        }
     }
 }
