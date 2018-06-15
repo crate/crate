@@ -62,10 +62,12 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -85,11 +87,14 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     public static final CrateSetting<TimeValue> STATS_JOBS_LOG_EXPIRATION_SETTING = CrateSetting.of(Setting.timeSetting(
         "stats.jobs_log_expiration", TimeValue.timeValueSeconds(0L), Setting.Property.NodeScope, Setting.Property.Dynamic),
         DataTypes.STRING);
+
+    private static final FilterValidator FILTER_VALIDATOR = new FilterValidator();
     public static final CrateSetting<String> STATS_JOBS_LOG_FILTER = CrateSetting.of(
         new Setting<>(
             "stats.jobs_log_filter",
             "true",
             Function.identity(),
+            FILTER_VALIDATOR,
             Setting.Property.NodeScope,
             Setting.Property.Dynamic),
         DataTypes.STRING
@@ -99,6 +104,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             "stats.jobs_log_persistent_filter",
             "false",
             Function.identity(),
+            FILTER_VALIDATOR,
             Setting.Property.NodeScope,
             Setting.Property.Dynamic),
         DataTypes.STRING
@@ -164,6 +170,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             Operation.READ
         );
         normalizer = new EvaluatingNormalizer(functions, RowGranularity.DOC, refResolver, sysJobsLogRelation);
+        FILTER_VALIDATOR.validate = this::asSymbol;
 
         isEnabled = STATS_ENABLED_SETTING.setting().get(settings);
         jobsLogs = new JobsLogs(this::isEnabled);
@@ -180,25 +187,11 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             STATS_OPERATIONS_LOG_SIZE_SETTING.setting().get(settings), STATS_OPERATIONS_LOG_EXPIRATION_SETTING.setting().get(settings));
 
         clusterSettings.addSettingsUpdateConsumer(STATS_JOBS_LOG_FILTER.setting(), filter -> {
-            ExpressionsInput<JobContextLog, Boolean> newFilter;
-            try {
-                newFilter = createFilter(filter, STATS_JOBS_LOG_FILTER.getKey());
-            } catch (Throwable t) {
-                logger.error("Could not update {}, error: {}", STATS_JOBS_LOG_FILTER.getKey(), t);
-                return;
-            }
-            JobsLogService.this.memoryFilter = newFilter;
+            JobsLogService.this.memoryFilter = createFilter(filter, STATS_JOBS_LOG_FILTER.getKey());
             updateJobSink(jobsLogSize, jobsLogExpiration);
         });
         clusterSettings.addSettingsUpdateConsumer(STATS_JOBS_LOG_PERSIST_FILTER.setting(), filter -> {
-            ExpressionsInput<JobContextLog, Boolean> newFilter;
-            try {
-                newFilter = createFilter(filter, STATS_JOBS_LOG_PERSIST_FILTER.getKey());
-            } catch (Throwable t) {
-                logger.error("Could not update {}, error: {}", STATS_JOBS_LOG_PERSIST_FILTER.getKey(), t);
-                return;
-            }
-            JobsLogService.this.persistFilter = newFilter;
+            JobsLogService.this.persistFilter = createFilter(filter, STATS_JOBS_LOG_PERSIST_FILTER.getKey());
             updateJobSink(jobsLogSize, jobsLogExpiration);
         });
         clusterSettings.addSettingsUpdateConsumer(STATS_ENABLED_SETTING.setting(), this::setStatsEnabled);
@@ -210,16 +203,19 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             STATS_OPERATIONS_LOG_SIZE_SETTING.setting(), STATS_OPERATIONS_LOG_EXPIRATION_SETTING.setting(), this::setOperationsLogSink);
     }
 
-    private ExpressionsInput<JobContextLog, Boolean> createFilter(String filterExpression, String settingName) {
-        Symbol filter;
+    private Symbol asSymbol(String expression) {
         try {
-            filter = normalizer.normalize(
-                expressionAnalyzer.convert(SqlParser.createExpression(filterExpression), new ExpressionAnalysisContext()),
+            return normalizer.normalize(
+                expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext()),
                 transactionContext
             );
         } catch (Throwable t) {
-            throw new IllegalArgumentException("Invalid filter expression: " + filterExpression + ": " + t.getMessage(), t);
+            throw new IllegalArgumentException("Invalid filter expression: " + expression + ": " + t.getMessage(), t);
         }
+    }
+
+    private ExpressionsInput<JobContextLog, Boolean> createFilter(String filterExpression, String settingName) {
+        Symbol filter = asSymbol(filterExpression);
         if (!filter.valueType().equals(DataTypes.BOOLEAN)) {
             throw new IllegalArgumentException(
                 "Filter expression for " + settingName + " must result in a boolean, not: " + filter.valueType());
@@ -371,5 +367,22 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     @VisibleForTesting
     public int jobsLogSize() {
         return jobsLogSize;
+    }
+
+
+    private static class FilterValidator implements Setting.Validator<String> {
+
+        /**
+         * This is lazy initialized due to a bootstrapping problem:
+         *
+         * Settings need to be available in the SQLPlugin which is created *before* components like {@link Functions}.
+         * But {@link Functions} is required to do the validation.
+         */
+        Consumer<String> validate = s -> { };
+
+        @Override
+        public void validate(String value, Map<Setting<String>, String> settings) {
+            validate.accept(value);
+        }
     }
 }

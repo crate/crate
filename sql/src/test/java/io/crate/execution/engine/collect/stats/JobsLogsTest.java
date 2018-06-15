@@ -118,6 +118,16 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testFilterIsValidatedOnUpdate() {
+        // creating the service registers the update listener
+        new JobsLogService(Settings.EMPTY, clusterSettings, getFunctions(), scheduler, breakerService);
+
+        expectedException.expectMessage("illegal value can't update [stats.jobs_log_filter] from [true] to [statement = 'x']");
+        clusterSettings.applySettings(
+            Settings.builder().put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "statement = 'x'").build());
+    }
+
+    @Test
     public void testErrorIsRaisedInitiallyOnInvalidFilterExpression() {
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "invalid_column = 10")
