@@ -86,7 +86,7 @@ Use ``ssl.keystore_key_password`` setting to define the key password used when
 creating the keystore.
 
 For a full list of the settings needed to configure SSL/TLS, refer to
-:ref:`SSL configuration reference <ssl_config>`.
+:ref:`SSL configuration reference <conf-node-ssl>`.
 
 
 .. _ssl_configure_truststore:
@@ -111,7 +111,7 @@ Also define the password needed to decrypt the keystore by using the
 ``ssl.truststore_password`` setting.
 
 For a full list of the settings needed to configure SSL/TLS, refer to
-:ref:`SSL configuration reference <ssl_config>`.
+:ref:`SSL configuration reference <conf-node-ssl>`.
 
 Connecting to a CrateDB Node Using HTTPS
 ----------------------------------------
@@ -484,4 +484,4 @@ Configuring CrateDB
 -------------------
 
 Finally, you want to supply the keystore/truststore configuration in the
-CrateDB config, see :ref:`ssl_config`.
+CrateDB config, see :ref:`conf-node-ssl`.

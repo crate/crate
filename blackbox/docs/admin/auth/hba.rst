@@ -52,7 +52,7 @@ client access entries, where the key of the map defines the order in which the
 entries are used, which permit authentication to CrateDB. Each entry may
 contain no, one, or multiple fields. Allowed fields are ``user``, ``ip`` or
 ``cidr``, ``method``,  ``protocol`` and ``ssl``. The description of these
-fields can be found in :ref:`host_based_auth`.
+fields can be found in :ref:`conf-node-auth-host`.
 
 When a client sends an authentication request, CrateDB matches the provided
 username, IP address,  protocol and connection scheme against these entries

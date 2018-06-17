@@ -9,3 +9,7 @@ extensions = ['crate.sphinx.csv', 'sphinx_sitemap']
 # crate.theme sets html_favicon to favicon.png which causes a warning because it should be a .ico
 # and in addition there is no favicon.png in this project so it can't find the file
 html_favicon = None
+
+rst_epilog = """
+.. |CRATE_HOME| replace:: :ref:`CRATE_HOME <conf-env-crate-home>`
+"""

@@ -138,7 +138,7 @@ shows whether the user has superuser privileges or not.
 
 .. WARNING::
 
-   When the :ref:`es_api_setting` is enabled, it is possible to read the users
+   When the :ref:`conf-node-es-api` is enabled, it is possible to read the users
    data via the Elasticsearch API. Therefore access to the users table is not
    restricted.
 

@@ -335,4 +335,4 @@ A read-only repository that points to the location of a
 
   Due to security reasons only whitelisted URLs can be used. URLs can be
   whitelisted in the ``crate.yml`` configuration file. See
-  :ref:`ref-configuration-repositories`.
+  :ref:`conf-node-snapshot-repos`.

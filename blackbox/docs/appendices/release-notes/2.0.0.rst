@@ -27,8 +27,8 @@ Breaking Changes
    added to the CrateDB SQL dialect: ``RETURNS``, ``CALLED``, ``REPLACE``,
    ``FUNCTION``, ``LANGUAGE``, ``INPUT``
 
- - The :ref:`conf-node-enterprise-license` setting is set to ``true`` by
-   default. This enables the CrateDB `Enterprise Edition`_.
+ - The :ref:`conf-node-type` setting is set to ``true`` by default. This
+   enables the CrateDB `Enterprise Edition`_.
 
    Enabling this setting requires a valid enterprise license for production
    use.
@@ -37,8 +37,8 @@ Breaking Changes
 
  - All custom ``node.*`` style attributes must now be written as
    ``node.attr.*`` to distinguish them from attributes that CrateDB uses
-   internally. Consult the :ref:`node attribute <conf-node-attributes>` docs
-   for information.
+   internally. Consult the :ref:`node attribute <conf-node-attrs>` docs for
+   information.
 
  - The ``node.client`` setting has been removed.
 
@@ -293,7 +293,7 @@ Bind Address
 
 The default bind address has been changed from ``0.0.0.0`` to the loopback
 address (meaning it will only be accessible on ``localhost``). See
-:ref:`conf_hosts` for more.
+:ref:`conf-node-hosts` for more.
 
 If you want to keep the original behaviour (i.e. bind to every available
 network interface) you must add the following line to your

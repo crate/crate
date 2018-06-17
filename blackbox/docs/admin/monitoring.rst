@@ -21,8 +21,7 @@ Setup
 Enable the Enterprise License
 -----------------------------
 
-You can enable the :ref:`conf-node-enterprise-license` via the CrateDB
-configuration file.
+You can enable the :ref:`conf-node-license` via the CrateDB configuration file.
 
 Enable Collecting Stats
 -----------------------

@@ -16,7 +16,7 @@ CrateDB contains support for the `PostgreSQL wire protocol v3`_.
 
 If a node is started with postgres support enabled it will bind to port
 ``5432`` by default. To use a custom port, set the corresponding
-:ref:`conf_ports` in the :ref:`Configuration <config>`.
+:ref:`conf-node-ports` in the :ref:`Configuration <config>`.
 
 However, even though connecting PostgreSQL tools and client libraries is
 supported, the actual SQL statements have to be supported by CrateDB's SQL
