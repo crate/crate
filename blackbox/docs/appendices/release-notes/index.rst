@@ -20,7 +20,7 @@ Versions
 .. toctree::
     :maxdepth: 1
 
-    upcoming
+    unreleased
 
 3.x
 ---
