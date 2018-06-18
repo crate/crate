@@ -27,6 +27,9 @@ Changes
 Fixes
 =====
 
+- Fixed a dependecy issue with the bundled ``crash`` that caused the app not
+  being able to connect to the server.
+
 - Fixed an issue that could prevent postgres clients from receiving an error and
   therefore getting stuck.
 

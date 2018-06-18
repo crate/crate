@@ -308,7 +308,7 @@ installDist {
 
 ext {
     downloadDir = new File(buildDir, 'downloads')
-    crash_version = '0.24.0'
+    crash_version = '0.24.1'
     adminui_version = '1.10.2'
 }
 
