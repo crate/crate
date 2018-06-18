@@ -30,7 +30,7 @@ task antlrOutputDir {
 }
 
 task generateGrammarSource(dependsOn: antlrOutputDir, type: JavaExec) {
-    inputs.dir file(antlr.source)
+    inputs.files(fileTree(antlr.source))
     outputs.dir file(antlr.output)
 
     def grammars = fileTree(antlr.source).include('**/*.g4')
