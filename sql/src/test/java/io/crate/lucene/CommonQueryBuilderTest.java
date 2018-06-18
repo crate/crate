@@ -434,4 +434,36 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             is("+*:* -(+ts:[1129224512000 TO 1129224512000])")
         );
     }
+
+    @Test
+    public void testArrayAccessResultsInTermAndFunctionQuery() {
+        assertThat(
+            convert("ts_array[1] = 1129224512000").toString(),
+            is("+ts_array:[1129224512000 TO 1129224512000] #subscript(Ref{doc.users.ts_array, timestamp_array}, 1) = 1129224512000")
+        );
+        assertThat(
+            convert("ts_array[1] >= 1129224512000").toString(),
+            is("+ts_array:[1129224512000 TO 9223372036854775807] #subscript(Ref{doc.users.ts_array, timestamp_array}, 1) >= 1129224512000")
+        );
+        assertThat(
+            convert("ts_array[1] > 1129224512000").toString(),
+            is("+ts_array:[1129224512001 TO 9223372036854775807] #subscript(Ref{doc.users.ts_array, timestamp_array}, 1) > 1129224512000")
+        );
+        assertThat(
+            convert("ts_array[1] <= 1129224512000").toString(),
+            is("+ts_array:[-9223372036854775808 TO 1129224512000] #subscript(Ref{doc.users.ts_array, timestamp_array}, 1) <= 1129224512000")
+        );
+        assertThat(
+            convert("ts_array[1] < 1129224512000").toString(),
+            is("+ts_array:[-9223372036854775808 TO 1129224511999] #subscript(Ref{doc.users.ts_array, timestamp_array}, 1) < 1129224512000")
+        );
+    }
+
+    @Test
+    public void testObjectArrayAccessResultsInFunctionQuery() {
+        assertThat(
+            convert("o_array[1] = {x=1}").toString(),
+            is("subscript(Ref{doc.users.o_array, object_array}, 1) = {x=1}")
+        );
+    }
 }

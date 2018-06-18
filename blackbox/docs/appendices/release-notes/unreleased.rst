@@ -42,6 +42,12 @@ None
 Changes
 =======
 
+- Improved performance of queries using an array access inside the ``WHERE``
+  clause. E.g.::
+
+    SELECT * FROM t
+    WHERE int_array_col[1] = 123
+
 - Implemented a thread-utilization down-scaling logic which dynamically adapts
   the number of threads used for ``SELECT`` queries involving aggregations to
   avoid running into ``RejectedExcecution`` errors if there are many shards per

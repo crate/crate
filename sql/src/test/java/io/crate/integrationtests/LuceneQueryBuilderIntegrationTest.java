@@ -354,4 +354,36 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
                                                         is("[1, 2, 3]\n" +
                                                            "[1, 2, 3, NULL]\n")));
     }
+
+    @Test
+    public void testArrayElementComparisons() {
+        execute("create table t1 (a array(long)) clustered into 1 shards with (number_of_replicas = 0)");
+        execute("insert into t1(a) values ([1, 2, 3])");
+        execute("insert into t1(a) values ([3, 4, 5, 1])");
+        execute("insert into t1(a) values ([6, 7, 8])");
+        execute("refresh table t1");
+
+        execute("select * from t1 where a[1] = 1");
+        assertThat(printedTable(response.rows()), is("[1, 2, 3]\n"));
+
+        execute("select * from t1 where a[1] != 1");
+        assertThat(printedTable(response.rows()), is("[3, 4, 5, 1]\n" +
+                                                     "[6, 7, 8]\n"));
+
+        execute("select * from t1 where a[1] > 1");
+        assertThat(printedTable(response.rows()), is("[3, 4, 5, 1]\n" +
+                                                     "[6, 7, 8]\n"));
+
+        execute("select * from t1 where a[3] >= 3");
+        assertThat(printedTable(response.rows()), is("[1, 2, 3]\n" +
+                                                     "[3, 4, 5, 1]\n" +
+                                                     "[6, 7, 8]\n"));
+
+        execute("select * from t1 where a[1] < 3");
+        assertThat(printedTable(response.rows()), is("[1, 2, 3]\n"));
+
+        execute("select * from t1 where a[2] <= 4");
+        assertThat(printedTable(response.rows()), is("[1, 2, 3]\n" +
+                                                     "[3, 4, 5, 1]\n"));
+    }
 }

@@ -56,6 +56,7 @@ import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.scalar.Ignore3vlFunction;
+import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.scalar.geo.DistanceFunction;
 import io.crate.expression.scalar.geo.WithinFunction;
@@ -1126,6 +1127,68 @@ public class LuceneQueryBuilder {
             }
         }
 
+        static class SubscriptQuery implements InnerFunctionToQuery {
+
+            private interface PreFilterQueryBuilder {
+                Query buildQuery(MappedFieldType fieldType, Object value, QueryShardContext context);
+            }
+
+            private static final ImmutableMap<String, PreFilterQueryBuilder> PRE_FILTER_QUERY_BUILDER_BY_OP =
+                ImmutableMap.<String, PreFilterQueryBuilder>builder()
+                    .put(EqOperator.NAME, MappedFieldType::termQuery)
+                    .put(GteOperator.NAME, (fieldType, value, context)
+                        -> fieldType.rangeQuery(value, null, true, false, null, null, null, context))
+                    .put(GtOperator.NAME, (fieldType, value, context)
+                        -> fieldType.rangeQuery(value, null, false, false, null, null, null, context))
+                    .put(LteOperator.NAME, (fieldType, value, context)
+                        -> fieldType.rangeQuery(null, value, false, true, null, null, null, context))
+                    .put(LtOperator.NAME, (fieldType, value, context)
+                        -> fieldType.rangeQuery(null, value, false, false, null, null, null, context))
+                    .build();
+
+            @Nullable
+            @Override
+            public Query apply(Function parent, Function inner, Context context) throws IOException {
+                assert inner.info().ident().name().equals(SubscriptFunction.NAME) :
+                    "function must be " + SubscriptFunction.NAME;
+
+                RefLiteralPair innerPair = new RefLiteralPair(inner);
+                if (!innerPair.isValid()) {
+                    return null;
+                }
+                Reference reference = innerPair.reference();
+
+                if (DataTypes.isCollectionType(innerPair.reference().valueType())) {
+                    PreFilterQueryBuilder preFilterQueryBuilder =
+                        PRE_FILTER_QUERY_BUILDER_BY_OP.get(parent.info().ident().name());
+                    if (preFilterQueryBuilder == null) {
+                        return null;
+                    }
+
+                    FunctionLiteralPair functionLiteralPair = new FunctionLiteralPair(parent);
+                    if (!functionLiteralPair.isValid()) {
+                        return null;
+                    }
+                    Input input = functionLiteralPair.input();
+
+                    MappedFieldType fieldType = context.getFieldTypeOrNull(reference.column().fqn());
+                    if (fieldType == null) {
+                        if (CollectionType.unnest(reference.valueType()).equals(DataTypes.OBJECT)) {
+                            return null; // fallback to generic query to enable objects[1] = {x=10}
+                        }
+                        return Queries.newMatchNoDocsQuery("column doesn't exist in this index");
+                    }
+                    BooleanQuery.Builder builder = new BooleanQuery.Builder();
+                    builder.add(
+                        preFilterQueryBuilder.buildQuery(fieldType, input.value(), context.queryShardContext),
+                        BooleanClause.Occur.MUST);
+                    builder.add(genericFunctionFilter(parent, context), BooleanClause.Occur.FILTER);
+                    return builder.build();
+                }
+                return null;
+            }
+        }
+
         private static GeoPointFieldMapper.GeoPointFieldType getGeoPointFieldType(String fieldName, MapperService mapperService) {
             MappedFieldType fieldType = mapperService.fullName(fieldName);
             if (fieldType == null) {
@@ -1174,6 +1237,7 @@ public class LuceneQueryBuilder {
             ImmutableMap.<String, InnerFunctionToQuery>builder()
                 .put(DistanceFunction.NAME, new DistanceQuery())
                 .put(WithinFunction.NAME, withinQuery)
+                .put(SubscriptFunction.NAME, new SubscriptQuery())
                 .build();
 
         @Override
