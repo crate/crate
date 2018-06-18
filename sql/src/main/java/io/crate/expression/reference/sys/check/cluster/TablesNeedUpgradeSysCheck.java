@@ -88,7 +88,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
             TablesNeedRecreationSysCheck.tablesNeedRecreation(clusterService.state().metaData());
 
         final CompletableFuture<Collection<String>> result = new CompletableFuture<>();
-        Object[] sqlParam = tablesNeedRecreation.toArray(new String[]{});
+        Object[] sqlParam = tablesNeedRecreation.toArray(new String[] {});
         try {
             session().quickExec(STMT, stmt -> PARSED_STMT, new SycCheckResultReceiver(result), new Row1(sqlParam));
         } catch (Throwable t) {

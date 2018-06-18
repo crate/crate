@@ -35,27 +35,27 @@ public class TablesNeedRecreationSysCheckTest extends CrateUnitTest {
 
     @Test
     public void testRecreationRequired() {
-        assertThat(isRecreationRequired("noMetaData", null), is(false));
+        assertThat(isRecreationRequired(null), is(false));
 
         IndexMetaData recreationRequired = new IndexMetaData.Builder("testRecreationRequired")
             .settings(Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.V_2_4_2).build())
             .numberOfShards(5)
             .numberOfReplicas(2)
             .build();
-        assertThat(isRecreationRequired("testRecreationRequired", recreationRequired), is(true));
+        assertThat(isRecreationRequired(recreationRequired), is(true));
 
         IndexMetaData noRecreationRequired = new IndexMetaData.Builder("testNoRecreationRequired")
             .settings(Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.V_5_0_1).build())
             .numberOfShards(5)
             .numberOfReplicas(2)
             .build();
-        assertThat(isRecreationRequired("testNoRecreationRequired", noRecreationRequired), is(false));
+        assertThat(isRecreationRequired(noRecreationRequired), is(false));
 
-        IndexMetaData noRecreationRequiredBlob = new IndexMetaData.Builder(".blob_testRecreationRequired")
+        IndexMetaData recreationRequiredBlob = new IndexMetaData.Builder(".blob_testRecreationRequired")
             .settings(Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.V_2_4_2).build())
             .numberOfShards(5)
             .numberOfReplicas(2)
             .build();
-        assertThat(isRecreationRequired(".blob_testRecreationRequired", noRecreationRequiredBlob), is(false));
+        assertThat(isRecreationRequired(recreationRequiredBlob), is(true));
     }
 }

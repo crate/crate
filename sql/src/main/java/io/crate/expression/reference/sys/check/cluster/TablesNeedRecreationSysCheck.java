@@ -25,8 +25,9 @@ package io.crate.expression.reference.sys.check.cluster;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.blob.v2.BlobIndex;
-import io.crate.metadata.TableIdent;
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.blob.BlobSchemaInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -69,8 +70,8 @@ public class TablesNeedRecreationSysCheck extends AbstractSysCheck {
     // be automatically upgraded to the latest version (can happen when data was in the translog) so
     // minimumCompatVersion cannot be used to indicate that a table recreation is needed.
     @VisibleForTesting
-    static boolean isRecreationRequired(String indexName, IndexMetaData indexMetaData) {
-        return indexMetaData != null && !BlobIndex.isBlobIndex(indexName) && indexMetaData.getCreationVersion().before(org.elasticsearch.Version.V_5_0_0);
+    static boolean isRecreationRequired(IndexMetaData indexMetaData) {
+        return indexMetaData != null && indexMetaData.getCreationVersion().before(org.elasticsearch.Version.V_5_0_0);
     }
 
     /**
@@ -83,8 +84,12 @@ public class TablesNeedRecreationSysCheck extends AbstractSysCheck {
         for (ObjectObjectCursor<String, IndexMetaData> entry : clusterIndexMetaData.indices()) {
             String indexName = entry.key;
             IndexMetaData indexMetaData = entry.value;
-            if (isRecreationRequired(indexName, indexMetaData)) {
-                tablesNeedRecreation.add(TableIdent.fromIndexName(indexName).fqn());
+            if (isRecreationRequired(indexMetaData)) {
+                if (BlobIndex.isBlobIndex(indexName)) {
+                    tablesNeedRecreation.add(new TableIdent(BlobSchemaInfo.NAME, BlobIndex.stripPrefix(indexName)).fqn());
+                } else {
+                    tablesNeedRecreation.add(TableIdent.fromIndexName(indexName).fqn());
+                }
             }
         }
         return tablesNeedRecreation;

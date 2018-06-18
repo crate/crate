@@ -27,6 +27,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that prevented blob tables from showing up or triggering the
+  system check indicating that they'll need to be re-created in order to update
+  to CrateDB 3.0+
+
 - Fixed an issue that caused an UnsupportedFeatureException to be thrown for
   queries with a ``WHERE`` clause which contains an equality comparison that
   references a table column in both sides. E.g.::

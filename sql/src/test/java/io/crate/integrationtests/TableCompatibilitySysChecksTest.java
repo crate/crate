@@ -64,7 +64,7 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
         assertThat(response.rows()[0][3], is(SysCheck.Severity.MEDIUM.value()));
         assertThat(response.rows()[0][0],
             is(TablesNeedRecreationSysCheck.DESCRIPTION +
-               "[doc.test_recreation_required, doc.test_recreation_required_parted] " +
+               "[blob.test_blob_recreation_required, doc.test_recreation_required, doc.test_recreation_required_parted] " +
                LINK_PATTERN + TablesNeedRecreationSysCheck.ID));
     }
 
