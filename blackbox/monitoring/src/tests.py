@@ -134,7 +134,7 @@ class MonitoringSettingIntegrationTest(unittest.TestCase):
         try:
             float(value)
             raise AssertionError('''The JMX monitoring is enabled.''')
-        except:
+        except Exception:
             pass
 
 
@@ -148,7 +148,7 @@ class MonitoringNodeStatusIntegrationTest(unittest.TestCase):
         )
 
         if exception:
-            raise AssertionError("Unable to get attribute NodeStatus.Ready"  + str(exception))
+            raise AssertionError("Unable to get attribute NodeStatus.Ready" + str(exception))
 
         value = str(value, 'utf-8').rstrip('\n')
         if value != 'true':
@@ -166,7 +166,7 @@ class MonitoringNodeInfoIntegrationTest(unittest.TestCase):
         )
 
         if exception:
-            raise AssertionError("Unable to get attribute NodeInfo.NodeName: "  + str(exception))
+            raise AssertionError("Unable to get attribute NodeInfo.NodeName: " + str(exception))
 
         nodeName = str(nodeName, 'utf-8').rstrip('\n')
         if nodeName != 'crate-enterprise':
@@ -181,11 +181,12 @@ class MonitoringNodeInfoIntegrationTest(unittest.TestCase):
         )
 
         if exception:
-            raise AssertionError("Unable to get attribute NodeInfo.NodeName: "  + str(exception))
+            raise AssertionError("Unable to get attribute NodeInfo.NodeName: " + str(exception))
 
         nodeId = str(nodeId, 'utf-8').rstrip('\n')
         if not nodeId:
             raise AssertionError("The mbean attribute NodeId returned and empty string")
+
 
 def test_suite():
     crateLayer = CrateLayer(
@@ -198,11 +199,7 @@ def test_suite():
                 JMX_OPTS.format(JMX_PORT)
         },
         settings={
-            'license.enterprise': True,
-            # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
-            "cluster.routing.allocation.disk.watermark.low" : "100k",
-            "cluster.routing.allocation.disk.watermark.high" : "10k",
-            "cluster.routing.allocation.disk.watermark.flood_stage" : "1k",
+            'license.enterprise': True
         }
     )
 
@@ -211,7 +208,6 @@ def test_suite():
     s = unittest.TestSuite(unittest.makeSuite(MonitoringIntegrationTest))
     s.layer = crateLayer
     suite.addTest(s)
-
 
     s = unittest.TestSuite(unittest.makeSuite(MonitoringNodeStatusIntegrationTest))
     s.layer = crateLayer
@@ -233,11 +229,7 @@ def test_suite():
                 JMX_OPTS.format(JMX_PORT_ENTERPRISE_DISABLED)
         },
         settings={
-            'license.enterprise': False,
-            # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
-            "cluster.routing.allocation.disk.watermark.low" : "100k",
-            "cluster.routing.allocation.disk.watermark.high" : "10k",
-            "cluster.routing.allocation.disk.watermark.flood_stage" : "1k",
+            'license.enterprise': False
         }
     )
     suite.addTest(s)

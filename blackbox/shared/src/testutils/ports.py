@@ -34,7 +34,7 @@ class PortPool(object):
         port = sock.getsockname()[1]
         try:
             sock.shutdown(socket.SHUT_RDWR)
-        except:
+        except Exception:
             # ok, at least we know that the socket is not connected
             pass
         sock.close()
@@ -67,8 +67,8 @@ class PortPool(object):
                 loop_continue = False
                 for i in range(port_start + 1, port_end):
                     if i in self.ports:
-                         loop_continue = True
-                         break
+                        loop_continue = True
+                        break
 
                 if (loop_continue):
                     continue
@@ -78,7 +78,7 @@ class PortPool(object):
                         self.bind_port(addr, i)
                         self.ports.add(i)
                     break
-                except:
+                except Exception:
                     retries += 1
                     if retries > self.MAX_RETRIES:
                         raise OSError("Could not get free port range. Max retries exceeded.")
