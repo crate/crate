@@ -66,7 +66,7 @@ public class RerouteActionsTest extends CrateUnitTest {
             SqlParser.createExpression("node2")
         );
         String index = RerouteActions.getRerouteIndex(statement, Row.EMPTY);
-        assertThat(index, is("blob.screenshots"));
+        assertThat(index, is(".blob_screenshots"));
     }
 
     @Test

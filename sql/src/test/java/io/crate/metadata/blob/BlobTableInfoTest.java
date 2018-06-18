@@ -31,13 +31,13 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 public class BlobTableInfoTest extends CrateUnitTest {
 
     private BlobTableInfo info = new BlobTableInfo(
         new RelationName("blob", "dummy"),
-        "dummy",
+        ".blob_dummy",
         5,
         new BytesRef("0"),
         ImmutableMap.of(),
@@ -55,7 +55,7 @@ public class BlobTableInfoTest extends CrateUnitTest {
 
     @Test
     public void testPrimaryKey() throws Exception {
-        assertEquals(Arrays.asList(new ColumnIdent[]{new ColumnIdent("digest")}), info.primaryKey());
+        assertEquals(Collections.singletonList(new ColumnIdent("digest")), info.primaryKey());
     }
 
     @Test

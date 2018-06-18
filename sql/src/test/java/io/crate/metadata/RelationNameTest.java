@@ -23,6 +23,7 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.blob.v2.BlobIndex;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
@@ -49,6 +50,14 @@ public class RelationNameTest extends CrateUnitTest {
 
         pn = new PartitionName(new RelationName("doc", "t"), ImmutableList.of(new BytesRef("v1")));
         assertThat(RelationName.fromIndexName(pn.asIndexName()), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "t")));
+    }
+
+    @Test
+    public void testFromIndexNameCreatesCorrectBlobRelationName() {
+        RelationName relationName = new RelationName("blob", "foobar");
+        String indexName = relationName.indexName();
+        assertThat(BlobIndex.isBlobIndex(indexName), is(true));
+        assertThat(RelationName.fromIndexName(indexName), is(relationName));
     }
 
     @Test

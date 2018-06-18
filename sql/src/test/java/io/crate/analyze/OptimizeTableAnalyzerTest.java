@@ -66,7 +66,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     public void testOptimizeBlobTable() throws Exception {
         OptimizeTableAnalyzedStatement analysis = e.analyze("OPTIMIZE TABLE blob.blobs");
         assertThat(analysis.indexNames().size(), is(1));
-        assertThat(analysis.indexNames(), hasItem("blob.blobs"));
+        assertThat(analysis.indexNames(), hasItem(".blob_blobs"));
     }
 
     @Test

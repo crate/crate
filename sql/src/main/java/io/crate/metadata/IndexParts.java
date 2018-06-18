@@ -24,6 +24,8 @@ package io.crate.metadata;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
+import io.crate.blob.v2.BlobIndex;
+import io.crate.metadata.blob.BlobSchemaInfo;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -46,38 +48,44 @@ public class IndexParts {
     private final String partitionIdent;
 
     public IndexParts(String indexName) {
-        List<String> parts = SPLITTER.splitToList(indexName);
-        switch (parts.size()) {
-            case 1:
-                // "table_name"
-                schema = Schemas.DOC_SCHEMA_NAME;
-                table = indexName;
-                partitionIdent = null;
-                break;
-            case 2:
-                // "schema"."table_name"
-                schema = parts.get(0);
-                table = parts.get(1);
-                partitionIdent = null;
-                break;
-            case 4:
-                // ""."partitioned"."table_name". ["ident"]
-                assertEmpty(parts.get(0));
-                schema = Schemas.DOC_SCHEMA_NAME;
-                assertPartitionPrefix(parts.get(1));
-                table = parts.get(2);
-                partitionIdent = parts.get(3);
-                break;
-            case 5:
-                // "schema".""."partitioned"."table_name". ["ident"]
-                schema = parts.get(0);
-                assertEmpty(parts.get(1));
-                assertPartitionPrefix(parts.get(2));
-                table = parts.get(3);
-                partitionIdent = parts.get(4);
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid index name: " + indexName);
+        if (BlobIndex.isBlobIndex(indexName)) {
+            schema = BlobSchemaInfo.NAME;
+            table = BlobIndex.stripPrefix(indexName);
+            partitionIdent = null;
+        } else {
+            List<String> parts = SPLITTER.splitToList(indexName);
+            switch (parts.size()) {
+                case 1:
+                    // "table_name"
+                    schema = Schemas.DOC_SCHEMA_NAME;
+                    table = indexName;
+                    partitionIdent = null;
+                    break;
+                case 2:
+                    // "schema"."table_name"
+                    schema = parts.get(0);
+                    table = parts.get(1);
+                    partitionIdent = null;
+                    break;
+                case 4:
+                    // ""."partitioned"."table_name". ["ident"]
+                    assertEmpty(parts.get(0));
+                    schema = Schemas.DOC_SCHEMA_NAME;
+                    assertPartitionPrefix(parts.get(1));
+                    table = parts.get(2);
+                    partitionIdent = parts.get(3);
+                    break;
+                case 5:
+                    // "schema".""."partitioned"."table_name". ["ident"]
+                    schema = parts.get(0);
+                    assertEmpty(parts.get(1));
+                    assertPartitionPrefix(parts.get(2));
+                    table = parts.get(3);
+                    partitionIdent = parts.get(4);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid index name: " + indexName);
+            }
         }
     }
 

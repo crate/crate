@@ -111,7 +111,7 @@ public class TableHealthServiceTest extends CrateDummyClusterServiceUnitTest {
         Schemas schemas = mock(Schemas.class);
         when(schemas.getTableInfo(relationName)).thenReturn(new BlobTableInfo(
             relationName,
-            ".blob.my_blob_table",
+            ".blob_my_blob_table",
             2,
             new BytesRef(1),
             null,

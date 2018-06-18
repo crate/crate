@@ -24,8 +24,10 @@ package io.crate.metadata;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
+import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
@@ -97,6 +99,8 @@ public final class RelationName implements Writeable {
     public String indexName() {
         if (schema.equalsIgnoreCase(Schemas.DOC_SCHEMA_NAME)) {
             return name;
+        } else if (schema.equalsIgnoreCase(BlobSchemaInfo.NAME)) {
+            return BlobIndex.fullIndexName(name);
         }
         return fqn();
     }

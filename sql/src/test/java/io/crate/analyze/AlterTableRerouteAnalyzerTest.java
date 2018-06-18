@@ -75,7 +75,7 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void testRerouteOnBlobTable() throws Exception {
         RerouteMoveShardAnalyzedStatement analyzed = e.analyze("ALTER TABLE blob.blobs REROUTE MOVE SHARD 0 FROM 'nodeOne' TO 'nodeTwo'");
         assertThat(analyzed.tableInfo().concreteIndices().length, is(1));
-        assertThat(analyzed.tableInfo().concreteIndices()[0], is("blob.blobs"));
+        assertThat(analyzed.tableInfo().concreteIndices()[0], is(".blob_blobs"));
         assertThat(analyzed.isWriteOperation(), is(true));
     }
 
