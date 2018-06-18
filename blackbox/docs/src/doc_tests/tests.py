@@ -122,7 +122,7 @@ def crash_transform(s):
 
 
 bash_parser = zc.customdoctests.DocTestParser(
-    ps1='sh\$', comment_prefix='#', transform=bash_transform)
+    ps1=r'sh\$', comment_prefix='#', transform=bash_transform)
 
 crash_parser = zc.customdoctests.DocTestParser(
     ps1='cr>', comment_prefix='#', transform=crash_transform)
@@ -511,13 +511,13 @@ def test_suite():
         docs_suite.addTest(s)
     for fn in ('general/dql/union.txt',):
         path = os.path.join('..', '..', fn)
-        s = doctest.DocFileSuite(path,
-                                 parser=crash_parser,
-                                 setUp=setUpPhotosAndCountries,
-                                 tearDown=tearDownPhotosAndCountries,
-                                 optionflags=doctest.NORMALIZE_WHITESPACE |
-                                             doctest.ELLIPSIS,
-                                 encoding='utf-8')
+        s = doctest.DocFileSuite(
+            path,
+            parser=crash_parser,
+            setUp=setUpPhotosAndCountries,
+            tearDown=tearDownPhotosAndCountries,
+            optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS,
+            encoding='utf-8')
         s.layer = crate_layer
         docs_suite.addTest(s)
 

@@ -128,7 +128,7 @@ class MonitoringSettingIntegrationTest(unittest.TestCase):
         try:
             float(value)
             raise AssertionError('''The JMX monitoring is enabled.''')
-        except:
+        except Exception:
             pass
 
 

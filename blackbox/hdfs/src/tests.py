@@ -22,7 +22,6 @@
 import sys
 import unittest
 import os
-import zipfile
 import subprocess
 import glob
 import shutil
@@ -78,6 +77,7 @@ def wait_for_minicluster(log, timeout=60):
             return True
         elif elapsed > timeout:
             return False
+
 
 class HadoopLayer(object):
 
