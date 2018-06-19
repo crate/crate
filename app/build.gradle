@@ -53,6 +53,7 @@ dependencies {
     runtime project(':enterprise:users')
     runtime project(':enterprise:ssl-impl')
     runtime project(':enterprise:mqtt')
+    runtime project(':enterprise:iot-hub')
     runtime project(':enterprise:hll')
 
     testCompile project(':integration-testing')
@@ -426,7 +427,8 @@ jar {
 task collectEnterpriseModules(
         dependsOn: [':enterprise:users:jar',
                     ':enterprise:ssl-impl:jar',
-                    ':enterprise:mqtt:jar']) {
+                    ':enterprise:mqtt:jar',
+                    ':enterprise:iot-hub:jar']) {
     // this task collects the enterprise module jar into a single folder
     // named enterprise from which the files are taken for the installDist task
     doLast {
@@ -434,6 +436,7 @@ task collectEnterpriseModules(
             from(project(':enterprise:users').tasks.jar.archivePath)
             from(project(':enterprise:ssl-impl').tasks.jar.archivePath)
             from(project(':enterprise:mqtt').tasks.jar.archivePath)
+            from(project(':enterprise:iot-hub').tasks.jar.archivePath)
             into 'enterprise'
         }
     }

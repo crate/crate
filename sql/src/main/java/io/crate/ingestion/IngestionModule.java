@@ -28,9 +28,9 @@ import org.elasticsearch.common.settings.Setting;
 
 import java.util.Collection;
 
-public interface IngestionModules {
+public interface IngestionModule {
 
-    Collection<Module> getModules();
+    Module getModule();
 
     Collection<Setting<?>> getSettings();
 

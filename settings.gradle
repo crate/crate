@@ -27,5 +27,6 @@ include 'es',
         'enterprise:ssl-impl',
         'enterprise:mqtt',
         'enterprise:hll',
+		'enterprise:iot-hub',
         'http',
         'benchmarks'

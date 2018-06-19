@@ -1,0 +1,32 @@
+apply from: "$rootDir/enterprise/enterpriseModule.gradle"
+
+archivesBaseName = 'iot-hub'
+group = 'io.crate'
+description = 'Azure IoT Hub to CrateDB Plugin'
+
+
+dependencies {
+    compile project(':sql')
+    compile "com.microsoft.azure:azure-eventhubs:1.0.0"
+    compile "com.microsoft.azure:azure-eventhubs-eph:1.0.0"
+
+    testCompile project(':integration-testing')
+    testCompile project(':enterprise:ssl-impl')
+    testCompile project(path: ':sql', configuration: 'testOutput')
+    testCompile project(path: ':dex', configuration: 'testOutput')
+    testCompile("io.crate:crate-jdbc:${versions.crate_jdbc}") {
+        exclude group: 'net.java.dev.jna', module: 'jna'
+        exclude group: 'commons-logging', module: 'commons-logging'
+        exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
+    }
+}
+
+task copyResources {
+    doLast {
+        copy {
+            from "src/main/resources/"
+            into "${buildDir}/resources"
+        }
+    }
+}
+jar.dependsOn('copyResources')

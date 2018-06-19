@@ -16,34 +16,26 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.mqtt;
+package io.crate.iothub;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.ingestion.IngestionModule;
-import io.crate.mqtt.netty.Netty4MqttServerTransport;
+import io.crate.iothub.processor.EventHubProcessor;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Setting;
-
 import java.util.Collection;
 
-import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_ENABLED_SETTING;
-import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_PORT_SETTING;
-import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_TIMEOUT_SETTING;
-import static io.crate.mqtt.netty.Netty4MqttServerTransport.SSL_MQTT_ENABLED;
+import static io.crate.iothub.processor.EventHubProcessor.IOT_HUB_ENABLED_SETTING;
+import static io.crate.iothub.processor.EventHubProcessor.CONNECTION_STRING;
+import static io.crate.iothub.processor.EventHubProcessor.EVENT_HUB_NAME;
+import static io.crate.iothub.processor.EventHubProcessor.STORAGE_CONNECTION_STRING;
+import static io.crate.iothub.processor.EventHubProcessor.STORAGE_CONTAINER_NAME;
+import static io.crate.iothub.processor.EventHubProcessor.CONSUMER_GROUP_NAME;
 
-public class MqttModule extends AbstractModule implements IngestionModule {
 
-    @Override
-    protected void configure() {
-        bind(Netty4MqttServerTransport.class).asEagerSingleton();
-    }
-
-    @Override
-    public Collection<Class<? extends LifecycleComponent>> getServiceClasses() {
-        return ImmutableList.of(Netty4MqttServerTransport.class);
-    }
+public class EventHubModule extends AbstractModule implements IngestionModule {
 
     @Override
     public Module getModule() {
@@ -52,9 +44,22 @@ public class MqttModule extends AbstractModule implements IngestionModule {
 
     @Override
     public Collection<Setting<?>> getSettings() {
-        return ImmutableList.of(MQTT_ENABLED_SETTING.setting(),
-            SSL_MQTT_ENABLED.setting(),
-            MQTT_PORT_SETTING.setting(),
-            MQTT_TIMEOUT_SETTING.setting());
+        return ImmutableList.of(
+            IOT_HUB_ENABLED_SETTING.setting(),
+            CONNECTION_STRING.setting(),
+            EVENT_HUB_NAME.setting(),
+            STORAGE_CONNECTION_STRING.setting(),
+            STORAGE_CONTAINER_NAME.setting(),
+            CONSUMER_GROUP_NAME.setting());
+    }
+
+    @Override
+    public Collection<Class<? extends LifecycleComponent>> getServiceClasses() {
+        return ImmutableList.of(EventHubProcessor.class);
+    }
+
+    @Override
+    protected void configure() {
+        bind(EventHubProcessor.class).asEagerSingleton();
     }
 }
