@@ -308,7 +308,6 @@ installDist {
 
 ext {
     downloadDir = new File(buildDir, 'downloads')
-    crash_version = '0.24.1'
     adminui_version = '1.10.2'
 }
 
@@ -384,11 +383,6 @@ distributions {
             }
             into('lib/site') {
                 from ('adminui/_site')
-            }
-            into('bin') {
-                from("${downloadDir}/crash_standalone") {
-                    fileMode = 0755
-                }
             }
         }
     }
@@ -491,15 +485,6 @@ downloadPlugins.outputs.file ('plugins')
 
 
 
-task downloadCrash {
-    doLast {
-        download(
-                downloadDir,
-                "https://cdn.crate.io/downloads/releases/crash_standalone_${crash_version}",
-                "crash_standalone")
-    }
-}
-
 task downloadAdminUI {
     doLast {
         def dest
@@ -521,7 +506,7 @@ task downloadAdminUI {
 }
 
 
-processResources.dependsOn(downloadPlugins, downloadCrash, collectEnterpriseModules)
+processResources.dependsOn(downloadPlugins, collectEnterpriseModules)
 
 task(runDebug, dependsOn: 'classes', type: JavaExec) {
     main = 'io.crate.bootstrap.CrateDB'

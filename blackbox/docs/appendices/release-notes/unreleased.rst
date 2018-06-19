@@ -37,7 +37,7 @@ Unreleased Changes
 Breaking Changes
 ================
 
-None
+- ``crash`` is no longer bundled with the ``CrateDB`` tarball distribution.
 
 Changes
 =======
