@@ -24,12 +24,17 @@ package io.crate.data;
 
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.TestingBatchIterators;
+import io.crate.testing.TestingRowConsumer;
 import org.junit.Test;
 
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -44,16 +49,17 @@ public class AsyncCompositeBatchIteratorTest {
 
     @Test
     public void testCompositeBatchIterator() throws Exception {
-        Supplier<BatchIterator> batchSimulatingItSupplier = () -> new CloseAssertingBatchIterator(
-            new BatchSimulatingIterator(
+        Supplier<BatchIterator<Row>> batchSimulatingItSupplier = () -> new CloseAssertingBatchIterator<>(
+            new BatchSimulatingIterator<>(
                 TestingBatchIterators.range(5, 10), 2, 2, null)
         );
 
         ExecutorService executorService = Executors.newFixedThreadPool(3);
         try {
             BatchIteratorTester tester = new BatchIteratorTester(
-                () -> new AsyncCompositeBatchIterator(
+                () -> new AsyncCompositeBatchIterator<>(
                     executorService,
+                    () -> 3,
                     TestingBatchIterators.range(0, 5),
                     batchSimulatingItSupplier.get()
                 )
@@ -67,17 +73,18 @@ public class AsyncCompositeBatchIteratorTest {
 
     @Test
     public void testIteratorDoesNotHandleRejectedExecutionException() throws Exception {
-        ExecutorService executorService = new ThreadPoolExecutor(1, 1, 0L,
+        ThreadPoolExecutor executorService = new ThreadPoolExecutor(1, 1, 0L,
             TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(1));
 
         try {
-            Supplier<BatchIterator> batchSimulatingItSupplier = () -> new CloseAssertingBatchIterator(
-                new BatchSimulatingIterator(
+            Supplier<BatchIterator<Row>> batchSimulatingItSupplier = () -> new CloseAssertingBatchIterator<>(
+                new BatchSimulatingIterator<>(
                     TestingBatchIterators.range(0, 5), 2, 2, null)
             );
 
-            AsyncCompositeBatchIterator batchIterator = new AsyncCompositeBatchIterator(
+            AsyncCompositeBatchIterator<Row> batchIterator = new AsyncCompositeBatchIterator<>(
                 executorService,
+                () -> 3,
                 batchSimulatingItSupplier.get(),
                 batchSimulatingItSupplier.get(),
                 batchSimulatingItSupplier.get(),

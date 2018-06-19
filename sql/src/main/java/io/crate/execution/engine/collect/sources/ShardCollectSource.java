@@ -99,6 +99,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import static io.crate.data.SentinelRow.SENTINEL;
@@ -167,6 +169,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
     private final Map<ShardId, Supplier<ShardCollectorProvider>> shards = new ConcurrentHashMap<>();
     private final ShardCollectorProviderFactory shardCollectorProviderFactory;
+    private final IntSupplier availableThreads;
 
     @Inject
     public ShardCollectSource(Settings settings,
@@ -189,7 +192,9 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         this.clusterService = clusterService;
         this.remoteCollectorFactory = remoteCollectorFactory;
         this.systemCollectSource = systemCollectSource;
-        this.executor = new DirectFallbackExecutor(threadPool.executor(ThreadPool.Names.SEARCH));
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
+        this.availableThreads = () -> Math.max(executor.getMaximumPoolSize() - executor.getActiveCount(), 1);
+        this.executor = new DirectFallbackExecutor(executor);
         this.shardCollectorProviderFactory = new ShardCollectorProviderFactory(
             clusterService,
             settings,
@@ -350,7 +355,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     return new CompositeCollector(
                         builders,
                         firstConsumer,
-                        iterators -> new AsyncCompositeBatchIterator<>(executor, iterators)
+                        iterators -> new AsyncCompositeBatchIterator<>(executor, availableThreads, iterators)
                     );
                 } else {
                     return new CompositeCollector(builders, firstConsumer, CompositeBatchIterator::new);
