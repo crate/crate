@@ -42,6 +42,11 @@ None
 Changes
 =======
 
+- Implemented a thread-utilization down-scaling logic which dynamically adapts
+  the number of threads used for ``SELECT`` queries involving aggregations to
+  avoid running into ``RejectedExcecution`` errors if there are many shards per
+  node involved in the queries.
+
 - Added the full PostgreSQL syntax of the ``BEGIN`` statement and the
   ``COMMIT`` statement.
   This improves the support for clients that are based on the Postgres wire

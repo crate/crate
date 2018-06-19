@@ -22,6 +22,7 @@
 
 package io.crate.data;
 
+import com.google.common.collect.Iterables;
 import io.crate.concurrent.CompletableFutures;
 
 import javax.annotation.Nonnull;
@@ -30,7 +31,9 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.function.Supplier;
+import java.util.function.IntSupplier;
+
+import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 /**
  * Similar to {@link CompositeBatchIterator} this is a BatchIterator implementation which is backed by multiple
@@ -48,13 +51,17 @@ public class AsyncCompositeBatchIterator<T> implements BatchIterator<T> {
 
     private final BatchIterator<T>[] iterators;
     private final Executor executor;
+    private final IntSupplier availableThreads;
 
     private int idx = 0;
 
     @SafeVarargs
-    public AsyncCompositeBatchIterator(Executor executor, BatchIterator<T>... iterators) {
+    public AsyncCompositeBatchIterator(Executor executor,
+                                       IntSupplier availableThreads,
+                                       BatchIterator<T>... iterators) {
         assert iterators.length > 0 : "Must have at least 1 iterator";
 
+        this.availableThreads = availableThreads;
         this.executor = executor;
         this.iterators = iterators;
     }
@@ -101,29 +108,41 @@ public class AsyncCompositeBatchIterator<T> implements BatchIterator<T> {
         if (allLoaded()) {
             return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already loaded"));
         }
+        int availableThreads = this.availableThreads.getAsInt();
+        List<BatchIterator<T>> itToLoad = getIteratorsToLoad(iterators);
 
-        List<CompletableFuture<CompletableFuture<?>>> asyncInvocationFutures = new ArrayList<>();
-        for (BatchIterator iterator : iterators) {
-            if (iterator.allLoaded()) {
-                continue;
+        List<CompletableFuture<CompletableFuture>> nestedFutures = new ArrayList<>();
+        if (availableThreads < itToLoad.size()) {
+            Iterable<List<BatchIterator<T>>> iteratorsPerThread = Iterables.partition(
+                itToLoad, itToLoad.size() / availableThreads);
+
+            for (List<BatchIterator<T>> batchIterators: iteratorsPerThread) {
+                CompletableFuture<CompletableFuture> future = supplyAsync(() -> {
+                    ArrayList<CompletableFuture<?>> futures = new ArrayList<>(batchIterators.size());
+                    for (BatchIterator<T> batchIterator: batchIterators) {
+                        futures.add(batchIterator.loadNextBatch().toCompletableFuture());
+                    }
+                    return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+                }, executor);
+                nestedFutures.add(future);
             }
-            Supplier<CompletableFuture<?>> loadNextBatchFuture = () -> iterator.loadNextBatch().toCompletableFuture();
-
-            // Every "supplyAsync future" completes with the iterator::loadNextBatch() future, so in order to
-            // access the loadNextBatch future, the asyncInvocation one should be completed and the result extracted
-            CompletableFuture<CompletableFuture<?>> supplyAsyncFuture =
-                CompletableFuture.supplyAsync(loadNextBatchFuture, executor);
-            asyncInvocationFutures.add(supplyAsyncFuture);
+        }  else {
+            for (BatchIterator<T> iterator: itToLoad) {
+                nestedFutures.add(supplyAsync(() -> iterator.loadNextBatch().toCompletableFuture(), executor));
+            }
         }
+        return CompletableFutures.allAsList(nestedFutures)
+            .thenCompose(innerFutures -> CompletableFuture.allOf(innerFutures.toArray(new CompletableFuture[0])));
+    }
 
-        CompletableFuture<List<CompletableFuture<?>>> loadNextBatchListFuture =
-            CompletableFutures.allAsList(asyncInvocationFutures);
-
-        return loadNextBatchListFuture.thenCompose(
-            (List<CompletableFuture<?>> loadNextBatchFutures) ->
-                // Future that'll wait for all loadNextBatch futures to complete
-                CompletableFuture.allOf(loadNextBatchFutures.toArray(new CompletableFuture[0]))
-        );
+    private static <T> List<BatchIterator<T>> getIteratorsToLoad(BatchIterator<T>[] allIterators) {
+        ArrayList<BatchIterator<T>> itToLoad = new ArrayList<>(allIterators.length);
+        for (BatchIterator<T> iterator: allIterators) {
+            if (!iterator.allLoaded()) {
+                itToLoad.add(iterator);
+            }
+        }
+        return itToLoad;
     }
 
     @Override
