@@ -28,6 +28,7 @@ import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.breaker.RowAccountingWithEstimatorsTest;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.data.join.RamAccountingBatchIterator;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
