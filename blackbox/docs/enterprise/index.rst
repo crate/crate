@@ -24,6 +24,7 @@ Current features:
   `HyperLoglog++`_ algorithm
 - `The CrateDB admin UI`_: `shards browser`_, `monitoring overview`_,
   `privileges browser`_
+- :ref:`ingest_event_hub`: ingest data from an `Azure Event Hub`_
 
 .. _enterprise edition: https://crate.io/enterprise-edition/
 .. _enterprise license: https://crate.io/enterprise-edition/
@@ -33,3 +34,4 @@ Current features:
 .. _monitoring overview: https://crate.io/docs/clients/admin-ui/en/latest/monitoring.html
 .. _privileges browser: https://crate.io/docs/clients/admin-ui/en/latest/privileges.html
 .. _The CrateDB admin UI: https://crate.io/docs/clients/admin-ui/en/latest/index.html
+.. _Azure Event Hub: https://azure.microsoft.com/en-us/services/event-hubs/

@@ -12,3 +12,4 @@ Builtin ingestion sources for CrateDB's :ref:`ingestion framework <ingestion>`.
    :maxdepth: 1
 
    mqtt
+   event_hub

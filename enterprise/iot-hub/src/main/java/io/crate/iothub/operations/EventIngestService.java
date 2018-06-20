@@ -67,7 +67,7 @@ import java.util.function.Predicate;
 public class EventIngestService implements IngestRuleListener {
 
     private static final Logger LOGGER = Loggers.getLogger(EventIngestService.class);
-    public static final String SOURCE_IDENT = "iot_hub";
+    public static final String SOURCE_IDENT = "event_hub";
     private static final Map<QualifiedName, Integer> EVENT_HUB_FIELDS_ORDER = new ImmutableMap.Builder<QualifiedName, Integer>()
         .put(new QualifiedName("partition_context"), 0)
         .put(new QualifiedName("event_metadata"), 0)
@@ -111,7 +111,7 @@ public class EventIngestService implements IngestRuleListener {
 
     public void initalize() {
         if (isInitialized) {
-            throw new IllegalStateException("IoT Hub Ingestion Service already initialized.");
+            throw new IllegalStateException("Event Hub Ingestion Service already initialized.");
         }
         ingestionService.registerIngestRuleListener(SOURCE_IDENT, this);
         isInitialized = true;
