@@ -83,6 +83,13 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Bytes
             id = decodeId(value);
         }
 
+        @Override
+        public void stringField(FieldInfo fieldInfo, byte[] value) {
+            assert COLUMN_NAME.equals(fieldInfo.name) : "stringField must only be called for id";
+            // Indices prior to CrateDB 3.0 have id stored as string
+            id = new BytesRef(value);
+        }
+
         static BytesRef decodeId(byte[] idBytes) {
             final int magicChar = Byte.toUnsignedInt(idBytes[0]);
             if (magicChar == UTF8) {
