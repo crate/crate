@@ -106,6 +106,7 @@ public abstract class TransportReplicationAction<
     protected final ClusterService clusterService;
     protected final ShardStateAction shardStateAction;
     protected final IndicesService indicesService;
+    protected final IndexNameExpressionResolver indexNameExpressionResolver;
     protected final TransportRequestOptions transportOptions;
     protected final String executor;
 
@@ -143,11 +144,12 @@ public abstract class TransportReplicationAction<
                                          String executor,
                                          boolean syncGlobalCheckpointAfterOperation,
                                          boolean forceExecutionOnPrimary) {
-        super(actionName, threadPool, indexNameExpressionResolver, transportService.getTaskManager());
+        super(actionName, threadPool, transportService.getTaskManager());
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.shardStateAction = shardStateAction;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.executor = executor;
 
         this.transportPrimaryAction = actionName + "[p]";

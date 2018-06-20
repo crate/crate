@@ -57,6 +57,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
     private final ActionType<ShardResponse> replicatedBroadcastShardAction;
     private final ClusterService clusterService;
     private final NodeClient client;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     public TransportBroadcastReplicationAction(String name,
                                                Writeable.Reader<Request> reader,
@@ -66,10 +67,11 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
                                                NodeClient client,
                                                IndexNameExpressionResolver indexNameExpressionResolver,
                                                ActionType<ShardResponse> replicatedBroadcastShardAction) {
-        super(name, threadPool, transportService, reader, indexNameExpressionResolver);
+        super(name, threadPool, transportService, reader);
         this.client = client;
         this.replicatedBroadcastShardAction = replicatedBroadcastShardAction;
         this.clusterService = clusterService;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
     }
 
     @Override

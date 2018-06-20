@@ -19,12 +19,7 @@
 
 package org.elasticsearch.indices.store;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
+import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
@@ -37,7 +32,6 @@ import org.elasticsearch.action.support.nodes.BaseNodesResponse;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -61,7 +55,11 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.common.unit.TimeValue;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class TransportNodesListShardStoreMetadata extends TransportNodesAction<TransportNodesListShardStoreMetadata.Request,
     TransportNodesListShardStoreMetadata.NodesStoreFilesMetadata,
@@ -83,9 +81,8 @@ public class TransportNodesListShardStoreMetadata extends TransportNodesAction<T
                                                 TransportService transportService,
                                                 IndicesService indicesService,
                                                 NodeEnvironment nodeEnv,
-                                                IndexNameExpressionResolver indexNameExpressionResolver,
                                                 NamedXContentRegistry namedXContentRegistry) {
-        super(ACTION_NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
+        super(ACTION_NAME, threadPool, clusterService, transportService,
             Request::new, NodeRequest::new, ThreadPool.Names.FETCH_SHARD_STORE, NodeStoreFilesMetadata.class);
         this.settings = settings;
         this.indicesService = indicesService;
