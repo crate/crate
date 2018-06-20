@@ -93,7 +93,7 @@ public final class PKLookupTask extends AbstractTask {
     @Override
     protected void innerStart() {
         if (shardProjections.isEmpty()) {
-            BatchIterator<GetResult> batchIterator = pkLookupOperation.lookup(ignoreMissing, idsByShard);
+            BatchIterator<GetResult> batchIterator = pkLookupOperation.lookup(ignoreMissing, idsByShard, consumer.requiresScroll());
             consumer.accept(BatchIterators.map(batchIterator, this::resultToRow), null);
         } else {
             pkLookupOperation.runWithShardProjections(

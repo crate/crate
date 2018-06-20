@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class PKLookupOperation {
@@ -64,7 +65,9 @@ public final class PKLookupOperation {
         this.shardCollectSource = shardCollectSource;
     }
 
-    public BatchIterator<GetResult> lookup(boolean ignoreMissing, Map<ShardId, List<PKAndVersion>> idsByShard) {
+    public BatchIterator<GetResult> lookup(boolean ignoreMissing,
+                                           Map<ShardId, List<PKAndVersion>> idsByShard,
+                                           boolean consumerRequiresRepeat) {
         Stream<GetResult> getResultStream = idsByShard.entrySet().stream()
             .flatMap(entry -> {
                 ShardId shardId = entry.getKey();
@@ -94,7 +97,13 @@ public final class PKLookupOperation {
                     ))
                     .filter(GetResult::isExists);
             });
-        return InMemoryBatchIterator.of(getResultStream::iterator, null);
+        final Iterable<GetResult> getResultIterable;
+        if (consumerRequiresRepeat) {
+            getResultIterable = getResultStream.collect(Collectors.toList());
+        } else {
+            getResultIterable = getResultStream::iterator;
+        }
+        return InMemoryBatchIterator.of(getResultIterable, null);
     }
 
 
@@ -146,19 +155,24 @@ public final class PKLookupOperation {
                 ramAccountingContext,
                 shardAndIds.projectorFactory
             );
-            BatchIterator<Row> batchIterator = InMemoryBatchIterator.of(
-                shardAndIds.value.stream()
-                    .map(pkAndVersion -> shardAndIds.shard.getService().get(
-                        Constants.DEFAULT_MAPPING_TYPE,
-                        pkAndVersion.id(),
-                        emptyFields,
-                        true,
-                        pkAndVersion.version(),
-                        VersionType.EXTERNAL,
-                        FetchSourceContext.FETCH_SOURCE
-                    ))
-                    .map(resultToRow)
-                    ::iterator, null);
+            Stream<Row> rowStream = shardAndIds.value.stream()
+                .map(pkAndVersion -> shardAndIds.shard.getService().get(
+                    Constants.DEFAULT_MAPPING_TYPE,
+                    pkAndVersion.id(),
+                    emptyFields,
+                    true,
+                    pkAndVersion.version(),
+                    VersionType.EXTERNAL,
+                    FetchSourceContext.FETCH_SOURCE
+                ))
+                .map(resultToRow);
+            final Iterable<Row> rowIterable;
+            if (consumer.requiresScroll()) {
+                rowIterable = rowStream.map(row -> new RowN(row.materialize())).collect(Collectors.toList());
+            } else {
+                rowIterable = rowStream::iterator;
+            }
+            BatchIterator<Row> batchIterator = InMemoryBatchIterator.of(rowIterable, null);
             consumer.accept(batchIterator, null);
         }
     }
