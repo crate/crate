@@ -57,8 +57,10 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         "stats.service.interval", TimeValue.timeValueHours(1), Setting.Property.NodeScope, Setting.Property.Dynamic),
         DataTypes.STRING);
 
-    static final String STMT =
-        "select cast(sum(num_docs) as long), schema_name, table_name from sys.shards group by 2, 3";
+    static final String STMT = "SELECT cast(sum(num_docs) AS long) AS num_docs, schema_name, table_name " +
+                               "FROM sys.shards " +
+                               "WHERE primary = TRUE " +
+                               "GROUP BY schema_name, table_name";
     private static final Statement PARSED_STMT = SqlParser.createStatement(STMT);
 
     private final ClusterService clusterService;

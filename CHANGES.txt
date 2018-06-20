@@ -32,6 +32,11 @@ Changes
 Fixes
 =====
 
+- Use only primary shards to calculate table stats. This will improve the
+  precision of the statistics and also reduce the amount of shards that need to
+  be queried resulting in better performance on clusters with a large amount of
+  shards.
+
 - Fixed an issue that prevented blob tables from showing up or triggering the
   system check indicating that they'll need to be re-created in order to update
   to CrateDB 3.0+
