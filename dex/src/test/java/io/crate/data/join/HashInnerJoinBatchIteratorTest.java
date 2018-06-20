@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.execution.engine.join;
+package io.crate.data.join;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.Name;
@@ -29,11 +29,9 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
-import io.crate.data.join.CombinedRow;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -46,13 +44,11 @@ import java.util.function.Supplier;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @RunWith(RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class HashInnerJoinBatchIteratorTest {
 
-    private final CircuitBreaker circuitBreaker = mock(CircuitBreaker.class);
     private final List<Object[]> expectedResult;
     private final Supplier<RamAccountingBatchIterator<Row>> leftIterator;
     private final Supplier<RamAccountingBatchIterator<Row>> rightIterator;
@@ -80,8 +76,6 @@ public class HashInnerJoinBatchIteratorTest {
         this.leftIterator = leftIterator;
         this.rightIterator = rightIterator;
         this.expectedResult = expectedResult;
-        when(circuitBreaker.getLimit()).thenReturn(110L);
-        when(circuitBreaker.getUsed()).thenReturn(10L);
     }
 
     @ParametersFactory
