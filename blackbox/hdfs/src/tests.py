@@ -32,9 +32,10 @@ from testutils.ports import GLOBAL_PORT_POOL
 from testutils.paths import crate_path, project_root
 from crate.testing.layer import CrateLayer
 from crate.client import connect
+from urllib.error import HTTPError
 from urllib.request import urlretrieve
 
-HADOOP_VERSION = '2.8.1'
+HADOOP_VERSION = '2.8.4'
 HADOOP_SOURCE = ('http://www-eu.apache.org/dist/hadoop/common/'
                  'hadoop-{version}/hadoop-{version}.tar.gz'.format(version=HADOOP_VERSION))
 CACHE_DIR = os.environ.get(
@@ -101,7 +102,11 @@ class HadoopLayer:
             'hadoop-{version}.tar.gz'.format(version=HADOOP_VERSION))
         if not os.path.exists(hadoop_tar):
             os.makedirs(hadoop_path, exist_ok=True)
-            urlretrieve(HADOOP_SOURCE, hadoop_tar)
+            try:
+                urlretrieve(HADOOP_SOURCE, hadoop_tar)
+            except HTTPError:
+                print(f'Could not download {HADOOP_SOURCE}')
+                raise
             with tarfile.open(hadoop_tar) as tf:
                 tf.extractall(path=hadoop_path)
         return os.path.join(hadoop_path,
