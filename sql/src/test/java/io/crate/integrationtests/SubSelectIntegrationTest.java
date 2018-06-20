@@ -22,8 +22,12 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.hppc.ObjectLongHashMap;
+import com.carrotsearch.hppc.ObjectLongMap;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.execution.support.Paging;
+import io.crate.metadata.TableIdent;
+import io.crate.planner.TableStats;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseSemiJoins;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -342,8 +346,21 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (x) values (1), (2)");
         execute("refresh table t");
 
+        for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
+            ObjectLongMap<TableIdent> newStats = new ObjectLongHashMap<>();
+            newStats.put(
+                new TableIdent(sqlExecutor.getDefaultSchema(), "t"),
+                100);
+            tableStats.updateTableStats(newStats);
+        }
+
+        // Left table is expected to be one row, due to the single row subselect in the where clause.
         execute("select * from t as t1, t as t2 where t1.x = (select 1) order by t2.x");
         assertThat(printedTable(response.rows()), is("1| 1\n1| 2\n"));
+
+        // Left table is expected to be bigger due to the table stats stating it being 100 rows
+        execute("select * from t as t2, t as t1 where t1.x = (select 1) order by t2.x");
+        assertThat(printedTable(response.rows()), is("1| 1\n2| 1\n"));
     }
 
     @Test
