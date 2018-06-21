@@ -51,8 +51,13 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.is;
 
@@ -223,6 +228,86 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testRunningJobsAreNotLostOnSettingsChange() throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        Settings settings = Settings.builder()
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
+        JobsLogService jobsLogService = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
+        JobsLogs jobsLogs = jobsLogService.get();
+
+        CountDownLatch latch = new CountDownLatch(2);
+        AtomicBoolean doInsertJobs = new AtomicBoolean(true);
+        AtomicInteger numJobs = new AtomicInteger();
+        int maxQueueSize = JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault();
+
+        try {
+            executor.submit(() -> {
+                while (doInsertJobs.get() && numJobs.get() < maxQueueSize) {
+                    UUID uuid = UUID.randomUUID();
+                    int i = numJobs.getAndIncrement();
+                    jobsLogs.logExecutionStart(uuid, "select 1", User.CRATE_USER);
+                    if (i % 2 == 0) {
+                        jobsLogs.logExecutionEnd(uuid, null);
+                    } else {
+                        jobsLogs.logPreExecutionFailure(uuid, "select 1", "failure", User.CRATE_USER);
+                    }
+                }
+                latch.countDown();
+            });
+            executor.submit(() -> {
+                jobsLogService.updateJobSink(maxQueueSize + 10, JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault());
+                doInsertJobs.set(false);
+                latch.countDown();
+            });
+
+            latch.await(10, TimeUnit.SECONDS);
+            assertThat(ImmutableList.copyOf(jobsLogs.jobsLog().iterator()).size(), is(numJobs.get()));
+        } finally {
+            executor.shutdown();
+            executor.awaitTermination(2, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    public void testRunningOperationsAreNotLostOnSettingsChange() throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        Settings settings = Settings.builder()
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
+        JobsLogService jobsLogService = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
+        JobsLogs jobsLogs = jobsLogService.get();
+
+        CountDownLatch latch = new CountDownLatch(2);
+        AtomicBoolean doInsertJobs = new AtomicBoolean(true);
+        AtomicInteger numJobs = new AtomicInteger();
+        int maxQueueSize = JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault();
+
+        try {
+            executor.submit(() -> {
+                while (doInsertJobs.get() && numJobs.get() < maxQueueSize) {
+                    UUID uuid = UUID.randomUUID();
+                    jobsLogs.operationStarted(1, uuid, "dummy");
+                    jobsLogs.operationFinished(1, uuid, null, 1);
+                    numJobs.incrementAndGet();
+                }
+                latch.countDown();
+            });
+            executor.submit(() -> {
+                jobsLogService.updateOperationSink(maxQueueSize + 10, JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault());
+                doInsertJobs.set(false);
+                latch.countDown();
+            });
+
+            latch.await(10, TimeUnit.SECONDS);
+            assertThat(ImmutableList.copyOf(jobsLogs.operationsLog().iterator()).size(), is(numJobs.get()));
+        } finally {
+            executor.shutdown();
+            executor.awaitTermination(2, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
     public void testExecutionStart() {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
         User user = User.of("arthur");
@@ -265,13 +350,13 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         jobsLogs.operationStarted(ctxB.id, ctxB.jobId, ctxB.name);
 
         jobsLogs.operationFinished(ctxB.id, ctxB.jobId, null, -1);
-        List<OperationContextLog> entries = ImmutableList.copyOf(jobsLogs.operationsLog.get().iterator());
+        List<OperationContextLog> entries = ImmutableList.copyOf(jobsLogs.operationsLog().iterator());
 
         assertTrue(entries.contains(new OperationContextLog(ctxB, null)));
         assertFalse(entries.contains(new OperationContextLog(ctxA, null)));
 
         jobsLogs.operationFinished(ctxA.id, ctxA.jobId, null, -1);
-        entries = ImmutableList.copyOf(jobsLogs.operationsLog.get());
+        entries = ImmutableList.copyOf(jobsLogs.operationsLog());
         assertTrue(entries.contains(new OperationContextLog(ctxA, null)));
     }
 

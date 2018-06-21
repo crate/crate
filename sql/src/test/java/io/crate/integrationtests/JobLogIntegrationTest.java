@@ -37,6 +37,7 @@ import org.junit.Test;
 
 import java.util.Iterator;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
@@ -62,20 +63,12 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
         // programming is evil like that). And then this test will fail and people will spend days and days to figure
         // out what's going on.
         // So let's just wait for the "set global ... " statement to be recorded here and then move on with our test.
-        boolean recordedSetJobsLogStatement = false;
-        while (recordedSetJobsLogStatement == false) {
-            for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
-                for (JobContextLog log : jobsLogService.get().jobsLog()) {
-                    if (log.statement().equals("set global transient stats.jobs_log_size=1")) {
-                        recordedSetJobsLogStatement = true;
-                        break;
-                    }
-                }
-                if (recordedSetJobsLogStatement) {
-                    break;
-                }
-            }
-        }
+        assertBusy(() -> {
+            execute("select stmt from sys.jobs_log order by ended desc");
+            assertThat(TestingHelpers.printedTable(response.rows()),
+                containsString("set global transient stats.jobs_log_size=1"));
+        });
+
         // wait for the other node to receive the new jobs_log_size setting change instruction
         for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
             assertBusy(() -> assertThat(jobsLogService.jobsLogSize(), is(1)));
@@ -95,12 +88,6 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
             execute("select id from sys.cluster", null, session);
         }
         assertJobLogOnNodesHaveOnlyStatement("select id from sys.cluster");
-
-        execute("select stmt from sys.jobs_log order by ended desc");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("select id from sys.cluster\n" +
-               "select id from sys.cluster\n"));
 
         execute("set global transient stats.enabled = false");
         for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {

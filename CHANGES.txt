@@ -32,6 +32,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue which could result in lost entries at the ``sys.jobs_log`` and
+  ``sys.operations_log`` tables when the related settings are changed while
+  entries are written.
+
 - Fixed a dependecy issue with the bundled ``crash`` that caused the app not
   being able to connect to the server.
 
