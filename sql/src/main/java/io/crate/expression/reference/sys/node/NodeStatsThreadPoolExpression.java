@@ -22,22 +22,21 @@
 
 package io.crate.expression.reference.sys.node;
 
-import com.google.common.collect.Lists;
-import io.crate.monitor.ThreadPools;
-import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.threadpool.ThreadPoolStats;
 
 import java.util.List;
-import java.util.Map;
+
+import static com.google.common.collect.Lists.newArrayList;
 
 
 public abstract class NodeStatsThreadPoolExpression<R>
-    extends NodeStatsArrayTypeExpression<Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext>, R> {
+    extends NodeStatsArrayTypeExpression<ThreadPoolStats.Stats, R> {
 
     protected NodeStatsThreadPoolExpression() {
     }
 
     @Override
-    protected List<Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext>> items() {
-        return Lists.newArrayList(this.row.threadPools());
+    protected List<ThreadPoolStats.Stats> items() {
+        return newArrayList(row.threadPools());
     }
 }

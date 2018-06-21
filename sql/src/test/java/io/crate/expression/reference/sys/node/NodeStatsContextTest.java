@@ -25,7 +25,6 @@ package io.crate.expression.reference.sys.node;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.monitor.ThreadPools;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
@@ -87,7 +86,7 @@ public class NodeStatsContextTest extends CrateUnitTest {
         OsProbe osProbe = OsProbe.getInstance();
         ctx1.osStats(osProbe.osStats());
         ctx1.extendedOsStats(extendedNodeInfo.osStats());
-        ctx1.threadPools(ThreadPools.newInstance(threadPool));
+        ctx1.threadPools(threadPool.stats());
 
         ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
         StreamOutput out = new OutputStreamStreamOutput(outBuffer);
@@ -111,7 +110,7 @@ public class NodeStatsContextTest extends CrateUnitTest {
         assertThat(ctx1.processStats().getTimestamp(), is(ctx2.processStats().getTimestamp()));
         assertThat(ctx1.osStats().getTimestamp(), is(ctx2.osStats().getTimestamp()));
         assertThat(ctx1.extendedOsStats().uptime(), is(ctx2.extendedOsStats().uptime()));
-        assertThat(ctx1.threadPools(), is(ctx2.threadPools()));
+        assertThat(ctx1.threadPools().iterator().next().getActive(), is(ctx2.threadPools().iterator().next().getActive()));
     }
 
     @Test
@@ -137,50 +136,6 @@ public class NodeStatsContextTest extends CrateUnitTest {
         assertNull(ctx2.osStats());
         assertNull(ctx2.extendedOsStats());
         assertNull(ctx2.threadPools());
-    }
-
-    @Test
-    public void testStreamThreadPools() throws Exception {
-        ThreadPools pools1 = ThreadPools.newInstance();
-        int size = 3;
-        for (int i = 0; i < size; i++) {
-            ThreadPools.ThreadPoolExecutorContext ctx = new ThreadPools.ThreadPoolExecutorContext(
-                10 * i + 1,
-                10 * i + 2,
-                10 * i + 3,
-                10 * i + 4,
-                100L * i + 1L,
-                100L * i + 2L);
-            pools1.add(BytesRefs.toBytesRef(String.format("threadpool-%d", i)), ctx);
-        }
-
-        ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
-        StreamOutput out = new OutputStreamStreamOutput(outBuffer);
-        pools1.writeTo(out);
-
-        ByteArrayInputStream inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
-        InputStreamStreamInput in = new InputStreamStreamInput(inBuffer);
-        ThreadPools pools2 = ThreadPools.newInstance();
-        pools2.readFrom(in);
-
-        assertThat(pools1, is(pools2));
-    }
-
-    @Test
-    public void testStreamThreadPoolsContext() throws Exception {
-        ThreadPools.ThreadPoolExecutorContext ctx1 = new ThreadPools.ThreadPoolExecutorContext(
-            10, 15, 20, 50, 1_000_000_000_000_000L, 1L);
-
-        ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
-        StreamOutput out = new OutputStreamStreamOutput(outBuffer);
-        ctx1.writeTo(out);
-
-        ByteArrayInputStream inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
-        InputStreamStreamInput in = new InputStreamStreamInput(inBuffer);
-        ThreadPools.ThreadPoolExecutorContext ctx2 = new ThreadPools.ThreadPoolExecutorContext();
-        ctx2.readFrom(in);
-
-        assertThat(ctx1, is(ctx2));
     }
 
     @Test

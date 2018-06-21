@@ -29,7 +29,6 @@ import io.crate.Version;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.monitor.ThreadPools;
 import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.postgres.PostgresNetty;
 import org.apache.logging.log4j.Logger;
@@ -225,7 +224,7 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.THREAD_POOLS, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.threadPools(ThreadPools.newInstance(threadPool));
+                    context.threadPools(threadPool.stats());
                 }
             })
             .put(SysNodesTableInfo.Columns.NETWORK, context -> {

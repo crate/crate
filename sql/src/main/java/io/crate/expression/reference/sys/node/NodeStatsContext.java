@@ -25,7 +25,6 @@ package io.crate.expression.reference.sys.node;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.monitor.ExtendedOsStats;
-import io.crate.monitor.ThreadPools;
 import io.crate.protocols.ConnectionStats;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -40,6 +39,7 @@ import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.OsInfo;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.monitor.process.ProcessStats;
+import org.elasticsearch.threadpool.ThreadPoolStats;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -63,7 +63,7 @@ public class NodeStatsContext implements Streamable {
     private OsStats osStats;
     private ExtendedOsStats extendedOsStats;
     private FsInfo fsInfo;
-    private ThreadPools threadPools;
+    private ThreadPoolStats threadPools;
     private HttpStats httpStats;
     private ConnectionStats psqlStats;
 
@@ -156,7 +156,7 @@ public class NodeStatsContext implements Streamable {
         return extendedOsStats;
     }
 
-    public ThreadPools threadPools() {
+    public ThreadPoolStats threadPools() {
         return threadPools;
     }
 
@@ -256,7 +256,7 @@ public class NodeStatsContext implements Streamable {
         this.extendedOsStats = extendedOsStats;
     }
 
-    public void threadPools(ThreadPools threadPools) {
+    public void threadPools(ThreadPoolStats threadPools) {
         this.threadPools = threadPools;
     }
 
@@ -296,7 +296,7 @@ public class NodeStatsContext implements Streamable {
         osStats = in.readOptionalWriteable(OsStats::new);
         fsInfo = in.readOptionalWriteable(FsInfo::new);
         extendedOsStats = in.readBoolean() ? ExtendedOsStats.readExtendedOsStat(in) : null;
-        threadPools = in.readBoolean() ? ThreadPools.readThreadPools(in) : null;
+        threadPools = in.readOptionalWriteable(ThreadPoolStats::new);
         httpStats = in.readOptionalWriteable(HttpStats::new);
         psqlStats = in.readOptionalWriteable(ConnectionStats::new);
         openTransportConnections = in.readLong();
@@ -339,7 +339,7 @@ public class NodeStatsContext implements Streamable {
         out.writeOptionalWriteable(osStats);
         out.writeOptionalWriteable(fsInfo);
         out.writeOptionalStreamable(extendedOsStats);
-        out.writeOptionalStreamable(threadPools);
+        out.writeOptionalWriteable(threadPools);
         out.writeOptionalWriteable(httpStats);
         out.writeOptionalWriteable(psqlStats);
         out.writeLong(openTransportConnections);

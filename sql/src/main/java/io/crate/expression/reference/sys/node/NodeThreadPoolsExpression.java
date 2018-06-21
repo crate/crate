@@ -22,19 +22,18 @@
 
 package io.crate.expression.reference.sys.node;
 
-import com.google.common.collect.Lists;
 import io.crate.expression.reference.sys.ArrayTypeNestableContextCollectExpression;
-import io.crate.monitor.ThreadPools;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.threadpool.ThreadPoolStats;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import static com.google.common.collect.Lists.newArrayList;
 
 
 public class NodeThreadPoolsExpression
-    extends ArrayTypeNestableContextCollectExpression<NodeStatsContext, Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext>, Object> {
+    extends ArrayTypeNestableContextCollectExpression<NodeStatsContext, ThreadPoolStats.Stats, Object> {
 
     private static final String POOL_NAME = "name";
     private static final String ACTIVE = "active";
@@ -48,21 +47,20 @@ public class NodeThreadPoolsExpression
     }
 
     @Override
-    protected List<Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext>> items() {
-        return Lists.newArrayList(this.row.threadPools());
+    protected List<ThreadPoolStats.Stats> items() {
+        return newArrayList(row.threadPools());
     }
 
     @Override
-    protected Object valueForItem(final Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
-        HashMap<String, Object> result = new HashMap<>();
-        result.put(POOL_NAME, BytesRefs.toBytesRef(input.getKey()));
-        ThreadPools.ThreadPoolExecutorContext tpContext = input.getValue();
-        result.put(ACTIVE, tpContext.activeCount());
-        result.put(COMPLETED, tpContext.completedTaskCount());
-        result.put(REJECTED, tpContext.rejectedCount());
-        result.put(LARGEST, tpContext.largestPoolSize());
-        result.put(QUEUE, tpContext.queueSize());
-        result.put(THREADS, tpContext.poolSize());
+    protected Object valueForItem(ThreadPoolStats.Stats stats) {
+        HashMap<String, Object> result = new HashMap<>(7);
+        result.put(POOL_NAME, BytesRefs.toBytesRef(stats.getName()));
+        result.put(ACTIVE, stats.getActive());
+        result.put(COMPLETED, stats.getCompleted());
+        result.put(REJECTED, stats.getRejected());
+        result.put(LARGEST, stats.getLargest());
+        result.put(QUEUE, stats.getQueue());
+        result.put(THREADS, stats.getThreads());
         return result;
     }
 

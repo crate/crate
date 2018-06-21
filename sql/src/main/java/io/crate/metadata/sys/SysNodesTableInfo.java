@@ -53,7 +53,6 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.monitor.FsInfoHelpers;
-import io.crate.monitor.ThreadPools;
 import io.crate.protocols.ConnectionStats;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -64,6 +63,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.monitor.fs.FsInfo;
+import org.elasticsearch.threadpool.ThreadPoolStats;
 
 import java.util.Map;
 
@@ -253,44 +253,44 @@ public class SysNodesTableInfo extends StaticTableInfo {
             .put(Columns.THREAD_POOLS, NodeThreadPoolsExpression::new)
             .put(Columns.THREAD_POOLS_NAME, () -> new NodeStatsThreadPoolExpression<BytesRef>() {
                 @Override
-                protected BytesRef valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
-                    return input.getKey();
+                protected BytesRef valueForItem(ThreadPoolStats.Stats input) {
+                    return BytesRefs.toBytesRef(input.getName());
                 }
             })
             .put(Columns.THREAD_POOLS_ACTIVE, () -> new NodeStatsThreadPoolExpression<Integer>() {
                 @Override
-                protected Integer valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
-                    return input.getValue().activeCount();
+                protected Integer valueForItem(ThreadPoolStats.Stats stats) {
+                    return stats.getActive();
                 }
             })
             .put(Columns.THREAD_POOLS_REJECTED, () -> new NodeStatsThreadPoolExpression<Long>() {
                 @Override
-                protected Long valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
-                    return input.getValue().rejectedCount();
+                protected Long valueForItem(ThreadPoolStats.Stats stats) {
+                    return stats.getRejected();
                 }
             })
             .put(Columns.THREAD_POOLS_LARGEST, () -> new NodeStatsThreadPoolExpression<Integer>() {
                 @Override
-                protected Integer valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
-                    return input.getValue().largestPoolSize();
+                protected Integer valueForItem(ThreadPoolStats.Stats stats) {
+                    return stats.getLargest();
                 }
             })
             .put(Columns.THREAD_POOLS_COMPLETED, () -> new NodeStatsThreadPoolExpression<Long>() {
                 @Override
-                protected Long valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
-                    return input.getValue().completedTaskCount();
+                protected Long valueForItem(ThreadPoolStats.Stats stats) {
+                    return stats.getCompleted();
                 }
             })
             .put(Columns.THREAD_POOLS_THREADS, () -> new NodeStatsThreadPoolExpression<Integer>() {
                 @Override
-                protected Integer valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
-                    return input.getValue().poolSize();
+                protected Integer valueForItem(ThreadPoolStats.Stats stats) {
+                    return stats.getThreads();
                 }
             })
             .put(Columns.THREAD_POOLS_QUEUE, () -> new NodeStatsThreadPoolExpression<Integer>() {
                 @Override
-                protected Integer valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
-                    return input.getValue().queueSize();
+                protected Integer valueForItem(ThreadPoolStats.Stats stats) {
+                    return stats.getQueue();
                 }
             })
             .put(Columns.NETWORK, NodeNetworkStatsExpression::new)
