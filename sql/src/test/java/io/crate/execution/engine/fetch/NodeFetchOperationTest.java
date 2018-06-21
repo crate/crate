@@ -46,6 +46,7 @@ public class NodeFetchOperationTest extends CrateDummyClusterServiceUnitTest {
             JobsLogs jobsLogs = new JobsLogs(() -> true);
             NodeFetchOperation fetchOperation = new NodeFetchOperation(
                 threadPoolExecutor,
+                2,
                 jobsLogs,
                 new TasksService(Settings.EMPTY, clusterService, jobsLogs),
                 new NoopCircuitBreaker("dummy"));

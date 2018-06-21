@@ -30,6 +30,8 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -55,9 +57,11 @@ public class InternalCountOperation implements CountOperation {
     private final IndicesService indicesService;
     private final ClusterService clusterService;
     private final ThreadPoolExecutor executor;
+    private final int numProcessors;
 
     @Inject
-    public InternalCountOperation(LuceneQueryBuilder queryBuilder,
+    public InternalCountOperation(Settings settings,
+                                  LuceneQueryBuilder queryBuilder,
                                   ClusterService clusterService,
                                   ThreadPool threadPool,
                                   IndicesService indicesService) {
@@ -65,6 +69,7 @@ public class InternalCountOperation implements CountOperation {
         this.clusterService = clusterService;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         this.indicesService = indicesService;
+        this.numProcessors = EsExecutors.numberOfProcessors(settings);
     }
 
     @Override
@@ -94,7 +99,7 @@ public class InternalCountOperation implements CountOperation {
         MergePartialCountFunction mergeFunction = new MergePartialCountFunction();
         CompletableFuture<List<Long>> futurePartialCounts = ThreadPools.runWithAvailableThreads(
             executor,
-            ThreadPools.numIdleThreads(executor),
+            ThreadPools.numIdleThreads(executor, numProcessors),
             suppliers,
             mergeFunction
         );

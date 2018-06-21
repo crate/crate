@@ -57,6 +57,7 @@ import java.util.function.Supplier;
 public class NodeFetchOperation {
 
     private final ThreadPoolExecutor executor;
+    private final int numProcessors;
     private final JobsLogs jobsLogs;
     private final TasksService tasksService;
     private final CircuitBreaker circuitBreaker;
@@ -93,10 +94,12 @@ public class NodeFetchOperation {
     }
 
     public NodeFetchOperation(ThreadPoolExecutor executor,
+                              int numProcessors,
                               JobsLogs jobsLogs,
                               TasksService tasksService,
                               CircuitBreaker circuitBreaker) {
         this.executor = executor;
+        this.numProcessors = numProcessors;
         this.jobsLogs = jobsLogs;
         this.tasksService = tasksService;
         this.circuitBreaker = circuitBreaker;
@@ -200,7 +203,7 @@ public class NodeFetchOperation {
         }
         ThreadPools.runWithAvailableThreads(
             executor,
-            ThreadPools.numIdleThreads(executor),
+            ThreadPools.numIdleThreads(executor, numProcessors),
             collectors,
             items -> null
         );

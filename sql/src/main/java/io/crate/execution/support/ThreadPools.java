@@ -40,8 +40,14 @@ import java.util.function.Supplier;
 
 public class ThreadPools {
 
-    public static IntSupplier numIdleThreads(ThreadPoolExecutor executor) {
-        return () -> Math.max(executor.getMaximumPoolSize() - executor.getActiveCount(), 1);
+    public static IntSupplier numIdleThreads(ThreadPoolExecutor executor, int numProcessors) {
+        return () -> Math.min(
+            Math.max(executor.getMaximumPoolSize() - executor.getActiveCount(), 1),
+            // poolSize can be > number of processors but we don't want to utilize more threads than numProcessors
+            // per execution. Thread contention would go up and we're running into RejectedExecutions earlier on
+            // concurrent queries
+            numProcessors
+        );
     }
 
     public static Executor fallbackOnRejection(Executor executor) {
