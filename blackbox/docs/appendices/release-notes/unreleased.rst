@@ -119,6 +119,9 @@ Fixes
 - Made table setting ``blocks.read_only_allow_delete`` configurable for
   partitioned tables.
 
+- Improved performance for expressions involving literal and type conversions,
+  e.g. ``int_arr[1] = 123456``.
+
 - Fixed syntax support for certain ``ALTER BLOB TABLE RENAME``, ``REROUTE``
   and ``OPEN/CLOSE`` queries.
 

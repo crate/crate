@@ -32,6 +32,7 @@ import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.auth.user.User;
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.LtOperator;
@@ -319,13 +320,21 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testIncompatibleLiteralThrowsException() {
+        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast 2147483648 to type integer");
+        expressions.asSymbol("doc.t2.i = 1 + " + Integer.MAX_VALUE);
+    }
+
+    @Test
     public void testFunctionsCanBeCasted() {
         SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
-        Function symbol2 = (Function) expressions.asSymbol("doc.t2.i + 1 = 1");
+        Function symbol2 = (Function) expressions.asSymbol("doc.t5.w = doc.t2.i + 1.2");
         assertThat(symbol2, isFunction(EqOperator.NAME));
-        assertThat(symbol2.arguments().get(0), isFunction("to_long"));
-        assertThat(symbol2.arguments().get(0).valueType(), is(DataTypes.LONG));
-        assertThat(symbol2.arguments().get(1), isLiteral(1L));
+        assertThat(symbol2.arguments().get(0), isField("w"));
+        assertThat(symbol2.arguments().get(1), isFunction("to_long"));
+        assertThat(symbol2.arguments().get(1).valueType(), is(DataTypes.LONG));
     }
 
     @Test

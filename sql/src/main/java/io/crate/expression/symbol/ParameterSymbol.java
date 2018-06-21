@@ -75,6 +75,11 @@ public class ParameterSymbol extends Symbol {
     }
 
     @Override
+    public boolean isValueSymbol() {
+        return true;
+    }
+
+    @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitParameterSymbol(this, context);
     }
