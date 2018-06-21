@@ -159,6 +159,11 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
     }
 
     @Override
+    public boolean isValueSymbol() {
+        return true;
+    }
+
+    @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitLiteral(this, context);
     }

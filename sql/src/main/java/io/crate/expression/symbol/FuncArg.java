@@ -46,4 +46,13 @@ public interface FuncArg {
      * @return True is casting is possible, false otherwise.
      */
     boolean canBeCasted();
+
+    /**
+     * Returns true if this Symbol holds a value that may be cast
+     * preferably before other Symbols, ie. Literal and ParameterSymbols.
+     * @return True if it is a value symbol, False otherwise
+     */
+    default boolean isValueSymbol() {
+        return false;
+    }
 }

@@ -83,7 +83,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                    "projections=[" +
                        "{type=HashAggregation, keys=IC{1, string}, aggregations=Aggregation{max, args=[IC{0, integer}]}}, " +
                        "{type=HashAggregation, keys=IC{0, string}, aggregations=Aggregation{max, args=[IC{1, integer}]}}, " +
-                       "{type=Filter, filter=to_long(IC{1, integer}) > 10}, " +
+                       "{type=Filter, filter=IC{1, integer} > 10}, " +
                        "{type=OrderByTopN, limit=-1, offset=0, outputs=IC{0, string}, IC{1, integer}, orderBy=[IC{0, string} ASC]}], " +
                     "routing={n1={t1=[0]}}, where=true}}}}"));
     }

@@ -23,10 +23,10 @@
 package io.crate.metadata.functions.params;
 
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Literal;
-import io.crate.exceptions.ConversionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.test.integration.CrateUnitTest;
@@ -184,6 +184,20 @@ public class FuncParamsTest extends CrateUnitTest {
 
         List<DataType> signature = params.match(list(castableArg, nonCastableArg));
         assertThat(signature, is(list(DataTypes.INTEGER, integerArrayType)));
+    }
+
+    @Test
+    public void testLosslessConversionResultingInDowncast() {
+        FuncArg highPrecedenceType = Literal.of(DataTypes.LONG, 5L);
+        FuncArg lowerPrecedenceType = new Arg(DataTypes.INTEGER, true);
+        FuncParams params = FuncParams.builder(Param.NUMERIC, Param.NUMERIC).build();
+
+        List<DataType> signature;
+        signature = params.match(list(highPrecedenceType, lowerPrecedenceType));
+        assertThat(signature, is(list(DataTypes.INTEGER, DataTypes.INTEGER)));
+
+        signature = params.match(list(lowerPrecedenceType, highPrecedenceType));
+        assertThat(signature, is(list(DataTypes.INTEGER, DataTypes.INTEGER)));
     }
 
     private static class Arg implements FuncArg {

@@ -76,6 +76,16 @@ public class Function extends Symbol implements Cloneable {
     }
 
     @Override
+    public boolean isValueSymbol() {
+        for (Symbol argument : arguments) {
+            if (!argument.isValueSymbol()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
     public Symbol cast(DataType newDataType, boolean tryCast) {
         if (newDataType instanceof CollectionType && info.ident().name().equals(ArrayFunction.NAME)) {
             /* We treat _array(...) in a special way since it's a value constructor and no regular function

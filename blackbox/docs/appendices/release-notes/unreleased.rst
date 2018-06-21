@@ -40,6 +40,9 @@ Fixes
 - Made table setting ``blocks.read_only_allow_delete`` configurable for
   partitioned tables.
 
+- Improved performance for expressions involving literal type conversions,
+  e.g. ``select count(*) from users group by name having max(bytes) = 4``.
+
 - Fixed an issue which could result in lost entries at the ``sys.jobs_log`` and
   ``sys.operations_log`` tables when the related settings are changed while
   entries are written.
