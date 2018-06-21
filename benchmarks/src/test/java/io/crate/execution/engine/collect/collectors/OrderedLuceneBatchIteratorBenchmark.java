@@ -123,6 +123,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
             Collections.singletonList(createOrderedCollector(indexSearcher, columnName)),
             OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
             ROW_ACCOUNTING, MoreExecutors.directExecutor(),
+            () -> 1,
             false
         );
         while (!it.allLoaded()) {

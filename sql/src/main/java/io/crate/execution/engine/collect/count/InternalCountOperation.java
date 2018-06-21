@@ -101,8 +101,7 @@ public class InternalCountOperation implements CountOperation {
         CompletableFuture<List<Long>> futurePartialCounts = ThreadPools.runWithAvailableThreads(
             executor,
             ThreadPools.numIdleThreads(executor, numProcessors),
-            suppliers,
-            mergeFunction
+            suppliers
         );
         return futurePartialCounts.thenApply(mergeFunction);
     }

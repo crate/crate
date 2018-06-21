@@ -23,6 +23,7 @@
 package io.crate.execution.support;
 
 import com.google.common.collect.Iterables;
+import io.crate.collections.Lists2;
 import io.crate.concurrent.CompletableFutures;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
@@ -34,7 +35,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
@@ -55,47 +55,46 @@ public class ThreadPools {
     }
 
     /**
-     * runs each runnable of the runnableCollection in it's own thread unless there aren't enough threads available.
-     * In that case it will partition the runnableCollection to match the number of available threads.
+     * Uses up to availableThreads threads to run all suppliers.
+     * if availableThreads is smaller than the number of suppliers it will run multiple suppliers
+     * grouped within the available threads.
      *
      * @param executor           executor that is used to execute the callableList
      * @param availableThreads   A function returning the number of threads which can be utilized
      * @param suppliers          a collection of callable that should be executed
-     * @param mergeFunction      function that will be applied to merge the results of multiple callable in case that they are
-     *                           executed together if the threadPool is exhausted
      * @param <T>                type of the final result
-     * @return a future that will return a list of the results of the callableList
+     * @return a future that will return a list of the results of the suppliers
      * @throws RejectedExecutionException in case all threads are busy and overloaded.
      */
     public static <T> CompletableFuture<List<T>> runWithAvailableThreads(
         Executor executor,
         IntSupplier availableThreads,
-        Collection<Supplier<T>> suppliers,
-        final Function<List<T>, T> mergeFunction) throws RejectedExecutionException {
+        Collection<Supplier<T>> suppliers) throws RejectedExecutionException {
 
-        ArrayList<CompletableFuture<T>> futures;
         int threadsToUse = availableThreads.getAsInt();
         if (threadsToUse < suppliers.size()) {
-            Iterable<List<Supplier<T>>> partition = Iterables.partition(suppliers, suppliers.size() / threadsToUse);
+            Iterable<List<Supplier<T>>> partitions = Iterables.partition(suppliers, suppliers.size() / threadsToUse);
 
-            futures = new ArrayList<>(threadsToUse + 1);
-            for (final List<Supplier<T>> callableList : partition) {
-                CompletableFuture<T> future = CompletableFuture.supplyAsync(() -> {
-                    ArrayList<T> results = new ArrayList<>(callableList.size());
-                    for (Supplier<T> supplier : callableList) {
-                        results.add(supplier.get());
-                    }
-                    return mergeFunction.apply(results);
-                }, executor);
-                futures.add(future);
+            ArrayList<CompletableFuture<List<T>>> futures = new ArrayList<>(threadsToUse + 1);
+            for (List<Supplier<T>> partition : partitions) {
+                Supplier<List<T>> executePartition = () -> Lists2.copyAndReplace(partition, Supplier::get);
+                futures.add(CompletableFuture.supplyAsync(executePartition, executor));
             }
+            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .thenApply(aVoid -> {
+                    ArrayList<T> finalResult = new ArrayList<>(suppliers.size());
+                    for (CompletableFuture<List<T>> future: futures) {
+                        finalResult.addAll(future.join());
+                    }
+                    return finalResult;
+                });
         } else {
-            futures = new ArrayList<>(suppliers.size());
+            ArrayList<CompletableFuture<T>> futures = new ArrayList<>(suppliers.size());
             for (Supplier<T> supplier : suppliers) {
                 futures.add(CompletableFuture.supplyAsync(supplier, executor));
             }
+            return CompletableFutures.allAsList(futures);
         }
-        return CompletableFutures.allAsList(futures);
     }
 
     /**
