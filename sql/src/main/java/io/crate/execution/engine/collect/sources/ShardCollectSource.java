@@ -390,6 +390,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 ),
                 new RowAccounting(columnTypes, jobCollectContext.queryPhaseRamAccountingContext()),
                 executor,
+                availableThreads,
                 consumer.requiresScroll()
             ),
             consumer
