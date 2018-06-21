@@ -81,6 +81,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -193,7 +194,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         this.remoteCollectorFactory = remoteCollectorFactory;
         this.systemCollectSource = systemCollectSource;
         ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
-        this.availableThreads = numIdleThreads(executor);
+        this.availableThreads = numIdleThreads(executor, EsExecutors.numberOfProcessors(settings));
         this.executor = ThreadPools.fallbackOnRejection(executor);
         this.shardCollectorProviderFactory = new ShardCollectorProviderFactory(
             clusterService,
