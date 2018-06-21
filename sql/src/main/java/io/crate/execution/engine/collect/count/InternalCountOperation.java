@@ -55,7 +55,6 @@ public class InternalCountOperation implements CountOperation {
     private final IndicesService indicesService;
     private final ClusterService clusterService;
     private final ThreadPoolExecutor executor;
-    private final int corePoolSize;
 
     @Inject
     public InternalCountOperation(LuceneQueryBuilder queryBuilder,
@@ -65,14 +64,12 @@ public class InternalCountOperation implements CountOperation {
         this.queryBuilder = queryBuilder;
         this.clusterService = clusterService;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
-        corePoolSize = executor.getMaximumPoolSize();
         this.indicesService = indicesService;
     }
 
     @Override
     public CompletableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
                                          final WhereClause whereClause) throws IOException, InterruptedException {
-
         List<Supplier<Long>> suppliers = new ArrayList<>();
         MetaData metaData = clusterService.state().getMetaData();
         for (Map.Entry<String, ? extends Collection<Integer>> entry : indexShardMap.entrySet()) {
@@ -97,7 +94,11 @@ public class InternalCountOperation implements CountOperation {
         }
         MergePartialCountFunction mergeFunction = new MergePartialCountFunction();
         CompletableFuture<List<Long>> futurePartialCounts = ThreadPools.runWithAvailableThreads(
-            executor, corePoolSize, suppliers, mergeFunction);
+            executor,
+            ThreadPools.numIdleThreads(executor),
+            suppliers,
+            mergeFunction
+        );
         return futurePartialCounts.thenApply(mergeFunction);
     }
 

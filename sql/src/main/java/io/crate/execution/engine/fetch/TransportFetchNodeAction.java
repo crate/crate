@@ -26,12 +26,12 @@ import com.carrotsearch.hppc.IntObjectMap;
 import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.engine.distribution.StreamBucket;
+import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
-import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.execution.support.Transports;
-import io.crate.execution.jobs.JobContextService;
-import io.crate.execution.engine.collect.stats.JobsLogs;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.common.inject.Inject;
@@ -40,6 +40,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Singleton
 public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, NodeFetchResponse> {
@@ -59,7 +60,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                                     CrateCircuitBreakerService circuitBreakerService) {
         this.transports = transports;
         this.nodeFetchOperation = new NodeFetchOperation(
-            threadPool.executor(ThreadPool.Names.SEARCH),
+            (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH),
             jobsLogs,
             jobContextService,
             circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY)

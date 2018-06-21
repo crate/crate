@@ -54,6 +54,7 @@ import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.execution.support.ThreadPools;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableReferenceResolver;
@@ -81,7 +82,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -104,6 +104,7 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import static io.crate.data.SentinelRow.SENTINEL;
+import static io.crate.execution.support.ThreadPools.numIdleThreads;
 
 /**
  * Factory to create a collector which collects data from 1 or more shards.
@@ -193,8 +194,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         this.remoteCollectorFactory = remoteCollectorFactory;
         this.systemCollectSource = systemCollectSource;
         ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
-        this.availableThreads = () -> Math.max(executor.getMaximumPoolSize() - executor.getActiveCount(), 1);
-        this.executor = new DirectFallbackExecutor(executor);
+        this.availableThreads = numIdleThreads(executor);
+        this.executor = ThreadPools.fallbackOnRejection(executor);
         this.shardCollectorProviderFactory = new ShardCollectorProviderFactory(
             clusterService,
             settings,
@@ -233,30 +234,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     public ProjectorFactory getProjectorFactory(ShardId shardId) {
         ShardCollectorProvider collectorProvider = getCollectorProviderSafe(shardId);
         return collectorProvider.getProjectorFactory();
-    }
-
-
-    /**
-     * Executor that delegates the execution of tasks to the provided {@link Executor} until
-     * it starts rejecting tasks with {@link EsRejectedExecutionException} in which case it executes the
-     * tasks directly
-     */
-    public static class DirectFallbackExecutor implements Executor {
-
-        private Executor delegateExecutor;
-
-        DirectFallbackExecutor(Executor delegateExecutor) {
-            this.delegateExecutor = delegateExecutor;
-        }
-
-        @Override
-        public void execute(Runnable command) {
-            try {
-                delegateExecutor.execute(command);
-            } catch (EsRejectedExecutionException e) {
-                command.run();
-            }
-        }
     }
 
     private class LifecycleListener implements IndexEventListener {
