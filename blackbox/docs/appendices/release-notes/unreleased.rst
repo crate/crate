@@ -49,9 +49,9 @@ Changes
     WHERE int_array_col[1] = 123
 
 - Implemented a thread-utilization down-scaling logic which dynamically adapts
-  the number of threads used for ``SELECT`` queries involving aggregations to
-  avoid running into ``RejectedExcecution`` errors if there are many shards per
-  node involved in the queries.
+  the number of threads used for ``SELECT`` queries to avoid running into
+  ``RejectedExcecution`` errors if there are many shards per node involved in
+  the queries.
 
 - Added the full PostgreSQL syntax of the ``BEGIN`` statement and the
   ``COMMIT`` statement.
