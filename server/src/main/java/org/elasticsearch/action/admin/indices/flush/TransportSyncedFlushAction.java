@@ -23,7 +23,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.indices.flush.SyncedFlushService;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 /**
@@ -34,10 +33,9 @@ public class TransportSyncedFlushAction extends HandledTransportAction<SyncedFlu
     private final SyncedFlushService syncedFlushService;
 
     @Inject
-    public TransportSyncedFlushAction(ThreadPool threadPool,
-                                      TransportService transportService,
+    public TransportSyncedFlushAction(TransportService transportService,
                                       SyncedFlushService syncedFlushService) {
-        super(SyncedFlushAction.NAME, threadPool, transportService, SyncedFlushRequest::new);
+        super(SyncedFlushAction.NAME, transportService, SyncedFlushRequest::new);
         this.syncedFlushService = syncedFlushService;
     }
 

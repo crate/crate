@@ -55,6 +55,7 @@ import java.util.function.Predicate;
 public abstract class TransportMasterNodeAction<Request extends MasterNodeRequest<Request>, Response extends TransportResponse>
     extends HandledTransportAction<Request, Response> {
 
+    protected final ThreadPool threadPool;
     protected final TransportService transportService;
     protected final ClusterService clusterService;
     protected final IndexNameExpressionResolver indexNameExpressionResolver;
@@ -77,9 +78,10 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
                                         ThreadPool threadPool,
                                         Writeable.Reader<Request> request,
                                         IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(actionName, canTripCircuitBreaker, threadPool, transportService, request);
+        super(actionName, canTripCircuitBreaker, transportService, request);
         this.transportService = transportService;
         this.clusterService = clusterService;
+        this.threadPool = threadPool;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.executor = executor();
     }

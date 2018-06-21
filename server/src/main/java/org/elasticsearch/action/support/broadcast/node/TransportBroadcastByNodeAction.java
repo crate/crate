@@ -84,14 +84,13 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
 
     public TransportBroadcastByNodeAction(
             String actionName,
-            ThreadPool threadPool,
             ClusterService clusterService,
             TransportService transportService,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Writeable.Reader<Request> reader,
             String executor,
             boolean canTripCircuitBreaker) {
-        super(actionName, canTripCircuitBreaker, threadPool, transportService, reader);
+        super(actionName, canTripCircuitBreaker, transportService, reader);
 
         this.clusterService = clusterService;
         this.transportService = transportService;

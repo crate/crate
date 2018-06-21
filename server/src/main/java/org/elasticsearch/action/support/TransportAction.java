@@ -23,7 +23,6 @@ import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskManager;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 
@@ -31,14 +30,11 @@ import static org.elasticsearch.action.support.PlainActionFuture.newFuture;
 
 public abstract class TransportAction<Request extends TransportRequest, Response extends TransportResponse> {
 
-    protected final ThreadPool threadPool;
     protected final String actionName;
     protected final TaskManager taskManager;
 
     protected TransportAction(String actionName,
-                              ThreadPool threadPool,
                               TaskManager taskManager) {
-        this.threadPool = threadPool;
         this.actionName = actionName;
         this.taskManager = taskManager;
     }
