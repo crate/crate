@@ -36,6 +36,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -52,7 +54,8 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
     private final NodeFetchOperation nodeFetchOperation;
 
     @Inject
-    public TransportFetchNodeAction(TransportService transportService,
+    public TransportFetchNodeAction(Settings settings,
+                                    TransportService transportService,
                                     Transports transports,
                                     ThreadPool threadPool,
                                     JobsLogs jobsLogs,
@@ -61,6 +64,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
         this.transports = transports;
         this.nodeFetchOperation = new NodeFetchOperation(
             (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH),
+            EsExecutors.boundedNumberOfProcessors(settings),
             jobsLogs,
             jobContextService,
             circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY)
