@@ -16,6 +16,7 @@ dependencies {
 
     testCompile "junit:junit:${versions.junit}"
     testCompile "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
+    testCompile "org.elasticsearch:securemock:${versions.securemock}"
 }
 
 task jarTest (type: Jar) {

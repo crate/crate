@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.execution.engine.join;
+package io.crate.data.join;
 
 import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
@@ -30,7 +30,7 @@ import io.crate.data.Row;
 import javax.annotation.Nonnull;
 
 /**
- * Wraps a {@link BatchIterator} and uses {@link io.crate.breaker.RamAccountingContext}
+ * Wraps a {@link BatchIterator} and uses {@link io.crate.breaker.RowAccounting}
  * to apply the circuit breaking logic by calculating memory occupied for all rows of the iterator.
  * <p>
  * This wrapper can be typically used when the BatchIterator consumer "reads" all
@@ -74,7 +74,7 @@ public class RamAccountingBatchIterator<T extends Row> extends ForwardingBatchIt
     }
 
     /**
-     * Release the accounted rows since the last #{@link RamAccountingBatchIterator#releaseAccountedRows()} call.
+     * Release the accounted rows since the last {@link #releaseAccountedRows()} call.
      */
     public void releaseAccountedRows() {
         rowAccounting.release();

@@ -32,8 +32,6 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.SkippingBatchIterator;
-import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
-import io.crate.execution.engine.join.RamAccountingBatchIterator;
 import io.crate.testing.RowGenerator;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;

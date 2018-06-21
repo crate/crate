@@ -20,15 +20,13 @@
  * agreement.
  */
 
-package io.crate.execution.engine.join;
+package io.crate.data.join;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
-import io.crate.data.join.ElementCombiner;
-import io.crate.data.join.JoinBatchIterator;
 
 import java.util.ArrayList;
 import java.util.Iterator;

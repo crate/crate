@@ -29,6 +29,8 @@ import io.crate.data.ListenableBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.join.CombinedRow;
+import io.crate.data.join.HashInnerJoinBatchIterator;
+import io.crate.data.join.RamAccountingBatchIterator;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Symbol;
