@@ -32,13 +32,13 @@ import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
+import io.crate.execution.support.ThreadPools;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexService;
 
 import javax.annotation.Nullable;
@@ -48,15 +48,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 public class NodeFetchOperation {
 
-    private final Executor executor;
+    private final ThreadPoolExecutor executor;
     private final JobsLogs jobsLogs;
     private final JobContextService jobContextService;
     private final CircuitBreaker circuitBreaker;
@@ -92,7 +92,7 @@ public class NodeFetchOperation {
         }
     }
 
-    public NodeFetchOperation(Executor executor,
+    public NodeFetchOperation(ThreadPoolExecutor executor,
                               JobsLogs jobsLogs,
                               JobContextService jobContextService,
                               CircuitBreaker circuitBreaker) {
@@ -174,6 +174,7 @@ public class NodeFetchOperation {
         RamAccountingContext ramAccountingContext = new RamAccountingContext("fetch-" + fetchContext.id(), circuitBreaker);
         resultFuture.whenComplete((r, f) -> ramAccountingContext.close());
 
+        ArrayList<Supplier<Void>> collectors = new ArrayList<>();
         for (IntObjectCursor<? extends IntContainer> toFetchCursor : toFetch) {
             final int readerId = toFetchCursor.key;
             final IntContainer docIds = toFetchCursor.value;
@@ -182,7 +183,7 @@ public class NodeFetchOperation {
             final TableFetchInfo tfi = tableFetchInfos.get(ident);
             assert tfi != null : "tfi must not be null";
 
-            CollectRunnable runnable = new CollectRunnable(
+            CollectRunnable collectRunnable = new CollectRunnable(
                 tfi.createCollector(readerId, ramAccountingContext),
                 docIds,
                 fetched,
@@ -192,12 +193,17 @@ public class NodeFetchOperation {
                 resultFuture,
                 fetchContext.isKilled()
             );
-            try {
-                executor.execute(runnable);
-            } catch (EsRejectedExecutionException | RejectedExecutionException e) {
-                runnable.run();
-            }
+            collectors.add(() -> {
+                collectRunnable.run();
+                return null;
+            });
         }
+        ThreadPools.runWithAvailableThreads(
+            executor,
+            ThreadPools.numIdleThreads(executor),
+            collectors,
+            items -> null
+        );
     }
 
     private static class CollectRunnable implements Runnable {

@@ -19,9 +19,9 @@ Changes
 =======
 
 - Implemented a thread-utilization down-scaling logic which dynamically adapts
-  the number of threads used for ``SELECT`` queries involving aggregations to
-  avoid running into ``RejectedExcecution`` errors if there are many shards per
-  node involved in the queries.
+  the number of threads used for ``SELECT`` queries to avoid running into
+  ``RejectedExcecution`` errors if there are many shards per node involved in
+  the queries.
 
 - Changed internals for DELETE and UPDATE queries which should generally result
   in a performance increase for queries which only match a subset of the rows

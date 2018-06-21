@@ -23,15 +23,16 @@
 package io.crate.execution.engine.fetch;
 
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.MoreExecutors;
-import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.JobContextService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
@@ -40,15 +41,21 @@ public class NodeFetchOperationTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSysOperationsIsClearedIfNothingToFetch() throws Exception {
-        JobsLogs jobsLogs = new JobsLogs(() -> true);
-        NodeFetchOperation fetchOperation = new NodeFetchOperation(
-            MoreExecutors.directExecutor(),
-            jobsLogs,
-            new JobContextService(Settings.EMPTY, clusterService, jobsLogs),
-            new NoopCircuitBreaker("dummy"));
+        ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+        try {
+            JobsLogs jobsLogs = new JobsLogs(() -> true);
+            NodeFetchOperation fetchOperation = new NodeFetchOperation(
+                threadPoolExecutor,
+                jobsLogs,
+                new JobContextService(Settings.EMPTY, clusterService, jobsLogs),
+                new NoopCircuitBreaker("dummy"));
 
-        fetchOperation.fetch(UUID.randomUUID(), 1, null, true).get(5, TimeUnit.SECONDS);
+            fetchOperation.fetch(UUID.randomUUID(), 1, null, true).get(5, TimeUnit.SECONDS);
 
-        assertThat(Iterables.size(jobsLogs.activeOperations()), is(0));
+            assertThat(Iterables.size(jobsLogs.activeOperations()), is(0));
+        } finally {
+            threadPoolExecutor.shutdown();
+            threadPoolExecutor.awaitTermination(2, TimeUnit.SECONDS);
+        }
     }
 }
