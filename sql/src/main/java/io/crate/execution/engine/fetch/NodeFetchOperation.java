@@ -204,8 +204,7 @@ public class NodeFetchOperation {
         ThreadPools.runWithAvailableThreads(
             executor,
             ThreadPools.numIdleThreads(executor, numProcessors),
-            collectors,
-            items -> null
+            collectors
         );
     }
 

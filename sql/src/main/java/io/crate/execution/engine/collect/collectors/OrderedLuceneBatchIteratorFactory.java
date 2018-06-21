@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect.collectors;
 
 import io.crate.breaker.RowAccounting;
-import io.crate.concurrent.CompletableFutures;
+import io.crate.collections.Lists2;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
@@ -32,19 +32,18 @@ import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.engine.distribution.merge.RamAccountingPageIterator;
 import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import io.crate.execution.support.ThreadPools;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.RejectedExecutionException;
+import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 /**
  * Factory to create a BatchIterator which is backed by 1 or more {@link OrderedDocCollector}.
@@ -56,15 +55,17 @@ public class OrderedLuceneBatchIteratorFactory {
                                                  Comparator<Row> rowComparator,
                                                  RowAccounting rowAccounting,
                                                  Executor executor,
+                                                 IntSupplier availableThreads,
                                                  boolean requiresScroll) {
         return new Factory(
-            orderedDocCollectors, rowComparator, rowAccounting, executor, requiresScroll).create();
+            orderedDocCollectors, rowComparator, rowAccounting, executor, availableThreads, requiresScroll).create();
     }
 
     private static class Factory {
 
         private final List<OrderedDocCollector> orderedDocCollectors;
         private final Executor executor;
+        private final IntSupplier availableThreads;
         private final PagingIterator<ShardId, Row> pagingIterator;
         private final Map<ShardId, OrderedDocCollector> collectorsByShardId;
 
@@ -74,9 +75,11 @@ public class OrderedLuceneBatchIteratorFactory {
                 Comparator<Row> rowComparator,
                 RowAccounting rowAccounting,
                 Executor executor,
+                IntSupplier availableThreads,
                 boolean requiresScroll) {
             this.orderedDocCollectors = orderedDocCollectors;
             this.executor = executor;
+            this.availableThreads = availableThreads;
             if (orderedDocCollectors.size() == 1) {
                 pagingIterator = requiresScroll ?
                     new RamAccountingPageIterator<>(PassThroughPagingIterator.repeatable(), rowAccounting)
@@ -106,7 +109,11 @@ public class OrderedLuceneBatchIteratorFactory {
                 return false;
             }
             if (shardId == null) {
-                loadFromAllUnExhausted(orderedDocCollectors, executor).whenComplete(this::onNextRows);
+                ThreadPools.runWithAvailableThreads(
+                    executor,
+                    availableThreads,
+                    Lists2.copyAndReplace(orderedDocCollectors, Function.identity())
+                ).whenComplete(this::onNextRows);
                 return true;
             } else {
                 return loadFrom(collectorsByShardId.get(shardId));
@@ -161,19 +168,6 @@ public class OrderedLuceneBatchIteratorFactory {
         }
     }
 
-    private static CompletableFuture<List<KeyIterable<ShardId, Row>>> loadFromAllUnExhausted(List<OrderedDocCollector> collectors,
-                                                                                             Executor executor) {
-        List<CompletableFuture<KeyIterable<ShardId, Row>>> futures = new ArrayList<>(collectors.size());
-        for (OrderedDocCollector collector : collectors.subList(1, collectors.size())) {
-            try {
-                futures.add(CompletableFuture.supplyAsync(collector, executor));
-            } catch (EsRejectedExecutionException | RejectedExecutionException e) {
-                futures.add(CompletableFuture.completedFuture(collector.get()));
-            }
-        }
-        futures.add(CompletableFuture.completedFuture(collectors.get(0).get()));
-        return CompletableFutures.allAsList(futures);
-    }
 
     private static Map<ShardId, OrderedDocCollector> toMapByShardId(List<OrderedDocCollector> collectors) {
         Map<ShardId, OrderedDocCollector> collectorsByShardId = new HashMap<>(collectors.size());

@@ -128,7 +128,9 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
                 return OrderedLuceneBatchIteratorFactory.newInstance(
                     Arrays.asList(collector1, collector2),
                     OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
-                    ROW_ACCOUNTING, MoreExecutors.directExecutor(),
+                    ROW_ACCOUNTING,
+                    MoreExecutors.directExecutor(),
+                    () -> 1,
                     true
                 );
             }
@@ -146,7 +148,9 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
         BatchIterator<Row> rowBatchIterator = OrderedLuceneBatchIteratorFactory.newInstance(
             Arrays.asList(createOrderedCollector(searcher1, 1)),
             OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
-            rowAccounting, MoreExecutors.directExecutor(),
+            rowAccounting,
+            MoreExecutors.directExecutor(),
+            () -> 2,
             true
         );
 
@@ -166,6 +170,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
             Arrays.asList(collector1, collector2),
             OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
             rowAccounting, MoreExecutors.directExecutor(),
+            () -> 1,
             true
         );
 
