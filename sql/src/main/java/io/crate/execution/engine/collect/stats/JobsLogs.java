@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.auth.user.User;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
@@ -64,8 +63,7 @@ public class JobsLogs {
     private final Map<Tuple<Integer, UUID>, OperationContext> operationsTable = new ConcurrentHashMap<>();
 
     private LogSink<JobContextLog> jobsLog = NoopLogSink.instance();
-    @VisibleForTesting
-    LogSink<OperationContextLog> operationsLog = NoopLogSink.instance();
+    private LogSink<OperationContextLog> operationsLog = NoopLogSink.instance();
 
     private final ReadWriteLock jobsLogRWLock = new ReentrantReadWriteLock();
     private final ReadWriteLock operationsLogRWLock = new ReentrantReadWriteLock();
@@ -206,6 +204,7 @@ public class JobsLogs {
         operationsLogRWLock.writeLock().lock();
         try {
             sink.addAll(operationsLog);
+            operationsLog.close();
             operationsLog = sink;
         } finally {
             operationsLogRWLock.writeLock().unlock();
@@ -216,9 +215,15 @@ public class JobsLogs {
         jobsLogRWLock.writeLock().lock();
         try {
             sink.addAll(jobsLog);
+            jobsLog.close();
             jobsLog = sink;
         } finally {
             jobsLogRWLock.writeLock().unlock();
         }
+    }
+
+    public void close() {
+        jobsLog.close();
+        operationsLog.close();
     }
 }
