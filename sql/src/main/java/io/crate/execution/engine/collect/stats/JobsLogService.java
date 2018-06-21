@@ -127,13 +127,13 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         updateJobSink(size, expiration);
     }
 
-    private void updateJobSink(int size, TimeValue expiration) {
+    @VisibleForTesting
+    void updateJobSink(int size, TimeValue expiration) {
         LogSink<JobContextLog> newSink = createSink(
             size, expiration, JOB_CONTEXT_LOG_ESTIMATOR, CrateCircuitBreakerService.JOBS_LOG);
         LogSink<JobContextLog> oldSink = jobsLogSink;
-        newSink.addAll(oldSink);
+        jobsLogs.updateJobsLog(newSink);
         jobsLogSink = newSink;
-        jobsLogs.updateJobsLog(jobsLogSink);
         oldSink.close();
     }
 
@@ -184,13 +184,13 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         updateOperationSink(size, expiration);
     }
 
-    private void updateOperationSink(int size, TimeValue expiration) {
+    @VisibleForTesting
+    void updateOperationSink(int size, TimeValue expiration) {
         LogSink<OperationContextLog> newSink = createSink(size, expiration, OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR,
             CrateCircuitBreakerService.OPERATIONS_LOG);
         LogSink<OperationContextLog> oldSink = operationsLogSink;
-        newSink.addAll(oldSink);
+        jobsLogs.updateOperationsLog(newSink);
         operationsLogSink = newSink;
-        jobsLogs.updateOperationsLog(operationsLogSink);
         oldSink.close();
     }
 
@@ -235,5 +235,10 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     @Override
     public JobsLogs get() {
         return statsTables();
+    }
+
+    @VisibleForTesting
+    public int jobsLogSize() {
+        return jobsLogSize;
     }
 }

@@ -21,14 +21,21 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.expression.reference.sys.job.JobContextLog;
+import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseSemiJoins;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
+import java.util.Iterator;
+
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
@@ -44,28 +51,61 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     @UseJdbc(0) // SET extra_float_digits = 3 gets added to the jobs_log
     public void testJobLogWithEnabledAndDisabledStats() throws Exception {
-        execute("select name from sys.cluster");
-        execute("select * from sys.jobs_log");
-        assertThat(response.rowCount(), is(0L)); // default length is zero
+        execute("set global transient stats.enabled=true");
+        execute("set global transient stats.jobs_log_size=1");
 
-        execute("set global transient stats.enabled = true, stats.jobs_log_size=1");
+        // We record the statements in the log **after** we notify the result receivers (see {@link JobsLogsUpdateListener usage).
+        // So it might happen that the "set global ..." statement execution is returned to this test but the recording
+        // in the log is done AFTER the execution of the below "select name from sys.cluster" statement (because async
+        // programming is evil like that). And then this test will fail and people will spend days and days to figure
+        // out what's going on.
+        // So let's just wait for the "set global ... " statement to be recorded here and then move on with our test.
+        assertBusy(() -> {
+            execute("select stmt from sys.jobs_log order by ended desc");
+            assertThat(TestingHelpers.printedTable(response.rows()),
+                containsString("set global transient stats.jobs_log_size=1"));
+        });
 
-        execute("select id from sys.cluster");
-        execute("select id from sys.cluster");
-        execute("select id from sys.cluster");
-        execute("select stmt from sys.jobs_log order by ended desc");
+        // wait for the other node to receive the new jobs_log_size setting change instruction
+        for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
+            assertBusy(() -> assertThat(jobsLogService.jobsLogSize(), is(1)));
+        }
 
-        // there are 2 nodes so depending on whether both nodes were hit this should be either 1 or 2
-        // but never 3 because the queue size is only 1
-        assertThat(response.rowCount(), Matchers.lessThanOrEqualTo(2L));
-        assertThat(response.rows()[0][0], is("select id from sys.cluster"));
+        // Each node can hold only 1 query (the latest one) so in total we should always see 2 queries in
+        // the jobs_log. We make sure that we hit both nodes with 2 queries each and then assert that
+        // only the latest queries are found in the log.
+        for (SQLOperations sqlOperations : internalCluster().getDataNodeInstances(SQLOperations.class)) {
+            Session session = sqlOperations.newSystemSession();
+            execute("select name from sys.cluster", null, session);
+        }
+        assertJobLogOnNodesHaveOnlyStatement("select name from sys.cluster");
 
-        execute("reset global stats.enabled, stats.jobs_log_size");
-        waitNoPendingTasksOnAll();
+        for (SQLOperations sqlOperations : internalCluster().getDataNodeInstances(SQLOperations.class)) {
+            Session session = sqlOperations.newSystemSession();
+            execute("select id from sys.cluster", null, session);
+        }
+        assertJobLogOnNodesHaveOnlyStatement("select id from sys.cluster");
+
+        execute("set global transient stats.enabled = false");
+        for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
+            assertBusy(() -> assertThat(jobsLogService.isEnabled(), is(false)));
+        }
         execute("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L));
     }
 
+    private void assertJobLogOnNodesHaveOnlyStatement(String statement) throws Exception {
+        for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
+            assertBusy(() -> {
+                assertThat(jobsLogService.jobsLogSize(), is(1));
+                JobsLogs jobsLogs = jobsLogService.get();
+                Iterator<JobContextLog> iterator = jobsLogs.jobsLog().iterator();
+                if (iterator.hasNext()) {
+                    assertThat(iterator.next().statement(), is(statement));
+                }
+            });
+        }
+    }
     @Test
     @UseJdbc(0) // set has no rowcount
     public void testSetSingleStatement() throws Exception {
