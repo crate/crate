@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.collect.stats;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.auth.user.User;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
@@ -36,8 +37,9 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BooleanSupplier;
 
 
@@ -64,8 +66,12 @@ public class JobsLogs {
     private final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
     private final Map<Tuple<Integer, UUID>, OperationContext> operationsTable = new ConcurrentHashMap<>();
 
-    final AtomicReference<LogSink<JobContextLog>> jobsLog = new AtomicReference<>(NoopLogSink.instance());
-    final AtomicReference<LogSink<OperationContextLog>> operationsLog = new AtomicReference<>(NoopLogSink.instance());
+    private LogSink<JobContextLog> jobsLog = NoopLogSink.instance();
+    @VisibleForTesting
+    LogSink<OperationContextLog> operationsLog = NoopLogSink.instance();
+
+    private final ReadWriteLock jobsLogRWLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock operationsLogRWLock = new ReentrantReadWriteLock();
 
     private final LongAdder activeRequests = new LongAdder();
     private final BooleanSupplier enabled;
@@ -115,10 +121,14 @@ public class JobsLogs {
         if (!isEnabled() || jobContext == null) {
             return;
         }
-        LogSink<JobContextLog> jobContextLogs = jobsLog.get();
-        JobContextLog contextLog = new JobContextLog(jobContext, errorMessage);
-        addToHistogram(contextLog);
-        jobContextLogs.add(contextLog);
+        JobContextLog jobContextLog = new JobContextLog(jobContext, errorMessage);
+        addToHistogram(jobContextLog);
+        jobsLogRWLock.readLock().lock();
+        try {
+            jobsLog.add(jobContextLog);
+        } finally {
+            jobsLogRWLock.readLock().unlock();
+        }
     }
 
     private void addToHistogram(JobContextLog log) {
@@ -135,9 +145,14 @@ public class JobsLogs {
      * {@link #logExecutionStart(UUID, String, User, StatementClassifier.Classification)} is only called after a Plan has been created and execution starts.
      */
     public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage, User user) {
-        LogSink<JobContextLog> jobContextLogs = jobsLog.get();
-        JobContext jobContext = new JobContext(jobId, stmt, System.currentTimeMillis(), user, null);
-        jobContextLogs.add(new JobContextLog(jobContext, errorMessage));
+        JobContextLog jobContextLog = new JobContextLog(
+            new JobContext(jobId, stmt, System.currentTimeMillis(), user, null), errorMessage);
+        jobsLogRWLock.readLock().lock();
+        try {
+            jobsLog.add(jobContextLog);
+        } finally {
+            jobsLogRWLock.readLock().unlock();
+        }
     }
 
     public void operationStarted(int operationId, UUID jobId, String name) {
@@ -163,8 +178,13 @@ public class JobsLogs {
             return;
         }
         operationContext.usedBytes = usedBytes;
-        LogSink<OperationContextLog> operationContextLogs = operationsLog.get();
-        operationContextLogs.add(new OperationContextLog(operationContext, errorMessage));
+        OperationContextLog operationContextLog = new OperationContextLog(operationContext, errorMessage);
+        operationsLogRWLock.readLock().lock();
+        try {
+            operationsLog.add(operationContextLog);
+        } finally {
+            operationsLogRWLock.readLock().unlock();
+        }
     }
 
     public Iterable<JobContext> activeJobs() {
@@ -172,7 +192,12 @@ public class JobsLogs {
     }
 
     public Iterable<JobContextLog> jobsLog() {
-        return jobsLog.get();
+        jobsLogRWLock.readLock().lock();
+        try {
+            return jobsLog;
+        } finally {
+            jobsLogRWLock.readLock().unlock();
+        }
     }
 
     public Iterable<OperationContext> activeOperations() {
@@ -180,7 +205,12 @@ public class JobsLogs {
     }
 
     public Iterable<OperationContextLog> operationsLog() {
-        return operationsLog.get();
+        operationsLogRWLock.readLock().lock();
+        try {
+            return operationsLog;
+        } finally {
+            operationsLogRWLock.readLock().unlock();
+        }
     }
 
     public long activeRequests() {
@@ -188,11 +218,23 @@ public class JobsLogs {
     }
 
     void updateOperationsLog(LogSink<OperationContextLog> sink) {
-        operationsLog.set(sink);
+        operationsLogRWLock.writeLock().lock();
+        try {
+            sink.addAll(operationsLog);
+            operationsLog = sink;
+        } finally {
+            operationsLogRWLock.writeLock().unlock();
+        }
     }
 
     void updateJobsLog(LogSink<JobContextLog> sink) {
-        jobsLog.set(sink);
+        jobsLogRWLock.writeLock().lock();
+        try {
+            sink.addAll(jobsLog);
+            jobsLog = sink;
+        } finally {
+            jobsLogRWLock.writeLock().unlock();
+        }
     }
 
     void resetMetricHistograms() {
