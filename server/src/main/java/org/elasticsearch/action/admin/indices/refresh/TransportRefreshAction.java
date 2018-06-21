@@ -29,7 +29,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.List;
@@ -40,15 +39,13 @@ import java.util.List;
 public class TransportRefreshAction extends TransportBroadcastReplicationAction<RefreshRequest, RefreshResponse, BasicReplicationRequest, ReplicationResponse> {
 
     @Inject
-    public TransportRefreshAction(ThreadPool threadPool,
-                                  ClusterService clusterService,
+    public TransportRefreshAction(ClusterService clusterService,
                                   TransportService transportService,
                                   IndexNameExpressionResolver indexNameExpressionResolver,
                                   NodeClient client) {
         super(
             RefreshAction.NAME,
             RefreshRequest::new,
-            threadPool,
             clusterService,
             transportService,
             client,

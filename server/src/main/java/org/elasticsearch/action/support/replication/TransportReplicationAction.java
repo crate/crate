@@ -102,6 +102,7 @@ public abstract class TransportReplicationAction<
 
     protected final Logger logger = LogManager.getLogger(getClass());
 
+    protected final ThreadPool threadPool;
     protected final TransportService transportService;
     protected final ClusterService clusterService;
     protected final ShardStateAction shardStateAction;
@@ -144,7 +145,8 @@ public abstract class TransportReplicationAction<
                                          String executor,
                                          boolean syncGlobalCheckpointAfterOperation,
                                          boolean forceExecutionOnPrimary) {
-        super(actionName, threadPool, transportService.getTaskManager());
+        super(actionName, transportService.getTaskManager());
+        this.threadPool = threadPool;
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.indicesService = indicesService;

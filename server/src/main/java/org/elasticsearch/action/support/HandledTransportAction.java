@@ -39,18 +39,16 @@ public abstract class HandledTransportAction<Request extends TransportRequest, R
     protected final Logger logger = LogManager.getLogger(getClass());
 
     protected HandledTransportAction(String actionName,
-                                     ThreadPool threadPool,
                                      TransportService transportService,
                                      Writeable.Reader<Request> reader) {
-        this(actionName, true, threadPool, transportService, reader);
+        this(actionName, true, transportService, reader);
     }
 
     protected HandledTransportAction(String actionName,
                                      boolean canTripCircuitBreaker,
-                                     ThreadPool threadPool,
                                      TransportService transportService,
                                      Writeable.Reader<Request> requestReader) {
-        super(actionName, threadPool, transportService.getTaskManager());
+        super(actionName,transportService.getTaskManager());
         transportService.registerRequestHandler(
             actionName,
             ThreadPool.Names.SAME,

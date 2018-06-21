@@ -52,14 +52,12 @@ public class TransportRecoveryAction extends TransportBroadcastByNodeAction<Reco
     private final IndicesService indicesService;
 
     @Inject
-    public TransportRecoveryAction(ThreadPool threadPool,
-                                   ClusterService clusterService,
+    public TransportRecoveryAction(ClusterService clusterService,
                                    TransportService transportService,
                                    IndicesService indicesService,
                                    IndexNameExpressionResolver indexNameExpressionResolver) {
         super(
             RecoveryAction.NAME,
-            threadPool,
             clusterService,
             transportService,
             indexNameExpressionResolver,
