@@ -78,8 +78,6 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     private final CrateCircuitBreakerService breakerService;
 
     private JobsLogs jobsLogs;
-    LogSink<JobContextLog> jobsLogSink = NoopLogSink.instance();
-    LogSink<OperationContextLog> operationsLogSink = NoopLogSink.instance();
 
     private volatile boolean isEnabled;
     volatile int jobsLogSize;
@@ -131,10 +129,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     void updateJobSink(int size, TimeValue expiration) {
         LogSink<JobContextLog> newSink = createSink(
             size, expiration, JOB_CONTEXT_LOG_ESTIMATOR, CrateCircuitBreakerService.JOBS_LOG);
-        LogSink<JobContextLog> oldSink = jobsLogSink;
         jobsLogs.updateJobsLog(newSink);
-        jobsLogSink = newSink;
-        oldSink.close();
     }
 
     /**
@@ -188,10 +183,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     void updateOperationSink(int size, TimeValue expiration) {
         LogSink<OperationContextLog> newSink = createSink(size, expiration, OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR,
             CrateCircuitBreakerService.OPERATIONS_LOG);
-        LogSink<OperationContextLog> oldSink = operationsLogSink;
         jobsLogs.updateOperationsLog(newSink);
-        operationsLogSink = newSink;
-        oldSink.close();
     }
 
     private void setStatsEnabled(boolean enableStats) {
@@ -224,8 +216,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
 
     @Override
     protected void doClose() {
-        jobsLogSink.close();
-        operationsLogSink.close();
+        jobsLogs.close();
     }
 
     private JobsLogs statsTables() {
