@@ -23,6 +23,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.indices.flush.SyncedFlushService;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportService;
 
 /**
@@ -40,7 +41,7 @@ public class TransportSyncedFlushAction extends HandledTransportAction<SyncedFlu
     }
 
     @Override
-    protected void doExecute(SyncedFlushRequest request, ActionListener<SyncedFlushResponse> listener) {
+    protected void doExecute(Task task, SyncedFlushRequest request, ActionListener<SyncedFlushResponse> listener) {
         syncedFlushService.attemptSyncedFlush(request.indices(), request.indicesOptions(), listener);
     }
 }
