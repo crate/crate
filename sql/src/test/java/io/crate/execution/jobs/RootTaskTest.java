@@ -21,6 +21,7 @@
 
 package io.crate.execution.jobs;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -132,7 +133,9 @@ public class RootTaskTest extends CrateUnitTest {
         DistResultRXTask distResultRXTask = spy(new DistResultRXTask(
             Loggers.getLogger(DistResultRXTask.class),
             "n1",
-            2, "dummy",
+            2,
+            "dummy",
+            MoreExecutors.directExecutor(),
             batchConsumer,
             PassThroughPagingIterator.oneShot(),
             new Streamer[]{IntegerType.INSTANCE.streamer()},

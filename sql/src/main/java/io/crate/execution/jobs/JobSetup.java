@@ -102,6 +102,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 
 import static io.crate.execution.dsl.projection.Projections.nodeProjections;
@@ -121,6 +122,7 @@ public class JobSetup extends AbstractComponent {
     private final InputFactory inputFactory;
     private final ProjectorFactory projectorFactory;
     private final PKLookupOperation pkLookupOperation;
+    private final ExecutorService searchTp;
 
     @Inject
     public JobSetup(Settings settings,
@@ -148,6 +150,7 @@ public class JobSetup extends AbstractComponent {
         this.distributingConsumerFactory = distributingConsumerFactory;
         innerPreparer = new InnerPreparer();
         inputFactory = new InputFactory(functions);
+        searchTp = threadPool.executor(ThreadPool.Names.SEARCH);
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         this.projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
@@ -605,6 +608,7 @@ public class JobSetup extends AbstractComponent {
                 nodeName(),
                 phase.phaseId(),
                 phase.name(),
+                searchTp,
                 consumer,
                 PagingIterator.create(
                     phase.numUpstreams(),
@@ -821,6 +825,7 @@ public class JobSetup extends AbstractComponent {
                 nodeName(),
                 mergePhase.phaseId(),
                 mergePhase.name(),
+                searchTp,
                 rowConsumer,
                 PagingIterator.create(
                     mergePhase.numUpstreams(),

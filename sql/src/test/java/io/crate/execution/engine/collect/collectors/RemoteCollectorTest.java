@@ -23,6 +23,7 @@
 package io.crate.execution.engine.collect.collectors;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -97,6 +98,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             "remoteNode",
             transportJobAction,
             transportKillJobsNodeAction,
+            MoreExecutors.directExecutor(),
             tasksService,
             mock(RamAccountingContext.class),
             consumer,

@@ -27,8 +27,8 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
-import io.crate.execution.jobs.DistResultRXTask;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
+import io.crate.execution.jobs.DistResultRXTask;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.FailingBatchIterator;
@@ -147,6 +147,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
                 "n1",
                 1,
                 "dummy",
+                MoreExecutors.directExecutor(),
                 collectingConsumer,
                 PassThroughPagingIterator.oneShot(),
                 streamers,

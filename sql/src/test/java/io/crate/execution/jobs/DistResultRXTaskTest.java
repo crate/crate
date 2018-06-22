@@ -25,6 +25,7 @@ import com.google.common.collect.ForwardingIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.ArrayBucket;
@@ -71,6 +72,7 @@ public class DistResultRXTaskTest extends CrateUnitTest {
             "n1",
             1,
             "dummy",
+            MoreExecutors.directExecutor(),
             batchConsumer,
             pagingIterator,
             new Streamer[1],

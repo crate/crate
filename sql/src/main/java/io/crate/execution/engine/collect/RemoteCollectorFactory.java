@@ -47,6 +47,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
 /**
@@ -63,6 +64,7 @@ public class RemoteCollectorFactory {
     private final TransportActionProvider transportActionProvider;
     private final ThreadPool threadPool;
     private final IndicesService indicesService;
+    private final ExecutorService searchTp;
 
     @Inject
     public RemoteCollectorFactory(ClusterService clusterService,
@@ -75,6 +77,7 @@ public class RemoteCollectorFactory {
         this.transportActionProvider = transportActionProvider;
         this.indicesService = indicesService;
         this.threadPool = threadPool;
+        searchTp = threadPool.executor(ThreadPool.Names.SEARCH);
     }
 
     /**
@@ -95,7 +98,7 @@ public class RemoteCollectorFactory {
             indicesService,
             getLocalCollectorProvider(shardCollectorProviderFactory, collectPhase, collectTask, consumer),
             getRemoteCollectorProvider(childJobId, shardId, collectPhase, collectTask, consumer),
-            threadPool.executor(ThreadPool.Names.SEARCH),
+            searchTp,
             threadPool.getThreadContext());
     }
 
@@ -121,8 +124,18 @@ public class RemoteCollectorFactory {
                                                                          CollectTask collectTask,
                                                                          RowConsumer consumer) {
         String localNode = clusterService.localNode().getId();
-        return remoteNode -> new RemoteCollector(jobId, localNode, remoteNode, transportActionProvider.transportJobInitAction(), transportActionProvider.transportKillJobsNodeAction(),
-            tasksService, collectTask.queryPhaseRamAccountingContext(), consumer, createRemoteCollectPhase(jobId, collectPhase, shardId, remoteNode));
+        return remoteNode -> new RemoteCollector(
+            jobId,
+            localNode,
+            remoteNode,
+            transportActionProvider.transportJobInitAction(),
+            transportActionProvider.transportKillJobsNodeAction(),
+            searchTp,
+            tasksService,
+            collectTask.queryPhaseRamAccountingContext(),
+            consumer,
+            createRemoteCollectPhase(jobId, collectPhase, shardId, remoteNode)
+        );
     }
 
     private RoutedCollectPhase createRemoteCollectPhase(UUID childJobId,

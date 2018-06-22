@@ -46,6 +46,7 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 
 public class RemoteCollector implements CrateCollector {
 
@@ -55,6 +56,7 @@ public class RemoteCollector implements CrateCollector {
     private final UUID jobId;
     private final String localNode;
     private final String remoteNode;
+    private final Executor executor;
     private final TransportJobAction transportJobAction;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final TasksService tasksService;
@@ -73,6 +75,7 @@ public class RemoteCollector implements CrateCollector {
                            String remoteNode,
                            TransportJobAction transportJobAction,
                            TransportKillJobsNodeAction transportKillJobsNodeAction,
+                           Executor executor,
                            TasksService tasksService,
                            RamAccountingContext ramAccountingContext,
                            RowConsumer consumer,
@@ -80,6 +83,7 @@ public class RemoteCollector implements CrateCollector {
         this.jobId = jobId;
         this.localNode = localNode;
         this.remoteNode = remoteNode;
+        this.executor = executor;
 
         /*
          * We don't wanna profile the timings of the remote execution context, because the remoteCollect is already
@@ -171,6 +175,7 @@ public class RemoteCollector implements CrateCollector {
             localNode,
             RECEIVER_PHASE_ID,
             "RemoteCollectPhase",
+            executor,
             consumer,
             pagingIterator,
             DataTypes.getStreamers(collectPhase.outputTypes()),

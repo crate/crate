@@ -30,6 +30,7 @@ import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -40,6 +41,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * A {@link DownstreamRXTask} which receives paged buckets from upstreams
@@ -51,6 +54,7 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
     private final Object lock = new Object();
     private final String nodeName;
     private final boolean traceEnabled;
+    private final Executor executor;
     private final Streamer<?>[] streamers;
     private final RamAccountingContext ramAccountingContext;
     private final int numBuckets;
@@ -69,6 +73,7 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
                             String nodeName,
                             int id,
                             String name,
+                            Executor executor,
                             RowConsumer rowConsumer,
                             PagingIterator<Integer, Row> pagingIterator,
                             Streamer<?>[] streamers,
@@ -77,6 +82,7 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
         super(id, logger);
         this.nodeName = nodeName;
         this.name = name;
+        this.executor = executor;
         this.streamers = streamers;
         this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;
@@ -156,10 +162,21 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
             }
             throwable = lastThrowable;
         }
+        final Throwable error = throwable;
         if (invokeConsumer) {
-            consumer.accept(batchPagingIterator, throwable);
+            try {
+                executor.execute(() -> consumer.accept(batchPagingIterator, error));
+            } catch (EsRejectedExecutionException | RejectedExecutionException e) {
+                consumer.accept(null, e);
+                throwable = e;
+            }
         } else {
-            batchPagingIterator.completeLoad(throwable);
+            try {
+                executor.execute(() -> batchPagingIterator.completeLoad(error));
+            } catch (EsRejectedExecutionException | RejectedExecutionException e) {
+                batchPagingIterator.completeLoad(e);
+                throwable = e;
+            }
         }
         if (throwable != null) {
             releaseListenersAndCloseContext(throwable);
