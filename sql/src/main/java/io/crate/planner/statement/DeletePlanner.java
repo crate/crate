@@ -22,7 +22,6 @@
 
 package io.crate.planner.statement;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.WhereClause;
@@ -36,6 +35,7 @@ import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.DeleteProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.execution.support.OneRowActionListener;
@@ -174,7 +174,12 @@ public final class DeletePlanner {
     private static ExecutionPlan deleteByQuery(DocTableRelation table, PlannerContext context, WhereClause where) {
         DocTableInfo tableInfo = table.tableInfo();
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table has to have a _id reference");
-        DeleteProjection deleteProjection = new DeleteProjection(new InputColumn(0, idReference.valueType()));
+        List<Projection> projections = Collections.emptyList();
+        if (tableInfo.isPartitioned() == false || tableInfo.partitions().isEmpty() == false) {
+            projections = Collections.singletonList(
+                new DeleteProjection(new InputColumn(0, idReference.valueType())));
+        }
+
         SessionContext sessionContext = context.transactionContext().sessionContext();
         Routing routing = context.allocateRouting(
             tableInfo, where, RoutingProvider.ShardSelection.PRIMARIES, sessionContext);
@@ -185,7 +190,7 @@ public final class DeletePlanner {
             routing,
             tableInfo.rowGranularity(),
             newArrayList(idReference),
-            ImmutableList.of(deleteProjection),
+            projections,
             where.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST,
             sessionContext.user()

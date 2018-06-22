@@ -65,8 +65,10 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
+import org.elasticsearch.common.inject.internal.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -196,8 +198,11 @@ public final class UpdatePlanner {
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
         Assignments assignments = Assignments.convert(assignmentByTargetCol);
         Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
-        UpdateProjection updateProjection = new UpdateProjection(
-            new InputColumn(0, idReference.valueType()), assignments.targetNames(), assignmentSources, null);
+        UpdateProjection updateProjection = null;
+        if (tableInfo.isPartitioned() == false || tableInfo.partitions().isEmpty() == false) {
+            updateProjection = new UpdateProjection(
+                    new InputColumn(0, idReference.valueType()), assignments.targetNames(), assignmentSources, null);
+        }
 
         WhereClause where = detailedQuery.toBoundWhereClause(
             tableInfo, functions, params, subQueryResults, plannerCtx.transactionContext());
@@ -210,7 +215,7 @@ public final class UpdatePlanner {
     private static ExecutionPlan createCollectAndMerge(PlannerContext plannerCtx,
                                                        TableInfo tableInfo,
                                                        Reference idReference,
-                                                       Projection updateProjection,
+                                                       @Nullable Projection updateProjection,
                                                        WhereClause where) {
         SessionContext sessionContext = plannerCtx.transactionContext().sessionContext();
         Routing routing = plannerCtx.allocateRouting(
@@ -222,7 +227,7 @@ public final class UpdatePlanner {
             routing,
             tableInfo.rowGranularity(),
             newArrayList(idReference),
-            singletonList(updateProjection),
+            updateProjection == null ? Collections.emptyList() : singletonList(updateProjection),
             where.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST,
             plannerCtx.transactionContext().sessionContext().user()

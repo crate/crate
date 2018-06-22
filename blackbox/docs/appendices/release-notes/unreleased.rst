@@ -107,6 +107,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused an ``UnsupportedFeatureException`` to be thrown
+  when deleting or updating by query on an empty partitioned table, instead of
+  just returning 0 rows deleted/updated.
+
 - Fixed an issue which could result in lost entries at the ``sys.jobs_log`` and
   ``sys.operations_log`` tables when the related settings are changed while
   entries are written.
