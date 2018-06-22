@@ -90,9 +90,5 @@ public abstract class TransportAction<Request extends TransportRequest, Response
         }
     }
 
-    protected void doExecute(Task task, Request request, ActionListener<Response> listener) {
-        doExecute(request, listener);
-    }
-
-    protected abstract void doExecute(Request request, ActionListener<Response> listener);
+    protected abstract void doExecute(Task task, Request request, ActionListener<Response> listener);
 }
