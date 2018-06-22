@@ -28,7 +28,6 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.concurrent.ThreadSafe;
-import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 
 @ThreadSafe
@@ -49,8 +48,7 @@ public class RamAccountingContext implements RamAccounting {
     private static final Logger logger = Loggers.getLogger(RamAccountingContext.class);
 
     public static RamAccountingContext forExecutionPhase(CircuitBreaker breaker, ExecutionPhase executionPhase) {
-        String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d",
-            executionPhase.name(), executionPhase.phaseId());
+        String ramAccountingContextId = executionPhase.name() + ": " + executionPhase.phaseId();
         return new RamAccountingContext(ramAccountingContextId, breaker);
     }
 
