@@ -104,6 +104,8 @@ Changes
 
 - Added support for the ``SHOW TRANSACTION_ISOLATION`` statement.
 
+- Added TimeZone parameter response to Postgres Wire Protocol.
+
 Fixes
 =====
 
