@@ -109,16 +109,22 @@ public class EventHubProcessor extends AbstractLifecycleComponent {
         if (!isEnterprise || !isEnabled) {
             return;
         }
-        
+
         eventIngestService.initalize();
-        host = new EventProcessorHost(
-            EventProcessorHost.createHostName(this.nodeName()),
-            this.eventHubName,
-            this.consumerGroupName,
-            this.connectionString,
-            this.storageConnectionString,
-            this.storageContainerName
-        );
+
+        try {
+            host = new EventProcessorHost(
+                EventProcessorHost.createHostName(this.nodeName()),
+                this.eventHubName,
+                this.consumerGroupName,
+                this.connectionString,
+                this.storageConnectionString,
+                this.storageContainerName
+            );
+        } catch (IllegalArgumentException e) {
+            logger.error(e.getLocalizedMessage(), e);
+            return;
+        }
 
         logger.info("Registering host :: " + host.getHostName());
         EventProcessorOptions options = new EventProcessorOptions();
