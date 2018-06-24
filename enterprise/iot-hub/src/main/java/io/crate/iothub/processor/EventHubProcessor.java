@@ -41,37 +41,37 @@ import java.util.function.Function;
 @Singleton
 public class EventHubProcessor extends AbstractLifecycleComponent {
 
-    public static final CrateSetting<Boolean> IOT_HUB_ENABLED_SETTING = CrateSetting.of(
-        Setting.boolSetting("ingestion.iot_hub.enabled", false, Setting.Property.NodeScope),
+    public static final CrateSetting<Boolean> EVENT_HUB_ENABLED_SETTING = CrateSetting.of(
+        Setting.boolSetting("ingestion.event_hub.enabled", false, Setting.Property.NodeScope),
         DataTypes.BOOLEAN);
 
     public static final CrateSetting<String> CONNECTION_STRING = CrateSetting.of(
-        Setting.simpleString("ingestion.iot_hub.connectionString", Setting.Property.NodeScope),
+        Setting.simpleString("ingestion.event_hub.connectionString", Setting.Property.NodeScope),
         DataTypes.STRING
     );
 
     public static final CrateSetting<String> STORAGE_CONTAINER_NAME = CrateSetting.of(
-        Setting.simpleString("ingestion.iot_hub.storageContainerName", Setting.Property.NodeScope),
+        Setting.simpleString("ingestion.event_hub.storageContainerName", Setting.Property.NodeScope),
         DataTypes.STRING
     );
 
     public static final CrateSetting<String> STORAGE_CONNECTION_STRING = CrateSetting.of(
-        Setting.simpleString("ingestion.iot_hub.storageConnectionString", Setting.Property.NodeScope),
+        Setting.simpleString("ingestion.event_hub.storageConnectionString", Setting.Property.NodeScope),
         DataTypes.STRING
     );
 
     public static final CrateSetting<String> EVENT_HUB_NAME = CrateSetting.of(
-        Setting.simpleString("ingestion.iot_hub.eventHubName", Setting.Property.NodeScope),
+        Setting.simpleString("ingestion.event_hub.eventHubName", Setting.Property.NodeScope),
         DataTypes.STRING
     );
 
     public static final CrateSetting<String> CONSUMER_GROUP_NAME = CrateSetting.of(
-        new Setting<>("ingestion.iot_hub.consumerGroupName", "$Default",
+        new Setting<>("ingestion.event_hub.consumerGroupName", "$Default",
             Function.identity(), Setting.Property.NodeScope),
         DataTypes.STRING
     );
 
-    private final Logger logger;
+    private final Logger LOGGER;
     private final String connectionString;
     private final String storageContainerName;
     private final String storageConnectionString;
@@ -93,8 +93,8 @@ public class EventHubProcessor extends AbstractLifecycleComponent {
                              IngestionService ingestionService
     ) {
         super(settings);
-        logger = Loggers.getLogger(EventHubProcessor.class, settings);
-        isEnabled = IOT_HUB_ENABLED_SETTING.setting().get(settings);
+        LOGGER = Loggers.getLogger(EventHubProcessor.class, settings);
+        isEnabled = EVENT_HUB_ENABLED_SETTING.setting().get(settings);
         isEnterprise = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
         connectionString = CONNECTION_STRING.setting().get(settings);
         storageContainerName = STORAGE_CONTAINER_NAME.setting().get(settings);
@@ -122,11 +122,10 @@ public class EventHubProcessor extends AbstractLifecycleComponent {
                 this.storageContainerName
             );
         } catch (IllegalArgumentException e) {
-            logger.error(e.getLocalizedMessage(), e);
+            LOGGER.error(e.getLocalizedMessage(), e);
             return;
         }
 
-        logger.info("Registering host :: " + host.getHostName());
         EventProcessorOptions options = new EventProcessorOptions();
         options.setExceptionNotification(new ErrorNotificationHandler());
 
@@ -135,15 +134,15 @@ public class EventHubProcessor extends AbstractLifecycleComponent {
             host.registerEventProcessorFactory(factory, options)
                 .whenComplete((unused, e) -> {
                     if (e != null) {
-                        logger.error("Failure while registering: " + e.toString());
+                        LOGGER.error("Failure while registering: " + e.toString());
                         if (e.getCause() != null) {
-                            logger.error("Inner exception: " + e.getCause().toString());
+                            LOGGER.error("Inner exception: " + e.getCause().toString());
                         }
                     }
                 })
-                .get(); // Wait for everything to finish before exiting main!
+                .get();
         } catch (Exception e) {
-            logger.error(e.toString());
+            LOGGER.error(e.getLocalizedMessage(), e);
         }
     }
 

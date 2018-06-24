@@ -25,14 +25,15 @@ import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Setting;
+
 import java.util.Collection;
 
-import static io.crate.iothub.processor.EventHubProcessor.IOT_HUB_ENABLED_SETTING;
 import static io.crate.iothub.processor.EventHubProcessor.CONNECTION_STRING;
+import static io.crate.iothub.processor.EventHubProcessor.CONSUMER_GROUP_NAME;
+import static io.crate.iothub.processor.EventHubProcessor.EVENT_HUB_ENABLED_SETTING;
 import static io.crate.iothub.processor.EventHubProcessor.EVENT_HUB_NAME;
 import static io.crate.iothub.processor.EventHubProcessor.STORAGE_CONNECTION_STRING;
 import static io.crate.iothub.processor.EventHubProcessor.STORAGE_CONTAINER_NAME;
-import static io.crate.iothub.processor.EventHubProcessor.CONSUMER_GROUP_NAME;
 
 
 public class EventHubModule extends AbstractModule implements IngestionModule {
@@ -45,7 +46,7 @@ public class EventHubModule extends AbstractModule implements IngestionModule {
     @Override
     public Collection<Setting<?>> getSettings() {
         return ImmutableList.of(
-            IOT_HUB_ENABLED_SETTING.setting(),
+            EVENT_HUB_ENABLED_SETTING.setting(),
             CONNECTION_STRING.setting(),
             EVENT_HUB_NAME.setting(),
             STORAGE_CONNECTION_STRING.setting(),
