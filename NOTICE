@@ -7,23 +7,15 @@ more contributor license agreements.
 
 Different parts of CrateDB are available under different licences.
 
-Unless otherwise stated, every component of CrateDB is licensed under the
+Unless otherwise indicated, the CrateDB source code is licensed under the
 Apache License, Version 2.0.
 
-CrateDB also includes enterprise features. These features are marked in the
-documentation and in their respective source files, and are not licensed under
-the Apache License. To use these components, you must purchase a commercial
-licence agreement with Crate.
+Crate bundles proprietary enterprise modules with CrateDB. These modules (which
+in turn provide enterprise features) are not licensed under any version of the
+Apache License. These modules are indicated in the LICENSE file along with
+information about their licensing.
 
-To enable or use any of the enterprise features, Crate must have given you
-permission to enable and use the Enterprise Edition of CrateDB and you must
-have a valid Enterprise or Subscription Agreement with Crate. If you enable or
-use features that are part of the Enterprise Edition, you represent and warrant
-that you have a valid Enterprise or Subscription Agreement with Crate. Your use
-of features of the Enterprise Edition is governed by the terms and conditions
-of your Enterprise or Subscription Agreement with Crate.
-
-Third-party components bundled with the CrateDB source code are listed in the
+Third-party components bundled with the CrateDB source code are indicated in the
 LICENSE file along with their respective licenses. Any additional mandatory
 notices pertaining to those dependencies will be reproduced in this file.
 
