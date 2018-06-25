@@ -821,6 +821,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitAlterTableOpenClose(SqlBaseParser.AlterTableOpenCloseContext context) {
         return new AlterTableOpenClose(
             (Table) visit(context.alterTableDefinition()),
+            context.BLOB() != null,
             context.OPEN() != null
         );
     }
@@ -829,6 +830,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitAlterTableRename(SqlBaseParser.AlterTableRenameContext context) {
         return new AlterTableRename(
             (Table) visit(context.alterTableDefinition()),
+            context.BLOB() != null,
             getQualifiedName(context.qname())
         );
     }
@@ -837,6 +839,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitAlterTableReroute(SqlBaseParser.AlterTableRerouteContext context) {
         return new AlterTableReroute(
             (Table) visit(context.alterTableDefinition()),
+            context.BLOB() != null,
             (RerouteOption) visit(context.rerouteOption()));
     }
 

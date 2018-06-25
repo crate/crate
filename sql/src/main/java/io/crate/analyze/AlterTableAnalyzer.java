@@ -38,6 +38,8 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.util.List;
 
+import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;
+
 public class AlterTableAnalyzer {
 
     private final Schemas schemas;
@@ -69,8 +71,14 @@ public class AlterTableAnalyzer {
             throw new IllegalArgumentException("Target table name must not include a schema");
         }
 
-        RelationName relationName = RelationName.of(node.table(), sessionContext.defaultSchema());
-        DocTableInfo tableInfo = schemas.getTableInfo(relationName);
+        RelationName relationName;
+        if (node.blob()) {
+            relationName = tableToIdent(node.table());
+        } else {
+            relationName = RelationName.of(node.table(), sessionContext.defaultSchema());
+        }
+
+        DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_TABLE_RENAME);
         RelationName newRelationName = new RelationName(relationName.schema(), newIdentParts.get(0));
         newRelationName.ensureValidForRelationCreation();
         return new AlterTableRenameAnalyzedStatement(tableInfo, newRelationName);

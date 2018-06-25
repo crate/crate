@@ -50,9 +50,9 @@ statement
         (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterTableProperties
     | ALTER BLOB TABLE alterTableDefinition
         (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterBlobTableProperties
-    | ALTER TABLE alterTableDefinition (OPEN | CLOSE)                                #alterTableOpenClose
-    | ALTER TABLE alterTableDefinition RENAME TO qname                               #alterTableRename
-    | ALTER TABLE alterTableDefinition REROUTE rerouteOption                         #alterTableReroute
+    | ALTER (BLOB)? TABLE alterTableDefinition (OPEN | CLOSE)                        #alterTableOpenClose
+    | ALTER (BLOB)? TABLE alterTableDefinition RENAME TO qname                       #alterTableRename
+    | ALTER (BLOB)? TABLE alterTableDefinition REROUTE rerouteOption                 #alterTableReroute
     | ALTER CLUSTER REROUTE RETRY FAILED                                             #alterClusterRerouteRetryFailed
     | ALTER USER name=ident SET '(' genericProperties ')'                            #alterUser
     | RESET GLOBAL primaryExpression (',' primaryExpression)*                        #resetGlobal

@@ -42,6 +42,7 @@ public enum Operation {
     ALTER("ALTER"),
     ALTER_BLOCKS("ALTER"),
     ALTER_OPEN_CLOSE("ALTER OPEN/CLOSE"),
+    ALTER_TABLE_RENAME("ALTER RENAME"),
     ALTER_REROUTE("ALTER REROUTE"),
     REFRESH("REFRESH"),
     SHOW_CREATE("SHOW CREATE"),
@@ -53,7 +54,7 @@ public enum Operation {
     public static final EnumSet<Operation> ALL = EnumSet.allOf(Operation.class);
     public static final EnumSet<Operation> SYS_READ_ONLY = EnumSet.of(READ);
     public static final EnumSet<Operation> READ_ONLY = EnumSet.of(READ, ALTER_BLOCKS);
-    public static final EnumSet<Operation> OPEN_CLOSE_ONLY = EnumSet.of(ALTER_OPEN_CLOSE);
+    public static final EnumSet<Operation> CLOSED_OPERATIONS = EnumSet.of(ALTER_OPEN_CLOSE, ALTER_TABLE_RENAME);
     public static final EnumSet<Operation> BLOB_OPERATIONS = EnumSet.of(READ, OPTIMIZE, ALTER_REROUTE);
     public static final EnumSet<Operation> READ_DISABLED_OPERATIONS = EnumSet.of(UPDATE, INSERT, DELETE, DROP, ALTER,
         ALTER_OPEN_CLOSE, ALTER_REROUTE, ALTER_BLOCKS, REFRESH, OPTIMIZE);
@@ -78,7 +79,7 @@ public enum Operation {
 
     public static EnumSet<Operation> buildFromIndexSettingsAndState(Settings settings, IndexMetaData.State state) {
         if (state == IndexMetaData.State.CLOSE) {
-            return OPEN_CLOSE_ONLY;
+            return CLOSED_OPERATIONS;
         }
         Set<Operation> operations = ALL;
         for (Map.Entry<String, EnumSet<Operation>> entry : BLOCK_SETTING_TO_OPERATIONS_MAP.entrySet()) {
@@ -94,7 +95,7 @@ public enum Operation {
         if (!tableInfo.supportedOperations().contains(operation)) {
             String exceptionMessage;
             // If the only supported operation is open/close, then the table must be closed.
-            if (tableInfo.supportedOperations().equals(OPEN_CLOSE_ONLY)) {
+            if (tableInfo.supportedOperations().equals(CLOSED_OPERATIONS)) {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is currently " +
                                    "closed.";
             } else if (tableInfo.supportedOperations().equals(SYS_READ_ONLY) ||

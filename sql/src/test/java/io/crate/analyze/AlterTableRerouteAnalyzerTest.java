@@ -77,6 +77,14 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         assertThat(analyzed.tableInfo().concreteIndices().length, is(1));
         assertThat(analyzed.tableInfo().concreteIndices()[0], is(".blob_blobs"));
         assertThat(analyzed.isWriteOperation(), is(true));
+        analyzed = e.analyze("ALTER BLOB TABLE blob.blobs REROUTE MOVE SHARD 0 FROM 'nodeOne' TO 'nodeTwo'");
+        assertThat(analyzed.tableInfo().concreteIndices().length, is(1));
+        assertThat(analyzed.tableInfo().concreteIndices()[0], is(".blob_blobs"));
+        assertThat(analyzed.isWriteOperation(), is(true));
+        analyzed = e.analyze("ALTER BLOB TABLE blobs REROUTE MOVE SHARD 0 FROM 'nodeOne' TO 'nodeTwo'");
+        assertThat(analyzed.tableInfo().concreteIndices().length, is(1));
+        assertThat(analyzed.tableInfo().concreteIndices()[0], is(".blob_blobs"));
+        assertThat(analyzed.isWriteOperation(), is(true));
     }
 
     @Test
