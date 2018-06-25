@@ -78,8 +78,6 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     private final CrateCircuitBreakerService breakerService;
 
     private JobsLogs jobsLogs;
-    LogSink<JobContextLog> jobsLogSink = NoopLogSink.instance();
-    LogSink<OperationContextLog> operationsLogSink = NoopLogSink.instance();
 
     private volatile boolean isEnabled;
     volatile int jobsLogSize;
@@ -127,14 +125,11 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         updateJobSink(size, expiration);
     }
 
-    private void updateJobSink(int size, TimeValue expiration) {
+    @VisibleForTesting
+    void updateJobSink(int size, TimeValue expiration) {
         LogSink<JobContextLog> newSink = createSink(
             size, expiration, JOB_CONTEXT_LOG_ESTIMATOR, CrateCircuitBreakerService.JOBS_LOG);
-        LogSink<JobContextLog> oldSink = jobsLogSink;
-        newSink.addAll(oldSink);
-        jobsLogSink = newSink;
-        jobsLogs.updateJobsLog(jobsLogSink);
-        oldSink.close();
+        jobsLogs.updateJobsLog(newSink);
     }
 
     /**
@@ -184,14 +179,11 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         updateOperationSink(size, expiration);
     }
 
-    private void updateOperationSink(int size, TimeValue expiration) {
+    @VisibleForTesting
+    void updateOperationSink(int size, TimeValue expiration) {
         LogSink<OperationContextLog> newSink = createSink(size, expiration, OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR,
             CrateCircuitBreakerService.OPERATIONS_LOG);
-        LogSink<OperationContextLog> oldSink = operationsLogSink;
-        newSink.addAll(oldSink);
-        operationsLogSink = newSink;
-        jobsLogs.updateOperationsLog(operationsLogSink);
-        oldSink.close();
+        jobsLogs.updateOperationsLog(newSink);
     }
 
     private void setStatsEnabled(boolean enableStats) {
@@ -224,8 +216,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
 
     @Override
     protected void doClose() {
-        jobsLogSink.close();
-        operationsLogSink.close();
+        jobsLogs.close();
     }
 
     private JobsLogs statsTables() {
@@ -235,5 +226,10 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     @Override
     public JobsLogs get() {
         return statsTables();
+    }
+
+    @VisibleForTesting
+    public int jobsLogSize() {
+        return jobsLogSize;
     }
 }

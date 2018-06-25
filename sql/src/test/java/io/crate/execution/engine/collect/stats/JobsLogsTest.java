@@ -23,6 +23,7 @@
 package io.crate.execution.engine.collect.stats;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.auth.user.User;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.BlockingEvictingQueue;
@@ -30,7 +31,6 @@ import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
-import io.crate.auth.user.User;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -46,17 +46,26 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static org.hamcrest.Matchers.is;
 
 public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
+
+    private static final User CRATE_USER = User.of("crate", EnumSet.of(User.Role.SUPERUSER));
 
     private ScheduledExecutorService scheduler;
     private CrateCircuitBreakerService breakerService;
@@ -94,8 +103,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(stats.operationsLogExpiration, is(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault()));
 
         // even though jobsLog size and opertionsLog size are > 0 it must be a NoopQueue because the stats are disabled
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
-        assertThat(stats.operationsLogSink, Matchers.instanceOf(NoopLogSink.class));
+        assertThat(stats.get().jobsLog(), Matchers.instanceOf(NoopLogSink.class));
+        assertThat(stats.get().operationsLog(), Matchers.instanceOf(NoopLogSink.class));
     }
 
     @Test
@@ -106,16 +115,15 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100)
             .build();
         JobsLogService stats = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
-
         clusterService.getClusterSettings().applySettings(Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
             .build());
 
         assertThat(stats.isEnabled(), is(true));
         assertThat(stats.jobsLogSize, is(100));
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
+        assertThat(stats.get().jobsLog(), Matchers.instanceOf(QueueSink.class));
         assertThat(stats.operationsLogSize, is(100));
-        assertThat(stats.operationsLogSink, Matchers.instanceOf(QueueSink.class));
+        assertThat(stats.get().operationsLog(), Matchers.instanceOf(QueueSink.class));
     }
 
     @Test
@@ -126,14 +134,16 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100)
             .build();
         JobsLogService stats = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
+        Supplier<LogSink<JobContextLog>> jobsLogSink = () -> (LogSink<JobContextLog>) stats.get().jobsLog();
+        Supplier<LogSink<OperationContextLog>> operationsLogSink = () -> (LogSink<OperationContextLog>) stats.get().operationsLog();
 
         // sinks are still of type QueueSink
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
-        assertThat(stats.operationsLogSink, Matchers.instanceOf(QueueSink.class));
+        assertThat(jobsLogSink.get(), Matchers.instanceOf(QueueSink.class));
+        assertThat(operationsLogSink.get(), Matchers.instanceOf(QueueSink.class));
 
-        assertThat(inspectRamAccountingQueue((QueueSink) stats.jobsLogSink),
+        assertThat(inspectRamAccountingQueue((QueueSink) jobsLogSink.get()),
             Matchers.instanceOf(BlockingEvictingQueue.class));
-        assertThat(inspectRamAccountingQueue((QueueSink) stats.operationsLogSink),
+        assertThat(inspectRamAccountingQueue((QueueSink) operationsLogSink.get()),
             Matchers.instanceOf(BlockingEvictingQueue.class));
 
         clusterSettings.applySettings(Settings.builder()
@@ -141,9 +151,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getKey(), "10s")
             .build());
 
-        assertThat(inspectRamAccountingQueue((QueueSink) stats.jobsLogSink),
+        assertThat(inspectRamAccountingQueue((QueueSink) jobsLogSink.get()),
             Matchers.instanceOf(ConcurrentLinkedDeque.class));
-        assertThat(inspectRamAccountingQueue((QueueSink) stats.operationsLogSink),
+        assertThat(inspectRamAccountingQueue((QueueSink) operationsLogSink.get()),
             Matchers.instanceOf(ConcurrentLinkedDeque.class));
 
         // set all to 0 but don't disable stats
@@ -153,8 +163,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 0)
             .put(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getKey(), "0s")
             .build());
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
-        assertThat(stats.operationsLogSink, Matchers.instanceOf(NoopLogSink.class));
+        assertThat(jobsLogSink.get(), Matchers.instanceOf(NoopLogSink.class));
+        assertThat(operationsLogSink.get(), Matchers.instanceOf(NoopLogSink.class));
         assertThat(stats.isEnabled(), is(true));
 
         clusterSettings.applySettings(Settings.builder()
@@ -162,11 +172,11 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 200)
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
             .build());
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
-        assertThat(inspectRamAccountingQueue((QueueSink) stats.jobsLogSink),
+        assertThat(jobsLogSink.get(), Matchers.instanceOf(QueueSink.class));
+        assertThat(inspectRamAccountingQueue((QueueSink) jobsLogSink.get()),
             Matchers.instanceOf(BlockingEvictingQueue.class));
-        assertThat(stats.operationsLogSink, Matchers.instanceOf(QueueSink.class));
-        assertThat(inspectRamAccountingQueue((QueueSink) stats.operationsLogSink),
+        assertThat(operationsLogSink.get(), Matchers.instanceOf(QueueSink.class));
+        assertThat(inspectRamAccountingQueue((QueueSink) operationsLogSink.get()),
             Matchers.instanceOf(BlockingEvictingQueue.class));
 
         // disable stats
@@ -174,8 +184,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), false)
             .build());
         assertThat(stats.isEnabled(), is(false));
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
-        assertThat(stats.operationsLogSink, Matchers.instanceOf(NoopLogSink.class));
+        assertThat(jobsLogSink.get(), Matchers.instanceOf(NoopLogSink.class));
+        assertThat(operationsLogSink.get(), Matchers.instanceOf(NoopLogSink.class));
     }
 
     private static Queue inspectRamAccountingQueue(QueueSink sink) throws Exception {
@@ -192,26 +202,108 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
         JobsLogService stats = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
+        LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
 
-        stats.jobsLogSink.add(new JobContextLog(
+        jobsLogSink.add(new JobContextLog(
             new JobContext(UUID.randomUUID(), "select 1", 1L, null), null));
 
         clusterSettings.applySettings(Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 200).build());
 
-        assertThat(ImmutableList.copyOf(stats.jobsLogSink.iterator()).size(), is(1));
+        assertThat(ImmutableList.copyOf(stats.get().jobsLog().iterator()).size(), is(1));
 
-        stats.operationsLogSink.add(new OperationContextLog(
+        LogSink<OperationContextLog> operationsLogSink = (LogSink<OperationContextLog>) stats.get().operationsLog();
+        operationsLogSink.add(new OperationContextLog(
             new OperationContext(1, UUID.randomUUID(), "foo", 2L), null));
-        stats.operationsLogSink.add(new OperationContextLog(
+        operationsLogSink.add(new OperationContextLog(
             new OperationContext(1, UUID.randomUUID(), "foo", 3L), null));
 
         clusterSettings.applySettings(Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 1).build());
 
-        assertThat(ImmutableList.copyOf(stats.jobsLogSink.iterator()).size(), is(1));
+        assertThat(ImmutableList.copyOf(stats.get().operationsLog().iterator()).size(), is(1));
+    }
+
+    @Test
+    public void testRunningJobsAreNotLostOnSettingsChange() throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        Settings settings = Settings.builder()
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
+        JobsLogService jobsLogService = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
+        JobsLogs jobsLogs = jobsLogService.get();
+
+        CountDownLatch latch = new CountDownLatch(2);
+        AtomicBoolean doInsertJobs = new AtomicBoolean(true);
+        AtomicInteger numJobs = new AtomicInteger();
+        int maxQueueSize = JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault();
+
+        try {
+            executor.submit(() -> {
+                while (doInsertJobs.get() && numJobs.get() < maxQueueSize) {
+                    UUID uuid = UUID.randomUUID();
+                    int i = numJobs.getAndIncrement();
+                    jobsLogs.logExecutionStart(uuid, "select 1", CRATE_USER);
+                    if (i % 2 == 0) {
+                        jobsLogs.logExecutionEnd(uuid, null);
+                    } else {
+                        jobsLogs.logPreExecutionFailure(uuid, "select 1", "failure", CRATE_USER);
+                    }
+                }
+                latch.countDown();
+            });
+            executor.submit(() -> {
+                jobsLogService.updateJobSink(maxQueueSize + 10, JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault());
+                doInsertJobs.set(false);
+                latch.countDown();
+            });
+
+            latch.await(10, TimeUnit.SECONDS);
+            assertThat(ImmutableList.copyOf(jobsLogs.jobsLog().iterator()).size(), is(numJobs.get()));
+        } finally {
+            executor.shutdown();
+            executor.awaitTermination(2, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    public void testRunningOperationsAreNotLostOnSettingsChange() throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        Settings settings = Settings.builder()
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
+        JobsLogService jobsLogService = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
+        JobsLogs jobsLogs = jobsLogService.get();
+
+        CountDownLatch latch = new CountDownLatch(2);
+        AtomicBoolean doInsertJobs = new AtomicBoolean(true);
+        AtomicInteger numJobs = new AtomicInteger();
+        int maxQueueSize = JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault();
+
+        try {
+            executor.submit(() -> {
+                while (doInsertJobs.get() && numJobs.get() < maxQueueSize) {
+                    UUID uuid = UUID.randomUUID();
+                    jobsLogs.operationStarted(1, uuid, "dummy");
+                    jobsLogs.operationFinished(1, uuid, null, 1);
+                    numJobs.incrementAndGet();
+                }
+                latch.countDown();
+            });
+            executor.submit(() -> {
+                jobsLogService.updateOperationSink(maxQueueSize + 10, JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault());
+                doInsertJobs.set(false);
+                latch.countDown();
+            });
+
+            latch.await(10, TimeUnit.SECONDS);
+            assertThat(ImmutableList.copyOf(jobsLogs.operationsLog().iterator()).size(), is(numJobs.get()));
+        } finally {
+            executor.shutdown();
+            executor.awaitTermination(2, TimeUnit.SECONDS);
+        }
     }
 
     @Test
@@ -257,13 +349,13 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         jobsLogs.operationStarted(ctxB.id, ctxB.jobId, ctxB.name);
 
         jobsLogs.operationFinished(ctxB.id, ctxB.jobId, null, -1);
-        List<OperationContextLog> entries = ImmutableList.copyOf(jobsLogs.operationsLog.get().iterator());
+        List<OperationContextLog> entries = ImmutableList.copyOf(jobsLogs.operationsLog().iterator());
 
         assertTrue(entries.contains(new OperationContextLog(ctxB, null)));
         assertFalse(entries.contains(new OperationContextLog(ctxA, null)));
 
         jobsLogs.operationFinished(ctxA.id, ctxA.jobId, null, -1);
-        entries = ImmutableList.copyOf(jobsLogs.operationsLog.get());
+        entries = ImmutableList.copyOf(jobsLogs.operationsLog());
         assertTrue(entries.contains(new OperationContextLog(ctxA, null)));
     }
 
