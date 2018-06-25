@@ -748,6 +748,15 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(response.rowCount(), is(1L));
     }
 
+    @Test
+    public void testUpdateByQueryOnEmptyPartitionedTable() throws Exception {
+        execute("create table empty_parted(id integer, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("update empty_parted set id = 10 where timestamp = 1396303200000");
+        assertThat(response.rowCount(), is(0L));
+    }
 
     @Test
     public void testDeleteFromPartitionedTable() throws Exception {
@@ -913,13 +922,22 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             new Object[]{2, "Don't panic", 1395961200000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{3, "Don't panic", 1396303200000L});
-        ensureYellow();
         refresh();
 
         execute("delete from quotes where not timestamp=? and quote=?", new Object[]{1396303200000L, "Don't panic"});
         refresh();
         execute("select * from quotes");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testDeleteByQueryFromEmptyPartitionedTable() throws Exception {
+        execute("create table empty_parted (id integer, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("delete from empty_parted where not timestamp = 1396303200000");
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test

@@ -42,7 +42,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
-import org.junit.After;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -229,6 +228,30 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
 
         // shouldn't throw an exception:
         execute(plan).getResult(); // execute now that the partitions are gone
+    }
+
+    @Test
+    public void testDeleteByQueryOnEmptyPartitionedTable_PartitionsCreatedConcurrently() throws Exception {
+        execute("create table t (name string, ts timestamp) partitioned by (ts)");
+        ensureYellow();
+
+        PlanForNode plan = plan("delete from t where ts > 5421343143");
+        execute("insert into t (name, ts) values ('Arthur', 1395961200000), ('Trillian', 1395961300000)");
+        execute("refresh table t");
+
+        assertThat(execute(plan).getResult().get(0)[0], is(0L)); // execute now that partitions are created
+    }
+
+    @Test
+    public void testUpdateByQueryOnEmptyPartitionedTable_PartitionsCreatedConcurrently() throws Exception {
+        execute("create table t (name string, ts timestamp) partitioned by (ts)");
+        ensureYellow();
+
+        PlanForNode plan = plan("update t set name = 'foo' where ts > 5421343143");
+        execute("insert into t (name, ts) values ('Arthur', 1395961200000), ('Trillian', 1395961300000)");
+        execute("refresh table t");
+
+        assertThat(execute(plan).getResult().get(0)[0], is(0L)); // execute now that partitions are created
     }
 
     private void deletePartitionWhileInsertingData(final boolean useBulk) throws Exception {
