@@ -35,6 +35,8 @@ import io.crate.sql.tree.RerouteMoveShard;
 
 import java.util.List;
 
+import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;
+
 public class AlterTableRerouteAnalyzer {
 
     private static final RerouteOptionVisitor REROUTE_OPTION_VISITOR = new RerouteOptionVisitor();
@@ -46,9 +48,14 @@ public class AlterTableRerouteAnalyzer {
 
     public AnalyzedStatement analyze(AlterTableReroute node, Analysis context) {
         // safe to expect a `ShardedTable` since REROUTE operation is not allowed on SYS tables at all.
-        ShardedTable tableInfo = schemas.getTableInfo(
-            RelationName.of(node.table(), context.sessionContext().defaultSchema()),
-            Operation.ALTER_REROUTE);
+        ShardedTable tableInfo;
+        RelationName relationName;
+        if (node.blob()) {
+            relationName = tableToIdent(node.table());
+        } else {
+            relationName = RelationName.of(node.table(), context.sessionContext().defaultSchema());
+        }
+        tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_REROUTE);
         return REROUTE_OPTION_VISITOR.process(node.rerouteOption(), new Context(tableInfo, node.table().partitionProperties()));
     }
 

@@ -27,10 +27,12 @@ import com.google.common.base.MoreObjects;
 public class AlterTableRename extends Statement {
 
     private final Table table;
+    private final boolean blob;
     private final QualifiedName newName;
 
-    public AlterTableRename(Table table, QualifiedName newName) {
+    public AlterTableRename(Table table, boolean blob, QualifiedName newName) {
         this.table = table;
+        this.blob = blob;
         this.newName = newName;
     }
 
@@ -44,6 +46,10 @@ public class AlterTableRename extends Statement {
         return table;
     }
 
+    public boolean blob() {
+        return blob;
+    }
+
     public QualifiedName newName() {
         return newName;
     }
@@ -52,6 +58,7 @@ public class AlterTableRename extends Statement {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("table", table)
+            .add("blob", blob)
             .add("new name", newName).toString();
     }
 
@@ -62,6 +69,7 @@ public class AlterTableRename extends Statement {
 
         AlterTableRename that = (AlterTableRename) o;
 
+        if (!blob == blob) return false;
         if (!newName.equals(that.newName)) return false;
         if (!table.equals(that.table)) return false;
 
@@ -71,6 +79,7 @@ public class AlterTableRename extends Statement {
     @Override
     public int hashCode() {
         int result = table.hashCode();
+        result = 31 * result + (blob ? 1 : 0);
         result = 31 * result + newName.hashCode();
         return result;
     }

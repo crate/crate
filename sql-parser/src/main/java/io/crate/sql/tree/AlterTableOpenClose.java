@@ -27,10 +27,12 @@ import com.google.common.base.MoreObjects;
 public class AlterTableOpenClose extends Statement {
 
     private final Table table;
+    private final boolean blob;
     private final boolean openTable;
 
-    public AlterTableOpenClose(Table table, boolean openTable) {
+    public AlterTableOpenClose(Table table, boolean blob, boolean openTable) {
         this.table = table;
+        this.blob = blob;
         this.openTable = openTable;
     }
 
@@ -44,6 +46,10 @@ public class AlterTableOpenClose extends Statement {
         return table;
     }
 
+    public boolean blob() {
+        return blob;
+    }
+
     public boolean openTable() {
         return openTable;
     }
@@ -52,6 +58,7 @@ public class AlterTableOpenClose extends Statement {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("table", table)
+            .add("blob", blob)
             .add("open table", openTable).toString();
     }
 
@@ -62,6 +69,7 @@ public class AlterTableOpenClose extends Statement {
 
         AlterTableOpenClose that = (AlterTableOpenClose) o;
 
+        if (!blob == that.blob) return false;
         if (!openTable == that.openTable) return false;
         if (!table.equals(that.table)) return false;
 
@@ -71,6 +79,7 @@ public class AlterTableOpenClose extends Statement {
     @Override
     public int hashCode() {
         int result = table.hashCode();
+        result = 31 * result + (blob ? 1 : 0);
         result = 31 * result + Boolean.hashCode(openTable);
         return result;
     }

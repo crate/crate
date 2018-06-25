@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.InvalidRelationName;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
@@ -203,5 +204,33 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid number 'foo'");
         e.analyze("create blob table screenshots clustered into ? shards", new Object[]{"foo"});
+    }
+
+    @Test
+    public void testAlterBlobTableRename() {
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
+        expectedException.expectMessage("The relation \"blob.blobs\" doesn't support or allow ALTER RENAME operations.");
+        e.analyze("alter blob table blobs rename to blobbier");
+    }
+
+    @Test
+    public void testAlterBlobTableRenameWithExplicitSchema() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The Schema \"schema\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause");
+        e.analyze("alter blob table schema.blobs rename to blobbier");
+    }
+
+    @Test
+    public void testAlterBlobTableOpenClose() throws Exception {
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
+        expectedException.expectMessage("The relation \"blob.blobs\" doesn't support or allow ALTER OPEN/CLOSE operations.");
+        e.analyze("alter blob table blobs close");
+    }
+
+    @Test
+    public void testAlterBlobTableOpenCloseWithExplicitSchema() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The Schema \"schema\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause");
+        e.analyze("alter blob table schema.blob close");
     }
 }

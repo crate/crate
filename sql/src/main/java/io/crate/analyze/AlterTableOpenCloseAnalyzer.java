@@ -25,12 +25,14 @@ package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.Table;
+
+import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;
 
 class AlterTableOpenCloseAnalyzer {
 
@@ -42,8 +44,14 @@ class AlterTableOpenCloseAnalyzer {
 
     public AlterTableOpenCloseAnalyzedStatement analyze(AlterTableOpenClose node, SessionContext sessionContext) {
         Table table = node.table();
-        DocTableInfo tableInfo = schemas.getTableInfo(RelationName.of(table, sessionContext.defaultSchema()),
-            Operation.ALTER_OPEN_CLOSE);
+        RelationName relationName;
+        if (node.blob()) {
+            relationName = tableToIdent(table);
+        } else {
+            relationName = RelationName.of(table, sessionContext.defaultSchema());
+        }
+
+        DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_OPEN_CLOSE);
         PartitionName partitionName = null;
         if (tableInfo.isPartitioned()) {
             partitionName = AlterTableAnalyzer.createPartitionName(table.partitionProperties(), tableInfo, null);

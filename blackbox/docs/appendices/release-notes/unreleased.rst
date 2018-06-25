@@ -107,6 +107,9 @@ Changes
 Fixes
 =====
 
+- Fixed syntax support for certain ``ALTER BLOB TABLE RENAME``, ``REROUTE``
+  and ``OPEN/CLOSE`` queries.
+
 - Fixed an issue which could result in lost entries at the ``sys.jobs_log`` and
   ``sys.operations_log`` tables when the related settings are changed while
   entries are written.

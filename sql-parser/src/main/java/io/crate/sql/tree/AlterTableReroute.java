@@ -28,9 +28,11 @@ public class AlterTableReroute extends Statement {
 
     private final Table table;
     private final RerouteOption rerouteOption;
+    private final boolean blob;
 
-    public AlterTableReroute(Table table, RerouteOption rerouteOption) {
+    public AlterTableReroute(Table table, boolean blob, RerouteOption rerouteOption) {
         this.table = table;
+        this.blob = blob;
         this.rerouteOption = rerouteOption;
     }
 
@@ -44,6 +46,10 @@ public class AlterTableReroute extends Statement {
         return table;
     }
 
+    public boolean blob() {
+        return blob;
+    }
+
     public RerouteOption rerouteOption() {
         return rerouteOption;
     }
@@ -52,6 +58,7 @@ public class AlterTableReroute extends Statement {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("table", table)
+            .add("blob", blob)
             .add("reroute option", rerouteOption).toString();
     }
 
@@ -62,6 +69,7 @@ public class AlterTableReroute extends Statement {
 
         AlterTableReroute that = (AlterTableReroute) o;
 
+        if (!blob == that.blob) return false;
         if (!rerouteOption.equals(that.rerouteOption)) return false;
         if (!table.equals(that.table)) return false;
 
@@ -71,6 +79,7 @@ public class AlterTableReroute extends Statement {
     @Override
     public int hashCode() {
         int result = table.hashCode();
+        result = 31 * result + (blob ? 1 : 0);
         result = 31 * result + rerouteOption.hashCode();
         return result;
     }
