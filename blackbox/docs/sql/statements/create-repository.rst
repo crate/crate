@@ -230,7 +230,6 @@ A repository that stores its snapshot on the Amazon S3 service.
 
 **access_key**
   | *Type:*    ``string``
-  | *Default:* Globally defined environmental variable ``AWS_ACCESS_KEY_ID``.
 
   Access key used for authentication against AWS.
 
@@ -241,7 +240,6 @@ A repository that stores its snapshot on the Amazon S3 service.
 
 **secret_key**
   | *Type:*    ``string``
-  | *Default:* Globally defined environmental variable ``AWS_SECRET_KEY``.
 
   Secret key used for authentication against AWS.
 

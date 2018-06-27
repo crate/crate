@@ -75,11 +75,6 @@ The resulting string should be a valid URI of one of the supporting schemes:
 If no scheme is given (e.g.: '/path/to/dir') the default uri-scheme ``file://``
 will be used.
 
-If the s3 scheme is used without specifying any credentials an attempt is made
-to read these information from the AWS_ACCESS_KEY_ID and AWS_SECRET_KEY
-environment variables. In addition to that the Java System properties
-aws.accessKeyId and aws.secretKey are also used as a fallback.
-
 .. NOTE::
 
    A ``secretkey`` provided by Amazon Web Service can contain characters such

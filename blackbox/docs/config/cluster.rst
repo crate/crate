@@ -447,10 +447,6 @@ discovery the ``discovery.zen.hosts_provider`` settings needs to be set to
 
   The secret key to identify the API calls.
 
-Note that the AWS credentials can also be provided by environment variables
-``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_KEY`` or via system properties
-``aws.accessKeyId`` and ``aws.secretKey``.
-
 Following settings control the discovery:
 
 .. _discovery_ec2_groups:

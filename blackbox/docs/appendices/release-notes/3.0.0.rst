@@ -72,7 +72,13 @@ Breaking Changes
   immediatelly after restart.
 
 - The discovery setting ``discovery.type`` has been removed. To enable EC2
-  discovery, the ``discovery.zen.hosts_provider`` setting must be set to ``ec2``.
+  discovery, the ``discovery.zen.hosts_provider`` setting must be set to
+  ``ec2``.
+
+- Dropped support for reading AWS credentials used for S3 and EC2 discovery
+  from environment variables ``AWS_ACCESS_KEY_ID`` and
+  ``AWS_SECRET_ACCESS_KEY`` as well as java system properties
+  ``aws.accessKeyId`` and ``aws.secretKey``.
 
 - EC2 ``cloud.aws.*`` settings have been renamed to ``discovery.ec2.*``.
 
