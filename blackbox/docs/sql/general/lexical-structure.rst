@@ -157,13 +157,15 @@ described.
 Comments
 ========
 
-An SQL input can contain comments. Comments are not implemented on the server
-side, but the `crash`_ command line interface ignores single line comments.
-Single line comments start with a double dash (``--``) and end at the end of
-that line.
+An SQL statement can contain comments. Single line comments start with a double
+dash (``--``) and end at the end of that line. Multi line comments start with
+``/*`` and end with ``*/``.
 
 Example::
 
+  /*
+   * Retrieve information about all tables in the 'doc' schema.
+   */
   SELECT *
     FROM information_schema.tables
     WHERE table_schema = 'doc'; -- query information schema for doc tables

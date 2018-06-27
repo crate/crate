@@ -42,6 +42,8 @@ Breaking Changes
 Changes
 =======
 
+- Added support for multi line SQL comments, e.g. ``/* multi line */``.
+
 - Improved performance of queries using an array access inside the ``WHERE``
   clause. E.g.::
 

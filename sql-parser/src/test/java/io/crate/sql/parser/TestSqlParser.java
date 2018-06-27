@@ -47,6 +47,52 @@ public class TestSqlParser {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
+    public void testComments() {
+        assertThat(
+            SqlParser.createStatement("-- this is a line comment\nSelect 1"),
+            instanceOf(Query.class));
+        assertThat(
+            SqlParser.createStatement("Select 1\n-- this is a line comment"),
+            instanceOf(Query.class));
+        assertThat(
+            SqlParser.createStatement("-- this is a line comment\nSelect 1\n-- this is a line comment"),
+            instanceOf(Query.class));
+        assertThat(
+            SqlParser.createStatement("-- this is a line comment\nSelect \n-- this is a line comment\n1"),
+            instanceOf(Query.class));
+        assertThat(
+            SqlParser.createStatement("/* this\n" +
+                                  "       is a multiline\n" +
+                                  "       comment\n" +
+                                  "    */\nSelect 1;"),
+            instanceOf(Query.class));
+        assertThat(
+            SqlParser.createStatement("Select 1;" +
+                                  "    /* this\n" +
+                                  "       is a multiline\n" +
+                                  "       comment\n" +
+                                  "    */"),
+            instanceOf(Query.class));
+        assertThat(
+            SqlParser.createStatement("Select" +
+                                             "    /* this\n" +
+                                             "       is a multiline\n" +
+                                             "       comment\n" +
+                                             "    */" +
+                                             "1"),
+            instanceOf(Query.class));
+        assertThat(
+            SqlParser.createStatement("Select" +
+                                      "    /* this\n" +
+                                      "       is a multiline\n" +
+                                      "       comment\n" +
+                                      "    */\n" +
+                                      "-- line comment\n" +
+                                      "1"),
+            instanceOf(Query.class));
+    }
+
+    @Test
     public void testPossibleExponentialBacktracking()
         throws Exception {
         SqlParser.createExpression("(((((((((((((((((((((((((((true)))))))))))))))))))))))))))");

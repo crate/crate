@@ -946,7 +946,7 @@ fragment LETTER
     ;
 
 COMMENT
-    : '--' ~[\r\n]* '\r'? '\n'? -> channel(HIDDEN)
+    : ('--' ~[\r\n]* '\r'? '\n'? | '/*' .*? '*/') -> channel(HIDDEN)
     ;
 
 WS
