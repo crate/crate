@@ -116,6 +116,9 @@ Changes
 Fixes
 =====
 
+- Made table setting ``blocks.read_only_allow_delete`` configurable for
+  partitioned tables.
+
 - Fixed syntax support for certain ``ALTER BLOB TABLE RENAME``, ``REROUTE``
   and ``OPEN/CLOSE`` queries.
 

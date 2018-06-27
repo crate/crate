@@ -38,6 +38,7 @@ public class PartitionedTableParameterInfo extends TableParameterInfo {
             .add(NUMBER_OF_SHARDS)
             .add(REFRESH_INTERVAL)
             .add(READ_ONLY)
+            .add(READ_ONLY_ALLOW_DELETE)
             .add(BLOCKS_READ)
             .add(BLOCKS_WRITE)
             .add(BLOCKS_METADATA)

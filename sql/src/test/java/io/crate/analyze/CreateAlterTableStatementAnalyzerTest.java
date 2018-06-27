@@ -793,6 +793,20 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
+    public void testChangeBlockReadOnlyAllowDelete() {
+        AlterTableAnalyzedStatement analysis =
+            e.analyze("alter table users set (\"blocks.read_only_allow_delete\"=true)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.READ_ONLY_ALLOW_DELETE), is("true"));
+    }
+
+    @Test
+    public void testChangeBlockReadOnlyAllowedDeletePartitionedTable() {
+        AlterTableAnalyzedStatement analysis =
+            e.analyze("alter table parted set (\"blocks.read_only_allow_delete\"=true)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.READ_ONLY_ALLOW_DELETE), is("true"));
+    }
+
+    @Test
     public void testChangeFlushThresholdSize() throws Exception {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"translog.flush_threshold_size\"=300)");
