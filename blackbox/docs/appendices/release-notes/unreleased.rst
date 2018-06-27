@@ -37,6 +37,9 @@ Changes
 Fixes
 =====
 
+- Made table setting ``blocks.read_only_allow_delete`` configurable for
+  partitioned tables.
+
 - Fixed an issue which could result in lost entries at the ``sys.jobs_log`` and
   ``sys.operations_log`` tables when the related settings are changed while
   entries are written.
