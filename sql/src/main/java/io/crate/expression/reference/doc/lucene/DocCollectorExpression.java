@@ -22,9 +22,10 @@
 package io.crate.expression.reference.doc.lucene;
 
 import com.google.common.base.Joiner;
+import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
+import io.crate.types.DataType;
 import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -62,32 +63,18 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         assert reference.column().path().size() > 0 : "column's path size must be > 0";
         final String fqn = Joiner.on(".").join(reference.column().path());
-        return new ChildDocCollectorExpression(fqn) {
-
-            @Override
-            public void startCollect(CollectorContext context) {
-                super.startCollect(context);
-            }
-
-            @Override
-            public Object value() {
-                // need to make sure it has the correct type;
-                // for example:
-                //      sourceExtractor might read byte as int and
-                //      then eq(byte, byte) would get eq(byte, int) and fail
-                return reference.valueType().value(sourceLookup.extractValue(fqn));
-            }
-        };
+        return new ChildDocCollectorExpression(reference.valueType(), fqn);
     }
 
-    public abstract static class ChildDocCollectorExpression<ReturnType> extends
-        LuceneCollectorExpression<ReturnType> {
+    static final class ChildDocCollectorExpression extends LuceneCollectorExpression<Object> {
 
-        protected SourceLookup sourceLookup;
+        private final DataType returnType;
+        SourceLookup sourceLookup;
         private LeafReaderContext context;
 
-        ChildDocCollectorExpression(String columnName) {
+        ChildDocCollectorExpression(DataType returnType, String columnName) {
             super(columnName);
+            this.returnType = returnType;
         }
 
         @Override
@@ -103,6 +90,15 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         @Override
         public void startCollect(CollectorContext context) {
             sourceLookup = context.sourceLookup();
+        }
+
+        @Override
+        public Object value() {
+            // need to make sure it has the correct type;
+            // for example:
+            //      sourceExtractor might read byte as int and
+            //      then eq(byte, byte) would get eq(byte, int) and fail
+            return returnType.value(sourceLookup.extractValue(columnName));
         }
     }
 }
