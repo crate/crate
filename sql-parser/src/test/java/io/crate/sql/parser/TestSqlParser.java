@@ -90,6 +90,25 @@ public class TestSqlParser {
                                       "-- line comment\n" +
                                       "1"),
             instanceOf(Query.class));
+        assertThat(
+            SqlParser.createStatement("CREATE TABLE IF NOT EXISTS \"doc\".\"data\" (\n" +
+                                      "   \"week__generated\" TIMESTAMP GENERATED ALWAYS AS date_trunc('week', \"ts\"),\n" +
+                                      "   \"mid\" STRING, -- measurement id, mainly used for triggers, starts for continuuous measurment with random uuid\n" +
+                                      "   \"res\" INTEGER, -- resolution in ms\n" +
+                                      "   \"ts\" TIMESTAMP,\n" +
+                                      "   \"val_avg\" FLOAT,\n" +
+                                      "   \"val_max\" FLOAT,\n" +
+                                      "   \"val_min\" FLOAT,\n" +
+                                      "   \"val_stddev\" FLOAT,\n" +
+                                      "   \"vid\" STRING, -- variable id, unique uuid\n" +
+                                      "   PRIMARY KEY (\"ts\", \"mid\", \"vid\", \"res\", \"week__generated\")\n" +
+                                      ")\n" +
+                                      "CLUSTERED INTO 3 SHARDS\n" +
+                                      "PARTITIONED BY (\"res\", \"week__generated\")\n" +
+                                      "WITH (\n" +
+                                      "   number_of_replicas = '1'\n" +
+                                      ");"),
+                instanceOf(CreateTable.class));
     }
 
     @Test
