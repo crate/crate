@@ -230,23 +230,29 @@ A repository that stores its snapshot on the Amazon S3 service.
 
 **access_key**
   | *Type:*    ``string``
+  | *Default:* Value defined through :ref:`s3.client.default.access_key
+        <s3-credentials-access-key>` setting.
 
   Access key used for authentication against AWS.
 
   .. WARNING::
 
-     If the access key is set explicity (not via environment variable) it will
-     be visible in plain text when querying the ``sys.repositories`` table.
+     If the secret key is set explicitly (not via :ref:`configuration setting
+     <s3-credentials-access-key>`) it will be visible in plain text when
+     querying the ``sys.repositories`` table.
 
 **secret_key**
   | *Type:*    ``string``
+  | *Default:* Value defined through :ref:`s3.client.default.secret_key
+     <s3-credentials-secret-key>` setting.
 
   Secret key used for authentication against AWS.
 
   .. WARNING::
 
-     If the secret key is set explicity (not via environment variable) it will
-     be visible in plain text when querying the ``sys.repositories`` table.
+     If the secret key is set explicitly (not via :ref:`configuration setting
+     <s3-credentials-secret-key>`) it will be visible in plain text when
+     querying the ``sys.repositories`` table.
 
 **concurrent_streams**
   | *Type:*    ``integer``

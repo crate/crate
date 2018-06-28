@@ -18,6 +18,11 @@ Breaking Changes
 Changes
 =======
 
+- Added settings ``s3.client.default.access_key`` and
+  ``s3.client.default.secret_key`` which can be used to set default credentials
+  for s3 repositories, if they are not passed as parameters to the
+  ``CREATE REPOSITORY`` SQL statement.
+
 - Implemented a thread-utilization down-scaling logic which dynamically adapts
   the number of threads used for ``SELECT`` queries to avoid running into
   ``RejectedExcecution`` errors if there are many shards per node involved in
