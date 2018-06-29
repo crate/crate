@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.testing.SQLResponse;
@@ -176,6 +177,42 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         PlanForNode plan = plan(stmt);
         execute("delete from t");
         return new CollectionBucket(execute(plan).getResult());
+    }
+
+    @Test
+    public void testExecuteDeleteAllPartitions_PartitionsAreDeletedMeanwhile() throws Exception {
+        Bucket bucket = deletePartitionsAndExecutePlan("delete from t");
+        assertThat(bucket.size(), is(1));
+        Row row = bucket.iterator().next();
+        assertThat(row.numColumns(), is(1));
+        assertThat(row.get(0), is(-1L));
+    }
+
+    @Test
+    public void testExecuteDeleteSomePartitions_PartitionsAreDeletedMeanwhile() throws Exception {
+        Bucket bucket = deletePartitionsAndExecutePlan("delete from t where name = 'Trillian'");
+        assertThat(bucket.size(), is(1));
+        Row row = bucket.iterator().next();
+        assertThat(row.numColumns(), is(1));
+        assertThat(row.get(0), is(0L));
+    }
+
+    @Test
+    public void testExecuteDeleteByQuery_PartitionsAreDeletedMeanwhile() throws Exception {
+        Bucket bucket = deletePartitionsAndExecutePlan("delete from t where p = 'a'");
+        assertThat(bucket.size(), is(1));
+        Row row = bucket.iterator().next();
+        assertThat(row.numColumns(), is(1));
+        assertThat(row.get(0), is(-1L));
+    }
+
+    @Test
+    public void testExecuteUpdate_PartitionsAreDeletedMeanwhile() throws Exception {
+        Bucket bucket = deletePartitionsAndExecutePlan("update t set name = 'BoyceCodd'");
+        assertThat(bucket.size(), is(1));
+        Row row = bucket.iterator().next();
+        assertThat(row.numColumns(), is(1));
+        assertThat(row.get(0), is(0L));
     }
 
     @Test

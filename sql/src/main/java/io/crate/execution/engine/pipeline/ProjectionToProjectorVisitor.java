@@ -53,6 +53,7 @@ import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.execution.engine.export.FileWriterProjector;
 import io.crate.execution.engine.fetch.FetchProjector;
 import io.crate.execution.engine.fetch.FetchProjectorContext;
@@ -81,7 +82,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
@@ -174,6 +175,15 @@ public class ProjectionToProjectorVisitor
             bigArrays,
             null
         );
+    }
+
+    @Override
+    public RowGranularity supportedGranularity() {
+        if (this.shardId == null) {
+            return RowGranularity.NODE;
+        } else {
+            return RowGranularity.SHARD;
+        }
     }
 
     @Override

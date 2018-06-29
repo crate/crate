@@ -285,7 +285,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
         RowConsumer firstConsumer = ProjectingRowConsumer.create(
             lastConsumer,
-            Projections.nodeProjections(normalizedPhase.projections()),
+            normalizedPhase.projections(),
             collectPhase.jobId(),
             collectTask.queryPhaseRamAccountingContext(),
             sharedProjectorFactory

@@ -33,6 +33,7 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -69,6 +70,7 @@ import java.util.concurrent.TimeUnit;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
@@ -195,5 +197,22 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
         expectedException.expect(UnhandledServerException.class);
         expectedException.expectMessage("Failed to open output");
         consumer.getResult();
+    }
+
+    @Test
+    public void testProjectionsWithCorrectGranularityAreApplied() {
+        GroupProjection groupProjection = new GroupProjection(
+            new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.SHARD);
+        FilterProjection filterProjection = new FilterProjection(new InputColumn(0), Collections.emptyList());
+        filterProjection.requiredGranularity(RowGranularity.DOC);
+
+        RowConsumer delegateConsumerRequiresScroll = new DummyRowConsumer(false);
+
+        ProjectingRowConsumer projectingConsumer = (ProjectingRowConsumer) ProjectingRowConsumer.create(delegateConsumerRequiresScroll,
+            Arrays.asList(filterProjection, groupProjection), UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, projectorFactory);
+
+        assertThat(projectingConsumer.requiresScroll(), is(false));
+        assertThat(projectingConsumer.projectors().size(), is(1));
+        assertThat(projectingConsumer.projectors().get(0), instanceOf(GroupingProjector.class));
     }
 }
