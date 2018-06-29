@@ -85,7 +85,7 @@ class TimestampType extends PGType {
     }
 
     private TimestampType() {
-        super(OID, TYPE_LEN, TYPE_MOD, "timestampz");
+        super(OID, TYPE_LEN, TYPE_MOD, "timestamptz");
     }
 
     @Override

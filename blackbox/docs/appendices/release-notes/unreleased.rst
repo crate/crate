@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Store the correct name (``timestamptz``) for the timestamp type in the
+  ``pg_type`` table.
+
 - Fixed an issue that caused an ``UnsupportedFeatureException`` to be thrown
   when deleting or updating by query on an empty partitioned table, instead of
   just returning 0 rows deleted/updated.
