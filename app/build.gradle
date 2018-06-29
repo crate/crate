@@ -309,7 +309,7 @@ installDist {
 ext {
     downloadDir = new File(buildDir, 'downloads')
     crash_version = '0.24.1'
-    adminui_version = '1.10.2'
+    adminui_version = '1.10.3'
 }
 
 def rootDir = project.parent.projectDir

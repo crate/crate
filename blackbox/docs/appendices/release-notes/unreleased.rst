@@ -37,6 +37,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue where the Admin UI was not loaded when it was served from
+  another location than ``/`` resulting in a blank browser canvas.
+
 - Made table setting ``blocks.read_only_allow_delete`` configurable for
   partitioned tables.
 
