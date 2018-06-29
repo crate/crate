@@ -24,15 +24,11 @@ package io.crate.execution.engine.pipeline;
 
 import com.google.common.collect.Iterables;
 import io.crate.action.sql.SessionContext;
-import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dml.SysUpdateProjector;
 import io.crate.execution.dml.delete.ShardDeleteRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
@@ -69,16 +65,21 @@ import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingTopNProjector;
+import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.sys.SysRowUpdater;
-import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.execution.TransportActionProvider;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.StringType;
@@ -171,6 +172,15 @@ public class ProjectionToProjectorVisitor
             bigArrays,
             null
         );
+    }
+
+    @Override
+    public RowGranularity supportedGranularity() {
+        if (this.shardId == null) {
+            return RowGranularity.NODE;
+        } else {
+            return RowGranularity.SHARD;
+        }
     }
 
     @Override

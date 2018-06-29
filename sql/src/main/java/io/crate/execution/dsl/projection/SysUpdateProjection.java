@@ -26,6 +26,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -100,5 +101,10 @@ public class SysUpdateProjection extends DMLProjection {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), assignments);
+    }
+
+    @Override
+    public RowGranularity requiredGranularity() {
+        return RowGranularity.NODE;
     }
 }

@@ -22,12 +22,14 @@
 
 package io.crate.execution.engine.pipeline;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.Projection;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -56,6 +58,28 @@ public class ProjectingRowConsumer implements RowConsumer {
     private final List<Projector> projectors;
     private boolean requiresScroll;
 
+    /**
+     * Wraps the {@param lastConsumer} with a ProjectingRowConsumer which applies the applicable projections.
+     * Only the projections with requiredGranularity less or equal than the supportedGranularity of the
+     * {@param projectorFactory} are applied and the rest are ignored. E.g.:
+     *
+     * <pre>
+     *  If
+     *      projection1.requiredGranularity = NODE
+     *      projection2.requiredGranularity = SHARD
+     *      projectionFactory.supportedGranularity = NODE
+     *  Then
+     *      projection1 is applied
+     *      projection2 is ignored
+     * </pre>
+     *
+     * @param lastConsumer The {@link RowConsumer} so far in the pipeline
+     * @param projections The projections that we try to apply
+     * @param jobId The jobId of the job being executing
+     * @param ramAccountingContext The {@link RamAccountingContext} used for memory calculation for the {@link CircuitBreaker}
+     * @param projectorFactory The {@link ProjectorFactory} that will create the appropriate projectors from the {@param projections}
+     * @return the {@link ProjectingRowConsumer} wrapping the existing {@param lastConsumer}
+     */
     public static RowConsumer create(RowConsumer lastConsumer,
                                      Collection<? extends Projection> projections,
                                      UUID jobId,
@@ -77,6 +101,9 @@ public class ProjectingRowConsumer implements RowConsumer {
 
         boolean projectorsSupportIndependentScrolling = false;
         for (Projection projection : projections) {
+            if (projection.requiredGranularity().ordinal() > projectorFactory.supportedGranularity().ordinal()) {
+                continue;
+            }
             Projector projector = projectorFactory.create(projection, ramAccountingContext, jobId);
             projectors.add(projector);
 
@@ -111,5 +138,10 @@ public class ProjectingRowConsumer implements RowConsumer {
     @Override
     public boolean requiresScroll() {
         return requiresScroll;
+    }
+
+    @VisibleForTesting
+    List<Projector> projectors() {
+        return projectors;
     }
 }
