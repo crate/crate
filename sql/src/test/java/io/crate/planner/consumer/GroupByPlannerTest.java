@@ -547,7 +547,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNonDistributedGroupByProjectionHasShardLevelGranularity() throws Exception {
         Merge distributedGroupByMerge = e.plan("select count(distinct id), name from users" +
-                                                       " group by name order by count(distinct id)");
+                                               " group by name order by count(distinct id)");
         Merge reduceMerge = (Merge) distributedGroupByMerge.subPlan();
         CollectPhase collectPhase = ((Collect) reduceMerge.subPlan()).collectPhase();
         assertThat(collectPhase.projections().size(), is(1));
@@ -619,10 +619,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNestedGroupByAggregation() throws Exception {
         Collect collect = e.plan("select count(*) from (" +
-                             "  select max(load['1']) as maxLoad, hostname " +
-                             "  from sys.nodes " +
-                             "  group by hostname having max(load['1']) > 50) as nodes " +
-                             "group by hostname");
+                                 "  select max(load['1']) as maxLoad, hostname " +
+                                 "  from sys.nodes " +
+                                 "  group by hostname having max(load['1']) > 50) as nodes " +
+                                 "group by hostname");
         assertThat("would require merge if more than 1 nodeIds", collect.nodeIds().size(), is(1));
 
         CollectPhase collectPhase = collect.collectPhase();

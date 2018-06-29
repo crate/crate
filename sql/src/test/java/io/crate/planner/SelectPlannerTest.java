@@ -461,7 +461,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 .collect(Collectors.toList()),
             contains(
                 is(".partitioned.parted.04732cpp6ksjcc9i60o30c1g")
-        ));
+            ));
     }
 
     @Test
@@ -548,17 +548,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test3TableJoinQuerySplitting() throws Exception {
         QueryThenFetch qtf = e.plan("select" +
-                                  "  u1.id as u1, " +
-                                  "  u2.id as u2, " +
-                                  "  u3.id as u3 " +
-                                  "from " +
-                                  "  users u1," +
-                                  "  users u2," +
-                                  "  users u3 " +
-                                  "where " +
-                                  "  u1.name = 'Arthur'" +
-                                  "  and u2.id = u1.id" +
-                                  "  and u2.name = u1.name");
+                                    "  u1.id as u1, " +
+                                    "  u2.id as u2, " +
+                                    "  u3.id as u3 " +
+                                    "from " +
+                                    "  users u1," +
+                                    "  users u2," +
+                                    "  users u3 " +
+                                    "where " +
+                                    "  u1.name = 'Arthur'" +
+                                    "  and u2.id = u1.id" +
+                                    "  and u2.name = u1.name");
         Join outerNl = (Join) qtf.subPlan();
         Join innerNl = (Join) outerNl.left();
 
@@ -577,9 +577,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         // disable hash joins otherwise it will be a distributed join and the plan differs
         e.getSessionContext().setHashJoinEnabled(false);
         QueryThenFetch qtf = e.plan("select u1.text, u2.text " +
-                                  "from users u1 left join users u2 on u1.id = u2.id " +
-                                  "where u2.name = 'Arthur'" +
-                                  "and u2.id > 1 ");
+                                    "from users u1 left join users u2 on u1.id = u2.id " +
+                                    "where u2.name = 'Arthur'" +
+                                    "and u2.id > 1 ");
         Join nl = (Join) ((Merge) qtf.subPlan()).subPlan();
         assertThat(nl.joinPhase().joinType(), is(JoinType.INNER));
         Collect rightCM = (Collect) nl.right();
@@ -663,7 +663,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(innerNL.joinPhase().outputTypes().get(0), is(DataTypes.LONG));
 
         plan = e.plan("select count(t1.other_id) from users t1, users t2, users t3 " +
-                            "where t1.id = t2.id and t2.id = t3.id");
+                      "where t1.id = t2.id and t2.id = t3.id");
         assertThat(plan.subPlan(), instanceOf(Join.class));
         outerNL = (Join)plan.subPlan();
         assertThat(outerNL.joinPhase().joinCondition(), isSQL("(INPUT(2) = INPUT(3))"));

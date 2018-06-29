@@ -23,24 +23,24 @@
 package io.crate.execution.engine.pipeline;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.expression.InputFactory;
-import io.crate.expression.operator.EqOperator;
 import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.execution.TransportActionProvider;
+import io.crate.expression.InputFactory;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
@@ -99,7 +99,7 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
                 r -> Literal.of(r.valueType(), r.valueType().value("1")),
                 null),
             t -> null,
-            t-> null,
+            t -> null,
             Version.CURRENT,
             BigArrays.NON_RECYCLING_INSTANCE,
             new ShardId("dummy", UUID.randomUUID().toString(), 0)
@@ -130,9 +130,8 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
         }
     }
 
-
     @Test
-    public void testConsumerRequiresScrollAndProjectorsDontSupportScrolling() throws Exception {
+    public void testConsumerRequiresScrollAndProjectorsDontSupportScrolling() {
         EqOperator op =
             (EqOperator) functions.getBuiltin(EqOperator.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER));
         Function function = new Function(op.info(), Arrays.asList(Literal.of(2), new InputColumn(1)));
@@ -148,9 +147,9 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testConsumerRequiresScrollAndProjectorsSupportScrolling() throws Exception {
+    public void testConsumerRequiresScrollAndProjectorsSupportScrolling() {
         GroupProjection groupProjection = new GroupProjection(
-            new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.DOC);
+            new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.SHARD);
 
         RowConsumer delegateConsumerRequiresScroll = new DummyRowConsumer(true);
 
@@ -161,7 +160,7 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testConsumerDoesNotRequireScrollYieldsProjectingConsumerWithoutScrollRequirements() throws Exception {
+    public void testConsumerDoesNotRequireScrollYieldsProjectingConsumerWithoutScrollRequirements() {
         GroupProjection groupProjection = new GroupProjection(
             new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.DOC);
         RowConsumer delegateConsumerRequiresScroll = new DummyRowConsumer(false);

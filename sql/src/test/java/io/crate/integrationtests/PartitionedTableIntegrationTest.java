@@ -913,7 +913,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             new Object[]{2, "Don't panic", 1395961200000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{3, "Don't panic", 1396303200000L});
-        ensureYellow();
         refresh();
 
         execute("delete from quotes where not timestamp=? and quote=?", new Object[]{1396303200000L, "Don't panic"});
