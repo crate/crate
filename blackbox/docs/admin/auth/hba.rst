@@ -8,8 +8,8 @@ This section explains how to configure CrateDB client connection and
 authentication.
 
 By default, the boolean setting ``auth.host_based.enabled`` is ``false`` and
-therefore host based authentication is disabled. In this instance, the CrateDB
-cluster allows any unauthenticated connections.
+therefore host based authentication is disabled.
+In this instance, the CrateDB cluster allows any unauthenticated connections.
 
 To allow authenticated access to CrateDB from specific hosts, you need to set
 the ``auth.host_based.enabled`` setting in the ``crate.yml`` to ``true`` and
@@ -19,8 +19,22 @@ See: :ref:`applying-cluster-settings`.
 
 .. NOTE::
 
+   The ``crate.yml`` that is shipped with CrateDB explicitly enables host based
+   authentication and defines a set of sane rules, which take effect in case
+   HBA and Enterprise features are enabled.
+
    Host Based Authentication is an
    :ref:`enterprise feature <enterprise_features>`.
+
+.. TIP::
+
+   If you want to use Enterprise features, but do not require authentication,
+   you need to set ``auth.host_based.enabled`` to ``false``. However,
+   additionally you still need to provide the user ``crate`` when connecting to
+   CrateDB via the Postgres protocol, since the Enterprise version
+   automatically enables user management. HTTP uses
+   :ref:`auth.trust.http_default_user<auth_trust_http_default_user>` if no user
+   is provided.
 
 .. rubric:: Table of Contents
 
