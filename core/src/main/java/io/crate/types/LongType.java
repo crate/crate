@@ -67,11 +67,11 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
         if (value instanceof BytesRef) {
             return parseLong((BytesRef) value);
         }
-        Long longValue = ((Number) value).longValue();
+        long longValue = ((Number) value).longValue();
         if (lossless) {
-            if (value instanceof Double && longValue.doubleValue() != (double) value) {
+            if (value instanceof Double && (double) longValue != (double) value) {
                 throw new IllegalArgumentException("Loss of precision for this double");
-            } else if (value instanceof Float && longValue.floatValue() != (float) value) {
+            } else if (value instanceof Float && (float) longValue != (float) value) {
                 throw new IllegalArgumentException("Loss of precision for this float");
             }
         }

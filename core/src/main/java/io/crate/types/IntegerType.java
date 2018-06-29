@@ -74,11 +74,11 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
         if (longVal < Integer.MIN_VALUE || Integer.MAX_VALUE < longVal) {
             throw new IllegalArgumentException("integer value out of range: " + longVal);
         }
-        Integer intValue = ((Number) value).intValue();
+        int intValue = ((Number) value).intValue();
         if (lossless) {
-            if (value instanceof Double && intValue.doubleValue() != (double) value) {
+            if (value instanceof Double && (double) intValue != (double) value) {
                 throw new IllegalArgumentException("Loss of precision for this double");
-            } else if (value instanceof Float && intValue.floatValue() != (float) value) {
+            } else if (value instanceof Float && (float) intValue != (float) value) {
                 throw new IllegalArgumentException("Loss of precision for this float");
             }
         }
