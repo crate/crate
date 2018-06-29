@@ -116,6 +116,9 @@ Changes
 Fixes
 =====
 
+- Store the correct name (``timestamptz``) for the timestamp type in the
+  ``pg_type`` table.
+
 - Fixed an issue where the Admin UI was not loaded when it was served from
   another location than ``/`` resulting in a blank browser canvas.
 
