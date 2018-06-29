@@ -80,6 +80,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
@@ -172,6 +173,15 @@ public class ProjectionToProjectorVisitor
             bigArrays,
             null
         );
+    }
+
+    @Override
+    public RowGranularity supportedGranularity() {
+        if (this.shardId == null) {
+            return RowGranularity.NODE;
+        } else {
+            return RowGranularity.SHARD;
+        }
     }
 
     @Override
