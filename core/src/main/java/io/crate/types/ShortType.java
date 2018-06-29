@@ -57,7 +57,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     }
 
     @Override
-    public Short value(Object value) {
+    public Short value(Object value, boolean lossless) {
         if (value == null) {
             return null;
         }
@@ -74,7 +74,19 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
         if (intVal < Short.MIN_VALUE || Short.MAX_VALUE < intVal) {
             throw new IllegalArgumentException("short value out of range: " + intVal);
         }
-        return ((Number) value).shortValue();
+        short shortValue = ((Number) value).shortValue();
+        if (lossless) {
+            if (value instanceof Float && (float) shortValue != (float) value) {
+                throw new IllegalArgumentException("Loss of precision for this float");
+            } else if (value instanceof Double && (double) shortValue != (double) value) {
+                throw new IllegalArgumentException("Loss of precision for this double");
+            } else if (value instanceof Integer && (int) shortValue != (int) value) {
+                throw new IllegalArgumentException("Loss of precision for this int");
+            } else if (value instanceof Long && (long) shortValue != (long) value) {
+                throw new IllegalArgumentException("Loss of precision for this long");
+            }
+        }
+        return shortValue;
     }
 
     @Override

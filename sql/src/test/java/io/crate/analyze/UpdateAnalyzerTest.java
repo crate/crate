@@ -235,7 +235,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateAssignmentConvertableType() throws Exception {
-        AnalyzedUpdateStatement update = analyze("update users set other_id=9.9");
+        AnalyzedUpdateStatement update = analyze("update users set other_id=9.0");
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref, not(instanceOf(DynamicReference.class)));
         assertEquals(DataTypes.LONG, ref.valueType());
@@ -249,7 +249,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateMuchAssignments() throws Exception {
         AnalyzedUpdateStatement update = analyze(
-            "update users set other_id=9.9, name='Trillian', details=?, stuff=true, foo='bar'",
+            "update users set other_id=9.0, name='Trillian', details=?, stuff=true, foo='bar'",
             new Object[]{new HashMap<String, Object>()});
         assertThat(update.assignmentByTargetCol().size(), is(5));
     }

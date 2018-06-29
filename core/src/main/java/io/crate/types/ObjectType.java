@@ -63,7 +63,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     @Override
     @SuppressWarnings("unchecked")
-    public Map<String, Object> value(Object value) {
+    public Map<String, Object> value(Object value, boolean lossless) {
         if (value instanceof BytesRef) {
             return mapFromBytesRef((BytesRef) value);
         }

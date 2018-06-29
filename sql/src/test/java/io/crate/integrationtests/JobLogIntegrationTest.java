@@ -26,7 +26,6 @@ import io.crate.action.sql.Session;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.reference.sys.job.JobContextLog;
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
@@ -37,7 +36,6 @@ import org.junit.Test;
 
 import java.util.Iterator;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
@@ -55,7 +53,8 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     @UseJdbc(0) // SET extra_float_digits = 3 gets added to the jobs_log
     public void testJobLogWithEnabledAndDisabledStats() throws Exception {
-        execute("set global transient stats.jobs_log_size=1");
+        String setStmt = "set global transient stats.jobs_log_size=1";
+        execute(setStmt);
 
         // We record the statements in the log **after** we notify the result receivers (see {@link JobsLogsUpdateListener usage).
         // So it might happen that the "set global ..." statement execution is returned to this test but the recording
@@ -64,15 +63,21 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
         // out what's going on.
         // So let's just wait for the "set global ... " statement to be recorded here and then move on with our test.
         assertBusy(() -> {
-            execute("select stmt from sys.jobs_log order by ended desc");
-            assertThat(TestingHelpers.printedTable(response.rows()),
-                containsString("set global transient stats.jobs_log_size=1"));
+            boolean setStmtFound = false;
+            for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
+                // each node must have received the new jobs_log_size setting change instruction
+                assertThat(jobsLogService.jobsLogSize(), is(1));
+                JobsLogs jobsLogs = jobsLogService.get();
+                Iterator<JobContextLog> iterator = jobsLogs.jobsLog().iterator();
+                if (iterator.hasNext()) {
+                    if (iterator.next().statement().equalsIgnoreCase(setStmt)) {
+                       setStmtFound = true;
+                    }
+                }
+            }
+            // at least one node must have the set statement logged
+            assertThat(setStmtFound, is(true));
         });
-
-        // wait for the other node to receive the new jobs_log_size setting change instruction
-        for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
-            assertBusy(() -> assertThat(jobsLogService.jobsLogSize(), is(1)));
-        }
 
         // Each node can hold only 1 query (the latest one) so in total we should always see 2 queries in
         // the jobs_log. We make sure that we hit both nodes with 2 queries each and then assert that

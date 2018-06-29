@@ -166,6 +166,62 @@ public class TypeConversionTest extends CrateUnitTest {
         DataTypes.INTEGER.value(Long.MIN_VALUE);
     }
 
+    @Test
+    public void testDoubleToIntegerLossOfPrecision() {
+        assertThat(DataTypes.INTEGER.value(1.0), is(1));
+        expectedException.expect(IllegalArgumentException.class);
+        DataTypes.INTEGER.value(1.4);
+    }
+
+    @Test
+    public void testDoubleToShortLossOfPrecision() {
+        assertThat(DataTypes.SHORT.value(1.0), is((short) 1));
+        expectedException.expect(IllegalArgumentException.class);
+        DataTypes.SHORT.value(1.4);
+    }
+
+    @Test
+    public void testDoubleToByteLossOfPrecision() {
+        assertThat(DataTypes.BYTE.value(1.0), is((byte) 1));
+        expectedException.expect(IllegalArgumentException.class);
+        DataTypes.BYTE.value(1.4);
+    }
+
+    @Test
+    public void testFloatToIntegerLossOfPrecision() {
+        assertThat(DataTypes.INTEGER.value(1.0f), is(1));
+        expectedException.expect(IllegalArgumentException.class);
+        DataTypes.INTEGER.value(1.4f);
+    }
+
+    @Test
+    public void testFloatToShortLossOfPrecision() {
+        assertThat(DataTypes.SHORT.value(1.0f), is((short) 1));
+        expectedException.expect(IllegalArgumentException.class);
+        DataTypes.SHORT.value(1.4f);
+    }
+
+    @Test
+    public void testFloatToByteLossOfPrecision() {
+        assertThat(DataTypes.BYTE.value(1.0f), is((byte) 1));
+        expectedException.expect(IllegalArgumentException.class);
+        DataTypes.BYTE.value(1.4f);
+    }
+
+    @Test
+    public void testDoubleToLongLossOfPrecision() {
+        assertThat(DataTypes.LONG.value(1.0), is(1L));
+        expectedException.expect(IllegalArgumentException.class);
+        DataTypes.LONG.value(1.4);
+    }
+
+    @Test
+    public void testFloatToLongLossOfPrecision() {
+        assertThat(DataTypes.LONG.value(1.0f), is(1L));
+        expectedException.expect(IllegalArgumentException.class);
+        DataTypes.LONG.value(1.4f);
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testFloatOutOfRangePositive() throws Exception {
         DataTypes.FLOAT.value(Double.MAX_VALUE);

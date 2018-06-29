@@ -76,7 +76,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testDifferentButConvertableInnerTypes() throws Exception {
-        assertEvaluate("array_unique([10, 20], [10.1, 20.0])", new Long[] {10L, 20L });
+        assertEvaluate("array_unique([10, 20], [10.0, 20.0])", new Long[] { 10L, 20L });
     }
 
     @Test

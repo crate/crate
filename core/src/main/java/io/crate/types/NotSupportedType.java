@@ -57,8 +57,8 @@ public class NotSupportedType extends DataType<Void> {
     }
 
     @Override
-    public Void value(Object value) {
-        return null;
+    public Void value(Object value, boolean lossless) {
+        throw new IllegalStateException("Can't convert to unsupported type");
     }
 
     @Override

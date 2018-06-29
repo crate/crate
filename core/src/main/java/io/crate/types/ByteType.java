@@ -57,7 +57,7 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     }
 
     @Override
-    public Byte value(Object value) {
+    public Byte value(Object value, boolean lossless) {
         if (value == null) {
             return null;
         }
@@ -71,7 +71,21 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
         if (val < Byte.MIN_VALUE || Byte.MAX_VALUE < val) {
             throw new IllegalArgumentException("byte value out of range: " + val);
         }
-        return (byte) val;
+        byte byteValue = ((Number) value).byteValue();
+        if (lossless) {
+            if (value instanceof Float && (float) byteValue != (float) value) {
+                throw new IllegalArgumentException("Loss of precision for this float");
+            } else if (value instanceof Double && (double) byteValue != (double) value) {
+                throw new IllegalArgumentException("Loss of precision for this double");
+            } else if (value instanceof Short && (short) byteValue != (short) value) {
+                throw new IllegalArgumentException("Loss of precision for this int");
+            } else if (value instanceof Integer && (int) byteValue != (int) value) {
+                throw new IllegalArgumentException("Loss of precision for this int");
+            } else if (value instanceof Long && (long) byteValue != (long) value) {
+                throw new IllegalArgumentException("Loss of precision for this long");
+            }
+        }
+        return byteValue;
     }
 
     @Override

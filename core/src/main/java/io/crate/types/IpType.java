@@ -37,7 +37,7 @@ public class IpType extends StringType {
     }
 
     @Override
-    public BytesRef value(Object value) {
+    public BytesRef value(Object value, boolean lossless) {
         if (value == null) {
             return null;
         }

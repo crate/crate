@@ -63,7 +63,7 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     @Override
-    public Map<String, Object> value(Object value) throws IllegalArgumentException, ClassCastException {
+    public Map<String, Object> value(Object value, boolean lossless) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         }

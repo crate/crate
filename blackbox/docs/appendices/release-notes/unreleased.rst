@@ -42,6 +42,9 @@ Breaking Changes
 Changes
 =======
 
+- Disallowed implicit casts of numeric data types which could lead to a loss of
+  precision.
+
 - Added settings ``s3.client.default.access_key`` and
   ``s3.client.default.secret_key`` which can be used to set default credentials
   for s3 repositories, if they are not passed as parameters to the
@@ -115,6 +118,9 @@ Changes
 
 Fixes
 =====
+
+- Fixed an issue where the Admin UI was not loaded when it was served from
+  another location than ``/`` resulting in a blank browser canvas.
 
 - Made table setting ``blocks.read_only_allow_delete`` configurable for
   partitioned tables.

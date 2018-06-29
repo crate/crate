@@ -314,7 +314,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testColumnsCannotBeCastedToLiteralType() {
         SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
-        Function symbol = (Function) expressions.asSymbol("doc.t2.i = 1.1");
+        Function symbol = (Function) expressions.asSymbol("doc.t2.i = 1.0");
         assertThat(symbol.arguments().get(0), isField("i"));
         assertThat(symbol.arguments().get(0).valueType(), is(DataTypes.INTEGER));
     }
