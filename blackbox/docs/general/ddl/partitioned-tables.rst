@@ -470,7 +470,6 @@ partitioned table.
 Limitations
 ===========
 
-* ``PARTITIONED BY`` columns cannot be used in ``ORDER BY``
 * ``PARTITIONED BY`` columns cannot be updated
 * ``WHERE`` clauses cannot contain queries like ``partitioned_by_column='x' OR
   normal_column=x``
