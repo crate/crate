@@ -134,9 +134,6 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         if (outputs == null) {
             outputs = new ArrayList<>(tableInfo.columns().size());
             for (Reference reference : tableInfo.columns()) {
-                if (reference.valueType().equals(DataTypes.NOT_SUPPORTED)) {
-                    continue;
-                }
                 ColumnIdent columnIdent = reference.column();
                 outputs.add(getField(columnIdent));
             }

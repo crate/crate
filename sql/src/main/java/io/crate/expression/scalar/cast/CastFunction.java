@@ -66,7 +66,7 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         assert args.length == 1 : "Number of arguments must be 1";
         Object value = args[0].value();
         try {
-            return returnType.value(value);
+            return returnType.value(value, false);
         } catch (ClassCastException | IllegalArgumentException e) {
             return onEvaluateException(value);
         }
@@ -84,7 +84,7 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         if (argument.symbolType().isValueSymbol()) {
             Object value = ((Input) argument).value();
             try {
-                return Literal.of(returnType, returnType.value(value));
+                return Literal.of(returnType, returnType.value(value, false));
             } catch (ClassCastException | IllegalArgumentException e) {
                 return onNormalizeException(argument);
             }

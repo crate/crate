@@ -891,8 +891,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testArrayCompareAnyNeq() throws Exception {
-        QueriedRelation relation = analyze("select * from users where ? != ANY (counters)",
-            new Object[]{4.3F});
+        QueriedRelation relation = analyze("select * from users where ? != ANY (counters)", new Object[]{4});
         assertThat(relation.querySpec().where().hasQuery(), is(true));
 
         FunctionInfo anyInfo = ((Function) relation.querySpec().where().query()).info();

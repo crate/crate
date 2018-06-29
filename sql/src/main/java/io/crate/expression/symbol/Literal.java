@@ -113,7 +113,7 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
                 }
                 return true;
             } else {
-                return Arrays.equals((Object[]) value, ((ArrayType) type).value(value));
+                return Arrays.equals((Object[]) value, ((ArrayType) type).value(value, true));
             }
         }
         // types like GeoPoint are represented as arrays
@@ -290,7 +290,7 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
             return literal;
         }
         try {
-            return of(type, type.value(literal.value()));
+            return of(type, type.value(literal.value(), false));
         } catch (IllegalArgumentException | ClassCastException e) {
             throw new ConversionException(symbol, type);
         }

@@ -51,7 +51,7 @@ public class ArrayType extends CollectionType {
     }
 
     @Override
-    public Object[] value(Object value) {
+    public Object[] value(Object value, boolean lossless) {
         // We can pass in Collections and Arrays here but we always
         // have to return arrays since a lot of code makes assumptions
         // about this.
@@ -64,7 +64,7 @@ public class ArrayType extends CollectionType {
             result = new Object[values.size()];
             int idx = 0;
             for (Object o : values) {
-                result[idx] = innerType.value(o);
+                result[idx] = innerType.value(o, lossless);
                 idx++;
             }
         } else {
@@ -72,7 +72,7 @@ public class ArrayType extends CollectionType {
             result = new Object[values.length];
             int idx = 0;
             for (Object o : values) {
-                result[idx] = innerType.value(o);
+                result[idx] = innerType.value(o, lossless);
                 idx++;
             }
         }

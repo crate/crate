@@ -244,7 +244,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
 
         @Override
-        public HyperLogLogDistinctAggregation.HllState value(Object value) throws IllegalArgumentException, ClassCastException {
+        public HyperLogLogDistinctAggregation.HllState value(Object value, boolean lossless) throws IllegalArgumentException, ClassCastException {
             return (HyperLogLogDistinctAggregation.HllState) value;
         }
 

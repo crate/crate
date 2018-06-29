@@ -111,7 +111,7 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
         }
 
         @Override
-        public VarianceState value(Object value) throws IllegalArgumentException, ClassCastException {
+        public VarianceState value(Object value, boolean lossless) throws IllegalArgumentException, ClassCastException {
             return (VarianceState) value;
         }
 

@@ -110,7 +110,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
 
         @Override
-        public StdDevState value(Object value) throws IllegalArgumentException, ClassCastException {
+        public StdDevState value(Object value, boolean lossless) throws IllegalArgumentException, ClassCastException {
             return (StdDevState) value;
         }
 

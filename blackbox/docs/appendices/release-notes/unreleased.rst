@@ -42,6 +42,9 @@ Breaking Changes
 Changes
 =======
 
+- Disallowed implicit casts of numeric data types which could lead to a loss of
+  precision.
+
 - Added settings ``s3.client.default.access_key`` and
   ``s3.client.default.secret_key`` which can be used to set default credentials
   for s3 repositories, if they are not passed as parameters to the

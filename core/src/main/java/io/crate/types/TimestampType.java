@@ -58,7 +58,7 @@ public class TimestampType extends DataType<Long> implements FixedWidthType, Str
     }
 
     @Override
-    public Long value(Object value) throws ClassCastException {
+    public Long value(Object value, boolean lossless) throws ClassCastException {
         if (value == null) {
             return null;
         }
