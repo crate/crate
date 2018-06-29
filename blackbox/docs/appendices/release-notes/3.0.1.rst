@@ -14,8 +14,9 @@ Released on 2018/05/30.
     We recommend that you upgrade to the latest 2.3 release before moving to
     3.0.1.
 
-    You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
-    version will require a `full restart upgrade`_.
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_3.0.0`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
 
     When restarting, CrateDB will migrate indexes to a newer format. Depending
     on the amount of data, this may delay node start-up time.
