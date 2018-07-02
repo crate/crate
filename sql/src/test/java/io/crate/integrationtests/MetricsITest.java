@@ -22,10 +22,15 @@
 
 package io.crate.integrationtests;
 
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.metadata.sys.ClassifiedHistograms;
+import io.crate.planner.Plan;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.hamcrest.core.Is.is;
 
 public class MetricsITest extends SQLTransportIntegrationTest {
 
@@ -72,11 +77,27 @@ public class MetricsITest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testTotalCountOnMetrics() {
+    public void testTotalCountOnMetrics() throws Exception {
         int numQueries = 100;
         for (int i = 0; i < numQueries; i++) {
             execute("SELECT 1");
         }
+
+        // We record the data for the histograms **after** we notify the result receivers
+        // (see {@link JobsLogsUpdateListener usage).
+        // So it might happen that the recording of the statement the "SELECT 1" in the metrics is done
+        // AFTER its execution has returned to this test (because async programming is evil like that).
+        assertBusy(() -> {
+            long cnt = 0;
+            for (JobsLogService jobsLogService : internalCluster().getInstances(JobsLogService.class)) {
+                for (ClassifiedHistograms.ClassifiedHistogram histogram: jobsLogService.get().metrics()) {
+                    if (histogram.classification().type() == Plan.StatementType.SELECT) {
+                        cnt += histogram.histogram().getTotalCount();
+                    }
+                }
+            }
+            assertThat(cnt, is((long) numQueries));
+        });
 
         execute("SELECT sum(total_count) FROM sys.jobs_metrics WHERE classification['type'] = 'SELECT'");
         assertThat(response.rows()[0][0], Matchers.is((long) numQueries));
