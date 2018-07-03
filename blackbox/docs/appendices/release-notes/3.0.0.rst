@@ -269,7 +269,11 @@ Altered Settings
   CrateDB node should store its table data and cluster metadata.
 
   In CrateDB 3.0.0 and later, this path must *not* contain the cluster name
-  as a directory, as in ``/storage/<CLUSTER_NAME>/data/``.
+  as a directory. For example, if you have set ``cluster.name: abcdef``,
+  the setting ``path.data: /mnt/abcdef/data`` would be incompatible. Moving
+  or renaming the directory, such as to ``/mnt/data``, and altering your
+  ``path.data`` setting accordingly will allow you to continue using the node's
+  data.
 
   Data paths that are incompatible with 3.0.0 will be indicated visually in the
   `admin UI`_ if you are running the latest 2.2.x or 2.3.x release.
