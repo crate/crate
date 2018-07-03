@@ -21,28 +21,26 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
-import io.crate.types.CollectionType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.GeoPointType;
-import io.crate.types.GeoShapeType;
 import io.crate.types.IntegerType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
-import io.crate.types.ObjectType;
 import io.crate.types.SetType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
@@ -50,10 +48,14 @@ import io.crate.types.TimestampType;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
-import java.util.Locale;
+import java.util.Set;
+
+import static io.crate.metadata.DocReferences.toSourceLookup;
+import static io.crate.types.CollectionType.unnest;
 
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
+    private static final Set<DataType<?>> NO_FIELD_TYPES = ImmutableSet.of(DataTypes.OBJECT, DataTypes.GEO_SHAPE);
     private final FieldTypeLookup fieldTypeLookup;
     private final IndexSettings indexSettings;
 
@@ -63,61 +65,58 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     }
 
     @Override
-    public LuceneCollectorExpression<?> getImplementation(Reference refInfo) {
-        assert refInfo.granularity() == RowGranularity.DOC : "lucene collector expressions are required to be on DOC granularity";
+    public LuceneCollectorExpression<?> getImplementation(Reference ref) {
+        assert ref.granularity() == RowGranularity.DOC : "lucene collector expressions are required to be on DOC granularity";
 
-        final DataType dataType = refInfo.valueType();
-        DataType innerType = CollectionType.unnest(dataType);
-        if (innerType.id() == ObjectType.ID || innerType.id() == GeoShapeType.ID) {
-            // FetchOrEval takes care of rewriting the reference to do a source lookup.
-            // However, when fetching is disabled, this does not happen and we need to ensure
-            // (at least) for objects (also if inside arrays) that we do a source lookup.
-            refInfo = DocReferences.toSourceLookup(refInfo);
+        ColumnIdent column = ref.column();
+        switch (column.name()) {
+            case DocSysColumns.Names.RAW:
+                if (column.isTopLevel()) {
+                    return new RawCollectorExpression();
+                }
+                throw new UnsupportedFeatureException("_raw expression does not support subscripts: " + column);
+
+            case DocSysColumns.Names.UID:
+                if (indexSettings.isSingleType()) {
+                    return new IdCollectorExpression(); // _uid == _id
+                }
+                return new UidCollectorExpression();
+
+            case DocSysColumns.Names.ID:
+                if (indexSettings.isSingleType()) {
+                    return new IdCollectorExpression();
+                }
+                return new IdFromUidCollectorExpression();
+
+            case DocSysColumns.Names.DOC:
+                return DocCollectorExpression.create(ref);
+
+            case DocSysColumns.Names.FETCHID:
+                return new FetchIdCollectorExpression();
+
+            case DocSysColumns.Names.SCORE:
+                return new ScoreCollectorExpression();
+
+            case DocSysColumns.Names.VERSION:
+                return new VersionCollectorExpression();
+
+            default:
+                return typeSpecializedExpression(fieldTypeLookup, ref);
         }
+    }
 
-        ColumnIdent columnIdent = refInfo.column();
-        String name = columnIdent.name();
-        if (RawCollectorExpression.COLUMN_NAME.equals(name)) {
-            if (columnIdent.isTopLevel()) {
-                return new RawCollectorExpression();
-            } else {
-                // TODO: implement an Object source expression which may support subscripts
-                throw new UnsupportedFeatureException(
-                    String.format(Locale.ENGLISH, "_source expression does not support subscripts %s",
-                        columnIdent.fqn()));
-            }
-        } else if (UidCollectorExpression.COLUMN_NAME.equals(name)) {
-            if (indexSettings.isSingleType()) {
-                // _uid and _id is the same
-                return new IdCollectorExpression();
-            }
-            return new UidCollectorExpression();
-        } else if (IdCollectorExpression.COLUMN_NAME.equals(name)) {
-            if (indexSettings.isSingleType()) {
-                return new IdCollectorExpression();
-            }
-            return new IdFromUidCollectorExpression();
-        } else if (DocCollectorExpression.COLUMN_NAME.equals(name)) {
-            return DocCollectorExpression.create(refInfo);
-        } else if (FetchIdCollectorExpression.COLUMN_NAME.equals(name)) {
-            return new FetchIdCollectorExpression();
-        } else if (ScoreCollectorExpression.COLUMN_NAME.equals(name)) {
-            return new ScoreCollectorExpression();
-        } else if (DocSysColumns.VERSION.name().equals(name)) {
-            return new VersionCollectorExpression();
-        }
-
-        String fqn = columnIdent.fqn();
+    private static LuceneCollectorExpression<?> typeSpecializedExpression(FieldTypeLookup fieldTypeLookup, Reference ref) {
+        String fqn = ref.column().fqn();
         MappedFieldType fieldType = fieldTypeLookup.get(fqn);
         if (fieldType == null) {
-            return new NullValueCollectorExpression(fqn);
+            return NO_FIELD_TYPES.contains(unnest(ref.valueType()))
+                ? DocCollectorExpression.create(toSourceLookup(ref))
+                : new NullValueCollectorExpression(fqn);
         }
-        if (fieldType.hasDocValues() == false) {
-            Reference ref = DocReferences.toSourceLookup(refInfo);
-            return DocCollectorExpression.create(ref);
+        if (!fieldType.hasDocValues()) {
+            return DocCollectorExpression.create(toSourceLookup(ref));
         }
-
-        switch (dataType.id()) {
+        switch (ref.valueType().id()) {
             case ByteType.ID:
                 return new ByteColumnReference(fqn);
             case ShortType.ID:
@@ -141,9 +140,9 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                 return new GeoPointColumnReference(fqn, fieldType);
             case ArrayType.ID:
             case SetType.ID:
-                return DocCollectorExpression.create(DocReferences.toSourceLookup(refInfo));
+                return DocCollectorExpression.create(toSourceLookup(ref));
             default:
-                throw new UnhandledServerException(String.format(Locale.ENGLISH, "unsupported type '%s'", dataType.getName()));
+                throw new UnhandledServerException("Unsupported type: " + ref.valueType().getName());
         }
     }
 
