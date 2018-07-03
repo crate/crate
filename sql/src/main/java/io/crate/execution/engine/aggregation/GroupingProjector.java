@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.expression.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -30,19 +29,24 @@ import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.util.BigArrays;
 
 import java.util.List;
+import java.util.stream.Collector;
+
+import static io.crate.expression.symbol.Symbols.typeView;
 
 public class GroupingProjector implements Projector {
 
-    private final GroupingCollector<Object> collector;
+    private final Collector<Row, ?, Iterable<Row>> collector;
 
 
-    public GroupingProjector(List<? extends DataType> keyTypes,
+    public GroupingProjector(List<? extends Symbol> keys,
                              List<Input<?>> keyInputs,
                              CollectExpression<Row, ?>[] collectExpressions,
                              AggregateMode mode,
@@ -50,8 +54,8 @@ public class GroupingProjector implements Projector {
                              RamAccountingContext ramAccountingContext,
                              Version indexVersionCreated,
                              BigArrays bigArrays) {
-        assert keyTypes.size() == keyInputs.size() : "number of key types must match with number of key inputs";
-        assert allTypesKnown(keyTypes) : "must have a known type for each key input";
+        assert keys.size() == keyInputs.size() : "number of key types must match with number of key inputs";
+        assert allTypesKnown(typeView(keys)) : "must have a known type for each key input";
 
 
         AggregationFunction[] functions = new AggregationFunction[aggregations.length];
@@ -61,18 +65,32 @@ public class GroupingProjector implements Projector {
             functions[i] = aggregation.function();
             inputs[i] = aggregation.inputs();
         }
-        if (keyInputs.size() == 1) {
-            collector = GroupingCollector.singleKey(
-                collectExpressions,
-                mode,
-                functions,
-                inputs,
-                ramAccountingContext,
-                keyInputs.get(0),
-                keyTypes.get(0),
-                indexVersionCreated,
-                bigArrays
-            );
+        if (keys.size() == 1) {
+            Symbol key = keys.get(0);
+            if (key.valueType().equals(DataTypes.LONG)) {
+                collector = new GroupBySingleLongCollector(
+                    collectExpressions,
+                    mode,
+                    functions,
+                    inputs,
+                    ramAccountingContext,
+                    (Input<Long>) keyInputs.get(0),
+                    indexVersionCreated,
+                    bigArrays
+                );
+            } else {
+                collector = GroupingCollector.singleKey(
+                    collectExpressions,
+                    mode,
+                    functions,
+                    inputs,
+                    ramAccountingContext,
+                    keyInputs.get(0),
+                    key.valueType(),
+                    indexVersionCreated,
+                    bigArrays
+                );
+            }
         } else {
             //noinspection unchecked
             collector = (GroupingCollector<Object>) (GroupingCollector) GroupingCollector.manyKeys(
@@ -82,7 +100,7 @@ public class GroupingProjector implements Projector {
                 inputs,
                 ramAccountingContext,
                 keyInputs,
-                keyTypes,
+                typeView(keys),
                 indexVersionCreated,
                 bigArrays
             );

@@ -76,7 +76,6 @@ import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
@@ -248,7 +247,7 @@ public class ProjectionToProjectorVisitor
 
         List<Input<?>> keyInputs = ctx.topLevelInputs();
         return new GroupingProjector(
-            Symbols.typeView(projection.keys()),
+            projection.keys(),
             keyInputs,
             Iterables.toArray(ctx.expressions(), CollectExpression.class),
             projection.mode(),

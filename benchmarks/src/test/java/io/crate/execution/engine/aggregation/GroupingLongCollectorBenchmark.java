@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.expression.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -30,13 +29,12 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.execution.engine.aggregation.GroupingCollector;
-import io.crate.metadata.Functions;
-import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.metadata.Functions;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -62,7 +60,7 @@ import static io.crate.data.SentinelRow.SENTINEL;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-public class GroupingIntegerCollectorBenchmark {
+public class GroupingLongCollectorBenchmark {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
@@ -70,26 +68,41 @@ public class GroupingIntegerCollectorBenchmark {
     private GroupingCollector groupBySumCollector;
     private BatchIterator<Row> rowsIterator;
     private List<Row> rows;
+    private GroupBySingleLongCollector groupBySumSingleLongCollector;
 
     @Setup
     public void createGroupingCollector() {
         Functions functions = new ModulesBuilder().add(new AggregationImplModule())
             .createInjector().getInstance(Functions.class);
-        groupBySumCollector = createGroupBySumCollector(functions);
+        AggregationFunction sumAgg =
+            (AggregationFunction) functions.getBuiltin(SumAggregation.NAME, Arrays.asList(DataTypes.INTEGER));
+        groupBySumCollector = createGroupBySumCollector(sumAgg);
+        groupBySumSingleLongCollector = createOptimizedCollector(sumAgg);
 
         rows = new ArrayList<>(20_000_000);
         for (int i = 0; i < 20_000_000; i++) {
-            rows.add(new Row1(i % 200));
+            rows.add(new Row1((long) i % 200));
         }
     }
 
-    private GroupingCollector createGroupBySumCollector(Functions functions) {
+    private GroupBySingleLongCollector createOptimizedCollector(AggregationFunction sumAgg) {
+        InputCollectExpression keyInput = new InputCollectExpression(0);
+        return new GroupBySingleLongCollector(
+            new CollectExpression[] { keyInput },
+            AggregateMode.ITER_FINAL,
+            new AggregationFunction[] { sumAgg },
+            new Input[][] { new Input[] { keyInput }},
+            RAM_ACCOUNTING_CONTEXT,
+            (Input<Long>)(Input) keyInput,
+            Version.CURRENT,
+            BigArrays.NON_RECYCLING_INSTANCE
+        );
+    }
+
+    private static GroupingCollector createGroupBySumCollector(AggregationFunction sumAgg) {
         InputCollectExpression keyInput = new InputCollectExpression(0);
         List<Input<?>> keyInputs = Arrays.<Input<?>>asList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
-
-        AggregationFunction sumAgg =
-            (AggregationFunction) functions.getBuiltin(SumAggregation.NAME, Arrays.asList(DataTypes.INTEGER));
 
         return GroupingCollector.singleKey(
             collectExpressions,
@@ -98,15 +111,21 @@ public class GroupingIntegerCollectorBenchmark {
             new Input[][] { new Input[] { keyInput }},
             RAM_ACCOUNTING_CONTEXT,
             keyInputs.get(0),
-            DataTypes.INTEGER,
+            DataTypes.LONG,
             Version.CURRENT,
             BigArrays.NON_RECYCLING_INSTANCE
         );
     }
 
     @Benchmark
-    public void measureGroupBySumInteger(Blackhole blackhole) throws Exception {
+    public void measureGroupBySumLong(Blackhole blackhole) throws Exception {
         rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL);
         blackhole.consume(BatchIterators.collect(rowsIterator, groupBySumCollector).get());
+    }
+
+    @Benchmark
+    public void measureGroupBySumLongOptimized(Blackhole blackhole) throws Exception {
+        rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL);
+        blackhole.consume(BatchIterators.collect(rowsIterator, groupBySumSingleLongCollector).get());
     }
 }
