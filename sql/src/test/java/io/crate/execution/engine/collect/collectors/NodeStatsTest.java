@@ -62,7 +62,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-public class NodeStatsIteratorTest extends CrateUnitTest {
+public class NodeStatsTest extends CrateUnitTest {
 
     private RoutedCollectPhase collectPhase;
     private Collection<DiscoveryNode> nodes = new HashSet<>();
@@ -97,7 +97,7 @@ public class NodeStatsIteratorTest extends CrateUnitTest {
 
         when(collectPhase.toCollect()).thenReturn(toCollect);
 
-        BatchIterator iterator = NodeStatsIterator.newInstance(
+        BatchIterator iterator = NodeStats.newInstance(
             transportNodeStatsAction,
             collectPhase,
             nodes,
@@ -116,7 +116,7 @@ public class NodeStatsIteratorTest extends CrateUnitTest {
         toCollect.add(nameRef);
         when(collectPhase.toCollect()).thenReturn(toCollect);
 
-        BatchIterator iterator = NodeStatsIterator.newInstance(
+        BatchIterator iterator = NodeStats.newInstance(
             transportNodeStatsAction,
             collectPhase,
             nodes,
@@ -134,7 +134,7 @@ public class NodeStatsIteratorTest extends CrateUnitTest {
 
         when(collectPhase.toCollect()).thenReturn(toCollect);
 
-        BatchIterator iterator = NodeStatsIterator.newInstance(
+        BatchIterator iterator = NodeStats.newInstance(
             transportNodeStatsAction,
             collectPhase,
             nodes,
@@ -163,7 +163,7 @@ public class NodeStatsIteratorTest extends CrateUnitTest {
             new Object[]{new BytesRef("nodeOne")},
             new Object[]{new BytesRef("nodeTwo")}
         );
-        BatchIteratorTester tester = new BatchIteratorTester(() -> NodeStatsIterator.newInstance(
+        BatchIteratorTester tester = new BatchIteratorTester(() -> NodeStats.newInstance(
             transportNodeStatsAction,
             collectPhase,
             nodes,

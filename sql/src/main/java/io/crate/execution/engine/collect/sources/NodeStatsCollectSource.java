@@ -34,7 +34,7 @@ import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.RowsCollector;
-import io.crate.execution.engine.collect.collectors.NodeStatsIterator;
+import io.crate.execution.engine.collect.collectors.NodeStats;
 import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -86,7 +86,7 @@ public class NodeStatsCollectSource implements CollectSource {
         if (nodes.isEmpty()) {
             return RowsCollector.empty(consumer);
         }
-        BatchIterator nodeStatsIterator = NodeStatsIterator.newInstance(
+        BatchIterator nodeStatsIterator = NodeStats.newInstance(
             nodeStatsAction,
             collectPhase,
             nodes,
