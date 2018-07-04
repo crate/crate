@@ -24,7 +24,7 @@ package io.crate.execution.engine.collect.sources;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.RelationUnknown;
@@ -55,8 +55,6 @@ import org.elasticsearch.common.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-
-import static io.crate.data.SentinelRow.SENTINEL;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
@@ -123,16 +121,21 @@ public class SystemCollectSource implements CollectSource {
         StaticTableDefinition<?> tableDefinition = tableDefinition(relationName);
 
         return BatchIteratorCollectorBridge.newInstance(
-            () -> tableDefinition.retrieveRecords(collectPhase.user()).thenApply(records ->
-                InMemoryBatchIterator.of(
-                    recordsToRows(
-                        collectPhase,
-                        tableDefinition.getReferenceResolver(),
-                        requiresScroll,
-                        records
-                    ),
-                    SENTINEL
-                )),
+            CollectingBatchIterator.newInstance(
+                () -> {},
+                // kill no-op: Can't interrupt remote retrieval;
+                // If data is already local, then `CollectingBatchIterator` takes care of kill handling.
+                t -> {},
+                () -> tableDefinition.retrieveRecords(collectPhase.user())
+                    .thenApply(records ->
+                        recordsToRows(
+                            collectPhase,
+                            tableDefinition.getReferenceResolver(),
+                            requiresScroll,
+                            records
+                        )
+                    )
+            ),
             consumer
         );
     }
