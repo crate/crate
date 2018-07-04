@@ -1,3 +1,6 @@
+import java.security.Security
+import org.gradle.api.JavaVersion
+
 buildscript {
     repositories {
         mavenCentral()
@@ -62,6 +65,12 @@ allprojects {
 
         // tell ES to add required permissions for gradle
         systemProperty "tests.gradle", "true"
+
+        if (JavaVersion.current() > JavaVersion.VERSION_1_9) {
+            // Java 10 uses JKCS12 as detault store type
+            // but for tests we want to use JKS only
+            systemProperty "java.security.properties", file("$rootDir/gradle/java10.security")
+        }
 
         // pass system properties to gradle process
         // you you can filter tests by test groups,

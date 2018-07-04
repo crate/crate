@@ -60,13 +60,14 @@ public class CrateMqttSslTransportIntegrationTest extends SQLTransportIntegratio
 
     @BeforeClass
     public static void beforeIntegrationTest() throws IOException {
-        keyStoreFile = getFile(CrateMqttSslTransportIntegrationTest.class.getClassLoader(), "keystore.jks");
-        trustStoreFile = getFile(CrateMqttSslTransportIntegrationTest.class.getClassLoader(), "truststore.jks");
+        keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
+        trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
         System.setProperty("javax.net.ssl.trustStore", trustStoreFile.getAbsolutePath());
         System.setProperty("javax.net.ssl.trustStorePassword", "truststorePassword");
     }
 
-    private static File getFile(ClassLoader classLoader, String fileName) throws IOException {
+    private static File getAbsoluteFilePathFromClassPath(String fileName) throws IOException {
+        ClassLoader classLoader = CrateMqttSslTransportIntegrationTest.class.getClassLoader();
         final URL fileUrl = classLoader.getResource(fileName);
         if (fileUrl == null) {
             throw new FileNotFoundException("Resource was not found: " + fileName);

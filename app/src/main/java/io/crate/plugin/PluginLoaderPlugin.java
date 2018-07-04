@@ -52,8 +52,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.Constants.KEYSTORE_DEFAULT_TYPE;
-
 public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
     private static final Logger LOGGER = Loggers.getLogger(PluginLoaderPlugin.class);
@@ -156,7 +154,7 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
             if (trustStream == null) {
                 throw new FileNotFoundException("Resource [" + trustStorePath + "] not found in classpath");
             }
-            KeyStore trustStore = KeyStore.getInstance(KEYSTORE_DEFAULT_TYPE);
+            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
 
             // load the stream to our store
             trustStore.load(trustStream, trustPassword.toCharArray());

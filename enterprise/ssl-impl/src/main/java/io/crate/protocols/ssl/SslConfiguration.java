@@ -46,7 +46,6 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
@@ -55,8 +54,6 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Optional;
-
-import static io.crate.Constants.KEYSTORE_DEFAULT_TYPE;
 
 /**
  * Builds a Netty {@link SSLContext} which is passed upon creation of a {@link SslHandler}
@@ -78,18 +75,9 @@ import static io.crate.Constants.KEYSTORE_DEFAULT_TYPE;
 @SuppressWarnings("WeakerAccess")
 public final class SslConfiguration {
 
-    private static final String KEYSTORE_TYPE = "keystore.type";
-
     private SslConfiguration() {}
 
     public static SslContext buildSslContext(Settings settings) {
-        // Under JDK10 "keystore.type" is set to pkcs12, which breaks our tests
-        // Need to investigate if this is a testing only issue or a real issue
-        // so meanwhile we restore behaviour prior to
-        // https://github.com/netty/netty/commit/ab9f0a0fda23e9c254cca9b18f5c19090b6c63ef
-        String keyStoreType = Security.getProperty(KEYSTORE_TYPE);
-        Security.setProperty(KEYSTORE_TYPE, "jks");
-
         try {
             KeyStoreSettings keyStoreSettings = new KeyStoreSettings(settings);
 
@@ -136,23 +124,24 @@ public final class SslConfiguration {
             throw e;
         } catch (Exception e) {
             throw new SslConfigurationException("Failed to build SSL configuration", e);
-        } finally {
-            Security.setProperty(KEYSTORE_TYPE, keyStoreType);
         }
     }
 
     abstract static class AbstractKeyStoreSettings {
 
-        final Logger LOGGER = Loggers.getLogger(getClass());
-
+        final Logger logger;
         final KeyStore keyStore;
         final String keyStorePath;
         final char[] keyStorePassword;
 
         AbstractKeyStoreSettings(Settings settings) throws Exception {
-            this.keyStorePath = checkStorePath(getPathSetting().setting().get(settings));
-            this.keyStorePassword = getPassword(getPasswordSetting().setting().get(settings));
-            this.keyStore = KeyStore.getInstance(KEYSTORE_DEFAULT_TYPE);
+            logger = Loggers.getLogger(this.getClass(), settings);
+            String keyStoreType = KeyStore.getDefaultType();
+            logger.debug("using SSL keystore type \"" + keyStoreType + "\"");
+            keyStorePath = checkStorePath(getPathSetting().setting().get(settings));
+            logger.debug("using SSL keystore path \"" + keyStorePath + "\"");
+            keyStorePassword = getPassword(getPasswordSetting().setting().get(settings));
+            keyStore = KeyStore.getInstance(keyStoreType);
         }
 
         abstract CrateSetting<String> getPathSetting();
@@ -174,7 +163,7 @@ public final class SslConfiguration {
                 String _alias = aliases.nextElement();
 
                 if (keyStore.isCertificateEntry(_alias)) {
-                    LOGGER.info("Found certificate with alias {}", _alias);
+                    logger.info("Found certificate with alias {}", _alias);
                     final X509Certificate cert = (X509Certificate) keyStore.getCertificate(_alias);
                     if (cert != null) {
                         trustedCerts.add(cert);
@@ -204,7 +193,7 @@ public final class SslConfiguration {
             while (aliases.hasMoreElements()) {
                 String alias = aliases.nextElement();
                 if (keyStore.isKeyEntry(alias)) {
-                    LOGGER.info("Found key with alias {}", alias);
+                    logger.info("Found key with alias {}", alias);
                     Certificate[] certs = keyStore.getCertificateChain(alias);
                     if (certs != null && certs.length > 0) {
                         X509Certificate[] newAllCerts =
@@ -284,7 +273,7 @@ public final class SslConfiguration {
             while (aliases.hasMoreElements()) {
                 String alias = aliases.nextElement();
                 if (keyStore.isKeyEntry(alias)) {
-                    LOGGER.info("Found private key with alias {}", alias);
+                    logger.info("Found private key with alias {}", alias);
                     Key key = keyStore.getKey(alias, keyStoreKeyPassword);
                     if (key instanceof PrivateKey) {
                         return (PrivateKey) key;
