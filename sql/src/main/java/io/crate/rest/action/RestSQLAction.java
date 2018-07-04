@@ -26,7 +26,6 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.auth.user.UserManager;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.plugin.PipelineRegistry;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
@@ -42,12 +41,11 @@ public class RestSQLAction {
                          PipelineRegistry pipelineRegistry,
                          Provider<UserManager> userManagerProvider,
                          CrateCircuitBreakerService breakerService) {
-        CircuitBreaker circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         UserManager userManager = userManagerProvider.get();
         pipelineRegistry.addBefore(new PipelineRegistry.ChannelPipelineItem(
             "handler",
             "sql_handler",
-            corsConfig -> new SqlHttpHandler(settings, sqlOperations, circuitBreaker, userManager, corsConfig)
+            corsConfig -> new SqlHttpHandler(settings, sqlOperations, breakerService::getBreaker, userManager, corsConfig)
         ));
     }
 }

@@ -41,7 +41,7 @@ public class SqlHttpHandlerTest {
         SqlHttpHandler handler = new SqlHttpHandler(
             Settings.EMPTY,
             mock(SQLOperations.class),
-            new NoopCircuitBreaker("dummy"),
+            (s) -> new NoopCircuitBreaker("dummy"),
             userName -> {
                 if (userName.equals("crate")) {
                     return User.CRATE_USER;
@@ -63,7 +63,7 @@ public class SqlHttpHandlerTest {
         SqlHttpHandler handler = new SqlHttpHandler(
             settings,
             mock(SQLOperations.class),
-            new NoopCircuitBreaker("dummy"),
+            (s) -> new NoopCircuitBreaker("dummy"),
             User::of,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
@@ -77,7 +77,7 @@ public class SqlHttpHandlerTest {
         SqlHttpHandler handler = new SqlHttpHandler(
             Settings.EMPTY,
             mock(SQLOperations.class),
-            new NoopCircuitBreaker("dummy"),
+            (s) -> new NoopCircuitBreaker("dummy"),
             User::of,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );

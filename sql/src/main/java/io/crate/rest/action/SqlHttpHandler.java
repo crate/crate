@@ -33,6 +33,7 @@ import io.crate.action.sql.parser.SQLRequestParser;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserLookup;
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.expression.symbol.Field;
@@ -71,6 +72,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import static io.crate.action.sql.Session.UNNAMED;
 import static io.crate.concurrent.CompletableFutures.failedFuture;
@@ -88,7 +90,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
 
     private final Settings settings;
     private final SQLOperations sqlOperations;
-    private final CircuitBreaker circuitBreaker;
+    private final Function<String, CircuitBreaker> circuitBreakerProvider;
     private final UserLookup userLookup;
     private final Netty4CorsConfig corsConfig;
 
@@ -96,13 +98,13 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
 
     SqlHttpHandler(Settings settings,
                    SQLOperations sqlOperations,
-                   CircuitBreaker circuitBreaker,
+                   Function<String, CircuitBreaker> circuitBreakerProvider,
                    UserLookup userLookup,
                    Netty4CorsConfig corsConfig) {
         super(false);
         this.settings = settings;
         this.sqlOperations = sqlOperations;
-        this.circuitBreaker = circuitBreaker;
+        this.circuitBreakerProvider = circuitBreakerProvider;
         this.userLookup = userLookup;
         this.corsConfig = corsConfig;
     }
@@ -261,7 +263,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
                 startTimeInNs,
                 new RowAccountingWithEstimators(
                     Symbols.typeView(resultFields),
-                    new RamAccountingContext("http-result", circuitBreaker)
+                    new RamAccountingContext("http-result", circuitBreakerProvider.apply(CrateCircuitBreakerService.QUERY))
                 ),
                 includeTypes
             );

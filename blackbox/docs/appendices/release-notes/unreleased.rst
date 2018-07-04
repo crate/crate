@@ -100,6 +100,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused runtime changes to the
+  ``indices.breaker.query.limit`` and ``indices.breaker.query.overhead``
+  settings by using the ``SET GLOBAL [TRANSIENT]`` command, to get ignored.
+
 - Fixed an issue that caused an ``UnsupportedFeatureException`` to be thrown
   when deleting or updating by query on an empty partitioned table, instead of
   just returning 0 rows deleted/updated.
