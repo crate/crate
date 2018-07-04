@@ -30,11 +30,11 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
+import io.crate.data.SentinelRow;
 import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.engine.collect.collectors.MultiConsumer;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
-import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
+import io.crate.execution.engine.pipeline.Projectors;
 import io.crate.planner.operators.PKAndVersion;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -146,15 +146,8 @@ public final class PKLookupOperation {
                 throw e;
             }
         }
-        MultiConsumer multiConsumer = new MultiConsumer(shardAndIdsList.size(), nodeConsumer, CompositeBatchIterator::new);
+        ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(shardAndIdsList.size());
         for (ShardAndIds shardAndIds : shardAndIdsList) {
-            RowConsumer consumer = ProjectingRowConsumer.create(
-                multiConsumer,
-                projections,
-                jobId,
-                ramAccountingContext,
-                shardAndIds.projectorFactory
-            );
             Stream<Row> rowStream = shardAndIds.value.stream()
                 .map(pkAndVersion -> shardAndIds.shard.getService().get(
                     Constants.DEFAULT_MAPPING_TYPE,
@@ -166,15 +159,19 @@ public final class PKLookupOperation {
                     FetchSourceContext.FETCH_SOURCE
                 ))
                 .map(resultToRow);
+
+            Projectors projectors = new Projectors(
+                projections, jobId, ramAccountingContext, shardAndIds.projectorFactory);
             final Iterable<Row> rowIterable;
-            if (consumer.requiresScroll()) {
+            if (nodeConsumer.requiresScroll() && !projectors.providesIndependentScroll()) {
                 rowIterable = rowStream.map(row -> new RowN(row.materialize())).collect(Collectors.toList());
             } else {
                 rowIterable = rowStream::iterator;
             }
-            BatchIterator<Row> batchIterator = InMemoryBatchIterator.of(rowIterable, null);
-            consumer.accept(batchIterator, null);
+            iterators.add(projectors.wrap(InMemoryBatchIterator.of(rowIterable, SentinelRow.SENTINEL)));
         }
+        CompositeBatchIterator<Row> batchIterator = new CompositeBatchIterator<>(iterators.toArray(new BatchIterator[0]));
+        nodeConsumer.accept(batchIterator, null);
     }
 
     private static class ShardAndIds {
