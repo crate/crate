@@ -29,29 +29,31 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**
- * A BatchIterator implementation which always fully consumes another BatchIterator before it can generate it's result.
- *
- * Result generation and row-processing is handled by a {@link Collector}
- *
+ * A BatchIterator that is initially empty and can be loaded with {@link #loadNextBatch()} via {@code loadItems}
  */
-public class CollectingBatchIterator<T> implements BatchIterator<T> {
+public final class CollectingBatchIterator<T> implements BatchIterator<T> {
 
-    private final BatchIterator<T> source;
-    private final Function<BatchIterator<T>, CompletableFuture<? extends Iterable<? extends T>>> consumer;
+    private final Supplier<CompletableFuture<? extends Iterable<? extends T>>> loadItems;
+    private final Runnable onClose;
+    private final Consumer<? super Throwable> onKill;
 
-    private Iterator<? extends T> it = Collections.emptyIterator();
     private CompletableFuture<? extends Iterable<? extends T>> resultFuture;
+    private Iterator<? extends T> it = Collections.emptyIterator();
     private T current;
 
-    private CollectingBatchIterator(BatchIterator<T> source,
-                                    Function<BatchIterator<T>, CompletableFuture<? extends Iterable<? extends T>>> consumer) {
-        this.source = source;
-        this.consumer = consumer;
+    private CollectingBatchIterator(Supplier<CompletableFuture<? extends Iterable<? extends T>>> loadItems,
+                                    Runnable onClose,
+                                    Consumer<? super Throwable> onKill) {
+        this.loadItems = loadItems;
+        this.onClose = onClose;
+        this.onKill = onKill;
     }
 
     /**
@@ -75,17 +77,25 @@ public class CollectingBatchIterator<T> implements BatchIterator<T> {
 
     public static <T, A> BatchIterator<T> newInstance(BatchIterator<T> source,
                                                       Collector<T, A, ? extends Iterable<? extends T>> collector) {
-        return new CloseAssertingBatchIterator<>(
-            new CollectingBatchIterator<>(
-                source,
-                bi -> BatchIterators.collect(source, collector)
-            )
+        return newInstance(
+            source::close,
+            source::kill,
+            () -> BatchIterators.collect(source, collector)
         );
     }
 
     public static <T> BatchIterator<T> newInstance(BatchIterator<T> source,
-                                                   Function<BatchIterator<T>, CompletableFuture<? extends Iterable<? extends T>>> consumer) {
-        return new CloseAssertingBatchIterator<>(new CollectingBatchIterator<>(source, consumer));
+                                                   Function<BatchIterator<T>, CompletableFuture<? extends Iterable<? extends T>>> processSource) {
+        return newInstance(
+            source::close,
+            source::kill,
+            () -> processSource.apply(source).whenComplete((r, f) -> source.close()));
+    }
+
+    public static <T> BatchIterator<T> newInstance(Runnable onClose,
+                                                   Consumer<? super Throwable> onKill,
+                                                   Supplier<CompletableFuture<? extends Iterable<? extends T>>> loadItems) {
+        return new CloseAssertingBatchIterator<>(new CollectingBatchIterator<>(loadItems, onClose, onKill));
     }
 
     @Override
@@ -116,15 +126,14 @@ public class CollectingBatchIterator<T> implements BatchIterator<T> {
 
     @Override
     public void close() {
-        source.close();
+        onClose.run();
     }
 
     @Override
     public CompletionStage<?> loadNextBatch() {
         if (resultFuture == null) {
-            resultFuture = consumer.apply(source)
+            resultFuture = loadItems.get()
                 .whenComplete((r, t) -> {
-                    source.close();
                     if (t == null) {
                         it = r.iterator();
                     }
@@ -141,7 +150,7 @@ public class CollectingBatchIterator<T> implements BatchIterator<T> {
 
     @Override
     public void kill(@Nonnull Throwable throwable) {
-        source.kill(throwable);
+        onKill.accept(throwable);
         // rest is handled by CloseAssertingBatchIterator
     }
 }
