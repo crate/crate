@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -38,19 +39,21 @@ public class CircuitBreakerIntegrationTest extends SQLTransportIntegrationTest {
     private long originalBufferSize;
 
     @Before
-    public void reduceFlushBufferSize() throws Exception {
+    public void reduceFlushBufferSize() {
         originalBufferSize = RamAccountingContext.FLUSH_BUFFER_SIZE;
         RamAccountingContext.FLUSH_BUFFER_SIZE = 10;
     }
 
     @After
-    public void resetFlushBufferSize() throws Exception {
+    public void resetFlushBufferSize() {
         RamAccountingContext.FLUSH_BUFFER_SIZE = originalBufferSize;
+        execute("reset global \"indices.breaker.query.limit\"");
     }
 
     @Test
     public void testQueryBreakerIsDecrementedWhenQueryCompletes() {
         execute("create table t1 (text string)");
+        ensureYellow();
         execute("insert into t1 values ('this is some text'), ('other text')");
         refresh();
 
@@ -61,5 +64,21 @@ public class CircuitBreakerIntegrationTest extends SQLTransportIntegrationTest {
         execute("select text from t1 group by text");
 
         assertThat(queryBreaker.getUsed(), is(breakerBytesUsedBeforeQuery));
+    }
+
+    @Test
+    public void testQueryBreakerIsUpdatedWhenSettingIsChanged() {
+        execute("create table t1 (text string) clustered into 1 shards");
+        ensureYellow();
+        execute("insert into t1 values ('this is some text'), ('other text')");
+        refresh();
+
+        execute("select text from t1 group by text");
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("CircuitBreakingException: [query] Data too large, data for [collect: 0] " +
+                                        "would be [189/189b], which is larger than the limit of [100/100b]");
+        execute("set global \"indices.breaker.query.limit\"='100b'");
+        execute("select text from t1 group by text");
     }
 }

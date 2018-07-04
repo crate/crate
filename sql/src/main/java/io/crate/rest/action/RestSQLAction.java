@@ -51,6 +51,7 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
@@ -81,7 +82,7 @@ public class RestSQLAction extends BaseRestHandler {
 
     private final SQLOperations sqlOperations;
     private final UserManager userManager;
-    private final CircuitBreaker circuitBreaker;
+    private final CircuitBreakerService circuitBreakerService;
 
     @SuppressWarnings("WeakerAccess")
     @Inject
@@ -89,11 +90,11 @@ public class RestSQLAction extends BaseRestHandler {
                          RestController controller,
                          SQLOperations sqlOperations,
                          Provider<UserManager> userManagerProvider,
-                         CrateCircuitBreakerService breakerService) {
+                         CrateCircuitBreakerService circuitBreakerService) {
         super(settings);
         this.sqlOperations = sqlOperations;
         this.userManager = userManagerProvider.get();
-        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
+        this.circuitBreakerService = circuitBreakerService;
 
         controller.registerHandler(RestRequest.Method.POST, "/_sql", this);
     }
@@ -205,7 +206,7 @@ public class RestSQLAction extends BaseRestHandler {
                         startTime,
                         new RowAccounting(
                             Symbols.typeView(outputFields),
-                            new RamAccountingContext("http-result", circuitBreaker)),
+                            new RamAccountingContext("http-result", breaker())),
                         request.paramAsBoolean("types", false));
                     resultReceiver.completionFuture()
                         .whenComplete((xContent, t) -> resultToChannel(xContent, t, sessionContext, channel));
@@ -298,5 +299,9 @@ public class RestSQLAction extends BaseRestHandler {
         } catch (Throwable e) {
             logger.error("failed to send failure response", e);
         }
+    }
+
+    private CircuitBreaker breaker() {
+        return circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY);
     }
 }

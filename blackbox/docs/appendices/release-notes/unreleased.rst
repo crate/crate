@@ -21,6 +21,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused runtime changes to the
+  ``indices.breaker.query.limit`` and ``indices.breaker.query.overhead``
+  settings by using the ``SET GLOBAL [TRANSIENT]`` command, to get ignored.
+
 - Store the correct name (``timestamptz``) for the timestamp type in the
   ``pg_type`` table.
 

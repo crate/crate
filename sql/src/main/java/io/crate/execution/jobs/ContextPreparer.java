@@ -115,7 +115,7 @@ public class ContextPreparer extends AbstractComponent {
     private final Logger nlContextLogger;
     private final ClusterService clusterService;
     private final CountOperation countOperation;
-    private final CircuitBreaker circuitBreaker;
+    private final CrateCircuitBreakerService circuitBreakerService;
     private final DistributingConsumerFactory distributingConsumerFactory;
     private final InnerPreparer innerPreparer;
     private final InputFactory inputFactory;
@@ -127,7 +127,7 @@ public class ContextPreparer extends AbstractComponent {
                            MapSideDataCollectOperation collectOperation,
                            ClusterService clusterService,
                            NodeJobsCounter nodeJobsCounter,
-                           CrateCircuitBreakerService breakerService,
+                           CrateCircuitBreakerService circuitBreakerService,
                            CountOperation countOperation,
                            ThreadPool threadPool,
                            DistributingConsumerFactory distributingConsumerFactory,
@@ -144,7 +144,7 @@ public class ContextPreparer extends AbstractComponent {
         this.clusterService = clusterService;
         this.countOperation = countOperation;
         this.pkLookupOperation = new PKLookupOperation(indicesService, shardCollectSource);
-        circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
+        this.circuitBreakerService = circuitBreakerService;
         this.distributingConsumerFactory = distributingConsumerFactory;
         innerPreparer = new InnerPreparer();
         inputFactory = new InputFactory(functions);
@@ -554,7 +554,7 @@ public class ContextPreparer extends AbstractComponent {
             Collection<? extends Projection> shardProjections = shardProjections(pkLookupPhase.projections());
             Collection<? extends Projection> nodeProjections = nodeProjections(pkLookupPhase.projections());
 
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, pkLookupPhase);
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), pkLookupPhase);
             RowConsumer nodeRowConsumer = ProjectingRowConsumer.create(
                 context.getRowConsumer(pkLookupPhase, 0),
                 nodeProjections,
@@ -585,7 +585,7 @@ public class ContextPreparer extends AbstractComponent {
 
             int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.nodeIds().size());
             RowConsumer consumer = context.getRowConsumer(phase, pageSize);
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
             consumer = ProjectingRowConsumer.create(
                 consumer,
                 phase.projections(),
@@ -612,7 +612,7 @@ public class ContextPreparer extends AbstractComponent {
                     phase.orderByPositions(),
                     () -> new RowAccounting(
                         phase.inputTypes(),
-                        RamAccountingContext.forExecutionPhase(circuitBreaker, phase))),
+                        RamAccountingContext.forExecutionPhase(breaker(), phase))),
                 DataTypes.getStreamers(phase.inputTypes()),
                 ramAccountingContext,
                 phase.numUpstreams()
@@ -628,7 +628,7 @@ public class ContextPreparer extends AbstractComponent {
 
             RamAccountingContext ramAccountingContext = context.getRamAccountingContext(phase);
             if (ramAccountingContext == null) {
-                ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+                ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
             }
 
             context.registerSubContext(new JobCollectContext(
@@ -643,7 +643,7 @@ public class ContextPreparer extends AbstractComponent {
 
         @Override
         public Boolean visitCollectPhase(CollectPhase phase, PreparerContext context) {
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
             RowConsumer consumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
             context.registerSubContext(new JobCollectContext(
                 phase,
@@ -685,7 +685,7 @@ public class ContextPreparer extends AbstractComponent {
 
         @Override
         public Boolean visitNestedLoopPhase(NestedLoopPhase phase, PreparerContext context) {
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
             RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
 
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
@@ -734,7 +734,7 @@ public class ContextPreparer extends AbstractComponent {
 
         @Override
         public Boolean visitHashJoinPhase(HashJoinPhase phase, PreparerContext context) {
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
             RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
 
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
@@ -754,7 +754,7 @@ public class ContextPreparer extends AbstractComponent {
                 //    7 bytes perv value (pointer from the map to the list) (should be 4 but the map pre-allocates more)
                 new RowAccounting(phase.leftOutputTypes(), ramAccountingContext, 110),
                 inputFactory,
-                circuitBreaker,
+                breaker(),
                 phase.estimatedRowSizeForLeft(),
                 phase.numberOfRowsForLeft());
             PageDownstreamContext left = pageDownstreamContextForNestedLoop(
@@ -822,7 +822,7 @@ public class ContextPreparer extends AbstractComponent {
                     mergePhase.orderByPositions(),
                     () -> new RowAccounting(
                         mergePhase.inputTypes(),
-                        RamAccountingContext.forExecutionPhase(circuitBreaker, mergePhase))),
+                        RamAccountingContext.forExecutionPhase(breaker(), mergePhase))),
                 StreamerVisitor.streamersFromOutputs(mergePhase),
                 ramAccountingContext,
                 mergePhase.numUpstreams()
@@ -834,5 +834,9 @@ public class ContextPreparer extends AbstractComponent {
     private static long toKey(int phaseId, byte inputId) {
         long l = (long) phaseId;
         return (l << 32) | (inputId & 0xffffffffL);
+    }
+
+    private CircuitBreaker breaker() {
+        return circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY);
     }
 }
