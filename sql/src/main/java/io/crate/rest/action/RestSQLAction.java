@@ -45,7 +45,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.rest.CrateRestMainAction;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
@@ -79,7 +78,7 @@ public class RestSQLAction extends BaseRestHandler {
 
     private final SQLOperations sqlOperations;
     private final UserManager userManager;
-    private final CircuitBreaker circuitBreaker;
+    private final CrateCircuitBreakerService circuitBreakerService;
 
     @SuppressWarnings("WeakerAccess")
     @Inject
@@ -87,11 +86,11 @@ public class RestSQLAction extends BaseRestHandler {
                          RestController controller,
                          SQLOperations sqlOperations,
                          Provider<UserManager> userManagerProvider,
-                         CrateCircuitBreakerService breakerService) {
+                         CrateCircuitBreakerService circuitBreakerService) {
         super(settings);
         this.sqlOperations = sqlOperations;
         this.userManager = userManagerProvider.get();
-        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
+        this.circuitBreakerService = circuitBreakerService;
 
         controller.registerHandler(RestRequest.Method.POST, "/_sql", this);
     }
@@ -200,7 +199,7 @@ public class RestSQLAction extends BaseRestHandler {
                         startTime,
                         new RowAccounting(
                             Symbols.typeView(outputFields),
-                            new RamAccountingContext("http-result", circuitBreaker)),
+                            new RamAccountingContext("http-result", circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY))),
                         request.paramAsBoolean("types", false));
                     session.execute(UNNAMED, 0, resultReceiver);
                     session.sync();
