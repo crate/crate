@@ -22,9 +22,11 @@
 
 package io.crate.metadata;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
-import io.crate.core.collections.TreeMapBuilder;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -32,18 +34,16 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
 public class Routing implements Writeable {
 
-    private Map<String, Map<String, List<Integer>>> locations;
+    private final Map<String, Map<String, IntIndexedContainer>> locations;
 
-    public Routing(Map<String, Map<String, List<Integer>>> locations) {
+    public Routing(Map<String, Map<String, IntIndexedContainer>> locations) {
         assert locations != null : "locations must not be null";
         assert assertLocationsAllTreeMap(locations) : "locations must be a TreeMap only and must contain only TreeMap's";
         this.locations = locations;
@@ -55,7 +55,7 @@ public class Routing implements Writeable {
      * &nbsp;&nbsp;&nbsp;&nbsp;Map&lt;indexName (string), List&lt;ShardId (int)&gt;&gt;&gt; <br>
      * </p>
      */
-    public Map<String, Map<String, List<Integer>>> locations() {
+    public Map<String, Map<String, IntIndexedContainer>> locations() {
         return locations;
     }
 
@@ -73,12 +73,12 @@ public class Routing implements Writeable {
      * @return int &gt;= 0
      */
     public int numShards(String nodeId) {
-        Map<String, List<Integer>> indicesAndShards = locations.get(nodeId);
+        Map<String, IntIndexedContainer> indicesAndShards = locations.get(nodeId);
         if (indicesAndShards == null) {
             return 0;
         }
         int numShards = 0;
-        for (List<Integer> shardIds : indicesAndShards.values()) {
+        for (IntIndexedContainer shardIds : indicesAndShards.values()) {
             numShards += shardIds.size();
         }
         return numShards;
@@ -88,11 +88,11 @@ public class Routing implements Writeable {
      * returns true if the routing contains shards for any table of the given node
      */
     public boolean containsShards(String nodeId) {
-        Map<String, List<Integer>> indicesAndShards = locations.get(nodeId);
+        Map<String, IntIndexedContainer> indicesAndShards = locations.get(nodeId);
         if (indicesAndShards == null) {
             return false;
         }
-        for (List<Integer> shardIds : indicesAndShards.values()) {
+        for (IntIndexedContainer shardIds : indicesAndShards.values()) {
             if (!shardIds.isEmpty()) {
                 return true;
             }
@@ -101,8 +101,8 @@ public class Routing implements Writeable {
     }
 
     public boolean containsShards() {
-        for (Map<String, List<Integer>> indices : locations.values()) {
-            for (List<Integer> shards : indices.values()) {
+        for (Map<String, IntIndexedContainer> indices : locations.values()) {
+            for (IntIndexedContainer shards : indices.values()) {
                 if (!shards.isEmpty()) {
                     return true;
                 }
@@ -129,13 +129,13 @@ public class Routing implements Writeable {
             for (int i = 0; i < numLocations; i++) {
                 String nodeId = in.readString();
                 int numInner = in.readVInt();
-                Map<String, List<Integer>> shardsByIndex = new TreeMap<>();
+                Map<String, IntIndexedContainer> shardsByIndex = new TreeMap<>();
 
                 locations.put(nodeId, shardsByIndex);
                 for (int j = 0; j < numInner; j++) {
                     String indexName = in.readString();
                     int numShards = in.readVInt();
-                    List<Integer> shardIds = new ArrayList<>(numShards);
+                    IntArrayList shardIds = new IntArrayList(numShards);
                     for (int k = 0; k < numShards; k++) {
                         shardIds.add(in.readVInt());
                     }
@@ -148,23 +148,23 @@ public class Routing implements Writeable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(locations.size());
-        for (Map.Entry<String, Map<String, List<Integer>>> entry : locations.entrySet()) {
+        for (Map.Entry<String, Map<String, IntIndexedContainer>> entry : locations.entrySet()) {
             out.writeString(entry.getKey());
 
-            Map<String, List<Integer>> shardsByIndex = entry.getValue();
+            Map<String, IntIndexedContainer> shardsByIndex = entry.getValue();
             if (shardsByIndex == null) {
                 out.writeVInt(0);
             } else {
                 out.writeVInt(shardsByIndex.size());
-                for (Map.Entry<String, List<Integer>> innerEntry : shardsByIndex.entrySet()) {
+                for (Map.Entry<String, IntIndexedContainer> innerEntry : shardsByIndex.entrySet()) {
                     out.writeString(innerEntry.getKey());
-                    List<Integer> shardIds = innerEntry.getValue();
+                    IntIndexedContainer shardIds = innerEntry.getValue();
                     if (shardIds == null || shardIds.size() == 0) {
                         out.writeVInt(0);
                     } else {
                         out.writeVInt(shardIds.size());
-                        for (Integer shardId : shardIds) {
-                            out.writeVInt(shardId);
+                        for (IntCursor shardId: shardIds) {
+                            out.writeVInt(shardId.value);
                         }
                     }
                 }
@@ -172,15 +172,15 @@ public class Routing implements Writeable {
         }
     }
 
-    private boolean assertLocationsAllTreeMap(Map<String, Map<String, List<Integer>>> locations) {
+    private boolean assertLocationsAllTreeMap(Map<String, Map<String, IntIndexedContainer>> locations) {
         if (locations.isEmpty()) {
             return true;
         }
         if (!(locations instanceof TreeMap) && locations.size() > 1) {
             return false;
         }
-        for (Map<String, List<Integer>> innerMap : locations.values()) {
-            if (innerMap.size() > 1 && !(innerMap instanceof TreeMap)) {
+        for (Map<String, IntIndexedContainer> shardsByIndex : locations.values()) {
+            if (shardsByIndex.size() > 1 && !(shardsByIndex instanceof TreeMap)) {
                 return false;
             }
         }
@@ -191,21 +191,23 @@ public class Routing implements Writeable {
      * Return a routing for the given table on the given node id.
      */
     public static Routing forTableOnSingleNode(RelationName relationName, String nodeId) {
-        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-        Map<String, List<Integer>> tableLocation = new TreeMap<>();
-        tableLocation.put(relationName.fqn(), Collections.emptyList());
+        Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
+        Map<String, IntIndexedContainer> tableLocation = new TreeMap<>();
+        tableLocation.put(relationName.fqn(), IntArrayList.from(IntArrayList.EMPTY_ARRAY));
         locations.put(nodeId, tableLocation);
         return new Routing(locations);
     }
 
     public static Routing forTableOnAllNodes(RelationName relationName, DiscoveryNodes nodes) {
-        TreeMapBuilder<String, Map<String, List<Integer>>> nodesMapBuilder = TreeMapBuilder.newMapBuilder();
-        Map<String, List<Integer>> tableMap = TreeMapBuilder.<String, List<Integer>>newMapBuilder()
-            .put(relationName.fqn(), Collections.emptyList()).map();
+        TreeMap<String, Map<String, IntIndexedContainer>> indicesByNode = new TreeMap<>();
+        Map<String, IntIndexedContainer> shardsByIndex = Collections.singletonMap(
+            relationName.indexName(),
+            IntArrayList.from(IntArrayList.EMPTY_ARRAY)
+        );
         for (DiscoveryNode node : nodes) {
-            nodesMapBuilder.put(node.getId(), tableMap);
+            indicesByNode.put(node.getId(), shardsByIndex);
         }
-        return new Routing(nodesMapBuilder.map());
+        return new Routing(indicesByNode);
     }
 
     @Override

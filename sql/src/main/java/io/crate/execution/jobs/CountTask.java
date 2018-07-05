@@ -21,6 +21,7 @@
 
 package io.crate.execution.jobs;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -34,7 +35,6 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -47,13 +47,13 @@ public class CountTask extends AbstractTask {
     private final CountPhase countPhase;
     private final CountOperation countOperation;
     private final RowConsumer consumer;
-    private final Map<String, List<Integer>> indexShardMap;
+    private final Map<String, IntIndexedContainer> indexShardMap;
     private CompletableFuture<Long> countFuture;
 
     CountTask(CountPhase countPhase,
               CountOperation countOperation,
               RowConsumer consumer,
-              Map<String, List<Integer>> indexShardMap) {
+              Map<String, IntIndexedContainer> indexShardMap) {
         super(countPhase.phaseId(), LOGGER);
         this.countPhase = countPhase;
         this.countOperation = countOperation;

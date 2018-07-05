@@ -78,7 +78,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -316,7 +315,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         DocTableInfo docTableInfo = new TestingTableInfo.Builder(
             new RelationName(Schemas.DOC_SCHEMA_NAME, "generated_column"),
-            new Routing(Collections.<String, Map<String, List<Integer>>>emptyMap()))
+            new Routing(Collections.emptyMap()))
             .add("obj", DataTypes.OBJECT, null)
             .add("obj", new ArrayType(DataTypes.INTEGER), Arrays.asList("arr"))
             .addGeneratedColumn("arr", new ArrayType(DataTypes.INTEGER), "obj['arr']", false)

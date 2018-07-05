@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntCollection;
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.LongObjectHashMap;
@@ -535,9 +536,9 @@ public class JobSetup extends AbstractComponent {
 
         @Override
         public Boolean visitCountPhase(final CountPhase phase, final Context context) {
-            Map<String, Map<String, List<Integer>>> locations = phase.routing().locations();
+            Map<String, Map<String, IntIndexedContainer>> locations = phase.routing().locations();
             String localNodeId = clusterService.localNode().getId();
-            final Map<String, List<Integer>> indexShardMap = locations.get(localNodeId);
+            final Map<String, IntIndexedContainer> indexShardMap = locations.get(localNodeId);
             if (indexShardMap == null) {
                 throw new IllegalArgumentException("The routing of the countPhase doesn't contain the current nodeId");
             }

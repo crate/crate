@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.collect.count;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.execution.support.ThreadPools;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -42,7 +44,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -73,10 +74,10 @@ public class InternalCountOperation implements CountOperation {
     }
 
     @Override
-    public CompletableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap, Symbol filter) {
+    public CompletableFuture<Long> count(Map<String, IntIndexedContainer> indexShardMap, Symbol filter) {
         List<Supplier<Long>> suppliers = new ArrayList<>();
         MetaData metaData = clusterService.state().getMetaData();
-        for (Map.Entry<String, ? extends Collection<Integer>> entry : indexShardMap.entrySet()) {
+        for (Map.Entry<String, IntIndexedContainer> entry : indexShardMap.entrySet()) {
             String indexName = entry.getKey();
             IndexMetaData indexMetaData = metaData.index(indexName);
             if (indexMetaData == null) {
@@ -86,10 +87,11 @@ public class InternalCountOperation implements CountOperation {
                 throw new IndexNotFoundException(indexName);
             }
             final Index index = indexMetaData.getIndex();
-            for (final Integer shardId : entry.getValue()) {
+            for (IntCursor shardCursor : entry.getValue()) {
+                int shardValue = shardCursor.value;
                 suppliers.add(() -> {
                     try {
-                        return count(index, shardId, filter);
+                        return count(index, shardValue, filter);
                     } catch (IOException | InterruptedException e) {
                         throw new RuntimeException(e);
                     }

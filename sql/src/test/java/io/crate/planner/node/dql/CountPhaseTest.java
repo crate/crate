@@ -21,6 +21,8 @@
 
 package io.crate.planner.node.dql;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.expression.symbol.Literal;
@@ -31,9 +33,6 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -45,12 +44,12 @@ public class CountPhaseTest extends CrateUnitTest {
     @Test
     public void testStreaming() throws Exception {
         Routing routing = new Routing(
-            TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-                .put("n1", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
-                    .put("i1", Arrays.asList(1, 2))
-                    .put("i2", Arrays.asList(1, 2)).map())
-                .put("n2", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
-                    .put("i1", Collections.singletonList(3)).map()).map());
+            TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
+                .put("n1", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder()
+                    .put("i1", IntArrayList.from(1, 2))
+                    .put("i2", IntArrayList.from(1, 2)).map())
+                .put("n2", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder()
+                    .put("i1", IntArrayList.from(3)).map()).map());
         CountPhase countPhase = new CountPhase(1, routing, Literal.BOOLEAN_TRUE, DistributionInfo.DEFAULT_BROADCAST);
 
         BytesStreamOutput out = new BytesStreamOutput(10);

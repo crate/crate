@@ -22,6 +22,7 @@
 
 package io.crate.planner;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -316,8 +317,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
 
         List<String> indices = new ArrayList<>();
-        Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
-        for (Map.Entry<String, Map<String, List<Integer>>> entry : locations.entrySet()) {
+        Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
+        for (Map.Entry<String, Map<String, IntIndexedContainer>> entry : locations.entrySet()) {
             indices.addAll(entry.getValue().keySet());
         }
         assertThat(indices, Matchers.contains(

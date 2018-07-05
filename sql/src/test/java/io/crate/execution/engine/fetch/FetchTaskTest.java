@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.fetch;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.TreeMapBuilder;
@@ -42,7 +44,6 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.UnaryOperator;
@@ -76,11 +77,11 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSearcherIsAcquiredForShard() throws Exception {
-        ImmutableList<Integer> shards= ImmutableList.of(1, 2);
+        IntArrayList shards = IntArrayList.from(1, 2);
         Routing routing = new Routing(
-            TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
+            TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder().put(
                 "dummy",
-                TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("i1", shards).map()).map());
+                TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put("i1", shards).map()).map());
 
         IndexBaseBuilder ibb = new IndexBaseBuilder();
         ibb.allocate("i1", shards);

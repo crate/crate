@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.Iterables;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -56,7 +57,6 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -151,12 +151,12 @@ public class CollectSourceResolver {
                 throw new IllegalStateException("unsupported routing");
             }
 
-            Map<String, Map<String, List<Integer>>> locations = phase.routing().locations();
             if (phase.routing().containsShards(localNodeId)) {
                 return shardCollectSource;
             }
 
-            Map<String, List<Integer>> indexShards = locations.get(localNodeId);
+            Map<String, Map<String, IntIndexedContainer>> locations = phase.routing().locations();
+            Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
             if (indexShards == null) {
                 throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + phase);
             }

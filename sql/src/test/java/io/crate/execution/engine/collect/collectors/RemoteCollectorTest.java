@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.collect.collectors;
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.WhereClause;
@@ -76,7 +77,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             jobId,
             0,
             "remoteCollect",
-            new Routing(ImmutableMap.of("remoteNode", ImmutableMap.of("dummyTable", Collections.singletonList(1)))),
+            new Routing(ImmutableMap.of("remoteNode", ImmutableMap.of("dummyTable", IntArrayList.from(1)))),
             RowGranularity.DOC,
             Collections.singletonList(createReference("name", DataTypes.STRING)),
             Collections.emptyList(),

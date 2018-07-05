@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -50,7 +51,6 @@ import io.crate.metadata.sys.SysTableDefinitions;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -109,7 +109,7 @@ public class SystemCollectSource implements CollectSource {
     public BatchIterator<Row> getIterator(CollectPhase phase, CollectTask collectTask, boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
 
-        Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
+        Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
         RelationName relationName = RelationName.fromIndexName(table);
         StaticTableDefinition<?> tableDefinition = tableDefinition(relationName);

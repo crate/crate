@@ -73,13 +73,13 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
     private static final RelationName TEST_ALIAS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "alias");
     private static final DocTableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
-        TEST_ALIAS_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        TEST_ALIAS_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("bla", DataTypes.STRING, null)
         .isAlias(true).build();
 
     private static final RelationName NESTED_CLUSTERED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "nested_clustered");
     private static final DocTableInfo NESTED_CLUSTERED_TABLE_INFO = new TestingTableInfo.Builder(
-        NESTED_CLUSTERED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        NESTED_CLUSTERED_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("o", DataTypes.OBJECT, null)
         .add("o", DataTypes.STRING, Arrays.asList("c"))
         .add("o2", DataTypes.OBJECT, null)
@@ -120,7 +120,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
         RelationName generatedColumnRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "generated_column");
         TestingTableInfo.Builder generatedColumnTable = new TestingTableInfo.Builder(
-            generatedColumnRelationName, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+            generatedColumnRelationName, new Routing(ImmutableMap.of()))
             .add("ts", DataTypes.TIMESTAMP, null)
             .add("user", DataTypes.OBJECT, null)
             .add("user", DataTypes.STRING, Arrays.asList("name"))

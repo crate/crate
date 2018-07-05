@@ -21,19 +21,19 @@
 
 package io.crate.execution.engine.collect.count;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.expression.symbol.Symbol;
 import org.elasticsearch.common.inject.ImplementedBy;
 import org.elasticsearch.index.Index;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @ImplementedBy(InternalCountOperation.class)
 public interface CountOperation {
 
-    CompletableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
+    CompletableFuture<Long> count(Map<String, IntIndexedContainer> indexShardMap,
                                   Symbol filter) throws IOException, InterruptedException;
 
     long count(Index index, int shardId, Symbol filter) throws IOException, InterruptedException;

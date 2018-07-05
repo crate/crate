@@ -22,8 +22,9 @@
 
 package io.crate.planner.fetch;
 
-import java.util.Collections;
-import java.util.List;
+import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.hppc.cursors.IntCursor;
+
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -31,12 +32,12 @@ public final class IndexBaseBuilder {
 
     private final TreeMap<String, Integer> baseByIndex = new TreeMap<>();
 
-    public void allocate(String index, List<Integer> shards) {
+    public void allocate(String index, IntIndexedContainer shards) {
         if (shards.isEmpty()) {
             return;
         }
         Integer currentMax = baseByIndex.get(index);
-        Integer newMax = Collections.max(shards);
+        int newMax = getMax(shards);
         if (currentMax == null || currentMax < newMax) {
             baseByIndex.put(index, newMax);
         }
@@ -50,5 +51,15 @@ public final class IndexBaseBuilder {
             currentBase += maxId + 1;
         }
         return baseByIndex;
+    }
+
+    private static int getMax(IntIndexedContainer shards) {
+        int max = -1;
+        for (IntCursor shard: shards) {
+            if (shard.value > max) {
+                max = shard.value;
+            }
+        }
+        return max;
     }
 }

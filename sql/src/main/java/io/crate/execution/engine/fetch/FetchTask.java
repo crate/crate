@@ -21,7 +21,9 @@
 
 package io.crate.execution.engine.fetch;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.AbstractTask;
@@ -46,7 +48,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -104,9 +105,9 @@ public class FetchTask extends AbstractTask {
 
 
         for (Routing routing : routingIterable) {
-            Map<String, Map<String, List<Integer>>> locations = routing.locations();
-            Map<String, List<Integer>> indexShards = locations.get(localNodeId);
-            for (Map.Entry<String, List<Integer>> indexShardsEntry : indexShards.entrySet()) {
+            Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
+            Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
+            for (Map.Entry<String, IntIndexedContainer> indexShardsEntry : indexShards.entrySet()) {
                 String indexName = indexShardsEntry.getKey();
                 Integer base = phase.bases().get(indexName);
                 if (base == null) {
@@ -124,8 +125,8 @@ public class FetchTask extends AbstractTask {
                 assert ident != null : "no relationName found for index " + indexName;
                 tableIdents.put(base, ident);
                 toFetch.put(ident, new ArrayList<>());
-                for (Integer shard : indexShardsEntry.getValue()) {
-                    ShardId shardId = new ShardId(index, shard);
+                for (IntCursor shard : indexShardsEntry.getValue()) {
+                    ShardId shardId = new ShardId(index, shard.value);
                     int readerId = base + shardId.id();
                     SharedShardContext shardContext = shardContexts.get(readerId);
                     if (shardContext == null) {

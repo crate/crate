@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.Sets;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
@@ -36,7 +37,6 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -86,8 +86,8 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         assertThat(nodes.size(), isOneOf(1, 2)); // for the rare case
         // where all shards are on 1 node
         int numShards = 0;
-        for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : routing.locations().entrySet()) {
-            for (Map.Entry<String, List<Integer>> indexEntry : nodeEntry.getValue().entrySet()) {
+        for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : routing.locations().entrySet()) {
+            for (Map.Entry<String, IntIndexedContainer> indexEntry : nodeEntry.getValue().entrySet()) {
                 assertThat(indexEntry.getKey(), is(getFqn("t1")));
                 numShards += indexEntry.getValue().size();
             }
@@ -143,7 +143,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
             clusterService.state(), routingProvider, null, null, SessionContext.systemSessionContext());
         assertTrue(routing.hasLocations());
         assertEquals(1, routing.nodes().size());
-        for (Map<String, List<Integer>> indices : routing.locations().values()) {
+        for (Map<String, ?> indices : routing.locations().values()) {
             assertEquals(1, indices.size());
         }
     }
@@ -162,8 +162,8 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         Set<String> tables = new HashSet<>();
         Set<String> expectedTables = Sets.newHashSet(getFqn("t2"), getFqn("t3"));
         int numShards = 0;
-        for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : routing.locations().entrySet()) {
-            for (Map.Entry<String, List<Integer>> indexEntry : nodeEntry.getValue().entrySet()) {
+        for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : routing.locations().entrySet()) {
+            for (Map.Entry<String, IntIndexedContainer> indexEntry : nodeEntry.getValue().entrySet()) {
                 tables.add(indexEntry.getKey());
                 numShards += indexEntry.getValue().size();
             }

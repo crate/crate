@@ -115,14 +115,14 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         RelationName partedGeneratedColumnRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_generated_column");
         TestingTableInfo.Builder partedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
-            partedGeneratedColumnRelationName, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+            partedGeneratedColumnRelationName, new Routing(ImmutableMap.of()))
             .add("ts", DataTypes.TIMESTAMP, null)
             .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true);
         builder.addDocTable(partedGeneratedColumnTableInfo);
 
         RelationName nestedPartedGeneratedColumnRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "nested_parted_generated_column");
         TestingTableInfo.Builder nestedPartedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
-            nestedPartedGeneratedColumnRelationName, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+            nestedPartedGeneratedColumnRelationName, new Routing(ImmutableMap.of()))
             .add("user", DataTypes.OBJECT, null)
             .add("user", DataTypes.STRING, Arrays.asList("name"))
             .addGeneratedColumn("name", DataTypes.STRING, "concat(\"user\"['name'], 'bar')", true);

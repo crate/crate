@@ -22,6 +22,8 @@
 
 package io.crate.metadata;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.exceptions.UnavailableShardsException;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -38,11 +40,9 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -116,7 +116,7 @@ public final class RoutingProvider {
         } catch (IndexNotFoundException e) {
             return new Routing(Collections.emptyMap());
         }
-        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
+        Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
 
         for (IndexShardRoutingTable shard : shards) {
             final ShardIterator shardIt;
@@ -144,7 +144,7 @@ public final class RoutingProvider {
     }
 
     private static void fillLocationsFromShardIterator(boolean ignoreMissingShards,
-                                                       Map<String, Map<String, List<Integer>>> locations,
+                                                       Map<String, Map<String, IntIndexedContainer>> locations,
                                                        ShardIterator shardIterator) {
         ShardRouting shardRouting = shardIterator.nextOrNull();
         if (shardRouting == null) {
@@ -156,18 +156,18 @@ public final class RoutingProvider {
         processShardRouting(locations, shardRouting);
     }
 
-    private static void processShardRouting(Map<String, Map<String, List<Integer>>> locations, ShardRouting shardRouting) {
+    private static void processShardRouting(Map<String, Map<String, IntIndexedContainer>> locations, ShardRouting shardRouting) {
         String node = shardRouting.currentNodeId();
-        Map<String, List<Integer>> nodeMap = locations.get(node);
+        Map<String, IntIndexedContainer> nodeMap = locations.get(node);
         if (nodeMap == null) {
             nodeMap = new TreeMap<>();
             locations.put(shardRouting.currentNodeId(), nodeMap);
         }
 
         String indexName = shardRouting.getIndexName();
-        List<Integer> shards = nodeMap.get(indexName);
+        IntIndexedContainer shards = nodeMap.get(indexName);
         if (shards == null) {
-            shards = new ArrayList<>();
+            shards = new IntArrayList();
             nodeMap.put(indexName, shards);
         }
         shards.add(shardRouting.id());

@@ -22,6 +22,8 @@
 
 package io.crate.planner;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.SessionContext;
@@ -82,11 +84,11 @@ final class RoutingBuilder {
             for (Routing routing : routingList) {
                 allocateRoutingNodes(shardNodes, routing.locations());
 
-                for (Map.Entry<String, Map<String, List<Integer>>> entry : routing.locations().entrySet()) {
-                    Map<String, List<Integer>> shardsByIndex = entry.getValue();
+                for (Map.Entry<String, Map<String, IntIndexedContainer>> entry : routing.locations().entrySet()) {
+                    Map<String, IntIndexedContainer> shardsByIndex = entry.getValue();
                     indicesByTable.putAll(table, shardsByIndex.keySet());
 
-                    for (Map.Entry<String, List<Integer>> shardsByIndexEntry : shardsByIndex.entrySet()) {
+                    for (Map.Entry<String, IntIndexedContainer> shardsByIndexEntry : shardsByIndex.entrySet()) {
                         indexBaseBuilder.allocate(shardsByIndexEntry.getKey(), shardsByIndexEntry.getValue());
                     }
                 }
@@ -97,25 +99,25 @@ final class RoutingBuilder {
     }
 
     private static void allocateRoutingNodes(Map<String, Map<Integer, String>> shardNodes,
-                                             Map<String, Map<String, List<Integer>>> locations) {
-        for (Map.Entry<String, Map<String, List<Integer>>> indicesByNodeId : locations.entrySet()) {
+                                             Map<String, Map<String, IntIndexedContainer>> locations) {
+        for (Map.Entry<String, Map<String, IntIndexedContainer>> indicesByNodeId : locations.entrySet()) {
             String nodeId = indicesByNodeId.getKey();
-            for (Map.Entry<String, List<Integer>> shardsByIndexEntry : indicesByNodeId.getValue().entrySet()) {
+            for (Map.Entry<String, IntIndexedContainer> shardsByIndexEntry : indicesByNodeId.getValue().entrySet()) {
                 String index = shardsByIndexEntry.getKey();
-                List<Integer> shards = shardsByIndexEntry.getValue();
+                IntIndexedContainer shards = shardsByIndexEntry.getValue();
 
                 Map<Integer, String> shardsOnIndex = shardNodes.get(index);
                 if (shardsOnIndex == null) {
                     shardsOnIndex = new HashMap<>(shards.size());
                     shardNodes.put(index, shardsOnIndex);
-                    for (Integer id : shards) {
-                        shardsOnIndex.put(id, nodeId);
+                    for (IntCursor id : shards) {
+                        shardsOnIndex.put(id.value, nodeId);
                     }
                 } else {
-                    for (Integer id : shards) {
-                        String allocatedNodeId = shardsOnIndex.get(id);
+                    for (IntCursor id : shards) {
+                        String allocatedNodeId = shardsOnIndex.get(id.value);
                         assert allocatedNodeId == null || allocatedNodeId.equals(nodeId) : "allocatedNodeId must match nodeId";
-                        shardsOnIndex.put(id, nodeId);
+                        shardsOnIndex.put(id.value, nodeId);
                     }
                 }
             }

@@ -22,6 +22,8 @@
 
 package io.crate.execution.engine.collect;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.data.BatchIterator;
 import io.crate.data.Buckets;
@@ -48,7 +50,6 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -163,8 +164,9 @@ public class RemoteCollectorFactory {
                                                         ShardId shardId,
                                                         String nodeId) {
 
-        Routing routing = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(nodeId,
-            TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(shardId.getIndexName(), Collections.singletonList(shardId.getId())).map()).map());
+        Routing routing = new Routing(TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
+            .put(nodeId, TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder()
+                .put(shardId.getIndexName(), IntArrayList.from(shardId.getId())).map()).map());
         return new RoutedCollectPhase(
             childJobId,
             SENDER_PHASE_ID,

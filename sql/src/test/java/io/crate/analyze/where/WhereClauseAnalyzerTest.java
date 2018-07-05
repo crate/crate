@@ -21,6 +21,8 @@
 
 package io.crate.analyze.where;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
@@ -58,7 +60,6 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
@@ -75,9 +76,9 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     private static final String GENERATED_COL_TABLE_NAME = "generated_col";
     private static final String DOUBLE_GEN_PARTITIONED_TABLE_NAME = "double_gen_parted";
 
-    private final Routing twoNodeRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-        .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
-        .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
+    private final Routing twoNodeRouting = new Routing(TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
+        .put("nodeOne", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put("t1", IntArrayList.from(1, 2)).map())
+        .put("nodeTow", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put("t1", IntArrayList.from(3, 4)).map())
         .map());
     private final TransactionContext transactionContext = new TransactionContext(SessionContext.systemSessionContext());
     private SQLExecutor e;
@@ -88,7 +89,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         registerTables(builder);
 
         TestingTableInfo.Builder genInfo =
-            TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, GENERATED_COL_TABLE_NAME), new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+            TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, GENERATED_COL_TABLE_NAME), new Routing(ImmutableMap.of()))
                 .add("ts", DataTypes.TIMESTAMP, null)
                 .add("x", DataTypes.INTEGER, null)
                 .add("y", DataTypes.LONG, null)
@@ -103,7 +104,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         RelationName ident = new RelationName(DocSchemaInfo.NAME, DOUBLE_GEN_PARTITIONED_TABLE_NAME);
         TestingTableInfo.Builder doubleGenPartedInfo =
-            TestingTableInfo.builder(ident, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+            TestingTableInfo.builder(ident, new Routing(ImmutableMap.of()))
                 .add("x", DataTypes.INTEGER, null)
                 .addGeneratedColumn("x1", DataTypes.INTEGER, "x+1", true)
                 .addGeneratedColumn("x2", DataTypes.INTEGER, "x+2", true)

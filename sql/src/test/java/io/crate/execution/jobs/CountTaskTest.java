@@ -21,6 +21,7 @@
 
 package io.crate.execution.jobs;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
@@ -34,7 +35,6 @@ import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.index.Index;
 import org.junit.Test;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -108,8 +108,7 @@ public class CountTaskTest extends CrateUnitTest {
         }
 
         @Override
-        public CompletableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
-                                             Symbol filter) {
+        public CompletableFuture<Long> count(Map<String, IntIndexedContainer> indexShardMap, Symbol filter) {
             return future;
         }
 

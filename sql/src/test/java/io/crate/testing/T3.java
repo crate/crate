@@ -22,6 +22,7 @@
 
 package io.crate.testing;
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -38,30 +39,29 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 
 public class T3 {
 
     private static final Routing t1Routing = new Routing(
         ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
-            ImmutableMap.of("t1", Collections.singletonList(0))));
+            ImmutableMap.of("t1", IntArrayList.from(0))));
 
     private static final Routing t2Routing = new Routing(
         ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
-            ImmutableMap.of("t2", Arrays.asList(0, 1))));
+            ImmutableMap.of("t2", IntArrayList.from(0, 1))));
 
     private static final Routing t3Routing = new Routing(
         ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
-            ImmutableMap.of("t3", Arrays.asList(0, 1, 2))));
+            ImmutableMap.of("t3", IntArrayList.from(0, 1, 2))));
 
     private static final Routing t4Routing = new Routing(
         ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
-            ImmutableMap.of("t4", Collections.singletonList(0))));
+            ImmutableMap.of("t4", IntArrayList.from(0))));
 
     private static final Routing t5Routing = new Routing(
         ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
-            ImmutableMap.of("t5", Collections.singletonList(0))));
+            ImmutableMap.of("t5", IntArrayList.from(0))));
 
     public static final DocTableInfo T1_INFO =
         new TestingTableInfo.Builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "t1"), t1Routing)

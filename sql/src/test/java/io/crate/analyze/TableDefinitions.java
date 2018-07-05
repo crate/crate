@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.ColumnIdent;
@@ -46,22 +48,22 @@ public final class TableDefinitions {
 
     public static final Routing SHARD_ROUTING = shardRouting("t1");
 
-    private static final Routing PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-        .put("n1", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.parted.04232chj", Arrays.asList(1, 2)).map())
-        .put("n2", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
+    private static final Routing PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
+        .put("n1", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put(".partitioned.parted.04232chj", IntArrayList.from(1, 2)).map())
+        .put("n2", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().map())
         .map());
 
 
     private static final Routing CLUSTERED_PARTED_ROUTING = new Routing(
-        TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-            .put("n1", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g", Arrays.asList(1, 2)).map())
-            .put("n2", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g", Arrays.asList(3)).map())
+        TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
+            .put("n1", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g", IntArrayList.from(1, 2)).map())
+            .put("n2", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g", IntArrayList.from(3)).map())
             .map());
 
     public static Routing shardRouting(String tableName) {
-        return new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-            .put("n1", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(1, 2)).map())
-            .put("n2", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(3, 4)).map())
+        return new Routing(TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
+            .put("n1", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put(tableName, IntArrayList.from(1, 2)).map())
+            .put("n2", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put(tableName, IntArrayList.from(3, 4)).map())
             .map());
     }
 
@@ -129,7 +131,7 @@ public final class TableDefinitions {
         .build();
     public static final RelationName TEST_PARTITIONED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "parted");
     public static final DocTableInfo TEST_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
-        TEST_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        TEST_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("id", DataTypes.INTEGER, null)
         .add("name", DataTypes.STRING, null)
         .add("date", DataTypes.TIMESTAMP, null, true)
@@ -167,7 +169,7 @@ public final class TableDefinitions {
         .build();
     public static final RelationName TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "multi_parted");
     public static final DocTableInfo TEST_MULTIPLE_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
-        TEST_MULTIPLE_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        TEST_MULTIPLE_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("id", DataTypes.INTEGER, null)
         .add("date", DataTypes.TIMESTAMP, null, true)
         .add("num", DataTypes.LONG, null)
@@ -181,7 +183,7 @@ public final class TableDefinitions {
         .build();
     static final RelationName TEST_NESTED_PARTITIONED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "nested_parted");
     public static final DocTableInfo TEST_NESTED_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
-        TEST_NESTED_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        TEST_NESTED_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("id", DataTypes.INTEGER, null)
         .add("date", DataTypes.TIMESTAMP, null, true)
         .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
@@ -194,7 +196,7 @@ public final class TableDefinitions {
         .build();
     public static final RelationName TEST_DOC_TRANSACTIONS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "transactions");
     public static final DocTableInfo TEST_DOC_TRANSACTIONS_TABLE_INFO = new TestingTableInfo.Builder(
-        TEST_DOC_TRANSACTIONS_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        TEST_DOC_TRANSACTIONS_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("id", DataTypes.LONG, null)
         .add("sender", DataTypes.STRING, null)
         .add("recipient", DataTypes.STRING, null)
@@ -203,7 +205,7 @@ public final class TableDefinitions {
         .build();
     public static final RelationName DEEPLY_NESTED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "deeply_nested");
     public static final DocTableInfo DEEPLY_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
-        DEEPLY_NESTED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        DEEPLY_NESTED_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("details", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
         .add("details", DataTypes.BOOLEAN, Arrays.asList("awesome"))
         .add("details", DataTypes.OBJECT, Arrays.asList("stuff"), ColumnPolicy.DYNAMIC)
@@ -219,7 +221,7 @@ public final class TableDefinitions {
 
     public static final RelationName IGNORED_NESTED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "ignored_nested");
     public static final DocTableInfo IGNORED_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
-        IGNORED_NESTED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        IGNORED_NESTED_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("details", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
         .build();
 

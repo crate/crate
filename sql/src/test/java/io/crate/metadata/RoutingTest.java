@@ -21,6 +21,8 @@
 
 package io.crate.metadata;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.test.integration.CrateUnitTest;
@@ -32,8 +34,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -47,9 +47,9 @@ public class RoutingTest extends CrateUnitTest {
 
     @Test
     public void testStreamingWithLocations() throws Exception {
-        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-        Map<String, List<Integer>> indexMap = new TreeMap<>();
-        indexMap.put("index-0", Arrays.asList(1, 2));
+        Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
+        Map<String, IntIndexedContainer> indexMap = new TreeMap<>();
+        indexMap.put("index-0", IntArrayList.from(1, 2));
         locations.put("node-0", indexMap);
 
         BytesStreamOutput out = new BytesStreamOutput();

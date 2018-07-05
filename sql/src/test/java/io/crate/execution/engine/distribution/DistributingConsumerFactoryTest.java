@@ -22,18 +22,20 @@
 
 package io.crate.execution.engine.distribution;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
+import io.crate.data.Paging;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.phases.NodeOperation;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.execution.dsl.phases.NodeOperation;
-import io.crate.data.Paging;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.phases.MergePhase;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
@@ -41,8 +43,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -67,9 +67,9 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
     private RowConsumer createDownstream(Set<String> downstreamExecutionNodes) {
         UUID jobId = UUID.randomUUID();
         Routing routing = new Routing(
-            TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-                .put("n1", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
-                    .put("i1", Arrays.asList(1, 2)).map()).map());
+            TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
+                .put("n1", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder()
+                    .put("i1", IntArrayList.from(1, 2)).map()).map());
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             jobId,
             1,

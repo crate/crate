@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
@@ -280,7 +282,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         }
 
         boolean hasShardProjections = Projections.hasAnyShardProjections(normalizedPhase.projections());
-        Map<String, List<Integer>> indexShards = normalizedPhase.routing().locations().get(localNodeId);
+        Map<String, IntIndexedContainer> indexShards = normalizedPhase.routing().locations().get(localNodeId);
         List<BatchIterator<Row>> iterators = indexShards == null
             ? Collections.emptyList()
             : getIterators(collectTask, normalizedPhase, requireMoveToStartSupport, indexShards);
@@ -316,17 +318,17 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                                                                  CollectTask collectTask,
                                                                  String localNodeId) {
 
-        Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
+        Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
         SharedShardContexts sharedShardContexts = collectTask.sharedShardContexts();
-        Map<String, List<Integer>> indexShards = locations.get(localNodeId);
+        Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
         List<OrderedDocCollector> orderedDocCollectors = new ArrayList<>();
         MetaData metaData = clusterService.state().metaData();
-        for (Map.Entry<String, List<Integer>> entry : indexShards.entrySet()) {
+        for (Map.Entry<String, IntIndexedContainer> entry : indexShards.entrySet()) {
             String indexName = entry.getKey();
             Index index = metaData.index(indexName).getIndex();
 
-            for (Integer shardNum : entry.getValue()) {
-                ShardId shardId = new ShardId(index, shardNum);
+            for (IntCursor shard : entry.getValue()) {
+                ShardId shardId = new ShardId(index, shard.value);
                 SharedShardContext context = sharedShardContexts.getOrCreateContext(shardId);
 
                 try {
@@ -382,11 +384,11 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private List<BatchIterator<Row>> getIterators(CollectTask collectTask,
                                                   RoutedCollectPhase collectPhase,
                                                   boolean requiresScroll,
-                                                  Map<String, List<Integer>> indexShards) {
+                                                  Map<String, IntIndexedContainer> indexShards) {
 
         MetaData metaData = clusterService.state().metaData();
         List<BatchIterator<Row>> iterators = new ArrayList<>();
-        for (Map.Entry<String, List<Integer>> entry : indexShards.entrySet()) {
+        for (Map.Entry<String, IntIndexedContainer> entry : indexShards.entrySet()) {
             String indexName = entry.getKey();
             IndexMetaData indexMD = metaData.index(indexName);
             if (indexMD == null) {
@@ -404,8 +406,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 }
                 throw e;
             }
-            for (Integer shardNum : entry.getValue()) {
-                ShardId shardId = new ShardId(index, shardNum);
+            for (IntCursor shardCursor: entry.getValue()) {
+                ShardId shardId = new ShardId(index, shardCursor.value);
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
                     BatchIterator<Row> iterator = shardCollectorProvider.getIterator(
@@ -438,33 +440,33 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private Iterable<Row> getShardsIterator(RoutedCollectPhase collectPhase,
                                             RoutedCollectPhase normalizedPhase,
                                             String localNodeId) {
-        Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
+        Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
         List<UnassignedShard> unassignedShards = new ArrayList<>();
         List<Object[]> rows = new ArrayList<>();
-        Map<String, List<Integer>> indexShardsMap = locations.get(localNodeId);
+        Map<String, IntIndexedContainer> indexShardsMap = locations.get(localNodeId);
         MetaData metaData = clusterService.state().metaData();
 
-        for (Map.Entry<String, List<Integer>> indexShards : indexShardsMap.entrySet()) {
+        for (Map.Entry<String, IntIndexedContainer> indexShards : indexShardsMap.entrySet()) {
             String indexName = indexShards.getKey();
             IndexMetaData indexMetaData = metaData.index(indexName);
             if (indexMetaData == null) {
                 continue;
             }
             Index index = indexMetaData.getIndex();
-            List<Integer> shards = indexShards.getValue();
+            IntIndexedContainer shards = indexShards.getValue();
             IndexService indexService = indicesService.indexService(index);
             if (indexService == null) {
-                for (Integer shard : shards) {
-                    unassignedShards.add(toUnassignedShard(index.getName(), UnassignedShard.markAssigned(shard)));
+                for (IntCursor shard : shards) {
+                    unassignedShards.add(toUnassignedShard(index.getName(), UnassignedShard.markAssigned(shard.value)));
                 }
                 continue;
             }
-            for (Integer shard : shards) {
-                if (UnassignedShard.isUnassigned(shard)) {
-                    unassignedShards.add(toUnassignedShard(index.getName(), UnassignedShard.markAssigned(shard)));
+            for (IntCursor shard : shards) {
+                if (UnassignedShard.isUnassigned(shard.value)) {
+                    unassignedShards.add(toUnassignedShard(index.getName(), UnassignedShard.markAssigned(shard.value)));
                     continue;
                 }
-                ShardId shardId = new ShardId(index, shard);
+                ShardId shardId = new ShardId(index, shard.value);
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
                     Object[] row = shardCollectorProvider.getRowForShard(normalizedPhase);
@@ -472,7 +474,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                         rows.add(row);
                     }
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
-                    unassignedShards.add(toUnassignedShard(index.getName(), shard));
+                    unassignedShards.add(toUnassignedShard(index.getName(), shard.value));
                 } catch (Throwable t) {
                     throw new UnhandledServerException(t);
                 }

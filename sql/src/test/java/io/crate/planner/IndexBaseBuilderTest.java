@@ -22,7 +22,7 @@
 
 package io.crate.planner;
 
-import com.google.common.collect.ImmutableList;
+import com.carrotsearch.hppc.IntArrayList;
 import io.crate.planner.fetch.IndexBaseBuilder;
 import org.junit.Test;
 
@@ -37,11 +37,11 @@ public class IndexBaseBuilderTest {
     public void testDoubleIndex() throws Exception {
         IndexBaseBuilder builder = new IndexBaseBuilder();
 
-        builder.allocate("i1", ImmutableList.of(1, 4));
-        builder.allocate("i2", ImmutableList.of(1, 2));
-        builder.allocate("i1", ImmutableList.of(1, 5));
-        builder.allocate("i1", ImmutableList.of(1, 3));
-        builder.allocate("i3", ImmutableList.of(1, 3));
+        builder.allocate("i1", IntArrayList.from(1, 4));
+        builder.allocate("i2", IntArrayList.from(1, 2));
+        builder.allocate("i1", IntArrayList.from(1, 5));
+        builder.allocate("i1", IntArrayList.from(1, 3));
+        builder.allocate("i3", IntArrayList.from(1, 3));
 
         TreeMap<String, Integer> bases = builder.build();
         assertThat(bases.size(), is(3));
@@ -54,8 +54,8 @@ public class IndexBaseBuilderTest {
     public void testMaxShard() throws Exception {
         IndexBaseBuilder builder = new IndexBaseBuilder();
 
-        builder.allocate("i1", ImmutableList.of(1, 4));
-        builder.allocate("i2", ImmutableList.of(1, 5));
+        builder.allocate("i1", IntArrayList.from(1, 4));
+        builder.allocate("i2", IntArrayList.from(1, 5));
         TreeMap<String, Integer> bases = builder.build();
         assertThat(bases.size(), is(2));
         assertThat(bases.get("i1"), is(0));

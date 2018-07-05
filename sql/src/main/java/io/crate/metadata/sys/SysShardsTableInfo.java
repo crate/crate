@@ -21,6 +21,8 @@
 
 package io.crate.metadata.sys;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
@@ -240,7 +242,7 @@ public class SysShardsTableInfo extends StaticTableInfo {
     }
 
     private void processShardRouting(String localNodeId,
-                                     Map<String, Map<String, List<Integer>>> routing,
+                                     Map<String, Map<String, IntIndexedContainer>> routing,
                                      ShardRouting shardRouting,
                                      ShardId shardId) {
         String node;
@@ -254,15 +256,15 @@ public class SysShardsTableInfo extends StaticTableInfo {
             node = shardRouting.currentNodeId();
             id = shardRouting.id();
         }
-        Map<String, List<Integer>> nodeMap = routing.get(node);
+        Map<String, IntIndexedContainer> nodeMap = routing.get(node);
         if (nodeMap == null) {
             nodeMap = new TreeMap<>();
             routing.put(node, nodeMap);
         }
 
-        List<Integer> shards = nodeMap.get(index);
+        IntIndexedContainer shards = nodeMap.get(index);
         if (shards == null) {
-            shards = new ArrayList<>();
+            shards = new IntArrayList();
             nodeMap.put(index, shards);
         }
         shards.add(id);
@@ -286,7 +288,7 @@ public class SysShardsTableInfo extends StaticTableInfo {
                               RoutingProvider.ShardSelection shardSelection,
                               SessionContext sessionContext) {
         // TODO: filter on whereClause
-        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
+        Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
         String[] concreteIndices = clusterState.metaData().getConcreteAllOpenIndices();
 
         User user = sessionContext != null ? sessionContext.user() : null;

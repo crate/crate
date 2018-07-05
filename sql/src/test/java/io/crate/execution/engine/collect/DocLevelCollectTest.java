@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.collect;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
@@ -57,7 +59,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -135,18 +136,18 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     private Routing routing(String table) {
-        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
+        Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
 
         for (final ShardRouting shardRouting : clusterService().state().routingTable().allShards(table)) {
-            Map<String, List<Integer>> shardIds = locations.get(shardRouting.currentNodeId());
+            Map<String, IntIndexedContainer> shardIds = locations.get(shardRouting.currentNodeId());
             if (shardIds == null) {
                 shardIds = new TreeMap<>();
                 locations.put(shardRouting.currentNodeId(), shardIds);
             }
 
-            List<Integer> shardIdSet = shardIds.get(shardRouting.getIndexName());
+            IntIndexedContainer shardIdSet = shardIds.get(shardRouting.getIndexName());
             if (shardIdSet == null) {
-                shardIdSet = new ArrayList<>();
+                shardIdSet = new IntArrayList();
                 shardIds.put(shardRouting.index().getName(), shardIdSet);
             }
             shardIdSet.add(shardRouting.id());

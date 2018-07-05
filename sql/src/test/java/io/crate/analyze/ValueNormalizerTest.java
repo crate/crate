@@ -61,7 +61,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
 
     private static final RelationName TEST_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "test1");
     private static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_TABLE_IDENT,
-        new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        new Routing(ImmutableMap.of()))
         .add("id", DataTypes.LONG, null)
         .add("name", DataTypes.STRING, null)
         .add("d", DataTypes.DOUBLE, null)

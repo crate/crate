@@ -44,8 +44,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -65,7 +63,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             jobId,
             0,
             "cn",
-            new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()),
+            new Routing(ImmutableMap.of()),
             RowGranularity.DOC,
             toCollect,
             ImmutableList.<Projection>of(),
