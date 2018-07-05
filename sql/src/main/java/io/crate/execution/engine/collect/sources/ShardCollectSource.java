@@ -32,7 +32,6 @@ import io.crate.data.Buckets;
 import io.crate.data.CompositeBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.RowConsumer;
 import io.crate.data.SentinelRow;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.TransportActionProvider;
@@ -103,52 +102,36 @@ import java.util.function.Supplier;
 import static io.crate.execution.support.ThreadPools.numIdleThreads;
 
 /**
- * Factory to create a collector which collects data from 1 or more shards.
+ * Used to create BatchIterators to gather documents stored within shards or to gather information about shards themselves.
+ *
  * <p>
+ *     The data is always exposed as a single BachIterator.
+ * </p>
+ *
+ * <h2>Concurrent consumption</h2>
+ *
  * <p>
- * A Collector is a component which can be used to "launch" a collect operation.
- * Once launched, a {@link RowConsumer} will receive a {@link BatchIterator}, which it consumes to generate a result.
+ *     In order to parallelize the consumption of multiple *inner* BatchIterators for certain operations
+ *     (e.g. Aggregations, Group By..), a CompositeBatchIterator is used that loads all sources concurrently.
  * </p>
  * <p>
- * <p>
- * To support collection from multiple shards a {@link CompositeCollector} collector is used.
- * This CompositeCollector can have multiple sub-collectors (1 per shard)
+ *     This might look as follows:
  * </p>
- * <p>
- * <p>
- * <p>
- * <b>concurrent consumption</b>
- * <p>
- * For grouping and aggregation operations it's advantageous to run them concurrently. This can be done
- * if there are multiple shards.
- * <p>
- * Since there is just a single Collector returned by {@link #getCollector(CollectPhase, RowConsumer, CollectTask)}
- * and there is only a single {@link RowConsumer} receiving a {@link BatchIterator} which cannot be consumed concurrently
- * the following pattern is used:
- * <p>
+ *
  * <pre>
- *                  CompositeCollector
- *
- *             Collector1                  Collector2
- *                |                            |
- *             doCollect                   doCollect
- *                |                            |
- *         shardConsumer                   shardConsumer
- *            accept(s1BatchIterator)       accept(s2BatchIterator)
- *                 \                          /
- *                  \                       /
- *                   \                     /
- *               +---------------------------------+
- *               |       MultiConsumer             |
- *               |  AsyncCompositeBatchIterator    |      loadNextBatch will run
- *               |                                 |        s1bi.loadNextBatch + s2bi.loadNextBatch concurrently.
- *               |   s1bi            s2bi          |
- *               +----------------------------------        s1bi/s2bi loadNextBatch encapsulate CPU heavy
- *                          |                               aggregation / grouping
- *                          |
- *                       nodeConsumer // consumes the compositeBatchIterator
- *
+ *     shard/searcher                        shard/searcher
+ *       |                                         |
+ *    LuceneBatchIterator                  LuceneBatchIterator
+ *       |                                         |
+ *    CollectingBatchIterator            CollectingBatchIterator
+ *       \                                        /
+ *        \_____________                _________/
+ *                      \              /
+ *                    AsyncCompositeBatchIterator
+ *                     (with concurrent/ loadNextBatch of sources)
  * </pre>
+ *
+ * In other cases multiple shards are simply processed sequentially by concatenating the BatchIterators
  */
 @Singleton
 public class ShardCollectSource extends AbstractComponent implements CollectSource {
