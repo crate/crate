@@ -198,21 +198,4 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
         expectedException.expectMessage("Failed to open output");
         consumer.getResult();
     }
-
-    @Test
-    public void testProjectionsWithCorrectGranularityAreApplied() {
-        GroupProjection groupProjection = new GroupProjection(
-            new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.SHARD);
-        FilterProjection filterProjection = new FilterProjection(new InputColumn(0), Collections.emptyList());
-        filterProjection.requiredGranularity(RowGranularity.DOC);
-
-        RowConsumer delegateConsumerRequiresScroll = new DummyRowConsumer(false);
-
-        ProjectingRowConsumer projectingConsumer = (ProjectingRowConsumer) ProjectingRowConsumer.create(delegateConsumerRequiresScroll,
-            Arrays.asList(filterProjection, groupProjection), UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, projectorFactory);
-
-        assertThat(projectingConsumer.requiresScroll(), is(false));
-        assertThat(projectingConsumer.projectors().size(), is(1));
-        assertThat(projectingConsumer.projectors().get(0), instanceOf(GroupingProjector.class));
-    }
 }

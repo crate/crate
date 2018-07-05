@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.pipeline;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.Projector;
@@ -32,9 +33,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
 
+/**
+ * Class to apply projections matching {@link ProjectorFactory#supportedGranularity()} onto a source BatchIterator.
+ */
 public final class Projectors {
 
-    private final ArrayList<Projector> projectors;
+    @VisibleForTesting
+    final ArrayList<Projector> projectors;
+
     private final boolean independentScroll;
 
     public Projectors(Collection<? extends Projection> projections,
@@ -54,6 +60,10 @@ public final class Projectors {
         this.independentScroll = independentScroll;
     }
 
+    /**
+     * Applies all projections matching {@link ProjectorFactory#supportedGranularity()} onto the source BatchIterator.
+     * Other projections are skipped
+     */
     public static BatchIterator<Row> wrap(Collection<? extends Projection> projections,
                                           UUID jobId,
                                           RamAccountingContext ramAccountingContext,

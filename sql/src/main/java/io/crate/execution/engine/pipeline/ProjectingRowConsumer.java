@@ -22,19 +22,15 @@
 
 package io.crate.execution.engine.pipeline;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
-import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.Projection;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -55,8 +51,7 @@ import java.util.UUID;
 public class ProjectingRowConsumer implements RowConsumer {
 
     private final RowConsumer consumer;
-    private final List<Projector> projectors;
-    private boolean requiresScroll;
+    private final Projectors projectors;
 
     /**
      * Wraps the {@param lastConsumer} with a ProjectingRowConsumer which applies the applicable projections.
@@ -97,37 +92,17 @@ public class ProjectingRowConsumer implements RowConsumer {
                                   RamAccountingContext ramAccountingContext,
                                   ProjectorFactory projectorFactory) {
         this.consumer = consumer;
-        projectors = new ArrayList<>(projections.size());
-
-        boolean projectorsSupportIndependentScrolling = false;
-        for (Projection projection : projections) {
-            if (projection.requiredGranularity().ordinal() > projectorFactory.supportedGranularity().ordinal()) {
-                continue;
-            }
-            Projector projector = projectorFactory.create(projection, ramAccountingContext, jobId);
-            projectors.add(projector);
-
-            if (projector.providesIndependentScroll()) {
-                projectorsSupportIndependentScrolling = true;
-            }
-        }
-        if (consumer.requiresScroll() && !projectorsSupportIndependentScrolling) {
-            requiresScroll = true;
-        } else {
-            requiresScroll = false;
-        }
+        this.projectors = new Projectors(projections, jobId, ramAccountingContext, projectorFactory);
     }
 
     @Override
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         if (failure == null) {
-            for (Projector projector : projectors) {
-                try {
-                    iterator = projector.apply(iterator);
-                } catch (Throwable t) {
-                    consumer.accept(null, t);
-                    return;
-                }
+            try {
+                iterator = projectors.wrap(iterator);
+            } catch (Throwable t) {
+                consumer.accept(null, t);
+                return;
             }
             consumer.accept(iterator, null);
         } else {
@@ -137,11 +112,6 @@ public class ProjectingRowConsumer implements RowConsumer {
 
     @Override
     public boolean requiresScroll() {
-        return requiresScroll;
-    }
-
-    @VisibleForTesting
-    List<Projector> projectors() {
-        return projectors;
+        return consumer.requiresScroll() && !projectors.providesIndependentScroll();
     }
 }
