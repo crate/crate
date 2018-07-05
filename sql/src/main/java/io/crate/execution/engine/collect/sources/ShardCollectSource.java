@@ -299,6 +299,27 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             );
         }
 
+        Projectors projectors = new Projectors(
+            normalizedPhase.projections(),
+            normalizedPhase.jobId(),
+            collectTask.queryPhaseRamAccountingContext(),
+            sharedProjectorFactory
+        );
+        boolean requireMoveToStartSupport = lastConsumer.requiresScroll() && !projectors.providesIndependentScroll();
+        OrderBy orderBy = normalizedPhase.orderBy();
+        if (normalizedPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
+            BatchIterator<Row> iterator = createMultiShardScoreDocCollector(
+                normalizedPhase,
+                requireMoveToStartSupport,
+                collectTask,
+                localNodeId
+            );
+            return BatchIteratorCollectorBridge.newInstance(
+                projectors.wrap(iterator),
+                lastConsumer
+            );
+        }
+
         RowConsumer firstConsumer = ProjectingRowConsumer.create(
             lastConsumer,
             normalizedPhase.projections(),
@@ -306,16 +327,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             collectTask.queryPhaseRamAccountingContext(),
             sharedProjectorFactory
         );
-        OrderBy orderBy = normalizedPhase.orderBy();
-        if (normalizedPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
-            return createMultiShardScoreDocCollector(
-                normalizedPhase,
-                firstConsumer,
-                collectTask,
-                localNodeId
-            );
-        }
-
         // actual shards might be less if table is partitioned and a partition has been deleted meanwhile
         final int maxNumShards = normalizedPhase.routing().numShards(localNodeId);
         boolean hasShardProjections = Projections.hasAnyShardProjections(normalizedPhase.projections());
@@ -354,10 +365,10 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         throw new UnsupportedOperationException("NYI");
     }
 
-    private CrateCollector createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,
-                                                             RowConsumer consumer,
-                                                             CollectTask collectTask,
-                                                             String localNodeId) {
+    private BatchIterator<Row> createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,
+                                                                 boolean supportMoveToStart,
+                                                                 CollectTask collectTask,
+                                                                 String localNodeId) {
 
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         SharedShardContexts sharedShardContexts = collectTask.sharedShardContexts();
@@ -378,7 +389,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                         collectPhase,
                         context,
                         collectTask,
-                        consumer.requiresScroll()));
+                        supportMoveToStart)
+                    );
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexNotFoundException e) {
@@ -391,25 +403,21 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 }
             }
         }
-
         List<DataType> columnTypes = Symbols.typeView(collectPhase.toCollect());
 
         OrderBy orderBy = collectPhase.orderBy();
         assert orderBy != null : "orderBy must not be null";
-        return BatchIteratorCollectorBridge.newInstance(
-            OrderedLuceneBatchIteratorFactory.newInstance(
-                orderedDocCollectors,
-                OrderingByPosition.rowOrdering(
-                    OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
-                    orderBy.reverseFlags(),
-                    orderBy.nullsFirst()
-                ),
-                new RowAccountingWithEstimators(columnTypes, collectTask.queryPhaseRamAccountingContext()),
-                executor,
-                availableThreads,
-                consumer.requiresScroll()
+        return OrderedLuceneBatchIteratorFactory.newInstance(
+            orderedDocCollectors,
+            OrderingByPosition.rowOrdering(
+                OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
+                orderBy.reverseFlags(),
+                orderBy.nullsFirst()
             ),
-            consumer
+            new RowAccountingWithEstimators(columnTypes, collectTask.queryPhaseRamAccountingContext()),
+            executor,
+            availableThreads,
+            supportMoveToStart
         );
     }
 
