@@ -22,51 +22,24 @@
 package io.crate.core.collections;
 
 import java.util.Map;
+import java.util.TreeMap;
 
-import static com.google.common.collect.Maps.newTreeMap;
 
-public class TreeMapBuilder<K extends Comparable, V> {
+public final class TreeMapBuilder<K extends Comparable, V> {
 
     public static <K extends Comparable, V> TreeMapBuilder<K, V> newMapBuilder() {
         return new TreeMapBuilder<>();
     }
 
-    private Map<K, V> map = newTreeMap();
+    private final Map<K, V> map;
 
     public TreeMapBuilder() {
-        this.map = newTreeMap();
-    }
-
-    public TreeMapBuilder<K, V> putAll(Map<K, V> map) {
-        this.map.putAll(map);
-        return this;
+        this.map = new TreeMap<>();
     }
 
     public TreeMapBuilder<K, V> put(K key, V value) {
         this.map.put(key, value);
         return this;
-    }
-
-    public TreeMapBuilder<K, V> remove(K key) {
-        this.map.remove(key);
-        return this;
-    }
-
-    public TreeMapBuilder<K, V> clear() {
-        this.map.clear();
-        return this;
-    }
-
-    public V get(K key) {
-        return map.get(key);
-    }
-
-    public boolean containsKey(K key) {
-        return map.containsKey(key);
-    }
-
-    public boolean isEmpty() {
-        return map.isEmpty();
     }
 
     public Map<K, V> map() {

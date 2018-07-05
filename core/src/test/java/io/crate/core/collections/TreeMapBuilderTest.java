@@ -36,22 +36,11 @@ public class TreeMapBuilderTest extends CrateUnitTest {
         TreeMapBuilder<Integer, Integer> builder = TreeMapBuilder.newMapBuilder();
 
         assertThat(builder.put(1, 1), instanceOf(TreeMapBuilder.class));
-        assertTrue(builder.containsKey(1));
-        assertThat(builder.get(1), is(1));
-        assertFalse(builder.isEmpty());
-
-        assertThat(builder.remove(1), instanceOf(TreeMapBuilder.class));
-        assertTrue(builder.isEmpty());
+        assertTrue(builder.map().containsKey(1));
+        assertThat(builder.map().get(1), is(1));
+        assertFalse(builder.map().isEmpty());
 
         builder.put(1, 1);
         assertThat(builder.map(), instanceOf(TreeMap.class));
-
-        TreeMapBuilder<Integer, Integer> builder2 = TreeMapBuilder.<Integer, Integer>newMapBuilder();
-        assertThat(builder2.putAll(builder.map()), instanceOf(TreeMapBuilder.class));
-        assertThat(builder2.get(1), is(1));
-        assertFalse(builder2.isEmpty());
-
-        assertThat(builder2.clear(), instanceOf(TreeMapBuilder.class));
-        assertTrue(builder2.isEmpty());
     }
 }
