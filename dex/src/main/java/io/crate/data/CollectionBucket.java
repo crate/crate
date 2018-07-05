@@ -22,26 +22,25 @@
 
 package io.crate.data;
 
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.Iterators;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.function.Function;
 
 public class CollectionBucket implements Bucket {
 
     private final Collection<Object[]> rows;
-    private final Function<Object[], Row> arrayToRowFunction;
+    private final Function<Object[], Row> arrayToSharedRow;
 
     public CollectionBucket(Collection<Object[]> rows) {
         this.rows = rows;
-        arrayToRowFunction = Buckets.arrayToRowFunction();
+        arrayToSharedRow = Buckets.arrayToSharedRow();
     }
 
     public CollectionBucket(Collection<Object[]> rows, int numColumns) {
         this.rows = rows;
-        arrayToRowFunction = Buckets.arrayToRowFunction(numColumns);
+        arrayToSharedRow = Buckets.arrayToSharedRow(numColumns);
     }
 
     @Override
@@ -51,7 +50,7 @@ public class CollectionBucket implements Bucket {
 
     @Override
     public Iterator<Row> iterator() {
-        return Iterators.transform(rows.iterator(), arrayToRowFunction);
+        return rows.stream().map(arrayToSharedRow).iterator();
     }
 
     @Override

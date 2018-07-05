@@ -490,7 +490,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         if (collectPhase.orderBy() != null) {
             rows.sort(OrderingByPosition.arrayOrdering(collectPhase).reverse());
         }
-        return Iterables.transform(rows, Buckets.arrayToRowFunction());
+        return Iterables.transform(rows, Buckets.arrayToSharedRow()::apply);
     }
 
     private UnassignedShard toUnassignedShard(String indexName, int shardId) {

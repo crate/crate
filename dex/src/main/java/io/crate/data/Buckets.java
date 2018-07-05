@@ -22,11 +22,12 @@
 
 package io.crate.data;
 
-import com.google.common.base.Function;
+
+import java.util.function.Function;
 
 public class Buckets {
 
-    public static Function<Object[], Row> arrayToRowFunction() {
+    public static Function<Object[], Row> arrayToSharedRow() {
         return new Function<Object[], Row>() {
             final ArrayRow row = new ArrayRow();
 
@@ -38,7 +39,7 @@ public class Buckets {
         };
     }
 
-    public static Function<Object[], Row> arrayToRowFunction(final int numColumns) {
+    public static Function<Object[], Row> arrayToSharedRow(final int numColumns) {
         return new Function<Object[], Row>() {
             final RowN row = new RowN(numColumns);
 

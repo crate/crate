@@ -75,6 +75,6 @@ public final class RowsTransformer {
         ArrayList<Object[]> objects = Lists.newArrayList(rows);
         Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(collectPhase);
         objects.sort(ordering.reverse());
-        return Iterables.transform(objects, Buckets.arrayToRowFunction());
+        return Iterables.transform(objects, Buckets.arrayToSharedRow()::apply);
     }
 }
