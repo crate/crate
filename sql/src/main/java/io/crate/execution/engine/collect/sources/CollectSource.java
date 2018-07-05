@@ -24,20 +24,10 @@ package io.crate.execution.engine.collect.sources;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
-import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.execution.engine.collect.CollectTask;
-import io.crate.execution.engine.collect.CrateCollector;
 
 public interface CollectSource {
-
-    default CrateCollector getCollector(CollectPhase collectPhase, RowConsumer consumer, CollectTask collectTask) {
-        return BatchIteratorCollectorBridge.newInstance(
-            getIterator(collectPhase, collectTask, consumer.requiresScroll()),
-            consumer
-        );
-    }
 
     BatchIterator<Row> getIterator(CollectPhase collectPhase, CollectTask collectTask, boolean supportMoveToStart);
 }

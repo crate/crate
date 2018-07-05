@@ -21,10 +21,10 @@
 
 package io.crate.execution.engine.collect;
 
+import io.crate.data.BatchIterator;
 import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.engine.collect.sources.CollectSourceResolver;
 import io.crate.execution.engine.collect.sources.FileCollectSource;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
@@ -49,9 +49,7 @@ import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUnitTest {
 
@@ -61,13 +59,8 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
     @Test
     public void testFileUriCollect() throws Exception {
         Functions functions = getFunctions();
-        CollectSourceResolver collectSourceResolver = mock(CollectSourceResolver.class);
-        when(collectSourceResolver.getService(any(RoutedCollectPhase.class)))
-            .thenReturn(new FileCollectSource(functions, clusterService, Collections.emptyMap()));
-        MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
-            collectSourceResolver,
-            THREAD_POOL
-        );
+        FileCollectSource fileCollectSource = new FileCollectSource(functions, clusterService, Collections.emptyMap());
+
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
@@ -89,12 +82,10 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
             false,
             FileUriCollectPhase.InputFormat.JSON
         );
-        String threadPoolName = CollectTask.threadPoolName(collectNode);
-
         TestingRowConsumer consumer = new TestingRowConsumer();
         CollectTask collectTask = mock(CollectTask.class);
-        CrateCollector collectors = collectOperation.createCollector(collectNode, consumer, collectTask);
-        collectOperation.launchCollector(collectors, threadPoolName);
+        BatchIterator<Row> iterator = fileCollectSource.getIterator(collectNode, collectTask, false);
+        consumer.accept(iterator, null);
         assertThat(new CollectionBucket(consumer.getResult()), contains(
             isRow("Arthur", 38),
             isRow("Trillian", 33)

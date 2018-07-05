@@ -21,7 +21,8 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.data.RowConsumer;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.engine.collect.sources.CollectSource;
 import io.crate.execution.engine.collect.sources.CollectSourceResolver;
@@ -29,7 +30,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nonnull;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -49,36 +49,19 @@ public class MapSideDataCollectOperation {
         this.threadPool = threadPool;
     }
 
-    /**
-     * dispatch by the following criteria:
-     * <p>
-     * * if local node id is contained in routing:<br>
-     * * if no shards are given:<br>
-     * &nbsp; -&gt; run row granularity level collect<br>
-     * &nbsp; except for doc level:
-     * &nbsp; &nbsp; if table if partitioned:
-     * &nbsp; &nbsp; -&gt; edge case for empty partitioned table
-     * &nbsp; &nbsp; else:
-     * &nbsp; &nbsp; -&gt; collect from information schema
-     * * if shards are given:<br>
-     * &nbsp; -&gt; run shard or doc level collect<br>
-     * * else if we got cluster RowGranularity:<br>
-     * &nbsp; -&gt; run node level collect (cluster level)<br>
-     * </p>
-     */
-    public CrateCollector createCollector(CollectPhase collectPhase,
-                                          RowConsumer consumer,
-                                          final CollectTask collectTask) {
+    public BatchIterator<Row> createIterator(CollectPhase collectPhase,
+                                             boolean requiresScroll,
+                                             CollectTask collectTask) {
         CollectSource service = collectSourceResolver.getService(collectPhase);
-        return service.getCollector(collectPhase, consumer, collectTask);
+        return service.getIterator(collectPhase, collectTask, requiresScroll);
     }
 
-    public void launchCollector(@Nonnull CrateCollector collector, String threadPoolName) throws RejectedExecutionException {
+    public void launch(Runnable runnable, String threadPoolName) throws RejectedExecutionException {
         Executor executor = threadPool.executor(threadPoolName);
         if (executor instanceof ThreadPoolExecutor) {
-            executor.execute(collector::doCollect);
+            executor.execute(runnable);
         } else {
-            collector.doCollect();
+            runnable.run();
         }
     }
 }

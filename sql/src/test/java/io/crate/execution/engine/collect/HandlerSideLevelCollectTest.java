@@ -24,8 +24,10 @@ package io.crate.execution.engine.collect;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.operator.EqOperator;
@@ -118,8 +120,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     private Bucket collect(RoutedCollectPhase collectPhase) throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        CrateCollector collector = operation.createCollector(collectPhase, consumer, mock(CollectTask.class));
-        operation.launchCollector(collector, CollectTask.threadPoolName(collectPhase));
+        BatchIterator<Row> bi = operation.createIterator(collectPhase, consumer.requiresScroll(), mock(CollectTask.class));
+        consumer.accept(bi, null);
         return new CollectionBucket(consumer.getResult());
     }
 

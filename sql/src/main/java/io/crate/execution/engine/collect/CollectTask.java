@@ -25,7 +25,9 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.BatchIterator;
 import io.crate.data.ListenableRowConsumer;
+import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -56,7 +58,7 @@ public class CollectTask extends AbstractTask {
     private final Object subContextLock = new Object();
     private final String threadPoolName;
 
-    private CrateCollector collector = null;
+    private BatchIterator<Row> batchIterator = null;
 
     public CollectTask(final CollectPhase collectPhase,
                        MapSideDataCollectOperation collectOperation,
@@ -113,8 +115,8 @@ public class CollectTask extends AbstractTask {
 
     @Override
     public void innerKill(@Nonnull Throwable throwable) {
-        if (collector != null) {
-            collector.kill(throwable);
+        if (batchIterator != null) {
+            batchIterator.kill(throwable);
         }
         setBytesUsed(queryPhaseRamAccountingContext.totalBytes());
     }
@@ -138,7 +140,7 @@ public class CollectTask extends AbstractTask {
 
     @Override
     public void innerPrepare() throws Exception {
-        collector = collectOperation.createCollector(collectPhase, consumer, this);
+        batchIterator = collectOperation.createIterator(collectPhase, consumer.requiresScroll(), this);
     }
 
     @Override
@@ -146,7 +148,7 @@ public class CollectTask extends AbstractTask {
         if (logger.isTraceEnabled()) {
             measureCollectTime();
         }
-        collectOperation.launchCollector(collector, threadPoolName);
+        collectOperation.launch(() -> consumer.accept(batchIterator, null), threadPoolName);
     }
 
     private void measureCollectTime() {

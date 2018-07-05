@@ -39,9 +39,7 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
-import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.execution.engine.collect.CollectTask;
-import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.RemoteCollectorFactory;
 import io.crate.execution.engine.collect.ShardCollectorProvider;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
@@ -271,29 +269,10 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
 
     @Override
-    public CrateCollector getCollector(CollectPhase phase,
-                                       RowConsumer lastConsumer,
-                                       CollectTask collectTask) {
+    public BatchIterator<Row> getIterator(CollectPhase phase, CollectTask collectTask, boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
         String localNodeId = clusterService.localNode().getId();
-
-        if (normalizedPhase.maxRowGranularity() == RowGranularity.SHARD) {
-            BatchIterator<Row> iterator = InMemoryBatchIterator.of(
-                getShardsIterator(collectPhase, normalizedPhase, localNodeId),
-                SentinelRow.SENTINEL
-            );
-            return BatchIteratorCollectorBridge.newInstance(
-                Projectors.wrap(
-                    normalizedPhase.projections(),
-                    normalizedPhase.jobId(),
-                    collectTask.queryPhaseRamAccountingContext(),
-                    sharedProjectorFactory,
-                    iterator
-                ),
-                lastConsumer
-            );
-        }
 
         Projectors projectors = new Projectors(
             normalizedPhase.projections(),
@@ -301,19 +280,20 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             collectTask.queryPhaseRamAccountingContext(),
             sharedProjectorFactory
         );
-        boolean requireMoveToStartSupport = lastConsumer.requiresScroll() && !projectors.providesIndependentScroll();
+        boolean requireMoveToStartSupport = supportMoveToStart && !projectors.providesIndependentScroll();
+
+        if (normalizedPhase.maxRowGranularity() == RowGranularity.SHARD) {
+            return projectors.wrap(InMemoryBatchIterator.of(
+                getShardsIterator(collectPhase, normalizedPhase, localNodeId), SentinelRow.SENTINEL));
+        }
         OrderBy orderBy = normalizedPhase.orderBy();
         if (normalizedPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
-            BatchIterator<Row> iterator = createMultiShardScoreDocCollector(
+            return projectors.wrap(createMultiShardScoreDocCollector(
                 normalizedPhase,
                 requireMoveToStartSupport,
                 collectTask,
                 localNodeId
-            );
-            return BatchIteratorCollectorBridge.newInstance(
-                projectors.wrap(iterator),
-                lastConsumer
-            );
+            ));
         }
 
         boolean hasShardProjections = Projections.hasAnyShardProjections(normalizedPhase.projections());
@@ -345,12 +325,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     result = new CompositeBatchIterator<>(iterators.toArray(new BatchIterator[0]));
                 }
         }
-        return BatchIteratorCollectorBridge.newInstance(projectors.wrap(result), lastConsumer);
-    }
-
-    @Override
-    public BatchIterator<Row> getIterator(CollectPhase collectPhase, CollectTask collectTask, boolean supportMoveToStart) {
-        throw new UnsupportedOperationException("NYI");
+        return projectors.wrap(result);
     }
 
     private BatchIterator<Row> createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,

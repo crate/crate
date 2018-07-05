@@ -22,11 +22,16 @@
 package io.crate.execution.engine.collect;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.SentinelRow;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -38,6 +43,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -111,15 +117,15 @@ public class CollectTaskTest extends RandomizedTest {
             mock(SharedShardContexts.class));
 
         jobCtx.addSearcher(1, mock1);
-        CrateCollector collectorMock1 = mock(CrateCollector.class);
 
-        when(collectOperationMock.createCollector(eq(collectPhase), any(), eq(jobCtx)))
-            .thenReturn(collectorMock1);
+        BatchIterator<Row> batchIterator = mock(BatchIterator.class);
+        when(collectOperationMock.createIterator(eq(collectPhase), anyBoolean(), eq(jobCtx)))
+            .thenReturn(batchIterator);
         jobCtx.prepare();
         jobCtx.start();
         jobCtx.kill(null);
 
-        verify(collectorMock1, times(1)).kill(any(InterruptedException.class));
+        verify(batchIterator, times(1)).kill(any(InterruptedException.class));
         verify(mock1, times(1)).close();
         verify(ramAccountingContext, times(1)).close();
     }
