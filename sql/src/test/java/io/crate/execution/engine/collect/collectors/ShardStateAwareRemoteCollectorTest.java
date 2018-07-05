@@ -22,9 +22,9 @@
 
 package io.crate.execution.engine.collect.collectors;
 
+import io.crate.data.BatchIterator;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
-import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.TestingBatchIterators;
@@ -43,6 +43,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ClusterServiceUtils;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,12 +67,12 @@ import static org.mockito.Mockito.when;
 public class ShardStateAwareRemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
 
     private CollectingRowConsumer<?, List<Object[]>> consumer;
-    private CrateCollector localCrateCollector;
     private RemoteCollector remoteCrateCollector;
     private Index index;
     private ShardId shardId;
     private ExecutorService executor;
     private ShardStateAwareRemoteCollector shardAwareRemoteCollector;
+    private BatchIterator<Row> localBatchIterator;
 
     @Before
     public void prepare() throws Exception {
@@ -83,13 +84,8 @@ public class ShardStateAwareRemoteCollectorTest extends CrateDummyClusterService
         shardId = new ShardId(indexName, indexUUID, 0);
 
         consumer = new CollectingRowConsumer<>(Collectors.mapping(Row::materialize, Collectors.toList()));
-        localCrateCollector = mock(CrateCollector.class);
         // this is a bit crafty but we can use the consumer's future to wait for the execution to complete
         // this way we can be sure the cluster changes were picked up by the listener and the collectors triggered
-        doAnswer(invocation -> {
-            consumer.accept(TestingBatchIterators.range(0, 1), null);
-            return null;
-        }).when(localCrateCollector).doCollect();
         remoteCrateCollector = mock(RemoteCollector.class);
 
         doAnswer(invocation -> {
@@ -103,12 +99,13 @@ public class ShardStateAwareRemoteCollectorTest extends CrateDummyClusterService
         IndicesService indicesService = mock(IndicesService.class);
         when(indicesService.indexService(any(Index.class))).thenReturn(indexService);
 
+        localBatchIterator = TestingBatchIterators.range(0, 1);
         shardAwareRemoteCollector = new ShardStateAwareRemoteCollector(
             new ShardId(indexName, indexUUID, 0),
             consumer,
             clusterService,
             indicesService,
-            shard -> localCrateCollector,
+            shard -> localBatchIterator,
             remotenode -> remoteCrateCollector,
             executor,
             new ThreadContext(Settings.EMPTY)
@@ -136,12 +133,17 @@ public class ShardStateAwareRemoteCollectorTest extends CrateDummyClusterService
     }
 
     @Test
-    public void testIsLocalCollectorIfRemoteNodeEqualsLocalNodeAndShardStarted() throws InterruptedException, ExecutionException, TimeoutException {
+    public void testIsLocalCollectorIfRemoteNodeEqualsLocalNodeAndShardStarted() throws Exception {
         setNewClusterStateFor(createStartedShardRouting("n1"));
         shardAwareRemoteCollector.doCollect();
         consumer.resultFuture().get(10, TimeUnit.SECONDS);
 
-        verify(localCrateCollector, times(1)).doCollect();
+        // either being exhausted or closed is fine, just make sure the localBatchIterator was used.
+        try {
+            assertThat(localBatchIterator.moveNext(), Matchers.is(false));
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage(), Matchers.containsString("Iterator is closed"));
+        }
     }
 
     @Test

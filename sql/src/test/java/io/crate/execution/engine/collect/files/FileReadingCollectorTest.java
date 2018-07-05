@@ -34,7 +34,6 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
-import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.reference.file.SourceLineExpression;
@@ -271,14 +270,14 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                             final S3ObjectInputStream s3InputStream,
                             RowConsumer consumer,
                             boolean collectSourceUriFailure) throws Throwable {
-        BatchIterator iterator = createBatchIterator(fileUris, compression, s3InputStream, collectSourceUriFailure);
-        BatchIteratorCollectorBridge.newInstance(iterator, consumer).doCollect();
+        BatchIterator<Row> iterator = createBatchIterator(fileUris, compression, s3InputStream, collectSourceUriFailure);
+        consumer.accept(iterator, null);
     }
 
-    private BatchIterator createBatchIterator(Collection<String> fileUris,
-                                              String compression,
-                                              final S3ObjectInputStream s3InputStream,
-                                              boolean collectSourceUriFailure) {
+    private BatchIterator<Row> createBatchIterator(Collection<String> fileUris,
+                                                   String compression,
+                                                   final S3ObjectInputStream s3InputStream,
+                                                   boolean collectSourceUriFailure) {
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);
         List<Input<?>> inputs = new ArrayList<>(2);

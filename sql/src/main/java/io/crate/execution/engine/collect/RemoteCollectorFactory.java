@@ -122,18 +122,15 @@ public class RemoteCollectorFactory {
         );
     }
 
-    private Function<IndexShard, CrateCollector> getLocalCollectorProvider(ShardCollectorProviderFactory shardCollectorProviderFactory,
-                                                                           RoutedCollectPhase collectPhase,
-                                                                           CollectTask collectTask,
-                                                                           RowConsumer consumer) {
+    private Function<IndexShard, BatchIterator<Row>> getLocalCollectorProvider(ShardCollectorProviderFactory shardCollectorProviderFactory,
+                                                                               RoutedCollectPhase collectPhase,
+                                                                               CollectTask collectTask,
+                                                                               RowConsumer consumer) {
         return indexShard -> {
             try {
-                return BatchIteratorCollectorBridge.newInstance(
-                    shardCollectorProviderFactory
-                        .create(indexShard)
-                        .getIterator(collectPhase, consumer.requiresScroll(), collectTask),
-                    consumer
-                );
+                return shardCollectorProviderFactory
+                    .create(indexShard)
+                    .getIterator(collectPhase, consumer.requiresScroll(), collectTask);
             } catch (Exception e) {
                 Exceptions.rethrowUnchecked(e);
                 return null;

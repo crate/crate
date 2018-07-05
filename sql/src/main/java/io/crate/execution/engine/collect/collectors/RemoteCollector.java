@@ -28,7 +28,6 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.jobs.DistResultRXTask;
 import io.crate.execution.jobs.RootTask;
@@ -48,7 +47,7 @@ import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 
-public class RemoteCollector implements CrateCollector {
+public class RemoteCollector {
 
     private static final Logger LOGGER = Loggers.getLogger(RemoteCollector.class);
     private static final int RECEIVER_PHASE_ID = 1;
@@ -100,7 +99,6 @@ public class RemoteCollector implements CrateCollector {
         this.collectPhase = collectPhase;
     }
 
-    @Override
     public void doCollect() {
         if (!createLocalContext()) return;
         createRemoteContext();
@@ -201,7 +199,6 @@ public class RemoteCollector implements CrateCollector {
             });
     }
 
-    @Override
     public void kill(@Nullable Throwable throwable) {
         synchronized (killLock) {
             collectorKilled = true;

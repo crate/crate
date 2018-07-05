@@ -22,8 +22,9 @@
 
 package io.crate.execution.engine.collect.collectors;
 
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.execution.engine.collect.CrateCollector;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
@@ -53,7 +54,7 @@ import java.util.function.Function;
  * (remote collecting in case the shard relocated to a different node or a local collection if the shard ended up back
  * on the local node)
  */
-public class ShardStateAwareRemoteCollector implements CrateCollector {
+public class ShardStateAwareRemoteCollector {
 
     private static final Logger LOGGER = Loggers.getLogger(ShardStateAwareRemoteCollector.class);
     private static final TimeValue STATE_OBSERVER_WAIT_FOR_CHANGE_TIMEOUT = new TimeValue(60000);
@@ -64,20 +65,21 @@ public class ShardStateAwareRemoteCollector implements CrateCollector {
     private final ShardId shardId;
     private final String indexName;
     private final IndicesService indicesService;
-    private final Function<IndexShard, CrateCollector> localCollectorProvider;
+    private final Function<IndexShard, BatchIterator<Row>> localCollectorProvider;
     private final Function<String, RemoteCollector> remoteCollectorProvider;
     private final ExecutorService executorService;
     private final ThreadContext threadContext;
     private final Object killLock = new Object();
 
     private boolean collectorKilled = false;
-    private CrateCollector collector;
+    private RemoteCollector remoteCollector;
+    private BatchIterator<Row> batchIterator;
 
     public ShardStateAwareRemoteCollector(ShardId shardId,
                                           RowConsumer consumer,
                                           ClusterService clusterService,
                                           IndicesService indicesService,
-                                          Function<IndexShard, CrateCollector> localCollectorProvider,
+                                          Function<IndexShard, BatchIterator<Row>> localCollectorProvider,
                                           Function<String, RemoteCollector> remoteCollectorProvider,
                                           ExecutorService executorService,
                                           ThreadContext threadContext) {
@@ -93,7 +95,6 @@ public class ShardStateAwareRemoteCollector implements CrateCollector {
         this.threadContext = threadContext;
     }
 
-    @Override
     public void doCollect() {
         ClusterState clusterState = clusterService.state();
         checkStateAndCollect(clusterState);
@@ -127,14 +128,14 @@ public class ShardStateAwareRemoteCollector implements CrateCollector {
     private void triggerRemoteCollect(String remoteNodeId) {
         synchronized (killLock) {
             if (collectorKilled == false) {
-                collector = remoteCollectorProvider.apply(remoteNodeId);
+                remoteCollector = remoteCollectorProvider.apply(remoteNodeId);
             } else {
                 consumer.accept(null, new InterruptedException());
             }
         }
         // collect outside the synchronized block as the collectors handle kill signals that arrive while collecting
-        if (collector != null) {
-            collector.doCollect();
+        if (remoteCollector != null) {
+            remoteCollector.doCollect();
         }
     }
 
@@ -157,17 +158,14 @@ public class ShardStateAwareRemoteCollector implements CrateCollector {
                     synchronized (killLock) {
                         if (collectorKilled == false) {
                             IndexShard indexShard = indexShards.getShard(shardId.getId());
-                            collector = localCollectorProvider.apply(indexShard);
+                            batchIterator = localCollectorProvider.apply(indexShard);
                         } else {
                             consumer.accept(null, new InterruptedException());
                             return;
                         }
                     }
-                    // collect outside the synchronized block as the collectors handle kill signals that arrive
-                    // while collecting
-                    if (collector != null) {
-                        collector.doCollect();
-                    }
+
+                    consumer.accept(batchIterator, null);
                 } catch (Exception e) {
                     consumer.accept(null, e);
                 }
@@ -220,12 +218,14 @@ public class ShardStateAwareRemoteCollector implements CrateCollector {
         };
     }
 
-    @Override
     public void kill(@Nullable Throwable throwable) {
         synchronized (killLock) {
             collectorKilled = true;
-            if (collector != null) {
-                collector.kill(throwable);
+            if (remoteCollector != null) {
+                remoteCollector.kill(throwable);
+            }
+            if (batchIterator != null) {
+                batchIterator.kill(throwable);
             }
         }
     }
