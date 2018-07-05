@@ -77,14 +77,14 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     private boolean closed = false;
     private volatile Throwable killed;
 
-    LuceneBatchIterator(IndexSearcher indexSearcher,
-                        Query query,
-                        @Nullable Float minScore,
-                        boolean doScores,
-                        CollectorContext collectorContext,
-                        RamAccountingContext ramAccountingContext,
-                        List<? extends Input<?>> inputs,
-                        Collection<? extends LuceneCollectorExpression<?>> expressions) {
+    public LuceneBatchIterator(IndexSearcher indexSearcher,
+                               Query query,
+                               @Nullable Float minScore,
+                               boolean doScores,
+                               CollectorContext collectorContext,
+                               RamAccountingContext ramAccountingContext,
+                               List<? extends Input<?>> inputs,
+                               Collection<? extends LuceneCollectorExpression<?>> expressions) {
         this.indexSearcher = indexSearcher;
         this.query = query;
         this.doScores = doScores || minScore != null;

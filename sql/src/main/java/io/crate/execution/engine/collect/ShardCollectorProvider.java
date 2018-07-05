@@ -23,17 +23,18 @@
 package io.crate.execution.engine.collect;
 
 import io.crate.analyze.QueryClause;
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.data.RowConsumer;
+import io.crate.data.SentinelRow;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
-import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
+import io.crate.execution.engine.pipeline.Projectors;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
@@ -49,7 +50,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
 import java.util.List;
 
 public abstract class ShardCollectorProvider {
@@ -112,55 +112,33 @@ public abstract class ShardCollectorProvider {
         return row;
     }
 
-    /**
-     * Create a CrateCollector.Builder to collect rows from a shard.
-     * <p>
-     * This also creates all shard-level projectors.
-     * The BatchConsumer that is used for {@link CrateCollector.Builder#build(RowConsumer)}
-     * should be the first node-level projector.
-     */
-    public CrateCollector.Builder getCollectorBuilder(RoutedCollectPhase collectPhase,
-                                                      boolean requiresScroll,
-                                                      CollectTask collectTask) throws Exception {
-        assert collectPhase.orderBy() ==
-               null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
+    public BatchIterator<Row> getIterator(RoutedCollectPhase collectPhase,
+                                          boolean requiresScroll,
+                                          CollectTask collectTask) throws Exception {
+        assert collectPhase.orderBy() == null
+            : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
+        assert collectPhase.maxRowGranularity() == RowGranularity.DOC :
+            "granularity must be DOC";
+
         RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, null);
-
-        final CrateCollector.Builder builder;
-        if (!QueryClause.canMatch(normalizedCollectNode.where())) {
-            builder = RowsCollector.emptyBuilder();
+        final BatchIterator<Row> iterator;
+        if (QueryClause.canMatch(normalizedCollectNode.where())) {
+            iterator = getUnorderedIterator(normalizedCollectNode, requiresScroll, collectTask);
         } else {
-            assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
-            builder = getBuilder(normalizedCollectNode, requiresScroll, collectTask);
+            iterator = InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
-
-        Collection<? extends Projection> shardProjections = Projections.shardProjections(collectPhase.projections());
-        if (shardProjections.isEmpty()) {
-            return builder;
-        } else {
-            return new CrateCollector.Builder() {
-                @Override
-                public CrateCollector build(RowConsumer rowConsumer) {
-                    return builder.build(rowConsumer);
-                }
-
-                @Override
-                public RowConsumer applyProjections(RowConsumer consumer) {
-                    return ProjectingRowConsumer.create(
-                        consumer,
-                        shardProjections,
-                        normalizedCollectNode.jobId(),
-                        collectTask.queryPhaseRamAccountingContext(),
-                        projectorFactory
-                    );
-                }
-            };
-        }
+        return Projectors.wrap(
+            Projections.shardProjections(collectPhase.projections()),
+            collectPhase.jobId(),
+            collectTask.queryPhaseRamAccountingContext(),
+            projectorFactory,
+            iterator
+        );
     }
 
-    protected abstract CrateCollector.Builder getBuilder(RoutedCollectPhase collectPhase,
-                                                         boolean requiresScroll,
-                                                         CollectTask collectTask);
+    protected abstract BatchIterator<Row> getUnorderedIterator(RoutedCollectPhase collectPhase,
+                                                               boolean requiresScroll,
+                                                               CollectTask collectTask);
 
 
     public abstract OrderedDocCollector getOrderedCollector(RoutedCollectPhase collectPhase,

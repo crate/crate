@@ -21,10 +21,12 @@
 
 package io.crate.execution.engine.collect;
 
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
-import io.crate.execution.engine.collect.collectors.CrateDocCollectorBuilder;
+import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.execution.engine.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OptimizeQueryForSearchAfter;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
@@ -91,9 +93,9 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     }
 
     @Override
-    protected CrateCollector.Builder getBuilder(RoutedCollectPhase collectPhase,
-                                                boolean requiresScroll,
-                                                CollectTask collectTask) {
+    protected BatchIterator<Row> getUnorderedIterator(RoutedCollectPhase collectPhase,
+                                                      boolean requiresScroll,
+                                                      CollectTask collectTask) {
         ShardId shardId = indexShard.shardId();
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.acquireSearcher();
@@ -111,7 +113,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
                 docInputFactory.extractImplementations(collectPhase);
 
-            return new CrateDocCollectorBuilder(
+            return new LuceneBatchIterator(
                 searcher.searcher(),
                 queryContext.query(),
                 queryContext.minScore(),

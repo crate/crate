@@ -43,12 +43,9 @@ import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.RemoteCollectorFactory;
-import io.crate.execution.engine.collect.RowsCollector;
 import io.crate.execution.engine.collect.ShardCollectorProvider;
-import io.crate.execution.engine.collect.collectors.CompositeCollector;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OrderedLuceneBatchIteratorFactory;
-import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.engine.pipeline.Projectors;
@@ -96,7 +93,6 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -320,44 +316,36 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             );
         }
 
-        RowConsumer firstConsumer = ProjectingRowConsumer.create(
-            lastConsumer,
-            normalizedPhase.projections(),
-            collectPhase.jobId(),
-            collectTask.queryPhaseRamAccountingContext(),
-            sharedProjectorFactory
-        );
-        // actual shards might be less if table is partitioned and a partition has been deleted meanwhile
-        final int maxNumShards = normalizedPhase.routing().numShards(localNodeId);
         boolean hasShardProjections = Projections.hasAnyShardProjections(normalizedPhase.projections());
-        Map<String, Map<String, List<Integer>>> locations = normalizedPhase.routing().locations();
-        final List<CrateCollector.Builder> builders = new ArrayList<>(maxNumShards);
+        Map<String, List<Integer>> indexShards = normalizedPhase.routing().locations().get(localNodeId);
+        List<BatchIterator<Row>> iterators = indexShards == null
+            ? Collections.emptyList()
+            : getIterators(collectTask, normalizedPhase, requireMoveToStartSupport, indexShards);
 
-        Map<String, List<Integer>> indexShards = locations.get(localNodeId);
-        if (indexShards != null) {
-            builders.addAll(
-                getDocCollectors(collectTask, normalizedPhase, lastConsumer.requiresScroll(), indexShards));
-        }
-
-        switch (builders.size()) {
+        final BatchIterator<Row> result;
+        switch (iterators.size()) {
             case 0:
-                return RowsCollector.empty(firstConsumer);
+                result = InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
+                break;
+
             case 1:
-                CrateCollector.Builder collectorBuilder = builders.iterator().next();
-                return collectorBuilder.build(collectorBuilder.applyProjections(firstConsumer));
+                result = iterators.get(0);
+                break;
+
             default:
                 if (hasShardProjections) {
                     // use AsyncCompositeBatchIterator for multi-threaded loadNextBatch
                     // in order to process shard-based projections concurrently
-                    return new CompositeCollector(
-                        builders,
-                        firstConsumer,
-                        iterators -> new AsyncCompositeBatchIterator<>(executor, availableThreads, iterators)
-                    );
+
+                    //noinspection unchecked
+                    result = new AsyncCompositeBatchIterator<>(
+                        executor, availableThreads, iterators.toArray(new BatchIterator[0]));
                 } else {
-                    return new CompositeCollector(builders, firstConsumer, CompositeBatchIterator::new);
+                    //noinspection unchecked
+                    result = new CompositeBatchIterator<>(iterators.toArray(new BatchIterator[0]));
                 }
         }
+        return BatchIteratorCollectorBridge.newInstance(projectors.wrap(result), lastConsumer);
     }
 
     @Override
@@ -433,13 +421,13 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         return shardCollectorProvider;
     }
 
-    private Collection<CrateCollector.Builder> getDocCollectors(CollectTask collectTask,
-                                                                RoutedCollectPhase collectPhase,
-                                                                boolean requiresScroll,
-                                                                Map<String, List<Integer>> indexShards) {
+    private List<BatchIterator<Row>> getIterators(CollectTask collectTask,
+                                                  RoutedCollectPhase collectPhase,
+                                                  boolean requiresScroll,
+                                                  Map<String, List<Integer>> indexShards) {
 
         MetaData metaData = clusterService.state().metaData();
-        List<CrateCollector.Builder> crateCollectors = new ArrayList<>();
+        List<BatchIterator<Row>> iterators = new ArrayList<>();
         for (Map.Entry<String, List<Integer>> entry : indexShards.entrySet()) {
             String indexName = entry.getKey();
             IndexMetaData indexMD = metaData.index(indexName);
@@ -462,12 +450,12 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 ShardId shardId = new ShardId(index, shardNum);
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
-                    CrateCollector.Builder collector = shardCollectorProvider.getCollectorBuilder(
+                    BatchIterator<Row> iterator = shardCollectorProvider.getIterator(
                         collectPhase,
                         requiresScroll,
                         collectTask
                     );
-                    crateCollectors.add(collector);
+                    iterators.add(iterator);
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     // If toCollect contains a docId it means that this is a QueryThenFetch operation.
                     // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
@@ -475,8 +463,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
                         throw e;
                     }
-                    crateCollectors.add(remoteCollectorFactory.createCollector(
-                        shardId, collectPhase, collectTask, shardCollectorProviderFactory));
+                    iterators.add(remoteCollectorFactory.createCollector(shardId, collectPhase, collectTask, shardCollectorProviderFactory));
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 } catch (IndexNotFoundException e) {
@@ -487,7 +474,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 }
             }
         }
-        return crateCollectors;
+        return iterators;
     }
 
     private Iterable<Row> getShardsIterator(RoutedCollectPhase collectPhase,

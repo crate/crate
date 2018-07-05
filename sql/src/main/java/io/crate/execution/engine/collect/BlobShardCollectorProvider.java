@@ -24,7 +24,10 @@ package io.crate.execution.engine.collect;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.blob.v2.BlobShard;
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
+import io.crate.data.SentinelRow;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.collectors.BlobOrderedDocCollector;
@@ -63,10 +66,10 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
     }
 
     @Override
-    protected CrateCollector.Builder getBuilder(RoutedCollectPhase collectPhase,
-                                                boolean requiresScroll,
-                                                CollectTask collectTask) {
-        return RowsCollector.builder(getBlobRows(collectPhase, requiresScroll));
+    protected BatchIterator<Row> getUnorderedIterator(RoutedCollectPhase collectPhase,
+                                                      boolean requiresScroll,
+                                                      CollectTask collectTask) {
+        return InMemoryBatchIterator.of(getBlobRows(collectPhase, requiresScroll), SentinelRow.SENTINEL);
     }
 
     private Iterable<Row> getBlobRows(RoutedCollectPhase collectPhase, boolean requiresRepeat) {

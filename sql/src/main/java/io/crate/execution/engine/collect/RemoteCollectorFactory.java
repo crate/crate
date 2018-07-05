@@ -23,6 +23,11 @@
 package io.crate.execution.engine.collect;
 
 import io.crate.core.collections.TreeMapBuilder;
+import io.crate.data.BatchIterator;
+import io.crate.data.Buckets;
+import io.crate.data.CollectingBatchIterator;
+import io.crate.data.CollectingRowConsumer;
+import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.Exceptions;
 import io.crate.execution.TransportActionProvider;
@@ -49,6 +54,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 /**
  * Used to create RemoteCollectors
@@ -86,12 +93,16 @@ public class RemoteCollectorFactory {
      * <p>
      * This should only be used if a shard is not available on the current node due to a relocation
      */
-    public CrateCollector.Builder createCollector(ShardId shardId,
-                                                  RoutedCollectPhase collectPhase,
-                                                  CollectTask collectTask,
-                                                  ShardCollectorProviderFactory shardCollectorProviderFactory) {
+    public BatchIterator<Row> createCollector(ShardId shardId,
+                                              RoutedCollectPhase collectPhase,
+                                              CollectTask collectTask,
+                                              ShardCollectorProviderFactory shardCollectorProviderFactory) {
         final UUID childJobId = UUID.randomUUID(); // new job because subContexts can't be merged into an existing job
-        return consumer -> new ShardStateAwareRemoteCollector(
+
+        Collector<Row, ?, List<Object[]>> listCollector = Collectors.mapping(Row::materialize, Collectors.toList());
+        CollectingRowConsumer<?, List<Object[]>> consumer = new CollectingRowConsumer<>(listCollector);
+
+        ShardStateAwareRemoteCollector shardStateAwareRemoteCollector = new ShardStateAwareRemoteCollector(
             shardId,
             consumer,
             clusterService,
@@ -100,6 +111,15 @@ public class RemoteCollectorFactory {
             getRemoteCollectorProvider(childJobId, shardId, collectPhase, collectTask, consumer),
             searchTp,
             threadPool.getThreadContext());
+
+        return CollectingBatchIterator.newInstance(
+            () -> {},
+            shardStateAwareRemoteCollector::kill,
+            () -> {
+                shardStateAwareRemoteCollector.doCollect();
+                return consumer.resultFuture().thenApply(results -> results.stream().map(Buckets.arrayToRowFunction())::iterator);
+            }
+        );
     }
 
     private Function<IndexShard, CrateCollector> getLocalCollectorProvider(ShardCollectorProviderFactory shardCollectorProviderFactory,
@@ -108,9 +128,12 @@ public class RemoteCollectorFactory {
                                                                            RowConsumer consumer) {
         return indexShard -> {
             try {
-                return shardCollectorProviderFactory.create(indexShard)
-                    .getCollectorBuilder(collectPhase, consumer.requiresScroll(), collectTask)
-                    .build(consumer);
+                return BatchIteratorCollectorBridge.newInstance(
+                    shardCollectorProviderFactory
+                        .create(indexShard)
+                        .getIterator(collectPhase, consumer.requiresScroll(), collectTask),
+                    consumer
+                );
             } catch (Exception e) {
                 Exceptions.rethrowUnchecked(e);
                 return null;

@@ -21,25 +21,7 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.data.RowConsumer;
-
 public interface CrateCollector {
-
-    interface Builder {
-
-        /**
-         * Create a CrateCollector
-         *
-         * @param rowConsumer consumer which will receive a BatchIterator to consume data after
-         *                      {@link #doCollect()} has been called.
-         *                      (May be async)
-         */
-        CrateCollector build(RowConsumer rowConsumer);
-
-        default RowConsumer applyProjections(RowConsumer consumer) {
-            return consumer;
-        }
-    }
 
     void doCollect();
 
