@@ -45,8 +45,6 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.snapshots.SnapshotException;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -94,10 +92,11 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             unassignedShardRefResolver(),
             false
         ).apply(Collections.singletonList(new UnassignedShard(
-                new ShardId("foo", UUIDs.randomBase64UUID(),1),
-                mock(ClusterService.class),
-                true,
-                ShardRoutingState.UNASSIGNED)));
+            1,
+            "foo",
+            mock(ClusterService.class),
+            true,
+            ShardRoutingState.UNASSIGNED)));
         Row next = rows.iterator().next();
         assertThat(next.numColumns(), is(1));
     }

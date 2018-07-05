@@ -22,13 +22,10 @@
 
 package io.crate.metadata.shard.unassigned;
 
-import io.crate.blob.v2.BlobIndex;
 import io.crate.metadata.IndexParts;
-import io.crate.metadata.blob.BlobSchemaInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.index.shard.ShardId;
 
 /**
  * This class represents an unassigned shard
@@ -43,7 +40,7 @@ import org.elasticsearch.index.shard.ShardId;
  * <p>
  * This is only for "select ... from sys.shards" queries.
  */
-public class UnassignedShard {
+public final class UnassignedShard {
 
     public static boolean isUnassigned(int shardId) {
         return shardId < 0;
@@ -79,38 +76,25 @@ public class UnassignedShard {
     private final int id;
     private final String partitionIdent;
     private final BytesRef state;
+    private final boolean orphanedPartition;
 
     private static final BytesRef UNASSIGNED = new BytesRef("UNASSIGNED");
     private static final BytesRef INITIALIZING = new BytesRef("INITIALIZING");
 
-    private Boolean orphanedPartition = false;
 
-    public UnassignedShard(ShardId shardId,
+    public UnassignedShard(int shardId,
+                           String indexName,
                            ClusterService clusterService,
                            Boolean primary,
                            ShardRoutingState state) {
-        String index = shardId.getIndexName();
-        boolean isBlobIndex = BlobIndex.isBlobIndex(index);
-        final String schemaName, tableName, partitionIdent;
-        if (isBlobIndex) {
-            schemaName = BlobSchemaInfo.NAME;
-            tableName = BlobIndex.stripPrefix(index);
-            partitionIdent = "";
-        } else {
-            IndexParts indexParts = new IndexParts(index);
-            schemaName = indexParts.getSchema();
-            tableName = indexParts.getTable();
-            partitionIdent = indexParts.getPartitionIdent();
-            if (indexParts.isPartitioned() && !clusterService.state().metaData().hasConcreteIndex(tableName)) {
-                orphanedPartition = true;
-            }
-        }
-
-        this.schemaName = schemaName;
-        this.tableName = tableName;
-        this.partitionIdent = partitionIdent;
+        IndexParts indexParts = new IndexParts(indexName);
+        this.schemaName = indexParts.getSchema();
+        this.tableName = indexParts.getTable();
+        this.partitionIdent = indexParts.getPartitionIdent();
+        this.orphanedPartition = indexParts.isPartitioned()
+                                 && !clusterService.state().metaData().hasConcreteIndex(tableName);
         this.primary = primary;
-        this.id = shardId.id();
+        this.id = shardId;
         this.state = state == ShardRoutingState.UNASSIGNED ? UNASSIGNED : INITIALIZING;
     }
 

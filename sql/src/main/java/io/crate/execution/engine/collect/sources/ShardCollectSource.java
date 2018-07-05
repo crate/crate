@@ -455,13 +455,13 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             IndexService indexService = indicesService.indexService(index);
             if (indexService == null) {
                 for (Integer shard : shards) {
-                    unassignedShards.add(toUnassignedShard(new ShardId(index, UnassignedShard.markAssigned(shard))));
+                    unassignedShards.add(toUnassignedShard(index.getName(), UnassignedShard.markAssigned(shard)));
                 }
                 continue;
             }
             for (Integer shard : shards) {
                 if (UnassignedShard.isUnassigned(shard)) {
-                    unassignedShards.add(toUnassignedShard(new ShardId(index, UnassignedShard.markAssigned(shard))));
+                    unassignedShards.add(toUnassignedShard(index.getName(), UnassignedShard.markAssigned(shard)));
                     continue;
                 }
                 ShardId shardId = new ShardId(index, shard);
@@ -472,7 +472,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                         rows.add(row);
                     }
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
-                    unassignedShards.add(toUnassignedShard(shardId));
+                    unassignedShards.add(toUnassignedShard(index.getName(), shard));
                 } catch (Throwable t) {
                     throw new UnhandledServerException(t);
                 }
@@ -493,7 +493,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         return Iterables.transform(rows, Buckets.arrayToRowFunction());
     }
 
-    private UnassignedShard toUnassignedShard(ShardId shardId) {
-        return new UnassignedShard(shardId, clusterService, false, ShardRoutingState.UNASSIGNED);
+    private UnassignedShard toUnassignedShard(String indexName, int shardId) {
+        return new UnassignedShard(shardId, indexName, clusterService, false, ShardRoutingState.UNASSIGNED);
     }
 }
