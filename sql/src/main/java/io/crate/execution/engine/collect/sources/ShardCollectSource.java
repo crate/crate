@@ -33,6 +33,7 @@ import io.crate.data.CompositeBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.data.SentinelRow;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -50,6 +51,7 @@ import io.crate.execution.engine.collect.collectors.OrderedLuceneBatchIteratorFa
 import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
+import io.crate.execution.engine.pipeline.Projectors;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.jobs.SharedShardContext;
@@ -104,7 +106,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
-import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.support.ThreadPools.numIdleThreads;
 
 /**
@@ -279,9 +280,24 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                                        CollectTask collectTask) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
-
         String localNodeId = clusterService.localNode().getId();
 
+        if (normalizedPhase.maxRowGranularity() == RowGranularity.SHARD) {
+            BatchIterator<Row> iterator = InMemoryBatchIterator.of(
+                getShardsIterator(collectPhase, normalizedPhase, localNodeId),
+                SentinelRow.SENTINEL
+            );
+            return BatchIteratorCollectorBridge.newInstance(
+                Projectors.wrap(
+                    normalizedPhase.projections(),
+                    normalizedPhase.jobId(),
+                    collectTask.queryPhaseRamAccountingContext(),
+                    sharedProjectorFactory,
+                    iterator
+                ),
+                lastConsumer
+            );
+        }
 
         RowConsumer firstConsumer = ProjectingRowConsumer.create(
             lastConsumer,
@@ -290,12 +306,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             collectTask.queryPhaseRamAccountingContext(),
             sharedProjectorFactory
         );
-        if (normalizedPhase.maxRowGranularity() == RowGranularity.SHARD) {
-            // it's possible to use FlatProjectorChain instead of ShardProjectorChain as a shortcut because
-            // the rows are "pre-created" on a shard level.
-            // The getShardsCollector method always only uses a single RowReceiver and not one per shard)
-            return getShardsCollector(collectPhase, normalizedPhase, localNodeId, firstConsumer);
-        }
         OrderBy orderBy = normalizedPhase.orderBy();
         if (normalizedPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
             return createMultiShardScoreDocCollector(
@@ -472,10 +482,9 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         return crateCollectors;
     }
 
-    private CrateCollector getShardsCollector(RoutedCollectPhase collectPhase,
-                                              RoutedCollectPhase normalizedPhase,
-                                              String localNodeId,
-                                              RowConsumer consumer) {
+    private Iterable<Row> getShardsIterator(RoutedCollectPhase collectPhase,
+                                            RoutedCollectPhase normalizedPhase,
+                                            String localNodeId) {
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         List<UnassignedShard> unassignedShards = new ArrayList<>();
         List<Object[]> rows = new ArrayList<>();
@@ -528,10 +537,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         if (collectPhase.orderBy() != null) {
             rows.sort(OrderingByPosition.arrayOrdering(collectPhase).reverse());
         }
-        return BatchIteratorCollectorBridge.newInstance(
-            InMemoryBatchIterator.of(Iterables.transform(rows, Buckets.arrayToRowFunction()), SENTINEL),
-            consumer
-        );
+        return Iterables.transform(rows, Buckets.arrayToRowFunction());
     }
 
     private UnassignedShard toUnassignedShard(ShardId shardId) {
