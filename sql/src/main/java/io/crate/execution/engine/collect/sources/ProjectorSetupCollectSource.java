@@ -21,12 +21,12 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import io.crate.data.RowConsumer;
-import io.crate.execution.engine.collect.CollectTask;
-import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
-import io.crate.execution.engine.pipeline.ProjectorFactory;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
 import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.engine.collect.CollectTask;
+import io.crate.execution.engine.pipeline.ProjectorFactory;
+import io.crate.execution.engine.pipeline.Projectors;
 
 public class ProjectorSetupCollectSource implements CollectSource {
 
@@ -39,16 +39,13 @@ public class ProjectorSetupCollectSource implements CollectSource {
     }
 
     @Override
-    public CrateCollector getCollector(CollectPhase collectPhase, RowConsumer consumer, CollectTask collectTask) {
-        return sourceDelegate.getCollector(
-            collectPhase,
-            ProjectingRowConsumer.create(
-                consumer,
-                collectPhase.projections(),
-                collectPhase.jobId(),
-                collectTask.queryPhaseRamAccountingContext(),
-                projectorFactory),
-            collectTask
+    public BatchIterator<Row> getIterator(CollectPhase collectPhase, CollectTask collectTask, boolean supportMoveToStart) {
+        return Projectors.wrap(
+            collectPhase.projections(),
+            collectPhase.jobId(),
+            collectTask.queryPhaseRamAccountingContext(),
+            projectorFactory,
+            sourceDelegate.getIterator(collectPhase, collectTask, supportMoveToStart)
         );
     }
 }

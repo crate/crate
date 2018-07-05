@@ -24,16 +24,14 @@ package io.crate.execution.engine.collect.sources;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.RowConsumer;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.execution.engine.collect.CollectTask;
-import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.RowsTransformer;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
@@ -108,35 +106,28 @@ public class SystemCollectSource implements CollectSource {
     }
 
     @Override
-    public CrateCollector getCollector(CollectPhase phase,
-                                       RowConsumer consumer,
-                                       CollectTask collectTask) {
+    public BatchIterator<Row> getIterator(CollectPhase phase, CollectTask collectTask, boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
-
-        boolean requiresScroll = consumer.requiresScroll();
 
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
         RelationName relationName = RelationName.fromIndexName(table);
         StaticTableDefinition<?> tableDefinition = tableDefinition(relationName);
 
-        return BatchIteratorCollectorBridge.newInstance(
-            CollectingBatchIterator.newInstance(
-                () -> {},
-                // kill no-op: Can't interrupt remote retrieval;
-                // If data is already local, then `CollectingBatchIterator` takes care of kill handling.
-                t -> {},
-                () -> tableDefinition.retrieveRecords(collectPhase.user())
-                    .thenApply(records ->
+        return CollectingBatchIterator.newInstance(
+            () -> {},
+            // kill no-op: Can't interrupt remote retrieval;
+            // If data is already local, then `CollectingBatchIterator` takes care of kill handling.
+            t -> {},
+            () -> tableDefinition.retrieveRecords(collectPhase.user())
+                .thenApply(records ->
                         recordsToRows(
                             collectPhase,
                             tableDefinition.getReferenceResolver(),
-                            requiresScroll,
+                            supportMoveToStart,
                             records
                         )
                     )
-            ),
-            consumer
         );
     }
 

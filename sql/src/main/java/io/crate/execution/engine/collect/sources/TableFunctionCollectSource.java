@@ -24,15 +24,15 @@ package io.crate.execution.engine.collect.sources;
 
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.data.RowConsumer;
+import io.crate.data.SentinelRow;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
-import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.collect.CollectTask;
-import io.crate.execution.engine.collect.RowsCollector;
+import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.collect.RowsTransformer;
 import io.crate.execution.engine.collect.ValueAndInputRow;
 import io.crate.expression.InputCondition;
@@ -59,9 +59,7 @@ public class TableFunctionCollectSource implements CollectSource {
     }
 
     @Override
-    public CrateCollector getCollector(CollectPhase collectPhase,
-                                       RowConsumer consumer,
-                                       CollectTask collectTask) {
+    public BatchIterator<Row> getIterator(CollectPhase collectPhase, CollectTask collectTask, boolean supportMoveToStart) {
         TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
         TableFunctionImplementation functionImplementation = phase.functionImplementation();
         TableInfo tableInfo = functionImplementation.createTableInfo();
@@ -86,6 +84,6 @@ public class TableFunctionCollectSource implements CollectSource {
         if (orderBy != null) {
             rows = RowsTransformer.sortRows(Iterables.transform(rows, Row::materialize), phase);
         }
-        return RowsCollector.forRows(rows, consumer);
+        return InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL);
     }
 }

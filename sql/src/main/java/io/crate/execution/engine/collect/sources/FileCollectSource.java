@@ -24,12 +24,9 @@ package io.crate.execution.engine.collect.sources;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
-import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
-import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.execution.engine.collect.CollectTask;
-import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
@@ -65,7 +62,7 @@ public class FileCollectSource implements CollectSource {
     }
 
     @Override
-    public CrateCollector getCollector(CollectPhase collectPhase, RowConsumer consumer, CollectTask collectTask) {
+    public BatchIterator<Row> getIterator(CollectPhase collectPhase, CollectTask collectTask, boolean supportMoveToStart) {
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);
@@ -73,7 +70,7 @@ public class FileCollectSource implements CollectSource {
 
         List<String> fileUris;
         fileUris = targetUriToStringList(fileUriCollectPhase.targetUri());
-        BatchIterator<Row> fileReadingIterator = FileReadingIterator.newInstance(
+        return FileReadingIterator.newInstance(
             fileUris,
             ctx.topLevelInputs(),
             ctx.expressions(),
@@ -84,8 +81,6 @@ public class FileCollectSource implements CollectSource {
             getReaderNumber(fileUriCollectPhase.nodeIds(), clusterService.state().nodes().getLocalNodeId()),
             fileUriCollectPhase.inputFormat()
         );
-
-        return BatchIteratorCollectorBridge.newInstance(fileReadingIterator, consumer);
     }
 
     private static int getReaderNumber(Collection<String> nodeIds, String localNodeId) {

@@ -23,10 +23,22 @@
 package io.crate.execution.engine.collect.sources;
 
 import com.google.common.collect.Iterables;
-import io.crate.execution.engine.collect.CollectTask;
-import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.data.RowConsumer;
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.SentinelRow;
 import io.crate.execution.TransportActionProvider;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.ExecutionPhaseVisitor;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
+import io.crate.execution.engine.collect.CollectTask;
+import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
+import io.crate.execution.engine.pipeline.ProjectorFactory;
+import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.expression.InputFactory;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.RowGranularity;
@@ -36,17 +48,6 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.expression.InputFactory;
-import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.collect.RowsCollector;
-import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
-import io.crate.execution.engine.pipeline.ProjectorFactory;
-import io.crate.execution.dsl.phases.ExecutionPhaseVisitor;
-import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.dsl.phases.FileUriCollectPhase;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -185,8 +186,8 @@ public class CollectSourceResolver {
     private static class VoidCollectSource implements CollectSource {
 
         @Override
-        public CrateCollector getCollector(CollectPhase collectPhase, RowConsumer consumer, CollectTask collectTask) {
-            return RowsCollector.empty(consumer);
+        public BatchIterator<Row> getIterator(CollectPhase collectPhase, CollectTask collectTask, boolean supportMoveToStart) {
+            return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
     }
 }

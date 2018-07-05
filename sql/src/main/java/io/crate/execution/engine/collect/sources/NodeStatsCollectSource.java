@@ -27,13 +27,13 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.WhereClause;
 import io.crate.data.BatchIterator;
-import io.crate.data.RowConsumer;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.SentinelRow;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.execution.engine.collect.CollectTask;
-import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.collect.RowsCollector;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.execution.engine.collect.collectors.NodeStats;
 import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
 import io.crate.expression.InputFactory;
@@ -42,7 +42,6 @@ import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.LocalSysColReferenceResolver;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -74,25 +73,19 @@ public class NodeStatsCollectSource implements CollectSource {
     }
 
     @Override
-    public CrateCollector getCollector(CollectPhase phase, RowConsumer consumer, CollectTask collectTask) {
+    public BatchIterator<Row> getIterator(CollectPhase phase, CollectTask collectTask, boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         if (!QueryClause.canMatch(collectPhase.where())) {
-            return RowsCollector.empty(consumer);
+            return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
         Collection<DiscoveryNode> nodes = nodeIds(
             collectPhase.where(),
             Lists.newArrayList(clusterService.state().getNodes().iterator()),
             functions);
         if (nodes.isEmpty()) {
-            return RowsCollector.empty(consumer);
+            return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
-        BatchIterator nodeStatsIterator = NodeStats.newInstance(
-            nodeStatsAction,
-            collectPhase,
-            nodes,
-            inputFactory
-        );
-        return BatchIteratorCollectorBridge.newInstance(nodeStatsIterator, consumer);
+        return NodeStats.newInstance(nodeStatsAction, collectPhase, nodes, inputFactory);
     }
 
     @Nullable

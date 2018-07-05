@@ -339,6 +339,11 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         }
     }
 
+    @Override
+    public BatchIterator<Row> getIterator(CollectPhase collectPhase, CollectTask collectTask, boolean supportMoveToStart) {
+        throw new UnsupportedOperationException("NYI");
+    }
+
     private CrateCollector createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,
                                                              RowConsumer consumer,
                                                              CollectTask collectTask,

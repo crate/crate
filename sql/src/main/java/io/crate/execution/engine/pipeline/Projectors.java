@@ -54,6 +54,21 @@ public final class Projectors {
         this.independentScroll = independentScroll;
     }
 
+    public static BatchIterator<Row> wrap(Collection<? extends Projection> projections,
+                                          UUID jobId,
+                                          RamAccountingContext ramAccountingContext,
+                                          ProjectorFactory projectorFactory,
+                                          BatchIterator<Row> source) {
+        BatchIterator<Row> result = source;
+        for (Projection projection : projections) {
+            if (projection.requiredGranularity().ordinal() > projectorFactory.supportedGranularity().ordinal()) {
+                continue;
+            }
+            result = projectorFactory.create(projection, ramAccountingContext, jobId).apply(result);
+        }
+        return result;
+    }
+
     public BatchIterator<Row> wrap(BatchIterator<Row> source) {
         BatchIterator<Row> result = source;
         for (Projector projector : projectors) {

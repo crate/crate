@@ -22,14 +22,14 @@
 package io.crate.execution.engine.collect.sources;
 
 import io.crate.analyze.QueryClause;
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.RowConsumer;
+import io.crate.data.SentinelRow;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.collect.RowsCollector;
+import io.crate.execution.engine.collect.CollectTask;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -52,17 +52,18 @@ public class SingleRowSource implements CollectSource {
     }
 
     @Override
-    public CrateCollector getCollector(CollectPhase phase, RowConsumer consumer, CollectTask collectTask) {
+    public BatchIterator<Row> getIterator(CollectPhase phase, CollectTask collectTask, boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         collectPhase = collectPhase.normalize(clusterNormalizer, null);
 
         if (!QueryClause.canMatch(collectPhase.where())) {
-            return RowsCollector.empty(consumer);
+            return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
         assert collectPhase.where().symbolType().isValueSymbol() : "whereClause must have been normalized to a value";
 
         InputFactory inputFactory = new InputFactory(functions);
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(collectPhase.toCollect());
-        return RowsCollector.single(new InputRow(ctx.topLevelInputs()), consumer);
+
+        return InMemoryBatchIterator.of(new InputRow(ctx.topLevelInputs()), SentinelRow.SENTINEL);
     }
 }

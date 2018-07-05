@@ -33,14 +33,6 @@ public final class RowsCollector {
         return BatchIteratorCollectorBridge.newInstance(InMemoryBatchIterator.empty(SENTINEL), consumer);
     }
 
-    public static CrateCollector single(Row row, RowConsumer consumer) {
-        return BatchIteratorCollectorBridge.newInstance(InMemoryBatchIterator.of(row, SENTINEL), consumer);
-    }
-
-    public static CrateCollector forRows(Iterable<Row> rows, RowConsumer consumer) {
-        return BatchIteratorCollectorBridge.newInstance(InMemoryBatchIterator.of(rows, SENTINEL), consumer);
-    }
-
     static CrateCollector.Builder emptyBuilder() {
         return consumer -> BatchIteratorCollectorBridge.newInstance(InMemoryBatchIterator.empty(SENTINEL), consumer);
     }
