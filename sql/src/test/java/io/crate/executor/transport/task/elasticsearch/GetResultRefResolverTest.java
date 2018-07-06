@@ -23,14 +23,13 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.collect.Lists;
-import io.crate.expression.reference.GetResponseRefResolver;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.reference.GetResultRefResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.get.GetResult;
@@ -44,13 +43,13 @@ import java.util.List;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.is;
 
-public class GetResponseRefResolverTest extends CrateUnitTest {
+public class GetResultRefResolverTest extends CrateUnitTest {
 
     private static final BytesReference SOURCE = new BytesArray("{\"x\": 1}".getBytes());
-    private static final GetResponseRefResolver REF_RESOLVER =
-        new GetResponseRefResolver(Collections.emptyList());
-    private static final GetResponse GET_RESPONSE =
-        new GetResponse(new GetResult("t1", "d", "abc", 1L, true, SOURCE, Collections.emptyMap()));
+    private static final GetResultRefResolver REF_RESOLVER =
+        new GetResultRefResolver(Collections.emptyList());
+    private static final GetResult GET_RESULT =
+        new GetResult("t1", "d", "abc", 1L, true, SOURCE, Collections.emptyMap());
 
     @Test
     public void testSystemColumnsCollectExpressions() throws Exception {
@@ -61,10 +60,10 @@ public class GetResponseRefResolverTest extends CrateUnitTest {
             refInfo("t1._raw", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.RAW), RowGranularity.DOC)
         );
 
-        List<CollectExpression<GetResponse, ?>> collectExpressions = new ArrayList<>(4);
+        List<CollectExpression<GetResult, ?>> collectExpressions = new ArrayList<>(4);
         for (Reference reference : references) {
-            CollectExpression<GetResponse, ?> collectExpression = REF_RESOLVER.getImplementation(reference);
-            collectExpression.setNextRow(GET_RESPONSE);
+            CollectExpression<GetResult, ?> collectExpression = REF_RESOLVER.getImplementation(reference);
+            collectExpression.setNextRow(GET_RESULT);
             collectExpressions.add(collectExpression);
         }
 

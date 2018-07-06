@@ -32,12 +32,11 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
-import io.crate.expression.reference.GetResponseRefResolver;
+import io.crate.expression.reference.GetResultRefResolver;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.operators.PKAndVersion;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.get.GetResult;
 import org.elasticsearch.index.shard.ShardId;
@@ -58,7 +57,7 @@ public final class PKLookupTask extends AbstractTask {
     private final Collection<? extends Projection> shardProjections;
     private final RowConsumer consumer;
     private final InputRow inputRow;
-    private final List<CollectExpression<GetResponse, ?>> expressions;
+    private final List<CollectExpression<GetResult, ?>> expressions;
     private final String name;
 
     PKLookupTask(UUID jobId,
@@ -82,9 +81,9 @@ public final class PKLookupTask extends AbstractTask {
         this.consumer = consumer;
 
         this.ignoreMissing = !partitionedByColumns.isEmpty();
-        GetResponseRefResolver getResponseRefResolver = new GetResponseRefResolver(partitionedByColumns);
+        GetResultRefResolver getResultRefResolver = new GetResultRefResolver(partitionedByColumns);
 
-        InputFactory.Context<CollectExpression<GetResponse, ?>> ctx = inputFactory.ctxForRefs(getResponseRefResolver);
+        InputFactory.Context<CollectExpression<GetResult, ?>> ctx = inputFactory.ctxForRefs(getResultRefResolver);
         ctx.add(toCollect);
         expressions = ctx.expressions();
         inputRow = new InputRow(ctx.topLevelInputs());
@@ -111,7 +110,7 @@ public final class PKLookupTask extends AbstractTask {
 
     private Row resultToRow(GetResult getResult) {
         for (int i = 0; i < expressions.size(); i++) {
-            expressions.get(i).setNextRow(new GetResponse(getResult));
+            expressions.get(i).setNextRow(getResult);
         }
         return inputRow;
     }

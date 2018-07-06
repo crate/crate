@@ -22,14 +22,14 @@
 
 package io.crate.expression.reference;
 
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.execution.engine.collect.CollectExpression;
-import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
+import org.elasticsearch.index.get.GetResult;
 
 import java.util.List;
 import java.util.Map;
@@ -38,32 +38,32 @@ import static io.crate.execution.engine.collect.NestableCollectExpression.forFun
 
 /**
  * ReferenceResolver implementation which can be used to retrieve {@link CollectExpression}s to extract values from
- * {@link GetResponse}s
+ * {@link GetResult}s
  */
-public class GetResponseRefResolver implements ReferenceResolver<CollectExpression<GetResponse, ?>> {
+public class GetResultRefResolver implements ReferenceResolver<CollectExpression<GetResult, ?>> {
 
     private final List<ColumnIdent> partitionedByColumns;
 
-    public GetResponseRefResolver(List<ColumnIdent> partitionedByColumns) {
+    public GetResultRefResolver(List<ColumnIdent> partitionedByColumns) {
         this.partitionedByColumns = partitionedByColumns;
     }
 
     @Override
-    public CollectExpression<GetResponse, ?> getImplementation(Reference ref) {
+    public CollectExpression<GetResult, ?> getImplementation(Reference ref) {
         ColumnIdent columnIdent = ref.column();
         String fqn = columnIdent.fqn();
         switch (fqn) {
             case DocSysColumns.Names.VERSION:
-                return forFunction(GetResponse::getVersion);
+                return forFunction(GetResult::getVersion);
 
             case DocSysColumns.Names.ID:
-                return NestableCollectExpression.objToBytesRef(GetResponse::getId);
+                return NestableCollectExpression.objToBytesRef(GetResult::getId);
 
             case DocSysColumns.Names.RAW:
-                return forFunction(r -> r.getSourceAsBytesRef().toBytesRef());
+                return forFunction(r -> r.sourceRef().toBytesRef());
 
             case DocSysColumns.Names.DOC:
-                return forFunction(GetResponse::getSource);
+                return forFunction(GetResult::getSource);
 
             default:
                 int idx = partitionedByColumns.indexOf(columnIdent);
@@ -73,7 +73,7 @@ public class GetResponseRefResolver implements ReferenceResolver<CollectExpressi
                             PartitionName.fromIndexOrTemplate(getResp.getIndex()).values().get(idx)));
                 }
                 return forFunction(response -> {
-                    Map<String, Object> sourceAsMap = response.getSourceAsMap();
+                    Map<String, Object> sourceAsMap = response.sourceAsMap();
                     return ref.valueType().value(XContentMapValues.extractValue(fqn, sourceAsMap));
                 });
         }
