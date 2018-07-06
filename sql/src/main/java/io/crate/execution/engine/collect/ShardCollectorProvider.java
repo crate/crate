@@ -121,6 +121,10 @@ public abstract class ShardCollectorProvider {
             "granularity must be DOC";
 
         RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, null);
+        BatchIterator<Row> fusedIterator = getProjectionFusedIterator(normalizedCollectNode, collectTask);
+        if (fusedIterator != null) {
+            return fusedIterator;
+        }
         final BatchIterator<Row> iterator;
         if (QueryClause.canMatch(normalizedCollectNode.where())) {
             iterator = getUnorderedIterator(normalizedCollectNode, requiresScroll, collectTask);
@@ -135,6 +139,15 @@ public abstract class ShardCollectorProvider {
             iterator
         );
     }
+
+    /**
+     * @return A BatchIterator which already applies the transformation described in the shardProjections of the collectPhase.
+     *         This can be used to return a specialized BatchIterator for certain projections. If this returns null
+     *         a fallback/default BatchIterator will be created and projections will be applied using the projectorFactory
+     */
+    @Nullable
+    protected abstract BatchIterator<Row> getProjectionFusedIterator(RoutedCollectPhase normalizedPhase,
+                                                                     CollectTask collectTask);
 
     protected abstract BatchIterator<Row> getUnorderedIterator(RoutedCollectPhase collectPhase,
                                                                boolean requiresScroll,

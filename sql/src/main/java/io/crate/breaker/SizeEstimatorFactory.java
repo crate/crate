@@ -42,7 +42,7 @@ public class SizeEstimatorFactory {
                 return (SizeEstimator<T>) new ConstSizeEstimator(0);
             case StringType.ID:
             case IpType.ID:
-                return (SizeEstimator<T>) new BytesRefSizeEstimator();
+                return (SizeEstimator<T>) BytesRefSizeEstimator.INSTANCE;
             case ObjectType.ID:
                 // no type info for inner types so we just use an arbitrary constant size for now
                 return (SizeEstimator<T>) new ConstSizeEstimator(60);

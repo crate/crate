@@ -25,7 +25,13 @@ import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 
-public class BytesRefSizeEstimator extends SizeEstimator<BytesRef> {
+public final class BytesRefSizeEstimator extends SizeEstimator<BytesRef> {
+
+    public static final BytesRefSizeEstimator INSTANCE = new BytesRefSizeEstimator();
+
+    private BytesRefSizeEstimator() {
+    }
+
     @Override
     public long estimateSize(@Nullable BytesRef value) {
         if (value == null) {

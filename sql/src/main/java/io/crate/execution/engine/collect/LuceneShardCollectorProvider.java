@@ -58,6 +58,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -67,8 +68,10 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
     private final Supplier<String> localNodeId;
     private final LuceneQueryBuilder luceneQueryBuilder;
+    private final Functions functions;
     private final IndexShard indexShard;
     private final DocInputFactory docInputFactory;
+    private final BigArrays bigArrays;
     private final FieldTypeLookup fieldTypeLookup;
 
     public LuceneShardCollectorProvider(Schemas schemas,
@@ -84,12 +87,16 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         super(clusterService, nodeJobsCounter, ShardReferenceResolver.create(clusterService, schemas, indexShard),
             functions, threadPool, settings, transportActionProvider, indexShard, bigArrays);
         this.luceneQueryBuilder = luceneQueryBuilder;
+        this.functions = functions;
         this.indexShard = indexShard;
         this.localNodeId = () -> clusterService.localNode().getId();
         fieldTypeLookup = indexShard.mapperService()::fullName;
-        this.docInputFactory = new DocInputFactory(functions,
+        this.docInputFactory = new DocInputFactory(
+            functions,
             fieldTypeLookup,
-            new LuceneReferenceResolver(fieldTypeLookup, indexShard.indexSettings()));
+            new LuceneReferenceResolver(fieldTypeLookup, indexShard.indexSettings())
+        );
+        this.bigArrays = bigArrays;
     }
 
     @Override
@@ -127,6 +134,21 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             searcher.close();
             throw t;
         }
+    }
+
+    @Nullable
+    @Override
+    protected BatchIterator<Row> getProjectionFusedIterator(RoutedCollectPhase normalizedPhase, CollectTask collectTask) {
+        return GroupByOptimizedIterator.tryOptimizeSingleStringKey(
+            indexShard,
+            luceneQueryBuilder,
+            fieldTypeLookup,
+            bigArrays,
+            new InputFactory(functions),
+            docInputFactory,
+            normalizedPhase,
+            collectTask
+        );
     }
 
     @Override
@@ -187,9 +209,9 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         );
     }
 
-    private CollectorContext getCollectorContext(int readerId,
-                                                 InputFactory.Context ctx,
-                                                 Function<MappedFieldType, IndexFieldData<?>> getFieldData) {
+    static CollectorContext getCollectorContext(int readerId,
+                                                InputFactory.Context ctx,
+                                                Function<MappedFieldType, IndexFieldData<?>> getFieldData) {
         return new CollectorContext(
             getFieldData,
             new CollectorFieldsVisitor(ctx.expressions().size()),

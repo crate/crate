@@ -43,6 +43,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.io.File;
 
 public class BlobShardCollectorProvider extends ShardCollectorProvider {
@@ -63,6 +64,12 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
             threadPool, settings, transportActionProvider, blobShard.indexShard(), bigArrays);
         inputFactory = new InputFactory(functions);
         this.blobShard = blobShard;
+    }
+
+    @Nullable
+    @Override
+    protected BatchIterator<Row> getProjectionFusedIterator(RoutedCollectPhase normalizedPhase, CollectTask collectTask) {
+        return null;
     }
 
     @Override
