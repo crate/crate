@@ -47,12 +47,14 @@ dependencies {
         exclude module: "javax.servlet"
         exclude module: "guava"
         exclude module: "junit"
+        exclude group: "io.netty", module: "netty"
     }
     compile("org.apache.hadoop:hadoop-hdfs:${versions.hadoop2}") {
         exclude module: "guava"
         exclude module: "log4j"
         exclude module: "junit"
         exclude group: "io.netty", module: "netty"
+        exclude group: "io.netty", module: "netty-all"
     }
     requiredLibs "commons-collections:commons-collections:3.2.1"
     requiredLibs "commons-configuration:commons-configuration:1.6"
