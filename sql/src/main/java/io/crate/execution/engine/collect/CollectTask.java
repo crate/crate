@@ -175,7 +175,7 @@ public class CollectTask extends AbstractTask {
             if (collectPhase.maxRowGranularity() == RowGranularity.NODE
                        || collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
                 // Node or Shard system table collector
-                return ThreadPool.Names.MANAGEMENT;
+                return ThreadPool.Names.GET;
             }
         }
 

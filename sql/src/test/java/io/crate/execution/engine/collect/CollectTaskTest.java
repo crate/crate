@@ -24,14 +24,11 @@ package io.crate.execution.engine.collect;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
-import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.SentinelRow;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -156,13 +153,13 @@ public class CollectTaskTest extends RandomizedTest {
         // sys.nodes (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.NODE);
         threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.MANAGEMENT));
+        assertThat(threadPoolExecutorName, is(ThreadPool.Names.GET));
 
         // sys.shards
         when(routing.containsShards(localNodeId)).thenReturn(true);
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.SHARD);
         threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.MANAGEMENT));
+        assertThat(threadPoolExecutorName, is(ThreadPool.Names.GET));
         when(routing.containsShards(localNodeId)).thenReturn(false);
 
         // information_schema.*
