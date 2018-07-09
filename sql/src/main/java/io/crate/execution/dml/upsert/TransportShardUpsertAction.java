@@ -37,6 +37,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.InputFactory;
+import io.crate.expression.reference.GetResultRefResolver;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -46,7 +47,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import org.apache.lucene.util.BytesRef;
@@ -91,6 +91,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -647,45 +648,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return columnsNotUsed;
     }
 
-    private static class GetResultRefResolver implements ReferenceResolver<CollectExpression<GetResult, ?>> {
-
-        private static final GetResultRefResolver INSTANCE = new GetResultRefResolver();
-
-        @Override
-        public CollectExpression<GetResult, ?> getImplementation(Reference ref) {
-            ColumnIdent columnIdent = ref.column();
-            String fqn = columnIdent.fqn();
-            switch (fqn) {
-                case DocSysColumns.Names.VERSION:
-                    return NestableCollectExpression.forFunction(GetResult::getVersion);
-
-                case DocSysColumns.Names.ID:
-                    return NestableCollectExpression.objToBytesRef(GetResult::getId);
-
-                case DocSysColumns.Names.RAW:
-                    return NestableCollectExpression.forFunction(r -> r.sourceRef().toBytesRef());
-
-                case DocSysColumns.Names.DOC:
-                    return NestableCollectExpression.forFunction(GetResult::getSource);
-
-                default:
-                    return NestableCollectExpression.forFunction(response -> {
-                        if (response == null) {
-                            return null;
-                        }
-                        Map<String, Object> sourceAsMap = response.sourceAsMap();
-                        return ref.valueType().value(XContentMapValues.extractValue(fqn, sourceAsMap));
-                    });
-            }
-        }
-    }
-
     private static class GetResultOrGeneratedColumnsResolver extends GetResultRefResolver {
 
         private final Map<String, Object> updatedColumns;
 
         GetResultOrGeneratedColumnsResolver(Map<String, Object> updatedColumns) {
-            super();
+            super(Collections.emptyList());
             this.updatedColumns = updatedColumns;
         }
 
