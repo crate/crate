@@ -79,5 +79,5 @@ Looking for more help?
 .. _paid support: https://crate.io/pricing/
 .. _Slack: https://crate.io/docs/support/slackin/
 .. _StackOverflow: https://stackoverflow.com/tags/crate
-.. _the introductory docs: https://crate.io/docs/stable/hello.html
+.. _the introductory docs: https://crate.io/docs/crate/getting-started/en/latest/first-use/index.html
 .. _the project documentation: https://crate.io/docs/
