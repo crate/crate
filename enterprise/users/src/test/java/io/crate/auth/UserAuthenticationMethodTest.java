@@ -30,10 +30,9 @@ import org.junit.Test;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 public class UserAuthenticationMethodTest extends CrateUnitTest {
 
@@ -41,10 +40,8 @@ public class UserAuthenticationMethodTest extends CrateUnitTest {
         if (userName.equals("crate")) {
             User user = null;
             try {
-                // TODO: this mocking must only be used until the User has an implementation for password()
                 SecureHash pwHash = SecureHash.of(new SecureString("pw".toCharArray()));
-                user = spy(User.of("crate"));
-                when(user.password()).thenReturn(pwHash);
+                user = User.of("crate", Collections.emptySet(), pwHash);
             } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
                 // do nothing
             }
