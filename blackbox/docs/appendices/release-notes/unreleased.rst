@@ -42,6 +42,10 @@ Breaking Changes
 Changes
 =======
 
+- Changed the postgres wire protocol binary encoding format for ``timestamp``
+  columns to use the newer ``int64`` format. This will enable compatibility
+  with clients like ``pgx``.
+
 - Added support for multi line SQL comments, e.g. ``/* multi line */``.
 
 - Improved performance of queries using an array access inside the ``WHERE``

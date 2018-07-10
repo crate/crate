@@ -31,7 +31,7 @@ import static org.hamcrest.Matchers.is;
 
 public abstract class BasePGTypeTest<T> extends CrateUnitTest {
 
-    private PGType pgType;
+    PGType pgType;
 
     BasePGTypeTest(PGType pgType) {
         this.pgType = pgType;

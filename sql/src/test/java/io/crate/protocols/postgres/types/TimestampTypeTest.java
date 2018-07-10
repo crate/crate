@@ -23,6 +23,8 @@
 package io.crate.protocols.postgres.types;
 
 import com.google.common.base.Charsets;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -36,15 +38,18 @@ public class TimestampTypeTest extends BasePGTypeTest<Long> {
     }
 
     @Test
-    public void testWriteValues() throws Exception {
-        assertBytesWritten(1467072000000L,
-            new byte[]{0, 0, 0, 8, 65, -65, 4, 122, -128, 0, 0, 0});
-    }
-
-    @Test
-    public void testReadBinary() throws Exception {
-        assertBytesReadBinary(
-            new byte[]{65, -65, 4, 122, -128, 0, 0, 0}, 1467072000000L);
+    public void testBinaryRoundtrip() {
+        ByteBuf buffer = Unpooled.buffer();
+        try {
+            long value = 1467072000000L;
+            int written = pgType.writeAsBinary(buffer, value);
+            int length = buffer.readInt();
+            assertThat(written - 4, is(length));
+            long readValue = (long) pgType.readBinaryValue(buffer, length);
+            assertThat(readValue, is(value));
+        } finally {
+            buffer.release();
+        }
     }
 
     @Test

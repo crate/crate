@@ -431,6 +431,7 @@ class PostgresWireProtocol {
         Messages.sendParameterStatus(channel, "client_encoding", "UTF8");
         Messages.sendParameterStatus(channel, "datestyle", "ISO");
         Messages.sendParameterStatus(channel, "TimeZone", "UTC");
+        Messages.sendParameterStatus(channel, "integer_datetimes", "on");
         Messages.sendReadyForQuery(channel);
     }
 

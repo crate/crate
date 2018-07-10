@@ -45,7 +45,7 @@ class TimestampType extends PGType {
     private static final int TYPE_MOD = -1;
 
     // amount of seconds between 1970-01-01 and 2000-01-01
-    private static final int EPOCH_DIFF = 946684800;
+    private static final long EPOCH_DIFF_IN_MS = 946_684_800_000L;
 
     // 1st msec where BC date becomes AD date
     private static final long FIRST_MSEC_AFTER_CHRIST = -62135596800000L;
@@ -91,30 +91,30 @@ class TimestampType extends PGType {
     @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         buffer.writeInt(TYPE_LEN);
-        buffer.writeDouble(toPgTimestamp((long) value));
+        buffer.writeLong(toPgTimestamp((long) value));
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     /**
-     * Convert a crate timestamp (unix timestamp in ms) into a postgres timestamp (double seconds since 2000-01-01)
+     * Convert a crate timestamp (unix timestamp in ms) into a postgres timestamp (long microseconds since 2000-01-01)
      */
-    private static double toPgTimestamp(long value) {
-        double seconds = value / 1000.0;
-        return seconds - EPOCH_DIFF;
+    private static long toPgTimestamp(long unixTsInMs) {
+        return (unixTsInMs - EPOCH_DIFF_IN_MS) * 1000;
     }
 
     /**
      * Convert a postgres timestamp (seconds since 2000-01-01) into a crate timestamp (unix timestamp in ms)
      */
-    private static long toCrateTimestamp(double v) {
-        return (long) ((v + EPOCH_DIFF) * 1000.0);
+    private static long toCrateTimestamp(long microSecondsSince2k) {
+        return (microSecondsSince2k / 1000) + EPOCH_DIFF_IN_MS;
     }
 
     @Override
     public Object readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == TYPE_LEN : "valueLength must be " + TYPE_LEN +
-                                         " because timestamp is a 64 bit double. Actual length: " + valueLength;
-        return toCrateTimestamp(buffer.readDouble());
+                                         " because timestamp is a 64 bit long. Actual length: " + valueLength;
+        long microSecondsSince2K = buffer.readLong();
+        return toCrateTimestamp(microSecondsSince2K);
     }
 
     @Override
