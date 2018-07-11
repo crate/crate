@@ -56,6 +56,7 @@ allprojects {
         // allow to set the number of test forks from the CLI
         if (project.hasProperty('testForks')) {
             maxParallelForks = project.testForks as int
+            systemProperty "processors", Math.max(maxParallelForks / 2.0d, 1) as int
         }
         if (project.hasProperty('disableAssertions')) {
             enableAssertions = false
