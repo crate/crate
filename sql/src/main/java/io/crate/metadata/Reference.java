@@ -46,12 +46,12 @@ public class Reference extends Symbol {
     }
 
     protected DataType type;
-    private ReferenceIdent ident;
-    private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
-    private RowGranularity granularity;
-    private IndexType indexType = IndexType.NOT_ANALYZED;
-    private boolean nullable = true;
-    private boolean columnStoreDisabled = false;  // are DOC_VALUES disabled?
+    private final ReferenceIdent ident;
+    private final ColumnPolicy columnPolicy;
+    private final RowGranularity granularity;
+    private final IndexType indexType;
+    private final boolean nullable;
+    private final boolean columnStoreDisabled;
 
     public Reference(StreamInput in) throws IOException {
         ident = new ReferenceIdent(in);
@@ -62,10 +62,6 @@ public class Reference extends Symbol {
         indexType = IndexType.values()[in.readVInt()];
         nullable = in.readBoolean();
         columnStoreDisabled = in.readBoolean();
-    }
-
-    public Reference() {
-
     }
 
     public Reference(ReferenceIdent ident,
