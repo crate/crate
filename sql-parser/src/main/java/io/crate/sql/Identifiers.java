@@ -22,15 +22,29 @@
 
 package io.crate.sql;
 
+import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
+import io.crate.sql.tree.QualifiedNameReference;
+import org.antlr.v4.runtime.Vocabulary;
 
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class Identifiers {
 
+    private static final Pattern IDENTIFIER = Pattern.compile("'([A-Z_]+)'");
     private static final Pattern ESCAPE_REPLACE_RE = Pattern.compile("\"", Pattern.LITERAL);
     private static final String ESCAPE_REPLACEMENT = Matcher.quoteReplacement("\"\"");
+
+    private static final Set<String> KEYWORDS = identifierCandidates().stream()
+        .filter(Identifiers::reserved)
+        .collect(Collectors.toSet());
+
 
     /**
      * quote and escape the given identifier
@@ -61,16 +75,31 @@ public class Identifiers {
     }
 
     public static boolean isKeyWord(String identifier) {
-        if (identifier.length() < 1) {
-            return false;
-        }
-        // TODO: this is causing gazillion allocations and creates expensive exceptions. FIX THIS
+        return KEYWORDS.contains(identifier.toUpperCase(Locale.ENGLISH));
+    }
+
+    private static boolean reserved(String expression) {
         try {
-            SqlParser.createIdentifier(identifier);
-            return false;
-        } catch (Throwable e) {
+            return !(SqlParser.createExpression(expression) instanceof QualifiedNameReference);
+        } catch (ParsingException ignored) {
             return true;
         }
+    }
+
+    private static Set<String> identifierCandidates() {
+        HashSet<String> candidates = new HashSet<>();
+        Vocabulary vocabulary = SqlBaseLexer.VOCABULARY;
+        for (int i = 0; i < vocabulary.getMaxTokenType(); i++) {
+            String literalName = vocabulary.getLiteralName(i);
+            if (literalName == null) {
+                continue;
+            }
+            Matcher matcher = IDENTIFIER.matcher(literalName);
+            if (matcher.matches()) {
+                candidates.add(matcher.group(1));
+            }
+        }
+        return candidates;
     }
 
     /**
