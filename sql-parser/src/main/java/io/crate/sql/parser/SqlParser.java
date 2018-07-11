@@ -30,15 +30,12 @@ import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Statement;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.NoViableAltException;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.Pair;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
@@ -84,21 +81,6 @@ public class SqlParser {
 
     private Expression generateExpression(String expression) {
         return (Expression) invokeParser("expression", expression, SqlBaseParser::singleExpression);
-    }
-
-    public static String createIdentifier(String expression) throws Exception {
-        SqlBaseParser.IdentContext sqlBaseParser = getParser(expression).ident();
-        if (sqlBaseParser.exception instanceof NoViableAltException) {
-            throw sqlBaseParser.exception;
-        }
-        return sqlBaseParser.getText();
-    }
-
-    private static SqlBaseParser getParser(String sql) {
-        CharStream stream = new CaseInsensitiveStream(new ANTLRInputStream(sql));
-        SqlBaseLexer lexer = new SqlBaseLexer(stream);
-        TokenStream tokenStream = new CommonTokenStream(lexer);
-        return new SqlBaseParser(tokenStream);
     }
 
     private Node invokeParser(String name, String sql, Function<SqlBaseParser, ParserRuleContext> parseFunction) {
