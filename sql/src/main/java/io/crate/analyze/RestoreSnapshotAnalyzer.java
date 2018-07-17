@@ -24,16 +24,13 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.SettingsApplier;
-import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
@@ -43,15 +40,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
-import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
+import static io.crate.analyze.SnapshotSettings.SETTINGS;
 
 class RestoreSnapshotAnalyzer {
-
-    private static final ImmutableMap<String, SettingsApplier> SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
-        .put(IGNORE_UNAVAILABLE.name(), new SettingsAppliers.BooleanSettingsApplier(IGNORE_UNAVAILABLE))
-        .put(WAIT_FOR_COMPLETION.name(), new SettingsAppliers.BooleanSettingsApplier(WAIT_FOR_COMPLETION))
-        .build();
 
     private final RepositoryService repositoryService;
     private final Schemas schemas;
@@ -70,7 +61,7 @@ class RestoreSnapshotAnalyzer {
 
         // validate and extract settings
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
-            node.properties(), analysis.parameterContext(), SETTINGS).build();
+            node.properties(), analysis.parameterContext().parameters(), SETTINGS).build();
 
         if (node.tableList().isPresent()) {
             List<Table> tableList = node.tableList().get();

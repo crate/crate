@@ -24,7 +24,6 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.execution.ddl.RepositoryService;
@@ -32,8 +31,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.SettingsApplier;
-import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -54,18 +51,13 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
-import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
+import static io.crate.analyze.SnapshotSettings.SETTINGS;
 
 class CreateSnapshotAnalyzer {
 
     private static final Logger LOGGER = Loggers.getLogger(CreateSnapshotAnalyzer.class);
     private final RepositoryService repositoryService;
     private final Schemas schemas;
-
-    private static final ImmutableMap<String, SettingsApplier> SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
-        .put(IGNORE_UNAVAILABLE.name(), new SettingsAppliers.BooleanSettingsApplier(IGNORE_UNAVAILABLE))
-        .put(WAIT_FOR_COMPLETION.name(), new SettingsAppliers.BooleanSettingsApplier(WAIT_FOR_COMPLETION))
-        .build();
 
 
     CreateSnapshotAnalyzer(RepositoryService repositoryService, Schemas schemas) {
@@ -87,9 +79,9 @@ class CreateSnapshotAnalyzer {
 
         // validate and extract settings
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
-            node.properties(), analysis.parameterContext(), SETTINGS).build();
+            node.properties(), analysis.parameterContext().parameters(), SETTINGS).build();
 
-        boolean ignoreUnavailable = settings.getAsBoolean(IGNORE_UNAVAILABLE.name(), IGNORE_UNAVAILABLE.defaultValue());
+        boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(settings);
 
         // iterate tables
         if (!node.tableList().isEmpty()) {

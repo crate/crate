@@ -40,6 +40,13 @@ Breaking Changes
 Changes
 =======
 
+- Values of byte-size and time based configuration setting do not require a unit
+  suffix anymore. Without a unit time values are treat as milliseconds since
+  epoch and byte size values are treat as bytes.
+
+- Added support of using units inside byte-size or time bases statement
+  parameters values. E.g. '1mb' for 1 MegaByte or '1s' for 1 Second.
+
 - Added support for using generated columns inside object columns.
 
 Fixes

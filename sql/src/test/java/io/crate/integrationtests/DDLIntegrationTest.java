@@ -103,17 +103,17 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                   "\"settings\":{" +
                                   "\"index.number_of_replicas\":\"0\"," +
                                   "\"index.number_of_shards\":\"5\"," +
-                                  "\"index.refresh_interval\":\"0ms\"," +
+                                  "\"index.refresh_interval\":\"0s\"," +
                                   "\"index.version.created\":\"" + Version.CURRENT.esVersion.id + "\"" +
                                   "}}}";
         JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
 
-        execute("ALTER TABLE test SET (refresh_interval = 5000)");
+        execute("ALTER TABLE test SET (refresh_interval = '5000ms')");
         String expectedSetSettings = "{\"test\":{" +
                                      "\"settings\":{" +
                                      "\"index.number_of_replicas\":\"0\"," +
                                      "\"index.number_of_shards\":\"5\"," +
-                                     "\"index.refresh_interval\":\"5000ms\"," +
+                                     "\"index.refresh_interval\":\"5s\"," +
                                      "\"index.version.created\":\"" + Version.CURRENT.esVersion.id + "\"" +
                                      "}}}";
         JSONAssert.assertEquals(expectedSetSettings, getIndexSettings("test"), false);
@@ -123,7 +123,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                        "\"settings\":{" +
                                        "\"index.number_of_replicas\":\"0\"," +
                                        "\"index.number_of_shards\":\"5\"," +
-                                       "\"index.refresh_interval\":\"1000ms\"," +
+                                       "\"index.refresh_interval\":\"1s\"," +
                                        "\"index.version.created\":\"" + Version.CURRENT.esVersion.id + "\"" +
                                        "}}}";
         JSONAssert.assertEquals(expectedResetSettings, getIndexSettings("test"), false);

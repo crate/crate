@@ -317,11 +317,11 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                      "CLUSTERED INTO 5 SHARDS\n" +
                      "WITH (\n" +
                      "   column_policy = 'ignored',\n" +
-                     "   \"index.translog.flush_interval\" = 100,\n" +
                      "   number_of_replicas = '5',\n" +
                      "   param_array = ['foo', 'bar'],\n" +
                      "   param_obj = {\"foo\"= 'bar', \"int\"= 42},\n" +
-                     "   refresh_interval = 10000\n" +
+                     "   refresh_interval = 10000,\n" +
+                     "   \"translog.flush_interval\" = 100\n" +
                      ")",
             SqlFormatter.formatSql(node));
     }

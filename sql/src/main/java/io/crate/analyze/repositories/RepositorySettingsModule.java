@@ -22,21 +22,25 @@
 
 package io.crate.analyze.repositories;
 
+import com.amazonaws.Protocol;
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.settings.BoolSetting;
-import io.crate.metadata.settings.ByteSizeSetting;
-import io.crate.metadata.settings.IntSetting;
-import io.crate.metadata.settings.SettingsApplier;
-import io.crate.metadata.settings.SettingsAppliers;
-import io.crate.metadata.settings.StringSetting;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
+import org.elasticsearch.common.settings.SecureSetting;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.monitor.jvm.JvmInfo;
+import org.elasticsearch.repositories.fs.FsRepository;
+import org.elasticsearch.repositories.url.URLRepository;
 
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Map;
+
 
 public class RepositorySettingsModule extends AbstractModule {
 
@@ -46,27 +50,29 @@ public class RepositorySettingsModule extends AbstractModule {
     private static final String S3 = "s3";
 
     private static final TypeSettings FS_SETTINGS = new TypeSettings(
-        ImmutableMap.<String, SettingsApplier>of("location", new SettingsAppliers.StringSettingsApplier(new StringSetting("location"))),
-        ImmutableMap.<String, SettingsApplier>of(
-            "compress", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("compress", true)),
-            "chunk_size", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("chunk_size", null))
+        ImmutableMap.of("location", FsRepository.LOCATION_SETTING),
+        ImmutableMap.of(
+            "compress", FsRepository.COMPRESS_SETTING,
+            "chunk_size", FsRepository.CHUNK_SIZE_SETTING
         ));
 
     private static final TypeSettings URL_SETTINGS = new TypeSettings(
-        ImmutableMap.<String, SettingsApplier>of("url", new SettingsAppliers.StringSettingsApplier(new StringSetting("url"))),
-        Collections.<String, SettingsApplier>emptyMap());
+        ImmutableMap.of("url", URLRepository.URL_SETTING),
+        Collections.emptyMap());
 
     private static final TypeSettings HDFS_SETTINGS = new TypeSettings(
-        Collections.<String, SettingsApplier>emptyMap(),
-        ImmutableMap.<String, SettingsApplier>builder()
-            .put("uri", new SettingsAppliers.StringSettingsApplier(new StringSetting("uri")))
-            .put("user", new SettingsAppliers.StringSettingsApplier(new StringSetting("user")))
-            .put("path", new SettingsAppliers.StringSettingsApplier(new StringSetting("path")))
-            .put("load_defaults", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("load_defaults", true)))
-            .put("conf_location", new SettingsAppliers.StringSettingsApplier(new StringSetting("conf_location")))
-            .put("concurrent_streams", new SettingsAppliers.IntSettingsApplier(new IntSetting("concurrent_streams", 5)))
-            .put("compress", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("compress", true)))
-            .put("chunk_size", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("chunk_size", null)))
+        Collections.emptyMap(),
+        ImmutableMap.<String, Setting>builder()
+            .put("uri", Setting.simpleString("uri", Setting.Property.NodeScope))
+            .put("user", Setting.simpleString("user", Setting.Property.NodeScope))
+            .put("path", Setting.simpleString("path", Setting.Property.NodeScope))
+            .put("load_defaults", Setting.boolSetting("load_defaults", true, Setting.Property.NodeScope))
+            .put("conf_location", Setting.simpleString("conf_location", Setting.Property.NodeScope))
+            .put("concurrent_streams", Setting.intSetting("concurrent_streams", 5, Setting.Property.NodeScope))
+            .put("compress", Setting.boolSetting("compress", true, Setting.Property.NodeScope))
+            // We cannot use a ByteSize setting as it doesn't support NULL and it must be NULL as default to indicate to
+            // not override the default behaviour.
+            .put("chunk_size", Setting.simpleString("chunk_size"))
             .build()) {
 
         @Override
@@ -85,23 +91,41 @@ public class RepositorySettingsModule extends AbstractModule {
         }
     };
 
-    private static final TypeSettings S3_SETTINGS = new TypeSettings(Collections.<String, SettingsApplier>emptyMap(),
-        ImmutableMap.<String, SettingsApplier>builder()
-            .put("base_path", new SettingsAppliers.StringSettingsApplier(new StringSetting("base_path", null)))
-            .put("bucket", new SettingsAppliers.StringSettingsApplier(new StringSetting("bucket", null)))
-            .put("client", new SettingsAppliers.StringSettingsApplier(new StringSetting("client", null)))
-            .put("buffer_size", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("buffer_size", null)))
-            .put("canned_acl", new SettingsAppliers.StringSettingsApplier(new StringSetting("canned_acl", null)))
-            .put("chunk_size", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("chunk_size", null)))
-            .put("compress", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("compress", true)))
-            .put("server_side_encryption", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("server_side_encryption", false)))
+    /**
+     * Default is to use 100MB (S3 defaults) for heaps above 2GB and 5% of
+     * the available memory for smaller heaps.
+     */
+    private static final ByteSizeValue S3_DEFAULT_BUFFER_SIZE = new ByteSizeValue(
+        Math.max(
+            ByteSizeUnit.MB.toBytes(5), // minimum value
+            Math.min(
+                ByteSizeUnit.MB.toBytes(100),
+                JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() / 20)),
+        ByteSizeUnit.BYTES);
+
+
+    private static final TypeSettings S3_SETTINGS = new TypeSettings(
+        Collections.emptyMap(),
+        ImmutableMap.<String, Setting>builder()
+            .put("base_path", Setting.simpleString("base_path"))
+            .put("bucket", Setting.simpleString("bucket"))
+            .put("client", Setting.simpleString("client"))
+            .put("buffer_size", Setting.byteSizeSetting("buffer_size", S3_DEFAULT_BUFFER_SIZE,
+                new ByteSizeValue(5, ByteSizeUnit.MB), new ByteSizeValue(5, ByteSizeUnit.GB)))
+            .put("canned_acl", Setting.simpleString("canned_acl"))
+            .put("chunk_size", Setting.byteSizeSetting("chunk_size", new ByteSizeValue(1, ByteSizeUnit.GB),
+                new ByteSizeValue(5, ByteSizeUnit.MB), new ByteSizeValue(5, ByteSizeUnit.TB)))
+            .put("compress", Setting.boolSetting("compress", true)) // TODO: ES defaults to false!
+            .put("server_side_encryption",
+                Setting.boolSetting("server_side_encryption", false))
             // client related settings
-            .put("access_key", new SettingsAppliers.StringSettingsApplier(new StringSetting("access_key", null)))
-            .put("secret_key", new SettingsAppliers.StringSettingsApplier(new StringSetting("secret_key", null)))
-            .put("endpoint", new SettingsAppliers.StringSettingsApplier(new StringSetting("endpoint", null)))
-            .put("protocol", new SettingsAppliers.StringSettingsApplier(new StringSetting("protocol", null)))
-            .put("max_retries", new SettingsAppliers.IntSettingsApplier(new IntSetting("max_retries", 3)))
-            .put("use_throttle_retries", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("use_throttle_retries", true)))
+            .put("access_key", SecureSetting.insecureString("access_key"))
+            .put("secret_key", SecureSetting.insecureString("secret_key"))
+            .put("endpoint", Setting.simpleString("endpoint")
+            )
+            .put("protocol", new Setting<>("protocol", "https", s -> Protocol.valueOf(s.toUpperCase(Locale.ROOT))))
+            .put("max_retries", Setting.intSetting("max_retries", 3))
+            .put("use_throttle_retries", Setting.boolSetting("use_throttle_retries", true))
             .build());
 
     @Override

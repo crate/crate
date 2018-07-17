@@ -21,15 +21,15 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import org.elasticsearch.common.settings.Setting;
 
 class TablePartitionParameterInfo extends TableParameterInfo {
 
-    private static final ImmutableList<String> SUPPORTED_MAPPINGS = ImmutableList.of();
+    private static final ImmutableMap<String, Setting> SUPPORTED_MAPPINGS = ImmutableMap.of();
 
     @Override
-    public ImmutableList<String> supportedMappings() {
+    public ImmutableMap<String, Setting> supportedMappings() {
         return SUPPORTED_MAPPINGS;
     }
-
 }

@@ -21,26 +21,28 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.metadata.settings.Validators;
+import org.elasticsearch.common.settings.Setting;
 
 class BlobTableParameterInfo extends TableParameterInfo {
 
-    private static final ImmutableList<String> SUPPORTED_SETTINGS =
-        ImmutableList.<String>builder()
-            .add(NUMBER_OF_REPLICAS)
-            .add(BLOBS_PATH)
+    private static final ImmutableMap<String, Setting> SUPPORTED_SETTINGS =
+        ImmutableMap.<String, Setting>builder()
+            .put(NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS)
+            .put("blobs_path", Setting.simpleString(BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey(), Validators.stringValidator("blobs_path")))
             .build();
 
-    private static final ImmutableList<String> SUPPORTED_MAPPINGS = ImmutableList.<String>of();
+    private static final ImmutableMap<String, Setting> SUPPORTED_MAPPINGS = ImmutableMap.of();
 
     @Override
-    public ImmutableList<String> supportedSettings() {
+    public ImmutableMap<String, Setting> supportedSettings() {
         return SUPPORTED_SETTINGS;
     }
 
     @Override
-    public ImmutableList<String> supportedMappings() {
+    public ImmutableMap<String, Setting> supportedMappings() {
         return SUPPORTED_MAPPINGS;
     }
-
 }

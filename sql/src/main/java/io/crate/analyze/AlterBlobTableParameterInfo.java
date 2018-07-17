@@ -21,24 +21,19 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import org.elasticsearch.common.settings.Setting;
 
-public class AlterBlobTableParameterInfo extends TableParameterInfo {
+public class AlterBlobTableParameterInfo extends BlobTableParameterInfo {
 
-    protected static final ImmutableList<String> SUPPORTED_SETTINGS =
-        ImmutableList.<String>builder()
-            .add(NUMBER_OF_REPLICAS)
+    private static final ImmutableMap<String, Setting> SUPPORTED_SETTINGS =
+        ImmutableMap.<String, Setting>builder()
+            .put(NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS)
             .build();
 
-    protected static final ImmutableList<String> SUPPORTED_MAPPINGS = ImmutableList.<String>of();
 
     @Override
-    public ImmutableList<String> supportedSettings() {
+    public ImmutableMap<String, Setting> supportedSettings() {
         return SUPPORTED_SETTINGS;
-    }
-
-    @Override
-    public ImmutableList<String> supportedMappings() {
-        return SUPPORTED_MAPPINGS;
     }
 }

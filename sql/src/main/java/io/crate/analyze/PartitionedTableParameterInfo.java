@@ -21,7 +21,8 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import org.elasticsearch.common.settings.Setting;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -32,35 +33,22 @@ public class PartitionedTableParameterInfo extends TableParameterInfo {
 
     public static final PartitionedTableParameterInfo INSTANCE = new PartitionedTableParameterInfo();
 
-    private static final ImmutableList<String> SUPPORTED_SETTINGS =
-        ImmutableList.<String>builder()
-            .add(NUMBER_OF_REPLICAS)
-            .add(NUMBER_OF_SHARDS)
-            .add(REFRESH_INTERVAL)
-            .add(READ_ONLY)
-            .add(READ_ONLY_ALLOW_DELETE)
-            .add(BLOCKS_READ)
-            .add(BLOCKS_WRITE)
-            .add(BLOCKS_METADATA)
-            .add(FLUSH_THRESHOLD_SIZE)
-            .add(ROUTING_ALLOCATION_ENABLE)
-            .add(TOTAL_SHARDS_PER_NODE)
-            .add(MAPPING_TOTAL_FIELDS_LIMIT)
-            .add(WARMER_ENABLED)
-            .add(SETTING_WAIT_FOR_ACTIVE_SHARDS)
-            .build();
+    private static final ImmutableMap<String, Setting> SUPPORTED_SETTINGS = ImmutableMap.<String, Setting>builder()
+        .putAll(TableParameterInfo.SUPPORTED_SETTINGS_MAP)
+        .put(stripIndexPrefix(NUMBER_OF_SHARDS.getKey()), NUMBER_OF_SHARDS)
+        .build();
 
     private static final TableParameterInfo PARTITION_TABLE_PARAMETER_INFO = new TablePartitionParameterInfo();
+
+    private PartitionedTableParameterInfo() {
+    }
 
     public TableParameterInfo partitionTableSettingsInfo() {
         return PARTITION_TABLE_PARAMETER_INFO;
     }
 
     @Override
-    public ImmutableList<String> supportedSettings() {
+    public ImmutableMap<String, Setting> supportedSettings() {
         return SUPPORTED_SETTINGS;
-    }
-
-    private PartitionedTableParameterInfo() {
     }
 }

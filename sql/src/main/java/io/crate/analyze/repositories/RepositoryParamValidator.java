@@ -27,12 +27,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.crate.analyze.GenericPropertiesConverter;
 import io.crate.analyze.ParameterContext;
-import io.crate.metadata.settings.SettingsApplier;
-import io.crate.metadata.settings.SettingsAppliers;
-import io.crate.metadata.settings.StringSetting;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Locale;
@@ -54,21 +52,25 @@ public class RepositoryParamValidator {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid repository type \"%s\"", type));
         }
 
-        Map<String, SettingsApplier> allSettings = typeSettings.all();
+        Map<String, Setting> allSettings = typeSettings.all();
 
-        // create string settings applier for all dynamic settings
+        // create string settings for all dynamic settings
         GenericProperties dynamicProperties = typeSettings.dynamicProperties(genericProperties);
         if (!dynamicProperties.isEmpty()) {
             // allSettings are immutable by default, copy map
             allSettings = Maps.newHashMap(allSettings);
             for (String key : dynamicProperties.properties().keySet()) {
-                allSettings.put(key, new SettingsAppliers.StringSettingsApplier(new StringSetting(key)));
+                allSettings.put(key, Setting.simpleString(key));
             }
         }
 
         // convert and validate all settings
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
-            genericProperties, parameterContext, allSettings).build();
+            genericProperties,
+            parameterContext.parameters(),
+            allSettings,
+            false)
+            .build();
 
         Set<String> names = settings.keySet();
         Sets.SetView<String> missingRequiredSettings = Sets.difference(typeSettings.required().keySet(), names);

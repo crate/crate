@@ -23,34 +23,34 @@
 package io.crate.analyze.repositories;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.settings.ByteSizeSetting;
-import io.crate.metadata.settings.SettingsApplier;
-import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.sql.tree.GenericProperties;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
 
 import java.util.Map;
 
 public class TypeSettings {
 
-    private static final Map<String, SettingsApplier> GENERIC = ImmutableMap.<String, SettingsApplier>builder()
-        .put("max_restore_bytes_per_sec", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("max_restore_bytes_per_sec", null)))
-        .put("max_snapshot_bytes_per_sec", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("max_snapshot_bytes_per_sec", null)))
+    private static final Map<String, Setting> GENERIC = ImmutableMap.<String, Setting>builder()
+        .put("max_restore_bytes_per_sec", Setting.byteSizeSetting("max_restore_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Setting.Property.NodeScope))
+        .put("max_snapshot_bytes_per_sec", Setting.byteSizeSetting("max_snapshot_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Setting.Property.NodeScope))
         .build();
 
-    private final Map<String, SettingsApplier> required;
-    private final Map<String, SettingsApplier> all;
+    private final Map<String, Setting> required;
+    private final Map<String, Setting> all;
 
-    public TypeSettings(Map<String, SettingsApplier> required,
-                        Map<String, SettingsApplier> optional) {
+    TypeSettings(Map<String, Setting> required,
+                 Map<String, Setting> optional) {
         this.required = required;
-        this.all = ImmutableMap.<String, SettingsApplier>builder().putAll(required).putAll(optional).putAll(GENERIC).build();
+        this.all = ImmutableMap.<String, Setting>builder().putAll(required).putAll(optional).putAll(GENERIC).build();
     }
 
-    public Map<String, SettingsApplier> required() {
+    public Map<String, Setting> required() {
         return required;
     }
 
-    public Map<String, SettingsApplier> all() {
+    public Map<String, Setting> all() {
         return all;
     }
 

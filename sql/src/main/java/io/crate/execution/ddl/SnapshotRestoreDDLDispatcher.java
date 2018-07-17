@@ -48,6 +48,7 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
 
@@ -102,8 +103,9 @@ public class SnapshotRestoreDDLDispatcher {
     public CompletableFuture<Long> dispatch(final CreateSnapshotAnalyzedStatement statement) {
         final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
 
-        boolean waitForCompletion = statement.snapshotSettings().getAsBoolean(WAIT_FOR_COMPLETION.name(), WAIT_FOR_COMPLETION.defaultValue());
-        boolean ignoreUnavailable = statement.snapshotSettings().getAsBoolean(IGNORE_UNAVAILABLE.name(), IGNORE_UNAVAILABLE.defaultValue());
+        Settings settings = statement.snapshotSettings();
+        boolean waitForCompletion = WAIT_FOR_COMPLETION.get(settings);
+        boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(settings);
 
         // ignore_unavailable as set by statement
         IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());
@@ -146,8 +148,9 @@ public class SnapshotRestoreDDLDispatcher {
     }
 
     public CompletableFuture<Long> dispatch(final RestoreSnapshotAnalyzedStatement analysis) {
-        boolean waitForCompletion = analysis.settings().getAsBoolean(WAIT_FOR_COMPLETION.name(), WAIT_FOR_COMPLETION.defaultValue());
-        boolean ignoreUnavailable = analysis.settings().getAsBoolean(IGNORE_UNAVAILABLE.name(), IGNORE_UNAVAILABLE.defaultValue());
+        Settings settings = analysis.settings();
+        boolean waitForCompletion = WAIT_FOR_COMPLETION.get(settings);
+        boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(settings);
 
         // ignore_unavailable as set by statement
         IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());

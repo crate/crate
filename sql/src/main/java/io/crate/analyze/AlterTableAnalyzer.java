@@ -102,7 +102,7 @@ public class AlterTableAnalyzer {
         if (!node.genericProperties().isEmpty()) {
             TablePropertiesAnalyzer.analyze(tableParameter, tableParameterInfo, node.genericProperties(), parameters);
         } else if (!node.resetProperties().isEmpty()) {
-            TablePropertiesAnalyzer.analyze(tableParameter, tableParameterInfo, node.resetProperties());
+            TablePropertiesAnalyzer.analyzeResetProperties(tableParameter, tableParameterInfo, node.resetProperties());
         }
         return tableParameter;
     }

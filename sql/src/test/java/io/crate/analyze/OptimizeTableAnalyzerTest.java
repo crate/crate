@@ -32,6 +32,10 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.analyze.OptimizeTableAnalyzer.FLUSH;
+import static io.crate.analyze.OptimizeTableAnalyzer.MAX_NUM_SEGMENTS;
+import static io.crate.analyze.OptimizeTableAnalyzer.ONLY_EXPUNGE_DELETES;
+import static io.crate.analyze.OptimizeTableAnalyzer.UPGRADE_SEGMENTS;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
@@ -74,19 +78,19 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         OptimizeTableAnalyzedStatement analysis = e.analyze("OPTIMIZE TABLE users WITH (max_num_segments=2)");
         assertThat(analysis.indexNames().size(), is(1));
         assertThat(analysis.indexNames(), hasItem("users"));
-        assertThat(analysis.settings().getAsInt(OptimizeSettings.MAX_NUM_SEGMENTS.name(), null), is(2));
+        assertThat(MAX_NUM_SEGMENTS.get(analysis.settings()), is(2));
         analysis = e.analyze("OPTIMIZE TABLE users WITH (only_expunge_deletes=true)");
         assertThat(analysis.indexNames().size(), is(1));
         assertThat(analysis.indexNames(), hasItem("users"));
-        assertThat(analysis.settings().getAsBoolean(OptimizeSettings.ONLY_EXPUNGE_DELETES.name(), null), is(Boolean.TRUE));
+        assertThat(ONLY_EXPUNGE_DELETES.get(analysis.settings()), is(Boolean.TRUE));
         analysis = e.analyze("OPTIMIZE TABLE users WITH (flush=false)");
         assertThat(analysis.indexNames().size(), is(1));
         assertThat(analysis.indexNames(), hasItem("users"));
-        assertThat(analysis.settings().getAsBoolean(OptimizeSettings.FLUSH.name(), null), is(Boolean.FALSE));
+        assertThat(FLUSH.get(analysis.settings()), is(Boolean.FALSE));
         analysis = e.analyze("OPTIMIZE TABLE users WITH (upgrade_segments=true)");
         assertThat(analysis.indexNames().size(), is(1));
         assertThat(analysis.indexNames(), hasItem("users"));
-        assertThat(analysis.settings().getAsBoolean(OptimizeSettings.UPGRADE_SEGMENTS.name(), null), is(Boolean.TRUE));
+        assertThat(UPGRADE_SEGMENTS.get(analysis.settings()), is(Boolean.TRUE));
     }
 
     @Test

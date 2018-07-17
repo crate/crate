@@ -37,7 +37,6 @@ import org.junit.Test;
 
 import static io.crate.testing.SettingMatcher.hasEntry;
 import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
 public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -96,14 +95,14 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
         CreateRepositoryAnalyzedStatement analysis = e.analyze("CREATE REPOSITORY foo TYPE s3 WITH (" +
                                                              "bucket='abc'," +
                                                              "endpoint='www.example.com'," +
-                                                             "protocol='arp'," +
+                                                             "protocol='http'," +
                                                              "base_path='/holz/'," +
                                                              "access_key='0xAFFE'," +
                                                              "secret_key='0xCAFEE'," +
                                                              "chunk_size='12mb'," +
                                                              "compress=true," +
                                                              "server_side_encryption=false," +
-                                                             "buffer_size='128k'," +
+                                                             "buffer_size='5mb'," +
                                                              "max_retries=2," +
                                                              "use_throttle_retries=false," +
                                                              "canned_acl=false)");
@@ -115,27 +114,18 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
                 hasEntry("access_key", "0xAFFE"),
                 hasEntry("base_path", "/holz/"),
                 hasEntry("bucket", "abc"),
-                hasEntry("buffer_size", "131072b"),
+                hasEntry("buffer_size", "5mb"),
                 hasEntry("canned_acl", "false"),
-                hasEntry("chunk_size", "12582912b"),
+                hasEntry("chunk_size", "12mb"),
                 hasEntry("compress", "true"),
                 hasEntry("endpoint", "www.example.com"),
                 hasEntry("max_retries", "2"),
                 hasEntry("use_throttle_retries", "false"),
-                hasEntry("protocol", "arp"),
+                hasEntry("protocol", "http"),
                 hasEntry("secret_key", "0xCAFEE"),
                 hasEntry("server_side_encryption", "false")
             )
         );
-    }
-
-    @Test
-    public void testCreateS3RepoWithoutSettings() throws Exception {
-        CreateRepositoryAnalyzedStatement analysis = e.analyze("CREATE REPOSITORY foo TYPE s3");
-        assertThat(analysis.repositoryName(), is("foo"));
-        assertThat(analysis.repositoryType(), is("s3"));
-        // 3 settings are there because those have default values
-        assertThat(analysis.settings().keySet(), containsInAnyOrder("compress", "server_side_encryption", "max_retries", "use_throttle_retries"));
     }
 
     @Test

@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.copy.NodeFilters;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -51,9 +50,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.SettingsApplier;
-import io.crate.metadata.settings.SettingsAppliers;
-import io.crate.metadata.settings.StringSetting;
+import io.crate.metadata.settings.Validators;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ArrayLiteral;
@@ -65,6 +62,7 @@ import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.types.CollectionType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -79,22 +77,20 @@ import java.util.function.Predicate;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 class CopyAnalyzer {
-    private static final String JSON_STRING = "json";
 
-    private static final StringSetting COMPRESSION_SETTINGS =
-        new StringSetting("compression", ImmutableSet.of("gzip"));
+    private static final Setting<String> COMPRESSION_SETTING =
+        Setting.simpleString("compression", Validators.stringValidator("compression","gzip"), Setting.Property.Dynamic);
 
-    private static final StringSetting OUTPUT_FORMAT_SETTINGS =
-        new StringSetting("format", ImmutableSet.of("json_object", "json_array"));
+    private static final Setting<String> OUTPUT_FORMAT_SETTING =
+        Setting.simpleString("format", Validators.stringValidator("format","json_object", "json_array"), Setting.Property.Dynamic);
 
-    private static final StringSetting INPUT_FORMAT_SETTINGS =
-        new StringSetting("format", ImmutableSet.of(JSON_STRING, "csv"), JSON_STRING);
+    private static final Setting<String> INPUT_FORMAT_SETTING =
+        new Setting<>("format", "json", (s) -> s, Validators.stringValidator("format","json", "csv"), Setting.Property.Dynamic);
 
-    private static final ImmutableMap<String, SettingsApplier> OUTPUT_SETTINGS_APPLIERS =
-        ImmutableMap.<String, SettingsApplier>builder()
-            .put(COMPRESSION_SETTINGS.name(), new SettingsAppliers.StringSettingsApplier(COMPRESSION_SETTINGS))
-            .put(OUTPUT_FORMAT_SETTINGS.name(), new SettingsAppliers.StringSettingsApplier(OUTPUT_FORMAT_SETTINGS))
-            .build();
+    private static final ImmutableMap<String, Setting> OUTPUT_SETTINGS = ImmutableMap.<String, Setting>builder()
+        .put(COMPRESSION_SETTING.getKey(), COMPRESSION_SETTING)
+        .put(OUTPUT_FORMAT_SETTING.getKey(), OUTPUT_FORMAT_SETTING)
+        .build();
 
     private final Schemas schemas;
     private final Functions functions;
@@ -143,7 +139,7 @@ class CopyAnalyzer {
         }
 
         FileUriCollectPhase.InputFormat inputFormat =
-            settingAsEnum(FileUriCollectPhase.InputFormat.class, settings.get(INPUT_FORMAT_SETTINGS.name(),INPUT_FORMAT_SETTINGS.defaultValue()));
+            settingAsEnum(FileUriCollectPhase.InputFormat.class, settings.get(INPUT_FORMAT_SETTING.getKey(), INPUT_FORMAT_SETTING.getDefault(Settings.EMPTY)));
 
         if (node.isReturnSummary()) {
             return new CopyFromReturnSummaryAnalyzedStatement(tableInfo, settings, uri, partitionIdent, nodeFilters, inputFormat);
@@ -234,12 +230,12 @@ class CopyAnalyzer {
         }
 
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
-            node.genericProperties(), analysis.parameterContext(), OUTPUT_SETTINGS_APPLIERS).build();
+            node.genericProperties(), analysis.parameterContext().parameters(), OUTPUT_SETTINGS).build();
 
         WriterProjection.CompressionType compressionType =
-            settingAsEnum(WriterProjection.CompressionType.class, settings.get(COMPRESSION_SETTINGS.name()));
+            settingAsEnum(WriterProjection.CompressionType.class, COMPRESSION_SETTING.get(settings));
         WriterProjection.OutputFormat outputFormat =
-            settingAsEnum(WriterProjection.OutputFormat.class, settings.get(OUTPUT_FORMAT_SETTINGS.name()));
+            settingAsEnum(WriterProjection.OutputFormat.class, OUTPUT_FORMAT_SETTING.get(settings));
 
         if (!columnsDefined && outputFormat == WriterProjection.OutputFormat.JSON_ARRAY) {
             throw new UnsupportedFeatureException("Output format not supported without specifying columns.");

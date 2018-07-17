@@ -25,10 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.PartitionUnknownException;
+import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -140,14 +140,14 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testCreateSnapshotUnknownTableIgnore() throws Exception {
         CreateSnapshotAnalyzedStatement statement = analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE users, t2 WITH (ignore_unavailable=true)");
         assertThat(statement.indices(), contains("users"));
-        assertThat(statement.snapshotSettings().getAsBoolean(SnapshotSettings.IGNORE_UNAVAILABLE.name(), false), is(true));
+        assertThat(SnapshotSettings.IGNORE_UNAVAILABLE.get(statement.snapshotSettings()), is(true));
     }
 
     @Test
     public void testCreateSnapshotUnknownSchemaIgnore() throws Exception {
         CreateSnapshotAnalyzedStatement statement = analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE users, my_schema.t2 WITH (ignore_unavailable=true)");
         assertThat(statement.indices(), contains("users"));
-        assertThat(statement.snapshotSettings().getAsBoolean(SnapshotSettings.IGNORE_UNAVAILABLE.name(), false), is(true));
+        assertThat(SnapshotSettings.IGNORE_UNAVAILABLE.get(statement.snapshotSettings()), is(true));
     }
 
     @Test
@@ -227,7 +227,6 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("Repository 'unknown_repo' unknown");
         analyze("drop snapshot unknown_repo.my_snap_1");
     }
-
 
     @Test
     public void testRestoreSnapshotAll() throws Exception {

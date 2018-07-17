@@ -40,8 +40,6 @@ public abstract class Literal
         Literal literal = null;
         if (value == null) {
             literal = NullLiteral.INSTANCE;
-        } else if (value instanceof String) {
-            literal = new StringLiteral((String) value);
         } else if (value instanceof Number) {
             if (value instanceof Float || value instanceof Double) {
                 literal = new DoubleLiteral(value.toString());
@@ -63,6 +61,8 @@ public abstract class Literal
                 map.put(entry.getKey(), fromObject(entry.getValue()));
             }
             literal = new ObjectLiteral(map);
+        } else {
+            literal = new StringLiteral(value.toString());
         }
         return literal;
     }

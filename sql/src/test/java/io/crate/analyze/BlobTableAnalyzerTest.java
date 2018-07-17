@@ -77,7 +77,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testCreateBlobTableRaisesErrorIfAlreadyExists() throws Exception {
+    public void testCreateBlobTableRaisesErrorIfAlreadyExists() {
         expectedException.expect(RelationAlreadyExists.class);
         e.analyze("create blob table blobs");
     }
@@ -127,7 +127,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test(expected = InvalidRelationName.class)
-    public void testCreateBlobTableIllegalTableName() throws Exception {
+    public void testCreateBlobTableIllegalTableName() {
         e.analyze("create blob table \"blob.s\"");
     }
 
@@ -155,7 +155,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testDropBlobTableIfExists() throws Exception {
+    public void testDropBlobTableIfExists() {
         DropBlobTableAnalyzedStatement analysis = e.analyze("drop blob table if exists blobs");
         assertThat(analysis.dropIfExists(), is(true));
         assertThat(analysis.tableIdent().name(), is("blobs"));
@@ -163,18 +163,18 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testDropNonExistentBlobTableIfExists() throws Exception {
+    public void testDropNonExistentBlobTableIfExists() {
         DropBlobTableAnalyzedStatement analysis = e.analyze("drop blob table if exists unknown");
         assertThat(analysis.dropIfExists(), is(true));
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testAlterBlobTableWithInvalidProperty() throws Exception {
+    public void testAlterBlobTableWithInvalidProperty() {
         e.analyze("alter blob table blobs set (foobar='2')");
     }
 
     @Test
-    public void testAlterBlobTableWithReplicas() throws Exception {
+    public void testAlterBlobTableWithReplicas() {
         AlterBlobTableAnalyzedStatement analysis = e.analyze("alter blob table blobs set (number_of_replicas=2)");
         assertThat(analysis.table().ident().name(), is("blobs"));
         assertThat(analysis.tableParameter().settings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(2));
@@ -188,7 +188,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testCreateBlobTableWithParams() throws Exception {
+    public void testCreateBlobTableWithParams() {
         CreateBlobTableAnalyzedStatement analysis = e.analyze(
             "create blob table screenshots clustered into ? shards with (number_of_replicas= ?)",
             new Object[]{2, "0-all"});
@@ -200,7 +200,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testCreateBlobTableWithInvalidShardsParam() throws Exception {
+    public void testCreateBlobTableWithInvalidShardsParam() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid number 'foo'");
         e.analyze("create blob table screenshots clustered into ? shards", new Object[]{"foo"});
@@ -221,7 +221,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testAlterBlobTableOpenClose() throws Exception {
+    public void testAlterBlobTableOpenClose() {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"blob.blobs\" doesn't support or allow ALTER OPEN/CLOSE operations.");
         e.analyze("alter blob table blobs close");

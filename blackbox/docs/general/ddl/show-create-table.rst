@@ -41,16 +41,18 @@ already existing user-created doc tables in the cluster::
     |    "blocks.write" = false,                          |
     |    column_policy = 'dynamic',                       |
     |    "mapping.total_fields.limit" = 1000,             |
+    |    max_ngram_diff = 1,                              |
+    |    max_shingle_diff = 3,                            |
     |    number_of_replicas = '0-1',                      |
     |    refresh_interval = 1000,                         |
-    |    "routing.allocation.enable" = 'all',             |
+    |    "routing.allocation.enable" = 'ALL',             |
     |    "routing.allocation.total_shards_per_node" = -1, |
     |    "translog.durability" = 'REQUEST',               |
     |    "translog.flush_threshold_size" = 536870912,     |
     |    "translog.sync_interval" = 5000,                 |
     |    "unassigned.node_left.delayed_timeout" = 60000,  |
     |    "warmer.enabled" = true,                         |
-    |    "write.wait_for_active_shards" = 'all'           |
+    |    "write.wait_for_active_shards" = 'ALL'           |
     | )                                                   |
     +-----------------------------------------------------+
     SHOW 1 row in set (... sec)

@@ -78,6 +78,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -95,6 +96,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Singleton
@@ -201,23 +203,27 @@ public class AlterTableOperation {
         List<CompletableFuture<Long>> results = new ArrayList<>(3);
 
         if (table.isPartitioned()) {
-            // create new filtered partition table settings
-            PartitionedTableParameterInfo tableSettingsInfo =
-                (PartitionedTableParameterInfo) table.tableParameterInfo();
-            TableParameter parameterWithFilteredSettings = new TableParameter(
-                analysis.tableParameter().settings(),
-                tableSettingsInfo.partitionTableSettingsInfo().supportedInternalSettings());
-
             Optional<PartitionName> partitionName = analysis.partitionName();
             if (partitionName.isPresent()) {
                 String index = partitionName.get().asIndexName();
                 results.add(updateMapping(analysis.tableParameter().mappings(), index));
-                results.add(updateSettings(parameterWithFilteredSettings, index));
+                results.add(updateSettings(analysis.tableParameter(), index));
             } else {
                 // template gets all changes unfiltered
                 results.add(updateTemplate(analysis.tableParameter(), table.ident()));
 
                 if (!analysis.excludePartitions()) {
+                    // create new filtered partition table settings
+                    PartitionedTableParameterInfo tableSettingsInfo =
+                        (PartitionedTableParameterInfo) table.tableParameterInfo();
+                    List<String> supportedSettings = tableSettingsInfo.partitionTableSettingsInfo().supportedSettings()
+                        .values().stream().map(Setting::getKey).collect(Collectors.toList());
+                    // auto_expand_replicas must be explicitly added as it is hidden under NumberOfReplicasSetting
+                    supportedSettings.add(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS);
+                    TableParameter parameterWithFilteredSettings = new TableParameter(
+                        analysis.tableParameter().settings(),
+                        supportedSettings);
+
                     String[] indices = Stream.of(table.concreteIndices()).toArray(String[]::new);
                     results.add(updateMapping(analysis.tableParameter().mappings(), indices));
                     results.add(updateSettings(parameterWithFilteredSettings, indices));

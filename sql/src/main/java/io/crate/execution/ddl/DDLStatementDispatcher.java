@@ -42,7 +42,6 @@ import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
-import io.crate.analyze.OptimizeSettings;
 import io.crate.analyze.OptimizeTableAnalyzedStatement;
 import io.crate.analyze.RefreshTableAnalyzedStatement;
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
@@ -73,12 +72,17 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 
 import java.security.GeneralSecurityException;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 
+import static io.crate.analyze.OptimizeTableAnalyzer.FLUSH;
+import static io.crate.analyze.OptimizeTableAnalyzer.MAX_NUM_SEGMENTS;
+import static io.crate.analyze.OptimizeTableAnalyzer.ONLY_EXPUNGE_DELETES;
+import static io.crate.analyze.OptimizeTableAnalyzer.UPGRADE_SEGMENTS;
 import static io.crate.concurrent.CompletableFutures.failedFuture;
 
 /**
@@ -177,8 +181,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
 
         @Override
         public CompletableFuture<Long> visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, Row parameters) {
-            if (analysis.settings().getAsBoolean(OptimizeSettings.UPGRADE_SEGMENTS.name(),
-                OptimizeSettings.UPGRADE_SEGMENTS.defaultValue())) {
+            if (UPGRADE_SEGMENTS.get(analysis.settings())) {
                 return executeUpgradeSegments(analysis, transportUpgradeActionProvider.get());
             } else {
                 return executeMergeSegments(analysis, transportForceMergeActionProvider.get());
@@ -304,12 +307,10 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         ForceMergeRequest request = new ForceMergeRequest(analysis.indexNames().toArray(new String[0]));
 
         // Pass parameters to ES request
-        request.maxNumSegments(analysis.settings().getAsInt(OptimizeSettings.MAX_NUM_SEGMENTS.name(),
-            ForceMergeRequest.Defaults.MAX_NUM_SEGMENTS));
-        request.onlyExpungeDeletes(analysis.settings().getAsBoolean(OptimizeSettings.ONLY_EXPUNGE_DELETES.name(),
-            ForceMergeRequest.Defaults.ONLY_EXPUNGE_DELETES));
-        request.flush(analysis.settings().getAsBoolean(OptimizeSettings.FLUSH.name(),
-            ForceMergeRequest.Defaults.FLUSH));
+        Settings settings = analysis.settings();
+        request.maxNumSegments(MAX_NUM_SEGMENTS.get(settings));
+        request.onlyExpungeDeletes(ONLY_EXPUNGE_DELETES.get(settings));
+        request.flush(FLUSH.get(settings));
 
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
 

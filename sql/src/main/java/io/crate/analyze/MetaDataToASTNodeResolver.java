@@ -69,6 +69,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 
+import static io.crate.analyze.TableParameterInfo.stripIndexPrefix;
+
 public class MetaDataToASTNodeResolver {
 
     public static CreateTable resolveCreateTable(DocTableInfo info) {
@@ -236,16 +238,15 @@ public class MetaDataToASTNodeResolver {
             GenericProperties properties = new GenericProperties();
             Expression numReplicas = new StringLiteral(tableInfo.numberOfReplicas().utf8ToString());
             properties.add(new GenericProperty(
-                    TablePropertiesAnalyzer.esToCrateSettingName(TableParameterInfo.NUMBER_OF_REPLICAS),
+                    TableParameterInfo.NUMBER_OF_REPLICAS.getKey(),
                     numReplicas
                 )
             );
             // we want a sorted map of table parameters
-            TreeMap<String, Object> tableParameters = new TreeMap<>();
-            tableParameters.putAll(tableInfo.parameters());
+            TreeMap<String, Object> tableParameters = new TreeMap<>(tableInfo.parameters());
             for (Map.Entry<String, Object> entry : tableParameters.entrySet()) {
                 properties.add(new GenericProperty(
-                        TablePropertiesAnalyzer.esToCrateSettingName(entry.getKey()),
+                        stripIndexPrefix(entry.getKey()),
                         Literal.fromObject(entry.getValue())
                     )
                 );

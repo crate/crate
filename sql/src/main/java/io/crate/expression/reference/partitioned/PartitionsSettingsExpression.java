@@ -23,8 +23,8 @@ package io.crate.expression.reference.partitioned;
 
 import io.crate.analyze.TableParameterInfo;
 import io.crate.execution.engine.collect.NestableCollectExpression;
-import io.crate.metadata.PartitionInfo;
 import io.crate.expression.reference.ObjectCollectExpression;
+import io.crate.metadata.PartitionInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
@@ -98,7 +98,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         public static final String LIMIT = "limit";
 
         PartitionSettingsMappingTotalFieldsExpression() {
-            childImplementations.put(LIMIT, new PartitionTableParameterExpression(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT));
+            childImplementations.put(LIMIT, new PartitionTableParameterExpression(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT.getKey()));
         }
     }
 
@@ -116,10 +116,10 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         static final String METADATA = "metadata";
 
         private void addChildImplementations() {
-            childImplementations.put(READ_ONLY, new PartitionTableParameterExpression(TableParameterInfo.READ_ONLY));
-            childImplementations.put(READ, new PartitionTableParameterExpression(TableParameterInfo.BLOCKS_READ));
-            childImplementations.put(WRITE, new PartitionTableParameterExpression(TableParameterInfo.BLOCKS_WRITE));
-            childImplementations.put(METADATA, new PartitionTableParameterExpression(TableParameterInfo.BLOCKS_METADATA));
+            childImplementations.put(READ_ONLY, new PartitionTableParameterExpression(TableParameterInfo.READ_ONLY.getKey()));
+            childImplementations.put(READ, new PartitionTableParameterExpression(TableParameterInfo.BLOCKS_READ.getKey()));
+            childImplementations.put(WRITE, new PartitionTableParameterExpression(TableParameterInfo.BLOCKS_WRITE.getKey()));
+            childImplementations.put(METADATA, new PartitionTableParameterExpression(TableParameterInfo.BLOCKS_METADATA.getKey()));
         }
     }
 
@@ -148,8 +148,8 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         static final String TOTAL_SHARDS_PER_NODE = "total_shards_per_node";
 
         private void addChildImplementations() {
-            childImplementations.put(ENABLE, new BytesRefPartitionTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE));
-            childImplementations.put(TOTAL_SHARDS_PER_NODE, new PartitionTableParameterExpression(TableParameterInfo.TOTAL_SHARDS_PER_NODE));
+            childImplementations.put(ENABLE, new BytesRefPartitionTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE.getKey()));
+            childImplementations.put(TOTAL_SHARDS_PER_NODE, new PartitionTableParameterExpression(TableParameterInfo.TOTAL_SHARDS_PER_NODE.getKey()));
         }
     }
 
@@ -164,7 +164,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         static final String ENABLED = "enabled";
 
         private void addChildImplementations() {
-            childImplementations.put(ENABLED, new PartitionTableParameterExpression(TableParameterInfo.WARMER_ENABLED));
+            childImplementations.put(ENABLED, new PartitionTableParameterExpression(TableParameterInfo.WARMER_ENABLED.getKey()));
         }
     }
 
@@ -181,9 +181,9 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         static final String DURABILITY = "durability";
 
         private void addChildImplementations() {
-            childImplementations.put(FLUSH_THRESHOLD_SIZE, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_SIZE));
-            childImplementations.put(SYNC_INTERVAL, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL));
-            childImplementations.put(DURABILITY, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_DURABILITY));
+            childImplementations.put(FLUSH_THRESHOLD_SIZE, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_SIZE.getKey()));
+            childImplementations.put(SYNC_INTERVAL, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL.getKey()));
+            childImplementations.put(DURABILITY, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_DURABILITY.getKey()));
         }
     }
 
@@ -212,7 +212,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         static final String DELAYED_TIMEOUT = "delayed_timeout";
 
         private void addChildImplementations() {
-            childImplementations.put(DELAYED_TIMEOUT, new PartitionTableParameterExpression(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT));
+            childImplementations.put(DELAYED_TIMEOUT, new PartitionTableParameterExpression(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT.getKey()));
         }
     }
 }

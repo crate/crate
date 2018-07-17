@@ -186,7 +186,7 @@ The settings can be verified by querying ``information_schema.tables``::
     +--------------+------------------+
     | alloc_enable | refresh_interval |
     +--------------+------------------+
-    | primaries    |              500 |
+    | PRIMARIES    |              500 |
     +--------------+------------------+
     SELECT 1 row in set (... sec)
 

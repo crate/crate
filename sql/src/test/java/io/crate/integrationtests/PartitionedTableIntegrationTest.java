@@ -74,7 +74,10 @@ import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -1521,7 +1524,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
         execute("select settings['routing']['allocation'] from information_schema.table_partitions where table_name='attrs'");
         HashMap<String, Object> routingAllocation = new HashMap<String, Object>() {{
-            put("enable", "all");
+            put("enable", "ALL");
             put("total_shards_per_node", 5);
         }};
         assertEquals(routingAllocation, response.rows()[0][0]);
@@ -1530,7 +1533,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("alter table attrs set (\"routing.allocation.total_shards_per_node\"=1)");
         execute("select settings['routing']['allocation'] from information_schema.table_partitions where table_name='attrs'");
         routingAllocation = new HashMap<String, Object>() {{
-            put("enable", "all");
+            put("enable", "ALL");
             put("total_shards_per_node", 1);
         }};
         assertEquals(routingAllocation, response.rows()[0][0]);
@@ -2238,5 +2241,61 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                "1| 1\n" +
                "1| 2\n")
         );
+    }
+
+    @Test
+    public void testDisableWriteOnSinglePartition() {
+        execute("create table my_table (par int, content string) " +
+                "clustered into 5 shards " +
+                "partitioned by (par)");
+        execute("insert into my_table (par, content) values (1, 'content1'), " +
+                "(1, 'content2'), " +
+                "(2, 'content3'), " +
+                "(2, 'content4'), " +
+                "(2, 'content5'), " +
+                "(3, 'content6')");
+
+        ensureGreen();
+        execute("alter table my_table partition (par=1) set (\"blocks.write\"=true)");
+
+        // update is expected to be executed without exception since this partition has no write block
+        execute("update my_table set content=\'content42\' where par=2");
+        refresh();
+        // verifying update
+        execute("select content from my_table where par=2");
+        assertThat(response.rowCount(), Matchers.is(3L));
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("blocked by: [FORBIDDEN/8/index write (api)]");
+
+        // trying to perform an update on a partition with a write block
+        execute("update my_table set content=\'content42\' where par=1");
+    }
+
+    @Test
+    public void testMultipleWritesWhenOnePartitionIsReadOnly() {
+        execute("create table my_table (par int, content string) " +
+                "clustered into 5 shards " +
+                "partitioned by (par)");
+        execute("insert into my_table (par, content) values " +
+                "(1, 'content2'), " +
+                "(2, 'content3')");
+
+        ensureGreen();
+        execute("alter table my_table partition (par=1) set (\"blocks.write\"=true)");
+        try {
+            execute("insert into my_table (par, content) values (2, 'content42'), " +
+                    "(2, 'content42'), " +
+                    "(1, 'content2'), " +
+                    "(3, 'content6')");
+            fail("expected to throw an \"blocked\" exception");
+        } catch (SQLActionException e) {
+            assertThat(e.getMessage(), containsString("blocked by: [FORBIDDEN/8/index write (api)];"));
+        }
+        refresh();
+        execute("select * from my_table");
+        assertThat(response.rowCount(), Matchers.is(both(greaterThanOrEqualTo(2L)).and(lessThanOrEqualTo(5L))));
+        //cleaning up
+        execute("alter table my_table partition (par=1) set (\"blocks.write\"=false)");
     }
 }

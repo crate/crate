@@ -41,11 +41,11 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
                 "\"blocks.metadata\" = false, " +
                 "\"routing.allocation.enable\" = 'primaries', " +
                 "\"routing.allocation.total_shards_per_node\" = 10, " +
-                "\"translog.sync_interval\" = 3600, " +
-                "\"translog.flush_threshold_size\" = 1000000, " +
+                "\"translog.sync_interval\" = '3600ms', " +
+                "\"translog.flush_threshold_size\" = '1000000b', " +
                 "\"warmer.enabled\" = false, " +
                 "\"translog.sync_interval\" = '20s'," +
-                "\"refresh_interval\" = '1000'," +
+                "\"refresh_interval\" = '1000ms'," +
                 "\"unassigned.node_left.delayed_timeout\" = '1m'," +
                 "\"number_of_replicas\" = 0 ," +
                 "\"write.wait_for_active_shards\" = 1 ," +
@@ -141,7 +141,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
     @Test
     public void testFilterOnString() throws Exception {
         execute("select * from information_schema.tables " +
-                "where settings['routing']['allocation']['enable'] = 'primaries'");
+                "where settings['routing']['allocation']['enable'] = 'PRIMARIES'");
         assertEquals(1, response.rowCount());
     }
 

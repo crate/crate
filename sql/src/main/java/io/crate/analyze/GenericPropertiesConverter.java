@@ -23,19 +23,21 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
-import io.crate.metadata.settings.SettingsApplier;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Predicate;
 
 public class GenericPropertiesConverter {
 
+    private static final String INVALID_SETTING_MESSAGE = "setting '%s' not supported";
 
     /**
      * Put a genericProperty into a settings-structure
@@ -50,7 +52,7 @@ public class GenericPropertiesConverter {
             for (Expression expression : array.values()) {
                 values.add(ExpressionToStringVisitor.convert(expression, parameters));
             }
-            builder.putList(name, values.toArray(new String[values.size()]));
+            builder.putList(name, values.toArray(new String[0]));
         } else {
             builder.put(name, ExpressionToStringVisitor.convert(value, parameters));
         }
@@ -70,26 +72,65 @@ public class GenericPropertiesConverter {
         return builder.build();
     }
 
+
+    static Settings.Builder settingsFromProperties(GenericProperties properties,
+                                                   Row parameters,
+                                                   Map<String, Setting> supportedSettings) {
+
+        return settingsFromProperties(properties, parameters, supportedSettings, true);
+    }
+
     public static Settings.Builder settingsFromProperties(GenericProperties properties,
-                                                          ParameterContext parameterContext,
-                                                          Map<String, ? extends SettingsApplier> settingAppliers) {
+                                                          Row parameters,
+                                                          Map<String, Setting> supportedSettings,
+                                                          boolean setDefaults) {
+
         Settings.Builder builder = Settings.builder();
-        setDefaults(settingAppliers, builder);
-        if (!properties.isEmpty()) {
-            for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
-                SettingsApplier settingsApplier = settingAppliers.get(entry.getKey());
-                if (settingsApplier == null) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", entry.getKey()));
-                }
-                settingsApplier.apply(builder, parameterContext.parameters(), entry.getValue());
-            }
-        }
+        settingsFromProperties(builder, properties, parameters, supportedSettings, setDefaults, (s) -> false, INVALID_SETTING_MESSAGE);
         return builder;
     }
 
-    private static void setDefaults(Map<String, ? extends SettingsApplier> settingAppliers, Settings.Builder builder) {
-        for (Map.Entry<String, ? extends SettingsApplier> entry : settingAppliers.entrySet()) {
-            builder.put(entry.getValue().getDefault());
+    static void settingsFromProperties(Settings.Builder builder,
+                                       GenericProperties properties,
+                                       Row parameters,
+                                       Map<String, Setting> supportedSettings,
+                                       boolean setDefaults,
+                                       Predicate<String> ignoreProperty,
+                                       String invalidMessage) {
+        if (setDefaults) {
+            setDefaults(builder, supportedSettings);
+        }
+        if (!properties.isEmpty()) {
+            for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
+                String settingName = entry.getKey();
+                if (ignoreProperty.test(settingName)) {
+                    continue;
+                }
+                Setting<?> setting = supportedSettings.get(settingName);
+                if (setting == null) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, entry.getKey()));
+                }
+                Settings.Builder singleSettingBuilder = Settings.builder();
+                genericPropertyToSetting(singleSettingBuilder, setting.getKey(), entry.getValue(), parameters);
+                Object value = setting.get(singleSettingBuilder.build());
+                if (value instanceof Settings) {
+                    builder.put((Settings) value);
+                } else {
+                    builder.put(setting.getKey(), value.toString());
+                }
+            }
+        }
+    }
+
+    private static void setDefaults(Settings.Builder builder, Map<String, Setting> supportedSettings) {
+        for (Map.Entry<String, Setting> entry : supportedSettings.entrySet()) {
+            Setting setting = entry.getValue();
+            Object value = setting.getDefault(Settings.EMPTY);
+            if (value instanceof Settings) {
+                builder.put((Settings) value);
+            } else {
+                builder.put(setting.getKey(), value.toString());
+            }
         }
     }
 }
