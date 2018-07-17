@@ -56,6 +56,8 @@ import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.metadata.upgrade.IndexTemplateUpgrader;
+import io.crate.metadata.upgrade.MetaDataIndexUpgrader;
 import io.crate.metadata.view.ViewsMetaData;
 import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -65,6 +67,8 @@ import io.crate.user.UserExtension;
 import io.crate.user.UserFallbackModule;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.cluster.NamedDiff;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.ParseField;
@@ -89,6 +93,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static io.crate.settings.SharedSettings.ENTERPRISE_LICENSE_SETTING;
@@ -292,5 +297,15 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             entries.addAll(userExtension.getNamedXContent());
         }
         return entries;
+    }
+
+    @Override
+    public UnaryOperator<IndexMetaData> getIndexMetaDataUpgrader() {
+        return new MetaDataIndexUpgrader(settings);
+    }
+
+    @Override
+    public UnaryOperator<Map<String, IndexTemplateMetaData>> getIndexTemplateMetaDataUpgrader() {
+        return new IndexTemplateUpgrader(settings);
     }
 }
