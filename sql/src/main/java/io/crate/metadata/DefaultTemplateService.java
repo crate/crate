@@ -48,18 +48,18 @@ import java.util.Collections;
  */
 public class DefaultTemplateService extends AbstractComponent {
 
-    static final String TEMPLATE_NAME = "crate_defaults";
+    public static final String TEMPLATE_NAME = "crate_defaults";
 
     private static final String DEFAULT_MAPPING_SOURCE = createDefaultMappingSource();
     private final ClusterService clusterService;
 
 
-    public DefaultTemplateService(Settings settings, ClusterService clusterService) {
+    DefaultTemplateService(Settings settings, ClusterService clusterService) {
         super(settings);
         this.clusterService = clusterService;
     }
 
-    public void createIfNotExists(ClusterState state) {
+    void createIfNotExists(ClusterState state) {
         DiscoveryNodes nodes = state.nodes();
         if (nodes.getMasterNodeId().equals(nodes.getLocalNodeId()) == false) {
             return;
@@ -95,14 +95,17 @@ public class DefaultTemplateService extends AbstractComponent {
     private static ImmutableOpenMap<String, IndexTemplateMetaData> createCopyWithDefaultTemplateAdded(
         ImmutableOpenMap<String, IndexTemplateMetaData> currentTemplates) throws IOException {
 
-        IndexTemplateMetaData defaultTemplate = IndexTemplateMetaData.builder(TEMPLATE_NAME)
+        ImmutableOpenMap.Builder<String, IndexTemplateMetaData> builder = ImmutableOpenMap.builder(currentTemplates);
+        builder.put(TEMPLATE_NAME, createDefaultIndexTemplateMetaData());
+        return builder.build();
+    }
+
+    public static IndexTemplateMetaData createDefaultIndexTemplateMetaData() throws IOException {
+        return IndexTemplateMetaData.builder(TEMPLATE_NAME)
             .order(0)
             .putMapping(Constants.DEFAULT_MAPPING_TYPE, DEFAULT_MAPPING_SOURCE)
             .patterns(Collections.singletonList("*"))
             .build();
-        ImmutableOpenMap.Builder<String, IndexTemplateMetaData> builder = ImmutableOpenMap.builder(currentTemplates);
-        builder.put(TEMPLATE_NAME, defaultTemplate);
-        return builder.build();
     }
 
     private static String createDefaultMappingSource() {
