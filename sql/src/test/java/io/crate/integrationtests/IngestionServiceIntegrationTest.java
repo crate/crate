@@ -22,6 +22,8 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -63,6 +65,7 @@ import static java.util.stream.Collectors.toCollection;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
+@Seed("D5EA62D644A54320:9B9E96B22B4778E2")
 public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest {
 
     private static final String INGESTION_SOURCE_ID = "testing";
@@ -103,9 +106,12 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
         void ingestData(String topic, int data) {
             for (Tuple<Predicate<Row>, IngestRule> predicateAndRuleTuple : predicateAndIngestRulesReference.get()) {
                 if (predicateAndRuleTuple.v1().test(new Row1(topic))) {
+                    logger.info(" DEBUGGING {} matches topic {}", predicateAndRuleTuple.v1(), topic);
                     IngestRule ingestRule = predicateAndRuleTuple.v2();
                     execute("insert into " + ingestRule.getTargetTable() + " values (?);", new Object[]{data});
                     execute("refresh table " + ingestRule.getTargetTable());
+                } else {
+                    logger.info(" DEBUGGING {} does NOT match topic {}", predicateAndRuleTuple.v1(), topic);
                 }
             }
         }
@@ -206,6 +212,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @Repeat(iterations = 5000)
     public void testCreateRuleOnDifferentTopicThanIncomingData() throws Exception {
         execute("create table other_topic_raw_table (data int)");
         execute(String.format(Locale.ENGLISH,

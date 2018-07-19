@@ -80,4 +80,13 @@ public class IngestRule implements Writeable {
         out.writeString(targetTable);
         out.writeString(condition);
     }
+
+    @Override
+    public String toString() {
+        return "IngestRule{" +
+               "name='" + name + '\'' +
+               ", targetTable='" + targetTable + '\'' +
+               ", condition='" + condition + '\'' +
+               '}';
+    }
 }

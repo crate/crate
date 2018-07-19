@@ -77,4 +77,12 @@ public class RowFilter implements Predicate<Row> {
         result = 31 * result + expressions.hashCode();
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "RowFilter{" +
+               "filterCondition=" + filterCondition +
+               ", expressions=" + expressions +
+               '}';
+    }
 }
