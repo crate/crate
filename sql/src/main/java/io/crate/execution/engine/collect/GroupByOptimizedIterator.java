@@ -50,6 +50,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.Terms;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
@@ -73,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static io.crate.breaker.RamAccountingContext.roundUp;
 import static io.crate.concurrent.CompletableFutures.failedFuture;
@@ -80,6 +82,22 @@ import static io.crate.execution.dsl.projection.Projections.shardProjections;
 import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.getCollectorContext;
 
 final class GroupByOptimizedIterator {
+
+    /**
+     * This was chosen after benchmarking different ratios with this optimization always enabled:
+     *
+     * Q: select count(*) from (select distinct x from t) t
+     *
+     * cardinality-ratio | mean difference
+     * ------------------+-----------------
+     *              0.90 |      -5.65%
+     *              0.75 |      -5.06%
+     *              0.50 |      +1.51%
+     *              0.25 |     +38.79%
+     *
+     * (+ being faster, - being slower)
+     */
+    private static final double CARDINALITY_RATIO_THRESHOLD = 0.5;
 
     @Nullable
     static BatchIterator<Row> tryOptimizeSingleStringKey(IndexShard indexShard,
@@ -108,6 +126,9 @@ final class GroupByOptimizedIterator {
             || Symbols.containsColumn(collectPhase.where(), DocSysColumns.SCORE)) {
             // We could optimize this, but since it's assumed to be an uncommon case we fallback to generic group-by
             // to keep the optimized implementation a bit simpler
+            return null;
+        }
+        if (hasHighCardinalityRatio(() -> indexShard.acquireSearcher("group-by-cardinality-check"), keyFieldType.name())) {
             return null;
         }
 
@@ -181,6 +202,26 @@ final class GroupByOptimizedIterator {
             searcher.close();
             throw t;
         }
+    }
+
+    static boolean hasHighCardinalityRatio(Supplier<Engine.Searcher> acquireSearcher, String fieldName) {
+        // acquire separate searcher:
+        // Can't use sharedShardContexts() yet, if we bail out the "getOrCreateContext" causes issues later on in the fallback logic
+        try (Engine.Searcher searcher = acquireSearcher.get()) {
+            for (LeafReaderContext leaf : searcher.reader().leaves()) {
+                Terms terms = leaf.reader().terms(fieldName);
+                if (terms == null) {
+                    return true;
+                }
+                double cardinalityRatio = terms.size() / (double) leaf.reader().numDocs();
+                if (cardinalityRatio > CARDINALITY_RATIO_THRESHOLD) {
+                    return true;
+                }
+            }
+        } catch (IOException e) {
+            return true;
+        }
+        return false;
     }
 
     private static Iterable<Row> getRows(Map<BytesRef, Object[]> groupedStates,
