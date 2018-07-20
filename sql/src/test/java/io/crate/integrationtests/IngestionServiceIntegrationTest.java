@@ -212,7 +212,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @Repeat(iterations = 5000)
+    @Repeat(iterations = 3000)
     public void testCreateRuleOnDifferentTopicThanIncomingData() throws Exception {
         execute("create table other_topic_raw_table (data int)");
         execute(String.format(Locale.ENGLISH,
