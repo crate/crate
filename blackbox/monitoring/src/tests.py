@@ -199,6 +199,24 @@ class ConnectionsBeanTest(unittest.TestCase):
         self.assertEqual(stderr, '')
 
 
+class ThreadPoolsBeanTest(unittest.TestCase):
+
+    def test_search_pool(self):
+        jmx_client = JmxTermClient(JMX_PORT)
+        stdout, stderr = jmx_client.query_jmx(
+            'io.crate.monitoring:type=ThreadPools', 'Search')
+        self.assertEqual(stdout, '{ \n'
+                                 '  active = 0;\n'
+                                 '  completed = 2;\n'
+                                 '  largestPoolSize = 2;\n'
+                                 '  name = search;\n'
+                                 '  poolSize = 2;\n'
+                                 '  queueSize = 0;\n'
+                                 '  rejected = 0;\n'
+                                 ' }\n')
+        self.assertEqual(stderr, '')
+
+
 def test_suite():
     crateLayer = CrateLayer(
         'crate-enterprise',
@@ -229,6 +247,10 @@ def test_suite():
     suite.addTest(s)
 
     s = unittest.makeSuite(ConnectionsBeanTest)
+    s.layer = crateLayer
+    suite.addTest(s)
+
+    s = unittest.makeSuite(ThreadPoolsBeanTest)
     s.layer = crateLayer
     suite.addTest(s)
 

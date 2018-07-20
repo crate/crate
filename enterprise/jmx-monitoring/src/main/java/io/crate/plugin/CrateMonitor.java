@@ -23,6 +23,7 @@ import io.crate.beans.Connections;
 import io.crate.beans.NodeInfo;
 import io.crate.beans.NodeStatus;
 import io.crate.beans.QueryStats;
+import io.crate.beans.ThreadPools;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -32,6 +33,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
@@ -55,7 +57,8 @@ public class CrateMonitor {
                         @Nullable HttpServerTransport httpServerTransport,
                         TransportService transportService,
                         SQLOperations sqlOperations,
-                        ClusterService clusterService) {
+                        ClusterService clusterService,
+                        ThreadPool threadPool) {
         logger = Loggers.getLogger(CrateMonitor.class, settings);
         registerMBean(QueryStats.NAME, new QueryStats(jobsLogs));
         registerMBean(NodeStatus.NAME, new NodeStatus(sqlOperations::isEnabled));
@@ -65,6 +68,7 @@ public class CrateMonitor {
             () -> new ConnectionStats(postgresNetty.openConnections(), postgresNetty.totalConnections()),
             () -> transportService.stats().serverOpen()
         ));
+        registerMBean(ThreadPools.NAME, new ThreadPools(threadPool));
     }
 
     private void registerMBean(String name, Object bean) {

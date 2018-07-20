@@ -193,6 +193,81 @@ name and has the following attributes:
 |                      | transport protocol                                      |
 +----------------------+---------------------------------------------------------+
 
+ThreadPools MXBean
+------------------
+
+The ``ThreadPools`` MXBean exposes statistical information about the used thread
+pools of a ``CrateDB`` node.
+
+It can be accessed using the ``io.crate.monitoring:type=ThreadPools`` object
+name and has following attributes:
+
++-----------------------+---------------------------------------------------------+
+| Name                  | Description                                             |
++=======================+=========================================================+
+| ``Generic``           | Thread pool statistics of the ``generic`` thread pool.  |
++-----------------------+---------------------------------------------------------+
+| ``Search``            | Thread pool statistics of the ``search`` thread pool    |
+|                       | used by read statements on user generated tables.       |
++-----------------------+---------------------------------------------------------+
+| ``Bulk``              | Thread pool statistics of the ``bulk`` thread pool      |
+|                       | used for writing and deleting data.                     |
++-----------------------+---------------------------------------------------------+
+| ``Management``        | Thread pool statistics of the ``management`` thread     |
+|                       | pool used by management tasks like stats collecting,    |
+|                       | repository information, shard allocations, etc.         |
++-----------------------+---------------------------------------------------------+
+| ``Index``             | Thread pool statistics of the ``index`` thread pool     |
+|                       | used for writing blobs.                                 |
++-----------------------+---------------------------------------------------------+
+| ``Flush``             | Thread pool statistics of the ``flush`` thread pool     |
+|                       | used for fsyncing to disk and merging segments in the   |
+|                       | storage engine.                                         |
++-----------------------+---------------------------------------------------------+
+| ``Refresh``           | Thread pool statistics of the ``refresh`` thread pool   |
+|                       | used for automatic and on-demand refreshing of tables   |
++-----------------------+---------------------------------------------------------+
+| ``Snapshot``          | Thread pool statistics of the ``snapshot`` thread pool  |
+|                       | used for creating and restoring snapshots.              |
++-----------------------+---------------------------------------------------------+
+| ``ForceMerge``        | Thread pool statistics of the ``force_merge`` thread    |
+|                       | pool used when running an ``optimize`` statement.       |
++-----------------------+---------------------------------------------------------+
+| ``Listener``          | Thread pool statistics of the ``listener`` thread pool  |
+|                       | used on client nodes for asynchronous result listeners. |
++-----------------------+---------------------------------------------------------+
+| ``Get``               | Thread pool statistics of the ``get`` thread pool       |
+|                       | used when querying ``sys.nodes`` or ``sys.shards``.     |
++-----------------------+---------------------------------------------------------+
+| ``FetchShardStarted`` | Thread pool statistics of the ``fetch_shard_started``   |
+|                       | thread pool used on shard allocation.                   |
++-----------------------+---------------------------------------------------------+
+| ``FetchShardStore``   | Thread pool statistics of the ``fetch_shard_store``     |
+|                       | used on shard replication.                              |
++-----------------------+---------------------------------------------------------+
+
+Each of them returns a `CompositeData`_ object containing detailed statistics
+of each thread pool with the following attributes:
+
++---------------------+-----------------------------------------------------+
+| Name                | Description                                         |
++=====================+=====================================================+
+| ``poolSize``        | The current number of threads in the pool.          |
++---------------------+-----------------------------------------------------+
+| ``largestPoolSize`` | The largest number of threads that have ever        |
+|                     | simultaneously been in the pool.                    |
++---------------------+-----------------------------------------------------+
+| ``queueSize``       | The current number of tasks in the queue.           |
++---------------------+-----------------------------------------------------+
+| ``active``          | The approximate number of threads that are actively |
+|                     | executing tasks.                                    |
++---------------------+-----------------------------------------------------+
+| ``completed``       | The approximate total number of tasks that have     |
+|                     | completed execution.                                |
++---------------------+-----------------------------------------------------+
+| ``rejected``        | The number of rejected executions.                  |
++---------------------+-----------------------------------------------------+
+
 
 Exposing JMX via HTTP
 =====================
@@ -208,3 +283,4 @@ the `README`_ in the `Crate JMX HTTP Exporter`_ repository for more information.
 .. _JMX documentation: http://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum
 .. _JConsole: http://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum
 .. _VisualVM: https://visualvm.java.net/
+.. _CompositeData: http://www.oracle.com/technetwork/java/javase/tech/best-practices-jsp-136021.html#mozTocId99420

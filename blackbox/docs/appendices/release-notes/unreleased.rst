@@ -42,6 +42,9 @@ Breaking Changes
 Changes
 =======
 
+- Added a new ``ThreadPools`` MXBean for JMX which exposes statistics of all
+  used thread pools.
+
 - Changed the postgres wire protocol binary encoding format for ``timestamp``
   columns to use the newer ``int64`` format. This will enable compatibility
   with clients like ``pgx``.
