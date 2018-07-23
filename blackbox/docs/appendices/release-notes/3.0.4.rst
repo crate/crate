@@ -1,0 +1,67 @@
+.. _version_3.0.4:
+
+=============
+Version 3.0.4
+=============
+
+Released on 2018/07/23.
+
+.. NOTE::
+
+   If you are upgrading a cluster, you must be running CrateDB 2.0.4 or higher
+   before you upgrade to 3.0.4.
+
+   We recommend that you upgrade to the latest 2.3 release before moving to
+   3.0.4.
+
+   If you want to perform a `rolling upgrade`_, your current CrateDB version
+   number must be at least :ref:`version_3.0.0`. Any upgrade from a version
+   prior to this will require a `full restart upgrade`_.
+
+   When restarting, CrateDB will migrate indexes to a newer format. Depending
+   on the amount of data, this may delay node start-up time.
+
+   Please consult the :ref:`version_3.0.0_upgrade_notes` before upgrading.
+
+.. WARNING::
+
+    Tables that were created prior to upgrading to CrateDB 2.x will not
+    function with 3.0 and must be recreated before moving to 3.0.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` while running a
+    2.x release into a new table, or by `inserting the data into a new table`_.
+
+.. WARNING::
+
+   Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Changelog
+=========
+
+Fixes
+-----
+
+- Fixed an issue which prevented adding new string typed columns into dynamic
+  objects if a cluster was initially created with a version between
+  ``1.1.0`` and ``2.0.0``.
+
+- Fixed an issue that caused runtime changes to the
+  ``indices.breaker.query.limit`` and ``indices.breaker.query.overhead``
+  settings to be ignored when using the ``SET GLOBAL [TRANSIENT]`` command.
+
+- Stored the correct name (``timestamptz``) for the timestamp type in the
+  ``pg_type`` table.
+
+- Fixed an issue that caused an ``UnsupportedFeatureException`` to be thrown
+  when deleting or updating by query on an empty partitioned table, instead of
+  just returning 0 rows deleted/updated.
