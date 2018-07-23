@@ -22,17 +22,14 @@
 
 package io.crate.azure;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import io.crate.azure.management.AzureComputeService.Discovery;
 import io.crate.azure.management.AzureComputeService.Management;
-import io.crate.test.integration.NettyLeakDetectionFilter;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.test.ESIntegTestCase;
 
 
-@ThreadLeakFilters(filters = {NettyLeakDetectionFilter.class})
 public abstract class AbstractAzureComputeServiceTestCase extends ESIntegTestCase {
 
     @Override

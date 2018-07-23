@@ -22,14 +22,12 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.plugin.BlobPlugin;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.plugin.HttpTransportPlugin;
-import io.crate.test.integration.NettyLeakDetectionFilter;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -53,7 +51,6 @@ import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESS
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.core.Is.is;
 
-@ThreadLeakFilters(filters = {NettyLeakDetectionFilter.class})
 public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
 
     private Field indicesField;

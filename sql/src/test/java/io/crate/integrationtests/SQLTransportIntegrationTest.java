@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
@@ -40,8 +39,8 @@ import io.crate.data.Row;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
-import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.RootTask;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -64,7 +63,6 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
-import io.crate.test.integration.NettyLeakDetectionFilter;
 import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
@@ -138,7 +136,6 @@ import static org.hamcrest.Matchers.nullValue;
 @UseSemiJoins
 @UseHashJoins
 @UseRandomizedSchema
-@ThreadLeakFilters(filters = {NettyLeakDetectionFilter.class})
 public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;

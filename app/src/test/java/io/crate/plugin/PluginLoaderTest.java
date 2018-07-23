@@ -22,12 +22,10 @@
 
 package io.crate.plugin;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.test.CauseMatcher;
-import io.crate.test.integration.NettyLeakDetectionFilter;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -49,7 +47,6 @@ import static org.elasticsearch.client.Requests.clusterHealthRequest;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, numClientNodes = 0)
-@ThreadLeakFilters(filters = {NettyLeakDetectionFilter.class})
 public class PluginLoaderTest extends ESIntegTestCase {
 
     @Rule

@@ -22,16 +22,19 @@
 
 package io.crate.discovery;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import io.crate.plugin.SrvPlugin;
-import io.crate.test.integration.NettyLeakDetectionFilter;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.xbill.DNS.*;
+import org.xbill.DNS.Cache;
+import org.xbill.DNS.DClass;
+import org.xbill.DNS.Lookup;
+import org.xbill.DNS.Name;
+import org.xbill.DNS.SetResponse;
+import org.xbill.DNS.Zone;
 
 import java.io.IOException;
 import java.net.URL;
@@ -41,7 +44,6 @@ import java.util.Collections;
 import static org.elasticsearch.common.settings.Settings.builder;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 0, transportClientRatio = 0)
-@ThreadLeakFilters(filters = {NettyLeakDetectionFilter.class})
 public class SrvDiscoveryIntegrationTest extends ESIntegTestCase {
 
     @Before

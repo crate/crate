@@ -32,7 +32,6 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
-import io.crate.test.integration.NettyLeakDetectionFilter;
 import io.crate.test.utils.Blobs;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
@@ -60,7 +59,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 0, numClientNodes = 0, transportClientRatio = 0)
-@ThreadLeakFilters(filters = {RecoveryTests.RecoveryTestThreadFilter.class, NettyLeakDetectionFilter.class})
+@ThreadLeakFilters(filters = {RecoveryTests.RecoveryTestThreadFilter.class})
 public class RecoveryTests extends BlobIntegrationTestBase {
 
     public static class RecoveryTestThreadFilter implements ThreadFilter {

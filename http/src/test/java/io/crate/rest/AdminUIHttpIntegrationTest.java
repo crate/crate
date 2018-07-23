@@ -22,9 +22,7 @@
 
 package io.crate.rest;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import io.crate.plugin.HttpTransportPlugin;
-import io.crate.test.integration.NettyLeakDetectionFilter;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -54,13 +52,11 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutionException;
 
 import static org.elasticsearch.common.network.NetworkModule.HTTP_DEFAULT_TYPE_SETTING;
 import static org.elasticsearch.common.network.NetworkModule.HTTP_ENABLED;
 import static org.hamcrest.core.Is.is;
 
-@ThreadLeakFilters(filters = {NettyLeakDetectionFilter.class})
 public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
 
     protected InetSocketAddress address;
