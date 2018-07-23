@@ -143,7 +143,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private final RemoteCollectorFactory remoteCollectorFactory;
     private final SystemCollectSource systemCollectSource;
     private final Executor executor;
-    private final EvaluatingNormalizer nodeNormalizer;
     private final ProjectorFactory sharedProjectorFactory;
 
     private final Map<ShardId, Supplier<ShardCollectorProvider>> shards = new ConcurrentHashMap<>();
@@ -187,7 +186,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             luceneQueryBuilder,
             nodeJobsCounter,
             bigArrays);
-        nodeNormalizer = new EvaluatingNormalizer(
+        EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.DOC,
             new MapBackedRefResolver(Collections.emptyMap()),
@@ -256,36 +255,35 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     @Override
     public BatchIterator<Row> getIterator(CollectPhase phase, CollectTask collectTask, boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
-        RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
         String localNodeId = clusterService.localNode().getId();
 
         Projectors projectors = new Projectors(
-            normalizedPhase.projections(),
-            normalizedPhase.jobId(),
+            collectPhase.projections(),
+            collectPhase.jobId(),
             collectTask.queryPhaseRamAccountingContext(),
             sharedProjectorFactory
         );
         boolean requireMoveToStartSupport = supportMoveToStart && !projectors.providesIndependentScroll();
 
-        if (normalizedPhase.maxRowGranularity() == RowGranularity.SHARD) {
+        if (collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
             return projectors.wrap(InMemoryBatchIterator.of(
-                getShardsIterator(collectPhase, normalizedPhase, localNodeId), SentinelRow.SENTINEL));
+                getShardsIterator(collectPhase, localNodeId), SentinelRow.SENTINEL));
         }
-        OrderBy orderBy = normalizedPhase.orderBy();
-        if (normalizedPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
+        OrderBy orderBy = collectPhase.orderBy();
+        if (collectPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
             return projectors.wrap(createMultiShardScoreDocCollector(
-                normalizedPhase,
+                collectPhase,
                 requireMoveToStartSupport,
                 collectTask,
                 localNodeId
             ));
         }
 
-        boolean hasShardProjections = Projections.hasAnyShardProjections(normalizedPhase.projections());
-        Map<String, IntIndexedContainer> indexShards = normalizedPhase.routing().locations().get(localNodeId);
+        boolean hasShardProjections = Projections.hasAnyShardProjections(collectPhase.projections());
+        Map<String, IntIndexedContainer> indexShards = collectPhase.routing().locations().get(localNodeId);
         List<BatchIterator<Row>> iterators = indexShards == null
             ? Collections.emptyList()
-            : getIterators(collectTask, normalizedPhase, requireMoveToStartSupport, indexShards);
+            : getIterators(collectTask, collectPhase, requireMoveToStartSupport, indexShards);
 
         final BatchIterator<Row> result;
         switch (iterators.size()) {
@@ -437,9 +435,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         return iterators;
     }
 
-    private Iterable<Row> getShardsIterator(RoutedCollectPhase collectPhase,
-                                            RoutedCollectPhase normalizedPhase,
-                                            String localNodeId) {
+    private Iterable<Row> getShardsIterator(RoutedCollectPhase collectPhase, String localNodeId) {
         Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
         List<UnassignedShard> unassignedShards = new ArrayList<>();
         List<Object[]> rows = new ArrayList<>();
@@ -469,7 +465,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 ShardId shardId = new ShardId(index, shard.value);
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
-                    Object[] row = shardCollectorProvider.getRowForShard(normalizedPhase);
+                    Object[] row = shardCollectorProvider.getRowForShard(collectPhase);
                     if (row != null) {
                         rows.add(row);
                     }
