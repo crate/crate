@@ -65,7 +65,6 @@ import static java.util.stream.Collectors.toCollection;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
-@Seed("D5EA62D644A54320:9B9E96B22B4778E2")
 public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest {
 
     private static final String INGESTION_SOURCE_ID = "testing";
@@ -212,7 +211,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @Repeat(iterations = 3000)
+    @Repeat(iterations = 5000)
     public void testCreateRuleOnDifferentTopicThanIncomingData() throws Exception {
         execute("create table other_topic_raw_table (data int)");
         execute(String.format(Locale.ENGLISH,
