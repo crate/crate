@@ -179,6 +179,9 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
             scheduler.schedule(operationRunnable::run, delay.getMillis(), TimeUnit.MILLISECONDS);
             return operationRunnable;
         } else {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Terminating job={} received result but job context was missing", request.jobId());
+            }
             List<String> excludedNodeIds = Collections.singletonList(clusterService.localNode().getId());
             /* The upstream (DistributingConsumer) forwards failures to other downstreams and eventually considers its job done.
              * But it cannot inform the handler-merge about a failure because the JobResponse is sent eagerly.
