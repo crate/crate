@@ -33,11 +33,12 @@ import java.io.IOException;
 public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
 
     private static final BytesRef TRUE_BYTESREF = new BytesRef("1");
+    private final String columnName;
     private SortedBinaryDocValues values;
     private Boolean value;
 
     public BooleanColumnReference(String columnName) {
-        super(columnName);
+        this.columnName = columnName;
     }
 
     @Override
@@ -66,21 +67,5 @@ public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
     public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
         values = FieldData.toString(DocValues.getSortedNumeric(context.reader(), columnName));
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null)
-            return false;
-        if (obj == this)
-            return true;
-        if (!(obj instanceof BooleanColumnReference))
-            return false;
-        return columnName.equals(((BooleanColumnReference) obj).columnName);
-    }
-
-    @Override
-    public int hashCode() {
-        return columnName.hashCode();
     }
 }

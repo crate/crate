@@ -31,8 +31,7 @@ public abstract class FieldCacheExpression<IFD extends IndexFieldData, ReturnTyp
     private final MappedFieldType fieldType;
     protected IFD indexFieldData;
 
-    FieldCacheExpression(String columnName, MappedFieldType fieldType) {
-        super(columnName);
+    FieldCacheExpression(MappedFieldType fieldType) {
         this.fieldType = fieldType;
     }
 

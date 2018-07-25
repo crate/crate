@@ -33,11 +33,13 @@ import java.io.IOException;
 
 public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsFieldData, BytesRef> {
 
+    private final String columnName;
     private SortedBinaryDocValues values;
     private BytesRef value;
 
     public BytesRefColumnReference(String columnName, MappedFieldType mappedFieldType) {
-        super(columnName, mappedFieldType);
+        super(mappedFieldType);
+        this.columnName = columnName;
     }
 
     @Override
@@ -66,22 +68,6 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
         //  `FieldData.maybeSlowRandomAccessOrds(DocValues.getSortedSet(reader, field));` for those.
         // But dynamic columns don't use docValues so we need to use the fieldData abstraction layer.
         values = indexFieldData.load(context).getBytesValues();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null)
-            return false;
-        if (obj == this)
-            return true;
-        if (!(obj instanceof BytesRefColumnReference))
-            return false;
-        return columnName.equals(((BytesRefColumnReference) obj).columnName);
-    }
-
-    @Override
-    public int hashCode() {
-        return columnName.hashCode();
     }
 }
 

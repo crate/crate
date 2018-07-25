@@ -22,8 +22,8 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
+import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.util.BytesRef;
 
 public class UidCollectorExpression extends LuceneCollectorExpression<BytesRef> {
@@ -33,7 +33,7 @@ public class UidCollectorExpression extends LuceneCollectorExpression<BytesRef> 
     private CollectorFieldsVisitor visitor;
 
     public UidCollectorExpression() {
-        super(COLUMN_NAME);
+        super();
     }
 
     @Override

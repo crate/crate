@@ -111,7 +111,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         if (fieldType == null) {
             return NO_FIELD_TYPES.contains(unnest(ref.valueType()))
                 ? DocCollectorExpression.create(toSourceLookup(ref))
-                : new NullValueCollectorExpression(fqn);
+                : new NullValueCollectorExpression();
         }
         if (!fieldType.hasDocValues()) {
             return DocCollectorExpression.create(toSourceLookup(ref));
@@ -147,10 +147,6 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     }
 
     private static class NullValueCollectorExpression extends LuceneCollectorExpression<Void> {
-
-        NullValueCollectorExpression(String columnName) {
-            super(columnName);
-        }
 
         @Override
         public Void value() {

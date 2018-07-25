@@ -38,7 +38,6 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Bytes
     private LeafReader reader;
 
     public IdCollectorExpression() {
-        super(COLUMN_NAME);
     }
 
     @Override

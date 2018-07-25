@@ -35,10 +35,6 @@ public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> 
     private int jobSearchContextId;
     private int docBase;
 
-    public FetchIdCollectorExpression() {
-        super(COLUMN_NAME);
-    }
-
     @Override
     public void startCollect(CollectorContext context) {
         super.startCollect(context);

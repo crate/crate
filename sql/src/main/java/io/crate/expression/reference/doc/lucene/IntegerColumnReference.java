@@ -30,11 +30,12 @@ import java.io.IOException;
 
 public class IntegerColumnReference extends LuceneCollectorExpression<Integer> {
 
+    private final String columnName;
     private SortedNumericDocValues values;
     private Integer value;
 
     public IntegerColumnReference(String columnName) {
-        super(columnName);
+        this.columnName = columnName;
     }
 
     @Override

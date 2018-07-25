@@ -40,7 +40,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
     private CollectorFieldsVisitor visitor;
 
     public DocCollectorExpression() {
-        super(COLUMN_NAME);
+        super();
     }
 
     @Override
@@ -69,12 +69,13 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
     static final class ChildDocCollectorExpression extends LuceneCollectorExpression<Object> {
 
         private final DataType returnType;
+        private final String columnName;
         SourceLookup sourceLookup;
         private LeafReaderContext context;
 
         ChildDocCollectorExpression(DataType returnType, String columnName) {
-            super(columnName);
             this.returnType = returnType;
+            this.columnName = columnName;
         }
 
         @Override

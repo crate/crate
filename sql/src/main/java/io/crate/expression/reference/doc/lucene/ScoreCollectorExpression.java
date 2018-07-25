@@ -33,9 +33,6 @@ public class ScoreCollectorExpression extends LuceneCollectorExpression<Float> {
     private Scorer scorer;
     private float score;
 
-    public ScoreCollectorExpression() {
-        super(COLUMN_NAME);
-    }
 
     @Override
     public void setScorer(Scorer scorer) {

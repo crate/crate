@@ -30,11 +30,12 @@ import java.io.IOException;
 
 public class ByteColumnReference extends LuceneCollectorExpression<Byte> {
 
+    private final String columnName;
     private SortedNumericDocValues values;
     private Byte value;
 
     public ByteColumnReference(String columnName) {
-        super(columnName);
+        this.columnName = columnName;
     }
 
     @Override
@@ -64,21 +65,5 @@ public class ByteColumnReference extends LuceneCollectorExpression<Byte> {
     public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
         values = DocValues.getSortedNumeric(context.reader(), columnName);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null)
-            return false;
-        if (obj == this)
-            return true;
-        if (!(obj instanceof ByteColumnReference))
-            return false;
-        return columnName.equals(((ByteColumnReference) obj).columnName);
-    }
-
-    @Override
-    public int hashCode() {
-        return columnName.hashCode();
     }
 }

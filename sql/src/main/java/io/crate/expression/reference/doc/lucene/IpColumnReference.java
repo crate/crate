@@ -34,11 +34,12 @@ import java.io.IOException;
 
 public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
 
+    private final String columnName;
     private BytesRef value;
     private SortedSetDocValues values;
 
     public IpColumnReference(String columnName) {
-        super(columnName);
+        this.columnName = columnName;
     }
 
     @Override

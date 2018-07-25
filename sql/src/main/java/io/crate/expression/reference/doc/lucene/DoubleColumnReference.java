@@ -31,11 +31,13 @@ import java.io.IOException;
 
 public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFieldData, Double> {
 
+    private final String columnName;
     private SortedNumericDoubleValues values;
     private Double value;
 
     public DoubleColumnReference(String columnName, MappedFieldType mappedFieldType) {
-        super(columnName, mappedFieldType);
+        super(mappedFieldType);
+        this.columnName = columnName;
     }
 
     @Override
@@ -64,22 +66,6 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
     public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
         values = indexFieldData.load(context).getDoubleValues();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null)
-            return false;
-        if (obj == this)
-            return true;
-        if (!(obj instanceof DoubleColumnReference))
-            return false;
-        return columnName.equals(((DoubleColumnReference) obj).columnName);
-    }
-
-    @Override
-    public int hashCode() {
-        return columnName.hashCode();
     }
 }
 

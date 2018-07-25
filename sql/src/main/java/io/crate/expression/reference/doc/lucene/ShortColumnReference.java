@@ -30,11 +30,12 @@ import java.io.IOException;
 
 public class ShortColumnReference extends LuceneCollectorExpression<Short> {
 
+    private final String columnName;
     private SortedNumericDocValues values;
     private Short value;
 
     public ShortColumnReference(String columnName) {
-        super(columnName);
+        this.columnName = columnName;
     }
 
     @Override
@@ -63,21 +64,5 @@ public class ShortColumnReference extends LuceneCollectorExpression<Short> {
     public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
         values = DocValues.getSortedNumeric(context.reader(), columnName);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null)
-            return false;
-        if (obj == this)
-            return true;
-        if (!(obj instanceof ShortColumnReference))
-            return false;
-        return columnName.equals(((ShortColumnReference) obj).columnName);
-    }
-
-    @Override
-    public int hashCode() {
-        return columnName.hashCode();
     }
 }

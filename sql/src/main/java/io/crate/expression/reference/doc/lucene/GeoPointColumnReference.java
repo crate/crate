@@ -32,11 +32,13 @@ import java.io.IOException;
 
 public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointFieldData, Double[]> {
 
+    private final String columnName;
     private MultiGeoPointValues values;
     private Double[] value;
 
     public GeoPointColumnReference(String columnName, MappedFieldType mappedFieldType) {
-        super(columnName, mappedFieldType);
+        super(mappedFieldType);
+        this.columnName = columnName;
     }
 
     @Override
@@ -67,16 +69,4 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
         super.setNextReader(context);
         values = indexFieldData.load(context).getGeoPointValues();
     }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null)
-            return false;
-        if (obj == this)
-            return true;
-        if (!(obj instanceof GeoPointColumnReference))
-            return false;
-        return columnName.equals(((GeoPointColumnReference) obj).columnName);
-    }
-
 }

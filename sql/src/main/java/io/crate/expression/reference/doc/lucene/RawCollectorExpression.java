@@ -21,8 +21,8 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
+import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.compress.CompressorFactory;
 
@@ -33,10 +33,6 @@ public class RawCollectorExpression extends LuceneCollectorExpression<BytesRef> 
     public static final String COLUMN_NAME = DocSysColumns.RAW.name();
 
     private CollectorFieldsVisitor visitor;
-
-    public RawCollectorExpression() {
-        super(COLUMN_NAME);
-    }
 
     @Override
     public void startCollect(CollectorContext context) {
