@@ -26,7 +26,6 @@ import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -41,8 +40,6 @@ import java.util.List;
 
 class FetchCollector {
 
-    private final CollectorFieldsVisitor fieldsVisitor;
-    private final boolean visitorEnabled;
     private final LuceneCollectorExpression[] collectorExpressions;
     private final InputRow row;
     private final Streamer<?>[] streamers;
@@ -60,21 +57,15 @@ class FetchCollector {
         this.streamers = streamers;
         this.readerContexts = searcher.searcher().getIndexReader().leaves();
         this.ramAccountingContext = ramAccountingContext;
-        this.fieldsVisitor = new CollectorFieldsVisitor(this.collectorExpressions.length);
-        CollectorContext collectorContext = new CollectorContext(indexFieldDataService::getForField, fieldsVisitor, readerId);
+        CollectorContext collectorContext = new CollectorContext(indexFieldDataService::getForField, readerId);
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
-        visitorEnabled = fieldsVisitor.required();
         this.row = new InputRow(collectorExpressions);
 
     }
 
     private void setNextDocId(LeafReaderContext readerContext, int doc) throws IOException {
-        if (visitorEnabled) {
-            fieldsVisitor.reset();
-            readerContext.reader().document(doc, fieldsVisitor);
-        }
         for (LuceneCollectorExpression e : collectorExpressions) {
             e.setNextReader(readerContext);
             e.setNextDocId(doc);

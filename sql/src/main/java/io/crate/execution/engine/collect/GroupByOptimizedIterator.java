@@ -79,7 +79,6 @@ import java.util.function.Supplier;
 import static io.crate.breaker.RamAccountingContext.roundUp;
 import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static io.crate.execution.dsl.projection.Projections.shardProjections;
-import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.getCollectorContext;
 
 final class GroupByOptimizedIterator {
 
@@ -156,8 +155,10 @@ final class GroupByOptimizedIterator {
 
             RamAccountingContext ramAccounting = collectTask.queryPhaseRamAccountingContext();
 
-            CollectorContext collectorContext = getCollectorContext(
-                sharedShardContext.readerId(), docCtx, queryShardContext::getForField);
+            CollectorContext collectorContext = new CollectorContext(
+                queryShardContext::getForField,
+                sharedShardContext.readerId()
+            );
 
             for (LuceneCollectorExpression<?> expression: expressions) {
                 expression.startCollect(collectorContext);

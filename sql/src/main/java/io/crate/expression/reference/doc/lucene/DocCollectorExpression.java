@@ -22,22 +22,20 @@
 package io.crate.expression.reference.doc.lucene;
 
 import com.google.common.base.Joiner;
-import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataType;
 import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.search.lookup.SourceLookup;
 
+import java.io.IOException;
 import java.util.Map;
 
 public class DocCollectorExpression extends LuceneCollectorExpression<Map<String, Object>> {
 
     public static final String COLUMN_NAME = DocSysColumns.DOC.name();
-
-    private CollectorFieldsVisitor visitor;
+    private SourceLookup sourceLookup;
+    private LeafReaderContext leaf;
 
     public DocCollectorExpression() {
         super(COLUMN_NAME);
@@ -45,13 +43,22 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     @Override
     public void startCollect(CollectorContext context) {
-        context.visitor().required(true);
-        this.visitor = context.visitor();
+        sourceLookup = context.sourceLookup();
     }
 
     @Override
     public Map<String, Object> value() {
-        return XContentHelper.convertToMap(visitor.source(), false, XContentType.JSON).v2();
+        return sourceLookup.source();
+    }
+
+    @Override
+    public void setNextDocId(int doc) throws IOException {
+        sourceLookup.setSegmentAndDocument(leaf, doc);
+    }
+
+    @Override
+    public void setNextReader(LeafReaderContext context) throws IOException {
+        this.leaf = context;
     }
 
     public static LuceneCollectorExpression<?> create(final Reference reference) {

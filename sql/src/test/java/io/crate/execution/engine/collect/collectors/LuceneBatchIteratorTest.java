@@ -77,8 +77,7 @@ public class LuceneBatchIteratorTest extends CrateUnitTest {
                     null,
                     false,
                     new CollectorContext(
-                        mappedFieldType -> null,
-                        new CollectorFieldsVisitor(0)
+                        mappedFieldType -> null
                     ),
                     new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
                     columnRefs,

@@ -21,7 +21,6 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.lookup.SourceLookup;
@@ -31,26 +30,18 @@ import java.util.function.Function;
 public class CollectorContext {
 
     private final Function<MappedFieldType, IndexFieldData<?>> fieldDataGetter;
-    private final CollectorFieldsVisitor fieldsVisitor;
     private final int jobSearchContextId;
 
     private SourceLookup sourceLookup;
 
-    public CollectorContext(Function<MappedFieldType, IndexFieldData<?>> fieldDataGetter,
-                            CollectorFieldsVisitor visitor) {
-        this(fieldDataGetter, visitor, -1);
+    public CollectorContext(Function<MappedFieldType, IndexFieldData<?>> fieldDataGetter) {
+        this(fieldDataGetter, -1);
     }
 
     public CollectorContext(Function<MappedFieldType, IndexFieldData<?>> fieldDataGetter,
-                            CollectorFieldsVisitor visitor,
                             int jobSearchContextId) {
         this.fieldDataGetter = fieldDataGetter;
-        fieldsVisitor = visitor;
         this.jobSearchContextId = jobSearchContextId;
-    }
-
-    public CollectorFieldsVisitor visitor() {
-        return fieldsVisitor;
     }
 
     public int jobSearchContextId() {
