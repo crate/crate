@@ -23,7 +23,6 @@
 package io.crate.execution.engine.aggregation;
 
 import com.google.common.collect.Iterables;
-import io.crate.expression.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -31,6 +30,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.symbol.AggregateMode;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.util.BigArrays;
@@ -67,6 +67,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     private final Function<Row, K> keyExtractor;
     private final Version indexVersionCreated;
     private final BigArrays bigArrays;
+    private final BiConsumer<Map<K, Object[]>, Row> accumulator;
 
     static GroupingCollector<Object> singleKey(CollectExpression<Row, ?>[] expressions,
                                                AggregateMode mode,
@@ -152,6 +153,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         this.keyExtractor = keyExtractor;
         this.indexVersionCreated = indexVersionCreated;
         this.bigArrays = bigArrays;
+        this.accumulator = mode == AggregateMode.PARTIAL_FINAL ? this::reduce : this::iter;
     }
 
     @Override
@@ -161,7 +163,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
 
     @Override
     public BiConsumer<Map<K, Object[]>, Row> accumulator() {
-        return this::onNextRow;
+        return accumulator;
     }
 
     @Override
@@ -181,7 +183,32 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         return Collections.emptySet();
     }
 
-    private void onNextRow(Map<K, Object[]> statesByKey, Row row) {
+    private void reduce(Map<K, Object[]> statesByKey, Row row) {
+        for (CollectExpression<Row, ?> expression : expressions) {
+            expression.setNextRow(row);
+        }
+        K key = keyExtractor.apply(row);
+        Object[] states = statesByKey.get(key);
+        if (states == null) {
+            states = new Object[aggregations.length];
+            for (int i = 0; i < aggregations.length; i++) {
+                states[i] = inputs[i][0].value();
+            }
+            addWithAccounting(statesByKey, key, states);
+        } else {
+            for (int i = 0; i < aggregations.length; i++) {
+                states[i] = aggregations[i].reduce(ramAccountingContext, states[i], inputs[i][0].value());
+            }
+        }
+    }
+
+    private void addWithAccounting(Map<K, Object[]> statesByKey, K key, Object[] states) {
+        // key size + 32 bytes for entry + 4 bytes for increased capacity
+        ramAccountingContext.addBytes(RamAccountingContext.roundUp(keySizeEstimator.estimateSize(key) + 36L));
+        statesByKey.put(key, states);
+    }
+
+    private void iter(Map<K, Object[]> statesByKey, Row row) {
         for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
         }
@@ -205,10 +232,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                 ramAccountingContext, aggregation,
                 aggregation.newState(ramAccountingContext, indexVersionCreated, bigArrays), inputs[i]);
         }
-        // key size + 32 bytes for entry + 4 bytes for increased capacity
-        ramAccountingContext.addBytes(
-            RamAccountingContext.roundUp(keySizeEstimator.estimateSize(key) + 36L));
-        statesByKey.put(key, states);
+        addWithAccounting(statesByKey, key, states);
     }
 
     private Iterable<Row> mapToRows(Map<K, Object[]> statesByKey) {
