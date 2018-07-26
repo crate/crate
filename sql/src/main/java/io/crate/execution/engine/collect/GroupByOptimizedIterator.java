@@ -159,8 +159,8 @@ final class GroupByOptimizedIterator {
             CollectorContext collectorContext = getCollectorContext(
                 sharedShardContext.readerId(), docCtx, queryShardContext::getForField);
 
-            for (LuceneCollectorExpression<?> expression: expressions) {
-                expression.startCollect(collectorContext);
+            for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
+                expressions.get(i).startCollect(collectorContext);
             }
             InputRow inputRow = new InputRow(docCtx.topLevelInputs());
 
@@ -257,18 +257,19 @@ final class GroupByOptimizedIterator {
                                                                        RamAccountingContext ramAccounting,
                                                                        InputRow inputRow,
                                                                        LuceneQueryBuilder.Context queryContext) throws IOException {
-        Map<BytesRef, Object[]> statesByKey = new HashMap<>();
+        final Map<BytesRef, Object[]> statesByKey = new HashMap<>();
+        final Weight weight = searcher.searcher().createNormalizedWeight(queryContext.query(), false);
+        final List<LeafReaderContext> leaves = searcher.searcher().getTopReaderContext().leaves();
+        final List<CollectExpression<Row, ?>> aggExpressions = ctxForAggregations.expressions();
         Object[] nullStates = null;
-        Weight weight = searcher.searcher().createNormalizedWeight(queryContext.query(), false);
-        List<LeafReaderContext> leaves = searcher.searcher().getTopReaderContext().leaves();
 
         for (LeafReaderContext leaf: leaves) {
             Scorer scorer = weight.scorer(leaf);
             if (scorer == null) {
                 continue;
             }
-            for (LuceneCollectorExpression<?> expression: expressions) {
-                expression.setNextReader(leaf);
+            for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
+                expressions.get(i).setNextReader(leaf);
             }
             SortedSetDocValues values = keyIndexFieldData.load(leaf).getOrdinalsValues();
             try (ObjectArray<Object[]> statesByOrd = bigArrays.newObjectArray(values.getValueCount())) {
@@ -278,11 +279,11 @@ final class GroupByOptimizedIterator {
                     if (docDeleted(liveDocs, doc)) {
                         continue;
                     }
-                    for (LuceneCollectorExpression<?> expression : expressions) {
-                        expression.setNextDocId(doc);
+                    for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
+                        expressions.get(i).setNextDocId(doc);
                     }
-                    for (CollectExpression<Row, ?> expression : ctxForAggregations.expressions()) {
-                        expression.setNextRow(inputRow);
+                    for (int i = 0, expressions1Size = aggExpressions.size(); i < expressions1Size; i++) {
+                        aggExpressions.get(i).setNextRow(inputRow);
                     }
                     if (values.advanceExact(doc)) {
                         long ord = values.nextOrd();
@@ -329,7 +330,6 @@ final class GroupByOptimizedIterator {
                 }
             }
         }
-
         if (nullStates != null) {
             statesByKey.put(null, nullStates);
         }
