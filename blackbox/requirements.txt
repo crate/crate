@@ -41,11 +41,11 @@ zope.testrunner==4.7.0
 # update if you notice that this is not the case)
 
 alabaster>=0.7,<0.8,!=0.7.5
-commonmark==0.5.4
-docutils==0.13.1
-mock==1.0.1
-pillow==2.6.1
-Pygments==2.2.0
-recommonmark==0.4.0
-setuptools==37.0.0
+commonmark>=0.5.4
+docutils>=0.13.1
+mock>=1.0.1
+pillow>=2.6.1
+Pygments>=2.2.0
+recommonmark>=0.4.0
+setuptools>=37.0.0
 sphinx==1.6.5
