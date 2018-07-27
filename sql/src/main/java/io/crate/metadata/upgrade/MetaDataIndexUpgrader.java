@@ -23,6 +23,7 @@
 package io.crate.metadata.upgrade;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -94,7 +95,9 @@ public class MetaDataIndexUpgrader implements UnaryOperator<IndexMetaData> {
         }
 
         try {
-            return new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, newMapping);
+            return new MappingMetaData(
+                Constants.DEFAULT_MAPPING_TYPE,
+                ImmutableMap.of(Constants.DEFAULT_MAPPING_TYPE, newMapping));
         } catch (IOException e) {
             logger.error("Failed to upgrade mapping for index '" + indexName + "'", e);
             return mappingMetaData;
