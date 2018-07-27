@@ -21,3 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue which was introduced with ``3.0.4`` and could result in
+  ``IllegalStateException`` being thrown during the startup of a CrateDB node,
+  which prevents its successful bootstrap and one cannot recover from this
+  state. ``3.0.4`` is a testing release and is not available in the stable
+  channels.
+

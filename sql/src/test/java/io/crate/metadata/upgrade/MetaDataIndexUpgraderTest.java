@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsNull.nullValue;
 
 public class MetaDataIndexUpgraderTest extends CrateUnitTest {
@@ -45,6 +46,9 @@ public class MetaDataIndexUpgraderTest extends CrateUnitTest {
 
         Object dynamicTemplates = newMappingMetaData.getSourceAsMap().get("dynamic_templates");
         assertThat(dynamicTemplates, nullValue());
+
+        // Check that the new metadata still has the root "default" element
+        assertThat("{\"default\":{}}", is(newMappingMetaData.source().toString()));
     }
 
     private static CompressedXContent createDynamicStringMappingTemplate() throws IOException {
