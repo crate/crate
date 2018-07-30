@@ -32,4 +32,6 @@ public interface NodeInfoMBean {
     String getNodeId();
 
     String getNodeName();
+
+    Long getClusterStateVersion();
 }

@@ -157,6 +157,10 @@ The ``NodeInfo`` JMX MBean exposes information about the current node;
 NodeInfo can be accessed using the JMX MBean object name
 ``io.crate.monitoring:type=NodeInfo`` and the following attributes:
 
+ - ``ClusterStateVersion``
+
+   Provides the version of the current applied cluster state
+
  - ``NodeId``
 
    Provides the unique identifier of the node in the cluster

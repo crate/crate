@@ -24,13 +24,13 @@ import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-
 public class NodeInfoTest {
 
     @Test
     public void testNodeInfo() {
-        NodeInfo nodeInfo = new NodeInfo(() -> DiscoveryNodes.newNode("testNode", "testNodeId"));
+        NodeInfo nodeInfo = new NodeInfo(() -> DiscoveryNodes.newNode("testNode", "testNodeId"), () -> 1L);
         assertThat(nodeInfo.getNodeId(), is("testNodeId"));
         assertThat(nodeInfo.getNodeName(), is("testNode"));
+        assertThat(nodeInfo.getClusterStateVersion(), is(1L));
     }
 }
