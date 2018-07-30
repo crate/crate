@@ -1236,4 +1236,18 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("select sum(i), max(s) from t1");
         assertThat(printedTable(response.rows()), is("4| foobar\n"));
     }
+
+    @Test
+    public void testGroupBySingleLongWithNullValues() {
+        execute("create table t (x long) clustered into 2 shards with (number_of_replicas = 0)");
+        execute("insert into t (x) values (1), (1), (1), (2), (2), (null), (null), (null), (null)");
+        execute("refresh table t");
+
+        assertThat(
+            printedTable(execute("select x, count(*) from t group by x order by 2 desc").rows()),
+            is("NULL| 4\n" +
+               "1| 3\n" +
+               "2| 2\n")
+        );
+    }
 }
