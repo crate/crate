@@ -218,7 +218,8 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             addNewEntry(statesByKey, key);
         } else {
             for (int i = 0; i < aggregations.length; i++) {
-                states[i] = mode.onRow(ramAccountingContext, aggregations[i], states[i], inputs[i]);
+                //noinspection unchecked
+                states[i] = aggregations[i].iterate(ramAccountingContext, states[i], inputs[i]);
             }
         }
     }
@@ -228,8 +229,9 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         states = new Object[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
             AggregationFunction aggregation = aggregations[i];
-            states[i] = mode.onRow(
-                ramAccountingContext, aggregation,
+            //noinspection unchecked
+            states[i] = aggregation.iterate(
+                ramAccountingContext,
                 aggregation.newState(ramAccountingContext, indexVersionCreated, bigArrays), inputs[i]);
         }
         addWithAccounting(statesByKey, key, states);

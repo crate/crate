@@ -24,7 +24,6 @@ package io.crate.expression.symbol;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -46,21 +45,12 @@ public enum AggregateMode {
         }
     },
     ITER_FINAL,
-    PARTIAL_FINAL {
-        @Override
-        public <T> T onRow(RamAccountingContext ramAccounting, AggregationFunction<T, ?> function, T state, Input[] inputs) {
-            return function.reduce(ramAccounting, state, ((T) inputs[0].value()));
-        }
-    };
+    PARTIAL_FINAL;
 
     private static final List<AggregateMode> VALUES = ImmutableList.copyOf(values());
 
     public DataType returnType(AggregationFunction function) {
         return function.info().returnType();
-    }
-
-    public <T> T onRow(RamAccountingContext ramAccounting, AggregationFunction<T, ?> function, T state, Input... inputs) {
-        return function.iterate(ramAccounting, state, inputs);
     }
 
     public <TP, TF> TF finishCollect(RamAccountingContext ramAccounting, AggregationFunction<TP, TF> function, TP state) {
