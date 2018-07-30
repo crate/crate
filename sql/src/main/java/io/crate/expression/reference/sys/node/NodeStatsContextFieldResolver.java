@@ -80,6 +80,7 @@ public class NodeStatsContextFieldResolver {
     private final OsService osService;
     private final JvmService jvmService;
     private final FsService fsService;
+    private final LongSupplier clusterStateVersion;
 
     @Inject
     @SuppressWarnings("unused")
@@ -105,7 +106,8 @@ public class NodeStatsContextFieldResolver {
                 }
                 return boundTransportAddress.publishAddress();
             },
-            () -> transportService.stats().getServerOpen()
+            () -> transportService.stats().getServerOpen(),
+            () -> clusterService.state().version()
         );
     }
 
@@ -118,7 +120,8 @@ public class NodeStatsContextFieldResolver {
                                   ExtendedNodeInfo extendedNodeInfo,
                                   Supplier<ConnectionStats> psqlStats,
                                   Supplier<TransportAddress> boundPostgresAddress,
-                                  LongSupplier numOpenTransportConnections) {
+                                  LongSupplier numOpenTransportConnections,
+                                  LongSupplier clusterStateVersion) {
         this.localNode = localNode;
         processService = monitorService.processService();
         osService = monitorService.osService();
@@ -131,6 +134,7 @@ public class NodeStatsContextFieldResolver {
         this.psqlStats = psqlStats;
         this.boundPostgresAddress = boundPostgresAddress;
         this.numOpenTransportConnections = numOpenTransportConnections;
+        this.clusterStateVersion = clusterStateVersion;
     }
 
     public NodeStatsContext forTopColumnIdents(Collection<ColumnIdent> topColumnIdents) {
@@ -197,6 +201,12 @@ public class NodeStatsContextFieldResolver {
                     port.put("transport", transport);
                     port.put("psql", pgsql);
                     context.port(port);
+                }
+            })
+            .put(SysNodesTableInfo.Columns.CLUSTER_STATE_VERSION, new Consumer<NodeStatsContext>() {
+                @Override
+                public void accept(NodeStatsContext context) {
+                    context.clusterStateVersion(clusterStateVersion.getAsLong());
                 }
             })
             .put(SysNodesTableInfo.Columns.LOAD, new Consumer<NodeStatsContext>() {

@@ -39,6 +39,7 @@ import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.expression.reference.sys.node.NodeStatsThreadPoolExpression;
 import io.crate.expression.reference.sys.node.NodeThreadPoolsExpression;
 import io.crate.expression.reference.sys.node.NodeVersionStatsExpression;
+import io.crate.expression.reference.sys.node.SimpleNodeStatsExpression;
 import io.crate.expression.reference.sys.node.fs.NodeFsStatsExpression;
 import io.crate.expression.reference.sys.node.fs.NodeFsTotalStatsExpression;
 import io.crate.expression.reference.sys.node.fs.NodeStatsFsArrayExpression;
@@ -83,6 +84,7 @@ public class SysNodesTableInfo extends StaticTableInfo {
     public static final String SYS_COL_HOSTNAME = "hostname";
     public static final String SYS_COL_REST_URL = "rest_url";
     public static final String SYS_COL_PORT = "port";
+    public static final String SYS_COL_CLUSTER_STATE_VERSION = "cluster_state_version";
     public static final String SYS_COL_LOAD = "load";
     public static final String SYS_COL_MEM = "mem";
     public static final String SYS_COL_HEAP = "heap";
@@ -103,6 +105,8 @@ public class SysNodesTableInfo extends StaticTableInfo {
         public static final ColumnIdent REST_URL = new ColumnIdent(SYS_COL_REST_URL);
 
         public static final ColumnIdent PORT = new ColumnIdent(SYS_COL_PORT);
+        public static final ColumnIdent CLUSTER_STATE_VERSION = new ColumnIdent(SYS_COL_CLUSTER_STATE_VERSION);
+
         static final ColumnIdent PORT_HTTP = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("http"));
         static final ColumnIdent PORT_TRANSPORT = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("transport"));
         static final ColumnIdent PORT_PSQL = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("psql"));
@@ -250,6 +254,12 @@ public class SysNodesTableInfo extends StaticTableInfo {
             .put(Columns.MEM, NodeMemoryStatsExpression::new)
             .put(Columns.HEAP, NodeHeapStatsExpression::new)
             .put(Columns.VERSION, NodeVersionStatsExpression::new)
+            .put(Columns.CLUSTER_STATE_VERSION, () -> new SimpleNodeStatsExpression<Long>() {
+                @Override
+                public Long innerValue() {
+                    return this.row.clusterStateVersion();
+                }
+            })
             .put(Columns.THREAD_POOLS, NodeThreadPoolsExpression::new)
             .put(Columns.THREAD_POOLS_NAME, () -> new NodeStatsThreadPoolExpression<BytesRef>() {
                 @Override
@@ -454,6 +464,8 @@ public class SysNodesTableInfo extends StaticTableInfo {
                 .register(Columns.VERSION_NUMBER, StringType.INSTANCE)
                 .register(Columns.VERSION_BUILD_HASH, StringType.INSTANCE)
                 .register(Columns.VERSION_BUILD_SNAPSHOT, DataTypes.BOOLEAN)
+
+                .register(Columns.CLUSTER_STATE_VERSION, DataTypes.LONG)
 
                 .register(Columns.THREAD_POOLS, OBJECT_ARRAY_TYPE)
                 .register(Columns.THREAD_POOLS_NAME, DataTypes.STRING)

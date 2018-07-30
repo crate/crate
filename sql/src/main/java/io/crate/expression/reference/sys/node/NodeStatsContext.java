@@ -54,6 +54,7 @@ public class NodeStatsContext implements Streamable {
     private BytesRef hostname;
     private long timestamp;
     private Version version;
+    private long clusterStateVersion;
     private Build build;
     private BytesRef restUrl;
     private Map<String, Integer> port;
@@ -118,6 +119,10 @@ public class NodeStatsContext implements Streamable {
 
     public Version version() {
         return version;
+    }
+
+    public long clusterStateVersion() {
+        return clusterStateVersion;
     }
 
     public Build build() {
@@ -218,6 +223,10 @@ public class NodeStatsContext implements Streamable {
 
     public void version(Version version) {
         this.version = version;
+    }
+
+    public void clusterStateVersion(long clusterStateVersion) {
+        this.clusterStateVersion = clusterStateVersion;
     }
 
     public void build(Build build) {

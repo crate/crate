@@ -333,6 +333,17 @@ The table schema is as follows:
 | ``version['build_snapshot']`` | Indicates whether this build is a snapshot build. | ``BOOLEAN`` |
 +-------------------------------+---------------------------------------------------+-------------+
 
+``cluster_state_version``
+-------------------------
+
++--------------------------------+-----------------------------------------------+-------------+
+| Column Name                    | Description                                   | Return Type |
++================================+===============================================+=============+
+| ``cluster_state_version``      | The current version of the cluster state. The | ``LONG``    |
+|                                | cluster state is an immutable structure and   |             |
+|                                | that is recreated when a change is published. |             |
++--------------------------------+-----------------------------------------------+-------------+
+
 ``fs``
 ------
 

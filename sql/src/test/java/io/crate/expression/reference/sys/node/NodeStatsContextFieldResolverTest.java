@@ -29,6 +29,8 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.protocols.ConnectionStats;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpStats;
@@ -83,7 +85,8 @@ public class NodeStatsContextFieldResolverTest {
             new ExtendedNodeInfo(),
             () -> new ConnectionStats(2L, 4L),
             () -> postgresAddress,
-            () -> 12L
+            () -> 12L,
+            () -> 1L
         );
     }
 
@@ -170,6 +173,15 @@ public class NodeStatsContextFieldResolverTest {
         ));
         assertThat(context.isComplete(), is(true));
         assertThat(context.port().get("psql"), is(5432));
+    }
+
+    @Test
+    public void testClusterStateVersion() throws IOException {
+        NodeStatsContext context = resolver.forTopColumnIdents(ImmutableSet.of(
+            new ColumnIdent(SysNodesTableInfo.Columns.CLUSTER_STATE_VERSION.name())
+        ));
+        assertThat(context.isComplete(), is(true));
+        assertThat(context.clusterStateVersion(), is(1L));
     }
 
     @Test
