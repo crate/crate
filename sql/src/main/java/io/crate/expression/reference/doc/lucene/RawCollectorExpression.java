@@ -22,26 +22,33 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.compress.CompressorFactory;
+import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 
 import java.io.IOException;
 
 public class RawCollectorExpression extends LuceneCollectorExpression<BytesRef> {
 
     public static final String COLUMN_NAME = DocSysColumns.RAW.name();
+    private final FieldsVisitor visitor = new FieldsVisitor(true);
+    private LeafReader reader;
 
-    private CollectorFieldsVisitor visitor;
 
     public RawCollectorExpression() {
         super(COLUMN_NAME);
     }
 
     @Override
-    public void startCollect(CollectorContext context) {
-        context.visitor().required(true);
-        this.visitor = context.visitor();
+    public void setNextDocId(int doc) throws IOException {
+        reader.document(doc, visitor);
+    }
+
+    @Override
+    public void setNextReader(LeafReaderContext context) throws IOException {
+        reader = context.reader();
     }
 
     @Override

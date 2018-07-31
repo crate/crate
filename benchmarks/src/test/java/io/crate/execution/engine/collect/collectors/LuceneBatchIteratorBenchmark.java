@@ -74,8 +74,7 @@ public class LuceneBatchIteratorBenchmark {
         columnRefs = Collections.singletonList(columnReference);
 
         collectorContext = new CollectorContext(
-            mappedFieldType -> null,
-            new CollectorFieldsVisitor(0)
+            mappedFieldType -> null
         );
     }
 

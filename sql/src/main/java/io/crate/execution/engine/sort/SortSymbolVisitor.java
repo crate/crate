@@ -201,25 +201,13 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                     SortOrder.missing(context.reverseFlag, context.nullFirst),
                     reversed);
 
-                if (context.context.visitor().required()) {
-                    return new FieldsVisitorInputFieldComparator(
-                        numHits,
-                        context.context.visitor(),
-                        expressions,
-                        input,
-                        dataType,
-                        missingValue
-                    );
-
-                } else {
-                    return new InputFieldComparator(
-                        numHits,
-                        expressions,
-                        input,
-                        dataType,
-                        missingValue
-                    );
-                }
+                return new InputFieldComparator(
+                    numHits,
+                    expressions,
+                    input,
+                    dataType,
+                    missingValue
+                );
             }
         }, context.reverseFlag);
     }
