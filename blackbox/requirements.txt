@@ -5,47 +5,18 @@ crash
 crate
 crate-docs-theme
 sphinx-csv-filter>=0.2.0
-
-# packages for local dev
-
 pycodestyle==2.4.0
-appdirs==1.4.3
-argh==0.26.2
-Babel==2.4.0
-colorama==0.3.9
-imagesize==0.7.1
-Jinja2==2.9.6
-livereload==2.5.1
-MarkupSafe==1.0
-pathtools==0.1.2
-port-for==0.3.1
-prompt-toolkit==1.0.14
-psycopg2==2.7.3.1
-pytz==2017.2
-PyYAML==3.12
-six==1.10.0
-snowballstemmer==1.2.1
-sphinx-autobuild==0.6.0
-sphinxcontrib-plantuml==0.8.1
-tornado==4.5.1
-tqdm==4.14.0
-urllib3==1.21.1
-watchdog==0.8.3
-wcwidth==0.1.7
 zc.customdoctests==1.0.1
 zope.exceptions==4.1.0
 zope.interface==4.4.2
 zope.testrunner==4.7.0
 
-# the next section should exact copy of the hosted RTD environment (please
-# update if you notice that this is not the case)
+# packages for local dev
+
+sphinx-autobuild==0.6.0
+
+# the next section should mirror the RTD environment
 
 alabaster>=0.7,<0.8,!=0.7.5
-commonmark>=0.5.4
-docutils>=0.13.1
-mock>=1.0.1
-pillow>=2.6.1
-Pygments>=2.2.0
-recommonmark>=0.4.0
-setuptools>=37.0.0
-sphinx==1.6.5
+setuptools<41
+sphinx==1.7.4
