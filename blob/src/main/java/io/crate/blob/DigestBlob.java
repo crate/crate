@@ -32,7 +32,6 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -49,7 +48,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class DigestBlob implements Closeable {
+public class DigestBlob implements AutoCloseable {
 
     private final String digest;
     private final BlobContainer container;
@@ -279,6 +278,14 @@ public class DigestBlob implements Closeable {
     public void close() throws IOException {
         if (file != null) {
             file.delete();
+        }
+        if (fileChannel != null) {
+            fileChannel.close();
+            fileChannel = null;
+        }
+        if (headFileChannel != null) {
+            headFileChannel.close();;
+            headFileChannel = null;
         }
     }
 }
