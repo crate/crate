@@ -1,2 +1,4 @@
 # Configuration for probot-no-response - https://github.com/probot/no-response
+---
 responseRequiredLabel: needs feedback
+daysUntilClose: 7
