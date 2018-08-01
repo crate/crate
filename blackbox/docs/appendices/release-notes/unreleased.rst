@@ -43,7 +43,7 @@ Changes
 =======
 
 - Exposed the cluster state version in the ``sys.nodes`` table under the
-  ``cluster_state_version`` column and under the ``NodeInfo`` MXBean in JMX.
+  ``cluster_state_version`` column and under the ``ClusterInfo`` MXBean in JMX.
 
 - Added a new ``ThreadPools`` MXBean for JMX which exposes statistics of all
   used thread pools.

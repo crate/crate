@@ -19,6 +19,7 @@
 package io.crate.plugin;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.beans.ClusterInfo;
 import io.crate.beans.Connections;
 import io.crate.beans.NodeInfo;
 import io.crate.beans.NodeStatus;
@@ -62,7 +63,8 @@ public class CrateMonitor {
         logger = Loggers.getLogger(CrateMonitor.class, settings);
         registerMBean(QueryStats.NAME, new QueryStats(jobsLogs));
         registerMBean(NodeStatus.NAME, new NodeStatus(sqlOperations::isEnabled));
-        registerMBean(NodeInfo.NAME, new NodeInfo(clusterService::localNode, () -> clusterService.state().version()));
+        registerMBean(NodeInfo.NAME, new NodeInfo(clusterService::localNode));
+        registerMBean(ClusterInfo.NAME, new ClusterInfo(() -> clusterService.state().version()));
         registerMBean(Connections.NAME, new Connections(
             () -> httpServerTransport == null ? null : httpServerTransport.stats(),
             () -> new ConnectionStats(postgresNetty.openConnections(), postgresNetty.totalConnections()),

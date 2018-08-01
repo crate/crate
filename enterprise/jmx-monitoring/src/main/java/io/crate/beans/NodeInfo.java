@@ -20,19 +20,16 @@ package io.crate.beans;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
-import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 public class NodeInfo implements NodeInfoMBean {
 
     public static final String NAME = "io.crate.monitoring:type=NodeInfo";
 
-    private final LongSupplier clusterStateVersion;
     private final Supplier<DiscoveryNode> localNode;
 
-    public NodeInfo(Supplier<DiscoveryNode> localNode, LongSupplier clusterStateVersion) {
+    public NodeInfo(Supplier<DiscoveryNode> localNode) {
         this.localNode = localNode;
-        this.clusterStateVersion = clusterStateVersion;
     }
 
     @Override
@@ -43,10 +40,5 @@ public class NodeInfo implements NodeInfoMBean {
     @Override
     public String getNodeName() {
         return localNode.get().getName();
-    }
-
-    @Override
-    public Long getClusterStateVersion() {
-        return clusterStateVersion.getAsLong();
     }
 }

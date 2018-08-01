@@ -18,18 +18,16 @@
 
 package io.crate.beans;
 
-import io.crate.testing.DiscoveryNodes;
-import org.junit.Test;
+/**
+ * The {@link ClusterInfoMBean | interface is required to define a standard MBean,
+ * such as a standard MBean is composed of an MBean interface and a class.
+ *
+ * This interface lists the methods for all exposed attributes.
+ *
+ * @see <a href="https://docs.oracle.com/javase/tutorial/jmx/mbeans/standard.html">
+ *     https://docs.oracle.com/javase/tutorial/jmx/mbeans/standard.html</a>
+ */
+public interface ClusterInfoMBean {
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-
-public class NodeInfoTest {
-
-    @Test
-    public void testNodeInfo() {
-        NodeInfo nodeInfo = new NodeInfo(() -> DiscoveryNodes.newNode("testNode", "testNodeId"));
-        assertThat(nodeInfo.getNodeId(), is("testNodeId"));
-        assertThat(nodeInfo.getNodeName(), is("testNode"));
-    }
+    long getClusterStateVersion();
 }
