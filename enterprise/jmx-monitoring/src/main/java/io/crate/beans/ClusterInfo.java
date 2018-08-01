@@ -18,18 +18,20 @@
 
 package io.crate.beans;
 
-import io.crate.testing.DiscoveryNodes;
-import org.junit.Test;
+import java.util.function.LongSupplier;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+public class ClusterInfo implements ClusterInfoMBean {
 
-public class NodeInfoTest {
+    public static final String NAME = "io.crate.monitoring:type=ClusterInfo";
 
-    @Test
-    public void testNodeInfo() {
-        NodeInfo nodeInfo = new NodeInfo(() -> DiscoveryNodes.newNode("testNode", "testNodeId"));
-        assertThat(nodeInfo.getNodeId(), is("testNodeId"));
-        assertThat(nodeInfo.getNodeName(), is("testNode"));
+    private final LongSupplier clusterStateVersion;
+
+    public ClusterInfo(LongSupplier clusterStateVersion) {
+        this.clusterStateVersion = clusterStateVersion;
+    }
+
+    @Override
+    public long getClusterStateVersion() {
+        return clusterStateVersion.getAsLong();
     }
 }
