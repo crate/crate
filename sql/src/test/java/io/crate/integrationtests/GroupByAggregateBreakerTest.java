@@ -25,32 +25,30 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import org.elasticsearch.common.settings.Settings;
-import org.junit.Before;
 import org.junit.Test;
 
 public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        RamAccountingContext.FLUSH_BUFFER_SIZE = 24;
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "256b")
             .build();
     }
 
-    @Before
-    public void initTestData() {
-        Setup setup = new Setup(sqlExecutor);
-        setup.setUpEmployees();
-    }
-
     @Test
     public void selectGroupByWithBreaking() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("CircuitBreakingException: [query] Data too large, data for ");
-        // query takes 252 bytes of memory
-        // 252b * 1.09 = 275b => should break with limit 256b
-        execute("select name, department, max(income), min(age) from employees group by name, department order by 3");
+        long origBufferSize = RamAccountingContext.FLUSH_BUFFER_SIZE;
+        RamAccountingContext.FLUSH_BUFFER_SIZE = 24;
+        try {
+            expectedException.expect(SQLActionException.class);
+            expectedException.expectMessage("CircuitBreakingException: [query] Data too large, data for ");
+            // query takes 252 bytes of memory
+            // 252b * 1.09 = 275b => should break with limit 256b
+            execute("select region, count(*) from sys.summits group by 1");
+        } finally {
+            RamAccountingContext.FLUSH_BUFFER_SIZE = origBufferSize;
+        }
     }
 }
