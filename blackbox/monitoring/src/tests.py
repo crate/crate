@@ -188,6 +188,13 @@ class MonitoringNodeInfoIntegrationTest(unittest.TestCase):
         if not nodeId:
             raise AssertionError("The mbean attribute NodeId returned and empty string")
 
+    def test_mbean_cluster_state_version(self):
+        jmx_client = JmxTermClient(JMX_PORT)
+        stdout, stderr = jmx_client.query_jmx(
+            'io.crate.monitoring:type=NodeInfo', 'ClusterStateVersion')
+        self.assertGreater(int(stdout), 0)
+        self.assertEqual(stderr, '')
+
 
 class ConnectionsBeanTest(unittest.TestCase):
 
