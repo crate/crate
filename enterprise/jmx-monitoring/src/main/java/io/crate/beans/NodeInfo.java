@@ -46,7 +46,7 @@ public class NodeInfo implements NodeInfoMBean {
     }
 
     @Override
-    public Long getClusterStateVersion() {
+    public long getClusterStateVersion() {
         return clusterStateVersion.getAsLong();
     }
 }
