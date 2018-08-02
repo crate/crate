@@ -41,6 +41,7 @@ import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -49,8 +50,10 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.Collections;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.crate.testing.TestingHelpers.createReference;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -66,6 +69,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
 
     @Captor
     public ArgumentCaptor<ActionListener<JobResponse>> listenerCaptor;
+    private AtomicInteger numBroadcastCalls;
 
     @Before
     public void prepare() {
@@ -84,13 +88,23 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         transportJobAction = mock(TransportJobAction.class);
-        transportKillJobsNodeAction = mock(TransportKillJobsNodeAction.class);
-        consumer = new TestingRowConsumer();
-
         JobContextService jobContextService = new JobContextService(
             Settings.EMPTY,
             clusterService,
             new JobsLogs(() -> true));
+        numBroadcastCalls = new AtomicInteger(0);
+        transportKillJobsNodeAction = new TransportKillJobsNodeAction(
+            Settings.EMPTY,
+            jobContextService,
+            clusterService,
+            mock(TransportService.class)
+        ) {
+            @Override
+            public void broadcast(KillJobsRequest request, ActionListener<Long> listener) {
+                numBroadcastCalls.incrementAndGet();
+            }
+        };
+        consumer = new TestingRowConsumer();
         remoteCollector = new RemoteCollector(
             jobId,
             "localNode",
@@ -137,6 +151,6 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         ActionListener<JobResponse> listener = listenerCaptor.getValue();
         listener.onResponse(new JobResponse());
 
-        verify(transportKillJobsNodeAction, times(1)).broadcast(any(KillJobsRequest.class), any(ActionListener.class));
+        assertThat(numBroadcastCalls.get(), is(1));
     }
 }

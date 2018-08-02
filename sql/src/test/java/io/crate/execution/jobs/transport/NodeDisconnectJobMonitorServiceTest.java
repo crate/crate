@@ -38,14 +38,15 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.crate.testing.DiscoveryNodes.newNode;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -96,7 +97,18 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
         builder.addSubContext(new DummySubContext());
         jobContextService.createContext(builder);
 
-        TransportKillJobsNodeAction killAction = mock(TransportKillJobsNodeAction.class);
+        AtomicInteger broadcasts = new AtomicInteger(0);
+        TransportKillJobsNodeAction killAction = new TransportKillJobsNodeAction(
+            Settings.EMPTY,
+            jobContextService,
+            clusterService,
+            mock(TransportService.class)
+        ) {
+            @Override
+            public void broadcast(KillJobsRequest request, ActionListener<Long> listener, Collection<String> excludedNodeIds) {
+                broadcasts.incrementAndGet();
+            }
+        };
         NodeDisconnectJobMonitorService monitorService = new NodeDisconnectJobMonitorService(
             Settings.EMPTY,
             jobContextService,
@@ -105,9 +117,6 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
 
         monitorService.onNodeDisconnected(dataNode);
 
-        verify(killAction, times(1)).broadcast(
-            any(KillJobsRequest.class),
-            any(ActionListener.class),
-            eq(Arrays.asList(dataNode.getId())));
+        assertThat(broadcasts.get(), is(1));
     }
 }

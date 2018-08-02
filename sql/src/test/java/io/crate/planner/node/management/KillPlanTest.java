@@ -22,29 +22,53 @@
 
 package io.crate.planner.node.management;
 
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.kill.KillAllRequest;
+import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class KillPlanTest {
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+
+public class KillPlanTest extends CrateDummyClusterServiceUnitTest {
 
     @SuppressWarnings("unchecked")
     @Test
     public void testKillTaskCallsBroadcastOnTransportKillAllNodeAction() throws Exception {
-        TransportKillAllNodeAction killAllNodeAction = mock(TransportKillAllNodeAction.class);
-        KillPlan killPlan = new KillPlan();
+        AtomicInteger broadcastCalls = new AtomicInteger(0);
+        AtomicInteger nodeOperationCalls = new AtomicInteger(0);
+        TransportKillAllNodeAction killAllNodeAction = new TransportKillAllNodeAction(
+            Settings.EMPTY,
+            new JobContextService(Settings.EMPTY, clusterService, new JobsLogs(() -> false)),
+            clusterService,
+            mock(TransportService.class)
+        ) {
+            @Override
+            public void broadcast(KillAllRequest request, ActionListener<Long> listener) {
+                broadcastCalls.incrementAndGet();
+            }
 
+            @Override
+            public CompletableFuture<KillResponse> nodeOperation(KillAllRequest request) {
+                nodeOperationCalls.incrementAndGet();
+                return super.nodeOperation(request);
+            }
+        };
+        KillPlan killPlan = new KillPlan();
         killPlan.execute(killAllNodeAction, mock(TransportKillJobsNodeAction.class), new TestingRowConsumer());;
-        verify(killAllNodeAction, times(1)).broadcast(any(KillAllRequest.class), any(ActionListener.class));
-        verify(killAllNodeAction, times(0)).nodeOperation(any(KillAllRequest.class));
+        assertThat(broadcastCalls.get(), is(1));
+        assertThat(nodeOperationCalls.get(), is(0));
     }
 
 }

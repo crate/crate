@@ -27,9 +27,11 @@ import io.crate.data.Bucket;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.support.Transports;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -37,15 +39,15 @@ import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.mockito.Matchers.any;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 public class TransportDistributedResultActionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -53,7 +55,18 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
     public void testKillIsInvokedIfContextIsNotFound() throws InterruptedException, TimeoutException {
         JobContextService jobContextService = new JobContextService(
             Settings.EMPTY, clusterService, new JobsLogs(() -> false));
-        TransportKillJobsNodeAction killJobsAction = mock(TransportKillJobsNodeAction.class);
+        AtomicInteger numBroadcasts = new AtomicInteger(0);
+        TransportKillJobsNodeAction killJobsAction = new TransportKillJobsNodeAction(
+            Settings.EMPTY,
+            jobContextService,
+            clusterService,
+            mock(TransportService.class)
+        ) {
+            @Override
+            public void broadcast(KillJobsRequest request, ActionListener<Long> listener, Collection<String> excludedNodeIds) {
+                numBroadcasts.incrementAndGet();
+            }
+        };
         TransportDistributedResultAction transportDistributedResultAction = new TransportDistributedResultAction(
             mock(Transports.class),
             jobContextService,
@@ -74,6 +87,6 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
             assertThat(e.getCause(), Matchers.instanceOf(ContextMissingException.class));
         }
 
-        verify(killJobsAction, times(1)).broadcast(any(), any(), any());
+        assertThat(numBroadcasts.get(), is(1));
     }
 }
