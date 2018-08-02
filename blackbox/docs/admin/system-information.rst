@@ -341,7 +341,9 @@ The table schema is as follows:
 +================================+===============================================+=============+
 | ``cluster_state_version``      | The current version of the cluster state. The | ``LONG``    |
 |                                | cluster state is an immutable structure and   |             |
-|                                | that is recreated when a change is published. |             |
+|                                | that is recreated when a change is published  |             |
+|                                | eg. nodes joining the cluster, shards         |             |
+|                                | relocating                                    |             |
 +--------------------------------+-----------------------------------------------+-------------+
 
 ``fs``
