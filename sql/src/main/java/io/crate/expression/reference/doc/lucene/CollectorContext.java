@@ -24,7 +24,6 @@ package io.crate.expression.reference.doc.lucene;
 import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.search.lookup.SourceLookup;
 
 import java.util.function.Function;
 

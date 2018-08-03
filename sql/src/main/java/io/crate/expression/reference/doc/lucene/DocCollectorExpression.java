@@ -28,12 +28,9 @@ import io.crate.types.DataType;
 import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.search.lookup.SourceLookup;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.RandomAccess;
 
 public class DocCollectorExpression extends LuceneCollectorExpression<Map<String, Object>> {
 
@@ -98,34 +95,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
             // for example:
             //      sourceExtractor might read byte as int and
             //      then eq(byte, byte) would get eq(byte, int) and fail
-            return returnType.value(extractValue(sourceLookup, 0, path));
-        }
-
-        @SuppressWarnings("unchecked")
-        private static Object extractValue(final Map map, int index, List<String> path) {
-            assert path instanceof RandomAccess : "path should support RandomAccess for fast index optimized loop";
-            Map m = map;
-            Object tmp = null;
-            for (int i = index; i < path.size(); i++) {
-                tmp = m.get(path.get(i));
-                if (tmp instanceof Map) {
-                    m = (Map) tmp;
-                } else if (tmp instanceof List) {
-                    List list = (List) tmp;
-                    List newList = new ArrayList(list.size());
-                    for (Object o : list) {
-                        if (o instanceof Map && i + 1 < path.size()) {
-                            newList.add(extractValue((Map) o, i + 1, path));
-                        } else {
-                            newList.add(o);
-                        }
-                    }
-                    return newList;
-                } else {
-                    break;
-                }
-            }
-            return tmp;
+            return returnType.value(sourceLookup.get(path));
         }
     }
 }
