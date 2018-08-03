@@ -309,6 +309,7 @@ public class NodeStatsContext implements Streamable {
         httpStats = in.readOptionalWriteable(HttpStats::new);
         psqlStats = in.readOptionalWriteable(ConnectionStats::new);
         openTransportConnections = in.readLong();
+        clusterStateVersion = in.readLong();
 
         osName = DataTypes.STRING.readValueFrom(in);
         osArch = DataTypes.STRING.readValueFrom(in);
@@ -352,6 +353,7 @@ public class NodeStatsContext implements Streamable {
         out.writeOptionalWriteable(httpStats);
         out.writeOptionalWriteable(psqlStats);
         out.writeLong(openTransportConnections);
+        out.writeLong(clusterStateVersion);
 
         DataTypes.STRING.writeValueTo(out, osName);
         DataTypes.STRING.writeValueTo(out, osArch);

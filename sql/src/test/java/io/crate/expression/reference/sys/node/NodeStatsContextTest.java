@@ -87,6 +87,7 @@ public class NodeStatsContextTest extends CrateUnitTest {
         ctx1.osStats(osProbe.osStats());
         ctx1.extendedOsStats(extendedNodeInfo.osStats());
         ctx1.threadPools(threadPool.stats());
+        ctx1.clusterStateVersion(10L);
 
         ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
         StreamOutput out = new OutputStreamStreamOutput(outBuffer);
@@ -111,6 +112,7 @@ public class NodeStatsContextTest extends CrateUnitTest {
         assertThat(ctx1.osStats().getTimestamp(), is(ctx2.osStats().getTimestamp()));
         assertThat(ctx1.extendedOsStats().uptime(), is(ctx2.extendedOsStats().uptime()));
         assertThat(ctx1.threadPools().iterator().next().getActive(), is(ctx2.threadPools().iterator().next().getActive()));
+        assertThat(ctx1.clusterStateVersion(), is(ctx2.clusterStateVersion()));
     }
 
     @Test
