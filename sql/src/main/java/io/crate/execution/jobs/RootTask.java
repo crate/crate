@@ -164,7 +164,6 @@ public class RootTask implements CompletionListenable<Void> {
                 LOGGER.trace("adding subContext {}, now there are {} tasksByPhaseId", phaseId, tasksByPhaseId.size());
             }
         }
-        prepare(orderedTasks);
     }
 
     public UUID jobId() {
@@ -179,29 +178,13 @@ public class RootTask implements CompletionListenable<Void> {
         return participatedNodes;
     }
 
-    private void prepare(List<Task> orderedTasks) throws Exception {
-        for (int i = 0; i < orderedTaskIds.size(); i++) {
-            int id = orderedTaskIds.get(i);
-            Task task = orderedTasks.get(i);
-            jobsLogs.operationStarted(id, jobId, task.name());
-            try {
-                task.prepare();
-            } catch (Exception e) {
-                for (; i >= 0; i--) {
-                    id = orderedTaskIds.get(i);
-                    jobsLogs.operationFinished(id, jobId, "Prepare: " + SQLExceptions.messageOf(e), -1);
-                }
-                throw e;
-            }
-        }
-    }
-
     public void start() throws Throwable {
         for (IntCursor id : orderedTaskIds) {
             Task task = tasksByPhaseId.get(id.value);
             if (task == null || closed.get()) {
                 break; // got killed before start was called
             }
+            jobsLogs.operationStarted(id.value, jobId, task.name());
             if (profiler != null) {
                 assert taskTimersByPhaseId != null : "taskTimersByPhaseId must not be null";
                 taskTimersByPhaseId.get(id.value).start();

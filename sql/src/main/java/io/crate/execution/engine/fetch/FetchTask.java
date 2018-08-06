@@ -91,8 +91,7 @@ public class FetchTask extends AbstractTask {
         return isKilled;
     }
 
-    @Override
-    public void innerPrepare() {
+    private void allocateSearchers() {
         HashMap<String, RelationName> index2TableIdent = new HashMap<>();
         for (Map.Entry<RelationName, Collection<String>> entry : phase.tableIndices().asMap().entrySet()) {
             for (String indexName : entry.getValue()) {
@@ -156,6 +155,7 @@ public class FetchTask extends AbstractTask {
 
     @Override
     protected void innerStart() {
+        allocateSearchers();
         if (searchers.isEmpty() || phase.fetchRefs().isEmpty()) {
             // no fetch references means there will be no fetch requests
             // this context is only here to allow the collectors to generate docids with the right bases

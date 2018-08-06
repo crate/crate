@@ -84,7 +84,6 @@ public class AbstractTaskTest extends CrateUnitTest {
 
         private static final Logger LOGGER = Loggers.getLogger(TestingTask.class);
 
-        final AtomicInteger numPrepare = new AtomicInteger();
         final AtomicInteger numStart = new AtomicInteger();
         final AtomicInteger numClose = new AtomicInteger();
         final AtomicInteger numKill = new AtomicInteger();
@@ -113,18 +112,12 @@ public class AbstractTaskTest extends CrateUnitTest {
         }
 
         @Override
-        public void innerPrepare() {
-            numPrepare.incrementAndGet();
-        }
-
-        @Override
         protected void innerStart() {
             numStart.incrementAndGet();
         }
 
         public List<Integer> stats() {
             return ImmutableList.of(
-                numPrepare.get(),
                 numStart.get(),
                 numClose.get(),
                 numKill.get()
@@ -136,36 +129,32 @@ public class AbstractTaskTest extends CrateUnitTest {
     @Test
     public void testNormalSequence() throws Exception {
         TestingTask task = new TestingTask();
-        task.prepare();
         task.start();
         task.close(null);
-        assertThat(task.stats(), contains(1, 1, 1, 0));
+        assertThat(task.stats(), contains(1, 1, 0));
     }
 
     @Test
     public void testCloseAfterPrepare() throws Exception {
         TestingTask task = new TestingTask();
-        task.prepare();
         task.close(null);
         task.start();
         task.close(null);
-        assertThat(task.stats(), contains(1, 0, 1, 0));
+        assertThat(task.stats(), contains(0, 1, 0));
     }
 
     @Test
     public void testParallelClose() throws Exception {
-        testingTask.prepare();
         testingTask.start();
         runAsync(closeRunnable, 3);
-        assertThat(testingTask.stats(), contains(1, 1, 1, 0));
+        assertThat(testingTask.stats(), contains(1, 1, 0));
     }
 
     @Test
     public void testParallelKill() throws Exception {
-        testingTask.prepare();
         testingTask.start();
         runAsync(killRunnable, 3);
-        assertThat(testingTask.stats(), contains(1, 1, 0, 1));
+        assertThat(testingTask.stats(), contains(1, 0, 1));
         assertThat(testingTask.numKill.get(), greaterThan(0));
     }
 

@@ -51,19 +51,6 @@ public abstract class AbstractTask implements Task {
     protected void innerStart() {
     }
 
-    protected void innerPrepare() throws Exception {
-    }
-
-    @Override
-    public final void prepare() throws Exception {
-        try {
-            innerPrepare();
-        } catch (Exception e) {
-            close(e);
-            throw e;
-        }
-    }
-
     @Override
     public final void start() {
         if (!firstClose.get()) {
