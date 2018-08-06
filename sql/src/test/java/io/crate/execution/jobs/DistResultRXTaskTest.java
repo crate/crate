@@ -111,7 +111,7 @@ public class DistResultRXTaskTest extends CrateUnitTest {
             }
         });
 
-        ctx.kill(null);
+        ctx.kill(new InterruptedException());
         assertThat(throwable.get(), instanceOf(InterruptedException.class));
 
         expectedException.expect(InterruptedException.class);

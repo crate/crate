@@ -22,10 +22,9 @@
 package io.crate.execution.jobs;
 
 import io.crate.concurrent.CompletionListenable;
+import io.crate.data.Killable;
 
-import javax.annotation.Nullable;
-
-public interface Task extends CompletionListenable<CompletionState> {
+public interface Task extends CompletionListenable<CompletionState>, Killable {
 
     /**
      * In the prepare phase implementations of this interface can allocate any resources.
@@ -41,8 +40,6 @@ public interface Task extends CompletionListenable<CompletionState> {
      * However, it is ok for the started executors to use their downstreams to propagate failures.
      */
     void start();
-
-    void kill(@Nullable Throwable throwable);
 
     String name();
 

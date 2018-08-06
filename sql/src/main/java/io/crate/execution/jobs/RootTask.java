@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.CompletionListenable;
+import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -242,7 +243,7 @@ public class RootTask implements CompletionListenable<Void> {
                 for (Task task : tasksByPhaseId.values()) {
                     // kill will trigger the ContextCallback onClose too
                     // so it is not necessary to remove the task from the map here as it will be done in the callback
-                    task.kill(null);
+                    task.kill(new JobKilledException());
                     numKilled++;
                 }
             }

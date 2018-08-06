@@ -23,6 +23,7 @@
 package io.crate.execution.jobs;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.exceptions.JobKilledException;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
@@ -45,7 +46,7 @@ public class AbstractTaskTest extends CrateUnitTest {
     private Runnable killRunnable = new Runnable() {
         @Override
         public void run() {
-            testingTask.kill(null);
+            testingTask.kill(new JobKilledException());
         }
     };
 

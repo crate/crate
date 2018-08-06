@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
@@ -140,7 +141,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         remoteCollector.createRemoteContext();
 
         verify(transportJobAction, times(0)).execute(eq("remoteNode"), any(JobRequest.class), any(ActionListener.class));
-        expectedException.expect(InterruptedException.class);
+        expectedException.expect(JobKilledException.class);
         consumer.getResult();
     }
 

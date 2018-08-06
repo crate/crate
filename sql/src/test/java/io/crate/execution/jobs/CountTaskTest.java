@@ -22,6 +22,7 @@
 package io.crate.execution.jobs;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
+import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
@@ -93,7 +94,7 @@ public class CountTaskTest extends CrateUnitTest {
 
         countTask.prepare();
         countTask.start();
-        countTask.kill(null);
+        countTask.kill(new JobKilledException());
 
         verify(future, times(1)).cancel(true);
         assertTrue(countTask.isClosed());
