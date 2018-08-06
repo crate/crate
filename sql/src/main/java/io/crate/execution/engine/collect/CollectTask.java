@@ -35,7 +35,6 @@ import io.crate.execution.jobs.AbstractTask;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.RowGranularity;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -145,19 +144,7 @@ public class CollectTask extends AbstractTask {
 
     @Override
     protected void innerStart() {
-        if (logger.isTraceEnabled()) {
-            measureCollectTime();
-        }
         collectOperation.launch(() -> consumer.accept(batchIterator, null), threadPoolName);
-    }
-
-    private void measureCollectTime() {
-        final StopWatch stopWatch = new StopWatch(collectPhase.phaseId() + ": " + collectPhase.name());
-        stopWatch.start("starting collectors");
-        consumer.completionFuture().whenComplete((result, ex) -> {
-            stopWatch.stop();
-            logger.trace("Collectors finished: {}", stopWatch.shortSummary());
-        });
     }
 
     public RamAccountingContext queryPhaseRamAccountingContext() {
