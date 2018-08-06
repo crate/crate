@@ -1238,13 +1238,28 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testGroupBySingleLongWithNullValues() {
-        execute("create table t (x long) clustered into 2 shards with (number_of_replicas = 0)");
-        execute("insert into t (x) values (1), (1), (1), (2), (2), (null), (null), (null), (null)");
+    public void testGroupBySingleNumberWithNullValues() {
+        execute("create table t (along long, aint int, ashort short) clustered into 2 shards with (number_of_replicas = 0)");
+        execute("insert into t (along,aint,ashort) values (1,1,1), (1,1,1), (1,1,1), (2,2,2), (2,2,2), (null,null,null), " +
+                "(null,null,null), (null,null,null), (null,null,null)");
         execute("refresh table t");
 
         assertThat(
-            printedTable(execute("select x, count(*) from t group by x order by 2 desc").rows()),
+            printedTable(execute("select along, count(*) from t group by along order by 2 desc").rows()),
+            is("NULL| 4\n" +
+               "1| 3\n" +
+               "2| 2\n")
+        );
+
+        assertThat(
+            printedTable(execute("select aint, count(*) from t group by aint order by 2 desc").rows()),
+            is("NULL| 4\n" +
+               "1| 3\n" +
+               "2| 2\n")
+        );
+
+        assertThat(
+            printedTable(execute("select ashort, count(*) from t group by ashort order by 2 desc").rows()),
             is("NULL| 4\n" +
                "1| 3\n" +
                "2| 2\n")

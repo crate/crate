@@ -68,7 +68,7 @@ public class GroupingLongCollectorBenchmark {
     private GroupingCollector groupBySumCollector;
     private BatchIterator<Row> rowsIterator;
     private List<Row> rows;
-    private GroupBySingleLongCollector groupBySumSingleLongCollector;
+    private GroupBySingleNumberCollector groupBySumSingleLongCollector;
 
     @Setup
     public void createGroupingCollector() {
@@ -85,15 +85,16 @@ public class GroupingLongCollectorBenchmark {
         }
     }
 
-    private GroupBySingleLongCollector createOptimizedCollector(AggregationFunction sumAgg) {
+    private GroupBySingleNumberCollector createOptimizedCollector(AggregationFunction sumAgg) {
         InputCollectExpression keyInput = new InputCollectExpression(0);
-        return new GroupBySingleLongCollector(
+        return new GroupBySingleNumberCollector(
+            DataTypes.LONG,
             new CollectExpression[] { keyInput },
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { sumAgg },
             new Input[][] { new Input[] { keyInput }},
             RAM_ACCOUNTING_CONTEXT,
-            (Input<Long>)(Input) keyInput,
+            keyInput,
             Version.CURRENT,
             BigArrays.NON_RECYCLING_INSTANCE
         );

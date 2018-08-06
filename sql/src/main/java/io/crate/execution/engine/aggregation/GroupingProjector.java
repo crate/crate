@@ -67,14 +67,17 @@ public class GroupingProjector implements Projector {
         }
         if (keys.size() == 1) {
             Symbol key = keys.get(0);
-            if (key.valueType().equals(DataTypes.LONG)) {
-                collector = new GroupBySingleLongCollector(
+            if (DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(key.valueType()) &&
+                !key.valueType().equals(DataTypes.FLOAT) &&
+                !key.valueType().equals(DataTypes.DOUBLE)) {
+                collector = new GroupBySingleNumberCollector(
+                    key.valueType(),
                     collectExpressions,
                     mode,
                     functions,
                     inputs,
                     ramAccountingContext,
-                    (Input<Long>) keyInputs.get(0),
+                    keyInputs.get(0),
                     indexVersionCreated,
                     bigArrays
                 );

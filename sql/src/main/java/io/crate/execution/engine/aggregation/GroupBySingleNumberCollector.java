@@ -28,11 +28,17 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.symbol.AggregateMode;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.netty.util.collection.ByteObjectHashMap;
+import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.LongObjectHashMap;
+import io.netty.util.collection.ShortObjectHashMap;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.util.BigArrays;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -40,28 +46,31 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
-public final class GroupBySingleLongCollector implements Collector<Row, GroupBySingleLongCollector.Groups, Iterable<Row>> {
+public final class GroupBySingleNumberCollector implements Collector<Row, GroupBySingleNumberCollector.Groups, Iterable<Row>> {
 
+    private final DataType valueType;
     private final CollectExpression<Row, ?>[] expressions;
     private final AggregateMode mode;
     private final AggregationFunction[] aggregations;
     private final Input[][] inputs;
     private final RamAccountingContext ramAccounting;
-    private final Input<Long> keyInput;
+    private final Input<Number> keyInput;
     private final Version indexVersionCreated;
     private final BigArrays bigArrays;
     private final BiConsumer<Groups, Row> accumulator;
 
-    GroupBySingleLongCollector(CollectExpression<Row, ?>[] expressions,
-                               AggregateMode mode,
-                               AggregationFunction[] aggregations,
-                               Input[][] inputs,
-                               RamAccountingContext ramAccounting,
-                               Input<Long> keyInput,
-                               Version indexVersionCreated,
-                               BigArrays bigArrays) {
+    GroupBySingleNumberCollector(DataType valueType,
+                                 CollectExpression<Row, ?>[] expressions,
+                                 AggregateMode mode,
+                                 AggregationFunction[] aggregations,
+                                 Input[][] inputs,
+                                 RamAccountingContext ramAccounting,
+                                 Input keyInput,
+                                 Version indexVersionCreated,
+                                 BigArrays bigArrays) {
+        validateInputType(valueType);
+        this.valueType = valueType;
         this.expressions = expressions;
         this.mode = mode;
         this.aggregations = aggregations;
@@ -73,15 +82,76 @@ public final class GroupBySingleLongCollector implements Collector<Row, GroupByS
         this.accumulator = mode == AggregateMode.PARTIAL_FINAL ? this::reduce : this::iter;
     }
 
+    private static void validateInputType(DataType valueType) {
+        if (!valueType.equals(DataTypes.BYTE) &&
+            !valueType.equals(DataTypes.SHORT) &&
+            !valueType.equals(DataTypes.INTEGER) &&
+            !valueType.equals(DataTypes.LONG)) {
+            throw new IllegalArgumentException(
+                "Single Number type collector is only supported for Byte, Short, Integer" +
+                " and Long types, but received " + valueType.getName());
+        }
+    }
+
     static class Groups {
 
-        final LongObjectHashMap<Object[]> statesByKey = new LongObjectHashMap<>();
+        final Map<Number, Object[]> statesByKey;
+        final long entryOverhead;
         Object[] statesByNullValue = null;
+
+        Groups(Map<Number, Object[]> statesByKey, long entryOverhead) {
+            this.statesByKey = statesByKey;
+            this.entryOverhead = entryOverhead;
+        }
     }
 
     @Override
     public Supplier<Groups> supplier() {
-        return Groups::new;
+        /* The entry overhead computation is "best effort" accounting for the "entry overhead" (newStates are already
+         * accounted for).
+         * The LongObjectHashMap internally has a long array for keys and an object array for values
+         *
+         * They're not-resized per key added but capacity is doubled if it runs out
+         *
+         * Size has been inferred using JOL
+         *
+         * LongObjectHashMap
+         * 24 [J                     .keys      [0]
+         * 24 [Ljava.lang.Object;    .values    [null]
+         *
+         * 32 [J                     .keys      [10, 0]
+         * 24 [Ljava.lang.Object;    .values    [(object), null]
+         *
+         * 48 [J                     .keys      [20, 0, 10, 0]
+         * 32 [Ljava.lang.Object;    .values    [(object), null, (object), null]
+         *
+         * 80 [J                     .keys      [0, 0, 10, 0, 20, 0, 30, 0]
+         * 48 [Ljava.lang.Object;    .values    [null, null, (object), null, (object), null, (object), null]
+         *
+         * The entry overhead is computed by observing the effect/key and /value on the used space when the capacity is
+         * doubled eg. for Integer going from 2 items to 4 items yields an 8 byte increase in used space for both keys
+         * and values (so an extra 4 byte / key and 4 byte / value) which results in a total of 8 bytes overhead/ entry.
+         */
+
+        final Map statesByKey;
+        long entryOverhead;
+        if (valueType.equals(DataTypes.BYTE)) {
+            entryOverhead = 6L;
+            statesByKey = new ByteObjectHashMap<Object[]>();
+        } else if (valueType.equals(DataTypes.SHORT)) {
+            entryOverhead = 6L;
+            statesByKey = new ShortObjectHashMap<Object[]>();
+        } else if (valueType.equals(DataTypes.INTEGER)) {
+            entryOverhead = 8L;
+            statesByKey = new IntObjectHashMap<Object[]>();
+        } else if (valueType.equals(DataTypes.LONG)) {
+            entryOverhead = 12L;
+            statesByKey = new LongObjectHashMap<Object[]>();
+        } else {
+            throw new IllegalArgumentException("Unsupported input type " + valueType.getName());
+        }
+        //noinspection unchecked
+        return () -> new Groups(statesByKey, entryOverhead);
     }
 
     @Override
@@ -110,7 +180,7 @@ public final class GroupBySingleLongCollector implements Collector<Row, GroupByS
         for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
         }
-        Long key = keyInput.value();
+        Number key = keyInput.value();
         if (key == null) {
             if (groups.statesByNullValue == null) {
                 groups.statesByNullValue = statesFromInputRow();
@@ -145,7 +215,7 @@ public final class GroupBySingleLongCollector implements Collector<Row, GroupByS
         for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
         }
-        Long key = keyInput.value();
+        Number key = keyInput.value();
         if (key == null) {
             if (groups.statesByNullValue == null) {
                 groups.statesByNullValue = createNewStates();
@@ -162,33 +232,14 @@ public final class GroupBySingleLongCollector implements Collector<Row, GroupByS
             } else {
                 for (int i = 0; i < aggregations.length; i++) {
                     //noinspection unchecked
-                    states[i] = aggregations[i].iterate(ramAccounting,  states[i], inputs[i]);
+                    states[i] = aggregations[i].iterate(ramAccounting, states[i], inputs[i]);
                 }
             }
         }
     }
 
-    private void addWithAccounting(Groups groups, long key, Object[] newStates) {
-        /* This is "best effort" accounting for the "entry overhead" (newStates are already accounted for)
-         * The LongObjectHashMap internally has a long array for keys and an object array for values
-         *
-         * They're not-resized per key added but capacity is doubled if it runs out
-         *
-         * Size has been inferred using JOL
-         *
-         * 24 [J                     .keys      [0]
-         * 24 [Ljava.lang.Object;    .values    [null]
-         *
-         * 32 [J                     .keys      [10, 0]
-         * 24 [Ljava.lang.Object;    .values    [(object), null]
-         *
-         * 48 [J                     .keys      [20, 0, 10, 0]
-         * 32 [Ljava.lang.Object;    .values    [(object), null, (object), null]
-         *
-         * 80 [J                     .keys      [0, 0, 10, 0, 20, 0, 30, 0]
-         * 48 [Ljava.lang.Object;    .values    [null, null, (object), null, (object), null, (object), null]
-         */
-        ramAccounting.addBytes(12L);
+    private void addWithAccounting(Groups groups, Number key, Object[] newStates) {
+        ramAccounting.addBytes(groups.entryOverhead);
         groups.statesByKey.put(key, newStates);
     }
 
@@ -203,16 +254,19 @@ public final class GroupBySingleLongCollector implements Collector<Row, GroupByS
                 inputs[i]
             );
         }
+
+        // account for the states object array
+        ramAccounting.addBytes(16L);
         return states;
     }
 
     private Iterable<Row> groupsToRows(Groups groups) {
         final Object[] cells = new Object[1 + aggregations.length];
         final Row row = new RowN(cells);
-        Stream<Row> rows = StreamSupport.stream(groups.statesByKey.entries().spliterator(), false)
+        Stream<Row> rows = groups.statesByKey.entrySet().stream()
             .map(entry -> {
-                cells[0] = entry.key();
-                Object[] states = entry.value();
+                cells[0] = entry.getKey();
+                Object[] states = entry.getValue();
                 for (int i = 0; i < states.length; i++) {
                     //noinspection unchecked
                     cells[i + 1] = mode.finishCollect(ramAccounting, aggregations[i], states[i]);
