@@ -321,6 +321,8 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
 
     @Override
     protected void innerClose(@Nullable Throwable throwable) {
+        setBytesUsed(ramAccountingContext.totalBytes());
+        ramAccountingContext.close();
     }
 
     @Override
@@ -339,12 +341,6 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
         if (shouldTriggerConsumer) {
             consumer.accept(null, t);
         }
-    }
-
-    @Override
-    public void cleanup() {
-        setBytesUsed(ramAccountingContext.totalBytes());
-        ramAccountingContext.close();
     }
 
     @Override

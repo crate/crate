@@ -44,6 +44,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -170,10 +171,11 @@ public class FetchTask extends AbstractTask {
     @Override
     protected void innerKill(@Nonnull Throwable t) {
         isKilled.set(true);
+        innerClose(t);
     }
 
     @Override
-    public void cleanup() {
+    protected void innerClose(@Nullable Throwable t) {
         for (IntObjectCursor<Engine.Searcher> cursor : searchers) {
             cursor.value.close();
         }

@@ -93,14 +93,10 @@ public class CollectTask extends AbstractTask {
     }
 
     @Override
-    public void cleanup() {
-        closeSearchContexts();
-        queryPhaseRamAccountingContext.close();
-    }
-
-    @Override
     protected void innerClose(@Nullable Throwable throwable) {
         setBytesUsed(queryPhaseRamAccountingContext.totalBytes());
+        closeSearchContexts();
+        queryPhaseRamAccountingContext.close();
     }
 
     private void closeSearchContexts() {
@@ -117,7 +113,7 @@ public class CollectTask extends AbstractTask {
         if (batchIterator != null) {
             batchIterator.kill(throwable);
         }
-        setBytesUsed(queryPhaseRamAccountingContext.totalBytes());
+        innerClose(throwable);
     }
 
     @Override

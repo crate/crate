@@ -188,8 +188,6 @@ public class RootTask implements CompletionListenable<Void> {
             } catch (Exception e) {
                 for (; i >= 0; i--) {
                     id = orderedTaskIds.get(i);
-                    task = orderedTasks.get(i);
-                    task.cleanup();
                     jobsLogs.operationFinished(id, jobId, "Prepare: " + SQLExceptions.messageOf(e), -1);
                 }
                 throw e;

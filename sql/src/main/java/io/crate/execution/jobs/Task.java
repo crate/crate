@@ -47,9 +47,4 @@ public interface Task extends CompletionListenable<CompletionState> {
     String name();
 
     int id();
-
-    /**
-     * Hook to cleanup the resources of this context. This might be called at any time in the lifecycle of the context.
-     */
-    void cleanup();
 }

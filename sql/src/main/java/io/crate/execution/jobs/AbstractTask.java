@@ -59,7 +59,7 @@ public abstract class AbstractTask implements Task {
         try {
             innerPrepare();
         } catch (Exception e) {
-            cleanup();
+            close(e);
             throw e;
         }
     }
@@ -90,8 +90,6 @@ public abstract class AbstractTask implements Task {
                 } else {
                     logger.warn("closing due to exception, but closing also throws exception", t2);
                 }
-            } finally {
-                cleanup();
             }
             completeFuture(t);
             return true;
@@ -121,15 +119,9 @@ public abstract class AbstractTask implements Task {
                 innerKill(t);
             } catch (Throwable t2) {
                 logger.warn("killing due to exception, but killing also throws exception", t2);
-            } finally {
-                cleanup();
             }
             completeFuture(t);
         }
-    }
-
-    @Override
-    public void cleanup() {
     }
 
     @Override

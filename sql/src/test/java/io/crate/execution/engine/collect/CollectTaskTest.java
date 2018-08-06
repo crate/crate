@@ -36,8 +36,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.Map;
-
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -89,14 +87,14 @@ public class CollectTaskTest extends RandomizedTest {
     }
 
     @Test
-    public void testCleanupClosesSearchContexts() throws Exception {
+    public void testInnerCloseClosesSearchContexts() throws Exception {
         Engine.Searcher mock1 = mock(Engine.Searcher.class);
         Engine.Searcher mock2 = mock(Engine.Searcher.class);
 
         collectTask.addSearcher(1, mock1);
         collectTask.addSearcher(2, mock2);
 
-        collectTask.cleanup();
+        collectTask.innerClose(null);
 
         verify(mock1, times(1)).close();
         verify(mock2, times(1)).close();
