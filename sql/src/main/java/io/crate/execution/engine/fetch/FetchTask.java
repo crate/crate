@@ -163,6 +163,10 @@ public class FetchTask extends AbstractTask {
         }
     }
 
+    public void close() {
+        close(null);
+    }
+
     @Override
     protected void innerKill(@Nonnull Throwable t) {
         isKilled.set(true);

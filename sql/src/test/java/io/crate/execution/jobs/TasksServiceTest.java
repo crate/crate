@@ -191,7 +191,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         RootTask ctx1 = tasksService.createTask(builder1);
 
         assertThat(numContexts(ctx1), is(1));
-        subContext.close();
+        subContext.close(null);
         assertThat(numContexts(ctx1), is(0));
     }
 
@@ -212,7 +212,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testKillSingleJob() throws Exception {
-        ImmutableList<UUID> jobsToKill = ImmutableList.<UUID>of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+        ImmutableList<UUID> jobsToKill = ImmutableList.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
         RootTask.Builder builder = tasksService.newBuilder(jobsToKill.get(0));
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);

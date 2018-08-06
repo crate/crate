@@ -107,10 +107,6 @@ public abstract class AbstractTask implements Task {
         }
     }
 
-    public final void close() {
-        close(null);
-    }
-
     protected void innerKill(@Nonnull Throwable t) {
     }
 
