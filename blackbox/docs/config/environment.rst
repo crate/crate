@@ -17,6 +17,14 @@ Here is a trivial example::
 Here, we set ``CRATE_HOME`` to ``/tmp/crate``, export it so that
 sub-processes of the shell have access, and then start CrateDB.
 
+CrateDB supports two kinds of environment variables:
+
+- Application variables
+- *Java Virtual Machine* (JVM) variables
+
+We use "application" here to distinguish between CrateDB running as a Java
+application and the JVM itself, which runs CrateDB.
+
 .. rubric:: Table of Contents
 
 .. contents::
@@ -44,8 +52,8 @@ Application Variables
 
 .. _conf-env-java:
 
-Java Variables
-==============
+JVM Variables
+=============
 
 .. _conf-env-java-general:
 
@@ -109,6 +117,17 @@ General
   .. WARNING::
 
       Make sure there is enough disk space available for heap dumps.
+
+Garbage Collection
+------------------
+
+CrateDB logs JVM garbage collection times using the built-in garbage collection
+logging of the JVM.
+
+.. SEEALSO::
+
+   The :ref:`logging configuration <conf-logging-gc>` documentation has
+   the complete list of garbage collection logging environment variables.
 
 .. _basic installations: https://crate.io/docs/crate/getting-started/en/latest/install-run/basic.html
 .. _a CrateDB Linux package: https://crate.io/docs/crate/getting-started/en/latest/install-run/special/linux.html

@@ -7,7 +7,7 @@ Logging
 CrateDB supports two kinds of logging:
 
 - Application logging with `Log4j`_
-- Java Virtual Machine (JVM) garbage collection logging
+- *Java Virtual Machine* (JVM) garbage collection logging
 
 We use "application" here to distinguish between CrateDB running as a Java
 application and the JVM itself, which runs CrateDB.
