@@ -78,9 +78,13 @@ General
 
       CRATE_HEAP_SIZE=4g
 
-  .. TIP::
+  Use ``g`` for gigabytes or ``m`` for megabytes.
 
-      Use ``g`` for gigabytes or ``m`` for megabytes.
+  .. SEEALSO::
+
+     `Appropriate memory configuration`_ is important for optimal performance.
+
+.. _appropriate memory configuration: https://crate.io/docs/crate/guide/en/latest/performance/memory.html
 
 .. _conf-env-dump-path:
 
@@ -104,7 +108,7 @@ General
 
   .. WARNING::
 
-      Make sure that there is enough disk space available for heap dumps.
+      Make sure there is enough disk space available for heap dumps.
 
 .. _basic installations: https://crate.io/docs/crate/getting-started/en/latest/install-run/basic.html
 .. _a CrateDB Linux package: https://crate.io/docs/crate/getting-started/en/latest/install-run/special/linux.html
