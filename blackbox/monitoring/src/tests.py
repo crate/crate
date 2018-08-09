@@ -224,6 +224,32 @@ class ThreadPoolsBeanTest(unittest.TestCase):
         self.assertEqual(stderr, '')
 
 
+class CircuitBreakersBeanTest(unittest.TestCase):
+
+    def test_parent_breaker(self):
+        jmx_client = JmxTermClient(JMX_PORT)
+        stdout, stderr = jmx_client.query_jmx(
+            'io.crate.monitoring:type=CircuitBreakers', 'Parent')
+        self.assertEqual(stdout, '{ \n'
+                                 '  limit = 726571417;\n'
+                                 '  name = parent;\n'
+                                 '  overhead = 1.0;\n'
+                                 '  trippedCount = 0;\n'
+                                 '  used = 0;\n'
+                                 ' }\n')
+        self.assertEqual(stderr, '')
+        stdout, stderr = jmx_client.query_jmx(
+            'io.crate.monitoring:type=CircuitBreakers', 'Query')
+        self.assertEqual(stdout, '{ \n'
+                                 '  limit = 622775500;\n'
+                                 '  name = query;\n'
+                                 '  overhead = 1.09;\n'
+                                 '  trippedCount = 0;\n'
+                                 '  used = 0;\n'
+                                 ' }\n')
+        self.assertEqual(stderr, '')
+
+
 def test_suite():
     crateLayer = CrateLayer(
         'crate-enterprise',
@@ -231,6 +257,7 @@ def test_suite():
         port=CRATE_HTTP_PORT,
         transport_port=GLOBAL_PORT_POOL.get(),
         env={
+            "CRATE_HEAP_SIZE": "1g",    # required to be fixed by CircuitBreakersBeanTest
             "CRATE_JAVA_OPTS":
                 JMX_OPTS.format(JMX_PORT)
         },
@@ -258,6 +285,10 @@ def test_suite():
     suite.addTest(s)
 
     s = unittest.makeSuite(ThreadPoolsBeanTest)
+    s.layer = crateLayer
+    suite.addTest(s)
+
+    s = unittest.makeSuite(CircuitBreakersBeanTest)
     s.layer = crateLayer
     suite.addTest(s)
 

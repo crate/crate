@@ -42,6 +42,9 @@ Breaking Changes
 Changes
 =======
 
+- Added a new ``CircuitBreakers`` MXBean for JMX which exposes statistics of all
+  availabel circuit breakers.
+
 - Exposed the cluster state version in the ``sys.nodes`` table under the
   ``cluster_state_version`` column and under the ``NodeInfo`` MXBean in JMX.
 

@@ -19,11 +19,13 @@
 package io.crate.plugin;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.beans.CircuitBreakers;
 import io.crate.beans.Connections;
 import io.crate.beans.NodeInfo;
 import io.crate.beans.NodeStatus;
 import io.crate.beans.QueryStats;
 import io.crate.beans.ThreadPools;
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -58,7 +60,8 @@ public class CrateMonitor {
                         TransportService transportService,
                         SQLOperations sqlOperations,
                         ClusterService clusterService,
-                        ThreadPool threadPool) {
+                        ThreadPool threadPool,
+                        CrateCircuitBreakerService breakerService) {
         logger = Loggers.getLogger(CrateMonitor.class, settings);
         registerMBean(QueryStats.NAME, new QueryStats(jobsLogs));
         registerMBean(NodeStatus.NAME, new NodeStatus(sqlOperations::isEnabled));
@@ -69,6 +72,7 @@ public class CrateMonitor {
             () -> transportService.stats().serverOpen()
         ));
         registerMBean(ThreadPools.NAME, new ThreadPools(threadPool));
+        registerMBean(CircuitBreakers.NAME, new CircuitBreakers(breakerService));
     }
 
     private void registerMBean(String name, Object bean) {

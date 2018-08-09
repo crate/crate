@@ -272,6 +272,62 @@ of each thread pool with the following attributes:
 | ``rejected``        | The number of rejected executions.                  |
 +---------------------+-----------------------------------------------------+
 
+CircuitBreakers MXBean
+----------------------
+
+The ``CircuitBreaker`` MXBean exposes statistical information about all
+availabe circuit breakers of a ``CrateDB`` node.
+
+It can be accessed using the ``io.crate.monitoring:type=CircuitBreakers`` object
+name and has following attributes:
+
++----------------------+----------------------------------------------------------+
+| Name                 | Description                                              |
++======================+==========================================================+
+| ``Parent``           | Statistics of the ``parent`` circuit breaker             |
+|                      | containing summarized counters accross all circuit       |
+|                      | breakers.                                                |
++----------------------+----------------------------------------------------------+
+| ``Query``            | Statistics of the ``query`` circuit breaker used to      |
+|                      | account memory usage of SQL execution including          |
+|                      | intermediate states e.g. on aggreation and resulting     |
+|                      | rows.                                                    |
++----------------------+----------------------------------------------------------+
+| ``JobsLog``          | Statistics of the ``jobs_log`` circuit breaker used to   |
+|                      | account memory usage of the ``sys.jobs_log`` table.      |
++----------------------+----------------------------------------------------------+
+| ``OperationsLog``    | Statistics of the ``operations_log`` circuit breaker     |
+|                      | used to account memory usage of the                      |
+|                      | ``sys.operations_log`` table.                            |
++----------------------+----------------------------------------------------------+
+| ``FieldData``        | Statistics of the ``field_data`` circuit breaker used    |
+|                      | for estimating the amount of memory a field will require |
+|                      | to be loaded into memory.                                |
++----------------------+----------------------------------------------------------+
+| ``InFlightRequests`` | Statistics of the ``in_flight_requests`` circuit breaker |
+|                      | used to account memory usage of all incoming requests    |
+|                      | on transport or HTTP level.                              |
++----------------------+----------------------------------------------------------+
+| ``Request``          | Statistics of the ``request`` circuit breaker used to    |
+|                      | account memory usage of per-request data strucutre.      |
++----------------------+----------------------------------------------------------+
+
+Each of them returns a `CompositeData`_ object containing detailed statistics
+of each circuit breaker with the following attributes:
+
++------------------+------------------------------------------------------+
+| Name             | Description                                          |
++==================+======================================================+
+| ``name``         | The circuit breaker name this statistic belongs to.  |
++------------------+------------------------------------------------------+
+| ``used``         | The currently accounted used memory estimations.     |
++------------------+------------------------------------------------------+
+| ``limit``        | The configured limit when to trip.                   |
++------------------+------------------------------------------------------+
+| ``overhead``     | The configured overhead used to account estimations. |
++------------------+------------------------------------------------------+
+| ``trippedCount`` | The total number of occured trips.                   |
++------------------+------------------------------------------------------+
 
 Exposing JMX via HTTP
 =====================
