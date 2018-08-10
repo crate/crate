@@ -4,6 +4,8 @@
 crash
 crate
 crate-docs-theme
+psycopg2==2.7.5
+tqdm==4.24.0
 sphinx-csv-filter>=0.2.0
 pycodestyle==2.4.0
 zc.customdoctests==1.0.1
