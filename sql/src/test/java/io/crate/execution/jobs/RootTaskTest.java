@@ -140,6 +140,7 @@ public class RootTaskTest extends CrateUnitTest {
             PassThroughPagingIterator.oneShot(),
             new Streamer[]{IntegerType.INSTANCE.streamer()},
             mock(RamAccountingContext.class),
+            BucketReceiverFactory.Type.MERGE_BUCKETS,
             1));
 
         builder.addTask(collectChildTask);

@@ -28,7 +28,9 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
+import io.crate.execution.jobs.BucketReceiverFactory;
 import io.crate.execution.jobs.DistResultRXTask;
+import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.FailingBatchIterator;
@@ -152,6 +154,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
                 PassThroughPagingIterator.oneShot(),
                 streamers,
                 new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
+                BucketReceiverFactory.Type.MERGE_BUCKETS,
                 1
             );
     }
@@ -163,18 +166,19 @@ public class DistributingConsumerTest extends CrateUnitTest {
             DistributedResultRequest resultRequest = (DistributedResultRequest) args[1];
             ActionListener<DistributedResultResponse> listener = (ActionListener<DistributedResultResponse>) args[2];
             Throwable throwable = resultRequest.throwable();
+            PageBucketReceiver bucketReceiver = distResultRXTask.getBucketReceiver((byte) 0);
             if (throwable == null) {
                 resultRequest.streamers(streamers);
-                distResultRXTask.setBucket(
+                bucketReceiver.setBucket(
                     resultRequest.bucketIdx(),
                     resultRequest.rows(),
                     resultRequest.isLast(),
                     needMore -> listener.onResponse(new DistributedResultResponse(needMore)));
             } else {
                 if (resultRequest.isKilled()) {
-                    distResultRXTask.killed(resultRequest.bucketIdx(), throwable);
+                    bucketReceiver.killed(resultRequest.bucketIdx(), throwable);
                 } else {
-                    distResultRXTask.failure(resultRequest.bucketIdx(), throwable);
+                    bucketReceiver.failure(resultRequest.bucketIdx(), throwable);
                 }
             }
             return null;
