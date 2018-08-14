@@ -37,13 +37,13 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.shard.ShardReferenceResolver;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
@@ -84,8 +84,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         TransportActionProvider transportActionProvider,
                                         IndexShard indexShard,
                                         BigArrays bigArrays) {
-        super(clusterService, nodeJobsCounter, ShardReferenceResolver.create(clusterService, schemas, indexShard),
-            functions, threadPool, settings, transportActionProvider, indexShard, bigArrays);
+        super(clusterService, schemas, nodeJobsCounter, functions, threadPool, settings, transportActionProvider, indexShard,
+            new ShardRowContext(indexShard, clusterService), bigArrays);
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.functions = functions;
         this.indexShard = indexShard;

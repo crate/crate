@@ -20,22 +20,24 @@
  * agreement.
  */
 
-package io.crate.expression.reference.sys.shard.blob;
+package io.crate.expression.reference.sys.shard;
 
-import io.crate.blob.v2.BlobShard;
-import io.crate.expression.NestableInput;
-import org.apache.lucene.util.BytesRef;
+import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.reference.ObjectCollectExpression;
 
-public class BlobShardBlobPathExpression implements NestableInput<BytesRef> {
+public class NodeNestableInput extends ObjectCollectExpression<ShardRowContext> {
 
-    private final BytesRef path;
+    private static final String ID = "id";
+    private static final String NAME = "name";
 
-    public BlobShardBlobPathExpression(BlobShard blobShard) {
-        path = new BytesRef(blobShard.blobContainer().getBaseDirectory().toString());
+    public NodeNestableInput() {
+        addChildImplementations();
     }
 
-    @Override
-    public BytesRef value() {
-        return path;
+    private void addChildImplementations() {
+        childImplementations.put(ID, NestableCollectExpression.<ShardRowContext>objToBytesRef(
+            r -> r.clusterService().localNode().getId()));
+        childImplementations.put(NAME, NestableCollectExpression.<ShardRowContext>objToBytesRef(
+            r -> r.clusterService().localNode().getName()));
     }
 }

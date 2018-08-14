@@ -23,15 +23,14 @@ package io.crate.expression.reference.sys;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.expression.NestableInput;
-import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.reference.sys.shard.ShardPathExpression;
 import io.crate.expression.reference.sys.shard.ShardRecoveryStateExpression;
-import io.crate.expression.reference.sys.shard.ShardSizeExpression;
+import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
@@ -64,7 +63,6 @@ import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -101,11 +99,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), (ident, state) -> null , functions, udfService)
         );
-        resolver = ShardReferenceResolver.create(
-            clusterService,
-            schemas,
-            indexShard
-        );
+        resolver = new ShardReferenceResolver(schemas, new ShardRowContext(indexShard, clusterService));
     }
 
     private IndexShard mockIndexShard() {
@@ -159,14 +153,15 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testShardInfoLookup() throws Exception {
-        Reference info = new Reference(SysShardsTableInfo.ReferenceIdents.ID, RowGranularity.SHARD, IntegerType.INSTANCE,
-            ColumnPolicy.STRICT, Reference.IndexType.NOT_ANALYZED, true);
+        Reference info = new Reference(new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.ID),
+            RowGranularity.SHARD, IntegerType.INSTANCE, ColumnPolicy.STRICT, Reference.IndexType.NOT_ANALYZED, true);
         assertEquals(info, schemas.getTableInfo(SysShardsTableInfo.IDENT).getReference(SysShardsTableInfo.Columns.ID));
     }
 
     @Test
     public void testPathExpression() throws Exception {
-        ShardPathExpression shardPathExpression = new ShardPathExpression(indexShard);
+        Reference refInfo = refInfo("sys.shards.path", DataTypes.STRING, RowGranularity.SHARD);
+        NestableInput<BytesRef> shardPathExpression = (NestableInput<BytesRef>) resolver.getImplementation(refInfo);
         assertThat(shardPathExpression.value().utf8ToString(), is(resolveCanonicalString("/dummy/" + indexUUID + "/1")));
     }
 
@@ -237,6 +232,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         assertEquals(new BytesRef(Version.LATEST.toString()), shardExpression.value());
 
         doThrow(new AlreadyClosedException("Already closed")).when(indexShard).minimumCompatibleVersion();
+        shardExpression = (NestableInput<BytesRef>) resolver.getImplementation(refInfo);
         assertThat(shardExpression.value(), nullValue());
     }
 
@@ -319,7 +315,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryShardField() throws Exception {
         Reference refInfo = refInfo("sys.shards.recovery", DataTypes.OBJECT, RowGranularity.SHARD);
-        NestedObjectExpression ref = (NestedObjectExpression) resolver.getImplementation(refInfo);
+        NestableInput<Map<String, Object>> ref = (NestableInput<Map<String,Object>>) resolver.getImplementation(refInfo);
 
         Map<String, Object> recovery = ref.value();
         assertEquals(RecoveryState.Stage.DONE.name(), recovery.get("stage"));
@@ -340,26 +336,31 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
             put("percent", 0.0f);
         }};
         assertEquals(expectedBytes, recovery.get("size"));
-
     }
 
     @Test
     public void testShardRecoveryStateExpressionNullRecoveryState(){
         when(indexShard.recoveryState()).thenReturn(null);
-        ShardRecoveryStateExpression shardRecoveryStateExpression = new ShardRecoveryStateExpression<Long>(indexShard) {
+        ShardRecoveryStateExpression shardRecoveryStateExpression = new ShardRecoveryStateExpression<Long>() {
             @Override
             public Long innerValue(RecoveryState recoveryState) {
                 return recoveryState.getTimer().time();
             }
         };
+        ShardRowContext shardRowContext = new ShardRowContext(indexShard, clusterService);
+        shardRecoveryStateExpression.setNextRow(shardRowContext);
 
         assertNull(shardRecoveryStateExpression.value());
     }
 
     @Test
     public void testShardSizeExpressionWhenIndexShardHasBeenClosed() {
-        IndexShard mock = Mockito.mock(IndexShard.class);
-        ShardSizeExpression shardSizeExpression = new ShardSizeExpression(mock);
+        IndexShard mock = mockIndexShard();
+        when(mock.storeStats()).thenReturn(null);
+
+        ShardReferenceResolver resolver = new ShardReferenceResolver(schemas, new ShardRowContext(mock, clusterService));
+        Reference refInfo = refInfo("sys.shards.size", DataTypes.LONG, RowGranularity.SHARD);
+        NestableInput<Long> shardSizeExpression = (NestableInput<Long>) resolver.getImplementation(refInfo);
         assertThat(shardSizeExpression.value(), is(0L));
     }
 }

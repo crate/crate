@@ -23,38 +23,27 @@
 package io.crate.expression.reference.sys.shard;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.expression.NestableInput;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
+public class ShardMinLuceneVersionExpression extends NestableCollectExpression<ShardRowContext, BytesRef> {
 
-public class ShardMinLuceneVersionExpression implements NestableInput<BytesRef> {
+    private BytesRef value;
 
-
-    private final LongSupplier docCount;
-    private final Supplier<org.apache.lucene.util.Version> minimumCompatibleVersion;
-
-    public ShardMinLuceneVersionExpression(IndexShard indexShard) {
-        this(() -> indexShard.docStats().getCount(), indexShard::minimumCompatibleVersion);
+    @Override
+    public void setNextRow(ShardRowContext shardRowContext) {
+        value = value(shardRowContext.indexShard());
     }
 
     @VisibleForTesting
-    ShardMinLuceneVersionExpression(LongSupplier docCount,
-                                    Supplier<org.apache.lucene.util.Version> minimumCompatibleVersion) {
-        this.docCount = docCount;
-        this.minimumCompatibleVersion = minimumCompatibleVersion;
-    }
-
-    @Override
-    public BytesRef value() {
+    BytesRef value(IndexShard indexShard) {
         long numDocs;
         try {
-            numDocs = docCount.getAsLong();
+            numDocs = indexShard.docStats().getCount();
         } catch (IllegalIndexShardStateException e) {
             return null;
         }
@@ -67,15 +56,15 @@ public class ShardMinLuceneVersionExpression implements NestableInput<BytesRef> 
             return new BytesRef(Version.CURRENT.luceneVersion.toString());
         }
 
-        // This class is instantiated only once per shard so every query on sys.shards is calling value()
-        // on the same object. We chose not to cache the value so in case you select min_lucene_version
-        // multiple times in the same statement like:
-        // `select min_lucene_version, min_lucene_version, ... from sys.shards`
-        // you might get different results.
         try {
-            return new BytesRef(minimumCompatibleVersion.get().toString());
+            return new BytesRef(indexShard.minimumCompatibleVersion().toString());
         } catch (AlreadyClosedException e) {
             return null;
         }
+    }
+
+    @Override
+    public BytesRef value() {
+        return value;
     }
 }

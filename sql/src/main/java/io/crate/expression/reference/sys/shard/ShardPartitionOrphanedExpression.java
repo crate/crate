@@ -21,29 +21,27 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.expression.NestableInput;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.service.ClusterService;
 
-public class ShardPartitionOrphanedExpression implements NestableInput<Boolean> {
+public class ShardPartitionOrphanedExpression extends NestableCollectExpression<ShardRowContext, Boolean> {
 
-    private final ClusterService clusterService;
-    private final String aliasName;
-    private final String templateName;
+    private boolean value;
 
-    public ShardPartitionOrphanedExpression(String indexName, ClusterService clusterService) {
-        this.clusterService = clusterService;
-        PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexName);
-        RelationName relationName = partitionName.relationName();
-        aliasName = relationName.indexName();
-        templateName = PartitionName.templateName(relationName.schema(), relationName.name());
+    @Override
+    public void setNextRow(ShardRowContext shardRowContext) {
+        String aliasName = shardRowContext.aliasName();
+        String templateName = shardRowContext.templateName();
+        if (aliasName != null && templateName != null) {
+            final MetaData metaData = shardRowContext.clusterService().state().metaData();
+            value = !(metaData.templates().containsKey(templateName) && metaData.hasConcreteIndex(aliasName));
+        } else {
+            value = false;
+        }
     }
 
     @Override
     public Boolean value() {
-        final MetaData metaData = clusterService.state().metaData();
-        return !(metaData.templates().containsKey(templateName) && metaData.hasConcreteIndex(aliasName));
+        return value;
     }
 }

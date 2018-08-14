@@ -21,22 +21,27 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.expression.NestableInput;
+import io.crate.blob.v2.BlobShard;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
-import org.elasticsearch.index.shard.IndexShard;
 
-public class ShardNumDocsExpression implements NestableInput<Long> {
+public class ShardNumDocsExpression extends NestableCollectExpression<ShardRowContext, Long> {
 
-    private final IndexShard indexShard;
+    private ShardRowContext shardRowContext;
 
-    public ShardNumDocsExpression(IndexShard indexShard) {
-        this.indexShard = indexShard;
+    @Override
+    public void setNextRow(ShardRowContext shardRowContext) {
+        this.shardRowContext = shardRowContext;
     }
 
     @Override
     public Long value() {
+        BlobShard blobShard = shardRowContext.blobShard();
+        if (blobShard != null) {
+            return blobShard.getBlobsCount();
+        }
         try {
-            return indexShard.docStats().getCount();
+            return shardRowContext.indexShard().docStats().getCount();
         } catch (IllegalIndexShardStateException e) {
             return null;
         }

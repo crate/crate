@@ -36,8 +36,9 @@ import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.blob.BlobReferenceResolver;
+import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.Functions;
-import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
+import io.crate.metadata.Schemas;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -53,15 +54,15 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
 
     public BlobShardCollectorProvider(BlobShard blobShard,
                                       ClusterService clusterService,
+                                      Schemas schemas,
                                       NodeJobsCounter nodeJobsCounter,
                                       Functions functions,
                                       ThreadPool threadPool,
                                       Settings settings,
                                       TransportActionProvider transportActionProvider,
                                       BigArrays bigArrays) {
-        super(clusterService, nodeJobsCounter, BlobShardReferenceResolver.create(blobShard, clusterService.localNode()),
-            functions,
-            threadPool, settings, transportActionProvider, blobShard.indexShard(), bigArrays);
+        super(clusterService, schemas, nodeJobsCounter, functions, threadPool, settings, transportActionProvider,
+            blobShard.indexShard(), new ShardRowContext(blobShard, clusterService), bigArrays);
         inputFactory = new InputFactory(functions);
         this.blobShard = blobShard;
     }

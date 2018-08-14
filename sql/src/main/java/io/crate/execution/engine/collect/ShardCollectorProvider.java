@@ -25,7 +25,6 @@ package io.crate.execution.engine.collect;
 import io.crate.analyze.QueryClause;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.SentinelRow;
 import io.crate.execution.TransportActionProvider;
@@ -38,11 +37,12 @@ import io.crate.execution.engine.pipeline.Projectors;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
-import io.crate.expression.NestableInput;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.shard.ShardReferenceResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -50,28 +50,28 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
 public abstract class ShardCollectorProvider {
 
     private final ProjectorFactory projectorFactory;
-    private final InputFactory inputFactory;
+    private final ShardRowContext shardRowContext;
     final EvaluatingNormalizer shardNormalizer;
 
     ShardCollectorProvider(ClusterService clusterService,
+                           Schemas schemas,
                            NodeJobsCounter nodeJobsCounter,
-                           ReferenceResolver<NestableInput<?>> shardResolver,
                            Functions functions,
                            ThreadPool threadPool,
                            Settings settings,
                            TransportActionProvider transportActionProvider,
                            IndexShard indexShard,
+                           ShardRowContext shardRowContext,
                            BigArrays bigArrays) {
-        this.inputFactory = new InputFactory(functions);
-        this.shardNormalizer = new EvaluatingNormalizer(
+        this.shardRowContext = shardRowContext;
+        shardNormalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.SHARD,
-            shardResolver,
+            new ShardReferenceResolver(schemas, shardRowContext),
             null
         );
         projectorFactory = new ProjectionToProjectorVisitor(
@@ -81,7 +81,7 @@ public abstract class ShardCollectorProvider {
             threadPool,
             settings,
             transportActionProvider,
-            inputFactory,
+            new InputFactory(functions),
             shardNormalizer,
             t -> null,
             t -> null,
@@ -91,25 +91,8 @@ public abstract class ShardCollectorProvider {
         );
     }
 
-    @Nullable
-    public Object[] getRowForShard(RoutedCollectPhase collectPhase) {
-        assert collectPhase.maxRowGranularity() == RowGranularity.SHARD : "granularity must be SHARD";
-
-        collectPhase = collectPhase.normalize(shardNormalizer, null);
-        if (!QueryClause.canMatch(collectPhase.where())) {
-            return null;
-        }
-        assert collectPhase.where().symbolType().isValueSymbol() : "where must be a literal after normalize";
-
-        InputFactory.Context<CollectExpression<Row, ?>> ctx =
-            inputFactory.ctxForInputColumns(collectPhase.toCollect());
-
-        List<Input<?>> inputs = ctx.topLevelInputs();
-        Object[] row = new Object[inputs.size()];
-        for (int i = 0; i < row.length; i++) {
-            row[i] = inputs.get(i).value();
-        }
-        return row;
+    public ShardRowContext shardRowContext() {
+        return shardRowContext;
     }
 
     public BatchIterator<Row> getIterator(RoutedCollectPhase collectPhase,

@@ -22,13 +22,12 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.expression.reference.NestedObjectExpression;
+import io.crate.expression.reference.ObjectCollectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.recovery.RecoveryState;
 
-public class ShardRecoveryExpression extends NestedObjectExpression {
+public class ShardRecoveryExpression extends ObjectCollectExpression<ShardRowContext> {
 
     private static final String TOTAL_TIME = "total_time";
     private static final String STAGE = "stage";
@@ -36,31 +35,31 @@ public class ShardRecoveryExpression extends NestedObjectExpression {
     private static final String SIZE = "size";
     private static final String FILES = "files";
 
-    public ShardRecoveryExpression(IndexShard indexShard) {
-        addChildImplementations(indexShard);
+    public ShardRecoveryExpression() {
+        addChildImplementations();
     }
 
-    private void addChildImplementations(IndexShard indexShard) {
-        childImplementations.put(TOTAL_TIME, new ShardRecoveryStateExpression<Long>(indexShard) {
+    private void addChildImplementations() {
+        childImplementations.put(TOTAL_TIME, new ShardRecoveryStateExpression<Long>() {
             @Override
-            protected Long innerValue(RecoveryState recoveryState) {
+            public Long innerValue(RecoveryState recoveryState) {
                 return recoveryState.getTimer().time();
             }
         });
-        childImplementations.put(STAGE, new ShardRecoveryStateExpression<BytesRef>(indexShard) {
+        childImplementations.put(STAGE, new ShardRecoveryStateExpression<BytesRef>() {
             @Override
             public BytesRef innerValue(RecoveryState recoveryState) {
                 return BytesRefs.toBytesRef(recoveryState.getStage().name());
             }
         });
-        childImplementations.put(TYPE, new ShardRecoveryStateExpression<BytesRef>(indexShard) {
+        childImplementations.put(TYPE, new ShardRecoveryStateExpression<BytesRef>() {
             @Override
             public BytesRef innerValue(RecoveryState recoveryState) {
                 return BytesRefs.toBytesRef(recoveryState.getRecoverySource().getType().name());
             }
         });
-        childImplementations.put(SIZE, new ShardRecoverySizeExpression(indexShard));
-        childImplementations.put(FILES, new ShardRecoveryFilesExpression(indexShard));
+        childImplementations.put(SIZE, new ShardRecoverySizeExpression());
+        childImplementations.put(FILES, new ShardRecoveryFilesExpression());
     }
 
 }

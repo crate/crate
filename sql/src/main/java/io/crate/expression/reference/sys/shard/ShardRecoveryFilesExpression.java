@@ -22,46 +22,44 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.expression.reference.NestedObjectExpression;
-import org.elasticsearch.index.shard.IndexShard;
+import io.crate.expression.reference.ObjectCollectExpression;
 import org.elasticsearch.indices.recovery.RecoveryState;
 
-class ShardRecoveryFilesExpression extends NestedObjectExpression {
+class ShardRecoveryFilesExpression extends ObjectCollectExpression<ShardRowContext> {
 
     private static final String USED = "used";
     private static final String REUSED = "reused";
     private static final String RECOVERED = "recovered";
     private static final String PERCENT = "percent";
 
-    ShardRecoveryFilesExpression(IndexShard indexShard) {
-        addChildImplementations(indexShard);
+    ShardRecoveryFilesExpression() {
+        addChildImplementations();
     }
 
-    private void addChildImplementations(IndexShard indexShard) {
-        childImplementations.put(USED, new ShardRecoveryStateExpression<Integer>(indexShard) {
+    private void addChildImplementations() {
+        childImplementations.put(USED, new ShardRecoveryStateExpression<Integer>() {
             @Override
             public Integer innerValue(RecoveryState recoveryState) {
                 return recoveryState.getIndex().totalFileCount();
             }
         });
-        childImplementations.put(REUSED, new ShardRecoveryStateExpression<Integer>(indexShard) {
+        childImplementations.put(REUSED, new ShardRecoveryStateExpression<Integer>() {
             @Override
             public Integer innerValue(RecoveryState recoveryState) {
                 return recoveryState.getIndex().reusedFileCount();
             }
         });
-        childImplementations.put(RECOVERED, new ShardRecoveryStateExpression<Integer>(indexShard) {
+        childImplementations.put(RECOVERED, new ShardRecoveryStateExpression<Integer>() {
             @Override
             public Integer innerValue(RecoveryState recoveryState) {
                 return recoveryState.getIndex().recoveredFileCount();
             }
         });
-        childImplementations.put(PERCENT, new ShardRecoveryStateExpression<Float>(indexShard) {
+        childImplementations.put(PERCENT, new ShardRecoveryStateExpression<Float>() {
             @Override
             public Float innerValue(RecoveryState recoveryState) {
                 return recoveryState.getIndex().recoveredFilesPercent();
             }
         });
     }
-
 }

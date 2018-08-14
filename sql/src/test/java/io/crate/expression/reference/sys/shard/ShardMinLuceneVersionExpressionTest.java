@@ -22,20 +22,28 @@
 
 package io.crate.expression.reference.sys.shard;
 
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
+import org.elasticsearch.index.shard.DocsStats;
+import org.elasticsearch.index.shard.IndexShard;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-public class ShardMinLuceneVersionExpressionTest {
+public class ShardMinLuceneVersionExpressionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testLatestLuceneVersionIsReturnedIfThereAreNoSegments() {
-        ShardMinLuceneVersionExpression expr = new ShardMinLuceneVersionExpression(
-            () -> 0L,
-            () -> Version.LUCENE_6_6_1
-        );
-        assertThat(expr.value().utf8ToString(), is(Version.LUCENE_7_1_0.toString()));
+        IndexShard indexShard = mock(IndexShard.class);
+        DocsStats docsStats = new DocsStats();
+        when(indexShard.docStats()).thenReturn(docsStats);
+        when(indexShard.minimumCompatibleVersion()).thenReturn(Version.LUCENE_6_6_1);
+
+        ShardMinLuceneVersionExpression expr = new ShardMinLuceneVersionExpression();
+        BytesRef value = expr.value(indexShard);
+        assertThat(value.utf8ToString(), is(Version.LUCENE_7_1_0.toString()));
     }
 }

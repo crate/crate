@@ -46,6 +46,14 @@ public final class RowsTransformer {
                                                ReferenceResolver<?> referenceResolver,
                                                RoutedCollectPhase collectPhase,
                                                Iterable<?> iterable) {
+        return toRowsIterable(inputFactory, referenceResolver, collectPhase, iterable, true);
+    }
+
+    public static Iterable<Row> toRowsIterable(InputFactory inputFactory,
+                                               ReferenceResolver<?> referenceResolver,
+                                               RoutedCollectPhase collectPhase,
+                                               Iterable<?> iterable,
+                                               boolean sort) {
         if (!QueryClause.canMatch(collectPhase.where())) {
             return Collections.emptyList();
         }
@@ -65,7 +73,8 @@ public final class RowsTransformer {
 
         //noinspection unchecked  whereClause().query() is a symbol of type boolean so it must become Input<Boolean>
         rows = Iterables.filter(rows, InputCondition.asPredicate(ctx.add(collectPhase.where())));
-        if (orderBy == null) {
+
+        if (sort == false || orderBy == null) {
             return rows;
         }
         return sortRows(Iterables.transform(rows, Row::materialize), collectPhase);

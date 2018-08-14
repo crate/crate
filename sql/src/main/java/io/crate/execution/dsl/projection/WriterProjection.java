@@ -33,6 +33,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysShardsTableInfo;
@@ -57,9 +58,15 @@ public class WriterProjection extends Projection {
         new Value(DataTypes.LONG) // number of lines written
     );
 
-    private static final Reference SHARD_ID_REF = new Reference(SysShardsTableInfo.ReferenceIdents.ID, RowGranularity.SHARD, IntegerType.INSTANCE);
-    private static final Reference TABLE_NAME_REF = new Reference(SysShardsTableInfo.ReferenceIdents.TABLE_NAME, RowGranularity.SHARD, StringType.INSTANCE);
-    private static final Reference PARTITION_IDENT_REF = new Reference(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT, RowGranularity.SHARD, StringType.INSTANCE);
+    private static final Reference SHARD_ID_REF = new Reference(
+        new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.ID),
+        RowGranularity.SHARD, IntegerType.INSTANCE);
+    private static final Reference TABLE_NAME_REF = new Reference(
+        new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.TABLE_NAME),
+        RowGranularity.SHARD, StringType.INSTANCE);
+    private static final Reference PARTITION_IDENT_REF = new Reference(
+        new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.PARTITION_IDENT),
+        RowGranularity.SHARD, StringType.INSTANCE);
 
 
     public static final Symbol DIRECTORY_TO_FILENAME = new Function(new FunctionInfo(

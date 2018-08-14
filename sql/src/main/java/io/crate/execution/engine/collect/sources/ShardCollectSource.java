@@ -30,7 +30,6 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.AsyncCompositeBatchIterator;
 import io.crate.data.BatchIterator;
-import io.crate.data.Buckets;
 import io.crate.data.CompositeBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -42,6 +41,7 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.RemoteCollectorFactory;
+import io.crate.execution.engine.collect.RowsTransformer;
 import io.crate.execution.engine.collect.ShardCollectorProvider;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OrderedLuceneBatchIteratorFactory;
@@ -56,6 +56,7 @@ import io.crate.execution.support.ThreadPools;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableReferenceResolver;
+import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
@@ -141,13 +142,14 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private final IndicesService indicesService;
     private final ClusterService clusterService;
     private final RemoteCollectorFactory remoteCollectorFactory;
-    private final SystemCollectSource systemCollectSource;
     private final Executor executor;
     private final ProjectorFactory sharedProjectorFactory;
+    private final InputFactory inputFactory;
 
     private final Map<ShardId, Supplier<ShardCollectorProvider>> shards = new ConcurrentHashMap<>();
     private final ShardCollectorProviderFactory shardCollectorProviderFactory;
     private final StaticTableReferenceResolver<UnassignedShard> unassignedShardReferenceResolver;
+    private final StaticTableReferenceResolver<ShardRowContext> shardReferenceResolver;
     private final IntSupplier availableThreads;
 
     @Inject
@@ -168,13 +170,14 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         super(settings);
         this.unassignedShardReferenceResolver = new StaticTableReferenceResolver<>(
             SysShardsTableInfo.unassignedShardsExpressions());
+        this.shardReferenceResolver = new StaticTableReferenceResolver<>(SysShardsTableInfo.expressions());
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.remoteCollectorFactory = remoteCollectorFactory;
-        this.systemCollectSource = systemCollectSource;
         ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         this.availableThreads = numIdleThreads(executor, EsExecutors.numberOfProcessors(settings));
         this.executor = ThreadPools.fallbackOnRejection(executor);
+        this.inputFactory = new InputFactory(functions);
         this.shardCollectorProviderFactory = new ShardCollectorProviderFactory(
             clusterService,
             settings,
@@ -199,7 +202,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             threadPool,
             settings,
             transportActionProvider,
-            new InputFactory(functions),
+            inputFactory,
             nodeNormalizer,
             systemCollectSource::getRowUpdater,
             systemCollectSource::tableDefinition,
@@ -438,9 +441,10 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private Iterable<Row> getShardsIterator(RoutedCollectPhase collectPhase, String localNodeId) {
         Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
         List<UnassignedShard> unassignedShards = new ArrayList<>();
-        List<Object[]> rows = new ArrayList<>();
+        List<ShardRowContext> shardRowContexts = new ArrayList<>();
         Map<String, IntIndexedContainer> indexShardsMap = locations.get(localNodeId);
         MetaData metaData = clusterService.state().metaData();
+
 
         for (Map.Entry<String, IntIndexedContainer> indexShards : indexShardsMap.entrySet()) {
             String indexName = indexShards.getKey();
@@ -465,10 +469,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 ShardId shardId = new ShardId(index, shard.value);
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
-                    Object[] row = shardCollectorProvider.getRowForShard(collectPhase);
-                    if (row != null) {
-                        rows.add(row);
-                    }
+                    shardRowContexts.add(shardCollectorProvider.shardRowContext());
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     unassignedShards.add(toUnassignedShard(index.getName(), shard.value));
                 } catch (Throwable t) {
@@ -476,19 +477,23 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 }
             }
         }
-        if (!unassignedShards.isEmpty()) {
-            // since unassigned shards aren't really on any node we use the collectPhase which is NOT normalized here
-            // because otherwise if _node was also selected it would contain something which is wrong
-            for (Row row :
-                systemCollectSource.toRowsIterableTransformation(collectPhase, unassignedShardReferenceResolver, false)
-                    .apply(unassignedShards)) {
-                rows.add(row.materialize());
-            }
+
+        Iterable<Row> assignedShardRows = RowsTransformer.toRowsIterable(
+            inputFactory, shardReferenceResolver, collectPhase, shardRowContexts, false);
+        Iterable<Row> rows;
+        if (unassignedShards.size() > 0) {
+            Iterable<Row> unassignedShardRows = RowsTransformer.toRowsIterable(
+                inputFactory, unassignedShardReferenceResolver, collectPhase, unassignedShards, false);
+            rows = Iterables.concat(assignedShardRows, unassignedShardRows);
+        } else {
+            rows = assignedShardRows;
         }
+
         if (collectPhase.orderBy() != null) {
-            rows.sort(OrderingByPosition.arrayOrdering(collectPhase).reverse());
+            return RowsTransformer.sortRows(Iterables.transform(rows, Row::materialize), collectPhase);
         }
-        return Iterables.transform(rows, Buckets.arrayToSharedRow()::apply);
+
+        return rows;
     }
 
     private UnassignedShard toUnassignedShard(String indexName, int shardId) {

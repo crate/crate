@@ -31,8 +31,13 @@ import io.crate.analyze.user.Privilege;
 import io.crate.auth.user.User;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
+import io.crate.expression.reference.sys.shard.NodeNestableInput;
+import io.crate.expression.reference.sys.shard.ShardMinLuceneVersionExpression;
+import io.crate.expression.reference.sys.shard.ShardNumDocsExpression;
+import io.crate.expression.reference.sys.shard.ShardPartitionOrphanedExpression;
+import io.crate.expression.reference.sys.shard.ShardRecoveryExpression;
+import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -64,10 +69,16 @@ public class SysShardsTableInfo extends StaticTableInfo {
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "shards");
 
     public static class Columns {
+        /**
+         * Implementations have to be registered in
+         *  - {@link #expressions()}
+         *  - {@link #unassignedShardsExpressions()}
+         */
+
         public static final ColumnIdent ID = new ColumnIdent("id");
         static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
         public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
-        static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
+        public static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
         static final ColumnIdent NUM_DOCS = new ColumnIdent("num_docs");
         public static final ColumnIdent PRIMARY = new ColumnIdent("primary");
         static final ColumnIdent RELOCATING_NODE = new ColumnIdent("relocating_node");
@@ -112,31 +123,33 @@ public class SysShardsTableInfo extends StaticTableInfo {
         static final ColumnIdent NODE_NAME = new ColumnIdent("node", "name");
     }
 
-    public static class ReferenceIdents {
-
-        /**
-         * Implementations have to be registered in
-         *  - {@link io.crate.metadata.shard.ShardReferenceResolver}
-         *  - {@link io.crate.metadata.shard.blob.BlobShardReferenceResolver}
-         *  - {@link #unassignedShardsExpressions()}
-         */
-
-        public static final ReferenceIdent ID = new ReferenceIdent(IDENT, Columns.ID);
-        public static final ReferenceIdent SCHEMA_NAME = new ReferenceIdent(IDENT, Columns.SCHEMA_NAME);
-        public static final ReferenceIdent TABLE_NAME = new ReferenceIdent(IDENT, Columns.TABLE_NAME);
-        public static final ReferenceIdent PARTITION_IDENT = new ReferenceIdent(IDENT, Columns.PARTITION_IDENT);
-        public static final ReferenceIdent NUM_DOCS = new ReferenceIdent(IDENT, Columns.NUM_DOCS);
-        public static final ReferenceIdent PRIMARY = new ReferenceIdent(IDENT, Columns.PRIMARY);
-        public static final ReferenceIdent RELOCATING_NODE = new ReferenceIdent(IDENT, Columns.RELOCATING_NODE);
-        public static final ReferenceIdent SIZE = new ReferenceIdent(IDENT, Columns.SIZE);
-        public static final ReferenceIdent STATE = new ReferenceIdent(IDENT, Columns.STATE);
-        public static final ReferenceIdent ROUTING_STATE = new ReferenceIdent(IDENT, Columns.ROUTING_STATE);
-        public static final ReferenceIdent ORPHAN_PARTITION = new ReferenceIdent(IDENT, Columns.ORPHAN_PARTITION);
-        public static final ReferenceIdent RECOVERY = new ReferenceIdent(IDENT, Columns.RECOVERY);
-        public static final ReferenceIdent PATH = new ReferenceIdent(IDENT, Columns.PATH);
-        public static final ReferenceIdent BLOB_PATH = new ReferenceIdent(IDENT, Columns.BLOB_PATH);
-        public static final ReferenceIdent MIN_LUCENE_VERSION = new ReferenceIdent(IDENT, Columns.MIN_LUCENE_VERSION);
-        public static final ReferenceIdent NODE = new ReferenceIdent(IDENT, Columns.NODE);
+    public static Map<ColumnIdent, RowCollectExpressionFactory<ShardRowContext>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ShardRowContext>>builder()
+            .put(Columns.SCHEMA_NAME,
+                () -> NestableCollectExpression.objToBytesRef(r -> r.indexParts().getSchema()))
+            .put(Columns.TABLE_NAME,
+                () -> NestableCollectExpression.objToBytesRef(r -> r.indexParts().getTable()))
+            .put(Columns.PARTITION_IDENT,
+                () -> NestableCollectExpression.objToBytesRef(ShardRowContext::partitionIdent))
+            .put(Columns.ID, () -> NestableCollectExpression.forFunction(ShardRowContext::id))
+            .put(Columns.NUM_DOCS, ShardNumDocsExpression::new)
+            .put(Columns.PRIMARY,
+                () -> NestableCollectExpression.forFunction(r -> r.indexShard().routingEntry().primary()))
+            .put(Columns.RELOCATING_NODE,
+                () -> NestableCollectExpression.objToBytesRef(r -> r.indexShard().routingEntry().relocatingNodeId()))
+            .put(Columns.SIZE,
+                () -> NestableCollectExpression.forFunction(ShardRowContext::size))
+            .put(Columns.STATE,
+                () -> NestableCollectExpression.objToBytesRef(r -> r.indexShard().state().toString()))
+            .put(Columns.ROUTING_STATE,
+                () -> NestableCollectExpression.objToBytesRef(r -> r.indexShard().routingEntry().state().toString()))
+            .put(Columns.ORPHAN_PARTITION, ShardPartitionOrphanedExpression::new)
+            .put(Columns.RECOVERY, ShardRecoveryExpression::new)
+            .put(Columns.PATH, () -> NestableCollectExpression.objToBytesRef(ShardRowContext::path))
+            .put(Columns.BLOB_PATH, () -> NestableCollectExpression.objToBytesRef(ShardRowContext::blobPath))
+            .put(Columns.MIN_LUCENE_VERSION, ShardMinLuceneVersionExpression::new)
+            .put(Columns.NODE, NodeNestableInput::new)
+            .build();
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions() {

@@ -82,6 +82,7 @@ public class ShardCollectorProviderFactory {
             return new BlobShardCollectorProvider(
                 blobShard,
                 clusterService,
+                schemas,
                 nodeJobsCounter,
                 functions,
                 threadPool,

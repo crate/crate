@@ -22,24 +22,26 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.expression.NestableInput;
-import org.elasticsearch.index.shard.IndexShard;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.elasticsearch.indices.recovery.RecoveryState;
 
-public abstract class ShardRecoveryStateExpression<T> implements NestableInput<T> {
+public abstract class ShardRecoveryStateExpression<T> extends NestableCollectExpression<ShardRowContext, T> {
 
-    private final IndexShard indexShard;
+    private T value;
 
-    public ShardRecoveryStateExpression(IndexShard indexShard) {
-        this.indexShard = indexShard;
+    @Override
+    public void setNextRow(ShardRowContext shardRowContext) {
+        RecoveryState recoveryState = shardRowContext.indexShard().recoveryState();
+        if (recoveryState == null) {
+            value = null;
+        } else {
+            value = innerValue(recoveryState);
+        }
     }
 
     @Override
     public T value() {
-        if (indexShard.recoveryState() == null) {
-            return null;
-        }
-        return innerValue(indexShard.recoveryState());
+        return value;
     }
 
     protected abstract T innerValue(RecoveryState recoveryState);

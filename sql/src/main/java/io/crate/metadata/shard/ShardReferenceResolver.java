@@ -24,20 +24,12 @@ package io.crate.metadata.shard;
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.LiteralNestableInput;
 import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.reference.sys.shard.ShardMinLuceneVersionExpression;
-import io.crate.expression.reference.sys.shard.ShardNumDocsExpression;
-import io.crate.expression.reference.sys.shard.ShardPartitionIdentExpression;
-import io.crate.expression.reference.sys.shard.ShardPartitionOrphanedExpression;
-import io.crate.expression.reference.sys.shard.ShardPathExpression;
-import io.crate.expression.reference.sys.shard.ShardPrimaryExpression;
-import io.crate.expression.reference.sys.shard.ShardRecoveryExpression;
-import io.crate.expression.reference.sys.shard.ShardRelocatingNodeExpression;
-import io.crate.expression.reference.sys.shard.ShardRoutingStateExpression;
-import io.crate.expression.reference.sys.shard.ShardSizeExpression;
-import io.crate.expression.reference.sys.shard.ShardStateExpression;
+import io.crate.expression.reference.StaticTableReferenceResolver;
+import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.PartitionName;
@@ -49,61 +41,23 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-public class ShardReferenceResolver {
+public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?>> {
 
     private static final Logger LOGGER = Loggers.getLogger(ShardReferenceResolver.class);
+    private static final StaticTableReferenceResolver<ShardRowContext> SHARD_REFERENCE_RESOLVER_DELEGATE =
+        new StaticTableReferenceResolver<>(SysShardsTableInfo.expressions());
+    private static final ReferenceResolver<NestableInput<?>> EMPTY_RESOLVER =
+        new MapBackedRefResolver(Collections.emptyMap());
 
-    public static ReferenceResolver<NestableInput<?>> create(ClusterService clusterService,
-                                                             Schemas schemas,
-                                                             IndexShard indexShard) {
-        ShardId shardId = indexShard.shardId();
-        Index index = shardId.getIndex();
-
+    private static ReferenceResolver<NestableInput<?>> createPartitionColumnResolver(Index index, Schemas schemas) {
         ImmutableMap.Builder<ReferenceIdent, NestableInput> builder = ImmutableMap.builder();
-        if (IndexParts.isPartitioned(index.getName())) {
-            addPartitions(index, schemas, builder);
-            builder.put(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION,
-                new ShardPartitionOrphanedExpression(index.getName(), clusterService));
-        } else {
-            builder.put(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION, new LiteralNestableInput<>(false));
-        }
-        IndexParts indexParts = new IndexParts(index.getName());
-        builder.put(SysShardsTableInfo.ReferenceIdents.ID, new LiteralNestableInput<>(shardId.getId()));
-        builder.put(SysShardsTableInfo.ReferenceIdents.SIZE, new ShardSizeExpression(indexShard));
-        builder.put(SysShardsTableInfo.ReferenceIdents.NUM_DOCS, new ShardNumDocsExpression(indexShard));
-        builder.put(SysShardsTableInfo.ReferenceIdents.PRIMARY, new ShardPrimaryExpression(indexShard));
-        builder.put(SysShardsTableInfo.ReferenceIdents.RELOCATING_NODE,
-            new ShardRelocatingNodeExpression(indexShard));
-        builder.put(SysShardsTableInfo.ReferenceIdents.SCHEMA_NAME,
-            new LiteralNestableInput<>(new BytesRef(indexParts.getSchema())));
-        builder.put(SysShardsTableInfo.ReferenceIdents.STATE, new ShardStateExpression(indexShard));
-        builder.put(SysShardsTableInfo.ReferenceIdents.ROUTING_STATE, new ShardRoutingStateExpression(indexShard));
-        builder.put(SysShardsTableInfo.ReferenceIdents.TABLE_NAME,
-            new LiteralNestableInput<>(new BytesRef(indexParts.getTable())));
-        builder.put(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT,
-            new ShardPartitionIdentExpression(shardId));
-        builder.put(SysShardsTableInfo.ReferenceIdents.PATH, new ShardPathExpression(indexShard));
-        builder.put(SysShardsTableInfo.ReferenceIdents.BLOB_PATH, new LiteralNestableInput<>(null));
-        builder.put(
-            SysShardsTableInfo.ReferenceIdents.MIN_LUCENE_VERSION,
-            new ShardMinLuceneVersionExpression(indexShard));
-        builder.put(SysShardsTableInfo.ReferenceIdents.RECOVERY, new ShardRecoveryExpression(indexShard));
-        builder.put(SysShardsTableInfo.ReferenceIdents.NODE, new NodeNestableInput(clusterService.localNode()));
-        return new MapBackedRefResolver(builder.build());
-    }
-
-    private static void addPartitions(Index index,
-                                      Schemas schemas,
-                                      ImmutableMap.Builder<ReferenceIdent, NestableInput> builder) {
         PartitionName partitionName;
         try {
             partitionName = PartitionName.fromIndexOrTemplate(index.getName());
@@ -135,5 +89,31 @@ public class ShardReferenceResolver {
         } catch (ResourceUnknownException e) {
             LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, relationName.fqn());
         }
+        return new MapBackedRefResolver(builder.build());
+    }
+
+    private final ShardRowContext shardRowContext;
+    private final ReferenceResolver<NestableInput<?>> partitionColumnResolver;
+
+    public ShardReferenceResolver(Schemas schemas, ShardRowContext shardRowContext) {
+        this.shardRowContext = shardRowContext;
+        IndexParts indexParts = shardRowContext.indexParts();
+        if (indexParts.isPartitioned()) {
+            partitionColumnResolver = createPartitionColumnResolver(
+                shardRowContext.indexShard().shardId().getIndex(), schemas);
+        } else {
+            partitionColumnResolver = EMPTY_RESOLVER;
+        }
+    }
+
+    @Override
+    public NestableInput<?> getImplementation(Reference ref) {
+        NestableInput<?> partitionColImpl = partitionColumnResolver.getImplementation(ref);
+        if (partitionColImpl != null) {
+            return partitionColImpl;
+        }
+        NestableCollectExpression<ShardRowContext, ?> impl = SHARD_REFERENCE_RESOLVER_DELEGATE.getImplementation(ref);
+        impl.setNextRow(shardRowContext);
+        return impl;
     }
 }
