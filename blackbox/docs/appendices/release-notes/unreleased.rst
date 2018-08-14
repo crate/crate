@@ -20,3 +20,6 @@ Changes
 
 Fixes
 =====
+
+- Fixed correct processing of the ``operator`` option of the ``MATCH``
+  predicate.

@@ -434,4 +434,20 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             is("+*:* -(+ts:[1129224512000 TO 1129224512000])")
         );
     }
+
+    @Test
+    public void testMatchWithOperator() {
+        assertThat(
+            convert("match(tags, 'foo bar') using best_fields with (operator='and')").toString(),
+            is("+tags:foo +tags:bar")
+        );
+    }
+
+    @Test
+    public void testMultiMatchWithOperator() {
+        assertThat(
+            convert("match((tags, name), 'foo bar') using best_fields with (operator='and')").toString(),
+            is("(name:foo bar | (+tags:foo +tags:bar))")
+        );
+    }
 }

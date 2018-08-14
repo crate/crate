@@ -105,6 +105,7 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
     public void prepare() throws Exception {
         DocTableInfo users = TestingTableInfo.builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "users"), null)
             .add("name", DataTypes.STRING)
+            .add("tags", DataTypes.STRING, null, ColumnPolicy.DYNAMIC, Reference.IndexType.ANALYZED, false, false)
             .add("x", DataTypes.INTEGER, null, ColumnPolicy.DYNAMIC, Reference.IndexType.NOT_ANALYZED, false, false)
             .add("d", DataTypes.DOUBLE)
             .add("d_array", new ArrayType(DataTypes.DOUBLE))
@@ -141,6 +142,7 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
             .startObject("default")
                 .startObject("properties")
                     .startObject("name").field("type", "keyword").endObject()
+                    .startObject("tags").field("type", "text").endObject()
                     .startObject("x").field("type", "integer").endObject()
                     .startObject("d").field("type", "double").endObject()
                     .startObject("point").field("type", "geo_point").endObject()
