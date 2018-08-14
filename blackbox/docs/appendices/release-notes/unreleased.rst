@@ -113,5 +113,8 @@ Changes
 Fixes
 =====
 
+- Fixed correct processing of the ``operator`` option of the ``MATCH``
+  predicate.
+
 - Fixed syntax support for certain ``ALTER BLOB TABLE RENAME``, ``REROUTE``
   and ``OPEN/CLOSE`` queries.

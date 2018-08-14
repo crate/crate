@@ -69,6 +69,7 @@ public final class MatchQueries {
         matchQuery.setPhraseSlop(parsedOptions.phraseSlop());
         matchQuery.setTranspositions(parsedOptions.transpositions());
         matchQuery.setZeroTermsQuery(parsedOptions.zeroTermsQuery());
+        matchQuery.setOccur(parsedOptions.operator());
 
         MatchQuery.Type matchQueryType = type.matchQueryType();
         return matchQuery.parse(matchQueryType, fieldName, queryString.utf8ToString());
@@ -99,6 +100,8 @@ public final class MatchQueries {
         multiMatchQuery.setPhraseSlop(parsedOptions.phraseSlop());
         multiMatchQuery.setTranspositions(parsedOptions.transpositions());
         multiMatchQuery.setZeroTermsQuery(parsedOptions.zeroTermsQuery());
+        multiMatchQuery.setOccur(parsedOptions.operator());
+
         return multiMatchQuery.parse(type, fieldNames, queryString, parsedOptions.minimumShouldMatch());
     }
 
