@@ -620,6 +620,7 @@ public class JobSetup extends AbstractComponent {
                         RamAccountingContext.forExecutionPhase(breaker(), phase))),
                 DataTypes.getStreamers(phase.inputTypes()),
                 ramAccountingContext,
+                BucketReceiverFactory.Type.MERGE_BUCKETS,
                 phase.numUpstreams()
             ));
             return true;
@@ -737,8 +738,8 @@ public class JobSetup extends AbstractComponent {
                 joinTaskLogger,
                 phase,
                 joinOperation,
-                left,
-                right
+                left != null ? left.getBucketReceiver((byte) 0) : null,
+                right != null ? right.getBucketReceiver((byte) 0) : null
             ));
             return true;
         }
@@ -793,8 +794,8 @@ public class JobSetup extends AbstractComponent {
                 joinTaskLogger,
                 phase,
                 joinOperation,
-                left,
-                right
+                left != null ? left.getBucketReceiver((byte) 0) : null,
+                right != null ? right.getBucketReceiver((byte) 0) : null
             ));
             return true;
         }
@@ -837,6 +838,7 @@ public class JobSetup extends AbstractComponent {
                         RamAccountingContext.forExecutionPhase(breaker(), mergePhase))),
                 StreamerVisitor.streamersFromOutputs(mergePhase),
                 ramAccountingContext,
+                BucketReceiverFactory.Type.MERGE_BUCKETS,
                 mergePhase.numUpstreams()
             );
         }

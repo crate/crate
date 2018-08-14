@@ -29,6 +29,7 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
+import io.crate.execution.jobs.BucketReceiverFactory;
 import io.crate.execution.jobs.DistResultRXTask;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
@@ -178,6 +179,7 @@ public class RemoteCollector {
             pagingIterator,
             DataTypes.getStreamers(collectPhase.outputTypes()),
             ramAccountingContext,
+            BucketReceiverFactory.Type.MERGE_BUCKETS,
             1
         ));
         return builder;

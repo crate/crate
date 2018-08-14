@@ -38,7 +38,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
@@ -48,14 +47,11 @@ import java.util.concurrent.RejectedExecutionException;
  * A {@link DownstreamRXTask} which receives paged buckets from upstreams
  * and forwards the merged bucket results to the consumers for further processing.
  */
-public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, PageBucketReceiver {
+public class DistResultRXTask extends AbstractTask implements DownstreamRXTask {
 
     private final String name;
     private final Object lock = new Object();
-    private final String nodeName;
-    private final boolean traceEnabled;
     private final Executor executor;
-    private final Streamer<?>[] streamers;
     private final RamAccountingContext ramAccountingContext;
     private final int numBuckets;
     private final Set<Integer> buckets;
@@ -65,8 +61,9 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
     private final Map<Integer, Bucket> bucketsByIdx;
     private final RowConsumer consumer;
     private final BatchPagingIterator<Integer> batchPagingIterator;
+    private final PageBucketReceiver pageBucketReceiver;
 
-    private Throwable lastThrowable = null;
+    private Throwable[] lastThrowable = new Throwable[1];
     private volatile boolean receivingFirstPage = true;
 
     public DistResultRXTask(Logger logger,
@@ -78,16 +75,14 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
                             PagingIterator<Integer, Row> pagingIterator,
                             Streamer<?>[] streamers,
                             RamAccountingContext ramAccountingContext,
+                            BucketReceiverFactory.Type bucketReceiverType,
                             int numBuckets) {
         super(id, logger);
-        this.nodeName = nodeName;
         this.name = name;
         this.executor = executor;
-        this.streamers = streamers;
         this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;
         this.buckets = new HashSet<>(numBuckets);
-        traceEnabled = logger.isTraceEnabled();
         this.exhausted = new HashSet<>(numBuckets);
         this.pagingIterator = pagingIterator;
         this.bucketsByIdx = new HashMap<>(numBuckets);
@@ -99,6 +94,12 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
             () -> releaseListenersAndCloseContext(null)
         );
         this.consumer = rowConsumer;
+        if (bucketReceiverType.equals(BucketReceiverFactory.Type.MERGE_BUCKETS)) {
+            pageBucketReceiver = BucketReceiverFactory.createMergeBucketsReceiver(logger, nodeName, id, streamers, buckets,
+                exhausted, bucketsByIdx, listenersByBucketIdx, this::kill, this::triggerConsumer, this::merge, lastThrowable, numBuckets);
+        } else {
+            throw new IllegalArgumentException("We only support merge buckets result receivers");
+        }
     }
 
     private void releaseListenersAndCloseContext(@Nullable Throwable throwable) {
@@ -115,43 +116,6 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
         return exhausted.size() == numBuckets;
     }
 
-    @Override
-    public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
-        synchronized (buckets) {
-            buckets.add(bucketIdx);
-            if (lastThrowable == null) {
-                listenersByBucketIdx.put(bucketIdx, pageResultListener);
-            } else {
-                pageResultListener.needMore(false);
-            }
-        }
-        boolean shouldTriggerConsumer = false;
-        synchronized (lock) {
-            traceLog("method=setBucket", bucketIdx);
-
-            if (bucketsByIdx.putIfAbsent(bucketIdx, rows) != null) {
-                kill(new IllegalStateException(String.format(Locale.ENGLISH,
-                    "Same bucket of a page set more than once. node=%s method=setBucket phaseId=%d bucket=%d",
-                    nodeName, id, bucketIdx)));
-            }
-            setExhaustedUpstreams();
-            if (isLast) {
-                exhausted.add(bucketIdx);
-            }
-            if (bucketsByIdx.size() == numBuckets) {
-                shouldTriggerConsumer = true;
-            }
-        }
-        if (shouldTriggerConsumer) {
-            mergeAndTriggerConsumer();
-        } else if (isLast) {
-            // release listener early here, otherwise other upstreams will be blocked
-            // e.g. if 2 downstream contexts are used in the chain
-            //      Phase -> DistributingDownstream -> Phase -> DistributingDownstream
-            pageResultListener.needMore(false);
-        }
-    }
-
     private void triggerConsumer() {
         boolean invokeConsumer = false;
         Throwable throwable;
@@ -160,7 +124,7 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
                 receivingFirstPage = false;
                 invokeConsumer = true;
             }
-            throwable = lastThrowable;
+            throwable = lastThrowable[0];
         }
         final Throwable error = throwable;
         if (invokeConsumer) {
@@ -183,9 +147,16 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
         }
     }
 
-    private void mergeAndTriggerConsumer() {
+    private void merge(Map<Integer, Bucket> bucketsByIdx) {
         try {
-            mergeBuckets();
+            List<KeyIterable<Integer, Row>> buckets = new ArrayList<>(numBuckets);
+            synchronized (lock) {
+                for (Map.Entry<Integer, Bucket> entry : bucketsByIdx.entrySet()) {
+                    buckets.add(new KeyIterable<>(entry.getKey(), entry.getValue()));
+                }
+                bucketsByIdx.clear();
+            }
+            pagingIterator.merge(buckets);
         } catch (Throwable t) {
             innerKill(t);
             // the iterator already returned it's loadNextBatch future, we must complete it exceptionally
@@ -195,18 +166,6 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
         if (allUpstreamsExhausted()) {
             pagingIterator.finish();
         }
-        triggerConsumer();
-    }
-
-    private void mergeBuckets() {
-        List<KeyIterable<Integer, Row>> buckets = new ArrayList<>(numBuckets);
-        synchronized (lock) {
-            for (Map.Entry<Integer, Bucket> entry : bucketsByIdx.entrySet()) {
-                buckets.add(new KeyIterable<>(entry.getKey(), entry.getValue()));
-            }
-            bucketsByIdx.clear();
-        }
-        pagingIterator.merge(buckets);
     }
 
     private boolean fetchMore(Integer exhaustedBucket) {
@@ -246,77 +205,8 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
         }
     }
 
-    private void traceLog(String msg, int bucketIdx) {
-        if (traceEnabled) {
-            logger.trace("{} phaseId={} bucket={}", msg, id, bucketIdx);
-        }
-    }
-
-    private void traceLog(String msg, int bucketIdx, Throwable t) {
-        if (traceEnabled) {
-            logger.trace("{} phaseId={} bucket={} throwable={}", msg, id, bucketIdx, t);
-        }
-    }
-
-    @Override
-    public void failure(int bucketIdx, Throwable throwable) {
-        traceLog("method=failure", bucketIdx, throwable);
-
-        boolean shouldTriggerConsumer;
-        synchronized (lock) {
-            if (bucketsByIdx.putIfAbsent(bucketIdx, Bucket.EMPTY) != null) {
-                kill(new IllegalStateException(String.format(Locale.ENGLISH,
-                    "Same bucket of a page set more than once. node=%s method=failure phaseId=%d bucket=%d",
-                    nodeName, id(), bucketIdx)));
-                return;
-            }
-            shouldTriggerConsumer = setBucketFailure(bucketIdx, throwable);
-        }
-        if (shouldTriggerConsumer) {
-            triggerConsumer();
-        }
-    }
-
-    @Override
-    public void killed(int bucketIdx, Throwable throwable) {
-        traceLog("method=killed", bucketIdx, throwable);
-
-        boolean shouldTriggerConsumer;
-        synchronized (lock) {
-            if (bucketsByIdx.putIfAbsent(bucketIdx, Bucket.EMPTY) != null) {
-                traceLog("method=killed future already set", bucketIdx);
-                return;
-            }
-            shouldTriggerConsumer = setBucketFailure(bucketIdx, throwable);
-        }
-        if (shouldTriggerConsumer) {
-            triggerConsumer();
-        }
-    }
-
-    private boolean setBucketFailure(int bucketIdx, Throwable throwable) {
-        // can't trigger failure on pageDownstream immediately as it would remove the context which the other
-        // upstreams still require
-
-        lastThrowable = throwable;
-        exhausted.add(bucketIdx);
-        return bucketsByIdx.size() == numBuckets;
-    }
-
-    /**
-     * need to set the futures of all upstreams that are exhausted as there won't come any more buckets from those upstreams
-     */
-    private void setExhaustedUpstreams() {
-        exhausted.forEach(this::setToEmptyBucket);
-    }
-
     private void setToEmptyBucket(int idx) {
         bucketsByIdx.putIfAbsent(idx, Bucket.EMPTY);
-    }
-
-    @Override
-    public Streamer<?>[] streamers() {
-        return streamers;
     }
 
     @Override
@@ -329,7 +219,7 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
     protected void innerKill(@Nonnull Throwable t) {
         boolean shouldTriggerConsumer = false;
         synchronized (lock) {
-            lastThrowable = t;
+            lastThrowable[0] = t;
             batchPagingIterator.kill(t); // this causes a already active consumer to fail
             batchPagingIterator.close();
             if (receivingFirstPage) {
@@ -349,7 +239,7 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
         // there won't be any executionNodes for that collectPhase
         // -> no upstreams -> just finish
         if (numBuckets == 0) {
-            consumer.accept(batchPagingIterator, lastThrowable);
+            consumer.accept(batchPagingIterator, lastThrowable[0]);
         }
     }
 
@@ -376,6 +266,6 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask, 
     @Nullable
     @Override
     public PageBucketReceiver getBucketReceiver(byte inputId) {
-        return this;
+        return pageBucketReceiver;
     }
 }
