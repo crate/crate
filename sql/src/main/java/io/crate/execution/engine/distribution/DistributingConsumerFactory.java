@@ -26,6 +26,7 @@ import io.crate.Streamer;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
+import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.StreamerVisitor;
 import org.apache.logging.log4j.Logger;
@@ -118,7 +119,7 @@ public class DistributingConsumerFactory extends AbstractComponent {
      * but they don't care which node ends up with which bucketIdx.
      * </p>
      *
-     * See {@link io.crate.execution.jobs.PageBucketReceiver}
+     * See {@link PageBucketReceiver}
      */
     private int getBucketIdx(Collection<String> nodeIds, byte phaseInputId) {
         ArrayList<String> server = new ArrayList<>(nodeIds);

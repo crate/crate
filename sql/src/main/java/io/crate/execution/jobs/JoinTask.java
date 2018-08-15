@@ -32,21 +32,21 @@ class JoinTask extends AbstractTask implements DownstreamRXTask {
     private final JoinPhase joinPhase;
 
     @Nullable
-    private final PageBucketReceiver leftBucketReceiver;
+    private final PageBucketReceiver leftPageBucketReceiver;
 
     @Nullable
-    private final PageBucketReceiver rightBucketReceiver;
+    private final PageBucketReceiver rightPageBucketReceiver;
 
     JoinTask(Logger logger,
              JoinPhase joinPhase,
              CompletionListenable<?> completionListenable,
-             @Nullable PageBucketReceiver leftBucketReceiver,
-             @Nullable PageBucketReceiver rightBucketReceiver) {
+             @Nullable PageBucketReceiver leftPageBucketReceiver,
+             @Nullable PageBucketReceiver rightPageBucketReceiver) {
         super(joinPhase.phaseId(), logger);
 
         this.joinPhase = joinPhase;
-        this.leftBucketReceiver = leftBucketReceiver;
-        this.rightBucketReceiver = rightBucketReceiver;
+        this.leftPageBucketReceiver = leftPageBucketReceiver;
+        this.rightPageBucketReceiver = rightPageBucketReceiver;
 
         completionListenable.completionFuture()
             .whenComplete((Object result, Throwable t) -> close(t));
@@ -71,17 +71,17 @@ class JoinTask extends AbstractTask implements DownstreamRXTask {
     public PageBucketReceiver getBucketReceiver(byte inputId) {
         assert inputId < 2 : "Only 0 and 1 inputId's supported";
         if (inputId == 0) {
-            return leftBucketReceiver;
+            return leftPageBucketReceiver;
         }
-        return rightBucketReceiver;
+        return rightPageBucketReceiver;
     }
 
     @Override
     public String toString() {
         return "JoinTask{" +
                "id=" + id() +
-               ", leftCtx=" + leftBucketReceiver +
-               ", rightCtx=" + rightBucketReceiver +
+               ", leftCtx=" + leftPageBucketReceiver +
+               ", rightCtx=" + rightPageBucketReceiver +
                ", closed=" + isClosed() +
                '}';
     }

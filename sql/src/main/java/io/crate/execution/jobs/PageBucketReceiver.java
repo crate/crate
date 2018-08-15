@@ -23,14 +23,17 @@
 package io.crate.execution.jobs;
 
 import io.crate.Streamer;
+import io.crate.concurrent.CompletionListenable;
 import io.crate.data.Bucket;
+import io.crate.data.Killable;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.engine.distribution.DistributingConsumerFactory;
 
 import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * A component which receives buckets from one or more upstreams and merges them together.
+ * A component which receives buckets from one or more upstreams.
  *
  * <pre>
  *
@@ -38,11 +41,11 @@ import java.util.Collection;
  *     | n1 |    | n2 |
  *     +----+    +----+
  *        \        /
- *         Downstream ({@link io.crate.execution.jobs.PageBucketReceiver} (usually created from {@link MergePhase}))
+ *         Downstream ({@link PageBucketReceiver} (usually created from {@link MergePhase}))
  *
  *  For example:
  *
- *   PageBucketReceiver has 2 upstream, so it expects 2 buckets.
+ *   BucketReceiver has 2 upstream, so it expects 2 buckets.
  *
  *   n1: sends bucket with bucketIdx=0
  *   n2: sends bucket with bucketIdx=1
@@ -50,12 +53,13 @@ import java.util.Collection;
  *  (bucketIdx definition is up to the upstreams, but it needs to be deterministic,
  *  see {@link DistributingConsumerFactory#getBucketIdx(Collection, byte)}
  *
- *   Once PageBucketReceiver has received all parts of a "Page" (in this case 2 buckets),
- *   it has to call {@link PageResultListener#needMore(boolean)} to indicate if it's done or that more data is needed.
+ *   Once PageBucketReceiver has received all parts needed for processing (implementations could opt to process each
+ *   bucket independently or wait for all parts of a "Page", in this particular case 2 buckets) it has to call
+ *   {@link PageResultListener#needMore(boolean)} to indicate if it's done or that more data is needed.
  * </pre>
  *
  */
-public interface PageBucketReceiver {
+public interface PageBucketReceiver extends CompletionListenable, Killable {
 
     /**
      * Receives a bucket from an upstream which holds result data. This method should be
@@ -68,9 +72,31 @@ public interface PageBucketReceiver {
      */
     void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener);
 
-    void failure(int bucketIdx, Throwable throwable);
+    /**
+     * Each buckedId has an associated {@link PageResultListener} and for each listener this will signal no more data
+     * is needed using {@link PageResultListener#needMore}.
+     * Implementations should make sure the upstream is notified when all data is consumed or if an error that causes
+     * the interruption of data processing is encountered.
+     */
+    void releasePageResultListeners();
 
     void killed(int bucketIdx, Throwable throwable);
 
     Streamer<?>[] streamers();
+
+    /**
+     * Returns a future that will complete successfully when the all data is processed (operation is complete). It will
+     * complete exceptionally when the processing of data failed and the operation needs to be stopped. This is
+     * typically the place where the {@link PageResultListener}s should be released (using
+     * {@link #releasePageResultListeners}) and dependant clients notified.
+     */
+    CompletableFuture<?> completionFuture();
+
+    /**
+     * After the buckets have been received (or the the entire "page") this will actually start the consumption of the
+     * rows. It will usually be called internally by the implementations and is exposed in case there are times where
+     * the consumption can start immediately (eg. we expect 0 buckets)
+     */
+    void consumeRows();
+
 }

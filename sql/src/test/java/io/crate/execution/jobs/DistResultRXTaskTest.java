@@ -67,15 +67,22 @@ public class DistResultRXTaskTest extends CrateUnitTest {
     private DistResultRXTask getPageDownstreamContext(TestingRowConsumer batchConsumer,
                                                       PagingIterator<Integer, Row> pagingIterator,
                                                       int numBuckets) {
-        return new DistResultRXTask(
+
+        PageBucketReceiver pageBucketReceiver = new CumulativePageBucketReceiver(
             Loggers.getLogger(DistResultRXTask.class),
             "n1",
             1,
-            "dummy",
             MoreExecutors.directExecutor(),
+            new Streamer[1],
             batchConsumer,
             pagingIterator,
-            new Streamer[1],
+            numBuckets);
+
+        return new DistResultRXTask(
+            Loggers.getLogger(DistResultRXTask.class),
+            1,
+            "dummy",
+            pageBucketReceiver,
             RAM_ACCOUNTING_CONTEXT,
             numBuckets
         );
@@ -85,7 +92,7 @@ public class DistResultRXTaskTest extends CrateUnitTest {
     public void testCantSetSameBucketTwiceWithoutReceivingFullPage() throws Throwable {
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
 
-        PageBucketReceiver ctx = getPageDownstreamContext(batchConsumer, PassThroughPagingIterator.oneShot(), 3);
+        DistResultRXTask ctx = getPageDownstreamContext(batchConsumer, PassThroughPagingIterator.oneShot(), 3);
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
@@ -165,7 +172,7 @@ public class DistResultRXTaskTest extends CrateUnitTest {
 
         PageResultListener listener = mock(PageResultListener.class);
         ctx.setBucket(0, Bucket.EMPTY, false, listener);
-        ctx.failure(1, new Exception("dummy"));
+        ctx.killed(1, new Exception("dummy"));
 
         verify(listener, times(1)).needMore(false);
     }
@@ -175,7 +182,7 @@ public class DistResultRXTaskTest extends CrateUnitTest {
         TestingRowConsumer consumer = new TestingRowConsumer();
         DistResultRXTask ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
 
-        ctx.failure(0, new Exception("dummy"));
+        ctx.killed(0, new Exception("dummy"));
         PageResultListener listener = mock(PageResultListener.class);
         ctx.setBucket(1, Bucket.EMPTY, true, listener);
 
@@ -232,7 +239,7 @@ public class DistResultRXTaskTest extends CrateUnitTest {
     public void testBatchIteratorIsCompletedExceptionallyIfMergeBucketFails() throws Exception {
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
 
-        PageBucketReceiver ctx = getPageDownstreamContext(batchConsumer, new FailOnMergePagingIterator<>(2), 2);
+        DistResultRXTask ctx = getPageDownstreamContext(batchConsumer, new FailOnMergePagingIterator<>(2), 2);
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));

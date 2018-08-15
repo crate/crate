@@ -28,7 +28,9 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
+import io.crate.execution.jobs.CumulativePageBucketReceiver;
 import io.crate.execution.jobs.DistResultRXTask;
+import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.FailingBatchIterator;
@@ -142,18 +144,24 @@ public class DistributingConsumerTest extends CrateUnitTest {
     }
 
     private DistResultRXTask createPageDownstreamContext(Streamer<?>[] streamers, TestingRowConsumer collectingConsumer) {
+        PageBucketReceiver pageBucketReceiver = new CumulativePageBucketReceiver(
+            Loggers.getLogger(DistResultRXTask.class),
+            "n1",
+            1,
+            MoreExecutors.directExecutor(),
+            streamers,
+            collectingConsumer,
+            PassThroughPagingIterator.oneShot(),
+            1);
+
         return new DistResultRXTask(
-                logger,
-                "n1",
-                1,
-                "dummy",
-                MoreExecutors.directExecutor(),
-                collectingConsumer,
-                PassThroughPagingIterator.oneShot(),
-                streamers,
-                new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
-                1
-            );
+            logger,
+            1,
+            "dummy",
+            pageBucketReceiver,
+            new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
+            1
+        );
     }
 
     private TransportDistributedResultAction createFakeTransport(Streamer<?>[] streamers, DistResultRXTask distResultRXTask) {
@@ -171,11 +179,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
                     resultRequest.isLast(),
                     needMore -> listener.onResponse(new DistributedResultResponse(needMore)));
             } else {
-                if (resultRequest.isKilled()) {
-                    distResultRXTask.killed(resultRequest.bucketIdx(), throwable);
-                } else {
-                    distResultRXTask.failure(resultRequest.bucketIdx(), throwable);
-                }
+                distResultRXTask.killed(resultRequest.bucketIdx(), throwable);
             }
             return null;
         }).when(distributedResultAction).pushResult(anyString(), any(), any());

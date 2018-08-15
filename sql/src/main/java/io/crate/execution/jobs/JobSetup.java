@@ -604,12 +604,12 @@ public class JobSetup extends AbstractComponent {
                 return true;
             }
 
-            context.registerSubContext(new DistResultRXTask(
+            PageBucketReceiver pageBucketReceiver = new CumulativePageBucketReceiver(
                 distResultRXTaskLogger,
                 nodeName(),
                 phase.phaseId(),
-                phase.name(),
                 searchTp,
+                DataTypes.getStreamers(phase.inputTypes()),
                 consumer,
                 PagingIterator.create(
                     phase.numUpstreams(),
@@ -618,7 +618,13 @@ public class JobSetup extends AbstractComponent {
                     () -> new RowAccountingWithEstimators(
                         phase.inputTypes(),
                         RamAccountingContext.forExecutionPhase(breaker(), phase))),
-                DataTypes.getStreamers(phase.inputTypes()),
+                phase.numUpstreams());
+
+            context.registerSubContext(new DistResultRXTask(
+                distResultRXTaskLogger,
+                phase.phaseId(),
+                phase.name(),
+                pageBucketReceiver,
                 ramAccountingContext,
                 phase.numUpstreams()
             ));
@@ -737,8 +743,8 @@ public class JobSetup extends AbstractComponent {
                 joinTaskLogger,
                 phase,
                 joinOperation,
-                left,
-                right
+                left != null ? left.getBucketReceiver((byte) 0) : null,
+                right != null ? right.getBucketReceiver((byte) 0) : null
             ));
             return true;
         }
@@ -793,8 +799,8 @@ public class JobSetup extends AbstractComponent {
                 joinTaskLogger,
                 phase,
                 joinOperation,
-                left,
-                right
+                left != null ? left.getBucketReceiver((byte) 0) : null,
+                right != null ? right.getBucketReceiver((byte) 0) : null
             ));
             return true;
         }
@@ -821,12 +827,13 @@ public class JobSetup extends AbstractComponent {
                     projectorFactory
                 );
             }
-            return new DistResultRXTask(
+
+            PageBucketReceiver pageBucketReceiver = new CumulativePageBucketReceiver(
                 distResultRXTaskLogger,
                 nodeName(),
                 mergePhase.phaseId(),
-                mergePhase.name(),
                 searchTp,
+                StreamerVisitor.streamersFromOutputs(mergePhase),
                 rowConsumer,
                 PagingIterator.create(
                     mergePhase.numUpstreams(),
@@ -835,7 +842,13 @@ public class JobSetup extends AbstractComponent {
                     () -> new RowAccountingWithEstimators(
                         mergePhase.inputTypes(),
                         RamAccountingContext.forExecutionPhase(breaker(), mergePhase))),
-                StreamerVisitor.streamersFromOutputs(mergePhase),
+                mergePhase.numUpstreams());
+
+            return new DistResultRXTask(
+                distResultRXTaskLogger,
+                mergePhase.phaseId(),
+                mergePhase.name(),
+                pageBucketReceiver,
                 ramAccountingContext,
                 mergePhase.numUpstreams()
             );

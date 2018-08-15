@@ -25,8 +25,8 @@ package io.crate.execution.engine.distribution;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.TaskMissing;
-import io.crate.execution.jobs.DownstreamRXTask;
 import io.crate.execution.jobs.PageBucketReceiver;
+import io.crate.execution.jobs.DownstreamRXTask;
 import io.crate.execution.jobs.PageResultListener;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
@@ -154,11 +154,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
             );
             return pageResultListener.future;
         } else {
-            if (request.isKilled()) {
-                pageBucketReceiver.killed(request.bucketIdx(), throwable);
-            } else {
-                pageBucketReceiver.failure(request.bucketIdx(), throwable);
-            }
+            pageBucketReceiver.killed(request.bucketIdx(), throwable);
             return CompletableFuture.completedFuture(new DistributedResultResponse(false));
         }
     }
