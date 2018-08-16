@@ -55,9 +55,13 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     private Session testUserSession() {
+        return testUserSession(null);
+    }
+
+    private Session testUserSession(String defaultSchema) {
         User user = userManager.findUser(TEST_USERNAME);
         assertThat(user, notNullValue());
-        return sqlOperations.createSession(null, user);
+        return sqlOperations.createSession(defaultSchema, user);
     }
 
     @Before
@@ -350,4 +354,31 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
                                                        "is currently closed."));
         execute("refresh table s.t1", null, testUserSession());
     }
+
+    @Test
+    public void testPermissionsValidOnTableAlias() {
+        executeAsSuperuser("create table s.t1 (x int)");
+
+        executeAsSuperuser("grant dql on schema s to " + TEST_USERNAME);
+        executeAsSuperuser("deny dql on schema doc to " + TEST_USERNAME);
+        assertThat(response.rowCount(), is(1L));
+        ensureYellow();
+
+        execute("select t.x from t1 as t", null, testUserSession("s"));
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void testPermissionsValidOnSubselectAlias() {
+        executeAsSuperuser("create table s.t1 (x int)");
+
+        executeAsSuperuser("grant dql on schema s to " + TEST_USERNAME);
+        executeAsSuperuser("deny dql on schema doc to " + TEST_USERNAME);
+        assertThat(response.rowCount(), is(1L));
+        ensureYellow();
+
+        execute("select t.x from (select x from t1) as t", null, testUserSession("s"));
+        assertThat(response.rowCount(), is(0L));
+    }
+
 }

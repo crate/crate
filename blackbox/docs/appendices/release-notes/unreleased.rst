@@ -21,5 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue where, when checking the privileges of an aliased relation,
+  the default schema of "doc" would always be used, rather than the default
+  schema of the current session.
+
 - Fixed correct processing of the ``operator`` option of the ``MATCH``
   predicate.

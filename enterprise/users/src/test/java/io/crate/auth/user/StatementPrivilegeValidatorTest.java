@@ -28,6 +28,7 @@ import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.cluster.DDLClusterStateService;
@@ -80,14 +81,14 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
 
         user = new User("normal", ImmutableSet.of(), ImmutableSet.of(), null) {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
                 validationCallArguments.add(Lists.newArrayList(type, clazz, ident, user.name()));
                 return true;
             }
         };
         superUser = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of(), null) {
             @Override
-            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident, String defaultSchema) {
                 validationCallArguments.add(Lists.newArrayList(type, clazz, ident, superUser.name()));
                 return true;
             }
@@ -124,8 +125,8 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     private void analyze(String stmt, User user) {
         e.analyzer.boundAnalyze(SqlParser.createStatement(stmt),
             new TransactionContext(new SessionContext(0, Option.NONE, null, user,
-                userManager.getStatementValidator(user),
-                userManager.getExceptionValidator(user))), ParameterContext.EMPTY);
+                userManager.getStatementValidator(user, Schemas.DOC_SCHEMA_NAME),
+                userManager.getExceptionValidator(user, Schemas.DOC_SCHEMA_NAME))), ParameterContext.EMPTY);
     }
 
     @SuppressWarnings("unchecked")

@@ -32,12 +32,13 @@ import javax.annotation.Nullable;
 class Privileges {
 
     /**
-     * Checks if the user the concrete privilege for the given class and ident, if not raise exception.
+     * Checks if the user the concrete privilege for the given class, ident and default schema, if not raise exception.
      */
     static void ensureUserHasPrivilege(Privilege.Type type,
                                        Privilege.Clazz clazz,
                                        @Nullable String ident,
-                                       User user) throws MissingPrivilegeException {
+                                       User user,
+                                       String defaultSchema) throws MissingPrivilegeException {
         assert user != null : "User must not be null when trying to validate privileges";
         assert type != null : "Privilege type must not be null";
 
@@ -46,7 +47,7 @@ class Privileges {
             return;
         }
         //noinspection PointlessBooleanExpression
-        if (user.hasPrivilege(type, clazz, ident) == false) {
+        if (user.hasPrivilege(type, clazz, ident, defaultSchema) == false) {
             boolean objectIsVisibleToUser = user.hasAnyPrivilege(clazz, ident);
             if (objectIsVisibleToUser) {
                 throw new MissingPrivilegeException(user.name(), type);

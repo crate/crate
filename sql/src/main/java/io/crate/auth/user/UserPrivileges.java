@@ -120,7 +120,8 @@ class UserPrivileges implements Iterable<Privilege> {
      */
     boolean matchPrivilege(@Nullable Privilege.Type type,
                            Privilege.Clazz clazz,
-                           @Nullable String ident) {
+                           @Nullable String ident,
+                           String defaultSchema) {
         Privilege foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, clazz, ident));
         if (foundPrivilege == null) {
             switch (clazz) {
@@ -129,7 +130,7 @@ class UserPrivileges implements Iterable<Privilege> {
                     break;
                 case TABLE:
                 case VIEW:
-                    String schemaIdent = new IndexParts(ident).getSchema();
+                    String schemaIdent = new IndexParts(ident, defaultSchema).getSchema();
                     foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.SCHEMA, schemaIdent));
                     if (foundPrivilege == null) {
                         foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.CLUSTER, null));

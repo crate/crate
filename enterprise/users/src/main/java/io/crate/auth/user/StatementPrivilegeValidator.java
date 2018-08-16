@@ -87,15 +87,17 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
     private final UserLookup userLookup;
     private final User user;
+    private final String defaultSchema;
 
-    StatementPrivilegeValidator(UserLookup userLookup, User user) {
+    StatementPrivilegeValidator(UserLookup userLookup, User user, String defaultSchema) {
         this.userLookup = userLookup;
         this.user = user;
+        this.defaultSchema = defaultSchema;
     }
 
     @Override
     public void ensureStatementAuthorized(AnalyzedStatement statement) {
-        new StatementVisitor(userLookup).process(statement, user);
+        new StatementVisitor(userLookup, defaultSchema).process(statement, user);
     }
 
     private static void throwUnauthorized(String userName) {
@@ -106,9 +108,11 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
     private static final class StatementVisitor extends AnalyzedStatementVisitor<User, Void> {
 
         private final RelationVisitor relationVisitor;
+        private final String defaultSchema;
 
-        public StatementVisitor(UserLookup userLookup) {
-            this.relationVisitor = new RelationVisitor(userLookup);
+        public StatementVisitor(UserLookup userLookup, String defaultSchema) {
+            this.relationVisitor = new RelationVisitor(userLookup, defaultSchema);
+            this.defaultSchema = defaultSchema;
         }
 
         private void visitRelation(AnalyzedRelation relation, User user, Privilege.Type type) {
@@ -172,7 +176,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 analysis.table().ident().toString(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -182,7 +187,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DML,
                 Privilege.Clazz.TABLE,
                 analysis.table().ident().toString(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -198,7 +204,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
                 analysis.tableIdent().schema(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -208,7 +215,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -224,7 +232,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DML,
                 Privilege.Clazz.TABLE,
                 analysis.tableInfo().ident().toString(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -234,7 +243,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DML,
                 Privilege.Clazz.TABLE,
                 analysis.tableInfo().ident().toString(),
-                user);
+                user,
+                defaultSchema);
             visitRelation(analysis.subQueryRelation(), user, Privilege.Type.DQL);
             return null;
         }
@@ -257,7 +267,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
                 analysis.schema(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -267,7 +278,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
                 analysis.schema(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -277,7 +289,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 analysis.tableIdent().toString(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -287,7 +300,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -297,7 +311,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
                 analysis.tableIdent().schema(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -307,7 +322,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 analysis.tableIdent().toString(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -330,7 +346,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                     Privilege.Type.DQL,
                     Privilege.Clazz.TABLE,
                     tableName,
-                    user);
+                    user,
+                    defaultSchema);
             }
             return null;
         }
@@ -341,7 +358,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 analysis.sourceTableInfo().toString(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -351,7 +369,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 analysis.table().ident().toString(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -370,7 +389,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 analysis.table().ident().toString(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -380,7 +400,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 analysis.tableInfo().ident().toString(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -401,7 +422,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DQL,
                 Privilege.Clazz.TABLE,
                 analysis.tableInfo().ident().toString(),
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -411,7 +433,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -421,7 +444,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -431,7 +455,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -441,7 +466,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
                 null,
-                user);
+                user,
+                defaultSchema);
             return null;
         }
 
@@ -467,8 +493,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
                 createViewStmt.name().schema(),
-                user
-            );
+                user,
+                defaultSchema);
             visitRelation(createViewStmt.query(), user, Privilege.Type.DQL);
             return null;
         }
@@ -480,8 +506,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                     Privilege.Type.DDL,
                     Privilege.Clazz.VIEW,
                     name.toString(),
-                    user
-                );
+                    user,
+                    defaultSchema);
             }
             return null;
         }
@@ -502,9 +528,11 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
     private static final class RelationVisitor extends AnalyzedRelationVisitor<RelationContext, Void> {
 
         private final UserLookup userLookup;
+        private final String defaultSchema;
 
-        public RelationVisitor(UserLookup userLookup) {
+        public RelationVisitor(UserLookup userLookup, String defaultSchema) {
             this.userLookup = userLookup;
+            this.defaultSchema = defaultSchema;
         }
 
         @Override
@@ -545,7 +573,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 context.type,
                 Privilege.Clazz.TABLE,
                 tableRelation.getQualifiedName().toString(),
-                context.user);
+                context.user,
+                defaultSchema);
             return null;
         }
 
@@ -555,7 +584,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 context.type,
                 Privilege.Clazz.TABLE,
                 relation.getQualifiedName().toString(),
-                context.user);
+                context.user,
+                defaultSchema);
             return null;
         }
 
@@ -576,8 +606,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 context.type,
                 Privilege.Clazz.VIEW,
                 analyzedView.name().toString(),
-                context.user
-            );
+                context.user,
+                defaultSchema);
             User owner = analyzedView.owner() == null ? null : userLookup.findUser(analyzedView.owner());
             if (owner == null) {
                 throw new UnauthorizedException(

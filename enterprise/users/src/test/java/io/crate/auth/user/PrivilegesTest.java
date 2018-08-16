@@ -20,6 +20,7 @@ package io.crate.auth.user;
 
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
@@ -31,13 +32,13 @@ public class PrivilegesTest extends CrateUnitTest {
     public void testExceptionIsThrownIfUserHasNotRequiredPrivilege() throws Exception {
         expectedException.expect(MissingPrivilegeException.class);
         expectedException.expectMessage("Missing 'DQL' privilege for user 'ford'");
-        Privileges.ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, user);
+        Privileges.ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, user, Schemas.DOC_SCHEMA_NAME);
     }
 
     @Test
     public void testNoExceptionIsThrownIfUserHasNotRequiredPrivilegeOnInformationSchema() throws Exception {
         //ensureUserHasPrivilege will not throw an exception if the schema is `information_schema`
-        Privileges.ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "information_schema", user);
+        Privileges.ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "information_schema", user, Schemas.DOC_SCHEMA_NAME);
     }
 
     @Test
