@@ -181,21 +181,21 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     }
 
     @Override
-    public StatementAuthorizedValidator getStatementValidator(User user) {
+    public StatementAuthorizedValidator getStatementValidator(User user, String defaultSchema) {
         requireNonNull(user, "User must not be null");
         if (user.isSuperUser()) {
             return BYPASS_AUTHORIZATION_CHECKS;
         }
-        return new StatementPrivilegeValidator(this, user);
+        return new StatementPrivilegeValidator(this, user, defaultSchema);
     }
 
     @Override
-    public ExceptionAuthorizedValidator getExceptionValidator(User user) {
+    public ExceptionAuthorizedValidator getExceptionValidator(User user, String defaultSchema) {
         requireNonNull(user, "User must not be null");
         if (user.isSuperUser()) {
             return NOOP_EXCEPTION_VALIDATOR;
         }
-        return new ExceptionPrivilegeValidator(user);
+        return new ExceptionPrivilegeValidator(user, defaultSchema);
     }
 
     @Override

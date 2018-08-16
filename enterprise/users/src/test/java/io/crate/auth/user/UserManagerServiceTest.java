@@ -19,6 +19,7 @@
 package io.crate.auth.user;
 
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.UserDefinitions;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
@@ -66,24 +67,24 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUserIsRequiredToGetStatementValidator() throws Exception {
         expectedException.expectMessage("User must not be null");
-        userManagerService.getStatementValidator(null);
+        userManagerService.getStatementValidator(null, Schemas.DOC_SCHEMA_NAME);
     }
 
     @Test
     public void testGetNoopStatementValidatorForSuperUser() throws Exception {
-        StatementAuthorizedValidator validator = userManagerService.getStatementValidator(CRATE_USER);
+        StatementAuthorizedValidator validator = userManagerService.getStatementValidator(CRATE_USER, Schemas.DOC_SCHEMA_NAME);
         assertThat(validator, is(BYPASS_AUTHORIZATION_CHECKS));
     }
 
     @Test
     public void testUserIsRequiredToGetExceptionValidator() throws Exception {
         expectedException.expectMessage("User must not be null");
-        userManagerService.getExceptionValidator(null);
+        userManagerService.getExceptionValidator(null, Schemas.DOC_SCHEMA_NAME);
     }
 
     @Test
     public void testGetNoopExceptionValidatorForSuperUser() throws Exception {
-        ExceptionAuthorizedValidator validator = userManagerService.getExceptionValidator(CRATE_USER);
+        ExceptionAuthorizedValidator validator = userManagerService.getExceptionValidator(CRATE_USER, Schemas.DOC_SCHEMA_NAME);
         assertThat(validator, is(NOOP_EXCEPTION_VALIDATOR));
     }
 }

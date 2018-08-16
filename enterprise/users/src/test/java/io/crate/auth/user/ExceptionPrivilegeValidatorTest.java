@@ -26,6 +26,7 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateUnitTest;
 import org.hamcrest.Matcher;
 import org.junit.Before;
@@ -55,7 +56,7 @@ public class ExceptionPrivilegeValidatorTest extends CrateUnitTest {
                 return true;
             }
         };
-        validator = new ExceptionPrivilegeValidator(user);
+        validator = new ExceptionPrivilegeValidator(user, Schemas.DOC_SCHEMA_NAME);
     }
 
     @SuppressWarnings("unchecked")

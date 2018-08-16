@@ -72,13 +72,13 @@ public class StubUserManager implements UserManager {
     }
 
     @Override
-    public StatementAuthorizedValidator getStatementValidator(@Nullable User user) {
+    public StatementAuthorizedValidator getStatementValidator(@Nullable User user, String defaultSchema) {
         return s -> {
         };
     }
 
     @Override
-    public ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user) {
+    public ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user, String defaultSchema) {
         return t -> {
         };
     }

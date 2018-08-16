@@ -48,6 +48,10 @@ public class IndexParts {
     private final String partitionIdent;
 
     public IndexParts(String indexName) {
+        this(indexName, Schemas.DOC_SCHEMA_NAME);
+    }
+
+    public IndexParts(String indexName, String defaultSchema) {
         if (BlobIndex.isBlobIndex(indexName)) {
             schema = BlobSchemaInfo.NAME;
             table = BlobIndex.stripPrefix(indexName);
@@ -57,7 +61,7 @@ public class IndexParts {
             switch (parts.size()) {
                 case 1:
                     // "table_name"
-                    schema = Schemas.DOC_SCHEMA_NAME;
+                    schema = defaultSchema;
                     table = indexName;
                     partitionIdent = null;
                     break;
@@ -70,7 +74,7 @@ public class IndexParts {
                 case 4:
                     // ""."partitioned"."table_name". ["ident"]
                     assertEmpty(parts.get(0));
-                    schema = Schemas.DOC_SCHEMA_NAME;
+                    schema = defaultSchema;
                     assertPartitionPrefix(parts.get(1));
                     table = parts.get(2);
                     partitionIdent = parts.get(3);
