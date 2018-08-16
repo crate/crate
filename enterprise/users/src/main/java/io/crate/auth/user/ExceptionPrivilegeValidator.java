@@ -35,9 +35,11 @@ class ExceptionPrivilegeValidator implements ExceptionAuthorizedValidator {
     private static final Visitor VISITOR = new Visitor();
 
     private final User user;
+    private final String defaultSchema;
 
-    ExceptionPrivilegeValidator(User user) {
+    ExceptionPrivilegeValidator(User user, String defaultSchema) {
         this.user = user;
+        this.defaultSchema = defaultSchema;
     }
 
     @Override
