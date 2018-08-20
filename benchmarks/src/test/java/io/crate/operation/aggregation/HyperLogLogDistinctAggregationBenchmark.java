@@ -22,6 +22,7 @@
 
 package io.crate.operation.aggregation;
 
+import io.crate.data.RowN;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
@@ -110,10 +111,10 @@ public class HyperLogLogDistinctAggregationBenchmark {
     }
 
     @Benchmark
-    public Object[] benchmarkHLLAggregation() throws Exception {
+    public Iterable<Row> benchmarkHLLAggregation() throws Exception {
         Object[] state = collector.supplier().get();
         BiConsumer<Object[], Row> accumulator = collector.accumulator();
-        Function<Object[], Object[]> finisher = collector.finisher();
+        Function<Object[], Iterable<Row>> finisher = collector.finisher();
         for (int i = 0; i < rows.size(); i++) {
             accumulator.accept(state, rows.get(i));
         }
@@ -121,10 +122,10 @@ public class HyperLogLogDistinctAggregationBenchmark {
     }
 
     @Benchmark
-    public Object[] benchmarkHLLAggregationNoDeepCopy() throws Exception {
+    public Iterable<Row> benchmarkHLLAggregationNoDeepCopy() throws Exception {
         Object[] state = collectorNoDeepCopy.supplier().get();
         BiConsumer<Object[], Row> accumulator = collectorNoDeepCopy.accumulator();
-        Function<Object[], Object[]> finisher = collectorNoDeepCopy.finisher();
+        Function<Object[], Iterable<Row>> finisher = collectorNoDeepCopy.finisher();
         for (int i = 0; i < rows.size(); i++) {
             accumulator.accept(state, rows.get(i));
         }

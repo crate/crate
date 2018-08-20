@@ -79,10 +79,10 @@ public class AggregateCollectorBenchmark {
     }
 
     @Benchmark
-    public Object[] measureAggregateCollector() {
+    public Iterable<Row> measureAggregateCollector() {
         Object[] state = collector.supplier().get();
         BiConsumer<Object[], Row> accumulator = collector.accumulator();
-        Function<Object[], Object[]> finisher = collector.finisher();
+        Function<Object[], Iterable<Row>> finisher = collector.finisher();
         for (int i = 0; i < rows.size(); i++) {
             accumulator.accept(state, rows.get(i));
         }

@@ -43,6 +43,7 @@ import io.crate.data.Bucket;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.execution.IncrementalPageBucketReceiver;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.CountPhase;
@@ -57,7 +58,11 @@ import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.phases.UpstreamPhase;
+import io.crate.execution.dsl.projection.AggregationProjection;
+import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.engine.aggregation.AggregationPipe;
+import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
 import io.crate.execution.engine.collect.PKLookupOperation;
@@ -105,6 +110,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
+import java.util.stream.Collector;
 
 import static io.crate.execution.dsl.projection.Projections.nodeProjections;
 import static io.crate.execution.dsl.projection.Projections.shardProjections;
@@ -590,35 +596,76 @@ public class JobSetup extends AbstractComponent {
             int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.nodeIds().size());
             RowConsumer consumer = context.getRowConsumer(phase, pageSize);
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
-            consumer = ProjectingRowConsumer.create(
-                consumer,
-                phase.projections(),
-                phase.jobId(),
-                ramAccountingContext,
-                projectorFactory
-            );
+
 
             if (upstreamOnSameNode && phase.numInputs() == 1) {
+                consumer = ProjectingRowConsumer.create(
+                    consumer,
+                    phase.projections(),
+                    phase.jobId(),
+                    ramAccountingContext,
+                    projectorFactory
+                );
                 context.registerBatchConsumer(phase.phaseId(), consumer);
                 context.registerRamAccountingContext(phase.phaseId(), ramAccountingContext);
                 return true;
             }
 
-            PageBucketReceiver pageBucketReceiver = new CumulativePageBucketReceiver(
-                distResultRXTaskLogger,
-                nodeName(),
-                phase.phaseId(),
-                searchTp,
-                DataTypes.getStreamers(phase.inputTypes()),
+            Collector<Row, ?, Iterable<Row>> collector = null;
+            List<Projection> projections = phase.projections();
+            if (projections.size() > 0) {
+                Projection firstProjection = projections.get(0);
+
+                if (firstProjection instanceof GroupProjection) {
+                    GroupProjection groupProjection = (GroupProjection) firstProjection;
+
+                    GroupingProjector groupingProjector =
+                        (GroupingProjector) projectorFactory.create(groupProjection, ramAccountingContext, phase.jobId());
+                    collector = groupingProjector.getCollector();
+                    projections = projections.subList(1, projections.size());
+                } else if (firstProjection instanceof AggregationProjection) {
+                    AggregationProjection aggregationProjection = (AggregationProjection) firstProjection;
+
+                    AggregationPipe aggregationPipe =
+                        (AggregationPipe) projectorFactory.create(aggregationProjection, ramAccountingContext, phase.jobId());
+
+                    collector = aggregationPipe.getCollector();
+                    projections = projections.subList(1, projections.size());
+                }
+            }
+
+            consumer = ProjectingRowConsumer.create(
                 consumer,
-                PagingIterator.create(
-                    phase.numUpstreams(),
-                    false,
-                    phase.orderByPositions(),
-                    () -> new RowAccountingWithEstimators(
-                        phase.inputTypes(),
-                        RamAccountingContext.forExecutionPhase(breaker(), phase))),
-                phase.numUpstreams());
+                projections,
+                phase.jobId(),
+                ramAccountingContext,
+                projectorFactory
+            );
+
+            PageBucketReceiver pageBucketReceiver;
+            if (collector == null) {
+                pageBucketReceiver = new CumulativePageBucketReceiver(
+                    distResultRXTaskLogger,
+                    nodeName(),
+                    phase.phaseId(),
+                    searchTp,
+                    DataTypes.getStreamers(phase.inputTypes()),
+                    consumer,
+                    PagingIterator.create(
+                        phase.numUpstreams(),
+                        false,
+                        phase.orderByPositions(),
+                        () -> new RowAccountingWithEstimators(
+                            phase.inputTypes(),
+                            RamAccountingContext.forExecutionPhase(breaker(), phase))),
+                    phase.numUpstreams());
+            } else {
+                pageBucketReceiver = new IncrementalPageBucketReceiver<>(
+                    collector,
+                    consumer,
+                    DataTypes.getStreamers(phase.inputTypes()),
+                    phase.numUpstreams());
+            }
 
             context.registerSubContext(new DistResultRXTask(
                 distResultRXTaskLogger,

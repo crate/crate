@@ -119,6 +119,10 @@ public class GroupingProjector implements Projector {
         return CollectingBatchIterator.newInstance(batchIterator, collector);
     }
 
+    public Collector<Row, ?, Iterable<Row>> getCollector() {
+        return collector;
+    }
+
     @Override
     public boolean providesIndependentScroll() {
         return true;

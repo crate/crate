@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.aggregation;
 
+import io.crate.data.RowN;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
@@ -43,7 +44,7 @@ import java.util.stream.Collector;
 /**
  * Collector implementation which uses {@link AggregationFunction}s to aggregate the rows it will receive.
  */
-public class AggregateCollector implements Collector<Row, Object[], Object[]> {
+public class AggregateCollector implements Collector<Row, Object[], Iterable<Row>> {
 
     private final List<? extends CollectExpression<Row, ?>> expressions;
     private final RamAccountingContext ramAccounting;
@@ -52,7 +53,7 @@ public class AggregateCollector implements Collector<Row, Object[], Object[]> {
     private final BigArrays bigArrays;
     private final Input[][] inputs;
     private final BiConsumer<Object[], Row> accumulator;
-    private final Function<Object[], Object[]> finisher;
+    private final Function<Object[], Iterable<Row>> finisher;
 
     public AggregateCollector(List<? extends CollectExpression<Row, ?>> expressions,
                        RamAccountingContext ramAccounting,
@@ -70,7 +71,7 @@ public class AggregateCollector implements Collector<Row, Object[], Object[]> {
         switch (mode) {
             case ITER_PARTIAL:
                 accumulator = this::iterate;
-                finisher = s -> s;
+                finisher = s -> Collections.singletonList(new RowN(s));
                 break;
 
             case ITER_FINAL:
@@ -106,7 +107,7 @@ public class AggregateCollector implements Collector<Row, Object[], Object[]> {
     }
 
     @Override
-    public Function<Object[], Object[]> finisher() {
+    public Function<Object[], Iterable<Row>> finisher() {
         return finisher;
     }
 
@@ -137,11 +138,11 @@ public class AggregateCollector implements Collector<Row, Object[], Object[]> {
         }
     }
 
-    private Object[] finishCollect(Object[] state) {
+    private Iterable<Row> finishCollect(Object[] state) {
         for (int i = 0; i < aggregations.length; i++) {
             state[i] = aggregations[i].terminatePartial(ramAccounting, state[i]);
         }
-        return state;
+        return Collections.singletonList(new RowN(state));
     }
 
     private void setRow(Row row) {

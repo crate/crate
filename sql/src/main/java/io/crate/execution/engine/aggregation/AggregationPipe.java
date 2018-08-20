@@ -22,22 +22,18 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.expression.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.symbol.AggregateMode;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.util.BigArrays;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 public class AggregationPipe implements Projector {
 
@@ -69,13 +65,11 @@ public class AggregationPipe implements Projector {
 
     @Override
     public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
-        Collector<Row, ?, Iterable<Row>> collectAndConvertToRows = Collectors.collectingAndThen(
-            collector,
-            cells -> {
-                Row row = new RowN(cells);
-                return Collections.singletonList(row);
-            });
-        return CollectingBatchIterator.newInstance(batchIterator, collectAndConvertToRows);
+        return CollectingBatchIterator.newInstance(batchIterator, collector);
+    }
+
+    public AggregateCollector getCollector() {
+        return collector;
     }
 
     @Override
