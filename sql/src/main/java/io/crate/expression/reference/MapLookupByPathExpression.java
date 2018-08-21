@@ -36,6 +36,7 @@ public final class MapLookupByPathExpression<T, R> extends NestableCollectExpres
     private final Function<T, Map<String, Object>> getMap;
     private final List<String> path;
     private final Function<Object, R> castResultValue;
+    private R value;
 
     public MapLookupByPathExpression(Function<T, Map<String, Object>> getMap,
                                      List<String> path,
@@ -46,8 +47,13 @@ public final class MapLookupByPathExpression<T, R> extends NestableCollectExpres
     }
 
     @Override
+    public void setNextRow(T row) {
+        value = castResultValue.apply(StringObjectMaps.fromMapByPath(getMap.apply(row), path));
+    }
+
+    @Override
     public R value() {
-        return castResultValue.apply(StringObjectMaps.fromMapByPath(getMap.apply(row), path));
+        return value;
     }
 
     @Override

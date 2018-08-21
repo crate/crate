@@ -27,10 +27,17 @@ import io.crate.execution.engine.collect.NestableCollectExpression;
 
 public abstract class SimpleNodeStatsExpression<R> extends NestableCollectExpression<NodeStatsContext, R> {
 
+    private R value;
+
     @Override
-    public R value() {
-        return row.isComplete() ? innerValue() : null;
+    public void setNextRow(NodeStatsContext nodeStatsContext) {
+        value = nodeStatsContext.isComplete() ? innerValue(nodeStatsContext) : null;
     }
 
-    public abstract R innerValue();
+    @Override
+    public R value() {
+        return value;
+    }
+
+    public abstract R innerValue(NodeStatsContext nodeStatsContext);
 }

@@ -23,20 +23,18 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.user.Privilege;
+import io.crate.auth.user.User;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.auth.user.User;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -97,42 +95,12 @@ public class SysPrivilegesTableInfo extends StaticTableInfo {
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<PrivilegeRow>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PrivilegeRow>>builder()
-            .put(Columns.GRANTEE, () -> new NestableCollectExpression<PrivilegeRow, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.grantee);
-                }
-            })
-            .put(Columns.GRANTOR, () -> new NestableCollectExpression<PrivilegeRow, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.privilege.grantor());
-                }
-            })
-            .put(Columns.STATE, () -> new NestableCollectExpression<PrivilegeRow, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.privilege.state());
-                }
-            })
-            .put(Columns.TYPE, () -> new NestableCollectExpression<PrivilegeRow, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.privilege.ident().type());
-                }
-            })
-            .put(Columns.CLASS, () -> new NestableCollectExpression<PrivilegeRow, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.privilege.ident().clazz());
-                }
-            })
-            .put(Columns.IDENT, () -> new NestableCollectExpression<PrivilegeRow, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.privilege.ident().ident());
-                }
-            })
+            .put(Columns.GRANTEE, () -> NestableCollectExpression.objToBytesRef(r -> r.grantee))
+            .put(Columns.GRANTOR, () -> NestableCollectExpression.objToBytesRef(r -> r.privilege.grantor()))
+            .put(Columns.STATE, () -> NestableCollectExpression.objToBytesRef(r -> r.privilege.state()))
+            .put(Columns.TYPE, () -> NestableCollectExpression.objToBytesRef(r -> r.privilege.ident().type()))
+            .put(Columns.CLASS, () -> NestableCollectExpression.objToBytesRef(r -> r.privilege.ident().clazz()))
+            .put(Columns.IDENT, () -> NestableCollectExpression.objToBytesRef(r -> r.privilege.ident().ident()))
             .build();
     }
 

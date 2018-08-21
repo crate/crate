@@ -256,8 +256,8 @@ public class SysNodesTableInfo extends StaticTableInfo {
             .put(Columns.VERSION, NodeVersionStatsExpression::new)
             .put(Columns.CLUSTER_STATE_VERSION, () -> new SimpleNodeStatsExpression<Long>() {
                 @Override
-                public Long innerValue() {
-                    return this.row.clusterStateVersion();
+                public Long innerValue(NodeStatsContext nodeStatsContext) {
+                    return nodeStatsContext.clusterStateVersion();
                 }
             })
             .put(Columns.THREAD_POOLS, NodeThreadPoolsExpression::new)

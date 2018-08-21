@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -33,7 +34,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
@@ -64,16 +64,13 @@ public class SysOperationsLogTableInfo extends StaticTableInfo {
                 () -> NestableCollectExpression.objToBytesRef(OperationContextLog::name))
             .put(SysOperationsLogTableInfo.Columns.STARTED,
                 () -> NestableCollectExpression.forFunction(OperationContextLog::started))
-            .put(SysOperationsLogTableInfo.Columns.USED_BYTES, () -> new NestableCollectExpression<OperationContextLog, Long>() {
-                @Override
-                public Long value() {
-                    long usedBytes = row.usedBytes();
-                    if (usedBytes == 0) {
-                        return null;
-                    }
-                    return usedBytes;
+            .put(SysOperationsLogTableInfo.Columns.USED_BYTES, () -> NestableCollectExpression.forFunction(r -> {
+                long usedBytes = r.usedBytes();
+                if (usedBytes == 0) {
+                    return null;
                 }
-            })
+                return usedBytes;
+            }))
             .put(SysOperationsLogTableInfo.Columns.ERROR,
                 () -> NestableCollectExpression.objToBytesRef(OperationContextLog::errorMessage))
             .put(SysOperationsLogTableInfo.Columns.ENDED,

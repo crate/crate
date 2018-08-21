@@ -27,6 +27,8 @@ import io.crate.core.collections.Maps;
 import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.metadata.RelationInfo;
 import io.crate.execution.engine.collect.NestableCollectExpression;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Map;
 
@@ -67,33 +69,45 @@ public class TablesVersionExpression extends ObjectCollectExpression<RelationInf
         }
     }
 
-    static class TableCrateVersionExpression extends NestableCollectExpression<RelationInfo, Object> {
+    static class TableCrateVersionExpression extends NestableCollectExpression<RelationInfo, BytesRef> {
 
         private final Version.Property property;
+        private BytesRef value;
 
         TableCrateVersionExpression(Version.Property property) {
             this.property = property;
         }
 
         @Override
-        public Object value() {
-            Version version = TableExpressions.getVersion(row, property);
-            return version == null ? null : version.number();
+        public void setNextRow(RelationInfo references) {
+            Version version = TableExpressions.getVersion(references, property);
+            value = version == null ? null : BytesRefs.toBytesRef(version.number());
+        }
+
+        @Override
+        public BytesRef value() {
+            return value;
         }
     }
 
-    static class TableESVersionExpression extends NestableCollectExpression<RelationInfo, Object> {
+    static class TableESVersionExpression extends NestableCollectExpression<RelationInfo, BytesRef> {
 
         private final Version.Property property;
+        private BytesRef value;
 
         TableESVersionExpression(Version.Property property) {
             this.property = property;
         }
 
         @Override
-        public Object value() {
-            Version version = TableExpressions.getVersion(row, property);
-            return version == null ? null : version.esVersion.toString();
+        public void setNextRow(RelationInfo references) {
+            Version version = TableExpressions.getVersion(references, property);
+            value = version == null ? null : BytesRefs.toBytesRef(version.esVersion.toString());
+        }
+
+        @Override
+        public BytesRef value() {
+            return value;
         }
     }
 }

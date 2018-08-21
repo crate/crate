@@ -30,20 +30,26 @@ import java.util.function.Function;
 final class CgroupExpression<R> extends NestableCollectExpression<NodeStatsContext, R> {
 
     private final Function<OsStats.Cgroup, R> getter;
+    private R value;
 
     private CgroupExpression(Function<OsStats.Cgroup, R> getter) {
         this.getter = getter;
     }
 
     @Override
-    public R value() {
-        if (row.isComplete()) {
-            OsStats.Cgroup cgroup = row.extendedOsStats().osStats().getCgroup();
+    public void setNextRow(NodeStatsContext nodeStatsContext) {
+        value = null;
+        if (nodeStatsContext.isComplete()) {
+            OsStats.Cgroup cgroup = nodeStatsContext.extendedOsStats().osStats().getCgroup();
             if (cgroup != null) {
-                return getter.apply(cgroup);
+                value = getter.apply(cgroup);
             }
         }
-        return null;
+    }
+
+    @Override
+    public R value() {
+        return value;
     }
 
     static <R> CgroupExpression<R> forAttribute(Function<OsStats.Cgroup, R> attribute) {

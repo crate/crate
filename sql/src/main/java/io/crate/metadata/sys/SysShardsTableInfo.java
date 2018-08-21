@@ -165,6 +165,10 @@ public class SysShardsTableInfo extends StaticTableInfo {
                 () -> NestableCollectExpression.forFunction(UnassignedShard::orphanedPartition))
             .put(Columns.RECOVERY, () -> new NestableCollectExpression<UnassignedShard, Object>() {
                 @Override
+                public void setNextRow(UnassignedShard unassignedShard) {
+                }
+
+                @Override
                 public Object value() {
                     return null;
                 }
@@ -181,6 +185,10 @@ public class SysShardsTableInfo extends StaticTableInfo {
             .put(Columns.MIN_LUCENE_VERSION,
                 () -> NestableCollectExpression.objToBytesRef(r -> null))
             .put(Columns.NODE, () -> new NestableCollectExpression<UnassignedShard, Object>() {
+                @Override
+                public void setNextRow(UnassignedShard unassignedShard) {
+                }
+
                 @Override
                 public Object value() {
                     return null; // unassigned shards are on *no* node.

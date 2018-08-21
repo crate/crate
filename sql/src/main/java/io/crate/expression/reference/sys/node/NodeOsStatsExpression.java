@@ -33,22 +33,22 @@ public class NodeOsStatsExpression extends NestedNodeStatsExpression {
     public NodeOsStatsExpression() {
         childImplementations.put(UPTIME, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                long uptime = this.row.extendedOsStats().uptime().millis();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                long uptime = nodeStatsContext.extendedOsStats().uptime().millis();
                 return uptime > 0 ? uptime : -1;
             }
         });
         childImplementations.put(TIMESTAMP, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                assert this.row.timestamp() > 0 : "os timestamp must always be greater than 0.";
-                return this.row.timestamp();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                assert nodeStatsContext.timestamp() > 0 : "os timestamp must always be greater than 0.";
+                return nodeStatsContext.timestamp();
             }
         });
         childImplementations.put(PROBE_TIMESTAMP, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                return this.row.extendedOsStats().timestamp();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.extendedOsStats().timestamp();
             }
         });
         childImplementations.put(CPU, new NodeOsCpuStatsExpression());

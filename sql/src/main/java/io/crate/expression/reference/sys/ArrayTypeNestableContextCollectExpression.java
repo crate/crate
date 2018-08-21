@@ -30,18 +30,29 @@ import java.util.List;
 public abstract class ArrayTypeNestableContextCollectExpression<RowType, IterType, ReturnType>
     extends NestableCollectExpression<RowType, ReturnType[]> {
 
-    protected abstract List<IterType> items();
+    protected ReturnType[] value;
+
+    protected abstract List<IterType> items(RowType rowType);
 
     protected abstract ReturnType valueForItem(IterType input);
 
     @Override
-    @SuppressWarnings("unchecked")
+    public void setNextRow(RowType rowType) {
+        computeValue(items(rowType));
+    }
+
+    @Override
     public ReturnType[] value() {
-        List<IterType> items = items();
-        ReturnType[] returnItems = (ReturnType[]) new Object[items.size()];
-        for (int idx = 0; idx < items().size(); idx++) {
+        return value;
+    }
+
+    protected void computeValue(List<IterType> items) {
+        int size = items.size();
+        //noinspection unchecked
+        ReturnType[] returnItems = (ReturnType[]) new Object[size];
+        for (int idx = 0; idx < size; idx++) {
             returnItems[idx] = valueForItem(items.get(idx));
         }
-        return returnItems;
+        value = returnItems;
     }
 }

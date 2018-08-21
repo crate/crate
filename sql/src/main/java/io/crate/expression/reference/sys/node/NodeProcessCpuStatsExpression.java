@@ -33,8 +33,8 @@ class NodeProcessCpuStatsExpression extends NestedNodeStatsExpression {
     NodeProcessCpuStatsExpression() {
         childImplementations.put(PERCENT, new SimpleNodeStatsExpression<Short>() {
             @Override
-            public Short innerValue() {
-                ProcessStats.Cpu cpuStats = this.row.processStats().getCpu();
+            public Short innerValue(NodeStatsContext nodeStatsContext) {
+                ProcessStats.Cpu cpuStats = nodeStatsContext.processStats().getCpu();
                 if (cpuStats != null) {
                     return cpuStats.getPercent();
                 } else {
@@ -44,13 +44,13 @@ class NodeProcessCpuStatsExpression extends NestedNodeStatsExpression {
         });
         childImplementations.put(USER, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
                 return -1L;
             }
         });
         childImplementations.put(SYSTEM, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
                 return -1L;
             }
         });

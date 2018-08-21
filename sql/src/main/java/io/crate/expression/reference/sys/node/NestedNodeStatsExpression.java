@@ -24,12 +24,13 @@ package io.crate.expression.reference.sys.node;
 
 import io.crate.expression.reference.ObjectCollectExpression;
 
-import java.util.Map;
-
 public abstract class NestedNodeStatsExpression extends ObjectCollectExpression<NodeStatsContext> {
 
     @Override
-    public Map<String, Object> value() {
-        return row.isComplete() ? super.value() : null;
+    public void setNextRow(NodeStatsContext nodeStatsContext) {
+        value = null;
+        if (nodeStatsContext.isComplete()) {
+            super.setNextRow(nodeStatsContext);
+        }
     }
 }

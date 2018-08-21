@@ -66,11 +66,17 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                 () -> NestableCollectExpression.objToBytesRef(r -> RelationType.BASE_TABLE.pretty()))
             .put(Columns.PARTITION_IDENT,
                 () -> NestableCollectExpression.objToBytesRef(r -> r.name().ident()))
-            .put(Columns.VALUES, () -> new NestableCollectExpression<PartitionInfo, Object>() {
+            .put(Columns.VALUES, () -> new NestableCollectExpression<PartitionInfo, Map<String, Object>>() {
+                private Map<String, Object> value;
 
                 @Override
-                public Object value() {
-                    return row.values();
+                public void setNextRow(PartitionInfo row) {
+                    value = row.values();
+                }
+
+                @Override
+                public Map<String, Object> value() {
+                    return value;
                 }
 
                 @Override

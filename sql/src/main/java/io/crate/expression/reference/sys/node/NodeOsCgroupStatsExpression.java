@@ -26,7 +26,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.monitor.os.OsStats;
 
-import java.util.Map;
 import java.util.function.Function;
 
 public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
@@ -35,42 +34,42 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
     private static final String CPU = "cpu";
     private static final String MEM = "mem";
 
-    public NodeOsCgroupStatsExpression() {
+    NodeOsCgroupStatsExpression() {
         childImplementations.put(CPUACCT, new NodeOsCgroupCpuAcctStatsExpression());
         childImplementations.put(CPU, new NodeOsCgroupCpuStatsExpression());
         childImplementations.put(MEM, new NodeOsCgroupMemStatsExpression());
     }
 
     @Override
-    public Map<String, Object> value() {
-        if (row.isComplete()) {
-            OsStats.Cgroup cgroup = row.extendedOsStats().osStats().getCgroup();
+    public void setNextRow(NodeStatsContext nodeStatsContext) {
+        value = null;
+        if (nodeStatsContext.isComplete()) {
+            OsStats.Cgroup cgroup = nodeStatsContext.extendedOsStats().osStats().getCgroup();
             if (cgroup != null) {
-                return super.value();
+                super.setNextRow(nodeStatsContext);
             }
         }
-        return null;
     }
 
-    private class NodeOsCgroupCpuAcctStatsExpression extends NestedNodeStatsExpression {
+    private static class NodeOsCgroupCpuAcctStatsExpression extends NestedNodeStatsExpression {
 
         private static final String CONTROL_GROUP = "control_group";
         private static final String USAGE_NANOS = "usage_nanos";
 
-        public NodeOsCgroupCpuAcctStatsExpression() {
+        NodeOsCgroupCpuAcctStatsExpression() {
             childImplementations.put(CONTROL_GROUP, CgroupExpression.forAttribute((r) -> BytesRefs.toBytesRef(r.getCpuAcctControlGroup())));
             childImplementations.put(USAGE_NANOS, CgroupExpression.forAttribute(OsStats.Cgroup::getCpuAcctUsageNanos));
         }
 
         @Override
-        public Map<String, Object> value() {
-            if (row.isComplete()) {
-                OsStats.Cgroup cgroup = row.extendedOsStats().osStats().getCgroup();
+        public void setNextRow(NodeStatsContext nodeStatsContext) {
+            value = null;
+            if (nodeStatsContext.isComplete()) {
+                OsStats.Cgroup cgroup = nodeStatsContext.extendedOsStats().osStats().getCgroup();
                 if (cgroup != null) {
-                    return super.value();
+                    super.setNextRow(nodeStatsContext);
                 }
             }
-            return null;
         }
     }
 
@@ -83,7 +82,7 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
         private static final String NUM_TIMES_THROTTLED = "num_times_throttled";
         private static final String TIME_THROTTLED_NANOS = "time_throttled_nanos";
 
-        public NodeOsCgroupCpuStatsExpression() {
+        NodeOsCgroupCpuStatsExpression() {
             childImplementations.put(CONTROL_GROUP, CgroupExpression.forAttribute((r) -> BytesRefs.toBytesRef(r.getCpuControlGroup())));
             childImplementations.put(CFS_PERIOD_MICROS, CgroupExpression.forAttribute(OsStats.Cgroup::getCpuCfsPeriodMicros));
             childImplementations.put(CFS_QUOTA_MICROS, CgroupExpression.forAttribute(OsStats.Cgroup::getCpuCfsQuotaMicros));
@@ -99,14 +98,14 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
         }
 
         @Override
-        public Map<String, Object> value() {
-            if (row.isComplete()) {
-                OsStats.Cgroup cgroup = row.extendedOsStats().osStats().getCgroup();
+        public void setNextRow(NodeStatsContext nodeStatsContext) {
+            value = null;
+            if (nodeStatsContext.isComplete()) {
+                OsStats.Cgroup cgroup = cgroup(nodeStatsContext);
                 if (cgroup != null) {
-                    return super.value();
+                    super.setNextRow(nodeStatsContext);
                 }
             }
-            return null;
         }
     }
 
@@ -120,12 +119,12 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
         private static final String LIMIT_BYTES = "limit_bytes";
         private static final String USAGE_BYTES = "usage_bytes";
 
-        public NodeOsCgroupMemStatsExpression() {
+        NodeOsCgroupMemStatsExpression() {
             childImplementations.put(CONTROL_GROUP, new SimpleNodeStatsExpression<BytesRef>() {
                 @Override
-                public BytesRef innerValue() {
-                    if (row.isComplete()) {
-                        OsStats.Cgroup cgroup = cgroup(row);
+                public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+                    if (nodeStatsContext.isComplete()) {
+                        OsStats.Cgroup cgroup = cgroup(nodeStatsContext);
                         if (cgroup != null) {
                             return BytesRefs.toBytesRef(cgroup.getMemoryControlGroup());
                         }
@@ -135,9 +134,9 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
             });
             childImplementations.put(LIMIT_BYTES, new SimpleNodeStatsExpression<BytesRef>() {
                 @Override
-                public BytesRef innerValue() {
-                    if (row.isComplete()) {
-                        OsStats.Cgroup cgroup = cgroup(row);
+                public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+                    if (nodeStatsContext.isComplete()) {
+                        OsStats.Cgroup cgroup = cgroup(nodeStatsContext);
                         if (cgroup != null) {
                             return BytesRefs.toBytesRef(cgroup.getMemoryLimitInBytes());
                         }
@@ -147,9 +146,9 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
             });
             childImplementations.put(USAGE_BYTES, new SimpleNodeStatsExpression<BytesRef>() {
                 @Override
-                public BytesRef innerValue() {
-                    if (row.isComplete()) {
-                        OsStats.Cgroup cgroup = cgroup(row);
+                public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+                    if (nodeStatsContext.isComplete()) {
+                        OsStats.Cgroup cgroup = cgroup(nodeStatsContext);
                         if (cgroup != null) {
                             return BytesRefs.toBytesRef(cgroup.getMemoryUsageInBytes());
                         }
@@ -160,14 +159,14 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
         }
 
         @Override
-        public Map<String, Object> value() {
-            if (row.isComplete()) {
-                OsStats.Cgroup cgroup = cgroup(row);
+        public void setNextRow(NodeStatsContext nodeStatsContext) {
+            value = null;
+            if (nodeStatsContext.isComplete()) {
+                OsStats.Cgroup cgroup = cgroup(nodeStatsContext);
                 if (cgroup != null) {
-                    return super.value();
+                    super.setNextRow(nodeStatsContext);
                 }
             }
-            return null;
         }
     }
 }

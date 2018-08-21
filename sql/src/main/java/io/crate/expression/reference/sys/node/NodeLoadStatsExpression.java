@@ -36,8 +36,8 @@ public class NodeLoadStatsExpression extends NestedNodeStatsExpression {
         childImplementations.put(FIFTEEN, new LoadStatsExpression(2));
         childImplementations.put(PROBE_TIMESTAMP, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                return this.row.extendedOsStats().timestamp();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.extendedOsStats().timestamp();
             }
         });
     }
@@ -51,9 +51,9 @@ public class NodeLoadStatsExpression extends NestedNodeStatsExpression {
         }
 
         @Override
-        public Double innerValue() {
+        public Double innerValue(NodeStatsContext nodeStatsContext) {
             try {
-                return this.row.extendedOsStats().loadAverage()[idx];
+                return nodeStatsContext.extendedOsStats().loadAverage()[idx];
             } catch (IndexOutOfBoundsException e) {
                 return -1d;
             }

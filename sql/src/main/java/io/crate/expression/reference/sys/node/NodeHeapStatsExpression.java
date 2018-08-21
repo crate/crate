@@ -34,30 +34,30 @@ public class NodeHeapStatsExpression extends NestedNodeStatsExpression {
     public NodeHeapStatsExpression() {
         childImplementations.put(FREE, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                JvmStats stats = this.row.jvmStats();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                JvmStats stats = nodeStatsContext.jvmStats();
                 JvmStats.Mem mem = stats.getMem();
                 return mem.getHeapMax().getBytes() - mem.getHeapUsed().getBytes();
             }
         });
         childImplementations.put(USED, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                JvmStats stats = this.row.jvmStats();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                JvmStats stats = nodeStatsContext.jvmStats();
                 return stats.getMem().getHeapUsed().getBytes();
             }
         });
         childImplementations.put(MAX, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                JvmStats stats = this.row.jvmStats();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                JvmStats stats = nodeStatsContext.jvmStats();
                 return stats.getMem().getHeapMax().getBytes();
             }
         });
         childImplementations.put(PROBE_TIMESTAMP, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                JvmStats stats = this.row.jvmStats();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                JvmStats stats = nodeStatsContext.jvmStats();
                 return stats.getTimestamp();
             }
         });

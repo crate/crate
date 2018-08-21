@@ -23,13 +23,14 @@ package io.crate.expression.reference.information;
 
 import io.crate.analyze.TableParameterInfo;
 import io.crate.execution.engine.collect.NestableCollectExpression;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.RelationInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
-    public static final String REFRESH_INTERVAL = "refresh_interval";
+    private static final String REFRESH_INTERVAL = "refresh_interval";
 
     public TablesSettingsExpression() {
         addChildImplementations();
@@ -47,31 +48,49 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         childImplementations.put(TablesSettingsUnassignedExpression.NAME, new TablesSettingsUnassignedExpression());
     }
 
-    static class TableParameterExpression extends NestableCollectExpression<TableInfo, Object> {
+    static class TableParameterExpression extends NestableCollectExpression<RelationInfo, Object> {
 
         private final String paramName;
+        private Object value;
 
-        public TableParameterExpression(String paramName) {
+        TableParameterExpression(String paramName) {
             this.paramName = paramName;
+        }
+
+        @Override
+        public void setNextRow(RelationInfo row) {
+            value = null;
+            if (row instanceof DocTableInfo) {
+                value = row.parameters().get(paramName);
+            }
         }
 
         @Override
         public Object value() {
-            return row.parameters().get(paramName);
+            return value;
         }
     }
 
-    static class BytesRefTableParameterExpression extends NestableCollectExpression<TableInfo, BytesRef> {
+    static class BytesRefTableParameterExpression extends NestableCollectExpression<RelationInfo, BytesRef> {
 
         private final String paramName;
+        private BytesRef value;
 
-        public BytesRefTableParameterExpression(String paramName) {
+        BytesRefTableParameterExpression(String paramName) {
             this.paramName = paramName;
         }
 
         @Override
+        public void setNextRow(RelationInfo row) {
+            value = null;
+            if (row instanceof DocTableInfo) {
+                value = BytesRefs.toBytesRef(row.parameters().get(paramName));
+            }
+        }
+
+        @Override
         public BytesRef value() {
-            return BytesRefs.toBytesRef(row.parameters().get(paramName));
+            return value;
         }
     }
 
@@ -79,7 +98,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "mapping";
 
-        public TablesSettingsMappingExpression() {
+        TablesSettingsMappingExpression() {
             childImplementations.put(TablesSettingsMappingTotalFieldsExpression.NAME, new TablesSettingsMappingTotalFieldsExpression());
         }
     }
@@ -89,7 +108,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String NAME = "total_fields";
         public static final String LIMIT = "limit";
 
-        public TablesSettingsMappingTotalFieldsExpression() {
+        TablesSettingsMappingTotalFieldsExpression() {
             childImplementations.put(LIMIT, new TableParameterExpression(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT));
         }
     }
@@ -98,14 +117,14 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "blocks";
 
-        public TablesSettingsBlocksExpression() {
+        TablesSettingsBlocksExpression() {
             addChildImplementations();
         }
 
         public static final String READ_ONLY = "read_only";
         public static final String READ = "read";
-        public static final String WRITE = "write";
-        public static final String METADATA = "metadata";
+        static final String WRITE = "write";
+        static final String METADATA = "metadata";
 
         private void addChildImplementations() {
             childImplementations.put(READ_ONLY, new TableParameterExpression(TableParameterInfo.READ_ONLY));
@@ -119,7 +138,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "routing";
 
-        public TablesSettingsRoutingExpression() {
+        TablesSettingsRoutingExpression() {
             addChildImplementations();
         }
 
@@ -132,12 +151,12 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "allocation";
 
-        public TablesSettingsRoutingAllocationExpression() {
+        TablesSettingsRoutingAllocationExpression() {
             addChildImplementations();
         }
 
-        public static final String ENABLE = "enable";
-        public static final String TOTAL_SHARDS_PER_NODE = "total_shards_per_node";
+        static final String ENABLE = "enable";
+        static final String TOTAL_SHARDS_PER_NODE = "total_shards_per_node";
 
         private void addChildImplementations() {
             childImplementations.put(ENABLE, new BytesRefTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE));
@@ -149,11 +168,11 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "warmer";
 
-        public TablesSettingsWarmerExpression() {
+        TablesSettingsWarmerExpression() {
             addChildImplementations();
         }
 
-        public static final String ENABLED = "enabled";
+        static final String ENABLED = "enabled";
 
         private void addChildImplementations() {
             childImplementations.put(ENABLED, new TableParameterExpression(TableParameterInfo.WARMER_ENABLED));
@@ -164,13 +183,13 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "translog";
 
-        public TablesSettingsTranslogExpression() {
+        TablesSettingsTranslogExpression() {
             addChildImplementations();
         }
 
-        public static final String FLUSH_THRESHOLD_SIZE = "flush_threshold_size";
-        public static final String SYNC_INTERVAL = "sync_interval";
-        public static final String DURABILITY = "durability";
+        static final String FLUSH_THRESHOLD_SIZE = "flush_threshold_size";
+        static final String SYNC_INTERVAL = "sync_interval";
+        static final String DURABILITY = "durability";
 
         private void addChildImplementations() {
             childImplementations.put(FLUSH_THRESHOLD_SIZE, new TableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_SIZE));
@@ -183,11 +202,11 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "write";
 
-        public TablesSettingsWriteExpression() {
+        TablesSettingsWriteExpression() {
             addChildImplementations();
         }
 
-        public static final String WAIT_FOR_ACTIVE_SHARDS = "wait_for_active_shards";
+        static final String WAIT_FOR_ACTIVE_SHARDS = "wait_for_active_shards";
 
         private void addChildImplementations() {
             childImplementations.put(
@@ -200,7 +219,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "unassigned";
 
-        public TablesSettingsUnassignedExpression() {
+        TablesSettingsUnassignedExpression() {
             addChildImplementations();
         }
 
@@ -214,15 +233,14 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "node_left";
 
-        public TablesSettingsNodeLeftExpression() {
+        TablesSettingsNodeLeftExpression() {
             addChildImplementations();
         }
 
-        public static final String DELAYED_TIMEOUT = "delayed_timeout";
+        static final String DELAYED_TIMEOUT = "delayed_timeout";
 
         private void addChildImplementations() {
             childImplementations.put(DELAYED_TIMEOUT, new TableParameterExpression(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT));
         }
     }
 }
-

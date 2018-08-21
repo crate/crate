@@ -35,8 +35,8 @@ public class NodeMemoryStatsExpression extends NestedNodeStatsExpression {
     public NodeMemoryStatsExpression() {
         childImplementations.put(FREE, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                OsStats.Mem mem = this.row.osStats().getMem();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                OsStats.Mem mem = nodeStatsContext.osStats().getMem();
                 if (mem != null) {
                     return mem.getFree().getBytes();
                 }
@@ -45,8 +45,8 @@ public class NodeMemoryStatsExpression extends NestedNodeStatsExpression {
         });
         childImplementations.put(USED, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                OsStats.Mem mem = this.row.osStats().getMem();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                OsStats.Mem mem = nodeStatsContext.osStats().getMem();
                 if (mem != null) {
                     return mem.getUsed().getBytes();
                 }
@@ -55,8 +55,8 @@ public class NodeMemoryStatsExpression extends NestedNodeStatsExpression {
         });
         childImplementations.put(FREE_PERCENT, new SimpleNodeStatsExpression<Short>() {
             @Override
-            public Short innerValue() {
-                OsStats.Mem mem = this.row.osStats().getMem();
+            public Short innerValue(NodeStatsContext nodeStatsContext) {
+                OsStats.Mem mem = nodeStatsContext.osStats().getMem();
                 if (mem != null) {
                     return mem.getFreePercent();
                 }
@@ -65,8 +65,8 @@ public class NodeMemoryStatsExpression extends NestedNodeStatsExpression {
         });
         childImplementations.put(USED_PERCENT, new SimpleNodeStatsExpression<Short>() {
             @Override
-            public Short innerValue() {
-                OsStats.Mem mem = this.row.osStats().getMem();
+            public Short innerValue(NodeStatsContext nodeStatsContext) {
+                OsStats.Mem mem = nodeStatsContext.osStats().getMem();
                 if (mem != null) {
                     return mem.getUsedPercent();
                 }
@@ -75,8 +75,8 @@ public class NodeMemoryStatsExpression extends NestedNodeStatsExpression {
         });
         childImplementations.put(PROBE_TIMESTAMP, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                return this.row.osStats().getTimestamp();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.osStats().getTimestamp();
             }
         });
     }

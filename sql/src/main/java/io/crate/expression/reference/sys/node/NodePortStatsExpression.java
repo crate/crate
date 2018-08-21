@@ -31,20 +31,20 @@ public class NodePortStatsExpression extends NestedNodeStatsExpression {
     public NodePortStatsExpression() {
         childImplementations.put(HTTP, new SimpleNodeStatsExpression<Integer>() {
             @Override
-            public Integer innerValue() {
-                return this.row.port().get("http");
+            public Integer innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.port().get("http");
             }
         });
         childImplementations.put(TRANSPORT, new SimpleNodeStatsExpression<Integer>() {
             @Override
-            public Integer innerValue() {
-                return this.row.port().get("transport");
+            public Integer innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.port().get("transport");
             }
         });
         childImplementations.put(PSQL, new SimpleNodeStatsExpression<Integer>() {
             @Override
-            public Integer innerValue() {
-                return this.row.port().get("psql");
+            public Integer innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.port().get("psql");
             }
         });
     }

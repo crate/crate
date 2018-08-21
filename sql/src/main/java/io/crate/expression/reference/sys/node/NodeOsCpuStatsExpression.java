@@ -35,8 +35,8 @@ class NodeOsCpuStatsExpression extends NestedNodeStatsExpression {
     NodeOsCpuStatsExpression() {
         childImplementations.put(SYS, new SimpleNodeStatsExpression<Short>() {
             @Override
-            public Short innerValue() {
-                ExtendedOsStats.Cpu cpu = this.row.extendedOsStats().cpu();
+            public Short innerValue(NodeStatsContext nodeStatsContext) {
+                ExtendedOsStats.Cpu cpu = nodeStatsContext.extendedOsStats().cpu();
                 if (cpu != null) {
                     return cpu.sys();
                 } else {
@@ -46,8 +46,8 @@ class NodeOsCpuStatsExpression extends NestedNodeStatsExpression {
         });
         childImplementations.put(USER, new SimpleNodeStatsExpression<Short>() {
             @Override
-            public Short innerValue() {
-                ExtendedOsStats.Cpu cpu = this.row.extendedOsStats().cpu();
+            public Short innerValue(NodeStatsContext nodeStatsContext) {
+                ExtendedOsStats.Cpu cpu = nodeStatsContext.extendedOsStats().cpu();
                 if (cpu != null) {
                     return cpu.user();
                 } else {
@@ -57,8 +57,8 @@ class NodeOsCpuStatsExpression extends NestedNodeStatsExpression {
         });
         childImplementations.put(IDLE, new SimpleNodeStatsExpression<Short>() {
             @Override
-            public Short innerValue() {
-                ExtendedOsStats.Cpu cpu = this.row.extendedOsStats().cpu();
+            public Short innerValue(NodeStatsContext nodeStatsContext) {
+                ExtendedOsStats.Cpu cpu = nodeStatsContext.extendedOsStats().cpu();
                 if (cpu != null) {
                     return cpu.idle();
                 } else {
@@ -68,8 +68,8 @@ class NodeOsCpuStatsExpression extends NestedNodeStatsExpression {
         });
         childImplementations.put(USAGE, new SimpleNodeStatsExpression<Short>() {
             @Override
-            public Short innerValue() {
-                ExtendedOsStats.Cpu cpu = this.row.extendedOsStats().cpu();
+            public Short innerValue(NodeStatsContext nodeStatsContext) {
+                ExtendedOsStats.Cpu cpu = nodeStatsContext.extendedOsStats().cpu();
                 if (cpu != null) {
                     return cpu.percent();
                 } else {
@@ -79,8 +79,8 @@ class NodeOsCpuStatsExpression extends NestedNodeStatsExpression {
         });
         childImplementations.put(STOLEN, new SimpleNodeStatsExpression<Short>() {
             @Override
-            public Short innerValue() {
-                ExtendedOsStats.Cpu cpu = this.row.extendedOsStats().cpu();
+            public Short innerValue(NodeStatsContext nodeStatsContext) {
+                ExtendedOsStats.Cpu cpu = nodeStatsContext.extendedOsStats().cpu();
                 if (cpu != null) {
                     return cpu.stolen();
                 } else {

@@ -36,13 +36,6 @@ import java.util.function.Function;
 public abstract class NestableCollectExpression<TRow, TReturnValue>
     implements CollectExpression<TRow, TReturnValue>, NestableInput<TReturnValue> {
 
-    protected TRow row;
-
-    @Override
-    public void setNextRow(TRow row) {
-        this.row = row;
-    }
-
     public static <TRow, TReturnValue> NestableCollectExpression<TRow, TReturnValue> constant(TReturnValue val) {
         return new ConstantNestableCollectExpression<>(val);
     }
@@ -59,13 +52,21 @@ public abstract class NestableCollectExpression<TRow, TReturnValue>
                                                                                                      Function<TIntermediate, Object> extractValue) {
         return new NestableCollectExpression<TRow, Object>() {
 
+            private Object value;
+
+            @Override
+            public void setNextRow(TRow tRow) {
+                TIntermediate intermediate = getProperty.apply(tRow);
+                if (intermediate == null) {
+                    value = null;
+                } else {
+                    value = extractValue.apply(intermediate);
+                }
+            }
+
             @Override
             public Object value() {
-                TIntermediate intermediate = getProperty.apply(row);
-                if (intermediate == null) {
-                    return null;
-                }
-                return extractValue.apply(intermediate);
+                return value;
             }
         };
     }
@@ -73,14 +74,20 @@ public abstract class NestableCollectExpression<TRow, TReturnValue>
     private static class FuncExpression<TRow, TReturnVal> extends NestableCollectExpression<TRow, TReturnVal> {
 
         private final Function<TRow, TReturnVal> f;
+        private TReturnVal value;
 
         FuncExpression(Function<TRow, TReturnVal> f) {
             this.f = f;
         }
 
         @Override
+        public void setNextRow(TRow tRow) {
+            value = f.apply(tRow);
+        }
+
+        @Override
         public TReturnVal value() {
-            return f.apply(row);
+            return value;
         }
     }
 
@@ -89,6 +96,10 @@ public abstract class NestableCollectExpression<TRow, TReturnValue>
 
         ConstantNestableCollectExpression(TReturnValue val) {
             this.val = val;
+        }
+
+        @Override
+        public void setNextRow(TRow tRow) {
         }
 
         @Override

@@ -21,19 +21,17 @@
 
 package io.crate.expression.reference.information;
 
+import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.expression.reference.ObjectCollectExpression;
-
-import java.util.Map;
 
 public abstract class AbstractTablesSettingsExpression extends ObjectCollectExpression<RelationInfo> {
 
     @Override
-    public Map<String, Object> value() {
+    public void setNextRow(RelationInfo row) {
+        value = null;
         if (row instanceof DocTableInfo) {
-            return super.value();
+            super.setNextRow(row);
         }
-        return null;
     }
 }

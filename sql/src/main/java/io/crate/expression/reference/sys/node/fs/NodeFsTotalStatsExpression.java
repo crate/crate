@@ -23,6 +23,7 @@
 package io.crate.expression.reference.sys.node.fs;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.monitor.FsInfoHelpers;
 import io.crate.expression.reference.sys.node.SimpleNodeStatsExpression;
 import org.elasticsearch.monitor.fs.FsInfo;
@@ -39,12 +40,9 @@ import static io.crate.expression.reference.sys.node.fs.NodeFsStatsExpression.WR
 
 public class NodeFsTotalStatsExpression extends SimpleNodeStatsExpression<Map<String, Long>> {
 
-    public NodeFsTotalStatsExpression() {
-    }
-
     @Override
-    public Map<String, Long> innerValue() {
-        FsInfo info = this.row.fsInfo();
+    public Map<String, Long> innerValue(NodeStatsContext nodeStatsContext) {
+        FsInfo info = nodeStatsContext.fsInfo();
         FsInfo.Path path = info.getTotal();
         FsInfo.IoStats ioStats = info.getIoStats();
         return ImmutableMap.<String, Long>builder()

@@ -68,21 +68,9 @@ public class PgTypeTable extends StaticTableInfo {
             .put(Columns.TYPELEM,
                 () -> NestableCollectExpression.forFunction(PGType::typElem))
             .put(Columns.TYPTYPE,
-                () -> new NestableCollectExpression<PGType, BytesRef>() {
-
-                    @Override
-                    public BytesRef value() {
-                        return TYPTYPE;
-                    }
-                })
+                () -> NestableCollectExpression.constant(TYPTYPE))
             .put(Columns.TYPBASETYPE,
-                () -> new NestableCollectExpression<PGType, Integer>() {
-
-                    @Override
-                    public Integer value() {
-                        return 0;
-                    }
-                })
+                () -> NestableCollectExpression.constant(0))
             .build();
     }
 

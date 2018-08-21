@@ -34,26 +34,26 @@ class NodeOsJvmStatsExpression extends NestedNodeStatsExpression {
     NodeOsJvmStatsExpression() {
         childImplementations.put(VERSION, new SimpleNodeStatsExpression<BytesRef>() {
             @Override
-            public BytesRef innerValue() {
-                return this.row.javaVersion();
+            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.javaVersion();
             }
         });
         childImplementations.put(VM_NAME, new SimpleNodeStatsExpression<BytesRef>() {
             @Override
-            public BytesRef innerValue() {
-                return this.row.jvmName();
+            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.jvmName();
             }
         });
         childImplementations.put(VM_VENDOR, new SimpleNodeStatsExpression<BytesRef>() {
             @Override
-            public BytesRef innerValue() {
-                return this.row.jvmVendor();
+            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.jvmVendor();
             }
         });
         childImplementations.put(VM_VERSION, new SimpleNodeStatsExpression<BytesRef>() {
             @Override
-            public BytesRef innerValue() {
-                return this.row.jvmVersion();
+            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.jvmVersion();
             }
         });
     }

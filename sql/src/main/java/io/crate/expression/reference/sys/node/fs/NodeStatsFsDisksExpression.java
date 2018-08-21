@@ -24,6 +24,7 @@ package io.crate.expression.reference.sys.node.fs;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.monitor.FsInfoHelpers;
 import io.crate.expression.reference.sys.node.NodeStatsArrayTypeExpression;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -35,12 +36,9 @@ import java.util.Map;
 
 public class NodeStatsFsDisksExpression extends NodeStatsArrayTypeExpression<FsInfo.Path, Map<String, Object>> {
 
-    public NodeStatsFsDisksExpression() {
-    }
-
     @Override
-    protected List<FsInfo.Path> items() {
-        return Lists.newArrayList(this.row.fsInfo());
+    protected List<FsInfo.Path> items(NodeStatsContext nodeStatsContext) {
+        return Lists.newArrayList(nodeStatsContext.fsInfo());
     }
 
     @Override

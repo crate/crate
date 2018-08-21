@@ -34,20 +34,20 @@ public class NodeVersionStatsExpression extends NestedNodeStatsExpression {
     public NodeVersionStatsExpression() {
         childImplementations.put(NUMBER, new SimpleNodeStatsExpression<BytesRef>() {
             @Override
-            public BytesRef innerValue() {
-                return BytesRefs.toBytesRef(this.row.version().number());
+            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+                return BytesRefs.toBytesRef(nodeStatsContext.version().number());
             }
         });
         childImplementations.put(BUILD_HASH, new SimpleNodeStatsExpression<BytesRef>() {
             @Override
-            public BytesRef innerValue() {
-                return BytesRefs.toBytesRef(this.row.build().hash());
+            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+                return BytesRefs.toBytesRef(nodeStatsContext.build().hash());
             }
         });
         childImplementations.put(BUILD_SNAPSHOT, new SimpleNodeStatsExpression<Boolean>() {
             @Override
-            public Boolean innerValue() {
-                return this.row.version().snapshot();
+            public Boolean innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.version().snapshot();
             }
         });
     }

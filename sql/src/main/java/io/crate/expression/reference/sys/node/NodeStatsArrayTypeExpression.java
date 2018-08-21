@@ -28,16 +28,13 @@ public abstract class NodeStatsArrayTypeExpression<I, R>
     extends ArrayTypeNestableContextCollectExpression<NodeStatsContext, I, R> {
 
     @Override
-    public R[] value() {
-        if (row.isComplete() == false) {
-            return null;
+    public void setNextRow(NodeStatsContext nodeStatsContext) {
+        value = null;
+        if (nodeStatsContext.isComplete()) {
+            super.setNextRow(nodeStatsContext);
+            assert value.length == 0 || !(value[0] instanceof String) :
+                "Sys table expressions should not be of type String";
         }
-
-        R[] value = super.value();
-        assert value.length == 0 || !(value[0] instanceof String) :
-            "Sys table expressions should not be of type String";
-
-        return value;
     }
 }
 

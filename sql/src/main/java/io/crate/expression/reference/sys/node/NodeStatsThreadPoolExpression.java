@@ -32,11 +32,8 @@ import static com.google.common.collect.Lists.newArrayList;
 public abstract class NodeStatsThreadPoolExpression<R>
     extends NodeStatsArrayTypeExpression<ThreadPoolStats.Stats, R> {
 
-    protected NodeStatsThreadPoolExpression() {
-    }
-
     @Override
-    protected List<ThreadPoolStats.Stats> items() {
-        return newArrayList(row.threadPools());
+    protected List<ThreadPoolStats.Stats> items(NodeStatsContext nodeStatsContext) {
+        return newArrayList(nodeStatsContext.threadPools());
     }
 }

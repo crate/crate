@@ -77,24 +77,10 @@ public class SysUsersTableInfo extends StaticTableInfo {
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<User>> sysUsersExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<User>>builder()
-            .put(Columns.NAME, () -> new NestableCollectExpression<User, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.name());
-                }
-            })
-            .put(Columns.SUPERUSER, () -> new NestableCollectExpression<User, Boolean>() {
-                @Override
-                public Boolean value() {
-                    return row.isSuperUser();
-                }
-            })
-            .put(Columns.PASSWORD, () -> new NestableCollectExpression<User, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return row.password() != null ? PASSWORD_PLACEHOLDER : null;
-                }
-            })
+            .put(Columns.NAME, () -> NestableCollectExpression.objToBytesRef(User::name))
+            .put(Columns.SUPERUSER, () -> NestableCollectExpression.forFunction(User::isSuperUser))
+            .put(Columns.PASSWORD, () -> NestableCollectExpression.forFunction(
+                u -> u.password() != null ? PASSWORD_PLACEHOLDER : null))
             .build();
     }
 }

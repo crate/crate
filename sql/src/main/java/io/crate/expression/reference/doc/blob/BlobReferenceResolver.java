@@ -22,6 +22,7 @@
 package io.crate.expression.reference.doc.blob;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.Reference;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -33,11 +34,13 @@ import java.util.Map;
 public class BlobReferenceResolver implements ReferenceResolver<CollectExpression<File, ?>> {
 
     public static final BlobReferenceResolver INSTANCE = new BlobReferenceResolver();
+    private static final String DIGEST = "digest";
+    private static final String LAST_MODIFIED = "last_modified";
 
     private static final Map<String, ExpressionBuilder> EXPRESSION_BUILDER =
         ImmutableMap.of(
-            BlobDigestExpression.COLUMN_NAME, BlobDigestExpression::new,
-            BlobLastModifiedExpression.COLUMN_NAME, BlobLastModifiedExpression::new
+            DIGEST, () -> NestableCollectExpression.objToBytesRef(File::getName),
+            LAST_MODIFIED, () -> NestableCollectExpression.forFunction(File::lastModified)
         );
 
     private BlobReferenceResolver() {

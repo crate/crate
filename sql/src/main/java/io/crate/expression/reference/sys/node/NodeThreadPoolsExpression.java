@@ -47,8 +47,8 @@ public class NodeThreadPoolsExpression
     }
 
     @Override
-    protected List<ThreadPoolStats.Stats> items() {
-        return newArrayList(row.threadPools());
+    protected List<ThreadPoolStats.Stats> items(NodeStatsContext nodeStatsContext) {
+        return newArrayList(nodeStatsContext.threadPools());
     }
 
     @Override
@@ -65,7 +65,10 @@ public class NodeThreadPoolsExpression
     }
 
     @Override
-    public Object[] value() {
-        return row.isComplete() ? super.value() : null;
+    public void setNextRow(NodeStatsContext nodeStatsContext) {
+        value = null;
+        if (nodeStatsContext.isComplete()) {
+            super.setNextRow(nodeStatsContext);
+        }
     }
 }

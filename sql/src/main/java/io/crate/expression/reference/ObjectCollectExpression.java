@@ -33,7 +33,7 @@ import java.util.Map;
 public class ObjectCollectExpression<R> extends NestableCollectExpression<R, Map<String, Object>> {
 
     protected final Map<String, NestableInput> childImplementations;
-    protected R row;
+    protected Map<String, Object> value;
 
     public ObjectCollectExpression(Map<String, NestableInput> childImplementations) {
         this.childImplementations = childImplementations;
@@ -43,23 +43,19 @@ public class ObjectCollectExpression<R> extends NestableCollectExpression<R, Map
         this.childImplementations = new HashMap<>();
     }
 
-    public void setNextRow(R row) {
-        this.row = row;
-    }
-
     @Override
     public NestableInput getChild(String name) {
         return childImplementations.get(name);
     }
 
     @Override
-    public Map<String, Object> value() {
+    public void setNextRow(R r) {
         Map<String, Object> map = new HashMap<>(childImplementations.size());
         for (Map.Entry<String, NestableInput> e : childImplementations.entrySet()) {
             NestableInput nestableInput = e.getValue();
             if (nestableInput instanceof CollectExpression) {
                 //noinspection unchecked
-                ((CollectExpression) nestableInput).setNextRow(this.row);
+                ((CollectExpression) nestableInput).setNextRow(r);
             }
             Object value = nestableInput.value();
 
@@ -70,6 +66,11 @@ public class ObjectCollectExpression<R> extends NestableCollectExpression<R, Map
             }
             map.put(e.getKey(), value);
         }
-        return Collections.unmodifiableMap(map);
+        value = Collections.unmodifiableMap(map);
+    }
+
+    @Override
+    public Map<String, Object> value() {
+        return value;
     }
 }

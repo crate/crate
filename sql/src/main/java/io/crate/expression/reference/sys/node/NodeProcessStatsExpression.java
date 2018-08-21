@@ -34,8 +34,8 @@ public class NodeProcessStatsExpression extends NestedNodeStatsExpression {
     public NodeProcessStatsExpression() {
         childImplementations.put(OPEN_FILE_DESCRIPTORS, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                ProcessStats processStats = this.row.processStats();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                ProcessStats processStats = nodeStatsContext.processStats();
                 if (processStats != null) {
                     return processStats.getOpenFileDescriptors();
                 } else {
@@ -45,8 +45,8 @@ public class NodeProcessStatsExpression extends NestedNodeStatsExpression {
         });
         childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                ProcessStats processStats = this.row.processStats();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                ProcessStats processStats = nodeStatsContext.processStats();
                 if (processStats != null) {
                     return processStats.getMaxFileDescriptors();
                 } else {
@@ -56,8 +56,8 @@ public class NodeProcessStatsExpression extends NestedNodeStatsExpression {
         });
         childImplementations.put(PROBE_TIMESTAMP, new SimpleNodeStatsExpression<Long>() {
             @Override
-            public Long innerValue() {
-                ProcessStats processStats = this.row.processStats();
+            public Long innerValue(NodeStatsContext nodeStatsContext) {
+                ProcessStats processStats = nodeStatsContext.processStats();
                 if (processStats != null) {
                     return processStats.getTimestamp();
                 } else {

@@ -24,6 +24,7 @@ package io.crate.expression.reference.sys.node.fs;
 
 import com.google.common.collect.Lists;
 import io.crate.expression.reference.sys.node.NodeStatsArrayTypeExpression;
+import io.crate.expression.reference.sys.node.NodeStatsContext;
 import org.elasticsearch.monitor.fs.FsInfo;
 
 import java.util.List;
@@ -31,7 +32,7 @@ import java.util.List;
 public abstract class NodeStatsFsArrayExpression<R> extends NodeStatsArrayTypeExpression<FsInfo.Path, R> {
 
     @Override
-    protected List<FsInfo.Path> items() {
-        return Lists.newArrayList(this.row.fsInfo());
+    protected List<FsInfo.Path> items(NodeStatsContext nodeStatsContext) {
+        return Lists.newArrayList(nodeStatsContext.fsInfo());
     }
 }

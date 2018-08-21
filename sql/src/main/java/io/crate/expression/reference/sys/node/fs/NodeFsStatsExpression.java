@@ -23,6 +23,7 @@
 package io.crate.expression.reference.sys.node.fs;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.expression.reference.sys.node.SimpleNodeStatsExpression;
 
 import java.util.Map;
@@ -60,10 +61,10 @@ public class NodeFsStatsExpression extends SimpleNodeStatsExpression<Map<String,
     }
 
     @Override
-    public Map<String, Object> innerValue() {
-        total.setNextRow(this.row);
-        disks.setNextRow(this.row);
-        data.setNextRow(this.row);
+    public Map<String, Object> innerValue(NodeStatsContext nodeStatsContext) {
+        total.setNextRow(nodeStatsContext);
+        disks.setNextRow(nodeStatsContext);
+        data.setNextRow(nodeStatsContext);
         return ImmutableMap.<String, Object>builder()
             .put(TOTAL, total.value())
             .put(DISKS, disks.value())

@@ -29,6 +29,7 @@ public class PartitionExpression extends NestableCollectExpression<PartitionName
 
     private final Reference ref;
     private final int valuesIndex;
+    private Object value;
 
     public PartitionExpression(Reference ref, int valuesIndex) {
         this.ref = ref;
@@ -36,9 +37,14 @@ public class PartitionExpression extends NestableCollectExpression<PartitionName
     }
 
     @Override
-    public Object value() {
+    public void setNextRow(PartitionName row) {
         assert row != null : "row shouldn't be null for PartitionExpression";
-        return ref.valueType().value(row.values().get(valuesIndex));
+        value = ref.valueType().value(row.values().get(valuesIndex));
+    }
+
+    @Override
+    public Object value() {
+        return value;
     }
 
     public Reference reference() {

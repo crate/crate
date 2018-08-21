@@ -46,28 +46,40 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
     static class PartitionTableParameterExpression extends NestableCollectExpression<PartitionInfo, Object> {
 
         private final String paramName;
+        private Object value;
 
-        public PartitionTableParameterExpression(String paramName) {
+        PartitionTableParameterExpression(String paramName) {
             this.paramName = paramName;
         }
 
         @Override
+        public void setNextRow(PartitionInfo row) {
+            value = row.tableParameters().get(paramName);
+        }
+
+        @Override
         public Object value() {
-            return row.tableParameters().get(paramName);
+            return value;
         }
     }
 
     static class BytesRefPartitionTableParameterExpression extends NestableCollectExpression<PartitionInfo, BytesRef> {
 
         private final String paramName;
+        private BytesRef value;
 
-        public BytesRefPartitionTableParameterExpression(String paramName) {
+        BytesRefPartitionTableParameterExpression(String paramName) {
             this.paramName = paramName;
         }
 
         @Override
+        public void setNextRow(PartitionInfo row) {
+            value = BytesRefs.toBytesRef(row.tableParameters().get(paramName));
+        }
+
+        @Override
         public BytesRef value() {
-            return BytesRefs.toBytesRef(row.tableParameters().get(paramName));
+            return value;
         }
     }
 
@@ -75,7 +87,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
 
         public static final String NAME = "mapping";
 
-        public PartitionSettingsMappingExpression() {
+        PartitionSettingsMappingExpression() {
             childImplementations.put(PartitionSettingsMappingTotalFieldsExpression.NAME, new PartitionSettingsMappingTotalFieldsExpression());
         }
     }
@@ -85,7 +97,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         public static final String NAME = "total_fields";
         public static final String LIMIT = "limit";
 
-        public PartitionSettingsMappingTotalFieldsExpression() {
+        PartitionSettingsMappingTotalFieldsExpression() {
             childImplementations.put(LIMIT, new PartitionTableParameterExpression(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT));
         }
     }
@@ -94,14 +106,14 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
 
         public static final String NAME = "blocks";
 
-        public PartitionsSettingsBlocksExpression() {
+        PartitionsSettingsBlocksExpression() {
             addChildImplementations();
         }
 
         public static final String READ_ONLY = "read_only";
         public static final String READ = "read";
-        public static final String WRITE = "write";
-        public static final String METADATA = "metadata";
+        static final String WRITE = "write";
+        static final String METADATA = "metadata";
 
         private void addChildImplementations() {
             childImplementations.put(READ_ONLY, new PartitionTableParameterExpression(TableParameterInfo.READ_ONLY));
@@ -115,7 +127,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
 
         public static final String NAME = "routing";
 
-        public PartitionsSettingsRoutingExpression() {
+        PartitionsSettingsRoutingExpression() {
             addChildImplementations();
         }
 
@@ -128,12 +140,12 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
 
         public static final String NAME = "allocation";
 
-        public PartitionsSettingsRoutingAllocationExpression() {
+        PartitionsSettingsRoutingAllocationExpression() {
             addChildImplementations();
         }
 
-        public static final String ENABLE = "enable";
-        public static final String TOTAL_SHARDS_PER_NODE = "total_shards_per_node";
+        static final String ENABLE = "enable";
+        static final String TOTAL_SHARDS_PER_NODE = "total_shards_per_node";
 
         private void addChildImplementations() {
             childImplementations.put(ENABLE, new BytesRefPartitionTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE));
@@ -145,11 +157,11 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
 
         public static final String NAME = "warmer";
 
-        public PartitionsSettingsWarmerExpression() {
+        PartitionsSettingsWarmerExpression() {
             addChildImplementations();
         }
 
-        public static final String ENABLED = "enabled";
+        static final String ENABLED = "enabled";
 
         private void addChildImplementations() {
             childImplementations.put(ENABLED, new PartitionTableParameterExpression(TableParameterInfo.WARMER_ENABLED));
@@ -160,13 +172,13 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
 
         public static final String NAME = "translog";
 
-        public PartitionsSettingsTranslogExpression() {
+        PartitionsSettingsTranslogExpression() {
             addChildImplementations();
         }
 
-        public static final String FLUSH_THRESHOLD_SIZE = "flush_threshold_size";
-        public static final String SYNC_INTERVAL = "sync_interval";
-        public static final String DURABILITY = "durability";
+        static final String FLUSH_THRESHOLD_SIZE = "flush_threshold_size";
+        static final String SYNC_INTERVAL = "sync_interval";
+        static final String DURABILITY = "durability";
 
         private void addChildImplementations() {
             childImplementations.put(FLUSH_THRESHOLD_SIZE, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_SIZE));
@@ -179,7 +191,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
 
         public static final String NAME = "unassigned";
 
-        public PartitionsSettingsUnassignedExpression() {
+        PartitionsSettingsUnassignedExpression() {
             addChildImplementations();
         }
 
@@ -193,15 +205,14 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
 
         public static final String NAME = "node_left";
 
-        public PartitionsSettingsNodeLeftExpression() {
+        PartitionsSettingsNodeLeftExpression() {
             addChildImplementations();
         }
 
-        public static final String DELAYED_TIMEOUT = "delayed_timeout";
+        static final String DELAYED_TIMEOUT = "delayed_timeout";
 
         private void addChildImplementations() {
             childImplementations.put(DELAYED_TIMEOUT, new PartitionTableParameterExpression(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT));
         }
     }
-
 }

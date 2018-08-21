@@ -29,12 +29,16 @@ import java.util.List;
 public abstract class SysAllocationDecisionsExpression<ReturnType> extends ArrayTypeNestableContextCollectExpression<SysAllocation, SysAllocation.SysAllocationNodeDecision, ReturnType> {
 
     @Override
-    protected List<SysAllocation.SysAllocationNodeDecision> items() {
-        return this.row.decisions();
+    protected List<SysAllocation.SysAllocationNodeDecision> items(SysAllocation row) {
+        return row.decisions();
     }
 
     @Override
-    public ReturnType[] value() {
-        return items() == null ? null : super.value();
+    public void setNextRow(SysAllocation sysAllocation) {
+        value = null;
+        List<SysAllocation.SysAllocationNodeDecision> decisions = items(sysAllocation);
+        if (decisions != null) {
+            computeValue(decisions);
+        }
     }
 }

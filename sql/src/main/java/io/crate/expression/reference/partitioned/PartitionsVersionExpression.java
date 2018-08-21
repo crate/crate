@@ -28,6 +28,8 @@ import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.expression.reference.information.TableExpressions;
 import io.crate.metadata.PartitionInfo;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Map;
 
@@ -68,33 +70,45 @@ public class PartitionsVersionExpression extends ObjectCollectExpression<Partiti
         }
     }
 
-    static class PartitionCrateVersionExpression extends NestableCollectExpression<PartitionInfo, Object> {
+    static class PartitionCrateVersionExpression extends NestableCollectExpression<PartitionInfo, BytesRef> {
 
         private final Version.Property property;
+        private BytesRef value;
 
         PartitionCrateVersionExpression(Version.Property property) {
             this.property = property;
         }
 
         @Override
-        public Object value() {
+        public void setNextRow(PartitionInfo row) {
             Version version = TableExpressions.getVersion(row, property);
-            return version == null ? null : version.number();
+            value = version == null ? null : BytesRefs.toBytesRef(version.number());
+        }
+
+        @Override
+        public BytesRef value() {
+            return value;
         }
     }
 
-    static class PartitionESVersionExpression extends NestableCollectExpression<PartitionInfo, Object> {
+    static class PartitionESVersionExpression extends NestableCollectExpression<PartitionInfo, BytesRef> {
 
         private final Version.Property property;
+        private BytesRef value;
 
         PartitionESVersionExpression(Version.Property property) {
             this.property = property;
         }
 
         @Override
-        public Object value() {
+        public void setNextRow(PartitionInfo row) {
             Version version = TableExpressions.getVersion(row, property);
-            return version == null ? null : version.esVersion.toString();
+            value = version == null ? null : BytesRefs.toBytesRef(version.esVersion.toString());
+        }
+
+        @Override
+        public BytesRef value() {
+            return value;
         }
     }
 }

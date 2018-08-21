@@ -35,26 +35,26 @@ public class NodeOsInfoStatsExpression extends NestedNodeStatsExpression {
     public NodeOsInfoStatsExpression() {
         childImplementations.put(AVAILABLE_PROCESSORS, new SimpleNodeStatsExpression<Integer>() {
             @Override
-            public Integer innerValue() {
-                return this.row.osInfo().getAvailableProcessors();
+            public Integer innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.osInfo().getAvailableProcessors();
             }
         });
         childImplementations.put(OS, new SimpleNodeStatsExpression<BytesRef>() {
             @Override
-            public BytesRef innerValue() {
-                return this.row.osName();
+            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.osName();
             }
         });
         childImplementations.put(ARCH, new SimpleNodeStatsExpression<BytesRef>() {
             @Override
-            public BytesRef innerValue() {
-                return this.row.osArch();
+            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.osArch();
             }
         });
         childImplementations.put(VERSION, new SimpleNodeStatsExpression<BytesRef>() {
             @Override
-            public BytesRef innerValue() {
-                return this.row.osVersion();
+            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+                return nodeStatsContext.osVersion();
             }
         });
         childImplementations.put(JVM, new NodeOsJvmStatsExpression());
