@@ -24,6 +24,7 @@
 # and conditions of your Enterprise or Subscription Agreement with Crate.
 
 import os
+import re
 import unittest
 import time
 import logging
@@ -230,24 +231,22 @@ class CircuitBreakersBeanTest(unittest.TestCase):
         jmx_client = JmxTermClient(JMX_PORT)
         stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=CircuitBreakers', 'Parent')
-        self.assertEqual(stdout, '{ \n'
-                                 '  limit = 726571417;\n'
-                                 '  name = parent;\n'
-                                 '  overhead = 1.0;\n'
-                                 '  trippedCount = 0;\n'
-                                 '  used = 0;\n'
-                                 ' }\n')
+        self.assert_valid_circuit_breaker_jmx_output('parent', stdout)
         self.assertEqual(stderr, '')
+
         stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=CircuitBreakers', 'Query')
-        self.assertEqual(stdout, '{ \n'
-                                 '  limit = 622775500;\n'
-                                 '  name = query;\n'
-                                 '  overhead = 1.09;\n'
-                                 '  trippedCount = 0;\n'
-                                 '  used = 0;\n'
-                                 ' }\n')
+        self.assert_valid_circuit_breaker_jmx_output('query', stdout)
         self.assertEqual(stderr, '')
+
+    def assert_valid_circuit_breaker_jmx_output(self, cb_name, output):
+        limit = re.search('limit = ([0-9]+);', output)
+        self.assertGreater(int(limit.group(1)), 0)
+
+        self.assertRegex(output, f'name = {cb_name};')
+        self.assertRegex(output, 'overhead = (\\d+\\.?\\d+);')
+        self.assertRegex(output, 'trippedCount = (\\d+);')
+        self.assertRegex(output, 'used = (\\d+);')
 
 
 def test_suite():
@@ -257,7 +256,6 @@ def test_suite():
         port=CRATE_HTTP_PORT,
         transport_port=GLOBAL_PORT_POOL.get(),
         env={
-            "CRATE_HEAP_SIZE": "1g",    # required to be fixed by CircuitBreakersBeanTest
             "CRATE_JAVA_OPTS":
                 JMX_OPTS.format(JMX_PORT)
         },
