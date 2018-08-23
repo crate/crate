@@ -72,21 +72,11 @@ public interface PageBucketReceiver extends CompletionListenable, Killable {
      */
     void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener);
 
-    /**
-     * Each buckedId has an associated {@link PageResultListener} and for each listener this will signal no more data
-     * is needed using {@link PageResultListener#needMore}.
-     * Implementations should make sure the upstream is notified when all data is consumed or if an error that causes
-     * the interruption of data processing is encountered.
-     */
-    void releasePageResultListeners();
-
     Streamer<?>[] streamers();
 
     /**
      * Returns a future that will complete successfully when the all data is processed (operation is complete). It will
-     * complete exceptionally when the processing of data failed and the operation needs to be stopped. This is
-     * typically the place where the {@link PageResultListener}s should be released (using
-     * {@link #releasePageResultListeners}) and dependant clients notified.
+     * complete exceptionally when the processing of data failed and the operation needs to be stopped.
      */
     CompletableFuture<?> completionFuture();
 

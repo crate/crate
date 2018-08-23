@@ -88,10 +88,6 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
     }
 
     @Override
-    public void releasePageResultListeners() {
-    }
-
-    @Override
     public Streamer<?>[] streamers() {
         return streamers;
     }

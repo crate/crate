@@ -54,14 +54,9 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask {
             if (ex instanceof IllegalStateException) {
                 kill(ex);
             } else {
-                releaseListenersAndCloseContext(ex);
+                close(ex);
             }
         });
-    }
-
-    private void releaseListenersAndCloseContext(@Nullable Throwable throwable) {
-        pageBucketReceiver.releasePageResultListeners();
-        close(throwable);
     }
 
     @Override

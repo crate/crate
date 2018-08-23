@@ -97,7 +97,14 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         this.exhausted = new HashSet<>(numBuckets);
         this.bucketsByIdx = new HashMap<>(numBuckets);
         this.listenersByBucketIdx = new HashMap<>(numBuckets);
-
+        processingFuture.whenComplete((result, ex) -> {
+            synchronized (buckets) {
+                for (PageResultListener resultListener : listenersByBucketIdx.values()) {
+                    resultListener.needMore(false);
+                }
+                listenersByBucketIdx.clear();
+            }
+        });
         batchPagingIterator = new BatchPagingIterator<>(
             pagingIterator,
             this::fetchMore,
@@ -239,16 +246,6 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
                     resultListener.needMore(true);
                 }
             }
-        }
-    }
-
-    @Override
-    public void releasePageResultListeners() {
-        synchronized (buckets) {
-            for (PageResultListener resultListener : listenersByBucketIdx.values()) {
-                resultListener.needMore(false);
-            }
-            listenersByBucketIdx.clear();
         }
     }
 
