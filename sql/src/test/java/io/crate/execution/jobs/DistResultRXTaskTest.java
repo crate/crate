@@ -49,6 +49,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -121,7 +122,7 @@ public class DistResultRXTaskTest extends CrateUnitTest {
         });
 
         ctx.kill(new InterruptedException());
-        assertThat(throwable.get(), instanceOf(InterruptedException.class));
+        assertThat(throwable.get(), instanceOf(CompletionException.class));
 
         expectedException.expect(InterruptedException.class);
         batchConsumer.getResult();

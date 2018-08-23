@@ -109,7 +109,13 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
             pagingIterator,
             this::fetchMore,
             this::allUpstreamsExhausted,
-            () -> processingFuture.complete(null)
+            throwable -> {
+                if (throwable == null) {
+                    processingFuture.complete(null);
+                } else {
+                    processingFuture.completeExceptionally(throwable);
+                }
+            }
         );
         traceEnabled = logger.isTraceEnabled();
     }

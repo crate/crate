@@ -25,51 +25,54 @@ import io.crate.breaker.RamAccountingContext;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * A {@link DownstreamRXTask} which receives paged buckets from upstreams
  * and forwards the merged bucket results to the consumers for further processing.
  */
-public class DistResultRXTask extends AbstractTask implements DownstreamRXTask {
+public class DistResultRXTask implements Task, DownstreamRXTask {
 
+    private final int id;
     private final String name;
-    private final RamAccountingContext ramAccountingContext;
     private final int numBuckets;
     private final PageBucketReceiver pageBucketReceiver;
+    private final CompletableFuture<CompletionState> completionFuture;
 
     public DistResultRXTask(int id,
                             String name,
                             PageBucketReceiver pageBucketReceiver,
                             RamAccountingContext ramAccountingContext,
                             int numBuckets) {
-        super(id);
+        this.id = id;
         this.name = name;
-        this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;
         this.pageBucketReceiver = pageBucketReceiver;
-
-        this.pageBucketReceiver.completionFuture().whenComplete((result, ex) -> {
+        this.completionFuture = pageBucketReceiver.completionFuture().handle((result, ex) -> {
+            long bytesUsed = ramAccountingContext.totalBytes();
+            ramAccountingContext.close();
             if (ex instanceof IllegalStateException) {
                 kill(ex);
+            }
+            if (ex == null) {
+                CompletionState completionState = new CompletionState();
+                completionState.bytesUsed(bytesUsed);
+                return completionState;
+            } else if (ex instanceof RuntimeException) {
+                throw (RuntimeException) ex;
             } else {
-                close(ex);
+                throw new RuntimeException(ex);
             }
         });
     }
 
     @Override
-    protected void innerClose(@Nullable Throwable throwable) {
-        setBytesUsed(ramAccountingContext.totalBytes());
-        ramAccountingContext.close();
-    }
-
-    @Override
-    protected void innerKill(@Nonnull Throwable t) {
+    public void kill(@Nonnull Throwable t) {
         pageBucketReceiver.kill(t);
     }
 
     @Override
-    protected void innerStart() {
+    public void start() {
         // E.g. If the upstreamPhase is a collectPhase for a partitioned table without any partitions
         // there won't be any executionNodes for that collectPhase
         // -> no upstreams -> just finish
@@ -79,8 +82,17 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask {
     }
 
     @Override
+    public void prepare() throws Exception {
+    }
+
+    @Override
     public String name() {
         return name;
+    }
+
+    @Override
+    public int id() {
+        return id;
     }
 
     @Override
@@ -88,7 +100,7 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask {
         return "DistResultRXTask{" +
                "id=" + id() +
                ", numBuckets=" + numBuckets +
-               ", closed=" + isClosed() +
+               ", isDone=" + completionFuture.isDone() +
                '}';
     }
 
@@ -101,5 +113,10 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask {
     @Override
     public PageBucketReceiver getBucketReceiver(byte inputId) {
         return pageBucketReceiver;
+    }
+
+    @Override
+    public CompletableFuture<CompletionState> completionFuture() {
+        return completionFuture;
     }
 }

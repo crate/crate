@@ -99,7 +99,7 @@ public class OrderedLuceneBatchIteratorFactory {
                 pagingIterator,
                 this::tryFetchMore,
                 this::allExhausted,
-                this::close
+                throwable -> close()
             );
             return batchPagingIterator;
         }

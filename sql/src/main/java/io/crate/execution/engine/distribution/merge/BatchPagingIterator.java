@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -42,7 +43,8 @@ import java.util.function.Function;
  *
  *  - {@link #tryFetchMore},        (to request more data from an upstream)
  *  - {@link #isUpstreamExhausted}, (to check if an upstream can deliver more data)
- *  - {@link #closeCallback}        (called once the iterator is closed)
+ *  - {@link #closeCallback}        (called once the iterator is closed,
+ *                                   will receive a throwable if the BatchIterator was killed)
  *
  *  - {@link #completeLoad(Throwable)}  (used by the upstream to inform the
  *                                       BatchPagingIterator that the pagingIterator has been filled)
@@ -52,7 +54,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
     private final PagingIterator<Key, Row> pagingIterator;
     private final Function<Key, Boolean> tryFetchMore;
     private final BooleanSupplier isUpstreamExhausted;
-    private final Runnable closeCallback;
+    private final Consumer<? super Throwable> closeCallback;
 
     private Iterator<Row> it;
     private CompletableFuture<Void> currentlyLoading;
@@ -64,7 +66,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
     public BatchPagingIterator(PagingIterator<Key, Row> pagingIterator,
                                Function<Key, Boolean> tryFetchMore,
                                BooleanSupplier isUpstreamExhausted,
-                               Runnable closeCallback) {
+                               Consumer<? super Throwable> closeCallback) {
         this.pagingIterator = pagingIterator;
         this.it = pagingIterator;
         this.tryFetchMore = tryFetchMore;
@@ -101,7 +103,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
         if (!closed) {
             closed = true;
             pagingIterator.finish(); // release resource, specially possible ram accounted bytes
-            closeCallback.run();
+            closeCallback.accept(killed);
         }
     }
 
