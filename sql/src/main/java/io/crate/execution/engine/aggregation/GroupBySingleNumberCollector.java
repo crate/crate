@@ -131,21 +131,33 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
          * The entry overhead is computed by observing the effect/key and /value on the used space when the capacity is
          * doubled eg. for Integer going from 2 items to 4 items yields an 8 byte increase in used space for both keys
          * and values (so an extra 4 byte / key and 4 byte / value) which results in a total of 8 bytes overhead/ entry.
+         *
+         * During the construction of the map we reserve space for 4 elements,
+         * because of the defaults of 8 for initial capacity and 0.5 for load factor
+         * the map starts with a size of 4 and doubles its size to 8 once the 5th element
+         * is about to be added.
+         *
+         * The Ram accounting for new elements takes place in batches when the map is about
+         * to grow by doubling its size. See #addWithAccounting()
          */
 
         final Map statesByKey;
         long entryOverhead;
         if (valueType.equals(DataTypes.BYTE)) {
             entryOverhead = 6L;
+            ramAccounting.addBytes(4 * entryOverhead);
             statesByKey = new ByteObjectHashMap<Object[]>();
         } else if (valueType.equals(DataTypes.SHORT)) {
             entryOverhead = 6L;
+            ramAccounting.addBytes(4 * entryOverhead);
             statesByKey = new ShortObjectHashMap<Object[]>();
         } else if (valueType.equals(DataTypes.INTEGER)) {
             entryOverhead = 8L;
+            ramAccounting.addBytes(4 * entryOverhead);
             statesByKey = new IntObjectHashMap<Object[]>();
         } else if (valueType.equals(DataTypes.LONG)) {
             entryOverhead = 12L;
+            ramAccounting.addBytes(4 * entryOverhead);
             statesByKey = new LongObjectHashMap<Object[]>();
         } else {
             throw new IllegalArgumentException("Unsupported input type " + valueType.getName());
@@ -239,7 +251,13 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
     }
 
     private void addWithAccounting(Groups groups, Number key, Object[] newStates) {
-        ramAccounting.addBytes(groups.entryOverhead);
+        int mapSize = groups.statesByKey.size();
+        // If mapSize is a power of 2 then the map is going to grow by doubling its size.
+        // The first 4 elements have been calculated during the map construction.
+        if (mapSize >= 4 && (mapSize & (mapSize - 1)) == 0) {
+            ramAccounting.addBytes(mapSize * groups.entryOverhead);
+        }
+
         groups.statesByKey.put(key, newStates);
     }
 
@@ -256,7 +274,7 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
         }
 
         // account for the states object array
-        ramAccounting.addBytes(16L);
+        ramAccounting.addBytes(24L);
         return states;
     }
 
