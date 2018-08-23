@@ -80,8 +80,6 @@ public interface PageBucketReceiver extends CompletionListenable, Killable {
      */
     void releasePageResultListeners();
 
-    void killed(int bucketIdx, Throwable throwable);
-
     Streamer<?>[] streamers();
 
     /**

@@ -182,7 +182,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
                     resultRequest.isLast(),
                     needMore -> listener.onResponse(new DistributedResultResponse(needMore)));
             } else {
-                bucketReceiver.killed(resultRequest.bucketIdx(), throwable);
+                bucketReceiver.kill(throwable);
             }
             return null;
         }).when(distributedResultAction).pushResult(anyString(), any(), any());

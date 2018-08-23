@@ -92,11 +92,6 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
     }
 
     @Override
-    public void killed(int bucketIdx, Throwable throwable) {
-        kill(throwable);
-    }
-
-    @Override
     public Streamer<?>[] streamers() {
         return streamers;
     }

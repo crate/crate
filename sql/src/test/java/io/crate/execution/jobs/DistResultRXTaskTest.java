@@ -176,7 +176,7 @@ public class DistResultRXTaskTest extends CrateUnitTest {
         PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
         assertThat(bucketReceiver, notNullValue());
         bucketReceiver.setBucket(0, Bucket.EMPTY, false, listener);
-        bucketReceiver.killed(1, new Exception("dummy"));
+        bucketReceiver.kill(new Exception("dummy"));
 
         verify(listener, times(1)).needMore(false);
     }
@@ -188,11 +188,11 @@ public class DistResultRXTaskTest extends CrateUnitTest {
         PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
         assertThat(bucketReceiver, notNullValue());
 
-        bucketReceiver.killed(0, new Exception("dummy"));
+        bucketReceiver.kill(new Exception("dummy"));
         PageResultListener listener = mock(PageResultListener.class);
         bucketReceiver.setBucket(1, Bucket.EMPTY, true, listener);
 
-        verify(listener, times(1)).needMore(false);
+        verify(listener, times(2)).needMore(false);
     }
 
     @Test

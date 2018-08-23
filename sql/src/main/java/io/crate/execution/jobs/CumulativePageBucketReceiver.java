@@ -269,38 +269,6 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         }
     }
 
-    private void traceLog(String msg, int bucketIdx, Throwable t) {
-        if (traceEnabled) {
-            logger.trace("{} phaseId={} bucket={} throwable={}", msg, phaseId, bucketIdx, t);
-        }
-    }
-
-    @Override
-    public void killed(int bucketIdx, Throwable throwable) {
-        traceLog("method=killed", bucketIdx, throwable);
-
-        boolean shouldTriggerConsumer;
-        synchronized (lock) {
-            if (bucketsByIdx.putIfAbsent(bucketIdx, Bucket.EMPTY) != null) {
-                traceLog("method=killed future already set", bucketIdx);
-                return;
-            }
-            shouldTriggerConsumer = setBucketFailure(bucketIdx, throwable);
-        }
-        if (shouldTriggerConsumer) {
-            triggerConsumer();
-        }
-    }
-
-    private boolean setBucketFailure(int bucketIdx, Throwable throwable) {
-        // can't trigger failure on pageDownstream immediately as it would remove the context which the other
-        // upstreams still require
-
-        lastThrowable = throwable;
-        exhausted.add(bucketIdx);
-        return bucketsByIdx.size() == numBuckets;
-    }
-
     @Override
     public Streamer<?>[] streamers() {
         return streamers;
