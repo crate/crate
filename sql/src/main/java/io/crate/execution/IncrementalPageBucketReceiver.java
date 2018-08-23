@@ -23,11 +23,11 @@
 package io.crate.execution;
 
 import io.crate.Streamer;
+import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
-import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.data.SentinelRow;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.PageResultListener;
 
@@ -44,11 +44,11 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
     private final BiConsumer<T, Row> accumulator;
     private final T state;
     private final AtomicInteger remainingUpstreams;
-    private final RowConsumer consumer;
-    private final CompletableFuture<?> processingFuture = new CompletableFuture<>();
+    private final CompletableFuture<Iterable<Row>> processingFuture = new CompletableFuture<>();
     private final Streamer<?>[] streamers;
 
     private volatile Throwable lastThrowable = null;
+    private final BatchIterator<Row> lazyBatchIterator;
 
     public IncrementalPageBucketReceiver(Collector<Row, T, Iterable<Row>> collector,
                                          RowConsumer rowConsumer,
@@ -57,13 +57,18 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
         this.state = collector.supplier().get();
         this.accumulator = collector.accumulator();
         this.finisher = collector.finisher();
-        this.consumer = rowConsumer;
         this.streamers = streamers;
         this.remainingUpstreams = new AtomicInteger(upstreamsCount);
+        lazyBatchIterator = CollectingBatchIterator.newInstance(
+            () -> {},
+            t -> {},
+            () -> processingFuture);
+        rowConsumer.accept(lazyBatchIterator, null);
     }
 
     @Override
     public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
+        pageResultListener.needMore(!isLast);
         synchronized (state) {
             try {
                 for (Row row : rows) {
@@ -74,15 +79,9 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
             }
         }
 
-        pageResultListener.needMore(!isLast);
         if (isLast) {
             if (remainingUpstreams.decrementAndGet() == 0) {
                 consumeRows();
-                if (lastThrowable == null) {
-                    processingFuture.complete(null);
-                } else {
-                    processingFuture.completeExceptionally(lastThrowable);
-                }
             }
         }
     }
@@ -99,13 +98,17 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
 
     @Override
     public void consumeRows() {
-        consumer.accept(InMemoryBatchIterator.of(finisher.apply(state), SentinelRow.SENTINEL), lastThrowable);
+        if (lastThrowable == null) {
+            processingFuture.complete(finisher.apply(state));
+        } else {
+            processingFuture.completeExceptionally(lastThrowable);
+        }
     }
 
     @Override
     public void kill(@Nonnull Throwable t) {
         lastThrowable = t;
-        consumer.accept(null, t);
+        lazyBatchIterator.kill(t);
         processingFuture.completeExceptionally(t);
     }
 }
