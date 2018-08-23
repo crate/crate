@@ -29,14 +29,14 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
+import io.netty.util.collection.IntObjectHashMap;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -93,10 +93,10 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         this.pagingIterator = pagingIterator;
         this.numBuckets = numBuckets;
 
-        this.buckets = new HashSet<>(numBuckets);
-        this.exhausted = new HashSet<>(numBuckets);
-        this.bucketsByIdx = new HashMap<>(numBuckets);
-        this.listenersByBucketIdx = new HashMap<>(numBuckets);
+        this.buckets = Collections.newSetFromMap(new IntObjectHashMap<>(numBuckets));
+        this.exhausted = Collections.newSetFromMap(new IntObjectHashMap<>(numBuckets));
+        this.bucketsByIdx = new IntObjectHashMap<>(numBuckets);
+        this.listenersByBucketIdx = new IntObjectHashMap<>(numBuckets);
         processingFuture.whenComplete((result, ex) -> {
             synchronized (buckets) {
                 for (PageResultListener resultListener : listenersByBucketIdx.values()) {
