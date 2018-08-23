@@ -29,9 +29,9 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
-import io.crate.execution.jobs.PageBucketReceiver;
-import io.crate.execution.jobs.DistResultRXTask;
 import io.crate.execution.jobs.CumulativePageBucketReceiver;
+import io.crate.execution.jobs.DistResultRXTask;
+import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsRequest;
@@ -181,7 +181,6 @@ public class RemoteCollector {
             1);
 
         builder.addTask(new DistResultRXTask(
-            LOGGER,
             RECEIVER_PHASE_ID,
             "RemoteCollectPhase",
             pageBucketReceiver,

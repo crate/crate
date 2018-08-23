@@ -36,8 +36,6 @@ import io.crate.expression.reference.GetResultRefResolver;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.operators.PKAndVersion;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.get.GetResult;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -48,7 +46,6 @@ import java.util.UUID;
 
 public final class PKLookupTask extends AbstractTask {
 
-    private static final Logger LOGGER = Loggers.getLogger(PKLookupTask.class);
     private final UUID jobId;
     private final RamAccountingContext ramAccountingContext;
     private final PKLookupOperation pkLookupOperation;
@@ -71,7 +68,7 @@ public final class PKLookupTask extends AbstractTask {
                  Map<ShardId, List<PKAndVersion>> idsByShard,
                  Collection<? extends Projection> shardProjections,
                  RowConsumer consumer) {
-        super(phaseId, LOGGER);
+        super(phaseId);
         this.jobId = jobId;
         this.name = name;
         this.ramAccountingContext = ramAccountingContext;

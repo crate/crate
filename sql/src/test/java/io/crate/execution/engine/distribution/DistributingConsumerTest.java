@@ -156,7 +156,6 @@ public class DistributingConsumerTest extends CrateUnitTest {
             1);
 
         return new DistResultRXTask(
-            logger,
             1,
             "dummy",
             pageBucketReceiver,

@@ -29,8 +29,6 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -42,8 +40,6 @@ import static io.crate.data.SentinelRow.SENTINEL;
 
 public class CountTask extends AbstractTask {
 
-    private static final Logger LOGGER = Loggers.getLogger(CountTask.class);
-
     private final CountPhase countPhase;
     private final CountOperation countOperation;
     private final RowConsumer consumer;
@@ -54,7 +50,7 @@ public class CountTask extends AbstractTask {
               CountOperation countOperation,
               RowConsumer consumer,
               Map<String, IntIndexedContainer> indexShardMap) {
-        super(countPhase.phaseId(), LOGGER);
+        super(countPhase.phaseId());
         this.countPhase = countPhase;
         this.countOperation = countOperation;
         this.consumer = consumer;

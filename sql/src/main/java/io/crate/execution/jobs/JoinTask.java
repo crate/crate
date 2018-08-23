@@ -23,7 +23,6 @@ package io.crate.execution.jobs;
 
 import io.crate.concurrent.CompletionListenable;
 import io.crate.execution.dsl.phases.JoinPhase;
-import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 
@@ -37,12 +36,11 @@ class JoinTask extends AbstractTask implements DownstreamRXTask {
     @Nullable
     private final PageBucketReceiver rightPageBucketReceiver;
 
-    JoinTask(Logger logger,
-             JoinPhase joinPhase,
+    JoinTask(JoinPhase joinPhase,
              CompletionListenable<?> completionListenable,
              @Nullable PageBucketReceiver leftPageBucketReceiver,
              @Nullable PageBucketReceiver rightPageBucketReceiver) {
-        super(joinPhase.phaseId(), logger);
+        super(joinPhase.phaseId());
 
         this.joinPhase = joinPhase;
         this.leftPageBucketReceiver = leftPageBucketReceiver;

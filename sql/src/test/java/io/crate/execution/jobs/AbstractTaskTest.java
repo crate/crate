@@ -90,7 +90,7 @@ public class AbstractTaskTest extends CrateUnitTest {
         final AtomicInteger numKill = new AtomicInteger();
 
         TestingTask(int id) {
-            super(id, LOGGER);
+            super(id);
         }
 
         public TestingTask() {

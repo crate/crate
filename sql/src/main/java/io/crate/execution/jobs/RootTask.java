@@ -33,7 +33,6 @@ import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -53,13 +52,12 @@ import java.util.function.BiConsumer;
 
 public class RootTask implements CompletionListenable<Void> {
 
-    private static final Logger LOGGER = Loggers.getLogger(RootTask.class);
-
     private final UUID jobId;
     private final ConcurrentMap<Integer, Task> tasksByPhaseId;
     private final AtomicInteger numTasks;
     private final IntArrayList orderedTaskIds;
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final Logger logger;
     private final String coordinatorNodeId;
     private final JobsLogs jobsLogs;
     private final CompletableFuture<Void> finishedFuture = new CompletableFuture<>();
@@ -68,6 +66,7 @@ public class RootTask implements CompletionListenable<Void> {
 
     @Nullable
     private final ProfilingContext profiler;
+    private final boolean traceEnabled;
     private volatile Throwable failure;
 
     @Nullable
@@ -77,6 +76,7 @@ public class RootTask implements CompletionListenable<Void> {
 
     public static class Builder {
 
+        private final Logger logger;
         private final UUID jobId;
         private final String coordinatorNode;
         private final JobsLogs jobsLogs;
@@ -86,7 +86,12 @@ public class RootTask implements CompletionListenable<Void> {
         @Nullable
         private ProfilingContext profilingContext = null;
 
-        Builder(UUID jobId, String coordinatorNode, Collection<String> participatingNodes, JobsLogs jobsLogs) {
+        Builder(Logger logger,
+                UUID jobId,
+                String coordinatorNode,
+                Collection<String> participatingNodes,
+                JobsLogs jobsLogs) {
+            this.logger = logger;
             this.jobId = jobId;
             this.coordinatorNode = coordinatorNode;
             this.participatingNodes = participatingNodes;
@@ -112,17 +117,19 @@ public class RootTask implements CompletionListenable<Void> {
 
         RootTask build() throws Exception {
             return new RootTask(
-                jobId, coordinatorNode, participatingNodes, jobsLogs, tasks, profilingContext);
+                logger, jobId, coordinatorNode, participatingNodes, jobsLogs, tasks, profilingContext);
         }
     }
 
 
-    private RootTask(UUID jobId,
+    private RootTask(Logger logger,
+                     UUID jobId,
                      String coordinatorNodeId,
                      Collection<String> participatingNodes,
                      JobsLogs jobsLogs,
                      List<Task> orderedTasks,
                      @Nullable ProfilingContext profilingContext) throws Exception {
+        this.logger = logger;
         this.coordinatorNodeId = coordinatorNodeId;
         this.participatedNodes = participatingNodes;
         this.jobId = jobId;
@@ -144,7 +151,7 @@ public class RootTask implements CompletionListenable<Void> {
         tasksByPhaseId = new ConcurrentHashMap<>(numTasks);
         this.numTasks = new AtomicInteger(numTasks);
 
-        boolean traceEnabled = LOGGER.isTraceEnabled();
+        traceEnabled = logger.isTraceEnabled();
         for (Task task : orderedTasks) {
             int phaseId = task.id();
             orderedTaskIds.add(phaseId);
@@ -161,7 +168,7 @@ public class RootTask implements CompletionListenable<Void> {
                 }
             }
             if (traceEnabled) {
-                LOGGER.trace("adding subContext {}, now there are {} tasksByPhaseId", phaseId, tasksByPhaseId.size());
+                logger.trace("adding subContext {}, now there are {} tasksByPhaseId", phaseId, tasksByPhaseId.size());
             }
         }
         prepare(orderedTasks);
@@ -206,6 +213,9 @@ public class RootTask implements CompletionListenable<Void> {
                 assert taskTimersByPhaseId != null : "taskTimersByPhaseId must not be null";
                 taskTimersByPhaseId.get(id.value).start();
             }
+            if (traceEnabled) {
+                logger.trace("Task start id={} ctx={}", id.value, task);
+            }
             task.start();
         }
         if (failure != null) {
@@ -236,13 +246,16 @@ public class RootTask implements CompletionListenable<Void> {
     public long kill() {
         int numKilled = 0;
         if (!closed.getAndSet(true)) {
-            LOGGER.trace("kill called on Task {}", jobId);
+            logger.trace("kill called on Task {}", jobId);
             if (numTasks.get() == 0) {
                 finish();
             } else {
                 for (Task task : tasksByPhaseId.values()) {
                     // kill will trigger the ContextCallback onClose too
                     // so it is not necessary to remove the task from the map here as it will be done in the callback
+                    if (traceEnabled) {
+                        logger.trace("Task kill id={} ctx={}", task.id(), task);
+                    }
                     task.kill(new JobKilledException());
                     numKilled++;
                 }
@@ -261,9 +274,9 @@ public class RootTask implements CompletionListenable<Void> {
 
     private void finish() {
         if (profiler != null) {
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("Profiling is enabled. Task will not be closed until results are collected!");
-                LOGGER.trace("Profiling results for job {}: {}", jobId, profiler.getDurationInMSByTimer());
+            if (logger.isTraceEnabled()) {
+                logger.trace("Profiling is enabled. Task will not be closed until results are collected!");
+                logger.trace("Profiling results for job {}: {}", jobId, profiler.getDurationInMSByTimer());
             }
             assert profilingFuture != null : "profilingFuture must not be null";
             try {
@@ -332,20 +345,20 @@ public class RootTask implements CompletionListenable<Void> {
             return false;
         }
 
-        public void onSuccess(@Nullable CompletionState state) {
+        private void onSuccess(@Nullable CompletionState state) {
             assert state != null : "state must not be null";
             jobsLogs.operationFinished(id, jobId, null, state.bytesUsed());
             removeAndFinishIfNeeded();
         }
 
-        public void onFailure(@Nonnull Throwable t) {
+        private void onFailure(@Nonnull Throwable t) {
             failure = t;
             jobsLogs.operationFinished(id, jobId, SQLExceptions.messageOf(t), -1);
             if (removeAndFinishIfNeeded()) {
                 return;
             }
             if (killTasksOngoing.compareAndSet(false, true)) {
-                LOGGER.trace("onFailure killing all other tasksByPhaseId..");
+                logger.trace("onFailure killing all other tasksByPhaseId..");
                 for (Task subContext : tasksByPhaseId.values()) {
                     subContext.kill(t);
                 }
@@ -356,6 +369,9 @@ public class RootTask implements CompletionListenable<Void> {
         public void accept(CompletionState completionState, Throwable throwable) {
             if (profiler != null) {
                 stopTaskTimer();
+            }
+            if (traceEnabled) {
+                logger.trace("Task completed id={} state={} error={}", id, completionState, throwable);
             }
             if (throwable == null) {
                 onSuccess(completionState);

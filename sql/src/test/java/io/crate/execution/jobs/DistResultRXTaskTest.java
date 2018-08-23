@@ -80,7 +80,6 @@ public class DistResultRXTaskTest extends CrateUnitTest {
             numBuckets);
 
         return new DistResultRXTask(
-            Loggers.getLogger(DistResultRXTask.class),
             1,
             "dummy",
             pageBucketReceiver,

@@ -120,7 +120,6 @@ public class JobSetup extends AbstractComponent {
 
     private final MapSideDataCollectOperation collectOperation;
     private final Logger distResultRXTaskLogger;
-    private final Logger joinTaskLogger;
     private final ClusterService clusterService;
     private final CountOperation countOperation;
     private final CrateCircuitBreakerService circuitBreakerService;
@@ -147,7 +146,6 @@ public class JobSetup extends AbstractComponent {
                     ShardCollectSource shardCollectSource,
                     BigArrays bigArrays) {
         super(settings);
-        joinTaskLogger = Loggers.getLogger(JoinTask.class, settings);
         distResultRXTaskLogger = Loggers.getLogger(DistResultRXTask.class, settings);
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
@@ -668,7 +666,6 @@ public class JobSetup extends AbstractComponent {
             }
 
             context.registerSubContext(new DistResultRXTask(
-                distResultRXTaskLogger,
                 phase.phaseId(),
                 phase.name(),
                 pageBucketReceiver,
@@ -787,7 +784,6 @@ public class JobSetup extends AbstractComponent {
                 context.registerSubContext(right);
             }
             context.registerSubContext(new JoinTask(
-                joinTaskLogger,
                 phase,
                 joinOperation,
                 left != null ? left.getBucketReceiver((byte) 0) : null,
@@ -843,7 +839,6 @@ public class JobSetup extends AbstractComponent {
                 context.registerSubContext(right);
             }
             context.registerSubContext(new JoinTask(
-                joinTaskLogger,
                 phase,
                 joinOperation,
                 left != null ? left.getBucketReceiver((byte) 0) : null,
@@ -892,7 +887,6 @@ public class JobSetup extends AbstractComponent {
                 mergePhase.numUpstreams());
 
             return new DistResultRXTask(
-                distResultRXTaskLogger,
                 mergePhase.phaseId(),
                 mergePhase.name(),
                 pageBucketReceiver,

@@ -35,6 +35,7 @@ import io.crate.profile.ProfilingContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.IntegerType;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -59,12 +60,14 @@ import static org.mockito.Mockito.when;
 
 public class RootTaskTest extends CrateUnitTest {
 
+    private Logger logger = Loggers.getLogger(RootTaskTest.class);
+
     private String coordinatorNode = "dummyNode";
 
     @Test
     public void testAddTheSameContextTwiceThrowsAnError() throws Exception {
         RootTask.Builder builder =
-            new RootTask.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+            new RootTask.Builder(logger, UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
         builder.addTask(new AbstractTaskTest.TestingTask());
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Task for 0 already added");
@@ -75,7 +78,7 @@ public class RootTaskTest extends CrateUnitTest {
     @Test
     public void testKillPropagatesToSubContexts() throws Exception {
         RootTask.Builder builder =
-            new RootTask.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+            new RootTask.Builder(logger, UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
 
 
         AbstractTaskTest.TestingTask ctx1 = new AbstractTaskTest.TestingTask(1);
@@ -96,9 +99,9 @@ public class RootTaskTest extends CrateUnitTest {
     public void testErrorMessageIsIncludedInStatsTableOnFailure() throws Exception {
         JobsLogs jobsLogs = mock(JobsLogs.class);
         RootTask.Builder builder =
-            new RootTask.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), jobsLogs);
+            new RootTask.Builder(logger, UUID.randomUUID(), coordinatorNode, Collections.emptySet(), jobsLogs);
 
-        Task task = new AbstractTask(0, logger) {
+        Task task = new AbstractTask(0) {
             @Override
             public String name() {
                 return "dummy";
@@ -121,7 +124,7 @@ public class RootTaskTest extends CrateUnitTest {
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
 
         RootTask.Builder builder =
-            new RootTask.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+            new RootTask.Builder(logger, UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
 
         CollectTask collectChildTask = new CollectTask(
             collectPhase,
@@ -141,7 +144,6 @@ public class RootTaskTest extends CrateUnitTest {
             PassThroughPagingIterator.oneShot(),
             1);
         DistResultRXTask distResultRXTask = spy(new DistResultRXTask(
-            Loggers.getLogger(DistResultRXTask.class),
             2,
             "dummy",
             pageBucketReceiver,
@@ -167,7 +169,7 @@ public class RootTaskTest extends CrateUnitTest {
     @Test
     public void testEnablingProfilingGathersExecutionTimes() throws Throwable {
         RootTask.Builder builder =
-            new RootTask.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+            new RootTask.Builder(logger, UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
         ProfilingContext profilingContext = new ProfilingContext(Collections::emptyList);
         builder.profilingContext(profilingContext);
 

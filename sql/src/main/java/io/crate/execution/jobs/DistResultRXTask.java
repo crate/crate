@@ -22,7 +22,6 @@
 package io.crate.execution.jobs;
 
 import io.crate.breaker.RamAccountingContext;
-import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,13 +37,12 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask {
     private final int numBuckets;
     private final PageBucketReceiver pageBucketReceiver;
 
-    public DistResultRXTask(Logger logger,
-                            int id,
+    public DistResultRXTask(int id,
                             String name,
                             PageBucketReceiver pageBucketReceiver,
                             RamAccountingContext ramAccountingContext,
                             int numBuckets) {
-        super(id, logger);
+        super(id);
         this.name = name;
         this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;

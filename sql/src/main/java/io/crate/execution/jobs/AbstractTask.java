@@ -23,7 +23,6 @@
 package io.crate.execution.jobs;
 
 import io.crate.exceptions.JobKilledException;
-import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -32,16 +31,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractTask implements Task {
 
-    protected final Logger logger;
     protected final int id;
 
     private final AtomicBoolean firstClose = new AtomicBoolean(false);
     private final CompletionState completionState = new CompletionState();
     private final CompletableFuture<CompletionState> future = new CompletableFuture<>();
 
-    protected AbstractTask(int id, Logger logger) {
+    protected AbstractTask(int id) {
         this.id = id;
-        this.logger = logger;
     }
 
     public int id() {
@@ -67,7 +64,6 @@ public abstract class AbstractTask implements Task {
     @Override
     public final void start() {
         if (!firstClose.get()) {
-            logger.trace("starting id={} ctx={}", id, this);
             try {
                 innerStart();
             } catch (Throwable t) {
@@ -81,14 +77,11 @@ public abstract class AbstractTask implements Task {
 
     protected boolean close(@Nullable Throwable t) {
         if (firstClose.compareAndSet(false, true)) {
-            logger.trace("closing id={} ctx={}", id, this);
             try {
                 innerClose(t);
             } catch (Throwable t2) {
                 if (t == null) {
                     t = t2;
-                } else {
-                    logger.warn("closing due to exception, but closing also throws exception", t2);
                 }
             }
             completeFuture(t);
@@ -114,13 +107,11 @@ public abstract class AbstractTask implements Task {
             if (t == null) {
                 t = new InterruptedException(JobKilledException.MESSAGE);
             }
-            logger.trace("killing id={} ctx={} cause={}", id, this, t);
             try {
                 innerKill(t);
-            } catch (Throwable t2) {
-                logger.warn("killing due to exception, but killing also throws exception", t2);
+            } finally {
+                completeFuture(t);
             }
-            completeFuture(t);
         }
     }
 

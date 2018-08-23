@@ -33,10 +33,8 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -57,7 +55,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FetchTask extends AbstractTask {
 
-    private static final Logger LOGGER = Loggers.getLogger(FetchTask.class);
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final IntObjectHashMap<SharedShardContext> shardContexts = new IntObjectHashMap<>();
     private final FetchPhase phase;
@@ -74,7 +71,7 @@ public class FetchTask extends AbstractTask {
                      SharedShardContexts sharedShardContexts,
                      MetaData metaData,
                      Iterable<? extends Routing> routingIterable) {
-        super(phase.phaseId(), LOGGER);
+        super(phase.phaseId());
         this.phase = phase;
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;

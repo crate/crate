@@ -111,11 +111,11 @@ public class TasksService extends AbstractLifecycleComponent {
 
     @VisibleForTesting
     public RootTask.Builder newBuilder(UUID jobId) {
-        return new RootTask.Builder(jobId, clusterService.localNode().getId(), Collections.emptySet(), jobsLogs);
+        return new RootTask.Builder(logger, jobId, clusterService.localNode().getId(), Collections.emptySet(), jobsLogs);
     }
 
     public RootTask.Builder newBuilder(UUID jobId, String coordinatorNodeId, Collection<String> participatingNodes) {
-        return new RootTask.Builder(jobId, coordinatorNodeId, participatingNodes, jobsLogs);
+        return new RootTask.Builder(logger, jobId, coordinatorNodeId, participatingNodes, jobsLogs);
     }
 
     public int numActive() {

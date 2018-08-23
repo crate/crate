@@ -34,8 +34,6 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.jobs.AbstractTask;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.RowGranularity;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -44,8 +42,6 @@ import javax.annotation.Nullable;
 import java.util.Locale;
 
 public class CollectTask extends AbstractTask {
-
-    private static final Logger LOGGER = Loggers.getLogger(CollectTask.class);
 
     private final CollectPhase collectPhase;
     private final MapSideDataCollectOperation collectOperation;
@@ -64,7 +60,7 @@ public class CollectTask extends AbstractTask {
                        RamAccountingContext queryPhaseRamAccountingContext,
                        RowConsumer consumer,
                        SharedShardContexts sharedShardContexts) {
-        super(collectPhase.phaseId(), LOGGER);
+        super(collectPhase.phaseId());
         this.collectPhase = collectPhase;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
