@@ -42,6 +42,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.logging.Loggers;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 
@@ -171,15 +172,17 @@ public class DistributingConsumerTest extends CrateUnitTest {
             DistributedResultRequest resultRequest = (DistributedResultRequest) args[1];
             ActionListener<DistributedResultResponse> listener = (ActionListener<DistributedResultResponse>) args[2];
             Throwable throwable = resultRequest.throwable();
+            PageBucketReceiver bucketReceiver = distResultRXTask.getBucketReceiver(resultRequest.executionPhaseInputId());
+            assertThat(bucketReceiver, Matchers.notNullValue());
             if (throwable == null) {
                 resultRequest.streamers(streamers);
-                distResultRXTask.setBucket(
+                bucketReceiver.setBucket(
                     resultRequest.bucketIdx(),
                     resultRequest.rows(),
                     resultRequest.isLast(),
                     needMore -> listener.onResponse(new DistributedResultResponse(needMore)));
             } else {
-                distResultRXTask.killed(resultRequest.bucketIdx(), throwable);
+                bucketReceiver.killed(resultRequest.bucketIdx(), throwable);
             }
             return null;
         }).when(distributedResultAction).pushResult(anyString(), any(), any());

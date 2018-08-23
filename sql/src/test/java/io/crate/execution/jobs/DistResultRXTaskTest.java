@@ -55,6 +55,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -96,8 +97,10 @@ public class DistResultRXTaskTest extends CrateUnitTest {
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
-        ctx.setBucket(1, bucket, false, pageResultListener);
-        ctx.setBucket(1, bucket, false, pageResultListener);
+        PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
+        assertThat(bucketReceiver, notNullValue());
+        bucketReceiver.setBucket(1, bucket, false, pageResultListener);
+        bucketReceiver.setBucket(1, bucket, false, pageResultListener);
 
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("Same bucket of a page set more than once. node=n1 method=setBucket phaseId=1 bucket=1");
@@ -142,18 +145,17 @@ public class DistResultRXTaskTest extends CrateUnitTest {
             new Object[]{2},
             new Object[]{2},
         });
-        ctx.setBucket(0, b1, false, new PageResultListener() {
-            @Override
-            public void needMore(boolean needMore) {
-                if (needMore) {
-                    ctx.setBucket(0, b11, true, mock(PageResultListener.class));
-                }
+        PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
+        assertThat(bucketReceiver, notNullValue());
+        bucketReceiver.setBucket(0, b1, false, needMore -> {
+            if (needMore) {
+                bucketReceiver.setBucket(0, b11, true, mock(PageResultListener.class));
             }
         });
         Bucket b2 = new ArrayBucket(new Object[][] {
             new Object[] { 4 }
         });
-        ctx.setBucket(1, b2, true, mock(PageResultListener.class));
+        bucketReceiver.setBucket(1, b2, true, mock(PageResultListener.class));
 
 
         List<Object[]> result = batchConsumer.getResult();
@@ -171,8 +173,10 @@ public class DistResultRXTaskTest extends CrateUnitTest {
         DistResultRXTask ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
 
         PageResultListener listener = mock(PageResultListener.class);
-        ctx.setBucket(0, Bucket.EMPTY, false, listener);
-        ctx.killed(1, new Exception("dummy"));
+        PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
+        assertThat(bucketReceiver, notNullValue());
+        bucketReceiver.setBucket(0, Bucket.EMPTY, false, listener);
+        bucketReceiver.killed(1, new Exception("dummy"));
 
         verify(listener, times(1)).needMore(false);
     }
@@ -181,10 +185,12 @@ public class DistResultRXTaskTest extends CrateUnitTest {
     public void testListenerCalledAfterOthersHasFailed() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
         DistResultRXTask ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
+        PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
+        assertThat(bucketReceiver, notNullValue());
 
-        ctx.killed(0, new Exception("dummy"));
+        bucketReceiver.killed(0, new Exception("dummy"));
         PageResultListener listener = mock(PageResultListener.class);
-        ctx.setBucket(1, Bucket.EMPTY, true, listener);
+        bucketReceiver.setBucket(1, Bucket.EMPTY, true, listener);
 
         verify(listener, times(1)).needMore(false);
     }
@@ -193,10 +199,12 @@ public class DistResultRXTaskTest extends CrateUnitTest {
     public void testSetBucketOnAKilledCtxReleasesListener() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
         DistResultRXTask ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
+        PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
+        assertThat(bucketReceiver, notNullValue());
         ctx.kill(new InterruptedException("killed"));
 
         CompletableFuture<Void> listenerReleased = new CompletableFuture<>();
-        ctx.setBucket(0, Bucket.EMPTY, false, needMore -> listenerReleased.complete(null));
+        bucketReceiver.setBucket(0, Bucket.EMPTY, false, needMore -> listenerReleased.complete(null));
 
         // Must not timeout
         listenerReleased.get(1, TimeUnit.SECONDS);
@@ -210,20 +218,22 @@ public class DistResultRXTaskTest extends CrateUnitTest {
             PassThroughPagingIterator.oneShot(),
             3
         );
+        PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
+        assertThat(bucketReceiver, notNullValue());
 
         final PageResultListener mockListener = mock(PageResultListener.class);
 
         Bucket b1 = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
-        ctx.setBucket(0, b1, true, mockListener);
+        bucketReceiver.setBucket(0, b1, true, mockListener);
 
         Bucket b2 = new CollectionBucket(Collections.singletonList(new Object[] { "bar" }));
-        ctx.setBucket(3, b2, true, mockListener);
+        bucketReceiver.setBucket(3, b2, true, mockListener);
 
         Bucket b3 = new CollectionBucket(Collections.singletonList(new Object[] { "universe" }));
         CheckPageResultListener checkPageResultListener = new CheckPageResultListener();
-        ctx.setBucket(42, b3, false, checkPageResultListener);
+        bucketReceiver.setBucket(42, b3, false, checkPageResultListener);
         assertThat(checkPageResultListener.needMoreResult, is(true));
-        ctx.setBucket(42, b3, true, checkPageResultListener);
+        bucketReceiver.setBucket(42, b3, true, checkPageResultListener);
         assertThat(checkPageResultListener.needMoreResult, is(false));
 
         List<Object[]> result = batchConsumer.getResult();
@@ -240,13 +250,15 @@ public class DistResultRXTaskTest extends CrateUnitTest {
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
 
         DistResultRXTask ctx = getPageDownstreamContext(batchConsumer, new FailOnMergePagingIterator<>(2), 2);
+        PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
+        assertThat(bucketReceiver, notNullValue());
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
-        ctx.setBucket(0, bucket, false, pageResultListener);
-        ctx.setBucket(1, bucket, false, pageResultListener);
-        ctx.setBucket(0, bucket, true, pageResultListener);
-        ctx.setBucket(1, bucket, true, pageResultListener);
+        bucketReceiver.setBucket(0, bucket, false, pageResultListener);
+        bucketReceiver.setBucket(1, bucket, false, pageResultListener);
+        bucketReceiver.setBucket(0, bucket, true, pageResultListener);
+        bucketReceiver.setBucket(1, bucket, true, pageResultListener);
 
         expectedException.expect(RuntimeException.class);
         expectedException.expectMessage("raised on merge");

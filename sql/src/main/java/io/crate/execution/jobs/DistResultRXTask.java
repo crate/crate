@@ -21,9 +21,7 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.Bucket;
 import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
@@ -64,18 +62,6 @@ public class DistResultRXTask extends AbstractTask implements DownstreamRXTask {
     private void releaseListenersAndCloseContext(@Nullable Throwable throwable) {
         pageBucketReceiver.releasePageResultListeners();
         close(throwable);
-    }
-
-    public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
-        pageBucketReceiver.setBucket(bucketIdx, rows, isLast, pageResultListener);
-    }
-
-    public void killed(int bucketIdx, Throwable throwable) {
-        pageBucketReceiver.killed(bucketIdx, throwable);
-    }
-
-    public Streamer<?>[] streamers() {
-        return pageBucketReceiver.streamers();
     }
 
     @Override
