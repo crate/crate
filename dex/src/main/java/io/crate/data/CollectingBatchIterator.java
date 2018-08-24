@@ -136,6 +136,10 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
                 .whenComplete((r, t) -> {
                     if (t == null) {
                         it = r.iterator();
+                    } else if (t instanceof RuntimeException) {
+                        throw (RuntimeException) t;
+                    } else {
+                        throw new RuntimeException(t);
                     }
                 });
             return resultFuture;

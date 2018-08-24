@@ -28,10 +28,14 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class CollectingBatchIteratorTest {
 
-    private List<Object[]> expectedResult = Collections.singletonList(new Object[] { 45L });
+    private List<Object[]> expectedResult = Collections.singletonList(new Object[]{45L});
 
     @Test
     public void testCollectingBatchIterator() throws Exception {
@@ -39,5 +43,16 @@ public class CollectingBatchIteratorTest {
             () -> CollectingBatchIterator.summingLong(TestingBatchIterators.range(0L, 10L))
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    @Test
+    public void testCollectingBatchIteratorPropagatesExceptionOnLoadNextBatch() {
+        CompletableFuture<Iterable<Row>> loadItemsFuture = new CompletableFuture<>();
+        BatchIterator<Row> collectingBatchIterator = CollectingBatchIterator.newInstance(
+            () -> {},
+            t -> {},
+            () -> loadItemsFuture);
+        loadItemsFuture.completeExceptionally(new RuntimeException());
+        assertThat(collectingBatchIterator.loadNextBatch().toCompletableFuture().isCompletedExceptionally(), is(true));
     }
 }
