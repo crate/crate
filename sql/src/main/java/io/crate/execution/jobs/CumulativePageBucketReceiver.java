@@ -37,6 +37,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -130,7 +131,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
                 pageResultListener.needMore(false);
             }
         }
-        boolean shouldTriggerConsumer = false;
+        final boolean allBucketsOfPageReceived;
         synchronized (lock) {
             traceLog("method=setBucket", bucketIdx);
 
@@ -139,15 +140,12 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
                     "Same bucket of a page set more than once. node=%s method=setBucket phaseId=%d bucket=%d",
                     nodeName, phaseId, bucketIdx)));
             }
-            setExhaustedUpstreams();
             if (isLast) {
                 exhausted.add(bucketIdx);
             }
-            if (bucketsByIdx.size() == numBuckets) {
-                shouldTriggerConsumer = true;
-            }
+            allBucketsOfPageReceived = bucketsByIdx.size() == numBuckets;
         }
-        if (shouldTriggerConsumer) {
+        if (allBucketsOfPageReceived) {
             mergeAndTriggerConsumer();
         } else if (isLast) {
             // release listener early here, otherwise other upstreams will be blocked
@@ -206,10 +204,17 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
     private void mergeBuckets() {
         List<KeyIterable<Integer, Row>> buckets = new ArrayList<>(numBuckets);
         synchronized (lock) {
-            for (Map.Entry<Integer, Bucket> entry : bucketsByIdx.entrySet()) {
-                buckets.add(new KeyIterable<>(entry.getKey(), entry.getValue()));
+            Iterator<Map.Entry<Integer, Bucket>> entryIt = bucketsByIdx.entrySet().iterator();
+            while (entryIt.hasNext()) {
+                Map.Entry<Integer, Bucket> entry = entryIt.next();
+                Integer bucketIdx = entry.getKey();
+                buckets.add(new KeyIterable<>(bucketIdx, entry.getValue()));
+                if (exhausted.contains(bucketIdx)) {
+                    entry.setValue(Bucket.EMPTY);
+                } else {
+                    entryIt.remove();
+                }
             }
-            bucketsByIdx.clear();
         }
         pagingIterator.merge(buckets);
     }
@@ -232,9 +237,12 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
 
     private void fetchExhausted(Integer exhaustedBucket) {
         synchronized (buckets) {
+            // We're only requesting data for 1 specific bucket,
+            // so we need to fill in other buckets to meet the
+            // "receivedAllBucketsOfPage" condition once we get the data for this bucket
             for (Integer bucketIdx : buckets) {
                 if (!bucketIdx.equals(exhaustedBucket)) {
-                    setToEmptyBucket(bucketIdx);
+                    bucketsByIdx.putIfAbsent(bucketIdx, Bucket.EMPTY);
                 }
             }
             PageResultListener pageResultListener = listenersByBucketIdx.remove(exhaustedBucket);
@@ -245,25 +253,12 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
     private void fetchFromUnExhausted() {
         synchronized (buckets) {
             for (Integer bucketIdx : buckets) {
-                if (exhausted.contains(bucketIdx)) {
-                    setToEmptyBucket(bucketIdx);
-                } else {
+                if (!exhausted.contains(bucketIdx)) {
                     PageResultListener resultListener = listenersByBucketIdx.remove(bucketIdx);
                     resultListener.needMore(true);
                 }
             }
         }
-    }
-
-    /**
-     * need to set the futures of all upstreams that are exhausted as there won't come any more buckets from those upstreams
-     */
-    private void setExhaustedUpstreams() {
-        exhausted.forEach(this::setToEmptyBucket);
-    }
-
-    private void setToEmptyBucket(int idx) {
-        bucketsByIdx.putIfAbsent(idx, Bucket.EMPTY);
     }
 
     private void traceLog(String msg, int bucketIdx) {
