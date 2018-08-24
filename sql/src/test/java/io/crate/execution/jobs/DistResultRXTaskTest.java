@@ -192,7 +192,7 @@ public class DistResultRXTaskTest extends CrateUnitTest {
         PageResultListener listener = mock(PageResultListener.class);
         bucketReceiver.setBucket(1, Bucket.EMPTY, true, listener);
 
-        verify(listener, times(2)).needMore(false);
+        verify(listener, times(1)).needMore(false);
     }
 
     @Test

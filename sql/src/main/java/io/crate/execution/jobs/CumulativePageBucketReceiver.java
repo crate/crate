@@ -125,7 +125,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
     public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
         synchronized (buckets) {
             buckets.add(bucketIdx);
-            if (lastThrowable == null) {
+            if (!isLast && lastThrowable == null) {
                 listenersByBucketIdx.put(bucketIdx, pageResultListener);
             } else {
                 pageResultListener.needMore(false);
@@ -147,11 +147,6 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         }
         if (allBucketsOfPageReceived) {
             mergeAndTriggerConsumer();
-        } else if (isLast) {
-            // release listener early here, otherwise other upstreams will be blocked
-            // e.g. if 2 downstream contexts are used in the chain
-            //      Phase -> DistributingDownstream -> Phase -> DistributingDownstream
-            pageResultListener.needMore(false);
         }
     }
 
@@ -252,12 +247,10 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
 
     private void fetchFromUnExhausted() {
         synchronized (buckets) {
-            for (Integer bucketIdx : buckets) {
-                if (!exhausted.contains(bucketIdx)) {
-                    PageResultListener resultListener = listenersByBucketIdx.remove(bucketIdx);
-                    resultListener.needMore(true);
-                }
+            for (PageResultListener listener : listenersByBucketIdx.values()) {
+                listener.needMore(true);
             }
+            listenersByBucketIdx.clear();
         }
     }
 
