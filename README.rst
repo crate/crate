@@ -11,8 +11,14 @@
     :target: https://crate.io/docs/en/latest/
 
 .. image:: https://img.shields.io/badge/container-docker-green.svg
-    :target: https://hub.docker.com/_/crate/
+    :target: https://hub.docker.com/_/crate/    
+    
+.. image:: https://img.shields.io/lgtm/grade/java/g/crate/crate.svg?logo=lgtm&logoWidth=18
+    :target: https://lgtm.com/projects/g/crate/crate/
 
+.. image:: https://img.shields.io/lgtm/alerts/g/crate/crate.svg?logo=lgtm&logoWidth=18
+    :target: https://lgtm.com/projects/g/crate/crate/alerts/
+    
 |
 
 CrateDB is a distributed SQL database that makes it simple to store and analyze massive amounts of machine data in real-time.
