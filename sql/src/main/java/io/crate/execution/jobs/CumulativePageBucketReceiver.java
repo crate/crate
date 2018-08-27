@@ -123,13 +123,16 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
 
     @Override
     public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
+        final boolean isLastOrHasError;
         synchronized (buckets) {
             buckets.add(bucketIdx);
-            if (!isLast && lastThrowable == null) {
+            isLastOrHasError = isLast || lastThrowable != null;
+            if (!isLastOrHasError) {
                 listenersByBucketIdx.put(bucketIdx, pageResultListener);
-            } else {
-                pageResultListener.needMore(false);
             }
+        }
+        if (isLastOrHasError) {
+            pageResultListener.needMore(false);
         }
         final boolean allBucketsOfPageReceived;
         synchronized (lock) {

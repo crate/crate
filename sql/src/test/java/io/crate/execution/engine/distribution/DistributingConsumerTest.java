@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.distribution;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.CollectionBucket;
@@ -43,6 +42,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.logging.Loggers;
 import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 
@@ -65,10 +66,21 @@ import static org.mockito.Mockito.verify;
 public class DistributingConsumerTest extends CrateUnitTest {
 
     private Logger logger = Loggers.getLogger(DistributingConsumer.class);
+    private ExecutorService executorService;
+
+    @Before
+    public void setUpExecutor() throws Exception {
+        executorService = Executors.newFixedThreadPool(3);
+    }
+
+    @After
+    public void tearDownExecutor() throws Exception {
+        executorService.shutdown();
+        executorService.awaitTermination(5, TimeUnit.SECONDS);
+    }
 
     @Test
-    public void testSendUsingDistributingConsumerAndReceiveWithPageDownstreamContext() throws Exception {
-        ExecutorService executorService = Executors.newFixedThreadPool(3);
+    public void testSendUsingDistributingConsumerAndReceiveWithDistResultRXTask() throws Exception {
         try {
             Streamer<?>[] streamers = {DataTypes.INTEGER.streamer()};
             TestingRowConsumer collectingConsumer = new TestingRowConsumer();
@@ -131,7 +143,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
     private DistributingConsumer createDistributingConsumer(Streamer<?>[] streamers, TransportDistributedResultAction distributedResultAction) {
         return new DistributingConsumer(
             logger,
-            MoreExecutors.directExecutor(),
+            executorService,
             UUID.randomUUID(),
             new ModuloBucketBuilder(streamers, 1, 0),
             1,
@@ -149,7 +161,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
             Loggers.getLogger(DistResultRXTask.class),
             "n1",
             1,
-            MoreExecutors.directExecutor(),
+            executorService,
             streamers,
             collectingConsumer,
             PassThroughPagingIterator.oneShot(),
