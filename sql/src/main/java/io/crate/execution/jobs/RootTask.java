@@ -338,6 +338,9 @@ public class RootTask implements CompletionListenable<Void> {
         private boolean removeAndFinishIfNeeded() {
             Task removed = tasksByPhaseId.remove(id);
             assert removed != null : "removed must not be null";
+            if (traceEnabled) {
+                logger.trace("Task completed id={} task={} error={}", id, removed, failure);
+            }
             if (numTasks.decrementAndGet() == 0) {
                 finish();
                 return true;
@@ -358,7 +361,9 @@ public class RootTask implements CompletionListenable<Void> {
                 return;
             }
             if (killTasksOngoing.compareAndSet(false, true)) {
-                logger.trace("onFailure killing all other tasksByPhaseId..");
+                if (traceEnabled) {
+                    logger.trace("onFailure; Killing other tasks={}", tasksByPhaseId.keySet());
+                }
                 for (Task subContext : tasksByPhaseId.values()) {
                     subContext.kill(t);
                 }
@@ -369,9 +374,6 @@ public class RootTask implements CompletionListenable<Void> {
         public void accept(CompletionState completionState, Throwable throwable) {
             if (profiler != null) {
                 stopTaskTimer();
-            }
-            if (traceEnabled) {
-                logger.trace("Task completed id={} state={} error={}", id, completionState, throwable);
             }
             if (throwable == null) {
                 onSuccess(completionState);
