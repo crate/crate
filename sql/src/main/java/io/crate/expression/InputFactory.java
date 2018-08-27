@@ -24,25 +24,27 @@ package io.crate.expression;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.execution.engine.aggregation.AggregationContext;
+import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.expression.reference.GatheringRefResolver;
+import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.execution.engine.aggregation.AggregationContext;
-import io.crate.expression.reference.GatheringRefResolver;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.expression.reference.ReferenceResolver;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Factory which can be used to create {@link Input}s from symbols.
@@ -239,18 +241,25 @@ public class InputFactory {
     private static class RefVisitor<T extends Input<?>> extends BaseImplementationSymbolVisitor<Void> {
 
         private final ReferenceResolver<T> referenceResolver;
+        private final Map<Reference, T> referenceMap;
 
         RefVisitor(Functions functions, ReferenceResolver<T> referenceResolver) {
             super(functions);
             this.referenceResolver = referenceResolver;
+            this.referenceMap = new HashMap<>();
         }
 
         @Override
         public Input<?> visitReference(Reference ref, Void context) {
-            T implementation = referenceResolver.getImplementation(ref);
+            T implementation = referenceMap.get(ref);
+            if (implementation != null) {
+                return implementation;
+            }
+            implementation = referenceResolver.getImplementation(ref);
             if (implementation == null) {
                 throw new IllegalArgumentException("Column implementation not found for: " + ref);
             }
+            referenceMap.put(ref, implementation);
             return implementation;
         }
     }

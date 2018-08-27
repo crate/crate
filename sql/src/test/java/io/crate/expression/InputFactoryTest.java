@@ -178,4 +178,14 @@ public class InputFactoryTest extends CrateUnitTest {
         FunctionImplementation uncompiled = expressions.functions().getBuiltin(ident.name(), ident.argumentTypes());
         assertThat(uncompiled, not(sameInstance(impl)));
     }
+
+    @Test
+    public void testSameReferenceResultsInSameExpressionInstance() {
+        Symbol symbol = expressions.normalize(expressions.asSymbol("a"));
+        InputFactory.Context<Input<?>> ctx = factory.ctxForRefs(i -> Literal.of("foo"));
+        Input<?> input1 = ctx.add(symbol);
+        Input<?> input2 = ctx.add(symbol);
+
+        assertThat(input1, sameInstance(input2));
+    }
 }
