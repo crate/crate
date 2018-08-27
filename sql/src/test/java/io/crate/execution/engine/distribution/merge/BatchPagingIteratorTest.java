@@ -22,21 +22,48 @@
 
 package io.crate.execution.engine.distribution.merge;
 
+import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.RowGenerator;
+import io.crate.testing.TestingBatchIterators;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.concurrent.CompletableFutures.failedFuture;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class BatchPagingIteratorTest {
 
+    private ExecutorService executor;
+
+    @Before
+    public void setUp() throws Exception {
+        executor = Executors.newFixedThreadPool(2);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        executor.shutdown();
+        executor.awaitTermination(5, TimeUnit.SECONDS);
+    }
 
     @Test
     public void testBatchPagingIterator() throws Exception {
@@ -46,10 +73,10 @@ public class BatchPagingIteratorTest {
             .collect(Collectors.toList());
         BatchIteratorTester tester = new BatchIteratorTester(() -> {
             PassThroughPagingIterator<Integer, Row> pagingIterator = PassThroughPagingIterator.repeatable();
-            pagingIterator.merge(Collections.singletonList(new KeyIterable<>(0, rows)));
+            pagingIterator.merge(singletonList(new KeyIterable<>(0, rows)));
             return new BatchPagingIterator<>(
                 pagingIterator,
-                exhaustedIt -> false,
+                exhaustedIt -> failedFuture(new IllegalStateException("upstreams exhausted")),
                 () -> true,
                 throwable -> {}
             );
@@ -58,16 +85,46 @@ public class BatchPagingIteratorTest {
     }
 
     @Test
-    public void testCompleteLoadCanBeCalledWithoutHavingCalledLoadNextBatch() throws Exception {
-        PassThroughPagingIterator<Integer, Row> pagingIterator = PassThroughPagingIterator.repeatable();
-        BatchPagingIterator<Integer> iterator = new BatchPagingIterator<>(
-            pagingIterator,
-            exhaustedIt -> false,
-            () -> true,
-            throwable -> {}
-        );
-        // must not throw an exception
-        iterator.completeLoad(new IllegalStateException("Dummy"));
+    public void testBatchPagingIteratorWithPagedSource() throws Exception {
+        List<Object[]> expectedResult = StreamSupport.stream(RowGenerator.range(0, 10).spliterator(), false)
+            .map(Row::materialize)
+            .collect(Collectors.toList());
+
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> {
+            BatchSimulatingIterator<Row> source =
+                new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 2, 5, executor);
+            Function<Integer, CompletableFuture<? extends Iterable<? extends KeyIterable<Integer, Row>>>> fetchMore = exhausted -> {
+                List<Row> rows = new ArrayList<>();
+                while (source.moveNext()) {
+                    rows.add(new RowN(source.currentElement().materialize()));
+                }
+                if (source.allLoaded()) {
+                    return CompletableFuture.completedFuture(singletonList(new KeyIterable<>(1, rows)));
+                }
+                // this is intentionally not recursive to not consume the whole source in the first `fetchMore` call
+                // but to simulate multiple pages and fetchMore calls
+                return source.loadNextBatch().toCompletableFuture().thenApply(ignored -> {
+                    while (source.moveNext()) {
+                        rows.add(new RowN(source.currentElement().materialize()));
+                    }
+                    return singleton(new KeyIterable<>(1, rows));
+                });
+            };
+            return new BatchPagingIterator<>(
+                PassThroughPagingIterator.repeatable(),
+                fetchMore,
+                source::allLoaded,
+                throwable -> {
+                    if (throwable == null) {
+                        source.close();
+                    } else {
+                        source.kill(throwable);
+                    }
+                }
+            );
+        };
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     @Test
@@ -75,13 +132,13 @@ public class BatchPagingIteratorTest {
         TestPagingIterator pagingIterator = new TestPagingIterator();
         BatchPagingIterator<Integer> iterator = new BatchPagingIterator<>(
             pagingIterator,
-            exhaustedIt -> false,
+            exhaustedIt -> failedFuture(new IllegalStateException("upstreams exhausted")),
             () -> true,
             throwable -> {}
         );
 
         iterator.close();
-        assertThat(pagingIterator.finishedCalled, is(true));
+        assertThat(pagingIterator.finishedCalled, Matchers.is(true));
     }
 
     private static class TestPagingIterator implements PagingIterator<Integer, Row> {

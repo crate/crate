@@ -35,15 +35,17 @@ import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
 import io.crate.execution.support.ThreadPools;
 import org.elasticsearch.index.shard.ShardId;
 
-import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
+
+import static io.crate.concurrent.CompletableFutures.failedFuture;
+import static java.util.Collections.singletonList;
 
 /**
  * Factory to create a BatchIterator which is backed by 1 or more {@link OrderedDocCollector}.
@@ -104,51 +106,26 @@ public class OrderedLuceneBatchIteratorFactory {
             return batchPagingIterator;
         }
 
-        private boolean tryFetchMore(ShardId shardId) {
+        private CompletableFuture<List<KeyIterable<ShardId, Row>>> tryFetchMore(ShardId shardId) {
             if (allExhausted()) {
-                return false;
+                return failedFuture(new IllegalStateException("Cannot fetch more if source is exhausted"));
             }
             if (shardId == null) {
-                ThreadPools.runWithAvailableThreads(
+                return ThreadPools.runWithAvailableThreads(
                     executor,
                     availableThreads,
                     Lists2.copyAndReplace(orderedDocCollectors, Function.identity())
-                ).whenComplete(this::onNextRows);
-                return true;
+                );
             } else {
                 return loadFrom(collectorsByShardId.get(shardId));
             }
         }
 
-        private boolean loadFrom(OrderedDocCollector collector) {
-            KeyIterable<ShardId, Row> rows;
+        private static CompletableFuture<List<KeyIterable<ShardId, Row>>> loadFrom(OrderedDocCollector collector) {
             try {
-                rows = collector.get();
+                return CompletableFuture.completedFuture(singletonList(collector.get()));
             } catch (Exception e) {
-                batchPagingIterator.completeLoad(e);
-                return true;
-            }
-            mergeAndMaybeFinish(Collections.singletonList(rows));
-            batchPagingIterator.completeLoad(null);
-            return true;
-        }
-
-        private void onNextRows(List<KeyIterable<ShardId, Row>> rowsList, @Nullable Throwable throwable) {
-            if (throwable == null) {
-                mergeAndMaybeFinish(rowsList);
-            }
-            batchPagingIterator.completeLoad(throwable);
-        }
-
-        private void mergeAndMaybeFinish(List<KeyIterable<ShardId, Row>> rowsList) {
-            try {
-                pagingIterator.merge(rowsList);
-            } catch (Throwable t) {
-                batchPagingIterator.kill(t);
-                batchPagingIterator.close();
-            }
-            if (allExhausted()) {
-                pagingIterator.finish();
+                return failedFuture(e);
             }
         }
 
