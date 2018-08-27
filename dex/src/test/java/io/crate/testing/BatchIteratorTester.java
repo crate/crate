@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -41,7 +42,6 @@ import java.util.stream.Collectors;
 
 import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
@@ -74,6 +74,22 @@ public class BatchIteratorTester {
         testMoveNextAfterMoveNextReturnedFalse(this.it.get());
         testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(this.it.get());
         testAllLoadedNeverRaises(this.it);
+        testLoadNextBatchFutureCompletesOnKill(this.it.get());
+    }
+
+    private void testLoadNextBatchFutureCompletesOnKill(BatchIterator<Row> bi) throws Exception {
+        if (bi.allLoaded()) {
+            return;
+        }
+        InterruptedException kill = new InterruptedException("KILL");
+        CompletionStage<?> f = bi.loadNextBatch();
+        bi.kill(kill);
+        try {
+            f.toCompletableFuture().get(5, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            assertThat(cause, is(kill));
+        }
     }
 
     public void verifyResultAndEdgeCaseBehaviour(List<Object[]> expectedResult) throws Exception {
