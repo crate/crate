@@ -60,11 +60,8 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
     private final Executor executor;
     private final Streamer<?>[] streamers;
     private final int numBuckets;
-    @GuardedBy("buckets")
-    private final Set<Integer> buckets;
     @GuardedBy("lock")
     private final Set<Integer> exhausted;
-    @GuardedBy("buckets")
     private final Map<Integer, PageResultListener> listenersByBucketIdx;
     @GuardedBy("lock")
     private final Map<Integer, Bucket> bucketsByIdx;
@@ -94,12 +91,11 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         this.pagingIterator = pagingIterator;
         this.numBuckets = numBuckets;
 
-        this.buckets = Collections.newSetFromMap(new IntObjectHashMap<>(numBuckets));
         this.exhausted = Collections.newSetFromMap(new IntObjectHashMap<>(numBuckets));
         this.bucketsByIdx = new IntObjectHashMap<>(numBuckets);
         this.listenersByBucketIdx = new IntObjectHashMap<>(numBuckets);
         processingFuture.whenComplete((result, ex) -> {
-            synchronized (buckets) {
+            synchronized (listenersByBucketIdx) {
                 for (PageResultListener resultListener : listenersByBucketIdx.values()) {
                     resultListener.needMore(false);
                 }
@@ -124,8 +120,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
     @Override
     public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
         final boolean isLastOrHasError;
-        synchronized (buckets) {
-            buckets.add(bucketIdx);
+        synchronized (listenersByBucketIdx) {
             isLastOrHasError = isLast || lastThrowable != null;
             if (!isLastOrHasError) {
                 listenersByBucketIdx.put(bucketIdx, pageResultListener);
@@ -234,22 +229,20 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
     }
 
     private void fetchExhausted(Integer exhaustedBucket) {
-        synchronized (buckets) {
+        synchronized (listenersByBucketIdx) {
             // We're only requesting data for 1 specific bucket,
             // so we need to fill in other buckets to meet the
             // "receivedAllBucketsOfPage" condition once we get the data for this bucket
-            for (Integer bucketIdx : buckets) {
-                if (!bucketIdx.equals(exhaustedBucket)) {
-                    bucketsByIdx.putIfAbsent(bucketIdx, Bucket.EMPTY);
-                }
-            }
             PageResultListener pageResultListener = listenersByBucketIdx.remove(exhaustedBucket);
+            for (Integer bucketIdx : listenersByBucketIdx.keySet()) {
+                bucketsByIdx.putIfAbsent(bucketIdx, Bucket.EMPTY);
+            }
             pageResultListener.needMore(true);
         }
     }
 
     private void fetchFromUnExhausted() {
-        synchronized (buckets) {
+        synchronized (listenersByBucketIdx) {
             for (PageResultListener listener : listenersByBucketIdx.values()) {
                 listener.needMore(true);
             }
