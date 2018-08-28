@@ -151,6 +151,11 @@ public class UserDefinedFunctionsMetaData extends AbstractNamedDiffable<MetaData
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hash(functionsMetaData);
+    }
+
+    @Override
     public String getWriteableName() {
         return TYPE;
     }

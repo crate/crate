@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class GroupProjection extends Projection {
 
@@ -125,6 +126,11 @@ public class GroupProjection extends Projection {
         if (values != null ? !values.equals(that.values) : that.values != null) return false;
 
         return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), keys, values);
     }
 
     @Override
