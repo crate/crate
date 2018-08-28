@@ -23,7 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.jobs.DownstreamRXTask;
 import io.crate.execution.jobs.PageBucketReceiver;
@@ -54,6 +54,8 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static io.crate.concurrent.CompletableFutures.failedFuture;
 
 
 public class TransportDistributedResultAction extends AbstractComponent implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
@@ -122,23 +124,27 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
                                                                        @Nullable Iterator<TimeValue> retryDelay) {
         RootTask rootTask = tasksService.getTaskOrNull(request.jobId());
         if (rootTask == null) {
-            return retryOrFailureResponse(request, retryDelay);
+            if (tasksService.recentlyFailed(request.jobId())) {
+                return failedFuture(new JobKilledException());
+            } else {
+                return retryOrFailureResponse(request, retryDelay);
+            }
         }
 
         DownstreamRXTask rxTask;
         try {
             rxTask = rootTask.getTask(request.executionPhaseId());
         } catch (ClassCastException e) {
-            return CompletableFutures.failedFuture(
+            return failedFuture(
                 new IllegalStateException(String.format(Locale.ENGLISH,
                     "Found execution rootTask for %d but it's not a downstream rootTask", request.executionPhaseId()), e));
         } catch (Throwable t) {
-            return CompletableFutures.failedFuture(t);
+            return failedFuture(t);
         }
 
         PageBucketReceiver pageBucketReceiver = rxTask.getBucketReceiver(request.executionPhaseInputId());
         if (pageBucketReceiver == null) {
-            return CompletableFutures.failedFuture(new IllegalStateException(String.format(Locale.ENGLISH,
+            return failedFuture(new IllegalStateException(String.format(Locale.ENGLISH,
                 "Couldn't find BucketReciever for input %d", request.executionPhaseInputId())));
         }
 
@@ -192,7 +198,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
                     logger.debug("Could not kill " + request.jobId(), e);
                 }
             }, excludedNodeIds);
-            return CompletableFutures.failedFuture(
+            return failedFuture(
                 new TaskMissing(TaskMissing.Type.ROOT, request.jobId()));
         }
     }

@@ -22,6 +22,8 @@
 package io.crate.execution.jobs;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.TaskMissing;
@@ -44,6 +46,7 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -56,6 +59,12 @@ public class TasksService extends AbstractLifecycleComponent {
         ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
     private final List<KillAllListener> killAllListeners = Collections.synchronizedList(new ArrayList<>());
+
+    private final Object failedSentinel = new Object();
+    private final Cache<UUID, Object> recentlyFailed = CacheBuilder.newBuilder()
+        .maximumSize(200L)
+        .expireAfterWrite(30, TimeUnit.SECONDS)
+        .build();
 
     @Inject
     public TasksService(Settings settings, ClusterService clusterService, JobsLogs jobsLogs) {
@@ -173,6 +182,7 @@ public class TasksService extends AbstractLifecycleComponent {
         for (UUID jobId : toKill) {
             RootTask ctx = activeTasks.get(jobId);
             if (ctx != null) {
+                recentlyFailed.put(jobId, failedSentinel);
                 ctx.completionFuture().whenComplete(countDownFuture);
                 ctx.kill();
                 numKilled++;
@@ -198,6 +208,16 @@ public class TasksService extends AbstractLifecycleComponent {
         return killTasks(toKill);
     }
 
+    /**
+     * @return true if the job has been recently removed due to a failure (e.g. has been killed).
+     *         false if it is UNKNOWN if it failed.
+     *
+     *         This may return false negatives, but never false positives.
+     */
+    public boolean recentlyFailed(UUID jobId) {
+        return recentlyFailed.getIfPresent(jobId) == failedSentinel;
+    }
+
     private class TaskCallback implements BiConsumer<Void, Throwable> {
 
         private final UUID jobId;
@@ -209,6 +229,9 @@ public class TasksService extends AbstractLifecycleComponent {
         @Override
         public void accept(Void aVoid, Throwable throwable) {
             activeTasks.remove(jobId);
+            if (throwable != null) {
+                recentlyFailed.put(jobId, failedSentinel);
+            }
             if (logger.isTraceEnabled()) {
                 logger.trace("RootTask removed from active tasks: jobId={} remainingTasks={} failure={}",
                     jobId, activeTasks.size(), throwable);
