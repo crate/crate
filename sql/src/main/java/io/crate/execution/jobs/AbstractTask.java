@@ -73,7 +73,7 @@ public abstract class AbstractTask implements Task {
     protected void innerClose(@Nullable Throwable t) {
     }
 
-    protected boolean close(@Nullable Throwable t) {
+    protected void close(@Nullable Throwable t) {
         if (firstClose.compareAndSet(false, true)) {
             try {
                 innerClose(t);
@@ -83,9 +83,7 @@ public abstract class AbstractTask implements Task {
                 }
             }
             completeFuture(t);
-            return true;
         }
-        return false;
     }
 
     private void completeFuture(@Nullable Throwable t) {
