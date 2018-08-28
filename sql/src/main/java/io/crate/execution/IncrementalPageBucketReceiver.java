@@ -32,7 +32,9 @@ import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.PageResultListener;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.GuardedBy;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -45,18 +47,24 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
     private final T state;
     private final AtomicInteger remainingUpstreams;
     private final CompletableFuture<Iterable<Row>> processingFuture = new CompletableFuture<>();
+    private final Executor executor;
     private final Streamer<?>[] streamers;
 
     private volatile Throwable lastThrowable = null;
     private final BatchIterator<Row> lazyBatchIterator;
+    @GuardedBy("accumulateRowsFunction")
+    private CompletableFuture<?> currentlyAccumulating;
+    private final Function<Bucket, Void> accumulateRowsFunction;
 
     public IncrementalPageBucketReceiver(Collector<Row, T, Iterable<Row>> collector,
                                          RowConsumer rowConsumer,
+                                         Executor executor,
                                          Streamer<?>[] streamers,
                                          int upstreamsCount) {
         this.state = collector.supplier().get();
         this.accumulator = collector.accumulator();
         this.finisher = collector.finisher();
+        this.executor = executor;
         this.streamers = streamers;
         this.remainingUpstreams = new AtomicInteger(upstreamsCount);
         lazyBatchIterator = CollectingBatchIterator.newInstance(
@@ -64,24 +72,43 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
             t -> {},
             () -> processingFuture);
         rowConsumer.accept(lazyBatchIterator, null);
-    }
-
-    @Override
-    public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
-        pageResultListener.needMore(!isLast);
-        synchronized (state) {
+        accumulateRowsFunction = (Bucket rows) -> {
             try {
                 for (Row row : rows) {
                     accumulator.accept(state, row);
                 }
             } catch (Throwable e) {
                 lastThrowable = e;
+                throw e;
+            }
+            return null;
+        };
+    }
+
+    @Override
+    public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
+        pageResultListener.needMore(!isLast);
+
+        // We make sure only one accumulation operation runs at a time because the state is not thread-safe.
+        synchronized (accumulateRowsFunction) {
+            if (currentlyAccumulating == null) {
+                currentlyAccumulating = CompletableFuture.supplyAsync(() -> accumulateRowsFunction.apply(rows), executor);
+            } else {
+                currentlyAccumulating = currentlyAccumulating.whenComplete((r, t) -> {
+                    if (t == null) {
+                        accumulateRowsFunction.apply(rows);
+                    } else if (t instanceof RuntimeException) {
+                        throw (RuntimeException) t;
+                    } else {
+                        throw new RuntimeException(t);
+                    }
+                });
             }
         }
 
         if (isLast) {
             if (remainingUpstreams.decrementAndGet() == 0) {
-                consumeRows();
+                currentlyAccumulating.whenComplete((r, t) -> consumeRows());
             }
         }
     }

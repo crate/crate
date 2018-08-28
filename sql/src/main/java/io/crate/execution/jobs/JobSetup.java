@@ -661,6 +661,7 @@ public class JobSetup extends AbstractComponent {
                 pageBucketReceiver = new IncrementalPageBucketReceiver<>(
                     collector,
                     consumer,
+                    searchTp,
                     DataTypes.getStreamers(phase.inputTypes()),
                     phase.numUpstreams());
             }
