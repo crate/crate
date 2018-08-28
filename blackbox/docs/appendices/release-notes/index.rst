@@ -25,6 +25,14 @@ Versions
 3.x
 ---
 
+3.1.x
+.....
+
+.. toctree::
+    :maxdepth: 1
+
+    3.1.0
+
 3.0.x
 .....
 
