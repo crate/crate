@@ -22,8 +22,6 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.exceptions.JobKilledException;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
@@ -102,15 +100,12 @@ public abstract class AbstractTask implements Task {
     }
 
     @Override
-    public final void kill(@Nullable Throwable t) {
+    public final void kill(@Nonnull Throwable t) {
         if (firstClose.compareAndSet(false, true)) {
-            if (t == null) {
-                t = new InterruptedException(JobKilledException.MESSAGE);
-            }
             try {
                 innerKill(t);
             } finally {
-                completeFuture(t);
+                future.completeExceptionally(t);
             }
         }
     }
