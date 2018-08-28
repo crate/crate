@@ -112,9 +112,4 @@ public class TimestampType extends DataType<Long> implements FixedWidthType, Str
     public int fixedSize() {
         return 16; // 8 object overhead, 8 long
     }
-
-    @Override
-    public boolean equals(Object o) {
-        return o instanceof TimestampType;
-    }
 }
