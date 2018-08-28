@@ -27,12 +27,6 @@ import io.crate.data.Killable;
 public interface Task extends CompletionListenable<CompletionState>, Killable {
 
     /**
-     * In the prepare phase implementations of this interface can allocate any resources.
-     * Exception are required to be thrown directly and must not be set on the downstream.
-     */
-    void prepare() throws Exception;
-
-    /**
      * In the start phase implementations of this interface are required to start any executors.
      * <p>
      * In this phase failures must not be propagated to downstream phases directly.

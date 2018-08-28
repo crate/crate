@@ -65,7 +65,6 @@ public class CountTaskTest extends CrateUnitTest {
         when(countOperation.count(anyMap(), any(Symbol.class))).thenReturn(future);
 
         CountTask countTask = new CountTask(countPhaseWithId(1), countOperation, new TestingRowConsumer(), null);
-        countTask.prepare();
         countTask.start();
         future.complete(1L);
         assertTrue(countTask.isClosed());
@@ -77,7 +76,6 @@ public class CountTaskTest extends CrateUnitTest {
         when(countOperation.count(anyMap(), any(Symbol.class))).thenReturn(future);
 
         countTask = new CountTask(countPhaseWithId(2), countOperation, new TestingRowConsumer(), null);
-        countTask.prepare();
         countTask.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
         assertTrue(countTask.isClosed());
@@ -92,7 +90,6 @@ public class CountTaskTest extends CrateUnitTest {
 
         CountTask countTask = new CountTask(countPhaseWithId(1), countOperation, new TestingRowConsumer(), null);
 
-        countTask.prepare();
         countTask.start();
         countTask.kill(new JobKilledException());
 

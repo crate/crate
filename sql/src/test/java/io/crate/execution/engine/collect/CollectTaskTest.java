@@ -119,7 +119,6 @@ public class CollectTaskTest extends RandomizedTest {
         BatchIterator<Row> batchIterator = mock(BatchIterator.class);
         when(collectOperationMock.createIterator(eq(collectPhase), anyBoolean(), eq(jobCtx)))
             .thenReturn(batchIterator);
-        jobCtx.prepare();
         jobCtx.start();
         jobCtx.kill(new JobKilledException());
 
