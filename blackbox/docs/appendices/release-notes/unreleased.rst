@@ -42,6 +42,17 @@ Breaking Changes
 Changes
 =======
 
+- Improved performance and memory utilisation for queries against the ``sys``
+  tables.
+
+- Improved performance and memory utilisation for unsorted distributed
+  ``GROUP BY`` and aggregations statements by executing the reduce operation
+  in an incremental way.
+
+- Improved performance and memory utilisation of ``GROUP BY`` statements when
+  the key column is a single ``string``, ``byte``, ``short``, ``int`` or
+  ``long``.
+
 - Added a new ``CircuitBreakers`` MXBean for JMX which exposes statistics of all
   availabel circuit breakers.
 
