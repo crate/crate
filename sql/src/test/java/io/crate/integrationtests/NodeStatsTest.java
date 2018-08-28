@@ -201,7 +201,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSysNodesCgroup() throws Exception {
-        if (Constants.LINUX) { // cgroups are only available on Linux
+        if (Constants.LINUX && !"true".equals(System.getenv("IS_SHIPPABLE_CI_BUILD"))) { // cgroups are only available on Linux
             SQLResponse response = execute("select" +
                                            " os['cgroup']['cpuacct']['control_group']," +
                                            " os['cgroup']['cpuacct']['usage_nanos']," +

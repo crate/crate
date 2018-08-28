@@ -27,7 +27,7 @@ build:
     - CIUSER_BUILD_DIR=/home/ciuser/build
     - mv $SHIPPABLE_BUILD_DIR $CIUSER_BUILD_DIR
     - chown -R ciuser:ciuser $CIUSER_BUILD_DIR
-    - su -c "cd $CIUSER_BUILD_DIR && ./gradlew -s :sql:test" ciuser
+    - su -c "export IS_SHIPPABLE_CI_BUILD=true && cd $CIUSER_BUILD_DIR && ./gradlew -s :sql:test" ciuser
   cache: true
   cache_dir_list:
     - /home/ciuser/.m2
