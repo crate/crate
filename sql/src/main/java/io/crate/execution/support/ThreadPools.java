@@ -25,7 +25,6 @@ package io.crate.execution.support;
 import com.google.common.collect.Iterables;
 import io.crate.collections.Lists2;
 import io.crate.concurrent.CompletableFutures;
-import io.crate.core.SuppressForbidden;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import javax.annotation.Nonnull;
@@ -64,10 +63,9 @@ public class ThreadPools {
      * @param availableThreads   A function returning the number of threads which can be utilized
      * @param suppliers          a collection of callable that should be executed
      * @param <T>                type of the final result
-     * @return a future that will return a list of the results of the suppliers
-     * @throws RejectedExecutionException in case all threads are busy and overloaded.
+     * @return a future that will return a list of the results of the suppliers or a failed future in case an exception
+     * is encountered
      */
-    @SuppressForbidden
     public static <T> CompletableFuture<List<T>> runWithAvailableThreads(
         Executor executor,
         IntSupplier availableThreads,
@@ -80,7 +78,7 @@ public class ThreadPools {
             ArrayList<CompletableFuture<List<T>>> futures = new ArrayList<>(threadsToUse + 1);
             for (List<Supplier<T>> partition : partitions) {
                 Supplier<List<T>> executePartition = () -> Lists2.copyAndReplace(partition, Supplier::get);
-                futures.add(CompletableFuture.supplyAsync(executePartition, executor));
+                futures.add(CompletableFutures.supplyAsync(executePartition, executor));
             }
             return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                 .thenApply(aVoid -> {
@@ -93,7 +91,7 @@ public class ThreadPools {
         } else {
             ArrayList<CompletableFuture<T>> futures = new ArrayList<>(suppliers.size());
             for (Supplier<T> supplier : suppliers) {
-                futures.add(CompletableFuture.supplyAsync(supplier, executor));
+                futures.add(CompletableFutures.supplyAsync(supplier, executor));
             }
             return CompletableFutures.allAsList(futures);
         }

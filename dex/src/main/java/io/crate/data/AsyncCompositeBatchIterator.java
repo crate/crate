@@ -24,7 +24,6 @@ package io.crate.data;
 
 import com.google.common.collect.Iterables;
 import io.crate.concurrent.CompletableFutures;
-import io.crate.core.SuppressForbidden;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -34,7 +33,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.IntSupplier;
 
-import static java.util.concurrent.CompletableFuture.supplyAsync;
+import static io.crate.concurrent.CompletableFutures.supplyAsync;
 
 /**
  * Similar to {@link CompositeBatchIterator} this is a BatchIterator implementation which is backed by multiple
@@ -104,7 +103,6 @@ public class AsyncCompositeBatchIterator<T> implements BatchIterator<T> {
         }
     }
 
-    @SuppressForbidden
     @Override
     public CompletionStage<?> loadNextBatch() {
         if (allLoaded()) {

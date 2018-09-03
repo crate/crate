@@ -93,6 +93,7 @@ public class AsyncCompositeBatchIteratorTest {
 
             TestingRowConsumer consumer = new TestingRowConsumer();
             consumer.accept(batchIterator, null);
+            consumer.getResult();
             fail("The AsyncBatchIterator should not handle the case when the executor rejects new tasks");
         } catch (RejectedExecutionException ignored) {
             // expected

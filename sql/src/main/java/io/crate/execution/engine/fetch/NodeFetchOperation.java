@@ -201,11 +201,18 @@ public class NodeFetchOperation {
                 return null;
             });
         }
+
+        // We're only forwarding the failure case to the resultFuture here (eg. thread pools rejecting the collectors)
+        // When all collectors complete successfully, the last one will complete the resultFuture with the result.
         ThreadPools.runWithAvailableThreads(
             executor,
             ThreadPools.numIdleThreads(executor, numProcessors),
             collectors
-        );
+        ).whenComplete((r, t) -> {
+            if (t != null) {
+                resultFuture.completeExceptionally(t);
+            }
+        });
     }
 
     private static class CollectRunnable implements Runnable {
