@@ -25,6 +25,8 @@ package io.crate.concurrent;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class CompletableFutures {
@@ -48,4 +50,14 @@ public final class CompletableFutures {
                 .map(CompletableFuture::join)
                 .collect(Collectors.toList()));
     }
+
+    public static <T> CompletableFuture<T> supplyAsync(Supplier<T> supplier,
+                                                       Executor executor) {
+        try {
+            return CompletableFuture.supplyAsync(supplier, executor);
+        } catch (Exception e) {
+            return failedFuture(e);
+        }
+    }
+
 }

@@ -30,8 +30,11 @@ import org.junit.rules.ExpectedException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 public class CompletableFuturesTest {
@@ -43,7 +46,7 @@ public class CompletableFuturesTest {
     public void failedFutureIsCompletedExceptionally() {
         Exception exception = new Exception("failed future");
         CompletableFuture<Object> failedFuture = CompletableFutures.failedFuture(exception);
-        assertThat(failedFuture.isCompletedExceptionally(), Matchers.is(true));
+        assertThat(failedFuture.isCompletedExceptionally(), is(true));
     }
 
     @Test
@@ -53,7 +56,7 @@ public class CompletableFuturesTest {
         CompletableFuture<List<Integer>> all = CompletableFutures.allAsList(Arrays.asList(f1, f2));
 
         f1.completeExceptionally(new IllegalStateException("dummy"));
-        assertThat("future must wait for all subFutures", all.isDone(), Matchers.is(false));
+        assertThat("future must wait for all subFutures", all.isDone(), is(false));
 
         f2.complete(2);
         expectedException.expectCause(Matchers.instanceOf(IllegalStateException.class));
@@ -70,5 +73,14 @@ public class CompletableFuturesTest {
         f2.complete(20);
 
         assertThat(all.get(10, TimeUnit.SECONDS), Matchers.contains(10, 20));
+    }
+
+    @Test
+    public void testSupplyAsyncReturnsFailedFutureOnException() throws Exception {
+        Executor rejectingExecutor = command -> {
+            throw new RejectedExecutionException("rejected");
+        };
+        CompletableFuture<Object> future = CompletableFutures.supplyAsync(() -> null, rejectingExecutor);
+        assertThat(future.isCompletedExceptionally(), is(true));
     }
 }

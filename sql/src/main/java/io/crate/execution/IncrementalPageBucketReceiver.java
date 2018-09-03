@@ -23,6 +23,7 @@
 package io.crate.execution;
 
 import io.crate.Streamer;
+import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectingBatchIterator;
@@ -92,14 +93,17 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
         // We make sure only one accumulation operation runs at a time because the state is not thread-safe.
         synchronized (accumulateRowsFunction) {
             if (currentlyAccumulating == null) {
-                currentlyAccumulating = CompletableFuture.supplyAsync(() -> accumulateRowsFunction.apply(rows), executor);
+                currentlyAccumulating = CompletableFutures
+                    .supplyAsync(() -> accumulateRowsFunction.apply(rows), executor);
             } else {
                 currentlyAccumulating = currentlyAccumulating.whenComplete((r, t) -> {
                     if (t == null) {
                         accumulateRowsFunction.apply(rows);
                     } else if (t instanceof RuntimeException) {
+                        lastThrowable = t;
                         throw (RuntimeException) t;
                     } else {
+                        lastThrowable = t;
                         throw new RuntimeException(t);
                     }
                 });
