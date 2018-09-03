@@ -163,14 +163,14 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         });
         execute("refresh table t");
 
-        execute("select x, base, log(x, base) from t where log(x, base) = 2.0 order by x");
+        execute("select x, base, round(log(x, base)) from t where round(log(x, base)) = 2 order by x");
         assertThat(response.rowCount(), is(2L));
         assertThat((Long) response.rows()[0][0], is(9L));
         assertThat((Long) response.rows()[0][1], is(3L));
-        assertThat((Double) response.rows()[0][2], is(2.0));
+        assertThat((Long) response.rows()[0][2], is(2L));
         assertThat((Long) response.rows()[1][0], is(144L));
         assertThat((Long) response.rows()[1][1], is(12L));
-        assertThat((Double) response.rows()[1][2], is(2.0));
+        assertThat((Long) response.rows()[1][2], is(2L));
     }
 
     @Test
