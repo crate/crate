@@ -24,6 +24,7 @@ package io.crate.data;
 
 import com.google.common.collect.Iterables;
 import io.crate.concurrent.CompletableFutures;
+import io.crate.core.SuppressForbidden;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -103,6 +104,7 @@ public class AsyncCompositeBatchIterator<T> implements BatchIterator<T> {
         }
     }
 
+    @SuppressForbidden
     @Override
     public CompletionStage<?> loadNextBatch() {
         if (allLoaded()) {

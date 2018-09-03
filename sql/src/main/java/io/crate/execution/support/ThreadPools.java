@@ -25,6 +25,7 @@ package io.crate.execution.support;
 import com.google.common.collect.Iterables;
 import io.crate.collections.Lists2;
 import io.crate.concurrent.CompletableFutures;
+import io.crate.core.SuppressForbidden;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import javax.annotation.Nonnull;
@@ -66,6 +67,7 @@ public class ThreadPools {
      * @return a future that will return a list of the results of the suppliers
      * @throws RejectedExecutionException in case all threads are busy and overloaded.
      */
+    @SuppressForbidden
     public static <T> CompletableFuture<List<T>> runWithAvailableThreads(
         Executor executor,
         IntSupplier availableThreads,

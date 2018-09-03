@@ -22,6 +22,8 @@
 
 package io.crate.concurrent;
 
+import io.crate.core.SuppressForbidden;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -51,6 +53,7 @@ public final class CompletableFutures {
                 .collect(Collectors.toList()));
     }
 
+    @SuppressForbidden
     public static <T> CompletableFuture<T> supplyAsync(Supplier<T> supplier,
                                                        Executor executor) {
         try {
