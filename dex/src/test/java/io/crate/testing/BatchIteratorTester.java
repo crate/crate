@@ -69,6 +69,7 @@ public class BatchIteratorTester {
             verifyAfterProperConsumption.accept(firstBatchIterator);
         }
         testBehaviourAfterClose(this.it.get());
+        testBehaviourAfterKill(this.it.get());
         testIteratorAccessFromDifferentThreads(this.it.get(), expectedResult);
         testIllegalNextBatchCall(this.it.get());
         testMoveNextAfterMoveNextReturnedFalse(this.it.get());
@@ -200,6 +201,14 @@ public class BatchIteratorTester {
 
         expectFailure(it::moveNext, IllegalStateException.class, "moveNext must fail after close");
         expectFailure(it::moveToStart, IllegalStateException.class, "moveToStart must fail after close");
+    }
+
+    private void testBehaviourAfterKill(BatchIterator<Row> it) {
+        it.kill(new InterruptedException("job killed"));
+        assertThat("currentElement is not affected by kill", it.currentElement(), is(it.currentElement()));
+
+        expectFailure(it::moveNext, InterruptedException.class, "moveNext must fail after kill");
+        expectFailure(it::moveToStart, InterruptedException.class, "moveToStart must fail after kill");
     }
 
     private void testProperConsumption(BatchIterator<Row> it, List<Object[]> expectedResult) throws Exception {
