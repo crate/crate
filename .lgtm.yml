@@ -1,3 +1,4 @@
+---
 path_classifiers:
   docs:
     - blackbox/docs
@@ -8,3 +9,8 @@ path_classifiers:
     - blackbox/sqllogictest
   library:
     - es/upstream
+
+extraction:
+  python:
+    python_setup:
+      version: 3
