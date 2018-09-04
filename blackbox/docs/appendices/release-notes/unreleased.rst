@@ -20,3 +20,6 @@ Changes
 
 Fixes
 =====
+
+- Fixed processing of the ``endpoint``, ``protocol`` and ``max_retries`` S3
+  repository parameters.
