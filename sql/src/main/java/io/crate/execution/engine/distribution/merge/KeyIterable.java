@@ -22,9 +22,10 @@
 
 package io.crate.execution.engine.distribution.merge;
 
+import javax.annotation.Nonnull;
 import java.util.Iterator;
 
-public class KeyIterable<TKey, TRow> implements Iterable<TRow> {
+public final class KeyIterable<TKey, TRow> implements Iterable<TRow> {
 
     private final TKey key;
     private final Iterable<TRow> iterable;
@@ -35,11 +36,17 @@ public class KeyIterable<TKey, TRow> implements Iterable<TRow> {
     }
 
     @Override
+    @Nonnull
     public Iterator<TRow> iterator() {
         return iterable.iterator();
     }
 
     public TKey key() {
         return key;
+    }
+
+    @Override
+    public String toString() {
+        return "KeyIterable{" + key + ", " + iterable + '}';
     }
 }

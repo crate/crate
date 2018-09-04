@@ -69,4 +69,10 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
         return value;
     }
 
+    @Override
+    public String toString() {
+        return "OrderByCollectorExpression{" +
+               "idx=" + orderIndex +
+               '}';
+    }
 }

@@ -200,6 +200,13 @@ public class StreamBucket implements Bucket, Streamable {
     }
 
     @Override
+    public String toString() {
+        return "StreamBucket{" +
+               "size=" + size +
+               '}';
+    }
+
+    @Override
     public void writeTo(StreamOutput out) throws IOException {
         assert size > -1 : "size must be > -1";
         out.writeVInt(size);
