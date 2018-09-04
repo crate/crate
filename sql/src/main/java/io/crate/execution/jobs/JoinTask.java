@@ -56,10 +56,6 @@ class JoinTask extends AbstractTask implements DownstreamRXTask {
     }
 
     @Override
-    protected void innerClose(@Nullable Throwable t) {
-    }
-
-    @Override
     protected void innerKill(@Nullable Throwable t) {
         // killed via PageDownstreamContexts or if they're not available the nestedLoop integrates
         // into the previous executionPhase

@@ -70,13 +70,13 @@ public abstract class AbstractTask implements Task {
         }
     }
 
-    protected void innerClose(@Nullable Throwable t) {
+    protected void innerClose() {
     }
 
     protected void close(@Nullable Throwable t) {
         if (firstClose.compareAndSet(false, true)) {
             try {
-                innerClose(t);
+                innerClose();
             } catch (Throwable t2) {
                 if (t == null) {
                     t = t2;

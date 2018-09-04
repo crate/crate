@@ -25,13 +25,10 @@ package io.crate.execution.jobs;
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.JobKilledException;
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -82,8 +79,6 @@ public class AbstractTaskTest extends CrateUnitTest {
 
     public static class TestingTask extends AbstractTask {
 
-        private static final Logger LOGGER = Loggers.getLogger(TestingTask.class);
-
         final AtomicInteger numPrepare = new AtomicInteger();
         final AtomicInteger numStart = new AtomicInteger();
         final AtomicInteger numClose = new AtomicInteger();
@@ -103,7 +98,7 @@ public class AbstractTaskTest extends CrateUnitTest {
         }
 
         @Override
-        protected void innerClose(@Nullable Throwable t) {
+        protected void innerClose() {
             numClose.incrementAndGet();
         }
 

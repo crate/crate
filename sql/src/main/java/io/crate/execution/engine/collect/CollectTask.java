@@ -38,7 +38,6 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Locale;
 
 public class CollectTask extends AbstractTask {
@@ -89,7 +88,7 @@ public class CollectTask extends AbstractTask {
     }
 
     @Override
-    protected void innerClose(@Nullable Throwable throwable) {
+    protected void innerClose() {
         setBytesUsed(queryPhaseRamAccountingContext.totalBytes());
         closeSearchContexts();
         queryPhaseRamAccountingContext.close();
@@ -109,7 +108,7 @@ public class CollectTask extends AbstractTask {
         if (batchIterator != null) {
             batchIterator.kill(throwable);
         }
-        innerClose(throwable);
+        innerClose();
     }
 
     @Override

@@ -31,7 +31,6 @@ import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -79,10 +78,6 @@ public class CountTask extends AbstractTask {
         } else {
             countFuture.cancel(true);
         }
-    }
-
-    @Override
-    protected void innerClose(@Nullable Throwable t) {
     }
 
     @Override

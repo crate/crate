@@ -95,7 +95,7 @@ public class CollectTaskTest extends RandomizedTest {
         collectTask.addSearcher(1, mock1);
         collectTask.addSearcher(2, mock2);
 
-        collectTask.innerClose(null);
+        collectTask.innerClose();
 
         verify(mock1, times(1)).close();
         verify(mock2, times(1)).close();
