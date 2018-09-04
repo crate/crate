@@ -95,18 +95,17 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
     public void testCreateS3RepositoryWithAllSettings() throws Exception {
         CreateRepositoryAnalyzedStatement analysis = e.analyze("CREATE REPOSITORY foo TYPE s3 WITH (" +
                                                              "bucket='abc'," +
-                                                             "region='us-north-42'," +
                                                              "endpoint='www.example.com'," +
                                                              "protocol='arp'," +
                                                              "base_path='/holz/'," +
                                                              "access_key='0xAFFE'," +
                                                              "secret_key='0xCAFEE'," +
-                                                             "concurrent_streams=4," +
                                                              "chunk_size='12mb'," +
                                                              "compress=true," +
                                                              "server_side_encryption=false," +
                                                              "buffer_size='128k'," +
                                                              "max_retries=2," +
+                                                             "use_throttle_retries=false," +
                                                              "canned_acl=false)");
         assertThat(analysis.repositoryType(), is("s3"));
         assertThat(analysis.repositoryName(), is("foo"));
@@ -120,11 +119,10 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
                 hasEntry("canned_acl", "false"),
                 hasEntry("chunk_size", "12582912b"),
                 hasEntry("compress", "true"),
-                hasEntry("concurrent_streams", "4"),
                 hasEntry("endpoint", "www.example.com"),
                 hasEntry("max_retries", "2"),
+                hasEntry("use_throttle_retries", "false"),
                 hasEntry("protocol", "arp"),
-                hasEntry("region", "us-north-42"),
                 hasEntry("secret_key", "0xCAFEE"),
                 hasEntry("server_side_encryption", "false")
             )
@@ -136,8 +134,8 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
         CreateRepositoryAnalyzedStatement analysis = e.analyze("CREATE REPOSITORY foo TYPE s3");
         assertThat(analysis.repositoryName(), is("foo"));
         assertThat(analysis.repositoryType(), is("s3"));
-        // two settings are there because those have default values
-        assertThat(analysis.settings().keySet(), containsInAnyOrder("compress", "server_side_encryption"));
+        // 3 settings are there because those have default values
+        assertThat(analysis.settings().keySet(), containsInAnyOrder("compress", "server_side_encryption", "max_retries", "use_throttle_retries"));
     }
 
     @Test

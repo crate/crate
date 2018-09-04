@@ -87,20 +87,22 @@ public class RepositorySettingsModule extends AbstractModule {
 
     private static final TypeSettings S3_SETTINGS = new TypeSettings(Collections.<String, SettingsApplier>emptyMap(),
         ImmutableMap.<String, SettingsApplier>builder()
-            .put("access_key", new SettingsAppliers.StringSettingsApplier(new StringSetting("access_key", null)))
             .put("base_path", new SettingsAppliers.StringSettingsApplier(new StringSetting("base_path", null)))
             .put("bucket", new SettingsAppliers.StringSettingsApplier(new StringSetting("bucket", null)))
+            .put("client", new SettingsAppliers.StringSettingsApplier(new StringSetting("client", null)))
             .put("buffer_size", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("buffer_size", null)))
             .put("canned_acl", new SettingsAppliers.StringSettingsApplier(new StringSetting("canned_acl", null)))
             .put("chunk_size", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("chunk_size", null)))
             .put("compress", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("compress", true)))
-            .put("concurrent_streams", new SettingsAppliers.IntSettingsApplier(new IntSetting("concurrent_streams", null)))
-            .put("endpoint", new SettingsAppliers.StringSettingsApplier(new StringSetting("endpoint", null)))
-            .put("max_retries", new SettingsAppliers.IntSettingsApplier(new IntSetting("max_retries", null)))
-            .put("protocol", new SettingsAppliers.StringSettingsApplier(new StringSetting("protocol", null)))
-            .put("region", new SettingsAppliers.StringSettingsApplier(new StringSetting("region", null)))
+            .put("server_side_encryption", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("server_side_encryption", false)))
+            // client related settings
+            .put("access_key", new SettingsAppliers.StringSettingsApplier(new StringSetting("access_key", null)))
             .put("secret_key", new SettingsAppliers.StringSettingsApplier(new StringSetting("secret_key", null)))
-            .put("server_side_encryption", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("server_side_encryption", false))).build());
+            .put("endpoint", new SettingsAppliers.StringSettingsApplier(new StringSetting("endpoint", null)))
+            .put("protocol", new SettingsAppliers.StringSettingsApplier(new StringSetting("protocol", null)))
+            .put("max_retries", new SettingsAppliers.IntSettingsApplier(new IntSetting("max_retries", 3)))
+            .put("use_throttle_retries", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("use_throttle_retries", true)))
+            .build());
 
     @Override
     protected void configure() {

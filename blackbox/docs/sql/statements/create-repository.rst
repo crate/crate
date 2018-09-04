@@ -254,12 +254,6 @@ A repository that stores its snapshot on the Amazon S3 service.
      <s3-credentials-secret-key>`) it will be visible in plain text when
      querying the ``sys.repositories`` table.
 
-**concurrent_streams**
-  | *Type:*    ``integer``
-  | *Default:* ``5``
-
-  The number of concurrent streams to use for backup and restore.
-
 **chunk_size**
   | *Type:*    ``long`` or ``string``
   | *Default:* ``null``
@@ -298,6 +292,12 @@ A repository that stores its snapshot on the Amazon S3 service.
   | *Default:* ``3``
 
   Number of retries in case of errors.
+
+**use_throttle_retries**
+  | *Type:*    ``boolean``
+  | *Default:* ``true``
+
+  Whether retries should be throttled (ie use backoff).
 
 **read_only**
   | *Type:*    ``boolean``
