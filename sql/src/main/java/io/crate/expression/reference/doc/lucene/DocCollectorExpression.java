@@ -34,8 +34,6 @@ import java.util.Map;
 
 public class DocCollectorExpression extends LuceneCollectorExpression<Map<String, Object>> {
 
-    public static final String COLUMN_NAME = DocSysColumns.DOC.name();
-
     private CollectorFieldsVisitor visitor;
 
     public DocCollectorExpression() {

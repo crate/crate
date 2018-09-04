@@ -25,13 +25,18 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import io.crate.Version;
-import io.crate.expression.symbol.Literal;
 import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
 import io.crate.core.collections.Sorted;
 import io.crate.data.Bucket;
 import io.crate.data.Buckets;
 import io.crate.data.Row;
+import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
+import io.crate.expression.operator.OperatorModule;
+import io.crate.expression.predicate.PredicateModule;
+import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -39,11 +44,6 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
-import io.crate.expression.operator.OperatorModule;
-import io.crate.expression.predicate.PredicateModule;
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -226,10 +226,6 @@ public class TestingHelpers {
                     .appendValue(expected);
             }
         };
-    }
-
-    public static Matcher<DocKeys.DocKey> isNullDocKey() {
-        return isDocKey(new Object[]{null});
     }
 
     public static Matcher<DocKeys.DocKey> isDocKey(Object... keys) {

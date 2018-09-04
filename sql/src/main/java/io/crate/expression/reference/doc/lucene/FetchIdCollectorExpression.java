@@ -22,14 +22,11 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.execution.engine.fetch.FetchId;
-import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.index.LeafReaderContext;
 
 import java.io.IOException;
 
 public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> {
-
-    public static final String COLUMN_NAME = DocSysColumns.FETCHID.name();
 
     private long fetchId;
     private int jobSearchContextId;

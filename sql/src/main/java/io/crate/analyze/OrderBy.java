@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -101,13 +100,6 @@ public class OrderBy implements Writeable {
 
     public OrderBy copyAndReplace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         return new OrderBy(Lists2.copyAndReplace(orderBySymbols, replaceFunction), reverseFlags, nullsFirst);
-    }
-
-    public void replace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        ListIterator<Symbol> listIt = orderBySymbols.listIterator();
-        while (listIt.hasNext()) {
-            listIt.set(replaceFunction.apply(listIt.next()));
-        }
     }
 
     @Override

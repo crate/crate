@@ -28,8 +28,6 @@ import org.apache.lucene.util.BytesRef;
 
 public class UidCollectorExpression extends LuceneCollectorExpression<BytesRef> {
 
-    public static final String COLUMN_NAME = DocSysColumns.UID.name();
-
     private CollectorFieldsVisitor visitor;
 
     public UidCollectorExpression() {
@@ -40,7 +38,7 @@ public class UidCollectorExpression extends LuceneCollectorExpression<BytesRef> 
     public void startCollect(CollectorContext context) {
         context.visitor().required(true);
         this.visitor = context.visitor();
-        this.visitor.addField("_uid");
+        this.visitor.addField(DocSysColumns.Names.UID);
     }
 
     @Override

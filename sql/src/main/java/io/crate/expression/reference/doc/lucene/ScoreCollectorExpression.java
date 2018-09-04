@@ -21,18 +21,14 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.search.Scorer;
 
 import java.io.IOException;
 
 public class ScoreCollectorExpression extends LuceneCollectorExpression<Float> {
 
-    public static final String COLUMN_NAME = DocSysColumns.SCORE.name();
-
     private Scorer scorer;
     private float score;
-
 
     @Override
     public void setScorer(Scorer scorer) {
