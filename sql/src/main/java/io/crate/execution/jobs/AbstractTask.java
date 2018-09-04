@@ -23,9 +23,9 @@
 package io.crate.execution.jobs;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 
 public abstract class AbstractTask implements Task {
 
@@ -43,6 +43,16 @@ public abstract class AbstractTask implements Task {
         return id;
     }
 
+    protected static BiConsumer<? super Object, Throwable> closeOrKill(AbstractTask t) {
+        return (result, err) -> {
+            if (err == null) {
+                t.close();
+            } else {
+                t.kill(err);
+            }
+        };
+    }
+
     protected void innerStart() {
     }
 
@@ -54,7 +64,7 @@ public abstract class AbstractTask implements Task {
         try {
             innerPrepare();
         } catch (Exception e) {
-            close(e);
+            kill(e);
             throw e;
         }
     }
@@ -65,7 +75,7 @@ public abstract class AbstractTask implements Task {
             try {
                 innerStart();
             } catch (Throwable t) {
-                close(t);
+                kill(t);
             }
         }
     }
@@ -73,24 +83,14 @@ public abstract class AbstractTask implements Task {
     protected void innerClose() {
     }
 
-    protected void close(@Nullable Throwable t) {
+    protected void close() {
         if (firstClose.compareAndSet(false, true)) {
             try {
                 innerClose();
-            } catch (Throwable t2) {
-                if (t == null) {
-                    t = t2;
-                }
+                future.complete(completionState);
+            } catch (Throwable t) {
+                future.completeExceptionally(t);
             }
-            completeFuture(t);
-        }
-    }
-
-    private void completeFuture(@Nullable Throwable t) {
-        if (t == null) {
-            future.complete(completionState);
-        } else {
-            future.completeExceptionally(t);
         }
     }
 

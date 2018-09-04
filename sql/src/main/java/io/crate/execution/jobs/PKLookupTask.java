@@ -102,7 +102,7 @@ public final class PKLookupTask extends AbstractTask {
                 this::resultToRow
             );
         }
-        close(null);
+        close();
     }
 
     private Row resultToRow(GetResult getResult) {

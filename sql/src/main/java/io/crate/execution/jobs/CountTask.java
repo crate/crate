@@ -22,9 +22,7 @@
 package io.crate.execution.jobs;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
-import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.CountPhase;
@@ -64,10 +62,13 @@ public class CountTask extends AbstractTask {
             throw new RuntimeException(e);
         }
         countFuture.whenComplete((rowCount, failure) -> {
-            BatchIterator<Row> iterator =
-                rowCount == null ? null : InMemoryBatchIterator.of(new Row1(rowCount), SENTINEL);
-            consumer.accept(iterator, failure);
-            close(failure);
+            if (rowCount == null) {
+                consumer.accept(null, failure);
+                kill(failure);
+            } else {
+                consumer.accept(InMemoryBatchIterator.of(new Row1(rowCount), SENTINEL), null);
+                close();
+            }
         });
     }
 

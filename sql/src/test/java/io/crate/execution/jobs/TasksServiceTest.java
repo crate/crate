@@ -191,7 +191,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         RootTask ctx1 = tasksService.createTask(builder1);
 
         assertThat(numContexts(ctx1), is(1));
-        subContext.close(null);
+        subContext.close();
         assertThat(numContexts(ctx1), is(0));
     }
 

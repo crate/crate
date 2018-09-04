@@ -160,10 +160,6 @@ public class FetchTask extends AbstractTask {
         }
     }
 
-    public void close() {
-        close(null);
-    }
-
     @Override
     protected void innerKill(@Nonnull Throwable t) {
         isKilled.set(true);
@@ -174,6 +170,11 @@ public class FetchTask extends AbstractTask {
         for (IntObjectCursor<Engine.Searcher> cursor : searchers) {
             cursor.value.close();
         }
+    }
+
+    @Override
+    public void close() {
+        super.close();
     }
 
     @Override

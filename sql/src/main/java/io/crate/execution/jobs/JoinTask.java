@@ -46,8 +46,7 @@ class JoinTask extends AbstractTask implements DownstreamRXTask {
         this.leftPageBucketReceiver = leftPageBucketReceiver;
         this.rightPageBucketReceiver = rightPageBucketReceiver;
 
-        completionListenable.completionFuture()
-            .whenComplete((Object result, Throwable t) -> close(t));
+        completionListenable.completionFuture().whenComplete(closeOrKill(this));
     }
 
     @Override

@@ -58,7 +58,6 @@ public class CountTaskTest extends CrateUnitTest {
 
     @Test
     public void testClose() throws Exception {
-
         CompletableFuture<Long> future = new CompletableFuture<>();
 
         CountOperation countOperation = mock(CountOperation.class);
@@ -81,6 +80,7 @@ public class CountTaskTest extends CrateUnitTest {
         countTask.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
         assertTrue(countTask.isClosed());
+
         expectedException.expectCause(CauseMatcher.cause(UnhandledServerException.class));
         countTask.completionFuture().get();
     }

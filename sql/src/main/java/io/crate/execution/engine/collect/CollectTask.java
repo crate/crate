@@ -65,7 +65,7 @@ public class CollectTask extends AbstractTask {
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
         this.sharedShardContexts = sharedShardContexts;
         this.consumer = new ListenableRowConsumer(consumer);
-        this.consumer.completionFuture().whenComplete((result, ex) -> close(ex));
+        this.consumer.completionFuture().whenComplete(closeOrKill(this));
         this.threadPoolName = threadPoolName(collectPhase);
     }
 

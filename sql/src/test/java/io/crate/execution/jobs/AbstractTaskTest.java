@@ -50,7 +50,7 @@ public class AbstractTaskTest extends CrateUnitTest {
     private Runnable closeRunnable = new Runnable() {
         @Override
         public void run() {
-            testingTask.close(null);
+            testingTask.close();
         }
     };
 
@@ -133,7 +133,7 @@ public class AbstractTaskTest extends CrateUnitTest {
         TestingTask task = new TestingTask();
         task.prepare();
         task.start();
-        task.close(null);
+        task.close();
         assertThat(task.stats(), contains(1, 1, 1, 0));
     }
 
@@ -141,9 +141,9 @@ public class AbstractTaskTest extends CrateUnitTest {
     public void testCloseAfterPrepare() throws Exception {
         TestingTask task = new TestingTask();
         task.prepare();
-        task.close(null);
+        task.close();
         task.start();
-        task.close(null);
+        task.close();
         assertThat(task.stats(), contains(1, 0, 1, 0));
     }
 

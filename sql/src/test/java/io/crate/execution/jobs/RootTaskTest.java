@@ -155,7 +155,7 @@ public class RootTaskTest extends CrateUnitTest {
         RootTask rootTask = builder.build();
 
         Exception failure = new Exception("failure!");
-        collectChildTask.close(failure);
+        collectChildTask.kill(failure);
         // other contexts must be killed with same failure
         verify(distResultRXTask, times(1)).kill(failure);
 
