@@ -33,6 +33,9 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.util.List;
+import java.util.Map;
+
+import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 
 class EqQuery implements FunctionToQuery {
 
@@ -46,10 +49,11 @@ class EqQuery implements FunctionToQuery {
         Literal literal = refAndLiteral.literal();
         String columnName = reference.column().fqn();
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
+        if (reference.valueType().equals(DataTypes.OBJECT)) {
+            //noinspection unchecked
+            return refEqObject(input, reference, (Map<String, Object>) literal.value(), context);
+        }
         if (fieldType == null) {
-            if (reference.valueType().equals(DataTypes.OBJECT)) {
-                return null; // fallback to generic filter for  "o = {x=10, y=20}"
-            }
             // field doesn't exist, can't match
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
@@ -58,7 +62,7 @@ class EqQuery implements FunctionToQuery {
 
             List values = LuceneQueryBuilder.asList(literal);
             if (values.isEmpty()) {
-                return LuceneQueryBuilder.genericFunctionFilter(input, context);
+                return genericFunctionFilter(input, context);
             }
             Query termsQuery = LuceneQueryBuilder.termsQuery(fieldType, values, context.queryShardContext);
 
@@ -67,9 +71,51 @@ class EqQuery implements FunctionToQuery {
             // afterwards the more expensive genericFunctionFilter
             BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
             filterClauses.add(termsQuery, BooleanClause.Occur.MUST);
-            filterClauses.add(LuceneQueryBuilder.genericFunctionFilter(input, context), BooleanClause.Occur.MUST);
+            filterClauses.add(genericFunctionFilter(input, context), BooleanClause.Occur.MUST);
             return filterClauses.build();
         }
         return fieldType.termQuery(literal.value(), context.queryShardContext);
+    }
+
+    /**
+     * Query for object columns that tries to utilize efficient termQueries for the objects children.
+     * <pre>
+     * {@code
+     *      // If x and y are known columns
+     *      o = {x=10, y=20}    -> o.x=10 and o.y=20
+     *
+     *      // Only x is known:
+     *      o = {x=10, y=20}    -> o.x=10 and generic(o == {x=10, y=20})
+     *
+     *      // No column is known:
+     *      o = {x=10, y=20}    -> generic(o == {x=10, y=20})
+     * }
+     * </pre>
+     */
+    private static Query refEqObject(Function eq,
+                                     Reference reference,
+                                     Map<String, Object> value,
+                                     LuceneQueryBuilder.Context context) {
+        BooleanQuery.Builder boolBuilder = new BooleanQuery.Builder();
+        int preFilters = 0;
+        for (Map.Entry<String, Object> entry : value.entrySet()) {
+            String nestedColumn = entry.getKey();
+            MappedFieldType fieldType = context.getFieldTypeOrNull(reference.column().fqn() + "." + nestedColumn);
+            if (fieldType == null) {
+                // could be a nested object; skip pre-filtering
+                continue;
+            }
+            preFilters++;
+            boolBuilder.add(fieldType.termQuery(entry.getValue(), context.queryShardContext), BooleanClause.Occur.MUST);
+        }
+        Query genericFilter = genericFunctionFilter(eq, context);
+        if (preFilters == 0) {
+            return genericFilter;
+        } else if (preFilters == value.size()) {
+            return boolBuilder.build();
+        } else {
+            boolBuilder.add(genericFilter, BooleanClause.Occur.FILTER);
+            return boolBuilder.build();
+        }
     }
 }

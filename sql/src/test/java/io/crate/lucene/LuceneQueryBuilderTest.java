@@ -82,6 +82,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 
+import static java.util.Collections.singletonList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -108,6 +109,9 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
             .add("tags", DataTypes.STRING, null, ColumnPolicy.DYNAMIC, Reference.IndexType.ANALYZED, false, false)
             .add("x", DataTypes.INTEGER, null, ColumnPolicy.DYNAMIC, Reference.IndexType.NOT_ANALYZED, false, false)
             .add("d", DataTypes.DOUBLE)
+            .add("obj", DataTypes.OBJECT)
+            .add("obj", DataTypes.INTEGER, singletonList("x"))
+            .add("obj", DataTypes.INTEGER, singletonList("y"))
             .add("d_array", new ArrayType(DataTypes.DOUBLE))
             .add("y_array", new ArrayType(DataTypes.LONG))
             .add("o_array", new ArrayType(DataTypes.OBJECT))
@@ -145,6 +149,13 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
                     .startObject("tags").field("type", "text").endObject()
                     .startObject("x").field("type", "integer").endObject()
                     .startObject("d").field("type", "double").endObject()
+                    .startObject("obj")
+                        .field("type", "object")
+                        .startObject("properties")
+                            .startObject("x").field("type", "integer").endObject()
+                            .startObject("y").field("type", "integer").endObject()
+                        .endObject()
+                    .endObject()
                     .startObject("point").field("type", "geo_point").endObject()
                     .startObject("shape").field("type", "geo_shape").endObject()
                     .startObject("addr").field("type", "ip").endObject()
@@ -206,7 +217,7 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
     private MapperService createMapperService(IndexSettings indexSettings,
                                               IndexAnalyzers indexAnalyzers,
                                               ScriptService scriptService) {
-        IndicesModule indicesModule = new IndicesModule(Collections.singletonList(
+        IndicesModule indicesModule = new IndicesModule(singletonList(
             new MapperPlugin() {
                 @Override
                 public Map<String, Mapper.TypeParser> getMappers() {

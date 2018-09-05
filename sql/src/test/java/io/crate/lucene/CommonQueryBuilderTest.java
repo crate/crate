@@ -483,4 +483,21 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             is("(name:foo bar | (+tags:foo +tags:bar))")
         );
     }
+
+    @Test
+    public void testEqOnObjectPreFiltersOnKnownObjectLiteralContents() {
+        // termQuery for obj.x; nothing for obj.z because it's missing in the mapping
+        assertThat(
+            convert("obj = {x=10, z=20}").toString(),
+            is("+obj.x:[10 TO 10] #Ref{doc.users.obj, object} = {x=10, z=20}")
+        );
+    }
+
+    @Test
+    public void testEqOnObjectDoesBoolTermQueryForContents() {
+        assertThat(
+            convert("obj = {x=10, y=20}").toString(),
+            is("+obj.x:[10 TO 10] +obj.y:[20 TO 20]")
+        );
+    }
 }

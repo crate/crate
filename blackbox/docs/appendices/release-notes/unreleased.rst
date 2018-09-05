@@ -40,6 +40,9 @@ Breaking Changes
 Changes
 =======
 
+- ``<object_column> = <object_literal>`` comparisons now try to utilize the
+  index for the objects contents and can therefore run much faster.
+
 - Values of byte-size and time based configuration setting do not require a unit
   suffix anymore. Without a unit time values are treat as milliseconds since
   epoch and byte size values are treat as bytes.
