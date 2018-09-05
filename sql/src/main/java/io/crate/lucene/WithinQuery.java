@@ -67,8 +67,8 @@ class WithinQuery implements FunctionToQuery, InnerFunctionToQuery {
     }
 
     private Query getQuery(Function inner, LuceneQueryBuilder.Context context) {
-        RefLiteralPair innerPair = new RefLiteralPair(inner);
-        if (!innerPair.isValid()) {
+        RefAndLiteral innerPair = RefAndLiteral.of(inner);
+        if (innerPair == null) {
             return null;
         }
         if (innerPair.reference().valueType().equals(DataTypes.GEO_SHAPE)) {
@@ -79,7 +79,7 @@ class WithinQuery implements FunctionToQuery, InnerFunctionToQuery {
             innerPair.reference().column().fqn(),
             context.mapperService);
 
-        Map<String, Object> geoJSON = (Map<String, Object>) innerPair.input().value();
+        Map<String, Object> geoJSON = (Map<String, Object>) innerPair.literal().value();
         Geometry geometry;
         Shape shape = GeoJSONUtils.map2Shape(geoJSON);
         if (shape instanceof ShapeCollection) {

@@ -29,22 +29,21 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.util.List;
 
-class EqQuery extends CmpQuery {
+class EqQuery implements FunctionToQuery {
 
     @Override
     public Query apply(Function input, LuceneQueryBuilder.Context context) {
-        Tuple<Reference, Literal> tuple = super.prepare(input);
-        if (tuple == null) {
+        RefAndLiteral refAndLiteral = RefAndLiteral.of(input);
+        if (refAndLiteral == null) {
             return null;
         }
-        Reference reference = tuple.v1();
-        Literal literal = tuple.v2();
+        Reference reference = refAndLiteral.reference();
+        Literal literal = refAndLiteral.literal();
         String columnName = reference.column().fqn();
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
         if (fieldType == null) {

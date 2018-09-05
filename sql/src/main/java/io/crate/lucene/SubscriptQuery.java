@@ -69,8 +69,8 @@ class SubscriptQuery implements InnerFunctionToQuery {
         assert inner.info().ident().name().equals(SubscriptFunction.NAME) :
             "function must be " + SubscriptFunction.NAME;
 
-        RefLiteralPair innerPair = new RefLiteralPair(inner);
-        if (!innerPair.isValid()) {
+        RefAndLiteral innerPair = RefAndLiteral.of(inner);
+        if (innerPair == null) {
             return null;
         }
         Reference reference = innerPair.reference();

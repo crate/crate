@@ -23,7 +23,6 @@
 package io.crate.lucene;
 
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Reference;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.collect.Tuple;
@@ -31,7 +30,7 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.QueryShardContext;
 
-class RangeQuery extends CmpQuery {
+class RangeQuery implements FunctionToQuery {
 
     private final boolean includeLower;
     private final boolean includeUpper;
@@ -69,14 +68,18 @@ class RangeQuery extends CmpQuery {
 
     @Override
     public Query apply(Function input, LuceneQueryBuilder.Context context) {
-        Tuple<Reference, Literal> tuple = super.prepare(input);
-        if (tuple == null) {
+        RefAndLiteral refAndLiteral = RefAndLiteral.of(input);
+        if (refAndLiteral == null) {
             return null;
         }
-        return toQuery(tuple.v1(), tuple.v2().value(), context::getFieldTypeOrNull, context.queryShardContext);
+        return toQuery(
+            refAndLiteral.reference(),
+            refAndLiteral.literal().value(),
+            context::getFieldTypeOrNull,
+            context.queryShardContext);
     }
 
-    public Query toQuery(Reference reference, Object value, FieldTypeLookup fieldTypeLookup, QueryShardContext queryShardContext) {
+    Query toQuery(Reference reference, Object value, FieldTypeLookup fieldTypeLookup, QueryShardContext queryShardContext) {
         String columnName = reference.column().fqn();
         MappedFieldType fieldType = fieldTypeLookup.get(columnName);
         if (fieldType == null) {

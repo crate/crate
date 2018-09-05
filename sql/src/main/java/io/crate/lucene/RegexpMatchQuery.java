@@ -23,21 +23,18 @@
 package io.crate.lucene;
 
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
 import io.crate.lucene.match.CrateRegexQuery;
-import io.crate.metadata.Reference;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.RegexpQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import static io.crate.expression.scalar.regex.RegexMatcher.isPcrePattern;
 
-class RegexpMatchQuery extends CmpQuery {
+class RegexpMatchQuery implements FunctionToQuery {
 
     private static Query toLuceneRegexpQuery(String fieldName, BytesRef value) {
         return new ConstantScoreQuery(
@@ -46,17 +43,16 @@ class RegexpMatchQuery extends CmpQuery {
 
     @Override
     public Query apply(Function input, LuceneQueryBuilder.Context context) {
-        Tuple<Reference, Literal> prepare = prepare(input);
-        if (prepare == null) {
+        RefAndLiteral refAndLiteral = RefAndLiteral.of(input);
+        if (refAndLiteral == null) {
             return null;
         }
-        String fieldName = prepare.v1().column().fqn();
-        BytesRef pattern = BytesRefs.toBytesRef(prepare.v2().value());
+        String fieldName = refAndLiteral.reference().column().fqn();
+        BytesRef pattern = BytesRefs.toBytesRef(refAndLiteral.literal().value());
         if (pattern == null) {
             // cannot build query using null pattern value
             return null;
         }
-
         if (isPcrePattern(pattern.utf8ToString())) {
             return new CrateRegexQuery(new Term(fieldName, pattern));
         } else {

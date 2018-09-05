@@ -54,8 +54,8 @@ class DistanceQuery implements InnerFunctionToQuery {
         assert inner.info().ident().name().equals(DistanceFunction.NAME) :
             "function must be " + DistanceFunction.NAME;
 
-        RefLiteralPair distanceRefLiteral = new RefLiteralPair(inner);
-        if (!distanceRefLiteral.isValid()) {
+        RefAndLiteral distanceRefLiteral = RefAndLiteral.of(inner);
+        if (distanceRefLiteral == null) {
             // can't use distance filter without literal, fallback to genericFunction
             return null;
         }
@@ -67,7 +67,7 @@ class DistanceQuery implements InnerFunctionToQuery {
         Double distance = DataTypes.DOUBLE.value(functionLiteralPair.input().value());
 
         String parentName = functionLiteralPair.functionName();
-        Input geoPointInput = distanceRefLiteral.input();
+        Input geoPointInput = distanceRefLiteral.literal();
         String fieldName = distanceRefLiteral.reference().column().fqn();
         Double[] pointValue = (Double[]) geoPointInput.value();
         return esV5DistanceQuery(parent, context, parentName, fieldName, distance, pointValue);

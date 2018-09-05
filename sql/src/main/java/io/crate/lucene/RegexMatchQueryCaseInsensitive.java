@@ -23,26 +23,24 @@
 package io.crate.lucene;
 
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
 import io.crate.lucene.match.CrateRegexCapabilities;
 import io.crate.lucene.match.CrateRegexQuery;
-import io.crate.metadata.Reference;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.lucene.BytesRefs;
 
-class RegexMatchQueryCaseInsensitive extends CmpQuery {
+
+class RegexMatchQueryCaseInsensitive implements FunctionToQuery {
 
     @Override
     public Query apply(Function input, LuceneQueryBuilder.Context context) {
-        Tuple<Reference, Literal> prepare = prepare(input);
-        if (prepare == null) {
+        RefAndLiteral refAndLiteral = RefAndLiteral.of(input);
+        if (refAndLiteral == null) {
             return null;
         }
-        String fieldName = prepare.v1().column().fqn();
-        Object value = prepare.v2().value();
+        String fieldName = refAndLiteral.reference().column().fqn();
+        Object value = refAndLiteral.literal().value();
 
         if (value instanceof BytesRef) {
             return new CrateRegexQuery(

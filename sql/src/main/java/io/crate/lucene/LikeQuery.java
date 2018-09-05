@@ -23,22 +23,20 @@
 package io.crate.lucene;
 
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Reference;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.collect.Tuple;
 
-class LikeQuery extends CmpQuery {
+class LikeQuery implements FunctionToQuery {
 
     @Override
     public Query apply(Function input, LuceneQueryBuilder.Context context) {
-        Tuple<Reference, Literal> tuple = prepare(input);
-        if (tuple == null) {
+        RefAndLiteral refAndLiteral = RefAndLiteral.of(input);
+        if (refAndLiteral == null) {
             return null;
         }
-        return toQuery(tuple.v1(), tuple.v2().value(), context);
+        return toQuery(refAndLiteral.reference(), refAndLiteral.literal().value(), context);
     }
 
     static Query toQuery(Reference reference, Object value, LuceneQueryBuilder.Context context) {

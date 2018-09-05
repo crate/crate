@@ -25,27 +25,40 @@ package io.crate.lucene;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.Reference;
-import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
-abstract class CmpQuery implements FunctionToQuery {
+final class RefAndLiteral {
+
+    private final Reference ref;
+    private final Literal literal;
 
     @Nullable
-    protected Tuple<Reference, Literal> prepare(Function input) {
-        assert input != null : "function must not be null";
-        assert input.arguments().size() == 2 : "function's number of arguments must be 2";
+    public static RefAndLiteral of(Function function) {
+        List<Symbol> args = function.arguments();
+        assert args.size() == 2 : "Function must have 2 arguments";
 
-        Symbol left = input.arguments().get(0);
-        Symbol right = input.arguments().get(1);
-
-        if (!(left instanceof Reference) || !(right.symbolType().isValueSymbol())) {
+        Symbol fst = args.get(0);
+        Symbol snd = args.get(1);
+        if (fst instanceof Reference && snd instanceof Literal) {
+            return new RefAndLiteral((Reference) fst, (Literal) snd);
+        } else {
             return null;
         }
-        assert right.symbolType() == SymbolType.LITERAL :
-            "right.symbolType() must be " + SymbolType.LITERAL;
-        return new Tuple<>((Reference) left, (Literal) right);
+    }
+
+    private RefAndLiteral(Reference ref, Literal literal) {
+        this.ref = ref;
+        this.literal = literal;
+    }
+
+    Reference reference() {
+        return ref;
+    }
+
+    Literal literal() {
+        return literal;
     }
 }
