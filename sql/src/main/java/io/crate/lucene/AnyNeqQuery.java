@@ -30,13 +30,15 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
+import java.io.IOException;
+
 class AnyNeqQuery extends AbstractAnyQuery {
 
     @Override
-    protected Query applyArrayReference(Reference arrayReference, Literal literal, LuceneQueryBuilder.Context context) {
+    protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
         // 1 != any ( col ) -->  gt 1 or lt 1
-        String columnName = arrayReference.column().fqn();
-        Object value = literal.value();
+        String columnName = array.column().fqn();
+        Object value = candidate.value();
 
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
         if (fieldType == null) {
@@ -56,16 +58,16 @@ class AnyNeqQuery extends AbstractAnyQuery {
     }
 
     @Override
-    protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, LuceneQueryBuilder.Context context) {
+    protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal array, LuceneQueryBuilder.Context context) {
         //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
-        String columnName = reference.column().fqn();
+        String columnName = candidate.column().fqn();
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
         if (fieldType == null) {
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
 
         BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
-        for (Object value : toIterable(arrayLiteral.value())) {
+        for (Object value : toIterable(array.value())) {
             andBuilder.add(fieldType.termQuery(value, context.queryShardContext()), BooleanClause.Occur.MUST);
         }
         return Queries.not(andBuilder.build());

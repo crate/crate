@@ -35,37 +35,38 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.RegexpFlag;
 
+import java.io.IOException;
 import java.util.Locale;
 
 class AnyNotLikeQuery extends AbstractAnyQuery {
 
-    static String negateWildcard(String wildCard) {
+    private static String negateWildcard(String wildCard) {
         return String.format(Locale.ENGLISH, "~(%s)", wildCard);
     }
 
     @Override
-    protected Query applyArrayReference(Reference arrayReference, Literal literal, LuceneQueryBuilder.Context context) {
-        String regexString = LikeOperator.patternToRegex(BytesRefs.toString(literal.value()), LikeOperator.DEFAULT_ESCAPE, false);
+    protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
+        String regexString = LikeOperator.patternToRegex(BytesRefs.toString(candidate.value()), LikeOperator.DEFAULT_ESCAPE, false);
         regexString = regexString.substring(1, regexString.length() - 1);
         String notLike = negateWildcard(regexString);
 
         return new RegexpQuery(new Term(
-            arrayReference.column().fqn(),
+            array.column().fqn(),
             notLike),
             RegexpFlag.COMPLEMENT.value()
         );
     }
 
     @Override
-    protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, LuceneQueryBuilder.Context context) {
+    protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal array, LuceneQueryBuilder.Context context) {
         // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
-        String columnName = reference.column().fqn();
+        String columnName = candidate.column().fqn();
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
 
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
-        for (Object value : toIterable(arrayLiteral.value())) {
+        for (Object value : toIterable(array.value())) {
             andLikeQueries.add(
-                LikeQuery.like(reference.valueType(), fieldType, value),
+                LikeQuery.like(candidate.valueType(), fieldType, value),
                 BooleanClause.Occur.MUST);
         }
         return Queries.not(andLikeQueries.build());

@@ -28,20 +28,22 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 
+import java.io.IOException;
+
 class AnyLikeQuery extends AbstractAnyQuery {
 
     @Override
-    protected Query applyArrayReference(Reference arrayReference, Literal literal, LuceneQueryBuilder.Context context) {
-        return LikeQuery.toQuery(arrayReference, literal.value(), context);
+    protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
+        return LikeQuery.toQuery(array, candidate.value(), context);
     }
 
     @Override
-    protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, LuceneQueryBuilder.Context context) {
+    protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal array, LuceneQueryBuilder.Context context) {
         // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
-        for (Object value : toIterable(arrayLiteral.value())) {
-            booleanQuery.add(LikeQuery.toQuery(reference, value, context), BooleanClause.Occur.SHOULD);
+        for (Object value : toIterable(array.value())) {
+            booleanQuery.add(LikeQuery.toQuery(candidate, value, context), BooleanClause.Occur.SHOULD);
         }
         return booleanQuery.build();
     }

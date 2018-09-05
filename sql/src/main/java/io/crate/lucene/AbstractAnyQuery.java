@@ -47,13 +47,13 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
         if (left.symbolType().isValueSymbol()) {
             // 1 = any (array_col) - simple eq
             if (collectionSymbol instanceof Reference) {
-                return applyArrayReference((Reference) collectionSymbol, (Literal) left, context);
+                return literalMatchesAnyArrayRef((Literal) left, (Reference) collectionSymbol, context);
             } else {
                 // no reference found (maybe subscript) in ANY expression -> fallback to slow generic function filter
                 return null;
             }
         } else if (left instanceof Reference && collectionSymbol.symbolType().isValueSymbol()) {
-            return applyArrayLiteral((Reference) left, (Literal) collectionSymbol, context);
+            return refMatchesAnyArrayLiteral((Reference) left, (Literal) collectionSymbol, context);
         } else {
             // might be the case if the left side is a function -> will fallback to (slow) generic function filter
             return null;
@@ -76,7 +76,27 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
         });
     }
 
-    protected abstract Query applyArrayReference(Reference arrayReference, Literal literal, LuceneQueryBuilder.Context context) throws IOException;
+    /**
+     * Generate a query for:
+     * <pre>
+     * {@code
+     *  <candidate> <OP> ANY (array)
+     * }
+     * </pre>
+     *
+     * Where candidate is a literal and array a reference
+     */
+    protected abstract Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException;
 
-    protected abstract Query applyArrayLiteral(Reference reference, Literal arrayLiteral, LuceneQueryBuilder.Context context) throws IOException;
+    /**
+     * Generate a query for:
+     * <pre>
+     * {@code
+     *  <candidate> <OP> ANY (array)
+     * }
+     * </pre>
+     *
+     * Where candidate is a reference and array a literal
+     */
+    protected abstract Query refMatchesAnyArrayLiteral(Reference candidate, Literal array, LuceneQueryBuilder.Context context) throws IOException;
 }

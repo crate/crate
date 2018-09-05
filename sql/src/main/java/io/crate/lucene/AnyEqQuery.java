@@ -30,23 +30,25 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
+import java.io.IOException;
+
 class AnyEqQuery extends AbstractAnyQuery {
 
     @Override
-    protected Query applyArrayReference(Reference arrayReference, Literal literal, LuceneQueryBuilder.Context context) {
-        MappedFieldType fieldType = context.getFieldTypeOrNull(arrayReference.column().fqn());
+    protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
+        MappedFieldType fieldType = context.getFieldTypeOrNull(array.column().fqn());
         if (fieldType == null) {
-            if (CollectionType.unnest(arrayReference.valueType()).equals(DataTypes.OBJECT)) {
+            if (CollectionType.unnest(array.valueType()).equals(DataTypes.OBJECT)) {
                 return null; // fallback to generic query to enable {x=10} = any(objects)
             }
             return Queries.newMatchNoDocsQuery("column doesn't exist in this index");
         }
-        return fieldType.termQuery(literal.value(), context.queryShardContext());
+        return fieldType.termQuery(candidate.value(), context.queryShardContext());
     }
 
     @Override
-    protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, LuceneQueryBuilder.Context context) {
-        String columnName = reference.column().fqn();
-        return LuceneQueryBuilder.termsQuery(context.getFieldTypeOrNull(columnName), LuceneQueryBuilder.asList(arrayLiteral), context.queryShardContext);
+    protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal array, LuceneQueryBuilder.Context context) {
+        String columnName = candidate.column().fqn();
+        return LuceneQueryBuilder.termsQuery(context.getFieldTypeOrNull(columnName), LuceneQueryBuilder.asList(array), context.queryShardContext);
     }
 }

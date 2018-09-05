@@ -28,6 +28,8 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 
+import java.io.IOException;
+
 class AnyRangeQuery extends AbstractAnyQuery {
 
     private final RangeQuery rangeQuery;
@@ -39,23 +41,23 @@ class AnyRangeQuery extends AbstractAnyQuery {
     }
 
     @Override
-    protected Query applyArrayReference(Reference arrayReference, Literal literal, LuceneQueryBuilder.Context context) {
+    protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
         // 1 < ANY (array_col) --> array_col > 1
         return rangeQuery.toQuery(
-            arrayReference,
-            literal.value(),
+            array,
+            candidate.value(),
             context::getFieldTypeOrNull,
             context.queryShardContext);
     }
 
     @Override
-    protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, LuceneQueryBuilder.Context context) {
+    protected Query refMatchesAnyArrayLiteral(Reference candidate, Literal array, LuceneQueryBuilder.Context context) {
         // col < ANY ([1,2,3]) --> or(col<1, col<2, col<3)
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
-        for (Object value : toIterable(arrayLiteral.value())) {
+        for (Object value : toIterable(array.value())) {
             booleanQuery.add(
-                inverseRangeQuery.toQuery(reference, value, context::getFieldTypeOrNull, context.queryShardContext),
+                inverseRangeQuery.toQuery(candidate, value, context::getFieldTypeOrNull, context.queryShardContext),
                 BooleanClause.Occur.SHOULD);
         }
         return booleanQuery.build();
