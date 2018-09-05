@@ -22,13 +22,22 @@
 
 package io.crate.lucene;
 
+import io.crate.expression.operator.LikeOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.Reference;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.WildcardQuery;
+import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.index.mapper.MappedFieldType;
 
-class LikeQuery implements FunctionToQuery {
+import javax.annotation.Nullable;
+
+final class LikeQuery implements FunctionToQuery {
 
     @Override
     public Query apply(Function input, LuceneQueryBuilder.Context context) {
@@ -41,10 +50,60 @@ class LikeQuery implements FunctionToQuery {
 
     static Query toQuery(Reference reference, Object value, LuceneQueryBuilder.Context context) {
         DataType dataType = CollectionType.unnest(reference.valueType());
-        return LikeQueryBuilder.like(
+        return like(
             dataType,
             context.getFieldTypeOrNull(reference.column().fqn()),
             value
         );
+    }
+
+    public static Query like(DataType dataType, @Nullable MappedFieldType fieldType, Object value) {
+        if (fieldType == null) {
+            // column doesn't exist on this index -> no match
+            return Queries.newMatchNoDocsQuery("column does not exist in this index");
+        }
+        if (dataType.equals(DataTypes.STRING)) {
+            return new WildcardQuery(new Term(
+                fieldType.name(),
+                convertSqlLikeToLuceneWildcard(BytesRefs.toString(value))));
+        }
+        return fieldType.termQuery(value, null);
+    }
+
+    static String convertSqlLikeToLuceneWildcard(String wildcardString) {
+        // lucene uses * and ? as wildcard characters
+        // but via SQL they are used as % and _
+        // here they are converted back.
+        StringBuilder regex = new StringBuilder();
+
+        boolean escaped = false;
+        for (char currentChar : wildcardString.toCharArray()) {
+            if (!escaped && currentChar == LikeOperator.DEFAULT_ESCAPE) {
+                escaped = true;
+            } else {
+                switch (currentChar) {
+                    case '%':
+                        regex.append(escaped ? '%' : '*');
+                        escaped = false;
+                        break;
+                    case '_':
+                        regex.append(escaped ? '_' : '?');
+                        escaped = false;
+                        break;
+                    default:
+                        switch (currentChar) {
+                            case '\\':
+                            case '*':
+                            case '?':
+                                regex.append('\\');
+                                break;
+                            default:
+                        }
+                        regex.append(currentChar);
+                        escaped = false;
+                }
+            }
+        }
+        return regex.toString();
     }
 }
