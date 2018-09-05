@@ -22,6 +22,7 @@
 
 package io.crate.lucene;
 
+import io.crate.expression.operator.LikeOperator;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.Term;
@@ -46,8 +47,45 @@ public final class LikeQueryBuilder {
         if (dataType.equals(DataTypes.STRING)) {
             return new WildcardQuery(new Term(
                 fieldType.name(),
-                LuceneQueryBuilder.convertSqlLikeToLuceneWildcard(BytesRefs.toString(value))));
+                convertSqlLikeToLuceneWildcard(BytesRefs.toString(value))));
         }
         return fieldType.termQuery(value, null);
+    }
+
+    static String convertSqlLikeToLuceneWildcard(String wildcardString) {
+        // lucene uses * and ? as wildcard characters
+        // but via SQL they are used as % and _
+        // here they are converted back.
+        StringBuilder regex = new StringBuilder();
+
+        boolean escaped = false;
+        for (char currentChar : wildcardString.toCharArray()) {
+            if (!escaped && currentChar == LikeOperator.DEFAULT_ESCAPE) {
+                escaped = true;
+            } else {
+                switch (currentChar) {
+                    case '%':
+                        regex.append(escaped ? '%' : '*');
+                        escaped = false;
+                        break;
+                    case '_':
+                        regex.append(escaped ? '_' : '?');
+                        escaped = false;
+                        break;
+                    default:
+                        switch (currentChar) {
+                            case '\\':
+                            case '*':
+                            case '?':
+                                regex.append('\\');
+                                break;
+                            default:
+                        }
+                        regex.append(currentChar);
+                        escaped = false;
+                }
+            }
+        }
+        return regex.toString();
     }
 }

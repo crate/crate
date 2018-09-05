@@ -22,12 +22,12 @@
 
 package io.crate.lucene;
 
-import io.crate.expression.symbol.Function;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.LteOperator;
+import io.crate.expression.symbol.Function;
 import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -35,7 +35,8 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.lucene.search.Queries;
 
-import static io.crate.lucene.LuceneQueryBuilder.Visitor.genericFunctionFilter;
+import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
+
 
 enum DistanceQueries {
     ;

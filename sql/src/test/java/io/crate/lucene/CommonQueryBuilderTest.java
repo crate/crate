@@ -54,6 +54,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Map;
 
+import static io.crate.lucene.LikeQueryBuilder.convertSqlLikeToLuceneWildcard;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -294,17 +295,17 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testSqlLikeToLuceneWildcard() throws Exception {
-        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("%\\\\%"), is("*\\\\*"));
-        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("%\\\\_"), is("*\\\\?"));
-        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("%\\%"), is("*%"));
+        assertThat(convertSqlLikeToLuceneWildcard("%\\\\%"), is("*\\\\*"));
+        assertThat(convertSqlLikeToLuceneWildcard("%\\\\_"), is("*\\\\?"));
+        assertThat(convertSqlLikeToLuceneWildcard("%\\%"), is("*%"));
 
-        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("%me"), is("*me"));
-        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("\\%me"), is("%me"));
-        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("*me"), is("\\*me"));
+        assertThat(convertSqlLikeToLuceneWildcard("%me"), is("*me"));
+        assertThat(convertSqlLikeToLuceneWildcard("\\%me"), is("%me"));
+        assertThat(convertSqlLikeToLuceneWildcard("*me"), is("\\*me"));
 
-        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("_me"), is("?me"));
-        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("\\_me"), is("_me"));
-        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("?me"), is("\\?me"));
+        assertThat(convertSqlLikeToLuceneWildcard("_me"), is("?me"));
+        assertThat(convertSqlLikeToLuceneWildcard("\\_me"), is("_me"));
+        assertThat(convertSqlLikeToLuceneWildcard("?me"), is("\\?me"));
     }
 
 
