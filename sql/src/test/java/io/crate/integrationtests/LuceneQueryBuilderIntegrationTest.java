@@ -386,4 +386,23 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         assertThat(printedTable(response.rows()), is("[1, 2, 3]\n" +
                                                      "[3, 4, 5, 1]\n"));
     }
+
+    @Test
+    public void testAnyOnNestedArray() {
+        execute("create table t (obj array(object as (xs array(integer))))");
+        execute("insert into t (obj) values ([{xs = [1, 2, 3]}, {xs = [3, 4]}])");
+        execute("refresh table t");
+
+        assertThat(
+            "query matches",
+            printedTable(execute("select * from t where [1, 2, 3] = any(obj['xs'])").rows()),
+            is("[{xs=[1, 2, 3]}, {xs=[3, 4]}]\n")
+        );
+
+        assertThat(
+            "query doesn't match",
+            printedTable(execute("select * from t where [1, 2] = any(obj['xs'])").rows()),
+            is("")
+        );
+    }
 }

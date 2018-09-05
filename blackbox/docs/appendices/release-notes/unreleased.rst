@@ -40,6 +40,10 @@ Breaking Changes
 Changes
 =======
 
+- The ``= ANY`` operator now also supports operations on nested arrays. This
+  enables queries like ``WHERE ['foo', 'bar'] =
+  ANY(object_array(string_array))``.
+
 - Added support for the ``array(subquery)`` expression.
 
 - ``<object_column> = <object_literal>`` comparisons now try to utilize the

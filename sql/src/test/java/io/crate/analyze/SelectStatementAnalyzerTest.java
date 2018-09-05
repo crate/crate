@@ -77,7 +77,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -91,6 +90,7 @@ import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -931,9 +931,18 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testAnyOnArrayInObjectArray() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("cannot query for arrays inside object arrays explicitly");
-        analyze("select * from users where 'vogon lyric lovers' = ANY (friends['groups'])");
+        QueriedRelation relation = analyze(
+            "select * from users where ['vogon lyric lovers'] = ANY (friends['groups'])");
+        assertThat(
+            relation.where().queryOrFallback(),
+            isFunction(
+                "any_=",
+                isLiteral(
+                    new Object[] {new BytesRef("vogon lyric lovers")},
+                    new ArrayType(DataTypes.STRING)),
+                isReference("friends['groups']", new ArrayType(new ArrayType(DataTypes.STRING)))
+            )
+        );
     }
 
     @Test
@@ -1509,7 +1518,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testCastExpression() throws Exception {
         QueriedRelation relation = analyze("select cast(other_id as string) from users");
         assertThat(relation.querySpec().outputs().get(0),
-            isFunction(CastFunctionResolver.FunctionNames.TO_STRING, Collections.singletonList(DataTypes.LONG)));
+            isFunction(CastFunctionResolver.FunctionNames.TO_STRING, singletonList(DataTypes.LONG)));
 
         relation = analyze("select cast(1+1 as string) from users");
         assertThat(relation.querySpec().outputs().get(0), isLiteral("2", DataTypes.STRING));
@@ -1517,7 +1526,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         relation = analyze("select cast(friends['id'] as array(string)) from users");
         assertThat(relation.querySpec().outputs().get(0), isFunction(
             CastFunctionResolver.FunctionNames.TO_STRING_ARRAY,
-            Collections.singletonList(new ArrayType(DataTypes.LONG))));
+            singletonList(new ArrayType(DataTypes.LONG))));
     }
 
     @Test
@@ -1525,7 +1534,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedRelation relation = analyze("select try_cast(other_id as string) from users");
         assertThat(relation.querySpec().outputs().get(0), isFunction(
             CastFunctionResolver.tryFunctionsMap().get(DataTypes.STRING),
-            Collections.singletonList(DataTypes.LONG)));
+            singletonList(DataTypes.LONG)));
 
         relation = analyze("select try_cast(1+1 as string) from users");
         assertThat(relation.querySpec().outputs().get(0), isLiteral("2", DataTypes.STRING));
@@ -1536,7 +1545,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         relation = analyze("select try_cast(counters as array(boolean)) from users");
         assertThat(relation.querySpec().outputs().get(0), isFunction(
             CastFunctionResolver.tryFunctionsMap().get(new ArrayType(DataTypes.BOOLEAN)),
-            Collections.singletonList(new ArrayType(DataTypes.LONG))));
+            singletonList(new ArrayType(DataTypes.LONG))));
     }
 
     @Test

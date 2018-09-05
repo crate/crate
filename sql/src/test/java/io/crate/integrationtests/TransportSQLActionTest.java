@@ -558,7 +558,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testArrayInsideObjectArray() throws Exception {
+    public void testArrayInsideObjectArrayOutputAndQueryBehaviour() throws Exception {
         execute("create table t1 (id int primary key, details array(object as (names array(string)))) with (number_of_replicas=0)");
         ensureYellow();
 
@@ -566,18 +566,21 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         detail1.put("names", new Object[]{"Arthur", "Trillian"});
 
         Map<String, Object> detail2 = new HashMap<>();
-        detail2.put("names", new Object[]{"Ford", "Slarti"});
+        detail2.put("names", new Object[]{"Ford", "Slarti", "Ford"});
 
         List<Map<String, Object>> details = Arrays.asList(detail1, detail2);
 
         execute("insert into t1 (id, details) values (?, ?)", new Object[]{1, details});
         refresh();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("cannot query for arrays inside object arrays explicitly");
-
-        execute("select details['names'] from t1");
-
+        execute("select " +
+                "details['names'], ['Arthur', 'Trillian'] = ANY (details['names']) " +
+                "from t1 " +
+                "where ['Ford', 'Slarti', 'Ford'] = ANY (details['names'])");
+        assertThat(
+            printedTable(response.rows()),
+            is("[[Arthur, Trillian], [Ford, Slarti, Ford]]| true\n")
+        );
     }
 
     @Test

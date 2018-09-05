@@ -24,6 +24,7 @@ package io.crate.lucene;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -44,6 +45,11 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
         Symbol collectionSymbol = function.arguments().get(1);
         Preconditions.checkArgument(DataTypes.isCollectionType(collectionSymbol.valueType()),
             "invalid argument for ANY expression");
+
+        if (DataTypes.isCollectionType(left.valueType())) {
+            throw new UnsupportedFeatureException(
+                "Cannot use " + function.info().ident().name() + " when the left side is an array");
+        }
         if (left.symbolType().isValueSymbol()) {
             // 1 = any (array_col) - simple eq
             if (collectionSymbol instanceof Reference) {
