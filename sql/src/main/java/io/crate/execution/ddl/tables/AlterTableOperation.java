@@ -85,7 +85,6 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -235,7 +234,7 @@ public class AlterTableOperation {
     }
 
     private CompletableFuture<Long> updateOpenCloseOnPartitionTemplate(boolean openTable, RelationName relationName) {
-        Map metaMap = Collections.singletonMap("_meta", Collections.singletonMap("closed", true));
+        Map<String, Object> metaMap = Collections.singletonMap("_meta", Collections.singletonMap("closed", true));
         if (openTable) {
             //Remove the mapping from the template.
             return updateTemplate(Collections.emptyMap(), metaMap, Settings.EMPTY, relationName);
@@ -523,7 +522,7 @@ public class AlterTableOperation {
             results.add(updateTemplate(mapping, Settings.EMPTY, analysis.table().ident()));
         }
 
-        String[] indexNames = getIndexNames(analysis.table(), null);
+        String[] indexNames = analysis.table().concreteIndices();
         if (indexNames.length > 0) {
             results.add(updateMapping(mapping, indexNames));
         }
@@ -531,7 +530,7 @@ public class AlterTableOperation {
         applyMultiFutureCallback(result, results);
     }
 
-    private void applyMultiFutureCallback(final CompletableFuture<?> result, List<CompletableFuture<Long>> futures) {
+    private static void applyMultiFutureCallback(final CompletableFuture<?> result, List<CompletableFuture<Long>> futures) {
         BiConsumer<List<Long>, Throwable> finalConsumer = (List<Long> receivedResult, Throwable t) -> {
             if (t == null) {
                 result.complete(null);
@@ -544,22 +543,6 @@ public class AlterTableOperation {
         for (CompletableFuture<Long> future : futures) {
             future.whenComplete(consumer);
         }
-    }
-
-    private static String[] getIndexNames(DocTableInfo tableInfo, @Nullable PartitionName partitionName) {
-        String[] indexNames;
-        if (tableInfo.isPartitioned()) {
-            if (partitionName == null) {
-                // all partitions
-                indexNames = Stream.of(tableInfo.concreteIndices()).toArray(String[]::new);
-            } else {
-                // single partition
-                indexNames = new String[]{partitionName.asIndexName()};
-            }
-        } else {
-            indexNames = new String[]{tableInfo.ident().indexName()};
-        }
-        return indexNames;
     }
 
     private static boolean areAllMappingsEqual(MetaData metaData, String... indices) {
