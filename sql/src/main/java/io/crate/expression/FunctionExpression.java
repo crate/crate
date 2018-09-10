@@ -27,25 +27,25 @@ import io.crate.metadata.Scalar;
 
 import java.util.Arrays;
 
-public class FunctionExpression<ReturnType, InputType> implements Input<ReturnType> {
+public final class FunctionExpression<ReturnType, InputType> implements Input<ReturnType> {
 
-    private final Input<InputType>[] childInputs;
-    private Scalar<ReturnType, InputType> functionImplementation;
+    private final Input<InputType>[] arguments;
+    private final Scalar<ReturnType, InputType> scalar;
 
-    public FunctionExpression(Scalar<ReturnType, InputType> functionImplementation, Input<InputType>[] childInputs) {
-        this.functionImplementation = functionImplementation;
-        this.childInputs = childInputs;
+    public FunctionExpression(Scalar<ReturnType, InputType> scalar, Input<InputType>[] arguments) {
+        this.scalar = scalar;
+        this.arguments = arguments;
     }
 
     @Override
     public ReturnType value() {
-        return functionImplementation.evaluate(childInputs);
+        return scalar.evaluate(arguments);
     }
 
     @Override
     public String toString() {
         return "FuncExpr{" +
-               functionImplementation.info().ident().name() +
-               ", args=" + Arrays.toString(childInputs) + '}';
+               scalar.info().ident().name() +
+               ", args=" + Arrays.toString(arguments) + '}';
     }
 }
