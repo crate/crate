@@ -23,6 +23,7 @@
 package io.crate.execution.dml.upsert;
 
 import io.crate.collections.Lists2;
+import io.crate.core.collections.StringObjectMaps;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -38,10 +39,10 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -56,8 +57,6 @@ public final class InsertSourceFromCells implements InsertSourceGen {
                           DocTableInfo table,
                           GeneratedColumns.Validation validation,
                           List<Reference> targets) {
-        assert targets.stream().allMatch(ref -> ref.column().isTopLevel()) : "Can only insert into top-level columns";
-
         this.targets = targets;
         ReferencesFromInputRow referenceResolver = new ReferencesFromInputRow(targets);
         InputFactory inputFactory = new InputFactory(functions);
@@ -81,8 +80,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     }
 
     public BytesReference generateSource(Object[] values) throws IOException {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
-            .startObject();
+        HashMap<String, Object> source = new HashMap<>();
 
         row.cells(values);
         generatedColumns.setNextRow(row);
@@ -92,17 +90,17 @@ public final class InsertSourceFromCells implements InsertSourceGen {
 
             // partitioned columns must not be included in the source
             if (target.granularity() == RowGranularity.DOC) {
-                builder.field(target.column().fqn(), value);
+                ColumnIdent column = target.column();
+                StringObjectMaps.mergeInto(source, column.name(), column.path(), value);
                 generatedColumns.validateValue(target, value);
             }
         }
         for (Map.Entry<Reference, Input<?>> entry : generatedColumns.toInject()) {
-            builder.field(entry.getKey().column().fqn(), entry.getValue().value());
+            ColumnIdent column = entry.getKey().column();
+            StringObjectMaps.mergeInto(source, column.name(), column.path(), entry.getValue().value());
         }
 
-        return builder
-            .endObject()
-            .bytes();
+        return XContentFactory.jsonBuilder().map(source).bytes();
     }
 
     private static class ReferencesFromInputRow implements ReferenceResolver<CollectExpression<Row, ?>> {

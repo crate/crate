@@ -24,19 +24,23 @@ package io.crate.execution.dml.upsert;
 
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.core.collections.StringObjectMaps;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
-import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.is;
 
 public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
@@ -54,7 +58,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     public void setUpExecutor() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .addTable("create table t1 (x int, y int, z as x + y)")
-            .addTable("create table t2 (obj object as (a int), b as obj['a'] + 1)")
+            .addTable("create table t2 (obj object as (a int, c as obj['a'] + 3), b as obj['a'] + 1)")
             .build();
         QueriedRelation relation = e.analyze("select x, y, z from t1");
         t1 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
@@ -89,7 +93,12 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     public void testGeneratedColumnGenerationThatDependsOnNestedColumnOfObject() throws IOException {
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
             e.functions(), t2, GeneratedColumns.Validation.VALUE_MATCH, Collections.singletonList(obj));
-        BytesReference source = sourceFromCells.generateSource(new Object[]{singletonMap("a", 10)});
-        assertThat(source.utf8ToString(), is("{\"obj\":{\"a\":10},\"b\":11}"));
+        HashMap<Object, Object> m = new HashMap<>();
+        m.put("a", 10);
+        BytesReference source = sourceFromCells.generateSource(new Object[]{m});
+        Map<String, Object> map = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, source).map();
+        assertThat(map.get("b"), is(11));
+        assertThat(StringObjectMaps.getByPath(map, "obj.a"), is(10));
+        assertThat(StringObjectMaps.getByPath(map, "obj.c"), is(13));
     }
 }

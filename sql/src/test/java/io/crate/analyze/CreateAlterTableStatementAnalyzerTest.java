@@ -1049,4 +1049,17 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         expectedException.expectMessage("Relation 'doc.v1' already exists");
         executor.analyze("create table v1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
     }
+
+    @Test
+    public void testGeneratedColumnInsideObjectIsProcessed() {
+        CreateTableAnalyzedStatement stmt = e.analyze("create table t (obj object as (c as 1 + 1))");
+        AnalyzedColumnDefinition obj = stmt.analyzedTableElements().columns().get(0);
+        AnalyzedColumnDefinition c = obj.children().get(0);
+
+        assertThat(c.dataType(), is("long"));
+        assertThat(c.formattedGeneratedExpression(), is("2"));
+        assertThat(stmt.analyzedTableElements().toMapping().toString(),
+            is("{_meta={generated_columns={obj.c=2}}, " +
+               "properties={obj={dynamic=true, type=object, properties={c={type=long}}}}}"));
+    }
 }

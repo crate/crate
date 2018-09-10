@@ -40,6 +40,7 @@ import java.util.Map;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
@@ -689,7 +690,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select id, other from t1 order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "1| updated\n" +
             "2| test2\n")
         );
@@ -699,7 +700,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select id, other from t1 order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "1| updated_again\n" +
             "2| test2\n" +
             "3| new\n")
@@ -741,7 +742,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select female, count(*) from t group by female order by female");
         assertThat(response.rowCount(), is(2L));
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("false| 2\n" +
                "true| 2\n"));
     }
@@ -761,7 +762,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select id, other from t1 order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "1| test\n" +
             "2| test2\n" +
             "3| new\n")
@@ -781,7 +782,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select id, other from t1 order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "1| test\n" +
             "2| test2\n" +
             "4| another\n")
@@ -822,7 +823,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select table_name, schema_name, partition_ident, values, number_of_shards, number_of_replicas " +
                 "from information_schema.table_partitions where schema_name='custom' and table_name='source' order by partition_ident");
-        String[] rows = TestingHelpers.printedTable(response.rows()).split("\n");
+        String[] rows = printedTable(response.rows()).split("\n");
         assertThat(rows[0], is("source| custom| 043k4pbidhkms| {city=Berlin}| 5| 0"));
         assertThat(rows[1], is("source| custom| 0444opb9e1t6ipo| {city=Leipzig}| 5| 0"));
         assertThat(rows[2], is("source| custom| 046kqtbjehin4q31elpmarg| {city=Musterhausen}| 5| 0"));
@@ -833,14 +834,14 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select * from custom.destination order by city");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "Berlin| Schulz| 10243\n" +
             "Leipzig| Dings| 14713\n" +
             "Musterhausen| Foo| 10243\n"));
 
         execute("select table_name, schema_name, partition_ident, values, number_of_shards, number_of_replicas " +
                 "from information_schema.table_partitions where schema_name='custom' and table_name='destination' order by partition_ident");
-        rows = TestingHelpers.printedTable(response.rows()).split("\n");
+        rows = printedTable(response.rows()).split("\n");
         assertThat(rows[0], is("destination| custom| 04332c1i6gpg| {zipcode=10243}| 5| 0"));
         assertThat(rows[1], is("destination| custom| 04332d1n64pg| {zipcode=14713}| 5| 0"));
 
@@ -863,7 +864,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table shapes");
 
         execute("select * from shapes order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "1| {coordinates=[0.0, 0.0], type=Point}\n" +
             "2| {coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]], type=LineString}\n"));
 
@@ -1011,7 +1012,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table computed");
 
         execute("select * from computed order by quotient");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "0.0| 10.0| 0.0\n" +
             "1.0| 1.0| 1.0\n"));
 
@@ -1393,5 +1394,14 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select * from shard_stats");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testInsertWithNestedGeneratedColumn() {
+        execute("create table t (x int, obj object as (y as x + 1, z int))");
+        execute("insert into t (x, obj) values (10, {z=4})");
+        execute("refresh table t");
+        execute("select x, obj['y'], obj['z'] from t");
+        assertThat(printedTable(response.rows()), is("10| 11| 4\n"));
     }
 }

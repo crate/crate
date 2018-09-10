@@ -31,9 +31,11 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
@@ -52,6 +54,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.core.collections.StringObjectMaps.getByPath;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -1563,14 +1566,22 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                                                     "Galactic Sector QQ7 Active J Gamma| Galaxy| 3\n");
 
         execute("select _raw, id from locations where id in (2,3) order by id");
-        assertEquals(printedTable(response.rows()), "{\"id\":\"2\",\"name\":\"Outer Eastern Rim\"," +
-                                                    "\"date\":308534400000,\"kind\":\"Galaxy\",\"position\":2,\"description\":\"The Outer Eastern Rim " +
-                                                    "of the Galaxy where the Guide has supplanted the Encyclopedia Galactica among its more relaxed " +
-                                                    "civilisations.\",\"race\":null}| 2\n" +
-                                                    "{\"id\":\"3\",\"name\":\"Galactic Sector QQ7 Active J Gamma\",\"date\":1367366400000," +
-                                                    "\"kind\":\"Galaxy\",\"position\":4,\"description\":\"Galactic Sector QQ7 Active J Gamma contains " +
-                                                    "the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains." +
-                                                    "\",\"race\":null}| 3\n");
+        Map<String, Object> firstRaw = JsonXContent.jsonXContent
+            .createParser(NamedXContentRegistry.EMPTY, (String) response.rows()[0][0]).map();
+
+        assertThat(response.rows()[0][1], is("2"));
+        assertThat(firstRaw.get("id"), is("2"));
+        assertThat(firstRaw.get("name"), is("Outer Eastern Rim"));
+        assertThat(firstRaw.get("date"), is(308534400000L));
+        assertThat(firstRaw.get("kind"), is("Galaxy"));
+
+        Map<String, Object> secondRaw = JsonXContent.jsonXContent
+            .createParser(NamedXContentRegistry.EMPTY, (String) response.rows()[1][0]).map();
+        assertThat(response.rows()[1][1], is("3"));
+        assertThat(secondRaw.get("id"), is("3"));
+        assertThat(secondRaw.get("name"), is("Galactic Sector QQ7 Active J Gamma"));
+        assertThat(secondRaw.get("date"), is(1367366400000L));
+        assertThat(secondRaw.get("kind"), is("Galaxy"));
     }
 
     @Test

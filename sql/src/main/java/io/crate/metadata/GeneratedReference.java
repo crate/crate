@@ -117,11 +117,8 @@ public class GeneratedReference extends Reference {
 
     @Override
     public String toString() {
-        return "GeneratedReference{" +
-               "formattedGeneratedExpression='" + formattedGeneratedExpression + '\'' +
-               ", generatedExpression=" + generatedExpression +
-               ", referencedReferences=" + referencedReferences +
-               '}';
+        return "Generated{" + column() + " AS " + formattedGeneratedExpression
+               + ", type=" + valueType() + '}';
     }
 
     @Override

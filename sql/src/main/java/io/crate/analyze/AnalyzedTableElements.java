@@ -88,9 +88,7 @@ public class AnalyzedTableElements {
             if (column.isIndexColumn()) {
                 indicesMap.put(column.name(), column.toMetaIndicesMapping());
             }
-            if (column.formattedGeneratedExpression() != null) {
-                generatedColumns.put(column.name(), column.formattedGeneratedExpression());
-            }
+            addToGeneratedColumns("", column, generatedColumns);
         }
 
         if (!partitionedByColumns.isEmpty()) {
@@ -115,6 +113,18 @@ public class AnalyzedTableElements {
         mapping.put("properties", properties);
 
         return mapping;
+    }
+
+    private static void addToGeneratedColumns(String columnPrefix,
+                                              AnalyzedColumnDefinition column,
+                                              Map<String, String> generatedColumns) {
+        String generatedExpression = column.formattedGeneratedExpression();
+        if (generatedExpression != null) {
+            generatedColumns.put(columnPrefix + column.name(), generatedExpression);
+        }
+        for (AnalyzedColumnDefinition child : column.children()) {
+            addToGeneratedColumns(columnPrefix + column.name() + '.', child, generatedColumns);
+        }
     }
 
     public List<List<String>> partitionedBy() {
@@ -265,16 +275,36 @@ public class AnalyzedTableElements {
         SymbolPrinter printer = new SymbolPrinter(functions);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
-            if (columnDefinition.generatedExpression() != null) {
-                processGeneratedExpression(expressionAnalyzer, printer, columnDefinition, expressionAnalysisContext);
-            }
+            processGeneratedExpressions(
+                columnDefinition,
+                expressionAnalyzer,
+                printer,
+                expressionAnalysisContext
+            );
         }
     }
 
-    private void processGeneratedExpression(ExpressionAnalyzer expressionAnalyzer,
-                                            SymbolPrinter symbolPrinter,
-                                            AnalyzedColumnDefinition columnDefinition,
-                                            ExpressionAnalysisContext expressionAnalysisContext) {
+    private static void processGeneratedExpressions(AnalyzedColumnDefinition columnDefinition,
+                                                    ExpressionAnalyzer expressionAnalyzer,
+                                                    SymbolPrinter printer,
+                                                    ExpressionAnalysisContext expressionAnalysisContext) {
+        if (columnDefinition.generatedExpression() != null) {
+            processGeneratedExpression(expressionAnalyzer, printer, columnDefinition, expressionAnalysisContext);
+        }
+        for (AnalyzedColumnDefinition child : columnDefinition.children()) {
+            processGeneratedExpressions(
+                child,
+                expressionAnalyzer,
+                printer,
+                expressionAnalysisContext
+            );
+        }
+    }
+
+    private static void processGeneratedExpression(ExpressionAnalyzer expressionAnalyzer,
+                                                   SymbolPrinter symbolPrinter,
+                                                   AnalyzedColumnDefinition columnDefinition,
+                                                   ExpressionAnalysisContext expressionAnalysisContext) {
         // validate expression
         Symbol function = expressionAnalyzer.convert(columnDefinition.generatedExpression(), expressionAnalysisContext);
 

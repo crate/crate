@@ -157,12 +157,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectDocLevel() throws Throwable {
-        List<Symbol> toCollect = Arrays.asList(testDocLevelReference, underscoreRawReference, underscoreIdReference);
+        List<Symbol> toCollect = Arrays.asList(testDocLevelReference, underscoreIdReference);
         RoutedCollectPhase collectNode = getCollectNode(toCollect, WhereClause.MATCH_ALL);
         Bucket result = collect(collectNode);
         assertThat(result, containsInAnyOrder(
-            isRow(2, "{\"id\":1,\"doc\":2}", "1"),
-            isRow(4, "{\"id\":3,\"doc\":4}", "3")
+            isRow(2, "1"),
+            isRow(4, "3")
         ));
     }
 

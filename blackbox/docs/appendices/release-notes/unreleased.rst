@@ -40,6 +40,8 @@ Breaking Changes
 Changes
 =======
 
+- Added support for using generated columns inside object columns.
+
 Fixes
 =====
 

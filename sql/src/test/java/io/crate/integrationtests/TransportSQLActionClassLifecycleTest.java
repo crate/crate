@@ -27,9 +27,10 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.joda.time.DateTimeUtils;
@@ -125,20 +126,27 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testSelectRaw() throws Exception {
         SQLResponse response = execute("select _raw from characters order by name desc limit 1");
-        assertEquals(
-            "{\"race\":\"Human\",\"gender\":\"female\",\"age\":32,\"birthdate\":276912000000," +
-            "\"name\":\"Trillian\",\"details\":{\"job\":\"Mathematician\"}}\n",
-            TestingHelpers.printedTable(response.rows()));
+        Object raw = response.rows()[0][0];
+        Map<String, Object> rawMap = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, (String) raw).map();
+
+        assertThat(rawMap.get("race"), is("Human"));
+        assertThat(rawMap.get("gender"), is("female"));
+        assertThat(rawMap.get("age"), is(32));
+        assertThat(rawMap.get("name"), is("Trillian"));
     }
 
     @Test
     public void testSelectRawWithGrouping() throws Exception {
         SQLResponse response = execute("select name, _raw from characters " +
                                        "group by _raw, name order by name desc limit 1");
-        assertEquals(
-            "Trillian| {\"race\":\"Human\",\"gender\":\"female\",\"age\":32,\"birthdate\":276912000000," +
-            "\"name\":\"Trillian\",\"details\":{\"job\":\"Mathematician\"}}\n",
-            TestingHelpers.printedTable(response.rows()));
+
+        Object raw = response.rows()[0][1];
+        Map<String, Object> rawMap = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, (String) raw).map();
+
+        assertThat(rawMap.get("race"), is("Human"));
+        assertThat(rawMap.get("gender"), is("female"));
+        assertThat(rawMap.get("age"), is(32));
+        assertThat(rawMap.get("name"), is("Trillian"));
     }
 
     @Test
