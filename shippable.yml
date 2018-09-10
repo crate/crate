@@ -1,33 +1,28 @@
 #### Shippable CI CONFIG
-
+---
 language: java
 
 jdk:
-  - oraclejdk8
+  - oraclejdk10
 
 git:
   submodules: true
-
-# Avoid duplicate builds for master and the PR branch
-branches:
-  except: master
 
 env:
   global:
     - CRATE_TESTS_SQL_REQUEST_TIMEOUT="20"
     - CRATE_TESTS_NO_IPV6=true
     - _JAVA_OPTIONS="-Xms1g -Xmx1g"
-    - GRADLE_OPTS="-Dorg.gradle.daemon=false"
 
 # Create and use a non-root user for the build
 # to avoid errors in es submodule.
 build:
   ci:
-    - adduser --disabled-password --gecos "" ciuser
+    - useradd -m ciuser
     - CIUSER_BUILD_DIR=/home/ciuser/build
     - mv $SHIPPABLE_BUILD_DIR $CIUSER_BUILD_DIR
-    - chown -R ciuser:ciuser $CIUSER_BUILD_DIR
-    - su -c "export IS_SHIPPABLE_CI_BUILD=true && cd $CIUSER_BUILD_DIR && ./gradlew -s :sql:test" ciuser
+    - chown -R ciuser:ciuser /home/ciuser
+    - su -c "cd $CIUSER_BUILD_DIR && IS_SHIPPABLE_CI_BUILD=true ./gradlew --no-daemon :sql:test" ciuser
   cache: true
   cache_dir_list:
     - /home/ciuser/.m2
