@@ -24,7 +24,6 @@ package io.crate.execution.dml.upsert;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.ConstraintsValidator;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
@@ -45,11 +44,9 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.ExceptionsHelper;
@@ -57,7 +54,6 @@ import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
@@ -114,6 +110,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
     private final Schemas schemas;
     private final InputFactory inputFactory;
+    private final Functions functions;
 
     @Inject
     public TransportShardUpsertAction(Settings settings,
@@ -131,6 +128,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         super(settings, ACTION_NAME, transportService, indexNameExpressionResolver, clusterService,
             indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest::new, schemaUpdateClient);
         this.schemas = schemas;
+        this.functions = functions;
         this.inputFactory = new InputFactory(functions);
         tasksService.addListener(this);
     }
@@ -141,11 +139,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                                                         AtomicBoolean killed) {
         ShardResponse shardResponse = new ShardResponse();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(request.index()), Operation.INSERT);
+        Reference[] insertColumns = request.insertColumns();
+        SourceGen.Validation valueValidation = request.validateConstraints()
+            ? SourceGen.Validation.GENERATED_VALUE_MATCH
+            : SourceGen.Validation.NONE;
 
-        Collection<ColumnIdent> notUsedNonGeneratedColumns = ImmutableList.of();
-        if (request.validateConstraints()) {
-            notUsedNonGeneratedColumns = getNotUsedNonGeneratedColumns(request.insertColumns(), tableInfo);
-        }
+        SourceGen sourceGen = insertColumns == null
+            ? null
+            : SourceGen.of(functions, tableInfo, valueValidation, Arrays.asList(insertColumns));
 
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {
@@ -164,7 +165,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     item,
                     indexShard,
                     item.insertValues() != null, // try insert first
-                    notUsedNonGeneratedColumns);
+                    sourceGen
+                );
                 if (translogLocation != null) {
                     shardResponse.add(location);
                 }
@@ -230,11 +232,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                         ShardUpsertRequest.Item item,
                                         IndexShard indexShard,
                                         boolean tryInsertFirst,
-                                        Collection<ColumnIdent> notUsedNonGeneratedColumns) throws Exception {
+                                        @Nullable SourceGen sourceGen) throws Exception {
         VersionConflictEngineException lastException = null;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
-                return indexItem(tableInfo, request, item, indexShard, tryInsertFirst, notUsedNonGeneratedColumns, retryCount > 0);
+                return indexItem(tableInfo, request, item, indexShard, tryInsertFirst, sourceGen, retryCount > 0);
             } catch (VersionConflictEngineException e) {
                 lastException = e;
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
@@ -271,7 +273,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                           ShardUpsertRequest.Item item,
                                           IndexShard indexShard,
                                           boolean tryInsertFirst,
-                                          Collection<ColumnIdent> notUsedNonGeneratedColumns,
+                                          SourceGen sourceGen,
                                           boolean isRetry) throws Exception {
         long version;
         // try insert first without fetching the document
@@ -279,7 +281,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             // set version so it will fail if already exists (will be overwritten for updates, see below)
             version = Versions.MATCH_DELETED;
             try {
-                item.source(prepareInsert(tableInfo, notUsedNonGeneratedColumns, request, item));
+                sourceGen.checkConstraints(item.insertValues());
+                item.source(sourceGen.generateSource(item.insertValues()));
             } catch (IOException e) {
                 throw ExceptionsHelper.convertToElastic(e);
             }
@@ -440,93 +443,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + updatedSourceAsMap + "]", e);
         }
-    }
-
-    private BytesReference prepareInsert(DocTableInfo tableInfo,
-                                         Collection<ColumnIdent> notUsedNonGeneratedColumns,
-                                         ShardUpsertRequest request,
-                                         ShardUpsertRequest.Item item) throws IOException {
-
-        List<GeneratedReference> generatedReferencesWithValue = new ArrayList<>();
-        BytesReference source;
-        Object[] insertValues = item.insertValues();
-        Reference[] insertColumns = request.insertColumns();
-        assert insertValues != null && insertColumns != null : "insertValues and insertColumns must not be null";
-        if (request.isRawSourceInsert()) {
-            assert insertValues.length > 0 : "empty insert values array";
-            source = new BytesArray((BytesRef) insertValues[0]);
-        } else {
-            XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
-
-            // For direct inserts it is enough to have constraints validation on a handler.
-            // validateConstraints() of ShardUpsertRequest should result in false in this case.
-            if (request.validateConstraints()) {
-                ConstraintsValidator.validateConstraintsForNotUsedColumns(notUsedNonGeneratedColumns, tableInfo);
-            }
-
-            for (int i = 0; i < insertValues.length; i++) {
-                Object value = insertValues[i];
-                Reference ref = insertColumns[i];
-
-                ConstraintsValidator.validate(value, ref, tableInfo.notNullColumns());
-
-                if (ref.granularity() == RowGranularity.DOC) {
-                    // don't include values for partitions in the _source
-                    // ideally columns with partition granularity shouldn't be part of the request
-                    builder.field(ref.column().fqn(), value);
-                    if (ref instanceof GeneratedReference) {
-                        generatedReferencesWithValue.add((GeneratedReference) ref);
-                    }
-                }
-            }
-            builder.endObject();
-            source = builder.bytes();
-        }
-
-        int generatedColumnSize = 0;
-        for (GeneratedReference reference : tableInfo.generatedColumns()) {
-            if (!tableInfo.partitionedByColumns().contains(reference)) {
-                generatedColumnSize++;
-            }
-        }
-
-        int numMissingGeneratedColumns = generatedColumnSize - generatedReferencesWithValue.size();
-        if (numMissingGeneratedColumns > 0 ||
-            (generatedReferencesWithValue.size() > 0 && request.validateConstraints())) {
-            // we need to evaluate some generated column expressions
-            Map<String, Object> sourceMap = processGeneratedColumnsOnInsert(tableInfo, request.insertColumns(),
-                item.insertValues(), request.isRawSourceInsert(), request.validateConstraints());
-            source = XContentFactory.jsonBuilder().map(sourceMap).bytes();
-        }
-
-        return source;
-    }
-
-    private Map<String, Object> processGeneratedColumnsOnInsert(DocTableInfo tableInfo,
-                                                                Reference[] insertColumns,
-                                                                Object[] insertValues,
-                                                                boolean isRawSourceInsert,
-                                                                boolean validateExpressionValue) {
-        Map<String, Object> sourceAsMap = buildMapFromSource(insertColumns, insertValues, isRawSourceInsert);
-        processGeneratedColumns(tableInfo, sourceAsMap, sourceAsMap, validateExpressionValue, null);
-        return sourceAsMap;
-    }
-
-    @VisibleForTesting
-    Map<String, Object> buildMapFromSource(Reference[] insertColumns,
-                                           Object[] insertValues,
-                                           boolean isRawSourceInsert) {
-        Map<String, Object> sourceAsMap;
-        if (isRawSourceInsert) {
-            BytesRef source = (BytesRef) insertValues[0];
-            sourceAsMap = XContentHelper.convertToMap(new BytesArray(source), false, XContentType.JSON).v2();
-        } else {
-            sourceAsMap = new LinkedHashMap<>(insertColumns.length);
-            for (int i = 0; i < insertColumns.length; i++) {
-                sourceAsMap.put(insertColumns[i].column().fqn(), insertValues[i]);
-            }
-        }
-        return sourceAsMap;
     }
 
     @VisibleForTesting

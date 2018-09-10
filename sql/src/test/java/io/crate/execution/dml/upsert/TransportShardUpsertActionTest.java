@@ -27,7 +27,6 @@ import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.jobs.TasksService;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -36,7 +35,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TestingTableInfo;
@@ -44,7 +42,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
@@ -55,7 +52,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
@@ -74,8 +70,8 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -128,15 +124,16 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 tasksService, indicesService, shardStateAction, functions, schemas, indexNameExpressionResolver);
         }
 
+        @Nullable
         @Override
         protected Translog.Location indexItem(DocTableInfo tableInfo,
                                               ShardUpsertRequest request,
                                               ShardUpsertRequest.Item item,
                                               IndexShard indexShard,
                                               boolean tryInsertFirst,
-                                              Collection<ColumnIdent> notUsedNonGeneratedColumns,
-                                              boolean isRetry) throws ElasticsearchException {
-            throw new VersionConflictEngineException(
+                                              SourceGen sourceGen,
+                                              boolean isRetry) throws Exception {
+             throw new VersionConflictEngineException(
                 indexShard.shardId(),
                 request.type(),
                 item.id(),
@@ -362,45 +359,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         assertThat(updatedColumns.size(), is(2));
         assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("bar")));
-    }
-
-    @Test
-    public void testBuildMapFromSource() throws Exception {
-        Reference tsRef = new Reference(
-            new ReferenceIdent(TABLE_IDENT, "ts"), RowGranularity.DOC, DataTypes.TIMESTAMP);
-        Reference nameRef = new Reference(
-            new ReferenceIdent(TABLE_IDENT, "user", Arrays.asList("name")), RowGranularity.DOC, DataTypes.TIMESTAMP);
-
-
-        Reference[] insertColumns = new Reference[]{tsRef, nameRef};
-        Object[] insertValues = new Object[]{1448274317000L, "Ford"};
-
-        Map<String, Object> sourceMap = transportShardUpsertAction.buildMapFromSource(insertColumns, insertValues, false);
-
-        assertThat(sourceMap.size(), is(2));
-        assertThat(sourceMap.get("ts"), is(1448274317000L));
-        assertThat(sourceMap.get("user.name"), is("Ford"));
-    }
-
-    @Test
-    public void testBuildMapFromRawSource() throws Exception {
-        Reference rawRef = new Reference(
-            new ReferenceIdent(TABLE_IDENT, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING);
-
-        BytesRef bytesRef = XContentFactory.jsonBuilder().startObject()
-            .field("ts", 1448274317000L)
-            .field("user.name", "Ford")
-            .endObject()
-            .bytes().toBytesRef();
-
-        Reference[] insertColumns = new Reference[]{rawRef};
-        Object[] insertValues = new Object[]{bytesRef};
-
-        Map<String, Object> sourceMap = transportShardUpsertAction.buildMapFromSource(insertColumns, insertValues, true);
-
-        assertThat(sourceMap.size(), is(2));
-        assertThat(sourceMap.get("ts"), is(1448274317000L));
-        assertThat(sourceMap.get("user.name"), is("Ford"));
     }
 
     @Test
