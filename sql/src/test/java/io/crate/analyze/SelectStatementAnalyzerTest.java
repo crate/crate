@@ -1954,7 +1954,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         Functions functions = getFunctions();
         UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
         SQLExecutor sqlExecutor2 = SQLExecutor.builder(clusterService)
-            .setDefaultSchema("foo")
+            .setSearchPath("foo")
             .addSchema(new DocSchemaInfo("foo", clusterService, functions, udfService, (ident, state) -> null, fooTableFactory))
             .addDocTable(fooTableInfo)
             .build();

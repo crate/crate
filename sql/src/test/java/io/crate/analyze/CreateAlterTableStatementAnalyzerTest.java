@@ -752,7 +752,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testExplicitSchemaHasPrecedenceOverDefaultSchema() {
         CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement("create table foo.bar (x string)"),
-            new TransactionContext(new SessionContext(0, Option.NONE, "hoschi", User.CRATE_USER, s -> {}, t -> {})),
+            new TransactionContext(new SessionContext(0, Option.NONE, User.CRATE_USER, s -> {}, t -> {}, "hoschi")),
             new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
 
         // schema from statement must take precedence
@@ -763,7 +763,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testDefaultSchemaIsAddedToTableIdentIfNoEplicitSchemaExistsInTheStatement() {
         CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement("create table bar (x string)"),
-            new TransactionContext(new SessionContext(0, Option.NONE, "hoschi", User.CRATE_USER, s -> {}, t -> {})),
+            new TransactionContext(new SessionContext(0, Option.NONE, User.CRATE_USER, s -> {}, t -> {}, "hoschi")),
             new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
 
         assertThat(statement.tableIdent().schema(), is("hoschi"));

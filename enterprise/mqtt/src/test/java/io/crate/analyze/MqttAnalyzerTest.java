@@ -47,7 +47,7 @@ public class MqttAnalyzerTest {
                 QualifiedName.of("table"),
                 Optional.empty());
         SessionContext sessionContext = SessionContext.systemSessionContext();
-        sessionContext.setDefaultSchema("custom");
+        sessionContext.setSearchPath("custom");
         ParameterContext parameterContext = Mockito.mock(ParameterContext.class);
         ParamTypeHints paramTypeHints = Mockito.mock(ParamTypeHints.class);
         Analysis analysis = new Analysis(new TransactionContext(sessionContext), parameterContext, paramTypeHints);

@@ -124,6 +124,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 
@@ -202,7 +203,7 @@ public class SQLExecutor {
         private final AllocationService allocationService;
         private final UserDefinedFunctionService udfService;
         private final Random random;
-        private String defaultSchema = Schemas.DOC_SCHEMA_NAME;
+        private String[] searchPath = new String[]{Schemas.DOC_SCHEMA_NAME};
         private User user = User.CRATE_USER;
 
         private TableStats tableStats = new TableStats();
@@ -221,10 +222,7 @@ public class SQLExecutor {
                 docTables, functions, new IndexNameExpressionResolver(Settings.EMPTY));
             testingViewInfoFactory = (ident, state) -> null;
             udfService = new UserDefinedFunctionService(clusterService, functions);
-            schemaInfoByName.put(
-                defaultSchema,
-                new DocSchemaInfo(defaultSchema, clusterService, functions, udfService, testingViewInfoFactory, testingDocTableInfoFactory)
-            );
+
             Schemas schemas = new Schemas(
                 Settings.EMPTY,
                 schemaInfoByName,
@@ -271,8 +269,9 @@ public class SQLExecutor {
                 ClusterState.builder(clusterService.state()).nodes(builder).build());
         }
 
-        public Builder setDefaultSchema(String schema) {
-            this.defaultSchema = schema;
+        public Builder setSearchPath(String... schemas) {
+            Objects.requireNonNull(schemas, "Search path must not be set to null");
+            this.searchPath = schemas;
             return this;
         }
 
@@ -322,6 +321,13 @@ public class SQLExecutor {
                     BlobSchemaInfo.NAME,
                     new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
             }
+
+            for (String schema : searchPath) {
+                schemaInfoByName.put(
+                    schema,
+                    new DocSchemaInfo(schema, clusterService, functions, udfService, testingViewInfoFactory, testingDocTableInfoFactory)
+                );
+            }
             // Can't use the schemas instance from the constructor because
             // schemaInfoByName can receive new items and Schemas creates a new map internally; so mutations are not visible
             Schemas schemas = new Schemas(
@@ -356,7 +362,7 @@ public class SQLExecutor {
                     tableStats
                 ),
                 relationAnalyzer,
-                new SessionContext(defaultSchema, user, s -> {}, t -> {}),
+                new SessionContext(user, s -> {}, t -> {}, searchPath),
                 random
             );
         }

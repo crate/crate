@@ -23,6 +23,8 @@
 package io.crate.action.sql;
 
 import io.crate.analyze.Analyzer;
+import io.crate.auth.user.ExceptionAuthorizedValidator;
+import io.crate.auth.user.StatementAuthorizedValidator;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -92,21 +94,37 @@ public class SQLOperations {
 
     public Session newSystemSession() {
         return createSession(new SessionContext(
-            SysSchemaInfo.NAME,
             CRATE_USER,
             userManager.getStatementValidator(CRATE_USER, SysSchemaInfo.NAME),
-            userManager.getExceptionValidator(CRATE_USER, SysSchemaInfo.NAME))
+            userManager.getExceptionValidator(CRATE_USER, SysSchemaInfo.NAME),
+            SysSchemaInfo.NAME)
         );
     }
 
     public Session createSession(@Nullable String defaultSchema, User user) {
-        return createSession(new SessionContext(defaultSchema, user,
-            userManager.getStatementValidator(user, defaultSchema), userManager.getExceptionValidator(user, defaultSchema)));
+        StatementAuthorizedValidator statementValidator = userManager.getStatementValidator(user, defaultSchema);
+        ExceptionAuthorizedValidator exceptionValidator = userManager.getExceptionValidator(user, defaultSchema);
+        SessionContext sessionContext;
+        if (defaultSchema == null) {
+            sessionContext = new SessionContext(user, statementValidator, exceptionValidator);
+        } else {
+            sessionContext = new SessionContext(user, statementValidator, exceptionValidator, defaultSchema);
+        }
+        return createSession(sessionContext);
     }
 
     public Session createSession(@Nullable String defaultSchema, User user, Set<Option> options, int defaultLimit) {
-        return createSession(new SessionContext(defaultLimit, options, defaultSchema, user,
-            userManager.getStatementValidator(user, defaultSchema), userManager.getExceptionValidator(user, defaultSchema)));
+        StatementAuthorizedValidator statementValidator = userManager.getStatementValidator(user, defaultSchema);
+        ExceptionAuthorizedValidator exceptionValidator = userManager.getExceptionValidator(user, defaultSchema);
+        SessionContext sessionContext;
+        if (defaultSchema == null) {
+            sessionContext = new SessionContext(defaultLimit, options, user, statementValidator, exceptionValidator);
+        } else {
+            sessionContext = new SessionContext(defaultLimit, options, user, statementValidator, exceptionValidator,
+                defaultSchema);
+        }
+
+        return createSession(sessionContext);
     }
 
     /**
