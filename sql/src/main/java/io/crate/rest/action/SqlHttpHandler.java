@@ -235,7 +235,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
             SessionContext sessionContext = session.sessionContext();
             sessionContext.resetToDefaults();
             if (defaultSchema != null) {
-                sessionContext.setDefaultSchema(defaultSchema);
+                sessionContext.setSearchPath(defaultSchema);
             }
         }
     }

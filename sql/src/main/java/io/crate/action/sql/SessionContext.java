@@ -22,16 +22,17 @@
 
 package io.crate.action.sql;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.auth.user.StatementAuthorizedValidator;
 import io.crate.auth.user.User;
 import io.crate.exceptions.MissingPrivilegeException;
-import io.crate.metadata.Schemas;
 
-import javax.annotation.Nullable;
 import java.util.Set;
 
+import static io.crate.metadata.SearchPath.createSearchPathFrom;
+import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
 import static java.util.Objects.requireNonNull;
 
 public class SessionContext implements StatementAuthorizedValidator, ExceptionAuthorizedValidator {
@@ -42,7 +43,7 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     private final StatementAuthorizedValidator statementAuthorizedValidator;
     private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
 
-    private String defaultSchema;
+    private SearchPath searchPath;
     private boolean semiJoinsRewriteEnabled = false;
     private boolean hashJoinEnabled = true;
 
@@ -50,39 +51,37 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
      * Creates a new SessionContext suitable to use as system SessionContext
      */
     public static SessionContext systemSessionContext() {
-        return new SessionContext(null, User.CRATE_USER, s -> { }, e -> { });
+        return new SessionContext(0, Option.NONE, User.CRATE_USER, s -> { }, e -> { });
     }
 
-    public SessionContext(@Nullable String defaultSchema,
-                          User user,
+    public SessionContext(User user,
                           StatementAuthorizedValidator statementAuthorizedValidator,
-                          ExceptionAuthorizedValidator exceptionAuthorizedValidator) {
-        this(0, Option.NONE, defaultSchema, user,
-            statementAuthorizedValidator, exceptionAuthorizedValidator);
+                          ExceptionAuthorizedValidator exceptionAuthorizedValidator,
+                          String... searchPath) {
+        this(0, Option.NONE, user,
+            statementAuthorizedValidator, exceptionAuthorizedValidator, searchPath);
+
     }
 
     public SessionContext(int defaultLimit,
                           Set<Option> options,
-                          @Nullable String defaultSchema,
                           User user,
                           StatementAuthorizedValidator statementAuthorizedValidator,
-                          ExceptionAuthorizedValidator exceptionAuthorizedValidator) {
+                          ExceptionAuthorizedValidator exceptionAuthorizedValidator,
+                          String... searchPath) {
         this.defaultLimit = defaultLimit;
         this.options = options;
         this.user = requireNonNull(user, "User is required");
         this.statementAuthorizedValidator = statementAuthorizedValidator;
         this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
-        this.defaultSchema = defaultSchema;
-        if (defaultSchema == null) {
-            resetSchema();
-        }
+        this.searchPath = createSearchPathFrom(searchPath);
     }
 
     /**
      * Reverts the schema to the built-in default.
      */
     public void resetSchema() {
-        defaultSchema = Schemas.DOC_SCHEMA_NAME;
+        searchPath = pathWithPGCatalogAndDoc();
     }
 
     public Set<Option> options() {
@@ -90,11 +89,15 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     }
 
     public String defaultSchema() {
-        return defaultSchema;
+        return searchPath.defaultSchema();
     }
 
-    public void setDefaultSchema(String schema) {
-        defaultSchema = requireNonNull(schema, "Default schema must never be set to null");
+    public String currentSchema() {
+        return searchPath.currentSchema();
+    }
+
+    public void setSearchPath(String... schemas) {
+        this.searchPath = createSearchPathFrom(schemas);
     }
 
     public void setSemiJoinsRewriteEnabled(boolean flag) {

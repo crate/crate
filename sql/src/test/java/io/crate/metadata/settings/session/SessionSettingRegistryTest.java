@@ -41,14 +41,14 @@ public class SessionSettingRegistryTest {
 
     @Test
     public void testSemiJoinSessionSetting() {
-        SessionContext sessionContext = new SessionContext(null, User.CRATE_USER, x -> {}, x -> {});
+        SessionContext sessionContext = new SessionContext(User.CRATE_USER, x -> {}, x -> {});
         SessionSettingApplier applier = SessionSettingRegistry.getApplier(SessionSettingRegistry.SEMI_JOIN_KEY);
         assertBooleanNonEmptySetting(sessionContext, sessionContext::getSemiJoinsRewriteEnabled, applier, false);
     }
 
     @Test
     public void testHashJoinSessionSetting() {
-        SessionContext sessionContext = new SessionContext(null, User.CRATE_USER, x -> {}, x -> {});
+        SessionContext sessionContext = new SessionContext(User.CRATE_USER, x -> {}, x -> {});
         SessionSettingApplier applier = SessionSettingRegistry.getApplier(SessionSettingRegistry.HASH_JOIN_KEY);
         assertBooleanNonEmptySetting(sessionContext, sessionContext::isHashJoinEnabled, applier, true);
     }

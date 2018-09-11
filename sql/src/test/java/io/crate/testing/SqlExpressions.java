@@ -94,7 +94,7 @@ public class SqlExpressions {
         }
         injector = modulesBuilder.createInjector();
         functions = injector.getInstance(Functions.class);
-        transactionContext = new TransactionContext(new SessionContext(null, user, s -> {}, e -> {}));
+        transactionContext = new TransactionContext(new SessionContext(user, s -> {}, e -> {}));
         expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             transactionContext,
@@ -128,6 +128,6 @@ public class SqlExpressions {
     }
 
     public void setDefaultSchema(String schema) {
-        this.transactionContext.sessionContext().setDefaultSchema(schema);
+        this.transactionContext.sessionContext().setSearchPath(schema);
     }
 }

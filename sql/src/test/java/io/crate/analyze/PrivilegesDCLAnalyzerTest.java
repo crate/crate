@@ -281,7 +281,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     private PrivilegesAnalyzedStatement analyzePrivilegesStatement(String statement) {
         return (PrivilegesAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement(statement),
-            new TransactionContext(new SessionContext(0, Option.NONE, null, GRANTOR_TEST_USER, s -> {}, t -> {})),
+            new TransactionContext(new SessionContext(0, Option.NONE, GRANTOR_TEST_USER, s -> {}, t -> {})),
             ParameterContext.EMPTY
         ).analyzedStatement();
     }

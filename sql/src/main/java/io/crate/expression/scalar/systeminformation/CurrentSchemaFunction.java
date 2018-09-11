@@ -71,7 +71,7 @@ public class CurrentSchemaFunction extends Scalar<BytesRef, Object> implements F
             return Literal.NULL;
         }
         assert transactionContext.sessionContext() != null : "CURRENT_SCHEMA requires a session context";
-        return Literal.of(transactionContext.sessionContext().defaultSchema());
+        return Literal.of(transactionContext.sessionContext().currentSchema());
     }
 
     @Override

@@ -25,6 +25,7 @@ package io.crate.metadata.settings.session;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.sql.tree.Expression;
 import io.crate.types.BooleanType;
 
 import java.util.Map;
@@ -39,12 +40,14 @@ public class SessionSettingRegistry {
         ImmutableMap.<String, SessionSettingApplier>builder()
             .put(SEARCH_PATH_KEY, (parameters, expressions, context) -> {
                 if (expressions.size() > 0) {
-                    // The search_path takes a schema name as a string or comma-separated list of schema names.
-                    // In the second case only the first schema in the list will be used.
                     // Resetting the search path with `set search_path to default` results
                     // in the empty list of expressions.
-                    String schema = ExpressionToStringVisitor.convert(expressions.get(0), parameters);
-                    context.setDefaultSchema(schema.trim());
+                    String[] schemas = new String[expressions.size()];
+                    for (int i = 0; i < expressions.size(); i++) {
+                        Expression expression = expressions.get(i);
+                        schemas[i] = ExpressionToStringVisitor.convert(expression, parameters).trim();
+                    }
+                    context.setSearchPath(schemas);
                 } else {
                     context.resetSchema();
                 }

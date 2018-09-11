@@ -124,7 +124,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
 
     private void analyze(String stmt, User user) {
         e.analyzer.boundAnalyze(SqlParser.createStatement(stmt),
-            new TransactionContext(new SessionContext(0, Option.NONE, null, user,
+            new TransactionContext(new SessionContext(0, Option.NONE, user,
                 userManager.getStatementValidator(user, Schemas.DOC_SCHEMA_NAME),
                 userManager.getExceptionValidator(user, Schemas.DOC_SCHEMA_NAME))), ParameterContext.EMPTY);
     }
