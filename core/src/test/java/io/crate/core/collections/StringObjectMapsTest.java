@@ -24,6 +24,8 @@ package io.crate.core.collections;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,6 +53,23 @@ public class StringObjectMapsTest extends CrateUnitTest {
         assertNull(StringObjectMaps.getByPath(map, "a.b.c"));
         assertNull(StringObjectMaps.getByPath(map, "a.c"));
         assertNull(StringObjectMaps.getByPath(map, "b.c"));
+    }
 
+    @Test
+    public void testMergeIntoSourceWithNullEntry() {
+        HashMap<String, Object> m = new HashMap<>();
+        m.put("o", null);
+
+        expectedException.expectMessage("Object o is null, cannot write x = 10 into it");
+        StringObjectMaps.mergeInto(m, "o", Collections.singletonList("x"), 10);
+    }
+
+    @Test
+    public void testMergeNestedIntoWithNullEntry() {
+        HashMap<String, Object> m = new HashMap<>();
+        m.put("o", null);
+
+        expectedException.expectMessage("Object o is null, cannot write x.y = 10 into it");
+        StringObjectMaps.mergeInto(m, "o", Arrays.asList("x", "y"), 10);
     }
 }

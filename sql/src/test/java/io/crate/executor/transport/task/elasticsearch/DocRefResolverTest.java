@@ -24,7 +24,8 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.collect.Lists;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.expression.reference.GetResultRefResolver;
+import io.crate.expression.reference.Doc;
+import io.crate.expression.reference.DocRefResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
@@ -32,7 +33,6 @@ import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.index.get.GetResult;
 import org.elasticsearch.search.lookup.SourceLookup;
 import org.junit.Test;
 
@@ -43,13 +43,13 @@ import java.util.List;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.is;
 
-public class GetResultRefResolverTest extends CrateUnitTest {
+public class DocRefResolverTest extends CrateUnitTest {
 
     private static final BytesReference SOURCE = new BytesArray("{\"x\": 1}".getBytes());
-    private static final GetResultRefResolver REF_RESOLVER =
-        new GetResultRefResolver(Collections.emptyList());
-    private static final GetResult GET_RESULT =
-        new GetResult("t1", "d", "abc", 1L, true, SOURCE, Collections.emptyMap());
+    private static final DocRefResolver REF_RESOLVER =
+        new DocRefResolver(Collections.emptyList());
+    private static final Doc GET_RESULT =
+        new Doc("t1", "abc", 1L, SourceLookup.sourceAsMap(SOURCE), SOURCE::toBytesRef, true);
 
     @Test
     public void testSystemColumnsCollectExpressions() throws Exception {
@@ -60,9 +60,9 @@ public class GetResultRefResolverTest extends CrateUnitTest {
             refInfo("t1._raw", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.RAW), RowGranularity.DOC)
         );
 
-        List<CollectExpression<GetResult, ?>> collectExpressions = new ArrayList<>(4);
+        List<CollectExpression<Doc, ?>> collectExpressions = new ArrayList<>(4);
         for (Reference reference : references) {
-            CollectExpression<GetResult, ?> collectExpression = REF_RESOLVER.getImplementation(reference);
+            CollectExpression<Doc, ?> collectExpression = REF_RESOLVER.getImplementation(reference);
             collectExpression.setNextRow(GET_RESULT);
             collectExpressions.add(collectExpression);
         }

@@ -24,14 +24,10 @@ package io.crate.execution.dml.upsert;
 
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.InputFactory;
-import io.crate.expression.ValueExtractors;
-import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -44,14 +40,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public final class GeneratedColsFromRawSource implements SourceGen {
+public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
 
     private final Map<ColumnIdent, Input<?>> generatedCols;
-    private final List<CollectExpression<Map<String, Object>, Object>> expressions;
+    private final List<CollectExpression<Map<String, Object>, ?>> expressions;
 
-    public GeneratedColsFromRawSource(Functions functions, List<GeneratedReference> generatedColumns) {
+    public GeneratedColsFromRawInsertSource(Functions functions, List<GeneratedReference> generatedColumns) {
         InputFactory inputFactory = new InputFactory(functions);
-        InputFactory.Context<CollectExpression<Map<String, Object>, Object>> ctx =
+        InputFactory.Context<CollectExpression<Map<String, Object>, ?>> ctx =
             inputFactory.ctxForRefs(FromSourceRefResolver.INSTANCE);
         this.generatedCols = new HashMap<>(generatedColumns.size());
         for (int i = 0; i < generatedColumns.size(); i++) {
@@ -78,16 +74,4 @@ public final class GeneratedColsFromRawSource implements SourceGen {
         return XContentFactory.jsonBuilder().map(source).bytes();
     }
 
-    private static class FromSourceRefResolver implements ReferenceResolver<CollectExpression<Map<String, Object>, Object>> {
-
-        static final FromSourceRefResolver INSTANCE = new FromSourceRefResolver();
-
-        private FromSourceRefResolver() {
-        }
-
-        @Override
-        public CollectExpression<Map<String, Object>, Object> getImplementation(Reference ref) {
-            return NestableCollectExpression.forFunction(ValueExtractors.fromMap(ref.column()));
-        }
-    }
 }

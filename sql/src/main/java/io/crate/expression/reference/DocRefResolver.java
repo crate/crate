@@ -24,16 +24,14 @@ package io.crate.expression.reference;
 
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.ValueExtractors;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.get.GetResult;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
@@ -41,32 +39,30 @@ import static io.crate.execution.engine.collect.NestableCollectExpression.forFun
  * ReferenceResolver implementation which can be used to retrieve {@link CollectExpression}s to extract values from
  * {@link GetResult}s
  */
-public class GetResultRefResolver implements ReferenceResolver<CollectExpression<GetResult, ?>> {
-
-    public static final GetResultRefResolver INSTANCE = new GetResultRefResolver(Collections.emptyList());
+public final class DocRefResolver implements ReferenceResolver<CollectExpression<Doc, ?>> {
 
     private final List<ColumnIdent> partitionedByColumns;
 
-    public GetResultRefResolver(List<ColumnIdent> partitionedByColumns) {
+    public DocRefResolver(List<ColumnIdent> partitionedByColumns) {
         this.partitionedByColumns = partitionedByColumns;
     }
 
     @Override
-    public CollectExpression<GetResult, ?> getImplementation(Reference ref) {
+    public CollectExpression<Doc, ?> getImplementation(Reference ref) {
         ColumnIdent columnIdent = ref.column();
         String fqn = columnIdent.fqn();
         switch (fqn) {
             case DocSysColumns.Names.VERSION:
-                return forFunction(GetResult::getVersion);
+                return forFunction(Doc::getVersion);
 
             case DocSysColumns.Names.ID:
-                return NestableCollectExpression.objToBytesRef(GetResult::getId);
+                return NestableCollectExpression.objToBytesRef(Doc::getId);
 
             case DocSysColumns.Names.RAW:
-                return forFunction(r -> r.sourceRef().toBytesRef());
+                return forFunction(Doc::getRaw);
 
             case DocSysColumns.Names.DOC:
-                return forFunction(GetResult::getSource);
+                return forFunction(Doc::getSource);
 
             default:
                 int idx = partitionedByColumns.indexOf(columnIdent);
@@ -79,8 +75,7 @@ public class GetResultRefResolver implements ReferenceResolver<CollectExpression
                     if (response == null) {
                         return null;
                     }
-                    Map<String, Object> sourceAsMap = response.sourceAsMap();
-                    return ref.valueType().value(XContentMapValues.extractValue(fqn, sourceAsMap));
+                    return ref.valueType().value(ValueExtractors.fromMap(response.getSource(), ref.column()));
                 });
         }
     }

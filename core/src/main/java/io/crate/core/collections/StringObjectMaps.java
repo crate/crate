@@ -24,7 +24,9 @@ package io.crate.core.collections;
 import io.crate.core.StringUtils;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.RandomAccess;
 
@@ -53,5 +55,43 @@ public final class StringObjectMaps {
             }
         }
         return map;
+    }
+
+    /**
+     * Inserts a value into source under the given key+path
+     */
+    public static void mergeInto(Map<String, Object> source, String key, List<String> path, Object value) {
+        if (path.isEmpty()) {
+            source.put(key, value);
+        } else {
+            if (source.containsKey(key)) {
+                Map<String, Object> contents = (Map<String, Object>) source.get(key);
+                if (contents == null) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                        "Object %s is null, cannot write %s = %s into it", key, String.join(".", path), value));
+
+                }
+                String nextKey = path.get(0);
+                mergeInto(contents, nextKey, path.subList(1, path.size()), value);
+            } else {
+                source.put(key, nestedMaps(path, value));
+            }
+        }
+    }
+
+    private static Map<String, Object> nestedMaps(List<String> path, Object value) {
+        final HashMap<String, Object> root = new HashMap<>(1);
+        HashMap<String, Object> m = root;
+        for (int i = 0, size = path.size(); i < size; i++) {
+            String key = path.get(i);
+            if (i + 1 == size) {
+                m.put(key, value);
+            } else {
+                HashMap<String, Object> nextChild = new HashMap<>(1);
+                m.put(key, nextChild);
+                m = nextChild;
+            }
+        }
+        return root;
     }
 }

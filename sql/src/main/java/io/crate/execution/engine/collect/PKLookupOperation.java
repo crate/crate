@@ -35,11 +35,11 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.engine.pipeline.Projectors;
+import io.crate.expression.reference.Doc;
 import io.crate.planner.operators.PKAndVersion;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.get.GetResult;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
@@ -65,10 +65,10 @@ public final class PKLookupOperation {
         this.shardCollectSource = shardCollectSource;
     }
 
-    public BatchIterator<GetResult> lookup(boolean ignoreMissing,
+    public BatchIterator<Doc> lookup(boolean ignoreMissing,
                                            Map<ShardId, List<PKAndVersion>> idsByShard,
                                            boolean consumerRequiresRepeat) {
-        Stream<GetResult> getResultStream = idsByShard.entrySet().stream()
+        Stream<Doc> getResultStream = idsByShard.entrySet().stream()
             .flatMap(entry -> {
                 ShardId shardId = entry.getKey();
                 IndexService indexService = indicesService.indexService(shardId.getIndex());
@@ -86,7 +86,7 @@ public final class PKLookupOperation {
                     throw new ShardNotFoundException(shardId);
                 }
                 return entry.getValue().stream()
-                    .map(pkAndVersion -> shard.getService().get(
+                    .map(pkAndVersion -> Doc.fromGetResult(shard.getService().get(
                         Constants.DEFAULT_MAPPING_TYPE,
                         pkAndVersion.id(),
                         new String[0],
@@ -94,10 +94,10 @@ public final class PKLookupOperation {
                         pkAndVersion.version(),
                         VersionType.EXTERNAL,
                         FetchSourceContext.FETCH_SOURCE
-                    ))
-                    .filter(GetResult::isExists);
+                    )))
+                    .filter(Doc::isExists);
             });
-        final Iterable<GetResult> getResultIterable;
+        final Iterable<Doc> getResultIterable;
         if (consumerRequiresRepeat) {
             getResultIterable = getResultStream.collect(Collectors.toList());
         } else {
@@ -113,7 +113,7 @@ public final class PKLookupOperation {
                                         Map<ShardId, List<PKAndVersion>> idsByShard,
                                         Collection<? extends Projection> projections,
                                         RowConsumer nodeConsumer,
-                                        Function<GetResult, Row> resultToRow) {
+                                        Function<Doc, Row> resultToRow) {
         String[] emptyFields = new String[0];
         ArrayList<ShardAndIds> shardAndIdsList = new ArrayList<>(idsByShard.size());
         for (Map.Entry<ShardId, List<PKAndVersion>> idsByShardEntry : idsByShard.entrySet()) {
@@ -149,7 +149,7 @@ public final class PKLookupOperation {
         ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(shardAndIdsList.size());
         for (ShardAndIds shardAndIds : shardAndIdsList) {
             Stream<Row> rowStream = shardAndIds.value.stream()
-                .map(pkAndVersion -> shardAndIds.shard.getService().get(
+                .map(pkAndVersion -> Doc.fromGetResult(shardAndIds.shard.getService().get(
                     Constants.DEFAULT_MAPPING_TYPE,
                     pkAndVersion.id(),
                     emptyFields,
@@ -157,7 +157,7 @@ public final class PKLookupOperation {
                     pkAndVersion.version(),
                     VersionType.EXTERNAL,
                     FetchSourceContext.FETCH_SOURCE
-                ))
+                )))
                 .map(resultToRow);
 
             Projectors projectors = new Projectors(

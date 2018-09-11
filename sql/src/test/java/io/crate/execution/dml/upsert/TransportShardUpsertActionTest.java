@@ -32,14 +32,11 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
@@ -50,7 +47,6 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -73,8 +69,6 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -93,8 +87,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnitTest {
-
-    private DocTableInfo generatedColumnTableInfo;
 
     private final static RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
     private final static String PARTITION_INDEX = new PartitionName(TABLE_IDENT, Arrays.asList(new BytesRef("1395874800000"))).asIndexName();
@@ -126,12 +118,12 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         @Nullable
         @Override
-        protected Translog.Location indexItem(DocTableInfo tableInfo,
-                                              ShardUpsertRequest request,
+        protected Translog.Location indexItem(ShardUpsertRequest request,
                                               ShardUpsertRequest.Item item,
                                               IndexShard indexShard,
                                               boolean tryInsertFirst,
-                                              SourceGen sourceGen,
+                                              UpdateSourceGen updateSourceGen,
+                                              InsertSourceGen insertSourceGen,
                                               boolean isRetry) throws Exception {
              throw new VersionConflictEngineException(
                 indexShard.shardId(),
@@ -147,7 +139,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     @Before
     public void prepare() throws Exception {
         Functions functions = getFunctions();
-        bindGeneratedColumnTable(functions);
 
         charactersIndexUUID = UUIDs.randomBase64UUID();
         partitionIndexUUID = UUIDs.randomBase64UUID();
@@ -182,19 +173,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             schemas,
             mock(IndexNameExpressionResolver.class)
         );
-    }
-
-    private void bindGeneratedColumnTable(Functions functions) {
-        RelationName generatedColumnRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "generated_column");
-        generatedColumnTableInfo = new TestingTableInfo.Builder(
-            generatedColumnRelationName, new Routing(Collections.EMPTY_MAP))
-            .add("ts", DataTypes.TIMESTAMP, null)
-            .add("user", DataTypes.OBJECT, null)
-            .add("user", DataTypes.STRING, Arrays.asList("name"))
-            .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
-            .addGeneratedColumn("name", DataTypes.STRING, "concat(\"user\"['name'], 'bar')", false)
-            .build(functions);
-
     }
 
     @Test
@@ -239,129 +217,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     }
 
     @Test
-    public void testProcessGeneratedColumns() throws Exception {
-        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
-            .put("ts", 1448274317000L)
-            .map();
-
-        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns,
-            Collections.emptyMap(), true, null);
-
-        assertThat(updatedColumns.size(), is(2));
-        assertThat((Long) updatedColumns.get("day"), is(1448236800000L));
-    }
-
-    @Test
-    public void testProcessGeneratedColumnsWithValue() throws Exception {
-        // just test that passing the correct value will not result in an exception
-        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
-            .put("ts", 1448274317000L)
-            .put("day", 1448236800000L)
-            .map();
-
-        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns,
-            Collections.emptyMap(), true, null);
-
-        assertThat(updatedColumns.size(), is(2));
-        assertThat((Long) updatedColumns.get("day"), is(1448236800000L));
-    }
-
-    @Test
-    public void testProcessGeneratedColumnsWithInvalidValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "Given value 1448274317000 for generated column does not match defined generated expression value 1448236800000");
-
-        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
-            .put("ts", 1448274317000L)
-            .map();
-
-        Map<String, Object> updatedGeneratedColumns = MapBuilder.<String, Object>newMapBuilder()
-            .put("day", 1448274317000L)
-            .map();
-
-        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns,
-            updatedGeneratedColumns, true, null);
-    }
-
-    @Test
-    public void testProcessGeneratedColumnsWithInvalidValueNoValidation() throws Exception {
-        // just test that no exception is thrown even that the value does not match expression value
-        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
-            .put("ts", 1448274317000L)
-            .map();
-
-        Map<String, Object> updatedGeneratedColumns = MapBuilder.<String, Object>newMapBuilder()
-            .put("day", 1448274317000L)
-            .map();
-
-        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns,
-            updatedGeneratedColumns, false, null);
-    }
-
-    @Test
-    public void testGeneratedColumnsValidationWorksForArrayColumns() throws Exception {
-        // test no exception are thrown when validating array generated columns
-        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
-            .put("obj", MapBuilder.<String, Object>newMapBuilder().put("arr", new Object[]{1}).map())
-            .map();
-
-        Map<String, Object> updatedGeneratedColumns = MapBuilder.<String, Object>newMapBuilder()
-            .put("arr", new Object[]{1})
-            .map();
-
-        DocTableInfo docTableInfo = new TestingTableInfo.Builder(
-            new RelationName(Schemas.DOC_SCHEMA_NAME, "generated_column"),
-            new Routing(Collections.emptyMap()))
-            .add("obj", DataTypes.OBJECT, null)
-            .add("obj", new ArrayType(DataTypes.INTEGER), Arrays.asList("arr"))
-            .addGeneratedColumn("arr", new ArrayType(DataTypes.INTEGER), "obj['arr']", false)
-            .build(getFunctions());
-
-        transportShardUpsertAction.processGeneratedColumns(docTableInfo, updatedColumns, updatedGeneratedColumns,
-            false, null);
-    }
-
-    @Test
-    public void testProcessGeneratedColumnsWithSubscript() throws Exception {
-        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
-            .put("user.name", new BytesRef("zoo"))
-            .map();
-
-        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns,
-            Collections.emptyMap(), true, null);
-
-        assertThat(updatedColumns.size(), is(2));
-        assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("zoobar")));
-    }
-
-    @Test
-    public void testProcessGeneratedColumnsWithSubscriptParentUpdated() throws Exception {
-        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
-            .put("user", MapBuilder.<String, Object>newMapBuilder().put("name", new BytesRef("zoo")).map())
-            .map();
-
-        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns,
-            Collections.emptyMap(), true, null);
-
-        assertThat(updatedColumns.size(), is(2));
-        assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("zoobar")));
-    }
-
-    @Test
-    public void testProcessGeneratedColumnsWithSubscriptParentUpdatedValueMissing() throws Exception {
-        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
-            .put("user", MapBuilder.<String, Object>newMapBuilder().put("age", 35).map())
-            .map();
-
-        transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns,
-            Collections.emptyMap(), true, null);
-
-        assertThat(updatedColumns.size(), is(2));
-        assertThat((BytesRef) updatedColumns.get("name"), is(new BytesRef("bar")));
-    }
-
-    @Test
     public void testValidateMapping() throws Exception {
         // Create valid nested mapping with underscore.
         Settings settings = Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT).build();
@@ -376,32 +231,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         expectedException.expectMessage("system column pattern");
         outerMapper = new ObjectMapper.Builder("_invalid").build(builderContext);
         TransportShardUpsertAction.validateMapping(Arrays.asList(outerMapper).iterator(), false);
-    }
-
-    @Test
-    public void testUpdateSourceByPathsUpdateNullObject() throws Exception {
-        Map<String, Object> source = new HashMap<>();
-        source.put("o", null);
-
-        Map<String, Object> changes = new HashMap<>();
-        changes.put("o.o", 5);
-
-        expectedException.expect(NullPointerException.class);
-        expectedException.expectMessage("Object o is null, cannot write {o=5} onto it");
-        TransportShardUpsertAction.updateSourceByPaths(source, changes);
-    }
-
-    @Test
-    public void testUpdateSourceByPathsUpdateNullObjectNested() throws Exception {
-        Map<String, Object> source = new HashMap<>();
-        source.put("o", null);
-
-        Map<String, Object> changes = new HashMap<>();
-        changes.put("o.x.y", 5);
-
-        expectedException.expect(NullPointerException.class);
-        expectedException.expectMessage("Object o is null, cannot write {x.y=5} onto it");
-        TransportShardUpsertAction.updateSourceByPaths(source, changes);
     }
 
     @Test

@@ -1326,7 +1326,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (id, i, o) values(1, 1, null)");
         execute("refresh table t");
 
-        expectedException.expectMessage("Object o is null, cannot write {x=5} onto it");
+        expectedException.expectMessage("Object o is null, cannot write x = 5 into it");
         execute("insert into t (id, i, o) values(1, 1, null) ON DUPLICATE KEY UPDATE o['x'] = 5");
     }
 

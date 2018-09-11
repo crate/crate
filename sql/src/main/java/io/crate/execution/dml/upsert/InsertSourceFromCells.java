@@ -34,7 +34,6 @@ import io.crate.expression.ValueExtractors;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
-import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -43,50 +42,35 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public final class SourceFromCells implements SourceGen {
+public final class InsertSourceFromCells implements InsertSourceGen {
 
     private final List<Reference> targets;
-    private final Map<Reference, Input<?>> generatedColumnsToInject;
-    private final Map<Reference, Input<?>> generatedColumnsToValidate;
     private final ArrayRow row = new ArrayRow();
-    private final List<CollectExpression<Row, ?>> expressions;
-    private final Validation validation;
     private final CheckConstraints<Row, CollectExpression<Row, ?>> checks;
+    private final GeneratedColumns<Row> generatedColumns;
 
-    SourceFromCells(Functions functions,
-                    DocTableInfo table,
-                    Validation validation,
-                    List<Reference> targets) {
+    InsertSourceFromCells(Functions functions,
+                          DocTableInfo table,
+                          GeneratedColumns.Validation validation,
+                          List<Reference> targets) {
         assert targets.stream().allMatch(ref -> ref.column().isTopLevel()) : "Can only insert into top-level columns";
 
         this.targets = targets;
-        this.validation = validation;
         ReferencesFromInputRow referenceResolver = new ReferencesFromInputRow(targets);
         InputFactory inputFactory = new InputFactory(functions);
         if (table.generatedColumns().isEmpty()) {
-            generatedColumnsToInject = Collections.emptyMap();
-            generatedColumnsToValidate = Collections.emptyMap();
-            expressions = Collections.emptyList();
+            generatedColumns = GeneratedColumns.empty();
         } else {
-            generatedColumnsToInject = new HashMap<>();
-            generatedColumnsToValidate = new HashMap<>();
-            InputFactory.Context<CollectExpression<Row, ?>> context =
-                inputFactory.ctxForRefs(referenceResolver);
-
-            for (GeneratedReference generatedColumn : table.generatedColumns()) {
-                Input<?> input = context.add(generatedColumn.generatedExpression());
-                if (targets.contains(generatedColumn)) {
-                    generatedColumnsToValidate.put(generatedColumn, input);
-                } else {
-                    generatedColumnsToInject.put(generatedColumn, input);
-                }
-            }
-            expressions = context.expressions();
+            generatedColumns = new GeneratedColumns<>(
+                inputFactory,
+                validation,
+                referenceResolver,
+                targets,
+                table.generatedColumns()
+            );
         }
         checks = new CheckConstraints<>(inputFactory, referenceResolver, table);
     }
@@ -101,9 +85,7 @@ public final class SourceFromCells implements SourceGen {
             .startObject();
 
         row.cells(values);
-        for (int i = 0; i < expressions.size(); i++) {
-            expressions.get(i).setNextRow(row);
-        }
+        generatedColumns.setNextRow(row);
         for (int i = 0; i < targets.size(); i++) {
             Reference target = targets.get(i);
             Object value = values[i];
@@ -111,34 +93,16 @@ public final class SourceFromCells implements SourceGen {
             // partitioned columns must not be included in the source
             if (target.granularity() == RowGranularity.DOC) {
                 builder.field(target.column().fqn(), value);
-                if (validation == Validation.GENERATED_VALUE_MATCH) {
-                    assertValueMatchesWithGeneratedColumnCalculation(target, value);
-                }
+                generatedColumns.validateValue(target, value);
             }
         }
-        for (Map.Entry<Reference, Input<?>> entry : generatedColumnsToInject.entrySet()) {
+        for (Map.Entry<Reference, Input<?>> entry : generatedColumns.toInject()) {
             builder.field(entry.getKey().column().fqn(), entry.getValue().value());
         }
 
         return builder
             .endObject()
             .bytes();
-    }
-
-    private void assertValueMatchesWithGeneratedColumnCalculation(Reference target, Object value) {
-        Input<?> input = generatedColumnsToValidate.get(target);
-        if (input != null) {
-            Object generatedValue = input.value();
-            //noinspection unchecked
-            if (target.valueType().compareValueTo(generatedValue, value) != 0) {
-                throw new IllegalArgumentException(
-                    "Given value " + value +
-                    " for generated column " + target.column() +
-                    " does not match calculation " + ((GeneratedReference) target).formattedGeneratedExpression() + " = " +
-                    generatedValue
-                );
-            }
-        }
     }
 
     private static class ReferencesFromInputRow implements ReferenceResolver<CollectExpression<Row, ?>> {

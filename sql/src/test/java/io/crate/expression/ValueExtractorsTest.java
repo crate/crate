@@ -20,23 +20,31 @@
  * agreement.
  */
 
-package io.crate.execution.dml.upsert;
+package io.crate.expression;
 
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
+import io.crate.metadata.ColumnIdent;
+import io.crate.types.DataTypes;
+import org.junit.Test;
 
-import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.function.Function;
 
-public class FromRawSource implements SourceGen {
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
-    @Override
-    public void checkConstraints(Object[] values) {
+public class ValueExtractorsTest {
 
-    }
+    @Test
+    public void testIntegerAreConvertedToMatchType() {
+        Function<Map<String, Object>, Object> extractValue =
+            ValueExtractors.fromMap(new ColumnIdent("name"), DataTypes.LONG);
 
-    @Override
-    public BytesReference generateSource(Object[] values) throws IOException {
-        return new BytesArray((BytesRef) values[0]);
+        // In xContent/JSON the type is not preserved, so numeric types may use a smaller type (e.g. int instead of long)
+        // In order to have functions operate correctly we need to restore the correct type
+        assertThat(
+            extractValue.apply(Collections.singletonMap("name", 10)),
+            is(10L)
+        );
     }
 }

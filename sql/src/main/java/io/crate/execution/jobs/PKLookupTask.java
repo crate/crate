@@ -32,11 +32,11 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
-import io.crate.expression.reference.GetResultRefResolver;
+import io.crate.expression.reference.Doc;
+import io.crate.expression.reference.DocRefResolver;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.operators.PKAndVersion;
-import org.elasticsearch.index.get.GetResult;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.Collection;
@@ -54,7 +54,7 @@ public final class PKLookupTask extends AbstractTask {
     private final Collection<? extends Projection> shardProjections;
     private final RowConsumer consumer;
     private final InputRow inputRow;
-    private final List<CollectExpression<GetResult, ?>> expressions;
+    private final List<CollectExpression<Doc, ?>> expressions;
     private final String name;
 
     PKLookupTask(UUID jobId,
@@ -78,9 +78,9 @@ public final class PKLookupTask extends AbstractTask {
         this.consumer = consumer;
 
         this.ignoreMissing = !partitionedByColumns.isEmpty();
-        GetResultRefResolver getResultRefResolver = new GetResultRefResolver(partitionedByColumns);
+        DocRefResolver docRefResolver = new DocRefResolver(partitionedByColumns);
 
-        InputFactory.Context<CollectExpression<GetResult, ?>> ctx = inputFactory.ctxForRefs(getResultRefResolver);
+        InputFactory.Context<CollectExpression<Doc, ?>> ctx = inputFactory.ctxForRefs(docRefResolver);
         ctx.add(toCollect);
         expressions = ctx.expressions();
         inputRow = new InputRow(ctx.topLevelInputs());
@@ -89,7 +89,7 @@ public final class PKLookupTask extends AbstractTask {
     @Override
     protected void innerStart() {
         if (shardProjections.isEmpty()) {
-            BatchIterator<GetResult> batchIterator = pkLookupOperation.lookup(ignoreMissing, idsByShard, consumer.requiresScroll());
+            BatchIterator<Doc> batchIterator = pkLookupOperation.lookup(ignoreMissing, idsByShard, consumer.requiresScroll());
             consumer.accept(BatchIterators.map(batchIterator, this::resultToRow), null);
         } else {
             pkLookupOperation.runWithShardProjections(
@@ -105,7 +105,7 @@ public final class PKLookupTask extends AbstractTask {
         close();
     }
 
-    private Row resultToRow(GetResult getResult) {
+    private Row resultToRow(Doc getResult) {
         for (int i = 0; i < expressions.size(); i++) {
             expressions.get(i).setNextRow(getResult);
         }

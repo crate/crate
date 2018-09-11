@@ -24,6 +24,7 @@ package io.crate.expression;
 
 import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
+import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
@@ -39,46 +40,24 @@ public final class ValueExtractors {
         return o instanceof String ? new BytesRef((String) o) : o;
     }
 
-    public static Function<Map<String, Object>, Object> fromMap(ColumnIdent column) {
+    public static Object fromMap(Map<String, Object> map, ColumnIdent column) {
+        Object o = map.get(column.name());
         if (column.isTopLevel()) {
-            return new GetFromMap(column.name());
-        } else {
-            return new GetFromMapNested(column);
+            return o;
         }
+        if (o instanceof Map) {
+            //noinspection unchecked
+            return getByPath((Map) o, column.path());
+        }
+        return o;
+    }
+
+    public static Function<Map<String, Object>, Object> fromMap(ColumnIdent column, DataType<?> type) {
+        return map -> type.value(fromMap(map, column));
     }
 
     public static Function<Row, Object> fromRow(int idx, List<String> subscript) {
         return new FromRowWithSubscript(idx, subscript);
-    }
-
-    private static class GetFromMap implements Function<Map<String, Object>, Object> {
-        private final String name;
-
-        GetFromMap(String name) {
-            this.name = name;
-        }
-
-        @Override
-        public Object apply(Map<String, Object> map) {
-            return stringAsBytesRef(map.get(name));
-        }
-    }
-
-    private static class GetFromMapNested implements Function<Map<String, Object>, Object> {
-        private final ColumnIdent column;
-
-        GetFromMapNested(ColumnIdent column) {
-            this.column = column;
-        }
-
-        @Override
-        public Object apply(Map<String, Object> map) {
-            Object m = map.get(column.name());
-            if (m instanceof Map) {
-                return stringAsBytesRef(getByPath((Map) m, column.path()));
-            }
-            return null;
-        }
     }
 
     private static class FromRowWithSubscript implements Function<Row, Object> {

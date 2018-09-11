@@ -22,38 +22,21 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 
 import java.io.IOException;
-import java.util.List;
 
-public interface SourceGen {
+public class FromRawInsertSource implements InsertSourceGen {
 
-    enum Validation {
-        NONE,
-        GENERATED_VALUE_MATCH
+    @Override
+    public void checkConstraints(Object[] values) {
+
     }
 
-    void checkConstraints(Object[] values);
-
-    BytesReference generateSource(Object[] values) throws IOException;
-
-
-    static SourceGen of(Functions functions,
-                        DocTableInfo table,
-                        Validation validation,
-                        List<Reference> targets) {
-        if (targets.size() == 1 && targets.get(0).column().equals(DocSysColumns.RAW)) {
-            if (table.generatedColumns().isEmpty()) {
-                return new FromRawSource();
-            } else {
-                return new GeneratedColsFromRawSource(functions, table.generatedColumns());
-            }
-        }
-        return new SourceFromCells(functions, table, validation, targets);
+    @Override
+    public BytesReference generateSource(Object[] values) throws IOException {
+        return new BytesArray((BytesRef) values[0]);
     }
 }

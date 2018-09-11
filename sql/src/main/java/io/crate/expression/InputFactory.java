@@ -67,10 +67,6 @@ import java.util.Map;
  *
  *      This is due to the fact that References will result in a different kind of Expression class than InputColumns do.
  *      The expression class for references depends on the used ReferenceResolver.
- *
- *      If the Symbols contains References and InputColumns, please use
- *      {@link #ctxForRefsWithInputCols(ReferenceResolver)}.
- *
  * </p>
  */
 public class InputFactory {
@@ -107,16 +103,6 @@ public class InputFactory {
             expressions,
             aggregationContexts,
             new AggregationVisitor(functions, expressions, aggregationContexts));
-    }
-
-    public <T extends Input<?>> ContextInputAware<T> ctxForRefsWithInputCols(ReferenceResolver<? extends T> referenceResolver) {
-        List<T> expressions = new ArrayList<>();
-        return new ContextInputAware<>(expressions,
-            new RefVisitorWithInputColumns<>(
-                functions,
-                new GatheringRefResolver<>(expressions::add, referenceResolver)
-            )
-        );
     }
 
     public static class Context<T extends Input<?>> {
@@ -172,20 +158,6 @@ public class InputFactory {
 
         public List<AggregationContext> aggregations() {
             return aggregationContexts;
-        }
-    }
-
-    public static class ContextInputAware<T extends Input<?>> extends Context<T> {
-
-        private final RefVisitorWithInputColumns<?> visitor;
-
-        private ContextInputAware(List<T> expressions, RefVisitorWithInputColumns<?> visitor) {
-            super(expressions, visitor);
-            this.visitor = visitor;
-        }
-
-        public List<CollectExpression<Row, ?>> inputColExpressions() {
-            return visitor.getInputColExpressions();
         }
     }
 
@@ -261,32 +233,6 @@ public class InputFactory {
             }
             referenceMap.put(ref, implementation);
             return implementation;
-        }
-    }
-
-    private static class RefVisitorWithInputColumns<T extends Input<?>> extends RefVisitor<T> {
-
-        private final List<CollectExpression<Row, ?>> inputColExpressions = new ArrayList<>();
-        private final IntObjectMap<InputCollectExpression> inputCollectExpressions = new IntObjectHashMap<>();
-
-        RefVisitorWithInputColumns(Functions functions, ReferenceResolver<T> referenceResolver) {
-            super(functions, referenceResolver);
-        }
-
-        List<CollectExpression<Row, ?>> getInputColExpressions() {
-            return inputColExpressions;
-        }
-
-        @Override
-        public Input<?> visitInputColumn(InputColumn inputColumn, Void context) {
-            int index = inputColumn.index();
-            InputCollectExpression inputCollectExpression = inputCollectExpressions.get(index);
-            if (inputCollectExpression == null) {
-                inputCollectExpression = new InputCollectExpression(index);
-                inputCollectExpressions.put(index, inputCollectExpression);
-                inputColExpressions.add(inputCollectExpression);
-            }
-            return inputCollectExpression;
         }
     }
 }

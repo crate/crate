@@ -23,21 +23,12 @@
 package io.crate.execution.dml.upsert;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import io.crate.analyze.ConstraintsValidator;
-import io.crate.data.ArrayRow;
-import io.crate.data.Input;
-import io.crate.data.Row;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.execution.jobs.TasksService;
-import io.crate.expression.InputFactory;
-import io.crate.expression.reference.GetResultRefResolver;
-import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
@@ -47,24 +38,17 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.DocumentSourceMissingException;
@@ -81,19 +65,12 @@ import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -109,7 +86,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
 
     private final Schemas schemas;
-    private final InputFactory inputFactory;
     private final Functions functions;
 
     @Inject
@@ -129,7 +105,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest::new, schemaUpdateClient);
         this.schemas = schemas;
         this.functions = functions;
-        this.inputFactory = new InputFactory(functions);
         tasksService.addListener(this);
     }
 
@@ -140,13 +115,17 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         ShardResponse shardResponse = new ShardResponse();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(request.index()), Operation.INSERT);
         Reference[] insertColumns = request.insertColumns();
-        SourceGen.Validation valueValidation = request.validateConstraints()
-            ? SourceGen.Validation.GENERATED_VALUE_MATCH
-            : SourceGen.Validation.NONE;
+        GeneratedColumns.Validation valueValidation = request.validateConstraints()
+            ? GeneratedColumns.Validation.VALUE_MATCH
+            : GeneratedColumns.Validation.NONE;
 
-        SourceGen sourceGen = insertColumns == null
+        InsertSourceGen insertSourceGen = insertColumns == null
             ? null
-            : SourceGen.of(functions, tableInfo, valueValidation, Arrays.asList(insertColumns));
+            : InsertSourceGen.of(functions, tableInfo, valueValidation, Arrays.asList(insertColumns));
+
+        UpdateSourceGen updateSourceGen = request.updateColumns() == null
+            ? null
+            : new UpdateSourceGen(functions, tableInfo, request.updateColumns());
 
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {
@@ -160,12 +139,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
             try {
                 translogLocation = indexItem(
-                    tableInfo,
                     request,
                     item,
                     indexShard,
                     item.insertValues() != null, // try insert first
-                    sourceGen
+                    updateSourceGen,
+                    insertSourceGen
                 );
                 if (translogLocation != null) {
                     shardResponse.add(location);
@@ -227,16 +206,24 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Nullable
-    private Translog.Location indexItem(DocTableInfo tableInfo,
-                                        ShardUpsertRequest request,
+    private Translog.Location indexItem(ShardUpsertRequest request,
                                         ShardUpsertRequest.Item item,
                                         IndexShard indexShard,
                                         boolean tryInsertFirst,
-                                        @Nullable SourceGen sourceGen) throws Exception {
+                                        @Nullable UpdateSourceGen updateSourceGen,
+                                        @Nullable InsertSourceGen insertSourceGen) throws Exception {
         VersionConflictEngineException lastException = null;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
-                return indexItem(tableInfo, request, item, indexShard, tryInsertFirst, sourceGen, retryCount > 0);
+                return indexItem(
+                    request,
+                    item,
+                    indexShard,
+                    tryInsertFirst,
+                    updateSourceGen,
+                    insertSourceGen,
+                    retryCount > 0
+                );
             } catch (VersionConflictEngineException e) {
                 lastException = e;
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
@@ -268,12 +255,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
     @VisibleForTesting
     @Nullable
-    protected Translog.Location indexItem(DocTableInfo tableInfo,
-                                          ShardUpsertRequest request,
+    protected Translog.Location indexItem(ShardUpsertRequest request,
                                           ShardUpsertRequest.Item item,
                                           IndexShard indexShard,
                                           boolean tryInsertFirst,
-                                          SourceGen sourceGen,
+                                          UpdateSourceGen updateSourceGen,
+                                          InsertSourceGen insertSourceGen,
                                           boolean isRetry) throws Exception {
         long version;
         // try insert first without fetching the document
@@ -281,8 +268,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             // set version so it will fail if already exists (will be overwritten for updates, see below)
             version = Versions.MATCH_DELETED;
             try {
-                sourceGen.checkConstraints(item.insertValues());
-                item.source(sourceGen.generateSource(item.insertValues()));
+                insertSourceGen.checkConstraints(item.insertValues());
+                item.source(insertSourceGen.generateSource(item.insertValues()));
             } catch (IOException e) {
                 throw ExceptionsHelper.convertToElastic(e);
             }
@@ -290,10 +277,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 version = Versions.MATCH_ANY;
             }
         } else {
-            GetResult getResult = getDocument(indexShard, request, item);
-            BytesReference updatedSource = prepareUpdate(tableInfo, request, item, getResult);
+            Doc currentDoc = Doc.fromGetResult(getDocument(indexShard, request, item));
+            BytesReference updatedSource = updateSourceGen.generateSource(
+                currentDoc,
+                item.updateAssignments(),
+                item.insertValues()
+            );
             item.source(updatedSource);
-            version = getResult.getVersion();
+            version = currentDoc.getVersion();
         }
 
         SourceToParse sourceToParse = SourceToParse.source(
@@ -320,7 +311,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return indexResult.getTranslogLocation();
     }
 
-    private GetResult getDocument(IndexShard indexShard, ShardUpsertRequest request, ShardUpsertRequest.Item item) {
+    private static GetResult getDocument(IndexShard indexShard,
+                                         ShardUpsertRequest request,
+                                         ShardUpsertRequest.Item item) {
         GetResult getResult = indexShard.getService().get(
             request.type(),
             item.id(),
@@ -349,198 +342,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return getResult;
     }
 
-    private List<Input<?>> resolveSymbols(ReferenceResolver<CollectExpression<GetResult, ?>> referenceResolver,
-                                          GetResult getResult,
-                                          Iterable<? extends Symbol> updateAssignments,
-                                          @Nullable Object[] insertValues) {
-
-        InputFactory.ContextInputAware<CollectExpression<GetResult, ?>> universalContext =
-            inputFactory.ctxForRefsWithInputCols(referenceResolver);
-
-        List<Input<?>> updateInputs = new ArrayList<>();
-        for (Symbol symbol : updateAssignments) {
-            if (symbol instanceof GeneratedReference) {
-                symbol = ((GeneratedReference) symbol).generatedExpression();
-            }
-            updateInputs.add(universalContext.add(symbol));
-        }
-
-        List<CollectExpression<GetResult, ?>> expressions = universalContext.expressions();
-        for (CollectExpression<GetResult, ?> expression : expressions) {
-            expression.setNextRow(getResult);
-        }
-
-        List<CollectExpression<Row, ?>> inputColExpressions = universalContext.inputColExpressions();
-        ArrayRow arrayRow = new ArrayRow();
-        arrayRow.cells(insertValues);
-        for (CollectExpression<Row, ?> rowCollectExpression : inputColExpressions) {
-            rowCollectExpression.setNextRow(arrayRow);
-        }
-
-        return updateInputs;
-    }
-
-    /**
-     * Prepares an update request by converting it into an index request.
-     * <p/>
-     * TODO: detect a NOOP and return an update response if true
-     */
-    private BytesReference prepareUpdate(DocTableInfo tableInfo,
-                                         ShardUpsertRequest request,
-                                         ShardUpsertRequest.Item item,
-                                         GetResult getResult) throws ElasticsearchException {
-        List<Input<?>> updateInputs = resolveSymbols(
-            GetResultRefResolver.INSTANCE,
-            getResult,
-            Arrays.asList(Preconditions.checkNotNull(item.updateAssignments(),
-                "Update assignments must not be null at this point.")),
-            item.insertValues());
-
-        Map<String, Object> pathsToUpdate = new LinkedHashMap<>();
-        Map<String, Object> updatedGeneratedColumns = new LinkedHashMap<>();
-        for (int i = 0; i < request.updateColumns().length; i++) {
-            /*
-             * NOTE: mapping isn't applied. So if an Insert was done using the ES Rest Endpoint
-             * the data might be returned in the wrong format (date as string instead of long)
-             */
-            String columnPath = request.updateColumns()[i];
-            Object value = updateInputs.get(i).value();
-
-            Reference reference = tableInfo.getReference(ColumnIdent.fromPath(columnPath));
-
-            if (reference != null) {
-                /*
-                 * it is possible to insert NULL into column that does not exist yet.
-                 * if there is no column reference, we must not validate!
-                 */
-                ConstraintsValidator.validate(value, reference, tableInfo.notNullColumns());
-            }
-
-            if (reference instanceof GeneratedReference) {
-                updatedGeneratedColumns.put(columnPath, value);
-            } else {
-                pathsToUpdate.put(columnPath, value);
-            }
-        }
-
-        // For updates we always have to enforce the validation of constraints on shards.
-        // Currently the validation is done only for generated columns.
-        processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, true, getResult);
-
-        Tuple<XContentType, Map<String, Object>> sourceAndContent =
-            XContentHelper.convertToMap(getResult.internalSourceRef(), false, XContentType.JSON);
-        final XContentType updateSourceContentType = sourceAndContent.v1();
-        final Map<String, Object> updatedSourceAsMap = sourceAndContent.v2();
-
-        updateSourceByPaths(updatedSourceAsMap, pathsToUpdate);
-
-        try {
-            XContentBuilder builder = XContentFactory.contentBuilder(updateSourceContentType);
-            builder.map(updatedSourceAsMap);
-            return builder.bytes();
-        } catch (IOException e) {
-            throw new ElasticsearchGenerationException("Failed to generate [" + updatedSourceAsMap + "]", e);
-        }
-    }
-
-    @VisibleForTesting
-    void processGeneratedColumns(DocTableInfo tableInfo,
-                                 Map<String, Object> updatedColumns,
-                                 Map<String, Object> updatedGeneratedColumns,
-                                 boolean validateConstraints,
-                                 @Nullable GetResult getResult) {
-
-        List<GeneratedReference> generatedReferences = tableInfo.generatedColumns();
-
-        List<Input<?>> generatedSymbols = resolveSymbols(
-            new GetResultOrGeneratedColumnsResolver(updatedColumns),
-            getResult,
-            generatedReferences,
-            null);
-        for (int i = 0; i < generatedReferences.size(); i++) {
-            final GeneratedReference reference = generatedReferences.get(i);
-            // partitionedBy columns cannot be updated
-            if (!tableInfo.partitionedByColumns().contains(reference)) {
-                Object userSuppliedValue = updatedGeneratedColumns.get(reference.column().fqn());
-                if (validateConstraints) {
-                    ConstraintsValidator.validate(userSuppliedValue, reference, tableInfo.notNullColumns());
-                }
-
-                if ((userSuppliedValue != null && validateConstraints)
-                    ||
-                    generatedExpressionEvaluationNeeded(reference.referencedReferences(), updatedColumns.keySet())) {
-                    // at least one referenced column was updated, need to evaluate expression and update column
-                    Object generatedValue = generatedSymbols.get(i).value();
-
-                    if (userSuppliedValue == null) {
-                        // add column & value
-                        updatedColumns.put(reference.column().fqn(), generatedValue);
-                    } else if (validateConstraints &&
-                               reference.valueType().compareValueTo(generatedValue, userSuppliedValue) != 0) {
-                        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                            "Given value %s for generated column does not match defined generated expression value %s",
-                            userSuppliedValue, generatedValue));
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Evaluation is needed either if expression contains no reference at all
-     * or if a referenced column value has changed.
-     */
-    private boolean generatedExpressionEvaluationNeeded(List<Reference> referencedReferences,
-                                                        Collection<String> updatedColumns) {
-        boolean evalNeeded = referencedReferences.isEmpty();
-        for (Reference reference : referencedReferences) {
-            for (String columnName : updatedColumns) {
-                if (reference.column().fqn().equals(columnName)
-                    || reference.column().isChildOf(ColumnIdent.fromPath(columnName))) {
-                    evalNeeded = true;
-                    break;
-                }
-            }
-        }
-        return evalNeeded;
-    }
-
-    /**
-     * Overwrite given values on the source. If the value is a map,
-     * it will not be merged but overwritten. The keys of the changes map representing a path of
-     * the source map tree.
-     * If the path doesn't exists, a new tree will be inserted.
-     * <p/>
-     * TODO: detect NOOP
-     */
-    @SuppressWarnings("unchecked")
-    static void updateSourceByPaths(@Nonnull Map<String, Object> source, @Nonnull Map<String, Object> changes) {
-        for (Map.Entry<String, Object> changesEntry : changes.entrySet()) {
-            String key = changesEntry.getKey();
-            int dotIndex = key.indexOf(".");
-            if (dotIndex > -1) {
-                // sub-path detected, dive recursive to the wanted tree element
-                String currentKey = key.substring(0, dotIndex);
-                if (!source.containsKey(currentKey)) {
-                    // insert parent tree element
-                    source.put(currentKey, new HashMap<String, Object>());
-                }
-                Map<String, Object> subChanges = new HashMap<>();
-                subChanges.put(key.substring(dotIndex + 1, key.length()), changesEntry.getValue());
-
-                Map<String, Object> innerSource = (Map<String, Object>) source.get(currentKey);
-                if (innerSource == null) {
-                    throw new NullPointerException(String.format(Locale.ENGLISH,
-                        "Object %s is null, cannot write %s onto it", currentKey, subChanges));
-                }
-                updateSourceByPaths(innerSource, subChanges);
-            } else {
-                // overwrite or insert the field
-                source.put(key, changesEntry.getValue());
-            }
-        }
-    }
-
     public static Collection<ColumnIdent> getNotUsedNonGeneratedColumns(Reference[] targetColumns,
                                                                         DocTableInfo tableInfo) {
         Set<String> targetColumnsSet = new HashSet<>();
@@ -560,30 +361,5 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         }
         return columnsNotUsed;
-    }
-
-    private static class GetResultOrGeneratedColumnsResolver extends GetResultRefResolver {
-
-        private final Map<String, Object> updatedColumns;
-
-        GetResultOrGeneratedColumnsResolver(Map<String, Object> updatedColumns) {
-            super(Collections.emptyList());
-            this.updatedColumns = updatedColumns;
-        }
-
-        @Override
-        public CollectExpression<GetResult, ?> getImplementation(Reference ref) {
-            Object suppliedValue = updatedColumns.get(ref.column().fqn());
-            final Object value;
-            if (suppliedValue == null && !ref.column().isTopLevel()) {
-                value = XContentMapValues.extractValue(ref.column().fqn(), updatedColumns);
-            } else {
-                value = suppliedValue;
-            }
-            if (value != null) {
-                return NestableCollectExpression.forFunction(ignored -> ref.valueType().value(value));
-            }
-            return super.getImplementation(ref);
-        }
     }
 }
