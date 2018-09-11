@@ -244,6 +244,7 @@ primaryExpression
     | CASE valueExpression whenClause+ (ELSE elseExpr=expr)? END                     #simpleCase
     | CASE whenClause+ (ELSE elseExpr=expr)? END                                     #searchedCase
     | IF '('condition=expr ',' trueValue=expr (',' falseValue=expr)? ')'             #ifCase
+    | ARRAY subqueryExpression                                                       #arraySubquery
     ;
 
 parenthesizedPrimaryExpressionOrSubquery

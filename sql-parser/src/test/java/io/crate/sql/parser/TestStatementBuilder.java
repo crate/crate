@@ -750,6 +750,28 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testArrayConstructorSubSelectBuilder() throws Exception {
+        printStatement("select array(select foo from f1) from f2");
+        printStatement("select array(select * from f1) as array1 from f2");
+        printStatement("select count(*) from f1 where f1.array1 = array(select foo from f2)");
+    }
+
+
+    @Test
+    public void testArrayConstructorSubSelectBuilderNoParenthesisThrowsParsingException() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage(containsString("no viable alternative at input 'select array from'"));
+        printStatement("select array from f2");
+    }
+
+   @Test
+    public void testArrayConstructorSubSelectBuilderNoSubQueryThrowsParsingException() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage(containsString("no viable alternative at input 'select array()'"));
+        printStatement("select array() as array1 from f2");
+    }
+
+    @Test
     public void testTableFunctions() throws Exception {
         printStatement("select * from unnest([1, 2], ['Arthur', 'Marvin'])");
         printStatement("select * from unnest(?, ?)");

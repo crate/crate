@@ -30,6 +30,7 @@ import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
 import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.ArraySubQueryExpression;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BetweenPredicate;
 import io.crate.sql.tree.BooleanLiteral;
@@ -144,6 +145,14 @@ public final class ExpressionFormatter {
 
             builder.append(left + " " + type + " ANY(" + array + ")");
             return builder.toString();
+        }
+
+        @Override
+        public String visitArraySubQueryExpression(ArraySubQueryExpression node, Void context) {
+            StringBuilder builder = new StringBuilder();
+            String subqueryExpression = node.subqueryExpression().toString();
+
+            return builder.append("ARRAY(").append(subqueryExpression).append(")").toString();
         }
 
         @Override
