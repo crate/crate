@@ -44,6 +44,7 @@ import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
 import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.ArraySubQueryExpression;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.BetweenPredicate;
@@ -983,6 +984,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitSelectSingle(SqlBaseParser.SelectSingleContext context) {
         return new SingleColumn((Expression) visit(context.expr()), getIdentText(context.ident()));
+    }
+
+    @Override
+    public Node visitArraySubquery(SqlBaseParser.ArraySubqueryContext ctx) {
+        return new ArraySubQueryExpression((SubqueryExpression) visit(ctx.subqueryExpression()));
     }
 
     /*
