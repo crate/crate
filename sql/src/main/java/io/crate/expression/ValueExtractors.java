@@ -30,7 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static io.crate.core.collections.StringObjectMaps.fromMapByPath;
+import static io.crate.core.collections.StringObjectMaps.getByPath;
+
 
 public final class ValueExtractors {
 
@@ -74,7 +75,7 @@ public final class ValueExtractors {
         public Object apply(Map<String, Object> map) {
             Object m = map.get(column.name());
             if (m instanceof Map) {
-                return stringAsBytesRef(fromMapByPath((Map) m, column.path()));
+                return stringAsBytesRef(getByPath((Map) m, column.path()));
             }
             return null;
         }
@@ -93,7 +94,7 @@ public final class ValueExtractors {
         public Object apply(Row row) {
             Object o = row.get(idx);
             if (o instanceof Map) {
-                return stringAsBytesRef(fromMapByPath((Map) o, subscript));
+                return stringAsBytesRef(getByPath((Map) o, subscript));
             }
             return null;
         }

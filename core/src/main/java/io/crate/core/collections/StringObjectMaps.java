@@ -22,45 +22,36 @@
 package io.crate.core.collections;
 
 import io.crate.core.StringUtils;
-import org.elasticsearch.common.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
+import java.util.RandomAccess;
 
-public class StringObjectMaps {
+public final class StringObjectMaps {
 
     @Nullable
     public static Object getByPath(Map<String, Object> map, String path) {
         assert path != null : "path should not be null";
-        Object tmp;
-        List<String> splittedPath = StringUtils.PATH_SPLITTER.splitToList(path);
-        for (String pathElement : splittedPath.subList(0, splittedPath.size() - 1)) {
-            tmp = map.get(pathElement);
-            if (tmp != null && tmp instanceof Map) {
-                map = (Map<String, Object>) tmp;
-            } else {
-                break;
-            }
-        }
-
-        if (map != null) {
-            // get last path element
-            return map.get(splittedPath.get(splittedPath.size() - 1));
-        }
-        return null;
+        return getByPath(map, StringUtils.PATH_SPLITTER.splitToList(path));
     }
 
-    public static Object fromMapByPath(Map value, List<String> path) {
-        Map map = value;
-        Object tmp = null;
-        for (String s : path) {
-            tmp = map.get(s);
-            if (tmp instanceof Map) {
-                map = (Map) tmp;
+    @Nullable
+    public static Object getByPath(Map<String, Object> value, List<String> path) {
+        assert path instanceof RandomAccess : "Path must support random access for fast iteration";
+        Map<String, Object> map = value;
+        for (int i = 0; i < path.size(); i++) {
+            String key = path.get(i);
+            Object val = map.get(key);
+            if (i + 1 == path.size()) {
+                return val;
+            } else if (val instanceof Map) {
+                //noinspection unchecked
+                map = (Map<String, Object>) val;
             } else {
-                break;
+                return null;
             }
         }
-        return tmp;
+        return map;
     }
 }

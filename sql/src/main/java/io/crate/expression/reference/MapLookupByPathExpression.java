@@ -48,7 +48,7 @@ public final class MapLookupByPathExpression<T, R> extends NestableCollectExpres
 
     @Override
     public void setNextRow(T row) {
-        value = castResultValue.apply(StringObjectMaps.fromMapByPath(getMap.apply(row), path));
+        value = castResultValue.apply(StringObjectMaps.getByPath(getMap.apply(row), path));
     }
 
     @Override

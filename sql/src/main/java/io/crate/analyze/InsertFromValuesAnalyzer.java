@@ -389,7 +389,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                             continue;
                         }
                         int pkIdx = primaryKey.indexOf(pkIdent);
-                        Object nestedValue = StringObjectMaps.fromMapByPath((Map) value, pkIdent.path());
+                        Object nestedValue = StringObjectMaps.getByPath((Map) value, pkIdent.path());
                         addPrimaryKeyValue(pkIdx, nestedValue, primaryKeyValues);
                     }
                 } else {
@@ -477,7 +477,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         if (columnValue != null && !columnIdent.equals(clusteredByIdent)) {
             // oh my gosh! A nested clustered by value!!!
             assert columnValue instanceof Map : "columnValue must be instance of Map";
-            columnValue = StringObjectMaps.fromMapByPath((Map) columnValue, clusteredByIdent.path());
+            columnValue = StringObjectMaps.getByPath((Map) columnValue, clusteredByIdent.path());
         }
         if (columnValue == null) {
             throw new IllegalArgumentException("Clustered by value must not be NULL");
