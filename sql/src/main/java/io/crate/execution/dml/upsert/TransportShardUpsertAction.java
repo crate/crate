@@ -290,9 +290,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 version = Versions.MATCH_ANY;
             }
         } else {
-            SourceAndVersion sourceAndVersion = prepareUpdate(tableInfo, request, item, indexShard);
-            item.source(sourceAndVersion.source);
-            version = sourceAndVersion.version;
+            GetResult getResult = getDocument(indexShard, request, item);
+            BytesReference updatedSource = prepareUpdate(tableInfo, request, item, getResult);
+            item.source(updatedSource);
+            version = getResult.getVersion();
         }
 
         SourceToParse sourceToParse = SourceToParse.source(
@@ -384,13 +385,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
      * <p/>
      * TODO: detect a NOOP and return an update response if true
      */
-    private SourceAndVersion prepareUpdate(DocTableInfo tableInfo,
-                                           ShardUpsertRequest request,
-                                           ShardUpsertRequest.Item item,
-                                           IndexShard indexShard) throws ElasticsearchException {
-
-        GetResult getResult = getDocument(indexShard, request, item);
-
+    private BytesReference prepareUpdate(DocTableInfo tableInfo,
+                                         ShardUpsertRequest request,
+                                         ShardUpsertRequest.Item item,
+                                         GetResult getResult) throws ElasticsearchException {
         List<Input<?>> updateInputs = resolveSymbols(
             GetResultRefResolver.INSTANCE,
             getResult,
@@ -439,7 +437,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         try {
             XContentBuilder builder = XContentFactory.contentBuilder(updateSourceContentType);
             builder.map(updatedSourceAsMap);
-            return new SourceAndVersion(builder.bytes(), getResult.getVersion());
+            return builder.bytes();
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + updatedSourceAsMap + "]", e);
         }
@@ -586,17 +584,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 return NestableCollectExpression.forFunction(ignored -> ref.valueType().value(value));
             }
             return super.getImplementation(ref);
-        }
-    }
-
-    private static class SourceAndVersion {
-
-        final BytesReference source;
-        final long version;
-
-        SourceAndVersion(BytesReference source, long version) {
-            this.source = source;
-            this.version = version;
         }
     }
 }
