@@ -457,6 +457,10 @@ public abstract class AstVisitor<R, C> {
         return visitExpression(node, context);
     }
 
+    public R visitArraySubQueryExpression(ArraySubQueryExpression node, C context) {
+        return visitExpression(node, context);
+    }
+
     public R visitArrayLiteral(ArrayLiteral node, C context) {
         return visitLiteral(node, context);
     }
