@@ -100,7 +100,7 @@ public final class UpdateAnalyzer {
             new FullQualifiedNameFieldProvider(
                 relCtx.sources(),
                 relCtx.parentSources(),
-                txnCtx.sessionContext().defaultSchema()
+                txnCtx.sessionContext().searchPath().currentSchema()
             ),
             subqueryAnalyzer
         );

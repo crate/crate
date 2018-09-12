@@ -125,7 +125,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new FullQualifiedNameFieldProvider(
                 dummySources,
                 ParentRelations.NO_PARENTS,
-                sessionContext.defaultSchema()),
+                sessionContext.searchPath().currentSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
@@ -143,7 +143,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new FullQualifiedNameFieldProvider(
                 dummySources,
                 ParentRelations.NO_PARENTS,
-                sessionContext.defaultSchema()),
+                sessionContext.searchPath().currentSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
@@ -186,7 +186,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new FullQualifiedNameFieldProvider(
                 dummySources,
                 ParentRelations.NO_PARENTS,
-                sessionContext.defaultSchema()),
+                sessionContext.searchPath().currentSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         FunctionCall subscriptFunctionCall = new FunctionCall(
@@ -218,7 +218,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             functions,
             transactionContext,
             paramTypeHints,
-            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
+            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.searchPath().currentSchema()),
             null
         );
         Function andFunction = (Function) expressionAnalyzer.convert(

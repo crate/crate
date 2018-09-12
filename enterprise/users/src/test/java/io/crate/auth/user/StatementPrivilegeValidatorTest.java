@@ -110,7 +110,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
             .addBlobTable(TableDefinitions.createBlobTable(myBlobsIdent))
             .enableDefaultTables()
             .setUser(superUser)
-            .addView(new RelationName("xx", "v1"), "select * from t1")
+            .addView(new RelationName("doc", "v1"), "select * from users")
             .build();
     }
 
@@ -455,15 +455,15 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testQueryOnViewRequiresOwnerToHavePrivilegesOnInvolvedRelations() {
-        analyze("select * from xx.v1");
-        assertAskedForView(Privilege.Type.DQL, "xx.v1");
-        assertAskedForTable(Privilege.Type.DQL, "doc.t1", superUser);
+        analyze("select * from doc.v1");
+        assertAskedForView(Privilege.Type.DQL, "doc.v1");
+        assertAskedForTable(Privilege.Type.DQL, "doc.users", superUser);
     }
 
     @Test
     public void testDroppingAViewRequiresDDLPermissionOnView() {
-        analyze("drop view xx.v1");
-        assertAskedForView(Privilege.Type.DDL, "xx.v1");
+        analyze("drop view doc.v1");
+        assertAskedForView(Privilege.Type.DDL, "doc.v1");
     }
 
     @Test

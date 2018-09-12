@@ -31,6 +31,11 @@ public class RelationUnknown extends ResourceUnknownException implements TableSc
 
     private RelationName relationName;
 
+    public RelationUnknown(String tableName) {
+        super(String.format(Locale.ENGLISH, "Relation '%s' unknown", tableName));
+        this.relationName = RelationName.fromIndexName(tableName);
+    }
+
     public RelationUnknown(String tableName, Throwable e) {
         super(String.format(Locale.ENGLISH, "Relation '%s' unknown", tableName), e);
         this.relationName = RelationName.fromIndexName(tableName);

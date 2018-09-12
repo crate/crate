@@ -118,7 +118,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testCreateSnapshotUnknownTables() throws Exception {
         expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'doc.t2' unknown");
+        expectedException.expectMessage("Relation 't2' unknown");
         analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE users, t2, custom.users");
     }
 
@@ -189,7 +189,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testCreateSnapshotNoWildcards() throws Exception {
         expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'doc.user*' unknown");
+        expectedException.expectMessage("Relation 'user*' unknown");
         analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE \"user*\"");
     }
 

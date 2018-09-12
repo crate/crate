@@ -38,7 +38,7 @@ public class CreateFunctionAnalyzer {
 
         List<String> parts = node.name().getParts();
         return new CreateFunctionAnalyzedStatement(
-            resolveSchemaName(parts, context.sessionContext().defaultSchema()),
+            resolveSchemaName(parts, context.sessionContext().searchPath().currentSchema()),
             resolveFunctionName(parts),
             node.replace(),
             toFunctionArgumentDefinitions(node.arguments()),

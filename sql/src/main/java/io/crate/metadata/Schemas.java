@@ -41,10 +41,12 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewMetaData;
 import io.crate.metadata.view.ViewsMetaData;
+import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -55,6 +57,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -102,18 +105,111 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         this.defaultTemplateService = new DefaultTemplateService(settings, clusterService);
     }
 
-    @Nullable
-    public TableInfo getTableInfoOrNull(RelationName relationName, Operation operation) {
-        SchemaInfo schemaInfo = schemas.get(relationName.schema());
-        if (schemaInfo == null) {
-            return null;
+    public TableInfo resolveTableInfo(QualifiedName ident, Operation operation, SearchPath searchPath) {
+        String identSchema = schemaName(ident);
+        String tableName = relationName(ident);
+
+        SchemaInfo schemaInfo = null;
+        TableInfo tableInfo = null;
+        if (identSchema == null) {
+            for (String pathSchema : searchPath) {
+                schemaInfo = schemas.get(pathSchema);
+                if (schemaInfo != null) {
+                    tableInfo = schemaInfo.getTableInfo(tableName);
+                    if (tableInfo != null) {
+                        break;
+                    }
+                }
+            }
+        } else {
+            schemaInfo = schemas.get(identSchema);
+            if (schemaInfo == null) {
+                throw new SchemaUnknownException(identSchema);
+            } else {
+                tableInfo = schemaInfo.getTableInfo(tableName);
+            }
         }
-        TableInfo tableInfo = schemaInfo.getTableInfo(relationName.name());
-        if (tableInfo == null) {
-            return null;
+
+        if (schemaInfo == null || tableInfo == null) {
+            throw new RelationUnknown(ident.toString());
         }
+
         Operation.blockedRaiseException(tableInfo, operation);
         return tableInfo;
+    }
+
+    /**
+     * Resolves the provided ident relation (table or view) against the search path.
+     * @param ident
+     * @param searchPath
+     * @throws RelationUnknown in case a valid relation cannot be resolved in the search path.
+     * @return the corresponding RelationName
+     */
+    public RelationName resolveRelation(QualifiedName ident, SearchPath searchPath) {
+        String identSchema = schemaName(ident);
+        String relation = relationName(ident);
+
+        ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
+        if (identSchema == null) {
+            for (String pathSchema : searchPath) {
+                RelationName tableOrViewRelation = getTableOrViewRelation(pathSchema, relation, views);
+                if (tableOrViewRelation != null) {
+                    return tableOrViewRelation;
+                }
+            }
+        } else {
+            RelationName tableOrViewRelation = getTableOrViewRelation(identSchema, relation, views);
+            if (tableOrViewRelation != null) {
+                return tableOrViewRelation;
+            }
+        }
+        throw new RelationUnknown(ident.toString());
+    }
+
+    @Nullable
+    private RelationName getTableOrViewRelation(String pathSchema, String relation, ViewsMetaData views) {
+        SchemaInfo schemaInfo = schemas.get(pathSchema);
+        if (schemaInfo != null) {
+            TableInfo tableInfo = schemaInfo.getTableInfo(relation);
+            if (tableInfo != null) {
+                return new RelationName(pathSchema, relation);
+            } else {
+                if (views != null) {
+                    RelationName viewRelation = new RelationName(pathSchema, relation);
+                    if (views.contains(viewRelation)) {
+                        return viewRelation;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @throws SchemaUnknownException if the ident contains schema information and the schema is unknown.
+     */
+    @Nullable
+    private static String schemaName(QualifiedName ident) {
+        assert ident.getParts().size() <
+               3 : "When identifying schemas or tables a qualified name should not have more the 2 parts";
+        List<String> parts = ident.getParts();
+        if (parts.size() == 2) {
+            String identSchema = parts.get(0);
+            return identSchema;
+        } else {
+            return null;
+        }
+    }
+
+    private static String relationName(QualifiedName ident) {
+        assert ident.getParts().size() <
+               3 : "When identifying schemas or tables a qualified name should not have more the 2 parts";
+        List<String> parts = ident.getParts();
+        if (parts.size() == 2) {
+            return parts.get(1);
+        } else {
+            return parts.get(0);
+        }
     }
 
     /**
@@ -307,19 +403,36 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     /**
-     * @throws SchemaUnknownException if the view was not found and no such schema exists
+     * @throws RelationUnknown if the view cannot be resolved against the search path.
      */
-    @Nullable
-    public ViewMetaData resolveView(RelationName relationName) {
+    public Tuple<ViewMetaData, RelationName> resolveView(QualifiedName ident, SearchPath searchPath) {
         ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
-        ViewMetaData view = views == null ? null : views.getView(relationName);
-        if (view == null) {
-            if (!schemas.containsKey(relationName.schema())) {
-                throw new SchemaUnknownException(relationName.schema());
+        ViewMetaData view = null;
+        RelationName viewRelationName = null;
+        String identSchema = schemaName(ident);
+        String viewName = relationName(ident);
+        if (views != null) {
+            if (identSchema == null) {
+                for (String pathSchema : searchPath) {
+                    SchemaInfo schemaInfo = schemas.get(pathSchema);
+                    if (schemaInfo != null) {
+                        viewRelationName = new RelationName(pathSchema, viewName);
+                        view = views.getView(viewRelationName);
+                        if (view != null) {
+                            break;
+                        }
+                    }
+                }
+            } else {
+                viewRelationName = new RelationName(identSchema, viewName);
+                view = views.getView(viewRelationName);
             }
-            return null;
         }
-        return view;
+
+        if (view == null) {
+            throw new RelationUnknown(viewName);
+        }
+        return Tuple.tuple(view, viewRelationName);
     }
 
     /**

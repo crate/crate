@@ -59,7 +59,7 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropNonExistingTable() throws Exception {
         expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'doc.unknown' unknown");
+        expectedException.expectMessage("Relation 'unknown' unknown");
         e.analyze("drop table unknown");
     }
 

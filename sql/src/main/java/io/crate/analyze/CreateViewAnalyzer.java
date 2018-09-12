@@ -44,8 +44,8 @@ public final class CreateViewAnalyzer {
         this.relationAnalyzer = relationAnalyzer;
     }
 
-    public AnalyzedStatement analyze(CreateView createView, TransactionContext txnCtx, String defaultSchema) {
-        RelationName name = RelationName.of(createView.name(), defaultSchema);
+    public AnalyzedStatement analyze(CreateView createView, TransactionContext txnCtx) {
+        RelationName name = RelationName.of(createView.name(), txnCtx.sessionContext().searchPath().currentSchema());
         name.ensureValidForRelationCreation();
         if (BlobSchemaInfo.NAME.equals(name.schema())) {
             throw new UnsupportedOperationException("Creating a view in the \"blob\" schema is not supported");

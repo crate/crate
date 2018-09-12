@@ -68,6 +68,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.IntegerType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -77,6 +78,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -143,6 +146,27 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(query.arguments().get(0), instanceOf(Function.class));
         Function isNull = (Function) query.arguments().get(0);
         assertThat(isNull.info().ident().name(), is(IsNullPredicate.NAME));
+    }
+
+    @Test
+    public void testQueryUsesSearchPath() throws IOException {
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .setSearchPath("first", "second", "third")
+            .addDocTable(TestingTableInfo
+                .builder(new RelationName("first", "t"), SHARD_ROUTING)
+                .add("id", IntegerType.INSTANCE)
+                .build())
+            .addDocTable(TestingTableInfo
+                .builder(new RelationName("third", "t1"), SHARD_ROUTING)
+                .add("id", IntegerType.INSTANCE)
+                .build())
+            .build();
+
+        QueriedTable queriedTable = executor.analyze("select * from t");
+        assertThat(queriedTable.getQualifiedName().getParts().get(0), is("first"));
+
+        queriedTable = executor.analyze("select * from t1");
+        assertThat(queriedTable.getQualifiedName().getParts().get(0), is("third"));
     }
 
     @Test

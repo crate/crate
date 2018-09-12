@@ -66,7 +66,7 @@ final class DeleteAnalyzer {
             new FullQualifiedNameFieldProvider(
                 relationCtx.sources(),
                 relationCtx.parentSources(),
-                txnContext.sessionContext().defaultSchema()
+                txnContext.sessionContext().searchPath().currentSchema()
             ),
             new SubqueryAnalyzer(relationAnalyzer, new StatementAnalysisContext(typeHints, Operation.READ, txnContext))
         );

@@ -13,11 +13,18 @@ session. Currently, there is only one of these settings.
 
 .. _conf-session-search-path:
 
-``search_path``: *schema name* (default: ``doc``)
-  The default schema for a session when no schema is provided.
+``search_path``: *schema names* (default: ``doc``)
+  The list of schemas that will be used to look for a relation that is
+  referenced without a schema.
 
-  This setting mirrors the PostgreSQL `search_path`_ setting. However,
-  while CrateDB will accept a list of schemas, for the time being, only the
-  first one is used.
+  This setting mirrors the PostgreSQL `search_path`_ setting.
+
+  Some clients, which generally connect to CrateDB using the
+  :ref:`PostgreSQL wire protocol <postgres_wire_protocol>`, require access to
+  various tables in the `pg_catalog` schema, usually to extract information
+  about built-in data types or functions.
+  CrateDB implements the system `pg_catalog` schema and it implicitly includes
+  it in the ``search_path`` *before* the configured schemas, unless it is
+  explicitly declared in the ``search_path`` on any position.
 
 .. _search_path: https://www.postgresql.org/docs/8.1/static/ddl-schemas.html#DDL-SCHEMAS-PATH

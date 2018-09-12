@@ -28,7 +28,7 @@ import io.crate.metadata.Schemas;
 import io.crate.sql.tree.CreateIngestRule;
 
 
-public class CreateIngestionRuleAnalyzer {
+class CreateIngestionRuleAnalyzer {
 
     private final Schemas schemas;
 
@@ -37,17 +37,12 @@ public class CreateIngestionRuleAnalyzer {
     }
 
     CreateIngestionRuleAnalysedStatement analyze(CreateIngestRule node, Analysis context) {
-        RelationName relationName = RelationName.of(node.targetTable(), context.sessionContext().defaultSchema());
-        ensureTableExists(relationName);
+        RelationName relationName = schemas.resolveRelation(node.targetTable(), context.sessionContext().searchPath());
 
         return new CreateIngestionRuleAnalysedStatement(node.ruleName(),
             node.sourceIdent(),
             relationName,
             node.where().orElse(null),
             context.parameterContext());
-    }
-
-    private void ensureTableExists(RelationName relationName) {
-        schemas.getTableInfo(relationName);
     }
 }

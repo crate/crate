@@ -49,12 +49,6 @@ public class SearchPathTest {
     }
 
     @Test
-    public void testDefaultSchemaIsFirstSchemaInSearchPath() {
-        SearchPath searchPath = SearchPath.createSearchPathFrom("firstSchema", "secondSchema");
-        assertThat(searchPath.defaultSchema(), is("firstSchema"));
-    }
-
-    @Test
     public void testPgCatalogIsFirstInTheSearchPathIfNotExplicitlySet() {
         SearchPath searchPath = SearchPath.createSearchPathFrom("firstSchema", "secondSchema");
         assertThat(searchPath.iterator().next(), is(SearchPath.PG_CATALOG_SCHEMA));
@@ -71,9 +65,8 @@ public class SearchPathTest {
     }
 
     @Test
-    public void testPgCatalogIsDefaultAndCurrentSchemaIfSetFirstInPath() {
+    public void testPgCatalogISCurrentSchemaIfSetFirstInPath() {
         SearchPath searchPath = SearchPath.createSearchPathFrom(PG_CATALOG_SCHEMA, "secondSchema");
-        assertThat(searchPath.defaultSchema(), is(SearchPath.PG_CATALOG_SCHEMA));
         assertThat(searchPath.currentSchema(), is(SearchPath.PG_CATALOG_SCHEMA));
     }
 }

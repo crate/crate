@@ -50,8 +50,8 @@ public class AlterTableAnalyzer {
 
     public AlterTableAnalyzedStatement analyze(AlterTable node, Row parameters, SessionContext sessionContext) {
         Table table = node.table();
-        DocTableInfo docTableInfo = schemas.getTableInfo(RelationName.of(table, sessionContext.defaultSchema()),
-            Operation.ALTER_BLOCKS);
+        DocTableInfo docTableInfo = (DocTableInfo) schemas.resolveTableInfo(table.getName(), Operation.ALTER_BLOCKS,
+            sessionContext.searchPath());
         PartitionName partitionName = createPartitionName(table.partitionProperties(), docTableInfo, parameters);
         TableParameterInfo tableParameterInfo = getTableParameterInfo(table, docTableInfo, partitionName);
         TableParameter tableParameter = getTableParameter(node, parameters, tableParameterInfo);
@@ -75,7 +75,7 @@ public class AlterTableAnalyzer {
         if (node.blob()) {
             relationName = tableToIdent(node.table());
         } else {
-            relationName = RelationName.of(node.table(), sessionContext.defaultSchema());
+            relationName = schemas.resolveRelation(node.table().getName(), sessionContext.searchPath());
         }
 
         DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_TABLE_RENAME);

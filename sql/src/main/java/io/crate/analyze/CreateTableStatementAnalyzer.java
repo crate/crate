@@ -83,7 +83,8 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
                                                 TransactionContext transactionContext) {
         CreateTableAnalyzedStatement statement = new CreateTableAnalyzedStatement();
         Row parameters = parameterContext.parameters();
-        RelationName relationName = RelationName.of(createTable.name(), transactionContext.sessionContext().defaultSchema());
+        RelationName relationName = RelationName
+            .of(createTable.name().getName(), transactionContext.sessionContext().searchPath().currentSchema());
         statement.table(relationName, createTable.ifNotExists(), schemas);
 
         // apply default in case it is not specified in the genericProperties,

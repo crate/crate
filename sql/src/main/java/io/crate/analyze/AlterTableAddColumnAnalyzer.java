@@ -25,7 +25,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -55,8 +54,8 @@ class AlterTableAddColumnAnalyzer {
         if (!node.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
         }
-        RelationName relationName = RelationName.of(node.table(), analysis.sessionContext().defaultSchema());
-        DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.ALTER);
+        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(node.table().getName(), Operation.ALTER,
+            analysis.sessionContext().searchPath());
         AnalyzedTableElements tableElements = TableElementsAnalyzer.analyze(
             node.tableElement(),
             analysis.parameterContext().parameters(),

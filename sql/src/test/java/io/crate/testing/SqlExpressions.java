@@ -104,7 +104,7 @@ public class SqlExpressions {
             new FullQualifiedNameFieldProvider(
                 sources,
                 ParentRelations.NO_PARENTS,
-                transactionContext.sessionContext().defaultSchema()),
+                transactionContext.sessionContext().searchPath().currentSchema()),
             null
         );
         normalizer = new EvaluatingNormalizer(functions, RowGranularity.DOC, null, fieldResolver);

@@ -30,6 +30,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.GrantPrivilege;
@@ -48,39 +49,37 @@ import java.util.Set;
  */
 class PrivilegesAnalyzer {
 
-    private final Schemas schemas;
     private final boolean userManagementEnabled;
     private static final String ERROR_MESSAGE = "GRANT/DENY/REVOKE Privileges on information_schema is not supported";
 
-    PrivilegesAnalyzer(Schemas schemas, boolean userManagementEnabled) {
-        this.schemas = schemas;
+    PrivilegesAnalyzer(boolean userManagementEnabled) {
         this.userManagementEnabled = userManagementEnabled;
     }
 
-    PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, User user, String defaultSchema) {
+    PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, User user, SearchPath searchPath, Schemas schemas) {
         ensureUserManagementEnabled();
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
-        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, defaultSchema);
+        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, searchPath, schemas);
 
         return new PrivilegesAnalyzedStatement(node.userNames(),
             privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.GRANT, idents,
                 clazz));
     }
 
-    PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, User user, String defaultSchema) {
+    PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, User user, SearchPath searchPath, Schemas schemas) {
         ensureUserManagementEnabled();
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
-        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), true, defaultSchema);
+        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), true, searchPath, schemas);
 
         return new PrivilegesAnalyzedStatement(node.userNames(),
             privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.REVOKE, idents,
                 clazz));
     }
 
-    PrivilegesAnalyzedStatement analyzeDeny(DenyPrivilege node, User user, String defaultSchema) {
+    PrivilegesAnalyzedStatement analyzeDeny(DenyPrivilege node, User user, SearchPath searchPath, Schemas schemas) {
         ensureUserManagementEnabled();
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
-        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, defaultSchema);
+        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, searchPath, schemas);
 
         return new PrivilegesAnalyzedStatement(node.userNames(),
             privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.DENY, idents,
@@ -103,30 +102,12 @@ class PrivilegesAnalyzer {
         return privilegeTypes;
     }
 
-    private void validateTableNames(List<String> tableNames) {
-        tableNames.forEach(t -> {
-            RelationName ident = RelationName.fromIndexName(t);
-            validateSchemaName(ident.schema());
-            schemas.getTableInfo(ident);
-        });
+    private static void validateSchemaNames(List<String> schemaNames) {
+        schemaNames.forEach(PrivilegesAnalyzer::validateSchemaName);
     }
 
-    private void validateViewNames(List<String> viewNames) {
-        viewNames.forEach(t -> {
-            RelationName ident = RelationName.fromIndexName(t);
-            validateSchemaName(ident.schema());
-            if (schemas.resolveView(ident) == null) {
-                throw new RelationUnknown(ident);
-            }
-        });
-    }
-
-    private void validateSchemaNames(List<String> schemaNames) {
-        schemaNames.forEach(this::validateSchemaName);
-    }
-
-    private void validateSchemaName(String schemaNames) {
-        if (InformationSchemaInfo.NAME.equals(schemaNames)) {
+    private static void validateSchemaName(String schemaName) {
+        if (InformationSchemaInfo.NAME.equals(schemaName)) {
             throw new UnsupportedFeatureException(ERROR_MESSAGE);
         }
     }
@@ -134,21 +115,18 @@ class PrivilegesAnalyzer {
     private List<String> validatePrivilegeIdents(Privilege.Clazz clazz,
                                                  List<QualifiedName> tableOrSchemaNames,
                                                  boolean isRevoke,
-                                                 String defaultSchema) {
-        List<String> idents = convertQualifiedNamesToIdents(clazz, tableOrSchemaNames, defaultSchema);
-        if (isRevoke) {
-            return idents;
-        }
-
+                                                 SearchPath searchPath,
+                                                 Schemas schemas) {
         if (Privilege.Clazz.SCHEMA.equals(clazz)) {
-            validateSchemaNames(idents);
-        } else if (Privilege.Clazz.TABLE.equals(clazz)) {
-            validateTableNames(idents);
-        } else if (Privilege.Clazz.VIEW.equals(clazz)) {
-            validateViewNames(idents);
+            List<String> schemaNames = Lists2.copyAndReplace(tableOrSchemaNames, QualifiedName::toString);
+            if (isRevoke) {
+                return schemaNames;
+            }
+            validateSchemaNames(schemaNames);
+            return schemaNames;
+        } else {
+            return resolveAndValidateRelations(tableOrSchemaNames, searchPath, schemas, isRevoke);
         }
-
-        return idents;
     }
 
     private static List<Privilege.Type> parsePrivilegeTypes(List<String> privilegeTypeNames) {
@@ -204,12 +182,24 @@ class PrivilegesAnalyzer {
         return privileges;
     }
 
-    private static List<String> convertQualifiedNamesToIdents(Privilege.Clazz clazz,
-                                                              List<QualifiedName> tableOrSchemaNames,
-                                                              String defaultSchema) {
-        if (clazz.equals(Privilege.Clazz.SCHEMA)) {
-            return Lists2.copyAndReplace(tableOrSchemaNames, QualifiedName::toString);
-        }
-        return Lists2.copyAndReplace(tableOrSchemaNames, q -> RelationName.of(q, defaultSchema).fqn());
+    private static List<String> resolveAndValidateRelations(List<QualifiedName> relations,
+                                                            SearchPath searchPath,
+                                                            Schemas schemas,
+                                                            boolean isRevoke) {
+        return Lists2.copyAndReplace(relations, q -> {
+            try {
+                RelationName relationName = schemas.resolveRelation(q, searchPath);
+                if (!isRevoke) {
+                    validateSchemaName(relationName.schema());
+                }
+                return relationName.fqn();
+            } catch (RelationUnknown e) {
+                if (!isRevoke) {
+                    throw e;
+                } else {
+                    return RelationName.of(q, searchPath.currentSchema()).fqn();
+                }
+            }
+        });
     }
 }

@@ -148,7 +148,7 @@ class UnboundAnalyzer {
         protected AnalyzedStatement visitShowColumns(ShowColumns node, Analysis context) {
             TransactionContext transactionContext = context.transactionContext();
             Query query = showStatementAnalyzer.rewriteShowColumns(node,
-                transactionContext.sessionContext().defaultSchema());
+                transactionContext.sessionContext().searchPath().currentSchema());
             return (QueriedRelation) relationAnalyzer.analyzeUnbound(
                 query, transactionContext, context.parameterContext().typeHints());
         }
