@@ -28,7 +28,6 @@ import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -89,8 +88,8 @@ class CreateSnapshotAnalyzer {
             for (Table table : node.tableList()) {
                 DocTableInfo docTableInfo;
                 try {
-                    docTableInfo = schemas.getTableInfo(
-                        RelationName.of(table, analysis.sessionContext().defaultSchema()), Operation.CREATE_SNAPSHOT);
+                    docTableInfo = (DocTableInfo) schemas.resolveTableInfo(table.getName(), Operation.CREATE_SNAPSHOT,
+                        analysis.sessionContext().searchPath());
                 } catch (ResourceUnknownException e) {
                     if (ignoreUnavailable) {
                         LOGGER.info("ignoring: {}", e.getMessage());

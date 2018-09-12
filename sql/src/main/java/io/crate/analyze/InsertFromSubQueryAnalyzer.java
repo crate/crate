@@ -41,7 +41,6 @@ import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
@@ -107,8 +106,8 @@ class InsertFromSubQueryAnalyzer {
     }
 
     public AnalyzedInsertStatement analyze(InsertFromSubquery insert, ParamTypeHints typeHints, TransactionContext txnCtx) {
-        RelationName relationName = RelationName.of(insert.table(), txnCtx.sessionContext().defaultSchema());
-        DocTableInfo targetTable = schemas.getTableInfo(relationName, Operation.INSERT);
+        DocTableInfo targetTable = (DocTableInfo) schemas.resolveTableInfo(insert.table().getName(), Operation.INSERT,
+            txnCtx.sessionContext().searchPath());
         DocTableRelation tableRelation = new DocTableRelation(targetTable);
 
         QueriedRelation subQueryRelation =
@@ -131,9 +130,8 @@ class InsertFromSubQueryAnalyzer {
     }
 
     public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
-        DocTableInfo tableInfo = schemas.getTableInfo(
-            RelationName.of(node.table(), analysis.sessionContext().defaultSchema()),
-            Operation.INSERT);
+        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(node.table().getName(), Operation.INSERT,
+            analysis.sessionContext().searchPath());
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);

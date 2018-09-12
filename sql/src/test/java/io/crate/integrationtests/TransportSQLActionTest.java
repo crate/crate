@@ -1596,8 +1596,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         try {
             execute(stmtStr);
         } catch (SQLActionException e) {
-            assertThat(e.getMessage(), containsString(String.format(Locale.ENGLISH,
-                "Relation '%s.foobar' unknown", sqlExecutor.getDefaultSchema())));
+            assertThat(e.getMessage(), containsString("Relation 'foobar' unknown"));
             execute("select stmt from sys.jobs where stmt='" + stmtStrWhere + "'");
             assertEquals(response.rowCount(), 0L);
         }

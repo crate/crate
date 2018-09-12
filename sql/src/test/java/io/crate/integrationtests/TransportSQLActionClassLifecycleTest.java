@@ -48,7 +48,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
@@ -214,8 +213,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void selectMultiGetRequestFromNonExistentTable() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH,
-            "RelationUnknown: Relation '%s.non_existent' unknown", sqlExecutor.getDefaultSchema()));
+        expectedException.expectMessage("RelationUnknown: Relation 'non_existent' unknown");
         execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});
     }
 

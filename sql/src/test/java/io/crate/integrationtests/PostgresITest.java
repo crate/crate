@@ -597,21 +597,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testCustomSchemaAndAnalyzerFailure() throws Exception {
-        try (Connection conn = DriverManager.getConnection(url(RW) + "foo", properties)) {
-            conn.setAutoCommit(true);
-            PreparedStatement stmt = conn.prepareStatement("select x from t");
-            try {
-                stmt.executeQuery();
-                assertFalse(true); // should've raised PSQLException
-            } catch (PSQLException e) {
-                assertThat(e.getMessage(), Matchers.containsString("Schema 'foo' unknown"));
-            }
-            assertSelectNameFromSysClusterWorks(conn);
-        }
-    }
-
-    @Test
     public void testStatementReadOnlyFailure() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RO), properties)) {
             conn.setAutoCommit(true);
@@ -676,7 +661,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
             conn.createStatement().execute("set session search_path to DEFAULT");
             expectedException.expect(PSQLException.class);
-            expectedException.expectMessage("RelationUnknown: Relation 'doc.foo' unknown");
+            expectedException.expectMessage("RelationUnknown: Relation 'foo' unknown");
             conn.createStatement().execute("select * from foo");
         }
     }

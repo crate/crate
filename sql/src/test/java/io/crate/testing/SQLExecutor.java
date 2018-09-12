@@ -586,7 +586,7 @@ public class SQLExecutor {
             functions,
             transactionContext,
             ParamTypeHints.EMPTY,
-            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
+            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.searchPath().currentSchema()),
             new SubqueryAnalyzer(
                 relAnalyzer,
                 new StatementAnalysisContext(ParamTypeHints.EMPTY, Operation.READ, transactionContext)

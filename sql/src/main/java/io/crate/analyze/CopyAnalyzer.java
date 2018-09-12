@@ -44,7 +44,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
@@ -101,8 +100,8 @@ class CopyAnalyzer {
     }
 
     CopyFromAnalyzedStatement convertCopyFrom(CopyFrom node, Analysis analysis) {
-        DocTableInfo tableInfo = schemas.getTableInfo(
-            RelationName.of(node.table(), analysis.sessionContext().defaultSchema()), Operation.INSERT);
+        DocTableInfo tableInfo = (DocTableInfo)
+            schemas.resolveTableInfo(node.table().getName(), Operation.INSERT, analysis.sessionContext().searchPath());
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
 
         String partitionIdent = null;
@@ -177,8 +176,8 @@ class CopyAnalyzer {
             throw new UnsupportedOperationException("Using COPY TO without specifying a DIRECTORY is not supported");
         }
 
-        TableInfo tableInfo = schemas.getTableInfo(
-            RelationName.of(node.table(), analysis.sessionContext().defaultSchema()), Operation.COPY_TO);
+        TableInfo tableInfo =
+            schemas.resolveTableInfo(node.table().getName(), Operation.COPY_TO, analysis.sessionContext().searchPath());
         Operation.blockedRaiseException(tableInfo, Operation.READ);
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 

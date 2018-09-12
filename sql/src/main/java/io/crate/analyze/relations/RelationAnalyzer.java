@@ -59,6 +59,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -89,6 +90,7 @@ import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.util.set.Sets;
@@ -160,7 +162,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 new FullQualifiedNameFieldProvider(
                     relationAnalysisContext.sources(),
                     relationAnalysisContext.parentSources(),
-                    statementContext.transactionContext().sessionContext().defaultSchema()),
+                    statementContext.transactionContext().sessionContext().searchPath().currentSchema()),
                 new SubqueryAnalyzer(this, statementContext));
             ExpressionAnalysisContext expressionAnalysisContext = relationAnalysisContext.expressionAnalysisContext();
             SelectAnalysis selectAnalysis = new SelectAnalysis(
@@ -247,7 +249,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     new FullQualifiedNameFieldProvider(
                         relationContext.sources(),
                         relationContext.parentSources(),
-                        transactionContext.sessionContext().defaultSchema()),
+                        transactionContext.sessionContext().searchPath().currentSchema()),
                     new SubqueryAnalyzer(this, statementContext));
                 try {
                     joinCondition = expressionAnalyzer.convert(
@@ -294,7 +296,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             new FullQualifiedNameFieldProvider(
                 context.sources(),
                 context.parentSources(),
-                transactionContext.sessionContext().defaultSchema()),
+                transactionContext.sessionContext().searchPath().currentSchema()),
             new SubqueryAnalyzer(this, statementContext));
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
 
@@ -681,25 +683,38 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitTable(Table node, StatementAnalysisContext context) {
-        RelationName relationName = RelationName.of(node, context.sessionContext().defaultSchema());
-        TableInfo tableInfo = schemas.getTableInfoOrNull(relationName, context.currentOperation());
-        final AnalyzedRelation relation;
-        if (tableInfo == null) {
-            ViewMetaData view = schemas.resolveView(relationName);
-            if (view == null) {
-                throw new RelationUnknown(relationName);
+        QualifiedName tableQualifiedName = node.getName();
+        SearchPath searchPath = context.sessionContext().searchPath();
+        RelationName relationName;
+        AnalyzedRelation relation;
+        TableInfo tableInfo;
+        try {
+            tableInfo = schemas.resolveTableInfo(tableQualifiedName, context.currentOperation(), searchPath);
+            if (tableInfo instanceof DocTableInfo) {
+                // Dispatching of doc relations is based on the returned class of the schema information.
+                relation = new DocTableRelation((DocTableInfo) tableInfo);
+                relationName = tableInfo.ident();
+            } else {
+                relation = new TableRelation(tableInfo);
+                relationName = tableInfo.ident();
             }
+        } catch (RelationUnknown e) {
+            Tuple<ViewMetaData, RelationName> viewMetaData;
+            try {
+                viewMetaData = schemas.resolveView(tableQualifiedName, searchPath);
+            } catch (RelationUnknown e1) {
+                // don't shadow original exception, as looking for the view is just a fallback
+                throw e;
+            }
+            ViewMetaData view = viewMetaData.v1();
+            relationName = viewMetaData.v2();
             AnalyzedRelation resolvedView = process(SqlParser.createStatement(view.stmt()), context);
             if (!(resolvedView instanceof QueriedRelation)) {
                 throw new IllegalArgumentException("View must be a top-level SELECT statement, got: " + view.stmt());
             }
             relation = new AnalyzedView(relationName, view.owner(), (QueriedRelation) resolvedView);
-        } else if (tableInfo instanceof DocTableInfo) {
-            // Dispatching of doc relations is based on the returned class of the schema information.
-            relation = new DocTableRelation((DocTableInfo) tableInfo);
-        } else {
-            relation = new TableRelation(tableInfo);
         }
+
         context.currentRelationContext().addSourceRelation(relationName.schema(), relationName.name(), relation);
         return relation;
     }

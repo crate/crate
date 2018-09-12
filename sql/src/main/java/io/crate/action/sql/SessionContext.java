@@ -22,12 +22,12 @@
 
 package io.crate.action.sql;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.auth.user.StatementAuthorizedValidator;
 import io.crate.auth.user.User;
 import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.metadata.SearchPath;
 
 import java.util.Set;
 
@@ -88,12 +88,8 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
         return options;
     }
 
-    public String defaultSchema() {
-        return searchPath.defaultSchema();
-    }
-
-    public String currentSchema() {
-        return searchPath.currentSchema();
+    public SearchPath searchPath() {
+        return searchPath;
     }
 
     public void setSearchPath(String... schemas) {

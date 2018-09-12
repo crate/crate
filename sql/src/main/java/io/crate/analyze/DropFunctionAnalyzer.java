@@ -38,7 +38,7 @@ class DropFunctionAnalyzer {
         List<String> parts = node.name().getParts();
 
         return new DropFunctionAnalyzedStatement(
-            CreateFunctionAnalyzer.resolveSchemaName(parts, context.sessionContext().defaultSchema()),
+            CreateFunctionAnalyzer.resolveSchemaName(parts, context.sessionContext().searchPath().currentSchema()),
             CreateFunctionAnalyzer.resolveFunctionName(parts),
             node.exists(),
             node.arguments().stream().map(i -> DataTypeAnalyzer.convert(i.type())).collect(toList())

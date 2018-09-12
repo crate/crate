@@ -22,28 +22,35 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.RelationsUnknown;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 
 public class DropViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void testDropViewContainsIfExistsAndViewNamesWithSchema() {
+    public void testDropViewContainsIfExistsAndEmptyViews() {
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
 
         DropViewStmt dropView = e.analyze("drop view if exists v1, v2, x.v3");
 
         assertThat(dropView.ifExists(), is(true));
-        String defaultSchema = e.getSessionContext().defaultSchema();
-        assertThat(dropView.views(), contains(
-            is(new RelationName(defaultSchema, "v1")),
-            is(new RelationName(defaultSchema, "v2")),
-            is(new RelationName("x", "v3")))
-        );
+        assertThat(dropView.views(), is(empty()));
+    }
+
+    @Test
+    public void testDropViewRaisesRelationsUnkownForMissingView() {
+        SQLExecutor e = SQLExecutor.builder(clusterService).build();
+
+        expectedException.expect(RelationsUnknown.class);
+        expectedException.expectMessage("Relations not found: doc.v1, doc.v2");
+
+        e.analyze("drop view v1, v2");
     }
 }

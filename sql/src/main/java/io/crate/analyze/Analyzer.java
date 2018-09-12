@@ -25,6 +25,8 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.repositories.RepositoryParamValidator;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.RelationsUnknown;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
@@ -135,6 +137,7 @@ public class Analyzer {
     private final CreateUserAnalyzer createUserAnalyzer;
     private final AlterUserAnalyzer alterUserAnalyzer;
     private final CreateViewAnalyzer createViewAnalyzer;
+    private final Schemas schemas;
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
@@ -151,6 +154,7 @@ public class Analyzer {
                     RepositoryService repositoryService,
                     RepositoryParamValidator repositoryParamValidator) {
         this.relationAnalyzer = relationAnalyzer;
+        this.schemas = schemas;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
@@ -197,7 +201,7 @@ public class Analyzer {
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
-        this.privilegesAnalyzer = new PrivilegesAnalyzer(schemas, ENTERPRISE_LICENSE_SETTING.setting().get(settings));
+        this.privilegesAnalyzer = new PrivilegesAnalyzer(ENTERPRISE_LICENSE_SETTING.setting().get(settings));
         this.createIngestionRuleAnalyzer = new CreateIngestionRuleAnalyzer(schemas);
         this.createUserAnalyzer = new CreateUserAnalyzer(functions);
         this.alterUserAnalyzer = new AlterUserAnalyzer(functions);
@@ -421,21 +425,24 @@ public class Analyzer {
         public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeGrant(node,
                 context.sessionContext().user(),
-                context.sessionContext().defaultSchema());
+                context.sessionContext().searchPath(),
+                schemas);
         }
 
         @Override
         public AnalyzedStatement visitDenyPrivilege(DenyPrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeDeny(node,
                 context.sessionContext().user(),
-                context.sessionContext().defaultSchema());
+                context.sessionContext().searchPath(),
+                schemas);
         }
 
         @Override
         public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeRevoke(node,
                 context.sessionContext().user(),
-                context.sessionContext().defaultSchema());
+                context.sessionContext().searchPath(),
+                schemas);
         }
 
         @Override
@@ -485,18 +492,28 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCreateView(CreateView createView, Analysis analysis) {
-            return createViewAnalyzer.analyze(
-                createView, analysis.transactionContext(), analysis.sessionContext().defaultSchema());
+            return createViewAnalyzer.analyze(createView, analysis.transactionContext());
         }
 
         @Override
         public AnalyzedStatement visitDropView(DropView dropView, Analysis analysis) {
             // No exists check to avoid stale clusterState race conditions
-            String defaultSchema = analysis.sessionContext().defaultSchema();
             ArrayList<RelationName> views = new ArrayList<>(dropView.names().size());
+            ArrayList<RelationName> missing = new ArrayList<>();
             for (QualifiedName qualifiedName : dropView.names()) {
-                views.add(RelationName.of(qualifiedName, defaultSchema));
+                try {
+                    views.add(schemas.resolveView(qualifiedName, analysis.sessionContext().searchPath()).v2());
+                } catch (RelationUnknown e) {
+                    if (!dropView.ifExists()) {
+                        missing.add(RelationName.of(qualifiedName, analysis.sessionContext().searchPath().currentSchema()));
+                    }
+                }
             }
+
+            if (!missing.isEmpty()) {
+                throw new RelationsUnknown(missing);
+            }
+
             return new DropViewStmt(views, dropView.ifExists());
         }
     }

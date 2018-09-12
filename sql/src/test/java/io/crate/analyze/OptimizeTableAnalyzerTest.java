@@ -138,7 +138,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testOptimizeMultipleTablesUnknown() throws Exception {
         expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'doc.foo' unknown");
+        expectedException.expectMessage("Relation 'foo' unknown");
         e.analyze("OPTIMIZE TABLE parted, foo, bar");
     }
 

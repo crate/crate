@@ -925,7 +925,7 @@ public class ExpressionAnalyzer {
                                                        TransactionContext transactionContext) {
         FunctionImplementation funcImpl = getFuncImpl(
             schema,
-            transactionContext.sessionContext().defaultSchema(),
+            transactionContext.sessionContext().searchPath().currentSchema(),
             functionName,
             arguments,
             functions);

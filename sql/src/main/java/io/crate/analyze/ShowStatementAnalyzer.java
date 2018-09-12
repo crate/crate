@@ -152,7 +152,7 @@ class ShowStatementAnalyzer {
 
     public AnalyzedStatement analyze(ShowColumns node, Analysis analysis) {
         SessionContext sessionContext = analysis.sessionContext();
-        Query query = rewriteShowColumns(node, sessionContext.defaultSchema());
+        Query query = rewriteShowColumns(node, sessionContext.searchPath().currentSchema());
         Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.transactionContext(), analysis.parameterContext());
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
