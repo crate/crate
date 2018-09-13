@@ -117,6 +117,15 @@ public class AnalyzedTableElements {
         return mapping;
     }
 
+    private static void ensureNoGeneratedColumnRecursive(AnalyzedColumnDefinition column) {
+        if (column.generatedExpression() != null) {
+            throw new UnsupportedOperationException("Cannot create generated columns inside object columns");
+        }
+        for (AnalyzedColumnDefinition child : column.children()) {
+            ensureNoGeneratedColumnRecursive(child);
+        }
+    }
+
     public List<List<String>> partitionedBy() {
         if (partitionedBy == null) {
             partitionedBy = new ArrayList<>(partitionedByColumns.size());
@@ -267,6 +276,9 @@ public class AnalyzedTableElements {
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             if (columnDefinition.generatedExpression() != null) {
                 processGeneratedExpression(expressionAnalyzer, printer, columnDefinition, expressionAnalysisContext);
+            }
+            for (AnalyzedColumnDefinition child : columnDefinition.children()) {
+                ensureNoGeneratedColumnRecursive(child);
             }
         }
     }

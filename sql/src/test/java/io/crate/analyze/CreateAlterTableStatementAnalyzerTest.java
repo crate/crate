@@ -1049,4 +1049,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         expectedException.expectMessage("Relation 'doc.v1' already exists");
         executor.analyze("create table v1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
     }
+
+    @Test
+    public void testGeneratedColumnInsideObjectResultsInAnUnsupportedError() {
+        expectedException.expectMessage("Cannot create generated columns inside object columns");
+        e.analyze("create table t (obj object as (c as 1 + 1))");
+    }
 }

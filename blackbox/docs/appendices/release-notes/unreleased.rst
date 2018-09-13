@@ -21,5 +21,8 @@ Changes
 Fixes
 =====
 
+- Trying to create a table with a generated column inside an object column now
+  results in a friendly error message instead of a ``NullPointerException``.
+
 - Fixed processing of the ``endpoint``, ``protocol`` and ``max_retries`` S3
   repository parameters.
