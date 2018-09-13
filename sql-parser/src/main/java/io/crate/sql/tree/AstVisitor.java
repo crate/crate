@@ -457,7 +457,7 @@ public abstract class AstVisitor<R, C> {
         return visitExpression(node, context);
     }
 
-    public R visitArraySubQueryExpression(ArraySubQueryExpression node, C context) {
+    protected R visitArraySubQueryExpression(ArraySubQueryExpression node, C context) {
         return visitExpression(node, context);
     }
 

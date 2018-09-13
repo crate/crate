@@ -148,7 +148,7 @@ public final class ExpressionFormatter {
         }
 
         @Override
-        public String visitArraySubQueryExpression(ArraySubQueryExpression node, Void context) {
+        protected String visitArraySubQueryExpression(ArraySubQueryExpression node, Void context) {
             StringBuilder builder = new StringBuilder();
             String subqueryExpression = node.subqueryExpression().toString();
 
