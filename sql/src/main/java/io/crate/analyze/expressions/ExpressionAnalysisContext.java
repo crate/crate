@@ -34,7 +34,7 @@ import java.util.Map;
  */
 public class ExpressionAnalysisContext {
 
-    private final ArrayComparisonChildVisitor arrayComparisonChildVisitor = new ArrayComparisonChildVisitor();
+    private final ArrayChildVisitor arrayChildVisitor = new ArrayChildVisitor();
     private final Map<SubqueryExpression, Object> arrayExpressionsChildren = new IdentityHashMap<>();
 
     private boolean hasAggregates;
@@ -48,24 +48,24 @@ public class ExpressionAnalysisContext {
     }
 
     /**
-     * Registers the given expression as the child of an ArrayComparisonExpression.
-     * Can be used by downstream operators to check if a SubqueryExpression is part of
+     * Registers the given expression as the child of an Array Expression.
+     * Example of usage: Can be used by downstream operators to check if a SubqueryExpression is part of
      * an {@link ArrayComparisonExpression}.
      * @param arrayExpressionChild the expression to register
      */
-    void registerArrayComparisonChild(Expression arrayExpressionChild) {
-        arrayComparisonChildVisitor.process(arrayExpressionChild, null);
+    void registerArrayChild(Expression arrayExpressionChild) {
+        arrayChildVisitor.process(arrayExpressionChild, null);
     }
 
     /**
-     * Checks if the given SubqueryExpression is part of an {@link ArrayComparisonExpression}.
+     * Checks if the given SubqueryExpression is part of an Array Expression.
      * @return True if the given expression has previously been registered.
      */
-    boolean isArrayComparisonChild(SubqueryExpression expression) {
+    boolean isArrayChild(SubqueryExpression expression) {
         return arrayExpressionsChildren.containsKey(expression);
     }
 
-    private class ArrayComparisonChildVisitor extends DefaultTraversalVisitor<Void, Void> {
+    private class ArrayChildVisitor extends DefaultTraversalVisitor<Void, Void> {
 
         @Override
         protected Void visitSubqueryExpression(SubqueryExpression node, Void context) {

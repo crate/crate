@@ -48,6 +48,7 @@ import io.crate.expression.scalar.regex.MatchesFunction;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.udf.UserDefinedFunctionService;
@@ -1487,6 +1488,21 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("Parameter substitution is not supported in subscript");
         analyze("select ['a','b','c'][?] from users",
             new Object[2]);
+    }
+
+    @Test
+    public void testArraySubqueryExpression() throws Exception {
+        QueriedRelation relation = analyze("select array(select id from sys.shards) as shards_id_array from sys.shards");
+        SelectSymbol arrayProjection = (SelectSymbol) relation.querySpec().outputs().get(0);
+        assertThat(arrayProjection.getResultType(), is(SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES));
+        assertThat(arrayProjection.valueType().id(), is(ArrayType.ID));
+    }
+
+    @Test
+    public void testArraySubqueryWithMultipleColsThrowsUnsupportedSubExpression() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Subqueries with more than 1 column are not supported");
+        analyze("select array(select id, num_docs from sys.shards) as tmp from sys.shards");
     }
 
     @Test
