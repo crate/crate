@@ -170,7 +170,7 @@ class BatchPortal extends AbstractPortal {
                 jobsLogs.logPreExecutionFailure(jobId, stmt, SQLExceptions.messageOf(t), sessionContext.user());
                 throw t;
             }
-            ResultReceiver resultReceiver = resultReceivers.get(i);
+            ResultReceiver<?> resultReceiver = resultReceivers.get(i);
             StatementClassifier.Classification classification = StatementClassifier.classify(plan);
             jobsLogs.logExecutionStart(jobId, stmt, sessionContext.user(), classification);
             JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
@@ -184,7 +184,7 @@ class BatchPortal extends AbstractPortal {
                 portalContext.getExecutor(),
                 plannerContext,
                 consumer,
-                new RowN(batchParams.toArray()),
+                new RowN(batchParams.get(i).toArray()),
                 SubQueryResults.EMPTY
             );
         }
