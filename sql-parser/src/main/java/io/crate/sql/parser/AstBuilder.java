@@ -304,36 +304,45 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitGrantPrivilege(SqlBaseParser.GrantPrivilegeContext context) {
-        List<String> usernames = identsToStrings(context.userNames().ident());
-        ClassAndIdent clazzAndIdent = getClassAndIdentsForPrivileges((context.ON() == null), context.clazz(), context.qname());
+        List<String> usernames = identsToStrings(context.users.ident());
+        ClassAndIdent clazzAndIdent = getClassAndIdentsForPrivileges(
+            context.ON() == null,
+            context.clazz(),
+            context.qnames());
         if (context.ALL() != null) {
             return new GrantPrivilege(usernames, clazzAndIdent.clazz, clazzAndIdent.idents);
         } else {
-            List<String> privilegeTypes = identsToStrings(context.privilegeTypes().ident());
+            List<String> privilegeTypes = identsToStrings(context.priviliges.ident());
             return new GrantPrivilege(usernames, privilegeTypes, clazzAndIdent.clazz, clazzAndIdent.idents);
         }
     }
 
     @Override
     public Node visitDenyPrivilege(SqlBaseParser.DenyPrivilegeContext context) {
-        List<String> usernames = identsToStrings(context.userNames().ident());
-        ClassAndIdent clazzAndIdent = getClassAndIdentsForPrivileges((context.ON() == null), context.clazz(), context.qname());
+        List<String> usernames = identsToStrings(context.users.ident());
+        ClassAndIdent clazzAndIdent = getClassAndIdentsForPrivileges(
+            context.ON() == null,
+            context.clazz(),
+            context.qnames());
         if (context.ALL() != null) {
             return new DenyPrivilege(usernames, clazzAndIdent.clazz, clazzAndIdent.idents);
         } else {
-            List<String> privilegeTypes = identsToStrings(context.privilegeTypes().ident());
+            List<String> privilegeTypes = identsToStrings(context.priviliges.ident());
             return new DenyPrivilege(usernames, privilegeTypes, clazzAndIdent.clazz, clazzAndIdent.idents);
         }
     }
 
     @Override
     public Node visitRevokePrivilege(SqlBaseParser.RevokePrivilegeContext context) {
-        List<String> usernames = identsToStrings(context.userNames().ident());
-        ClassAndIdent clazzAndIdent = getClassAndIdentsForPrivileges((context.ON() == null), context.clazz(), context.qname());
+        List<String> usernames = identsToStrings(context.users.ident());
+        ClassAndIdent clazzAndIdent = getClassAndIdentsForPrivileges(
+            context.ON() == null,
+            context.clazz(),
+            context.qnames());
         if (context.ALL() != null) {
             return new RevokePrivilege(usernames, clazzAndIdent.clazz, clazzAndIdent.idents);
         } else {
-            List<String> privilegeTypes = identsToStrings(context.privilegeTypes().ident());
+            List<String> privilegeTypes = identsToStrings(context.privileges.ident());
             return new RevokePrivilege(usernames, privilegeTypes, clazzAndIdent.clazz, clazzAndIdent.idents);
         }
     }
@@ -1726,11 +1735,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     private ClassAndIdent getClassAndIdentsForPrivileges(boolean onCluster,
                                                          SqlBaseParser.ClazzContext clazz,
-                                                         List<SqlBaseParser.QnameContext> qname) {
+                                                         SqlBaseParser.QnamesContext qnamesContext) {
         if (onCluster) {
             return new ClassAndIdent(CLUSTER, Collections.emptyList());
         } else {
-            return new ClassAndIdent(getClazz(clazz.getStart()), getIdents(qname));
+            return new ClassAndIdent(getClazz(clazz.getStart()), getIdents(qnamesContext.qname()));
         }
     }
 

@@ -78,15 +78,12 @@ statement
     | DROP USER (IF EXISTS)? name=ident                                              #dropUser
     | DROP INGEST RULE (IF EXISTS)? rule_name=ident                                  #dropIngestRule
     | DROP VIEW (IF EXISTS)? names=qnames                                            #dropView
-    | GRANT ( privilegeTypes | ALL (PRIVILEGES)? )
-      (ON clazz  ( qname (',' qname)* ))?
-      TO userNames                                                                   #grantPrivilege
-    | DENY ( privilegeTypes | ALL (PRIVILEGES)? )
-      (ON clazz  ( qname (',' qname)* ))?
-      TO userNames                                                                   #denyPrivilege
-    | REVOKE ( privilegeTypes | ALL (PRIVILEGES)? )
-      (ON clazz   ( qname (',' qname)* ))?
-      FROM userNames                                                                 #revokePrivilege
+    | GRANT (priviliges=idents | ALL PRIVILEGES?)
+        (ON clazz qnames)? TO users=idents                                           #grantPrivilege
+    | DENY (priviliges=idents | ALL PRIVILEGES?)
+        (ON clazz qnames)? TO users=idents                                           #denyPrivilege
+    | REVOKE (privileges=idents | ALL PRIVILEGES?)
+        (ON clazz qnames)? FROM users=idents                                         #revokePrivilege
     | createStmt                                                                     #create
     | DEALLOCATE (PREPARE)? (ALL | prepStmt=stringLiteralOrIdentifierOrQname)        #deallocate
     ;
@@ -177,10 +174,6 @@ aliasedColumns
 
 expr
     : booleanExpression
-    ;
-
-privilegeTypes
-    : ident (',' ident)*
     ;
 
 booleanExpression
@@ -336,6 +329,10 @@ qnames
 
 qname
     : ident ('.' ident)*
+    ;
+
+idents
+    : ident (',' ident)*
     ;
 
 ident
@@ -598,10 +595,6 @@ setExpr
 
 on
     : ON
-    ;
-
-userNames
-    : ( ident (',' ident)* )
     ;
 
 clazz
