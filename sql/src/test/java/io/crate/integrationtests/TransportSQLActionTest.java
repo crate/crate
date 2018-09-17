@@ -54,7 +54,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.core.collections.StringObjectMaps.getByPath;
+import static io.crate.core.collections.Maps.getByPath;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsInAnyOrder;

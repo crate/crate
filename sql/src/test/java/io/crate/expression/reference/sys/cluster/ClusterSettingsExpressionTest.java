@@ -23,7 +23,7 @@
 package io.crate.expression.reference.sys.cluster;
 
 import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.core.collections.StringObjectMaps;
+import io.crate.core.collections.Maps;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.plugin.SQLPlugin;
@@ -96,12 +96,12 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
 
         Map<String, Object> values = expression.value();
         assertThat(
-            StringObjectMaps.getByPath(values, JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey()), is(1));
+            Maps.getByPath(values, JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey()), is(1));
 
         assertThat(
-            StringObjectMaps.getByPath(values, JobsLogService.STATS_ENABLED_SETTING.getKey()), is(false));
+            Maps.getByPath(values, JobsLogService.STATS_ENABLED_SETTING.getKey()), is(false));
 
         assertThat(
-            StringObjectMaps.getByPath(values, DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.getKey()), is("FULL"));
+            Maps.getByPath(values, DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.getKey()), is("FULL"));
     }
 }

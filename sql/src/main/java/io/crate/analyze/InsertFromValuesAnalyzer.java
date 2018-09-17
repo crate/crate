@@ -37,7 +37,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.core.StringUtils;
-import io.crate.core.collections.StringObjectMaps;
+import io.crate.core.collections.Maps;
 import io.crate.data.Input;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
@@ -389,7 +389,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                             continue;
                         }
                         int pkIdx = primaryKey.indexOf(pkIdent);
-                        Object nestedValue = StringObjectMaps.getByPath((Map) value, pkIdent.path());
+                        Object nestedValue = Maps.getByPath((Map) value, pkIdent.path());
                         addPrimaryKeyValue(pkIdx, nestedValue, primaryKeyValues);
                     }
                 } else {
@@ -477,7 +477,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         if (columnValue != null && !columnIdent.equals(clusteredByIdent)) {
             // oh my gosh! A nested clustered by value!!!
             assert columnValue instanceof Map : "columnValue must be instance of Map";
-            columnValue = StringObjectMaps.getByPath((Map) columnValue, clusteredByIdent.path());
+            columnValue = Maps.getByPath((Map) columnValue, clusteredByIdent.path());
         }
         if (columnValue == null) {
             throw new IllegalArgumentException("Clustered by value must not be NULL");

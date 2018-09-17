@@ -31,28 +31,28 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
-public class StringObjectMapsTest extends CrateUnitTest {
+public class MapsTest extends CrateUnitTest {
 
     @Test
     public void testAccessByPath() throws Exception {
         Map<String, Object> map = new HashMap<>();
-        assertNull(StringObjectMaps.getByPath(map, ""));
-        assertNull(StringObjectMaps.getByPath(map, "a.b.c"));
+        assertNull(Maps.getByPath(map, ""));
+        assertNull(Maps.getByPath(map, "a.b.c"));
 
         map.put("a", "b");
 
-        assertThat((String) StringObjectMaps.getByPath(map, "a"), is("b"));
-        assertNull(StringObjectMaps.getByPath(map, "a.b"));
+        assertThat((String) Maps.getByPath(map, "a"), is("b"));
+        assertNull(Maps.getByPath(map, "a.b"));
 
         Map<String, Object> nestedMap = new HashMap<String, Object>() {{
             put("b", 123);
         }};
         map.put("a", nestedMap);
-        assertThat((Map<String, Object>) StringObjectMaps.getByPath(map, "a"), is(nestedMap));
-        assertThat((Integer) StringObjectMaps.getByPath(map, "a.b"), is(123));
-        assertNull(StringObjectMaps.getByPath(map, "a.b.c"));
-        assertNull(StringObjectMaps.getByPath(map, "a.c"));
-        assertNull(StringObjectMaps.getByPath(map, "b.c"));
+        assertThat((Map<String, Object>) Maps.getByPath(map, "a"), is(nestedMap));
+        assertThat((Integer) Maps.getByPath(map, "a.b"), is(123));
+        assertNull(Maps.getByPath(map, "a.b.c"));
+        assertNull(Maps.getByPath(map, "a.c"));
+        assertNull(Maps.getByPath(map, "b.c"));
     }
 
     @Test
@@ -61,7 +61,7 @@ public class StringObjectMapsTest extends CrateUnitTest {
         m.put("o", null);
 
         expectedException.expectMessage("Object o is null, cannot write x = 10 into it");
-        StringObjectMaps.mergeInto(m, "o", Collections.singletonList("x"), 10);
+        Maps.mergeInto(m, "o", Collections.singletonList("x"), 10);
     }
 
     @Test
@@ -70,6 +70,6 @@ public class StringObjectMapsTest extends CrateUnitTest {
         m.put("o", null);
 
         expectedException.expectMessage("Object o is null, cannot write x.y = 10 into it");
-        StringObjectMaps.mergeInto(m, "o", Arrays.asList("x", "y"), 10);
+        Maps.mergeInto(m, "o", Arrays.asList("x", "y"), 10);
     }
 }

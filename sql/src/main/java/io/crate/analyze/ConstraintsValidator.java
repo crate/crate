@@ -53,7 +53,7 @@ public final class ConstraintsValidator {
                 if (columnIdent.isChildOf(targetColumn.column())) {
                     Map<String, Object> map = valueMap;
                     for (String path : columnIdent.path()) {
-                        Object nested = Maps.getNested(map, path);
+                        Object nested = Maps.get(map, path);
                         if (nested == null) {
                             throw new IllegalArgumentException("\"" + columnIdent + "\" must not be null");
                         }

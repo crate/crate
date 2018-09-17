@@ -22,7 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.core.collections.StringObjectMaps;
+import io.crate.core.collections.Maps;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.BaseImplementationSymbolVisitor;
@@ -122,7 +122,7 @@ final class UpdateSourceGen {
             Reference ref = updateColumns.get(i);
             Object value = eval.process(updateAssignments[i], values).value();
             ColumnIdent column = ref.column();
-            StringObjectMaps.mergeInto(updatedSource, column.name(), column.path(), value);
+            Maps.mergeInto(updatedSource, column.name(), column.path(), value);
             generatedColumns.setNextRow(updatedDoc);
             generatedColumns.validateValue(ref, value);
         }
@@ -135,7 +135,7 @@ final class UpdateSourceGen {
         for (Map.Entry<Reference, Input<?>> entry : generatedColumns.toInject()) {
             ColumnIdent column = entry.getKey().column();
             Object value = entry.getValue().value();
-            StringObjectMaps.mergeInto(updatedSource, column.name(), column.path(), value);
+            Maps.mergeInto(updatedSource, column.name(), column.path(), value);
         }
     }
 

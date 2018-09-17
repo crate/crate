@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.core.collections.StringObjectMaps;
+import io.crate.core.collections.Maps;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.parser.ParsingException;
@@ -185,13 +185,13 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         assertThat(yColumn.children().size(), is(0));
 
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
-        Map foo = (Map) StringObjectMaps.getByPath(mapping, "properties.foo");
+        Map foo = (Map) Maps.getByPath(mapping, "properties.foo");
         assertThat((String) foo.get("type"), is("object"));
 
-        Map x = (Map) StringObjectMaps.getByPath(mapping, "properties.foo.properties.x");
+        Map x = (Map) Maps.getByPath(mapping, "properties.foo.properties.x");
         assertThat((String) x.get("type"), is("object"));
 
-        Map y = (Map) StringObjectMaps.getByPath(mapping, "properties.foo.properties.x.properties.y");
+        Map y = (Map) Maps.getByPath(mapping, "properties.foo.properties.x.properties.y");
         assertThat((String) y.get("type"), is("keyword"));
     }
 

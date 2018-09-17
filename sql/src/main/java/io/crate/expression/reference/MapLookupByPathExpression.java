@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference;
 
-import io.crate.core.collections.StringObjectMaps;
+import io.crate.core.collections.Maps;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 
@@ -48,7 +48,7 @@ public final class MapLookupByPathExpression<T, R> extends NestableCollectExpres
 
     @Override
     public void setNextRow(T row) {
-        value = castResultValue.apply(StringObjectMaps.getByPath(getMap.apply(row), path));
+        value = castResultValue.apply(Maps.getByPath(getMap.apply(row), path));
     }
 
     @Override

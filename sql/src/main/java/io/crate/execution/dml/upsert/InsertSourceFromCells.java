@@ -23,7 +23,7 @@
 package io.crate.execution.dml.upsert;
 
 import io.crate.collections.Lists2;
-import io.crate.core.collections.StringObjectMaps;
+import io.crate.core.collections.Maps;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -91,13 +91,13 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             // partitioned columns must not be included in the source
             if (target.granularity() == RowGranularity.DOC) {
                 ColumnIdent column = target.column();
-                StringObjectMaps.mergeInto(source, column.name(), column.path(), value);
+                Maps.mergeInto(source, column.name(), column.path(), value);
                 generatedColumns.validateValue(target, value);
             }
         }
         for (Map.Entry<Reference, Input<?>> entry : generatedColumns.toInject()) {
             ColumnIdent column = entry.getKey().column();
-            StringObjectMaps.mergeInto(source, column.name(), column.path(), entry.getValue().value());
+            Maps.mergeInto(source, column.name(), column.path(), entry.getValue().value());
         }
 
         return XContentFactory.jsonBuilder().map(source).bytes();

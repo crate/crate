@@ -24,7 +24,7 @@ package io.crate.execution.dml.upsert;
 
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.core.collections.StringObjectMaps;
+import io.crate.core.collections.Maps;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -98,7 +98,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         BytesReference source = sourceFromCells.generateSource(new Object[]{m});
         Map<String, Object> map = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, source).map();
         assertThat(map.get("b"), is(11));
-        assertThat(StringObjectMaps.getByPath(map, "obj.a"), is(10));
-        assertThat(StringObjectMaps.getByPath(map, "obj.c"), is(13));
+        assertThat(Maps.getByPath(map, "obj.a"), is(10));
+        assertThat(Maps.getByPath(map, "obj.c"), is(13));
     }
 }
