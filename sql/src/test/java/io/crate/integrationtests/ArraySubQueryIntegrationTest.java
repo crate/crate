@@ -32,7 +32,7 @@ public class ArraySubQueryIntegrationTest extends SQLTransportIntegrationTest {
     private Setup setup = new Setup(sqlExecutor);
 
     @Test
-    public void testSubQueryInProjectionList() throws Exception {
+    public void testSubQueryInSelectList() throws Exception {
         execute("select mountain, height , " +
                 "array(select height from  sys.summits where country = 'AT' order by height desc limit 5) as array_top5_at_mountains " +
                 "from sys.summits " +

@@ -169,6 +169,28 @@ optionally prefixed with ``ARRAY``::
 
     :ref:`data-type-array-literals`
 
+.. _sql_expressions_array_subquery:
+
+Another way to construct an array is by using an ``ARRAY(subquery)`` expression
+as part of the :ref:`Select list <sql_reference_select_list>` of a ``SELECT`` statement::
+
+    ARRAY '(' subquery ')'
+
+Example::
+
+    cr> select array(select height from sys.summits order by height desc limit 5)
+    ... as top5_mountains_array;
+    +--------------------------------+
+    | top5_mountains_array           |
+    +--------------------------------+
+    | [4808, 4634, 4545, 4527, 4506] |
+    +--------------------------------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    Array constructor only supports subqueries returning a single column.
+
 Scalar Subquery
 ===============
 

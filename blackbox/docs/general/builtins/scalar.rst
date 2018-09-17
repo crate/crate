@@ -1404,6 +1404,20 @@ It can be used to remove elements from array fields.
     +------------------------------+
     SELECT 1 row in set (... sec)
 
+
+``array(subquery)``
+-------------------
+
+The ``array(subquery)`` expression is an array constructor function
+which operates on the result of the ``subquery``.
+
+Returns: ``array``
+
+.. SEEALSO::
+
+    :ref:`Array construction with subquery <sql_expressions_array_subquery>`
+
+
 Conditional Functions and Expressions
 =====================================
 

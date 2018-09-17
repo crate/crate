@@ -487,7 +487,8 @@ def create_doctest_suite():
                             'admin/system-information.rst',
                             'general/dql/selects.rst',
                             'interfaces/postgres.rst',
-                            'general/ddl/views.rst'):
+                            'general/ddl/views.rst',
+                            'sql/general/value-expressions.rst'):
         s = docsuite(fn, setUp=setUpLocationsAndQuotes)
         s.layer = crate_layer
         tests.append(s)
