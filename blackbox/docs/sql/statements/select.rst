@@ -62,6 +62,8 @@ follows:
 Parameters
 ==========
 
+.. _sql_reference_select_list:
+
 The ``SELECT`` List
 -------------------
 
