@@ -106,6 +106,7 @@ import io.crate.sql.tree.NotExpression;
 import io.crate.sql.tree.NullLiteral;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.SimpleCaseExpression;
@@ -550,39 +551,49 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitSubscriptExpression(SubscriptExpression node, ExpressionAnalysisContext context) {
-            SubscriptContext subscriptContext = new SubscriptContext();
-            SubscriptValidator.validate(node, subscriptContext);
-            return resolveSubscriptSymbol(subscriptContext, context);
+            return resolveSubscriptSymbol(node, context);
         }
 
-        Symbol resolveSubscriptSymbol(SubscriptContext subscriptContext, ExpressionAnalysisContext context) {
-            // TODO: support nested subscripts as soon as DataTypes.OBJECT elements can be typed
-            Symbol subscriptSymbol;
-            Expression subscriptExpression = subscriptContext.expression();
-            if (subscriptContext.qualifiedName() != null && subscriptExpression == null) {
-                subscriptSymbol = fieldProvider.resolveField(subscriptContext.qualifiedName(), subscriptContext.parts(), operation);
-            } else if (subscriptExpression != null) {
-                subscriptSymbol = subscriptExpression.accept(this, context);
-            } else {
-                throw new UnsupportedOperationException("Only references, function calls or array literals " +
-                                                        "are valid subscript symbols");
-            }
-            assert subscriptSymbol != null : "subscriptSymbol must not be null";
-            Expression index = subscriptContext.index();
+        Symbol resolveSubscriptSymbol(SubscriptExpression subscript, ExpressionAnalysisContext context) {
+            SubscriptContext subscriptContext = new SubscriptContext();
+            SubscriptValidator.validate(subscript, subscriptContext);
+            QualifiedName qualifiedName = subscriptContext.qualifiedName();
             List<String> parts = subscriptContext.parts();
-            if (index != null) {
-                Symbol indexSymbol = index.accept(this, context);
-                // rewrite array access to subscript scalar
-                List<Symbol> args = ImmutableList.of(subscriptSymbol, indexSymbol);
-                return allocateFunction(SubscriptFunction.NAME, args, context);
-            } else if (parts != null && subscriptExpression != null) {
-                Symbol function = allocateFunction(SubscriptObjectFunction.NAME, ImmutableList.of(subscriptSymbol, Literal.of(parts.get(0))), context);
-                for (int i = 1; i < parts.size(); i++) {
-                    function = allocateFunction(SubscriptObjectFunction.NAME, ImmutableList.of(function, Literal.of(parts.get(i))), context);
+
+            if (qualifiedName == null) {
+                if (parts == null || parts.isEmpty()) {
+                    Symbol name = process(subscript.name(), context);
+                    Symbol index = process(subscript.index(), context);
+                    return createSubscript(name, index, context);
+                } else {
+                    Symbol name = process(subscriptContext.expression(), context);
+                    return createSubscript(name, parts, context);
                 }
-                return function;
+            } else {
+                Symbol name = fieldProvider.resolveField(qualifiedName, parts, operation);
+                Expression idxExpression = subscriptContext.index();
+                if (idxExpression == null) {
+                    return name;
+                }
+                Symbol index = process(idxExpression, context);
+                return createSubscript(name, index, context);
             }
-            return subscriptSymbol;
+        }
+
+        private Symbol createSubscript(Symbol name, Symbol index, ExpressionAnalysisContext context) {
+            String function = name.valueType().equals(DataTypes.OBJECT)
+                ? SubscriptObjectFunction.NAME
+                : SubscriptFunction.NAME;
+            return allocateFunction(function, ImmutableList.of(name, index), context);
+        }
+
+        private Symbol createSubscript(Symbol name, List<String> parts, ExpressionAnalysisContext context) {
+            Symbol subscript = name;
+            for (int i = 0; i < parts.size(); i++) {
+                subscript = allocateFunction(
+                    SubscriptObjectFunction.NAME, ImmutableList.of(subscript, Literal.of(parts.get(i))), context);
+            }
+            return subscript;
         }
 
         @Override
