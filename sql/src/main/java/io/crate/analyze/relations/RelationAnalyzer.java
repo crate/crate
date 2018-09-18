@@ -569,35 +569,31 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                                                       String clause,
                                                                       ExpressionAnalyzer expressionAnalyzer,
                                                                       ExpressionAnalysisContext expressionAnalysisContext) {
-        Symbol symbol;
         if (expression instanceof QualifiedNameReference) {
-            List<String> parts = ((QualifiedNameReference) expression).getName().getParts();
-            if (parts.size() == 1) {
-                symbol = getOneOrAmbiguous(selectAnalysis.outputMultiMap(), Iterables.getOnlyElement(parts));
-                if (symbol != null) {
-                    return symbol;
-                }
+            Symbol symbol = tryGetFromSelectList((QualifiedNameReference) expression, selectAnalysis);
+            if (symbol != null) {
+                return symbol;
             }
         }
-        symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
+        Symbol symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
         if (symbol.symbolType().isValueSymbol()) {
-            Literal longLiteral;
-            try {
-                longLiteral = io.crate.expression.symbol.Literal.convert(symbol, DataTypes.LONG);
-            } catch (ClassCastException | IllegalArgumentException e) {
-                throw new IllegalArgumentException(String.format(
-                    Locale.ENGLISH,
-                    "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(symbol), clause));
-            }
-            if (longLiteral.value() == null) {
-                throw new IllegalArgumentException(String.format(
-                    Locale.ENGLISH,
-                    "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(symbol), clause));
-            }
-            symbol = ordinalOutputReference(selectAnalysis.outputSymbols(), longLiteral, clause);
+            symbol = getByPosition(selectAnalysis.outputSymbols(), symbol, clause);
         }
         return symbol;
     }
+
+    @Nullable
+    private static Symbol tryGetFromSelectList(QualifiedNameReference expression, SelectAnalysis selectAnalysis) {
+        List<String> parts = expression.getName().getParts();
+        if (parts.size() == 1) {
+            Symbol symbol = getOneOrAmbiguous(selectAnalysis.outputMultiMap(), Iterables.getOnlyElement(parts));
+            if (symbol != null) {
+                return symbol;
+            }
+        }
+        return null;
+    }
+
 
     /**
      * Resolve expression by also taking ordinal reference into account (eg. for `GROUP BY` clauses).
@@ -610,44 +606,44 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                                                      String clause,
                                                                      ExpressionAnalyzer expressionAnalyzer,
                                                                      ExpressionAnalysisContext expressionAnalysisContext) {
-        Symbol symbol;
         try {
-            symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
+            Symbol symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
             if (symbol.symbolType().isValueSymbol()) {
-                Literal longLiteral;
-                try {
-                    longLiteral = Literal.convert(symbol, DataTypes.LONG);
-                } catch (ClassCastException | IllegalArgumentException e) {
-                    throw new IllegalArgumentException(String.format(
-                        Locale.ENGLISH,
-                        "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(symbol), clause));
-                }
-                if (longLiteral.value() == null) {
-                    throw new IllegalArgumentException(String.format(
-                        Locale.ENGLISH,
-                        "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(symbol), clause));
-                }
-                symbol = ordinalOutputReference(selectAnalysis.outputSymbols(), longLiteral, clause);
+                return getByPosition(selectAnalysis.outputSymbols(), symbol, clause);
             }
+            return symbol;
         } catch (ColumnUnknownException e) {
             if (expression instanceof QualifiedNameReference) {
-                List<String> parts = ((QualifiedNameReference) expression).getName().getParts();
-                if (parts.size() == 1) {
-                    symbol = getOneOrAmbiguous(selectAnalysis.outputMultiMap(), Iterables.getOnlyElement(parts));
-                    if (symbol != null) {
-                        return symbol;
-                    }
+                Symbol symbol = tryGetFromSelectList((QualifiedNameReference) expression, selectAnalysis);
+                if (symbol != null) {
+                    return symbol;
                 }
             }
             throw e;
         }
-
-        return symbol;
     }
 
-    private static Symbol ordinalOutputReference(List<Symbol> outputSymbols, Literal longLiteral, String clauseName) {
-        assert longLiteral.valueType().equals(DataTypes.LONG) : "longLiteral must have valueType long";
-        int idx = ((Long) longLiteral.value()).intValue() - 1;
+    private static Symbol getByPosition(List<Symbol> outputSymbols, Symbol ordinal, String clause) {
+        Literal literal;
+        try {
+            literal = io.crate.expression.symbol.Literal.convert(ordinal, DataTypes.INTEGER);
+        } catch (ClassCastException | IllegalArgumentException e) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(ordinal), clause));
+        }
+        Object ord = literal.value();
+        if (ord == null) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(ordinal), clause));
+        }
+        return ordinalOutputReference(outputSymbols, (int) ord, clause);
+    }
+
+    private static Symbol ordinalOutputReference(List<Symbol> outputSymbols, int ordinal, String clauseName) {
+        // SQL has 1 based array access instead of 0 based.
+        int idx = ordinal - 1;
         if (idx < 0) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "%s position %s is not in select list", clauseName, idx + 1));
@@ -659,6 +655,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 "%s position %s is not in select list", clauseName, idx + 1));
         }
     }
+
 
     @Nullable
     private static Symbol getOneOrAmbiguous(Multimap<String, Symbol> selectList, String key) throws AmbiguousColumnAliasException {
