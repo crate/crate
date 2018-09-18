@@ -22,6 +22,7 @@
 
 package io.crate.metadata.view;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
@@ -44,7 +45,8 @@ public class ViewInfo implements RelationInfo {
     private final List<Reference> columns;
     private final String owner;
 
-    ViewInfo(RelationName ident, String definition, List<Reference> columns, @Nullable String owner) {
+    @VisibleForTesting
+    public ViewInfo(RelationName ident, String definition, List<Reference> columns, @Nullable String owner) {
         this.ident = ident;
         this.definition = definition;
         this.columns = columns;

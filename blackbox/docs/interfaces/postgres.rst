@@ -124,13 +124,23 @@ Operations can be cancelled using the ``KILL`` statement, hence the
 ``CancelRequest`` message  is unsupported. Consequently, the server won't send
 a ``BackendKeyData`` message during connection initialization.
 
+``pg_catalog``
+--------------
+
+For improved compatibility, the ``pg_catalog`` schema is implemented containing
+following tables:
+
+ - `pg_type`_
+ - `pg_class <pgsql_pg_class_>`__
+ - `pg_namespace <pgsql_pg_namespace_>`__
+
 ``pg_type``
------------
+...........
 
 Some clients require the ``pg_catalog.pg_type`` in order to be able to stream
 arrays or other non-primitive types.
 
-For compatibility reasons there is a trimmed down ``pg_type`` table available in
+For compatibility reasons there is a trimmed down `pg_type <pgsql_pg_type_>`__ table available in
 CrateDB::
 
     cr> select * from pg_catalog.pg_type order by oid;
@@ -341,3 +351,6 @@ either because of the table is empty or by a not matching where clause.
 .. _PostgreSQL JDBC connection failover: https://jdbc.postgresql.org/documentation/head/connect.html#connection-failover
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
 .. _Value Expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html
+.. _pgsql_pg_type: https://www.postgresql.org/docs/9.6/static/catalog-pg-type.html
+.. _pgsql_pg_class: https://www.postgresql.org/docs/9.6/static/catalog-pg-class.html
+.. _pgsql_pg_namespace: https://www.postgresql.org/docs/9.6/static/catalog-pg-namespace.html

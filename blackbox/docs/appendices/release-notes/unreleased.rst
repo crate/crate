@@ -40,6 +40,9 @@ Breaking Changes
 Changes
 =======
 
+- Added ``pg_class`` and ``pg_namespace`` tables to the ``pg_catalog`` schema
+  for improved compatibility with postgresql.
+
 - Added support for using table functions in the select list of a query.
 
 - Implemented the ``array_upper`` and ``array_lower`` scalars that return the

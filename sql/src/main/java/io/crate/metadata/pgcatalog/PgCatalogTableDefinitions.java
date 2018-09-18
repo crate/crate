@@ -22,9 +22,12 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.metadata.RelationName;
+import io.crate.analyze.user.Privilege;
+import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
+import io.crate.metadata.RelationName;
 import io.crate.protocols.postgres.types.PGTypes;
+import org.elasticsearch.common.inject.Inject;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,12 +38,25 @@ public class PgCatalogTableDefinitions {
 
     private final Map<RelationName, StaticTableDefinition<?>> tableDefinitions;
 
-    public PgCatalogTableDefinitions() {
-        tableDefinitions = new HashMap<>(1);
+    @Inject
+    public PgCatalogTableDefinitions(InformationSchemaIterables informationSchemaIterables) {
+        tableDefinitions = new HashMap<>(2);
 
         tableDefinitions.put(PgTypeTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(PGTypes.pgTypes()),
             PgTypeTable.expressions()
+        ));
+        tableDefinitions.put(PgClassTable.IDENT, new StaticTableDefinition<>(
+            informationSchemaIterables::relations,
+            (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.ident().fqn())
+                         // we also need to check for views which have privileges set
+                         || user.hasAnyPrivilege(Privilege.Clazz.VIEW, t.ident().fqn()),
+            PgClassTable.expressions()
+        ));
+        tableDefinitions.put(PgNamespaceTable.IDENT, new StaticTableDefinition<>(
+            informationSchemaIterables::schemas,
+            (user, s) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, s.name()),
+            PgNamespaceTable.expressions()
         ));
     }
 
