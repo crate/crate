@@ -57,7 +57,7 @@ cause a duplicate-key conflict, an update of the existing row is performed.
 
 ::
 
-      ON DUPLICATE KEY UPDATE { column_ident = expression } [, ...]
+      ON DUPLICATE KEY UPDATE { column_ident = expression [, ...] }
 
 Within expressions in the ``UPDATE`` clause you can use the
 ``VALUES(column_ident)`` function to refer to column values from the INSERT
@@ -78,16 +78,16 @@ columns (conflict target) to perform the duplicate key check against.
 
 ::
 
-     ON CONFLICT (column_ident, [, ...]) DO UPDATE SET { column_ident = expression } [, ...]
+     ON CONFLICT (column_ident, [, ...]) DO UPDATE SET { column_ident = expression [, ...] }
 
-Within expressions in the ``DO UPDATE SET`` clause, you can use the
-``EXCLUDED`` table to refer to column values from the INSERT
-statement values. For example:
+Within expressions in the ``DO UPDATE SET`` clause, you can use the special
+``excluded`` table to refer to column values from the INSERT statement values.
+For example:
 
 ::
 
      INSERT INTO t (col1, col2) VALUES (1, 41)
-     ON CONFLICT (col1) DO UPDATE SET { col2 = excluded.col2 + 1 }
+     ON CONFLICT (col1) DO UPDATE SET col2 = excluded.col2 + 1
 
 The above statement would update ``col2`` to ``42`` if ``col1`` was a primary
 key and the value ``1`` already existed for ``col1``.
