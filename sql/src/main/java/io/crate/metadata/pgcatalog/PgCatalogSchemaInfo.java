@@ -41,6 +41,8 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
     public PgCatalogSchemaInfo() {
         tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
             .put(PgTypeTable.IDENT.name(), new PgTypeTable())
+            .put(PgClassTable.IDENT.name(), new PgClassTable())
+            .put(PgNamespaceTable.IDENT.name(), new PgNamespaceTable())
             .build();
     }
 
