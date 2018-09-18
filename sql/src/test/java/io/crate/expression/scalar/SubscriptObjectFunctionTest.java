@@ -58,4 +58,9 @@ public class SubscriptObjectFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(IllegalArgumentException.class);
         assertEvaluate("subscript_obj(obj, 'y')", 10L, Literal.of(ImmutableMap.of("x", 10L)));
     }
+
+    @Test
+    public void testFunctionCanBeUsedAsIndexInSubscript() {
+        assertNormalize("{\"x\" = 10}['x' || '']", isLiteral(10L));
+    }
 }

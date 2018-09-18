@@ -40,6 +40,9 @@ Breaking Changes
 Changes
 =======
 
+- Improved the handling of function expressions inside subscripts used on
+  object columns. This allows expressions like ``obj['x' || 'x']`` to be used.
+
 - The ``= ANY`` operator now also supports operations on nested arrays. This
   enables queries like ``WHERE ['foo', 'bar'] =
   ANY(object_array(string_array))``.
