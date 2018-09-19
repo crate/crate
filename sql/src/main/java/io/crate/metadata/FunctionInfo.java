@@ -32,27 +32,24 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Set;
 
 
-public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
+public final class FunctionInfo implements Comparable<FunctionInfo>, Writeable {
 
     public static final Set<Feature> NO_FEATURES = ImmutableSet.of();
     public static final Set<Feature> DETERMINISTIC_ONLY = Sets.immutableEnumSet(Feature.DETERMINISTIC);
     public static final Set<Feature> DETERMINISTIC_AND_COMPARISON_REPLACEMENT = Sets.immutableEnumSet(
         Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT);
 
-    private FunctionIdent ident;
-    private DataType returnType;
-    private Type type;
-    private Set<Feature> features;
-
-    public FunctionInfo() {
-    }
+    private final FunctionIdent ident;
+    private final DataType returnType;
+    private final Type type;
+    private final Set<Feature> features;
 
     public FunctionInfo(FunctionIdent ident, DataType returnType) {
         this(ident, returnType, Type.SCALAR);
@@ -130,8 +127,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
             .result();
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public FunctionInfo(StreamInput in) throws IOException {
         ident = new FunctionIdent(in);
 
         returnType = DataTypes.fromStream(in);

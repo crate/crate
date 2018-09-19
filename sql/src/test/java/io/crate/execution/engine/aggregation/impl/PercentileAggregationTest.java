@@ -22,9 +22,10 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.expression.symbol.Literal;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.ArrayType;
@@ -33,6 +34,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.util.BigArrays;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -56,12 +58,21 @@ public class PercentileAggregationTest extends AggregationTest {
         return executeAggregation(name, valueType, rows, ImmutableList.of(valueType, new ArrayType(DataTypes.DOUBLE)));
     }
 
+    private PercentileAggregation singleArgPercentile;
+    private PercentileAggregation arraysPercentile;
+
+    @Before
+    public void initFunctions() throws Exception {
+        singleArgPercentile = (PercentileAggregation) functions.getBuiltin(
+            NAME, Arrays.asList(DataTypes.DOUBLE, DataTypes.DOUBLE));
+        arraysPercentile = (PercentileAggregation) functions.getBuiltin(
+            NAME, Arrays.asList(DataTypes.DOUBLE, new ArrayType(DataTypes.DOUBLE)));
+    }
+
     @Test
     public void testReturnTypes() throws Exception {
-        assertEquals(DataTypes.DOUBLE,
-            functions.getBuiltin(NAME, ImmutableList.of(DataTypes.DOUBLE, DataTypes.DOUBLE)).info().returnType());
-        assertEquals(new ArrayType(DataTypes.DOUBLE),
-            functions.getBuiltin(NAME, ImmutableList.of(DataTypes.DOUBLE, new ArrayType(DataTypes.DOUBLE))).info().returnType());
+        assertEquals(DataTypes.DOUBLE, singleArgPercentile.info().returnType());
+        assertEquals(new ArrayType(DataTypes.DOUBLE), arraysPercentile.info().returnType());
     }
 
     @Test
@@ -155,8 +166,7 @@ public class PercentileAggregationTest extends AggregationTest {
     }
 
     public void testIterate() throws Exception {
-        PercentileAggregation pa = new PercentileAggregation(mock(FunctionInfo.class));
-
+        PercentileAggregation pa = singleArgPercentile;
         TDigestState state = pa.iterate(null, TDigestState.createEmptyState(), Literal.of(1), Literal.of(0.5));
         assertThat(state, is(notNullValue()));
         assertThat(state.fractions()[0], is(0.5));
@@ -164,7 +174,7 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test
     public void testReduceStage() throws Exception {
-        PercentileAggregation pa = new PercentileAggregation(mock(FunctionInfo.class));
+        PercentileAggregation pa = singleArgPercentile;
 
         // state 1 -> state 2
         TDigestState state1 = TDigestState.createEmptyState();
