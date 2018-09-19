@@ -44,8 +44,7 @@ public class Function extends Symbol implements Cloneable {
     private final FunctionInfo info;
 
     public Function(StreamInput in) throws IOException {
-        info = new FunctionInfo();
-        info.readFrom(in);
+        info = new FunctionInfo(in);
         arguments = ImmutableList.copyOf(Symbols.listFromStream(in));
     }
 

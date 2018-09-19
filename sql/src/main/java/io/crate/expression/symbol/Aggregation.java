@@ -36,16 +36,14 @@ import java.util.List;
 public class Aggregation extends Symbol {
 
     public Aggregation(StreamInput in) throws IOException {
-        functionInfo = new FunctionInfo();
-        functionInfo.readFrom(in);
-
+        functionInfo = new FunctionInfo(in);
         valueType = DataTypes.fromStream(in);
         inputs = Symbols.listFromStream(in);
     }
 
-    private FunctionInfo functionInfo;
-    private List<Symbol> inputs;
-    private DataType valueType;
+    private final FunctionInfo functionInfo;
+    private final List<Symbol> inputs;
+    private final DataType valueType;
 
     public Aggregation(FunctionInfo functionInfo, DataType valueType, List<Symbol> inputs) {
         Preconditions.checkNotNull(inputs, "inputs are null");
