@@ -22,7 +22,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -36,8 +35,8 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -197,16 +196,12 @@ public class Functions {
         return impl;
     }
 
-    public static UnsupportedOperationException createUnknownFunctionExceptionFromArgs(String name,
-                                                                                       List<? extends FuncArg> arguments) {
-        List<DataType> dataTypes = arguments.stream().map(FuncArg::valueType).collect(Collectors.toList());
-        return createUnknownFunctionException(name, dataTypes);
-    }
-
-    public static UnsupportedOperationException createUnknownFunctionException(String name, List<DataType> arguments) {
-        return new UnsupportedOperationException(
-            String.format(Locale.ENGLISH, "unknown function: %s(%s)", name, Joiner.on(", ").join(arguments))
-        );
+    public static UnsupportedOperationException raiseUnknownFunction(String name, List<? extends FuncArg> arguments) {
+        StringJoiner joiner = new StringJoiner(", ");
+        for (FuncArg arg : arguments) {
+            joiner.add(arg.valueType().toString());
+        }
+        throw new UnsupportedOperationException("unknown function: " + name + '(' + joiner.toString() + ')');
     }
 
     private static class GeneratedFunctionResolver implements FunctionResolver {

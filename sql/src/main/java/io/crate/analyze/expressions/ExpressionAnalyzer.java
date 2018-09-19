@@ -958,7 +958,7 @@ public class ExpressionAnalyzer {
             return functions.getUserDefinedByArgs(schemaProvided, functionName, arguments);
         }
         if (funcImpl == null) {
-            throw Functions.createUnknownFunctionExceptionFromArgs(functionName, arguments);
+            throw Functions.raiseUnknownFunction(functionName, arguments);
         }
         return funcImpl;
     }
