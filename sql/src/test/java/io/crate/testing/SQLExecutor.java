@@ -452,8 +452,9 @@ public class SQLExecutor {
                 throw new IllegalArgumentException("use addPartitionedTable(..) to add partitioned tables");
             }
             ClusterState prevState = clusterService.state();
+            RelationName relationName = analyzedStmt.tableIdent();
             IndexMetaData indexMetaData = getIndexMetaData(
-                analyzedStmt.tableIdent().name(), analyzedStmt, prevState.nodes().getSmallestNonClientNodeVersion())
+                relationName.indexName(), analyzedStmt, prevState.nodes().getSmallestNonClientNodeVersion())
                 .build();
 
             ClusterState state = ClusterState.builder(prevState)
@@ -462,6 +463,7 @@ public class SQLExecutor {
                 .build();
 
             ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
+            docTables.put(relationName, testingDocTableInfoFactory.create(relationName, clusterService.state()));
             return this;
         }
 
