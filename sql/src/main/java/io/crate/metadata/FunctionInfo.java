@@ -132,8 +132,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        ident = new FunctionIdent();
-        ident.readFrom(in);
+        ident = new FunctionIdent(in);
 
         returnType = DataTypes.fromStream(in);
         type = Type.values()[in.readVInt()];
