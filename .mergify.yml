@@ -1,11 +1,15 @@
+---
 rules:
   default:
+    merge_strategy:
+      method: rebase
+      rebase_fallback: none
+    enabling_label: ready-to-merge
     protection:
       required_status_checks:
         strict: true
         contexts:
           - ci/jenkins/pr_tests
-          - mergify/allow
       required_pull_request_reviews:
         required_approving_review_count: 1
         dismiss_stale_reviews: false
