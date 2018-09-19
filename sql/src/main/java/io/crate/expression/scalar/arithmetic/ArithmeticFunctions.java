@@ -22,7 +22,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableList;
+import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.BaseFunctionResolver;
@@ -32,7 +33,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -49,8 +49,6 @@ import java.util.Set;
 import java.util.function.BinaryOperator;
 
 public class ArithmeticFunctions {
-
-    private static final Set<DataType> NUMERIC_WITH_DECIMAL = Sets.newHashSet(DataTypes.FLOAT, DataTypes.DOUBLE);
 
     public static class Names {
         public static final String ADD = "add";
@@ -202,42 +200,14 @@ public class ArithmeticFunctions {
 
     public static Function of(String name, Symbol first, Symbol second, Set<FunctionInfo.Feature> features) {
         List<DataType> dataTypes = Arrays.asList(first.valueType(), second.valueType());
-        if (containsTypesWithDecimal(dataTypes)) {
-            return new Function(
-                genDecimalInfo(name, dataTypes, features),
-                Arrays.asList(first, second));
-        }
         return new Function(
-            genIntInfo(name, dataTypes, features),
-            Arrays.asList(first, second));
-    }
-
-    static boolean containsTypesWithDecimal(List<DataType> dataTypes) {
-        for (DataType dataType : dataTypes) {
-            if (NUMERIC_WITH_DECIMAL.contains(dataType)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static FunctionInfo genDecimalInfo(String functionName,
-                                               List<DataType> dataTypes,
-                                               Set<FunctionInfo.Feature> features) {
-        return new FunctionInfo(
-            new FunctionIdent(functionName, dataTypes),
-            dataTypes.get(0),
-            FunctionInfo.Type.SCALAR,
-            features);
-    }
-
-    private static FunctionInfo genIntInfo(String functionName,
-                                           List<DataType> dataTypes,
-                                           Set<FunctionInfo.Feature> features) {
-        return new FunctionInfo(
-            new FunctionIdent(functionName, dataTypes),
-            dataTypes.get(0),
-            FunctionInfo.Type.SCALAR,
-            features);
+            new FunctionInfo(
+                new FunctionIdent(name, dataTypes),
+                dataTypes.get(0),
+                FunctionInfo.Type.SCALAR,
+                features
+            ),
+            ImmutableList.of(first, second)
+        );
     }
 }
