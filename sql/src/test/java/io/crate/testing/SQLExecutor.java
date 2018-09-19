@@ -167,6 +167,7 @@ public class SQLExecutor {
     private final TransactionContext transactionContext;
     private final Random random;
     private final SQLPrinter sqlPrinter;
+    private final Schemas schemas;
 
     /**
      * Shortcut for {@link #getPlannerContext(ClusterState, Random)}
@@ -363,6 +364,7 @@ public class SQLExecutor {
                 ),
                 relationAnalyzer,
                 new SessionContext(user, s -> {}, t -> {}, searchPath),
+                schemas,
                 random
             );
         }
@@ -523,6 +525,7 @@ public class SQLExecutor {
                         Planner planner,
                         RelationAnalyzer relAnalyzer,
                         SessionContext sessionContext,
+                        Schemas schemas,
                         Random random) {
         this.functions = functions;
         this.analyzer = analyzer;
@@ -530,6 +533,7 @@ public class SQLExecutor {
         this.relAnalyzer = relAnalyzer;
         this.sessionContext = sessionContext;
         this.transactionContext = new TransactionContext(sessionContext);
+        this.schemas = schemas;
         this.random = random;
         this.sqlPrinter = new SQLPrinter(new SymbolPrinter(functions));
     }
@@ -659,6 +663,10 @@ public class SQLExecutor {
 
     public <T> T plan(String statement) {
         return plan(statement, UUID.randomUUID(), 0, 0);
+    }
+
+    public Schemas schemas() {
+        return schemas;
     }
 
     public SessionContext getSessionContext() {
