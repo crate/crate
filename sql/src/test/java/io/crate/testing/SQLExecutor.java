@@ -394,6 +394,7 @@ public class SQLExecutor {
          * Note that these tables won't be part of the clusterState.
          * Using {@link #addTable(String)} is preferred for this reason
          */
+        @Deprecated
         public Builder addDocTable(DocTableInfo table) {
             docTables.put(table.ident(), table);
             return this;
