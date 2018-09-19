@@ -29,20 +29,17 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.internal.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
+public final class FunctionIdent implements Comparable<FunctionIdent>, Writeable {
 
-    private String schema;
-    private String name;
-    private List<DataType> argumentTypes;
-
-    public FunctionIdent() {
-    }
+    private final String schema;
+    private final String name;
+    private final List<DataType> argumentTypes;
 
     public FunctionIdent(@Nullable String schema, String name, List<DataType> argumentTypes) {
         this.schema = schema;
@@ -51,6 +48,7 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
     }
 
     public FunctionIdent(String name, List<DataType> argumentTypes) {
+        this.schema = null;
         this.name = name;
         this.argumentTypes = argumentTypes;
     }
@@ -106,13 +104,11 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
     }
 
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public FunctionIdent(StreamInput in) throws IOException {
         schema = in.readOptionalString();
         name = in.readString();
         int numTypes = in.readVInt();
         argumentTypes = new ArrayList<>(numTypes);
-
         for (int i = 0; i < numTypes; i++) {
             argumentTypes.add(DataTypes.fromStream(in));
         }
@@ -123,7 +119,6 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
         out.writeOptionalString(schema);
         out.writeString(name);
         out.writeVInt(argumentTypes.size());
-
         for (DataType argumentType : argumentTypes) {
             DataTypes.toStream(argumentType, out);
         }
