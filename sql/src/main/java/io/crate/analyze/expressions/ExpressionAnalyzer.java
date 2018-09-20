@@ -29,7 +29,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
 import io.crate.analyze.DataTypeAnalyzer;
-import io.crate.analyze.NegativeLiteralVisitor;
+import io.crate.analyze.NegateLiterals;
 import io.crate.analyze.SubscriptContext;
 import io.crate.analyze.SubscriptValidator;
 import io.crate.analyze.relations.FieldProvider;
@@ -152,7 +152,6 @@ public class ExpressionAnalyzer {
             .put(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL)
             .build();
 
-    private static final NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
     private final TransactionContext transactionContext;
     private final java.util.function.Function<ParameterExpression, Symbol> convertParamFunction;
     private final FieldProvider<?> fieldProvider;
@@ -696,10 +695,9 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitNegativeExpression(NegativeExpression node, ExpressionAnalysisContext context) {
-            // in statements like "where x = -1" the  positive (expression)IntegerLiteral (1)
-            // is just wrapped inside a negativeExpression
-            // the visitor here swaps it to getBuiltin -1 in a (symbol)LiteralInteger
-            return NEGATIVE_LITERAL_VISITOR.process(process(node.getValue(), context), null);
+            // `-1` in the AST is represented as NegativeExpression(LiteralInteger)
+            // -> negate the inner value
+            return NegateLiterals.negate(process(node.getValue(), context));
         }
 
         @Override
