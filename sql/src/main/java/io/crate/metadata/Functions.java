@@ -196,12 +196,15 @@ public class Functions {
         return impl;
     }
 
-    public static UnsupportedOperationException raiseUnknownFunction(String name, List<? extends FuncArg> arguments) {
+    public static UnsupportedOperationException raiseUnknownFunction(@Nullable String suppliedSchema,
+                                                                     String name,
+                                                                     List<? extends FuncArg> arguments) {
         StringJoiner joiner = new StringJoiner(", ");
         for (FuncArg arg : arguments) {
             joiner.add(arg.valueType().toString());
         }
-        throw new UnsupportedOperationException("unknown function: " + name + '(' + joiner.toString() + ')');
+        String prefix = suppliedSchema == null ? "" : suppliedSchema + '.';
+        throw new UnsupportedOperationException("unknown function: " + prefix + name + '(' + joiner.toString() + ')');
     }
 
     private static class GeneratedFunctionResolver implements FunctionResolver {

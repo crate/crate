@@ -69,5 +69,8 @@ Changes
 Fixes
 =====
 
+- Calling an unknown user defined function now results in an appropriate error
+  message instead of a ``NullPointerException``.
+
 - Fixed processing of the ``endpoint``, ``protocol`` and ``max_retries`` S3
   repository parameters.

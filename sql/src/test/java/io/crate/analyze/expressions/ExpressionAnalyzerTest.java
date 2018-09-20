@@ -387,4 +387,10 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage("Cannot cast long to type integer_array");
         executor.analyze("select * from tarr where xs = ANY([10, 20])");
     }
+
+    @Test
+    public void testCallingUnknownFunctionWithExplicitSchemaRaisesNiceError() {
+        expectedException.expectMessage("unknown function: foo.bar(long)");
+        executor.analyze("select foo.bar(1)");
+    }
 }
