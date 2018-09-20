@@ -29,6 +29,20 @@ public class NegativeExpression
         this.value = value;
     }
 
+    /**
+     * @return o * -1
+     * @throws IllegalArgumentException if o is neither a Long nor a Doube
+     */
+    public static Number negate(Object o) {
+        if (o instanceof Long) {
+            return -1L * (long) o;
+        } else if (o instanceof Double) {
+            return -1 * (double) o;
+        } else {
+            throw new IllegalArgumentException("Can't negate " + o);
+        }
+    }
+
     public Expression getValue() {
         return value;
     }

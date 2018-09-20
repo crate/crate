@@ -120,14 +120,7 @@ public class ExpressionToObjectVisitor extends AstVisitor<Object, Row> {
     @Override
     protected Object visitNegativeExpression(NegativeExpression node, Row context) {
         Object o = process(node.getValue(), context);
-        if (o instanceof Long) {
-            return -1L * (Long) o;
-        } else if (o instanceof Double) {
-            return -1 * (Double) o;
-        } else {
-            throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "Can't handle negative of %s.", node.getValue()));
-        }
+        return NegativeExpression.negate(o);
     }
 
     @Override

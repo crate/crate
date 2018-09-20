@@ -44,10 +44,10 @@ public class ExpressionToNumberVisitor extends AstVisitor<Number, Row> {
         return INSTANCE.process(node, parameters);
     }
 
-    private Number parseString(String value) {
+    private static Number parseString(String value) {
         Number stringNum;
         try {
-            stringNum = Long.parseLong(value);
+            stringNum = Long.valueOf(value);
         } catch (NumberFormatException e) {
             try {
                 stringNum = Double.valueOf(value);
@@ -97,14 +97,7 @@ public class ExpressionToNumberVisitor extends AstVisitor<Number, Row> {
     @Override
     protected Number visitNegativeExpression(NegativeExpression node, Row context) {
         Number n = process(node.getValue(), context);
-        if (n instanceof Long) {
-            return -1L * (Long) n;
-        } else if (n instanceof Double) {
-            return -1 * (Double) n;
-        } else {
-            throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "invalid number %s", node.getValue()));
-        }
+        return NegativeExpression.negate(n);
     }
 
     @Override
