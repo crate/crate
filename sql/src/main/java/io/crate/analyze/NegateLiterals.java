@@ -21,11 +21,11 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.scalar.arithmetic.NegateFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.SymbolFormatter;
-import io.crate.expression.scalar.arithmetic.NegateFunction;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
@@ -33,7 +33,16 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 
-public class NegativeLiteralVisitor extends SymbolVisitor<Void, Symbol> {
+public final class NegateLiterals extends SymbolVisitor<Void, Symbol> {
+
+    private static final NegateLiterals INSTANCE = new NegateLiterals();
+
+    private NegateLiterals() {
+    }
+
+    public static Symbol negate(Symbol symbol) {
+        return INSTANCE.process(symbol, null);
+    }
 
     @Override
     public Literal visitLiteral(Literal symbol, Void context) {
