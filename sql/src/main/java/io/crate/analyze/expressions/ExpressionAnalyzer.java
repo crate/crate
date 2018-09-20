@@ -936,10 +936,10 @@ public class ExpressionAnalyzer {
                 funcImpl = functions.getUserDefinedByArgs(defaultSchema, functionName, arguments);
             }
         } else {
-            return functions.getUserDefinedByArgs(schemaProvided, functionName, arguments);
+            funcImpl = functions.getUserDefinedByArgs(schemaProvided, functionName, arguments);
         }
         if (funcImpl == null) {
-            throw Functions.createUnknownFunctionExceptionFromArgs(functionName, arguments);
+            throw Functions.raiseUnknownFunction(schemaProvided, functionName, arguments);
         }
         return funcImpl;
     }
