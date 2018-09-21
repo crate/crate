@@ -54,15 +54,6 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
         return new SessionContext(0, Option.NONE, User.CRATE_USER, s -> { }, e -> { });
     }
 
-    public SessionContext(User user,
-                          StatementAuthorizedValidator statementAuthorizedValidator,
-                          ExceptionAuthorizedValidator exceptionAuthorizedValidator,
-                          String... searchPath) {
-        this(0, Option.NONE, user,
-            statementAuthorizedValidator, exceptionAuthorizedValidator, searchPath);
-
-    }
-
     public SessionContext(int defaultLimit,
                           Set<Option> options,
                           User user,

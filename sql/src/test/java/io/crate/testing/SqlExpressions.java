@@ -22,6 +22,7 @@
 
 package io.crate.testing;
 
+import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
@@ -94,7 +95,7 @@ public class SqlExpressions {
         }
         injector = modulesBuilder.createInjector();
         functions = injector.getInstance(Functions.class);
-        transactionContext = new TransactionContext(new SessionContext(user, s -> {}, e -> {}));
+        transactionContext = new TransactionContext(new SessionContext(0, Option.NONE, user, s -> {}, e -> {}));
         expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             transactionContext,

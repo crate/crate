@@ -24,6 +24,7 @@ package io.crate.testing;
 
 import com.google.common.base.Preconditions;
 import io.crate.Constants;
+import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
@@ -363,7 +364,7 @@ public class SQLExecutor {
                     tableStats
                 ),
                 relationAnalyzer,
-                new SessionContext(user, s -> {}, t -> {}, searchPath),
+                new SessionContext(0, Option.NONE, user, s -> {}, t -> {}, searchPath),
                 schemas,
                 random
             );
