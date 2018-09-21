@@ -28,7 +28,6 @@ import io.crate.auth.user.StatementAuthorizedValidator;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -41,8 +40,6 @@ import org.elasticsearch.transport.NodeDisconnectedException;
 
 import javax.annotation.Nullable;
 import java.util.Set;
-
-import static io.crate.auth.user.User.CRATE_USER;
 
 
 @Singleton
@@ -93,24 +90,11 @@ public class SQLOperations {
     }
 
     public Session newSystemSession() {
-        return createSession(new SessionContext(
-            CRATE_USER,
-            userManager.getStatementValidator(CRATE_USER, SysSchemaInfo.NAME),
-            userManager.getExceptionValidator(CRATE_USER, SysSchemaInfo.NAME),
-            SysSchemaInfo.NAME)
-        );
+        return createSession(SessionContext.systemSessionContext());
     }
 
     public Session createSession(@Nullable String defaultSchema, User user) {
-        StatementAuthorizedValidator statementValidator = userManager.getStatementValidator(user, defaultSchema);
-        ExceptionAuthorizedValidator exceptionValidator = userManager.getExceptionValidator(user, defaultSchema);
-        SessionContext sessionContext;
-        if (defaultSchema == null) {
-            sessionContext = new SessionContext(user, statementValidator, exceptionValidator);
-        } else {
-            sessionContext = new SessionContext(user, statementValidator, exceptionValidator, defaultSchema);
-        }
-        return createSession(sessionContext);
+        return createSession(defaultSchema, user, Option.NONE, 0);
     }
 
     public Session createSession(@Nullable String defaultSchema, User user, Set<Option> options, int defaultLimit) {

@@ -23,7 +23,6 @@
 package io.crate.metadata.settings.session;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.auth.user.User;
 import io.crate.data.Row;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.StringLiteral;
@@ -41,14 +40,14 @@ public class SessionSettingRegistryTest {
 
     @Test
     public void testSemiJoinSessionSetting() {
-        SessionContext sessionContext = new SessionContext(User.CRATE_USER, x -> {}, x -> {});
+        SessionContext sessionContext = SessionContext.systemSessionContext();
         SessionSettingApplier applier = SessionSettingRegistry.getApplier(SessionSettingRegistry.SEMI_JOIN_KEY);
         assertBooleanNonEmptySetting(sessionContext, sessionContext::getSemiJoinsRewriteEnabled, applier, false);
     }
 
     @Test
     public void testHashJoinSessionSetting() {
-        SessionContext sessionContext = new SessionContext(User.CRATE_USER, x -> {}, x -> {});
+        SessionContext sessionContext = SessionContext.systemSessionContext();
         SessionSettingApplier applier = SessionSettingRegistry.getApplier(SessionSettingRegistry.HASH_JOIN_KEY);
         assertBooleanNonEmptySetting(sessionContext, sessionContext::isHashJoinEnabled, applier, true);
     }
