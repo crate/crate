@@ -34,6 +34,7 @@ import io.crate.auth.user.User;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Field;
+import io.crate.metadata.SearchPath;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.shade.org.postgresql.util.PGobject;
@@ -82,9 +83,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static io.crate.action.sql.Session.UNNAMED;
-import static io.crate.metadata.Schemas.DOC_SCHEMA_NAME;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -103,18 +105,18 @@ public class SQLTransportExecutor {
 
     private final ClientProvider clientProvider;
 
-    private String defaultSchema;
+    private SearchPath searchPath = SearchPath.pathWithPGCatalogAndDoc();
 
     public SQLTransportExecutor(ClientProvider clientProvider) {
         this.clientProvider = clientProvider;
     }
 
-    public String getDefaultSchema() {
-        return defaultSchema;
+    public String getCurrentSchema() {
+        return searchPath.currentSchema();
     }
 
-    public void setDefaultSchema(String defaultSchema) {
-        this.defaultSchema = defaultSchema;
+    public void setSearchPath(String... searchPath) {
+        this.searchPath = SearchPath.createSearchPathFrom(searchPath);
     }
 
     public SQLResponse exec(String statement) {
@@ -149,9 +151,14 @@ public class SQLTransportExecutor {
         Random random = RandomizedContext.current().getRandom();
 
         List<String> sessionList = new ArrayList<>();
-        if (defaultSchema != null && !defaultSchema.equals(DOC_SCHEMA_NAME)) {
-            sessionList.add("set search_path='" + defaultSchema + "'");
-        }
+        sessionList.add("set search_path to "
+                        + StreamSupport.stream(searchPath.spliterator(), false)
+                            // explicitly setting the pg catalog schema will make it the current schema so attempts to
+                            // create un-fully-qualified relations will fail. we filter it out and will implicitly
+                            // remain the first in the search path.
+                            .filter(s -> !s.equals(SearchPath.PG_CATALOG_SCHEMA))
+                            .collect(Collectors.joining(", "))
+        );
 
         if (config.isSemiJoinsEnabled()) {
             sessionList.add("set enable_semijoin=true");
@@ -195,7 +202,7 @@ public class SQLTransportExecutor {
 
     public Session newSession() {
         return clientProvider.sqlOperations().createSession(
-            defaultSchema,
+            searchPath.currentSchema(),
             User.CRATE_USER,
             Option.NONE,
             DEFAULT_SOFT_LIMIT

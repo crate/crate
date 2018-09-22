@@ -121,7 +121,7 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
     }
 
     private void createSnapshot(String snapshotName, String table) {
-        String defaultSchema = sqlExecutor.getDefaultSchema();
+        String defaultSchema = sqlExecutor.getCurrentSchema();
         CreateSnapshotResponse createSnapshotResponse = client().admin().cluster()
             .prepareCreateSnapshot(REPOSITORY_NAME, snapshotName)
             .setWaitForCompletion(true).setIndices(getFqn(table)).get();

@@ -381,7 +381,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         GetIndexTemplatesResponse response = client().admin().indices()
-            .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getDefaultSchema(), "numbers"))
+            .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers"))
             .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);
@@ -417,7 +417,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         GetIndexTemplatesResponse response = client().admin().indices()
-            .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getDefaultSchema(), "numbers"))
+            .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers"))
             .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);
@@ -452,7 +452,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         GetIndexTemplatesResponse templateResponse = client().admin().indices()
-            .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getDefaultSchema(), "numbers"))
+            .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers"))
             .execute().actionGet();
         assertThat(templateResponse.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = templateResponse.getIndexTemplates().get(0);
@@ -574,7 +574,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table dynamic_table");
         ensureYellow();
         GetIndexTemplatesResponse response = client().admin().indices()
-            .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getDefaultSchema(), "dynamic_table"))
+            .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "dynamic_table"))
             .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);

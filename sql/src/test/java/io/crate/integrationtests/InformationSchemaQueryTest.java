@@ -42,7 +42,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
         ensureYellow();
         client().admin().indices().close(new CloseIndexRequest(getFqn("t3"))).actionGet();
 
-        execute("select * from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getDefaultSchema()});
+        execute("select * from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
         assertEquals(2L, response.rowCount());
         execute("select * from information_schema.columns where table_name = 't3'");
         assertEquals(2, response.rowCount());

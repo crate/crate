@@ -348,7 +348,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
             ObjectObjectHashMap<RelationName, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
             newStats.put(
-                new RelationName(sqlExecutor.getDefaultSchema(), "t"),
+                new RelationName(sqlExecutor.getCurrentSchema(), "t"),
                 new TableStats.Stats(100, 64));
             tableStats.updateTableStats(newStats);
         }

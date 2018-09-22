@@ -67,7 +67,7 @@ public class JavaScriptUDFIntegrationTest extends SQLTransportIntegrationTest {
     public void testJavascriptFunction() throws Exception {
         execute("CREATE FUNCTION subtract_js(LONG, LONG) " +
                 "RETURNS LONG LANGUAGE JAVASCRIPT AS 'function subtract_js(x, y) { return x-y; }'");
-        assertFunctionIsCreatedOnAll(sqlExecutor.getDefaultSchema(), "subtract_js", ImmutableList.of(DataTypes.LONG, DataTypes.LONG));
+        assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "subtract_js", ImmutableList.of(DataTypes.LONG, DataTypes.LONG));
         execute("SELECT SUBTRACT_JS(a, b) FROM test ORDER BY a ASC");
         assertThat(response.rowCount(), is(2L));
         assertThat(response.rows()[0][0], is(2L));

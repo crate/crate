@@ -92,7 +92,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithOrphanedPartitions() throws Exception {
         String partitionName = IndexParts.toIndexName(
-            sqlExecutor.getDefaultSchema(),
+            sqlExecutor.getCurrentSchema(),
             "test",
             PartitionName.encodeIdent(singletonList(new BytesRef("foo")))
         );
@@ -118,7 +118,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
     @UseJdbc(0) // create table has no rowcount
     public void testCreateTableWithOrphanedAlias() throws Exception {
         String partitionName = IndexParts.toIndexName(
-            sqlExecutor.getDefaultSchema(), "test", PartitionName.encodeIdent(singletonList(new BytesRef("foo"))));
+            sqlExecutor.getCurrentSchema(), "test", PartitionName.encodeIdent(singletonList(new BytesRef("foo"))));
         client().admin().indices().prepareCreate(partitionName)
             .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
             .setSettings(TEST_SETTINGS)
@@ -161,7 +161,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         ensureYellow();
 
-        String schema= sqlExecutor.getDefaultSchema();
+        String schema= sqlExecutor.getCurrentSchema();
         String partitionName = IndexParts.toIndexName(
             schema, "t", PartitionName.encodeIdent(ImmutableList.of(new BytesRef("1"))));
         PlanForNode plan = plan("delete from t where id = ?");

@@ -106,7 +106,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         t.start();
 
         PartitionName partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getDefaultSchema(), "t"),
+            new RelationName(sqlExecutor.getCurrentSchema(), "t"),
             Collections.singletonList(new BytesRef("a")));
         final String indexName = partitionName.asIndexName();
 
@@ -297,7 +297,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
 
         final CountDownLatch deleteLatch = new CountDownLatch(1);
         final String partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getDefaultSchema(), "parted"),
+            new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
             Collections.singletonList(new BytesRef(String.valueOf(idToDelete)))
         ).asIndexName();
         final Object[] deleteArgs = new Object[]{idToDelete};

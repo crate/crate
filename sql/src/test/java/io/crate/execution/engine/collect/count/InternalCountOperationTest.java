@@ -59,7 +59,7 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         assertThat(countOperation.count(index, 0, Literal.BOOLEAN_TRUE), is(3L));
 
         Schemas schemas = internalCluster().getInstance(Schemas.class);
-        TableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getDefaultSchema(), "t"));
+        TableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t"));
         TableRelation tableRelation = new TableRelation(tableInfo);
         Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName(tableInfo.ident().name()), tableRelation);
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);
