@@ -25,14 +25,14 @@ package io.crate.metadata.doc;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -44,6 +44,7 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import javax.script.ScriptException;
 
+import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
 import static io.crate.testing.TestingHelpers.getFunctions;
 
 public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
@@ -110,9 +111,9 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
         udfService.updateImplementations("my_schema", metaData.functionsMetaData().stream());
 
-        assertThat(functions.getUserDefinedByArgs("my_schema", "valid", ImmutableList.of()), Matchers.notNullValue());
+        assertThat(functions.resolveUserDefinedByArgs("my_schema", "valid", ImmutableList.of(), pathWithPGCatalogAndDoc()), Matchers.notNullValue());
 
-        assertThat(functions.getUserDefinedByArgs("my_schema", "invalid", ImmutableList.of()), Matchers.nullValue());
+        assertThat(functions.resolveUserDefinedByArgs("my_schema", "invalid", ImmutableList.of(), pathWithPGCatalogAndDoc()), Matchers.nullValue());
     }
 
     @Test

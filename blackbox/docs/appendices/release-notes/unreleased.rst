@@ -41,9 +41,9 @@ Changes
 =======
 
 - Expand the ``search_path`` setting to accept a list of schemas that will be
-  searched when a relation is referenced without specifying a schema. The
-  system ``pg_catalog`` schema is implicitly included as the first one in the
-  path.
+  searched when a relation (table, view or user defined function) is referenced
+  without specifying a schema. The system ``pg_catalog`` schema is implicitly
+  included as the first one in the path.
 
 - Improved the handling of function expressions inside subscripts used on
   object columns. This allows expressions like ``obj['x' || 'x']`` to be used.

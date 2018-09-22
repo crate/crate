@@ -137,7 +137,7 @@ public class Functions {
     public FunctionImplementation getUserDefined(String schema,
                                                  String name,
                                                  List<DataType> argTypes) throws UnsupportedOperationException {
-        FunctionResolver resolver = lookupUdfFunctionResolver(schema, name, argTypes);
+        FunctionResolver resolver = lookupUdfFunctionResolver(schema, name);
         if (resolver == null) {
             return null;
         }
@@ -150,13 +150,16 @@ public class Functions {
      *
      * @param name The function name.
      * @param arguments The function arguments.
+     * @param searchPath The {@link SearchPath} against which to try to resolve the function if it is not identified by
+     *                   a fully qualifed name (ie. `schema.functionName`)
      * @return a function implementation.
      */
     @Nullable
-    public FunctionImplementation getUserDefinedByArgs(String schema,
-                                                       String name,
-                                                       List<? extends FuncArg> arguments) throws UnsupportedOperationException {
-        FunctionResolver resolver = lookupUdfFunctionResolver(schema, name, arguments);
+    public FunctionImplementation resolveUserDefinedByArgs(@Nullable String schema,
+                                                           String name,
+                                                           List<? extends FuncArg> arguments,
+                                                           SearchPath searchPath) throws UnsupportedOperationException {
+        FunctionResolver resolver = lookupUdfFunctionResolver(schema, name, searchPath);
         if (resolver == null) {
             return null;
         }
@@ -169,12 +172,28 @@ public class Functions {
     }
 
     @Nullable
-    private FunctionResolver lookupUdfFunctionResolver(String schema, String name, List<?> arguments) {
+    private FunctionResolver lookupUdfFunctionResolver(String schema, String name) {
         Map<String, FunctionResolver> functionResolvers = udfResolversBySchema.get(schema);
         if (functionResolvers == null) {
             return null;
         }
         return functionResolvers.get(name);
+    }
+
+    @Nullable
+    private FunctionResolver lookupUdfFunctionResolver(@Nullable String schema, String name, Iterable<String> searchPath) {
+        if (schema != null) {
+            return lookupUdfFunctionResolver(schema, name);
+        } else {
+            FunctionResolver functionResolver = null;
+            for (String pathSchema : searchPath) {
+                functionResolver = lookupUdfFunctionResolver(pathSchema, name);
+                if (functionResolver != null) {
+                    break;
+                }
+            }
+            return functionResolver;
+        }
     }
 
     /**

@@ -185,17 +185,13 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return null;
     }
 
-    /**
-     * @throws SchemaUnknownException if the ident contains schema information and the schema is unknown.
-     */
     @Nullable
     private static String schemaName(QualifiedName ident) {
         assert ident.getParts().size() <
                3 : "When identifying schemas or tables a qualified name should not have more the 2 parts";
         List<String> parts = ident.getParts();
         if (parts.size() == 2) {
-            String identSchema = parts.get(0);
-            return identSchema;
+            return parts.get(0);
         } else {
             return null;
         }

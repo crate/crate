@@ -70,6 +70,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.ExpressionFormatter;
@@ -923,10 +924,10 @@ public class ExpressionAnalyzer {
                                                        TransactionContext transactionContext) {
         FunctionImplementation funcImpl = getFuncImpl(
             schema,
-            transactionContext.sessionContext().searchPath().currentSchema(),
             functionName,
             arguments,
-            functions);
+            functions,
+            transactionContext.sessionContext().searchPath());
 
         FunctionInfo functionInfo = funcImpl.info();
         if (functionInfo.type() == FunctionInfo.Type.AGGREGATE) {
@@ -942,18 +943,18 @@ public class ExpressionAnalyzer {
 
 
     private static FunctionImplementation getFuncImpl(@Nullable String schemaProvided,
-                                                      String defaultSchema,
                                                       String functionName,
                                                       List<? extends FuncArg> arguments,
-                                                      Functions functions) {
+                                                      Functions functions,
+                                                      SearchPath searchPath) {
         FunctionImplementation funcImpl;
         if (schemaProvided == null) {
             funcImpl = functions.getBuiltinByArgs(functionName, arguments);
             if (funcImpl == null) {
-                funcImpl = functions.getUserDefinedByArgs(defaultSchema, functionName, arguments);
+                funcImpl = functions.resolveUserDefinedByArgs(null, functionName, arguments, searchPath);
             }
         } else {
-            funcImpl = functions.getUserDefinedByArgs(schemaProvided, functionName, arguments);
+            funcImpl = functions.resolveUserDefinedByArgs(schemaProvided, functionName, arguments, searchPath);
         }
         if (funcImpl == null) {
             throw Functions.raiseUnknownFunction(schemaProvided, functionName, arguments);
