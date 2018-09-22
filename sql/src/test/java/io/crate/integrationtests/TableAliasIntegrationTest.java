@@ -157,7 +157,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         String tableAlias = tableAliasSetup();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "Relation '%s.mytablealias' already exists.", sqlExecutor.getDefaultSchema()));
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "Relation '%s.mytablealias' already exists.", sqlExecutor.getCurrentSchema()));
 
         execute(String.format(Locale.ENGLISH, "create table %s (content string index off)", tableAlias));
     }
@@ -167,7 +167,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "The relation \"%s.mytablealias\" doesn't support or allow DROP " +
-                                        "operations, as it is read-only.", sqlExecutor.getDefaultSchema()));
+                                        "operations, as it is read-only.", sqlExecutor.getCurrentSchema()));
         execute(String.format(Locale.ENGLISH, "drop table %s", tableAlias));
     }
 
@@ -176,7 +176,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "The relation \"%s.mytablealias\" doesn't support or allow INSERT " +
-                                        "operations, as it is read-only.", sqlExecutor.getDefaultSchema()));
+                                        "operations, as it is read-only.", sqlExecutor.getCurrentSchema()));
 
         execute(String.format(Locale.ENGLISH, "copy %s from '/tmp/file.json'", tableAlias));
 
@@ -187,7 +187,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "The relation \"%s.mytablealias\" doesn't support or allow INSERT " +
-                                        "operations, as it is read-only.", sqlExecutor.getDefaultSchema()));
+                                        "operations, as it is read-only.", sqlExecutor.getCurrentSchema()));
         execute(
             String.format(Locale.ENGLISH, "insert into %s (id, content) values (?, ?)", tableAlias),
             new Object[]{1, "bla"}
@@ -199,7 +199,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "The relation \"%s.mytablealias\" doesn't support or allow UPDATE " +
-                                        "operations, as it is read-only.", sqlExecutor.getDefaultSchema()));
+                                        "operations, as it is read-only.", sqlExecutor.getCurrentSchema()));
 
         execute(String.format(Locale.ENGLISH, "update %s set id=?, content=?", tableAlias), new Object[]{1, "bla"});
     }
@@ -209,7 +209,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format("The relation \"%s.mytablealias\" doesn't support or allow DELETE " +
-                                        "operations, as it is read-only.", sqlExecutor.getDefaultSchema()));
+                                        "operations, as it is read-only.", sqlExecutor.getCurrentSchema()));
 
         execute(String.format(Locale.ENGLISH, "delete from %s where id=?", tableAlias), new Object[]{1});
     }
@@ -233,7 +233,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Long) response.rows()[0][0], is(3L));
 
         GetIndexTemplatesResponse indexTemplatesResponse =
-            client().admin().indices().prepareGetTemplates(String.format(Locale.ENGLISH, "%s..partitioned.t.", sqlExecutor.getDefaultSchema()))
+            client().admin().indices().prepareGetTemplates(String.format(Locale.ENGLISH, "%s..partitioned.t.", sqlExecutor.getCurrentSchema()))
                 .execute().actionGet();
         IndexTemplateMetaData indexTemplateMetaData = indexTemplatesResponse.getIndexTemplates().get(0);
         AliasMetaData t = indexTemplateMetaData.aliases().get(getFqn("t"));

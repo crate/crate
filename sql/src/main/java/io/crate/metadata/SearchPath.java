@@ -36,7 +36,8 @@ import java.util.function.Consumer;
  */
 public final class SearchPath implements Iterable<String> {
 
-    static final String PG_CATALOG_SCHEMA = "pg_catalog";
+    private static final SearchPath PG_CATALOG_AND_DOC_PATH = new SearchPath();
+    public static final String PG_CATALOG_SCHEMA = "pg_catalog";
     private final boolean pgCatalogIsSetExplicitly;
     private final List<String> searchPath;
 
@@ -49,7 +50,7 @@ public final class SearchPath implements Iterable<String> {
     }
 
     public static SearchPath pathWithPGCatalogAndDoc() {
-        return new SearchPath();
+        return PG_CATALOG_AND_DOC_PATH;
     }
 
     private SearchPath() {
@@ -92,4 +93,5 @@ public final class SearchPath implements Iterable<String> {
     public Spliterator<String> spliterator() {
         return searchPath.spliterator();
     }
+
 }

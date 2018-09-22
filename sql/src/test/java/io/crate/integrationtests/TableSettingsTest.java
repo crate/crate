@@ -127,7 +127,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
         // One more column exceeds the limit
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
-            "Limit of total fields [%d] in index [%s.test] has been exceeded", totalFields + 1, sqlExecutor.getDefaultSchema()));
+            "Limit of total fields [%d] in index [%s.test] has been exceeded", totalFields + 1, sqlExecutor.getCurrentSchema()));
         execute("alter table test add column new_column2 int");
     }
 

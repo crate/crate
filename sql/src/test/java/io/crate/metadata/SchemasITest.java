@@ -71,7 +71,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
                 ") clustered into 10 shards with (number_of_replicas=1)");
         ensureYellow();
 
-        DocTableInfo ti = schemas.getTableInfo(new RelationName(sqlExecutor.getDefaultSchema(), "t1"));
+        DocTableInfo ti = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t1"));
         assertThat(ti.ident().name(), is("t1"));
 
         assertThat(ti.columns().size(), is(3));
@@ -112,8 +112,8 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         client().admin().indices().aliases(request).actionGet();
         ensureYellow();
 
-        DocTableInfo terminatorTable = schemas.getTableInfo(new RelationName(sqlExecutor.getDefaultSchema(), "terminator"));
-        DocTableInfo entsafterTable = schemas.getTableInfo(new RelationName(sqlExecutor.getDefaultSchema(), "entsafter"));
+        DocTableInfo terminatorTable = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "terminator"));
+        DocTableInfo entsafterTable = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "entsafter"));
 
         assertNotNull(terminatorTable);
         assertFalse(terminatorTable.isAlias());
@@ -134,7 +134,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         client().admin().indices().aliases(request).actionGet();
         ensureYellow();
 
-        DocTableInfo entsafterTable = schemas.getTableInfo(new RelationName(sqlExecutor.getDefaultSchema(), "entsafter"));
+        DocTableInfo entsafterTable = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "entsafter"));
 
         assertNotNull(entsafterTable);
         assertThat(entsafterTable.concreteIndices().length, is(2));

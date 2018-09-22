@@ -144,7 +144,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         execute("select name, \"repository\", concrete_indices, state from sys.snapshots");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is(String.format("my_snapshot| my_repo| [%s.backmeup]| SUCCESS\n", sqlExecutor.getDefaultSchema())));
+            is(String.format("my_snapshot| my_repo| [%s.backmeup]| SUCCESS\n", sqlExecutor.getCurrentSchema())));
     }
 
     @Test
@@ -349,7 +349,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 "ignore_unavailable=true, " +
                 "wait_for_completion=true)");
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?",
-            new Object[]{sqlExecutor.getDefaultSchema()});
+            new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(TestingHelpers.printedTable(response.rows()), is(getFqn("my_table") + "\n"));
     }
 
@@ -365,7 +365,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 "wait_for_completion=true)");
 
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ? order by 1",
-            new Object[]{sqlExecutor.getDefaultSchema()});
+            new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(TestingHelpers.printedTable(response.rows()), is(getFqn("my_table_1") + "\n" + getFqn("my_table_2") + "\n"));
     }
 
@@ -387,7 +387,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_parted_1 with (" +
                 "wait_for_completion=true)");
 
-        execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getDefaultSchema()});
+        execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(TestingHelpers.printedTable(response.rows()), is(getFqn("my_parted_1") + "\n"));
     }
 
@@ -402,7 +402,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("RESTORE SNAPSHOT " + snapshotName() + " ALL with (wait_for_completion=true)");
         ensureYellow();
 
-        execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getDefaultSchema()});
+        execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(TestingHelpers.printedTable(response.rows()), is(getFqn("employees") + "\n"));
     }
 
@@ -417,14 +417,14 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE employees with (wait_for_completion=true)");
         ensureYellow();
 
-        execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getDefaultSchema()});
+        execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(TestingHelpers.printedTable(response.rows()), is(getFqn("employees") + "\n"));
     }
 
     @Test
     public void testResolveUnknownTableFromSnapshot() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("ResourceNotFoundException: [%s..partitioned.employees.] template not found", sqlExecutor.getDefaultSchema()));
+        expectedException.expectMessage(String.format("ResourceNotFoundException: [%s..partitioned.employees.] template not found", sqlExecutor.getCurrentSchema()));
         execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
         ensureYellow();
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE employees with (wait_for_completion=true)");

@@ -218,12 +218,12 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     public String getFqn(String tableName) {
-        return getFqn(sqlExecutor.getDefaultSchema(), tableName);
+        return getFqn(sqlExecutor.getCurrentSchema(), tableName);
     }
 
     @Before
-    public void setDefaultSchema() throws Exception {
-        sqlExecutor.setDefaultSchema(RandomizedSchema());
+    public void setSearchPath() throws Exception {
+        sqlExecutor.setSearchPath(RandomizedSchema());
     }
 
     @After
@@ -433,7 +433,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
         ParameterContext parameterContext = new ParameterContext(Row.EMPTY, Collections.<Row>emptyList());
         SessionContext sessionContext = new SessionContext(
-            0, Option.NONE, User.CRATE_USER, x -> {}, x -> {}, sqlExecutor.getDefaultSchema());
+            0, Option.NONE, User.CRATE_USER, x -> {}, x -> {}, sqlExecutor.getCurrentSchema());
         TransactionContext transactionContext = new TransactionContext(sessionContext);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         PlannerContext plannerContext = new PlannerContext(
@@ -576,7 +576,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {
-        waitForMappingUpdateOnAll(new RelationName(sqlExecutor.getDefaultSchema(), tableOrPartition), fieldNames);
+        waitForMappingUpdateOnAll(new RelationName(sqlExecutor.getCurrentSchema(), tableOrPartition), fieldNames);
     }
 
     /**
@@ -625,7 +625,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     Session createSessionOnNode(String nodeName) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, nodeName);
         return sqlOperations.createSession(
-            sqlExecutor.getDefaultSchema(), User.CRATE_USER, Option.NONE, DEFAULT_SOFT_LIMIT);
+            sqlExecutor.getCurrentSchema(), User.CRATE_USER, Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     /**

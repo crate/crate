@@ -22,8 +22,6 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.execution.ddl.tables.RenameTableRequest;
-import io.crate.execution.ddl.tables.TransportRenameTableAction;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -63,7 +61,7 @@ public class TransportRenameTableActionTest extends SQLTransportIntegrationTest 
 
     @Test
     public void testRenameOnOpenPartitionedTableThrowsException() throws Exception {
-        String defaultSchema = sqlExecutor.getDefaultSchema();
+        String defaultSchema = sqlExecutor.getCurrentSchema();
         RenameTableRequest request = new RenameTableRequest(RelationName.fromIndexName(getFqn("p1")),
             RelationName.fromIndexName(getFqn("p2")), true);
 
@@ -74,7 +72,7 @@ public class TransportRenameTableActionTest extends SQLTransportIntegrationTest 
 
     @Test
     public void testRenameOnPartitionedTableWithOpenPartitionsThrowsException() throws Exception {
-        String defaultSchema = sqlExecutor.getDefaultSchema();
+        String defaultSchema = sqlExecutor.getCurrentSchema();
         RenameTableRequest request = new RenameTableRequest(RelationName.fromIndexName(getFqn("p11")),
             RelationName.fromIndexName(getFqn("p12")), true);
 

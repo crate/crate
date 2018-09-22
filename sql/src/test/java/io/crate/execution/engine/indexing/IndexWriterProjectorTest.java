@@ -74,7 +74,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         InputCollectExpression sourceInput = new InputCollectExpression(1);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
-        RelationName bulkImportIdent = new RelationName(sqlExecutor.getDefaultSchema(), "bulk_import");
+        RelationName bulkImportIdent = new RelationName(sqlExecutor.getCurrentSchema(), "bulk_import");
         Settings tableSettings = TableSettingsResolver.get(clusterService().state().getMetaData(), bulkImportIdent, false);
         ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class);
         IndexWriterProjector writerProjector = new IndexWriterProjector(

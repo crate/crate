@@ -832,8 +832,8 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         Iterable<TableStats> tableStatsOnAllNodes = internalCluster().getInstances(TableStats.class);
         for (TableStats tableStats : tableStatsOnAllNodes) {
             ObjectObjectHashMap<RelationName, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
-            newStats.put(new RelationName(sqlExecutor.getDefaultSchema(), "t1"), new TableStats.Stats(4L, 16L));
-            newStats.put(new RelationName(sqlExecutor.getDefaultSchema(), "t2"), new TableStats.Stats(6L, 24L));
+            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new TableStats.Stats(4L, 16L));
+            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new TableStats.Stats(6L, 24L));
             tableStats.updateTableStats(newStats);
         }
 
@@ -861,9 +861,9 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         Iterable<TableStats> tableStatsOnAllNodes = internalCluster().getInstances(TableStats.class);
         for (TableStats tableStats : tableStatsOnAllNodes) {
             ObjectObjectHashMap<RelationName, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
-            newStats.put(new RelationName(sqlExecutor.getDefaultSchema(), "t1"), new TableStats.Stats(2L, 8L));
-            newStats.put(new RelationName(sqlExecutor.getDefaultSchema(), "t2"), new TableStats.Stats(3L, 12L));
-            newStats.put(new RelationName(sqlExecutor.getDefaultSchema(), "t3"), new TableStats.Stats(10L, 40L));
+            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new TableStats.Stats(2L, 8L));
+            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new TableStats.Stats(3L, 12L));
+            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t3"), new TableStats.Stats(10L, 40L));
             tableStats.updateTableStats(newStats);
         }
 
