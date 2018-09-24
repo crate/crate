@@ -23,7 +23,7 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
-import io.crate.expression.symbol.Value;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
@@ -50,7 +50,7 @@ public class CountAggregationTest extends AggregationTest {
 
     private FunctionImplementation getCount() {
         return functions.get(
-            null, "count", ImmutableList.of(new Value(DataTypes.INTEGER)), SearchPath.pathWithPGCatalogAndDoc());
+            null, "count", ImmutableList.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     @Test

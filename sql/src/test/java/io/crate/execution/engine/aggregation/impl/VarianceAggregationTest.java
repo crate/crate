@@ -23,7 +23,7 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.crate.expression.symbol.Value;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
@@ -49,7 +49,7 @@ public class VarianceAggregationTest extends AggregationTest {
     }
 
     private FunctionImplementation getVariance(DataType<?> type) {
-        return functions.get(null, "variance", ImmutableList.of(new Value(type)), SearchPath.pathWithPGCatalogAndDoc());
+        return functions.get(null, "variance", ImmutableList.of(Literal.of(type, null)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     @Test

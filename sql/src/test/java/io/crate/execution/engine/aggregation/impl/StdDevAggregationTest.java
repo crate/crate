@@ -23,7 +23,7 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.crate.expression.symbol.Value;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
@@ -44,7 +44,7 @@ public class StdDevAggregationTest extends AggregationTest {
         for (DataType<?> type : Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Arrays.asList(DataTypes.TIMESTAMP))) {
             // Return type is fixed to Double
             FunctionImplementation stddev = functions.get(
-                null, "stddev", ImmutableList.of(new Value(type)), SearchPath.pathWithPGCatalogAndDoc());
+                null, "stddev", ImmutableList.of(Literal.of(type, null)), SearchPath.pathWithPGCatalogAndDoc());
             assertEquals(DataTypes.DOUBLE, stddev.info().returnType());
         }
     }

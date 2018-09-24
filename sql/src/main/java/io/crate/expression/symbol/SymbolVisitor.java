@@ -60,10 +60,6 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(inputColumn, context);
     }
 
-    public R visitValue(Value symbol, C context) {
-        return visitSymbol(symbol, context);
-    }
-
     public R visitField(Field field, C context) {
         return visitSymbol(field, context);
     }

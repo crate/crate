@@ -24,9 +24,9 @@ package io.crate.execution.dsl.projection;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.expression.symbol.Value;
 import io.crate.metadata.RowGranularity;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -37,8 +37,8 @@ import java.util.List;
 
 public abstract class DMLProjection extends Projection {
 
-    private static final List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
-        new Value(DataTypes.LONG)  // number of rows updated
+    private static final List<Symbol> OUTPUTS = ImmutableList.of(
+        new InputColumn(0, DataTypes.LONG)  // number of rows updated
     );
 
     final Symbol uidSymbol;

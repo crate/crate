@@ -43,7 +43,7 @@ import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillableCallable;
-import io.crate.expression.symbol.Value;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -564,7 +564,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
             for (Functions function : functions) {
                 FunctionImplementation userDefined = function.get(
-                    schema, name, Lists2.copyAndReplace(argTypes, Value::new), searchPath);
+                    schema, name, Lists2.copyAndReplace(argTypes, t -> Literal.of(t, null)), searchPath);
                 assertThat(userDefined, is(notNullValue()));
             }
         }, 20L, TimeUnit.SECONDS);

@@ -39,7 +39,6 @@ import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.Value;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
@@ -111,11 +110,6 @@ public class TableIdentsExtractor {
 
         @Override
         public Collection<RelationName> visitInputColumn(InputColumn inputColumn, Void context) {
-            return Collections.emptyList();
-        }
-
-        @Override
-        public Collection<RelationName> visitValue(Value symbol, Void context) {
             return Collections.emptyList();
         }
 
