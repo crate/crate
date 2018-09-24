@@ -17,6 +17,17 @@ session. Currently, there is only one of these settings.
   The list of schemas that will be used to look for a relation that is
   referenced without a schema.
 
+  CrateDB will try to resolve an unqualified relation name against the
+  configured ``search path`` by iterating over the configured schemas in the
+  order they were declared in. The first matching relation in the
+  ``search path`` is used, or an error is reported if there is no match.
+
+  In order to configure the ``search path`` we use
+
+    .. code-block:: sql
+
+        SET search_path TO myschema, doc;
+
   This setting mirrors the PostgreSQL `search_path`_ setting.
 
   Some clients, which generally connect to CrateDB using the
