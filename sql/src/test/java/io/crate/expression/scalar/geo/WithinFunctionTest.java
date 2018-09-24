@@ -22,11 +22,12 @@
 package io.crate.expression.scalar.geo;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.exceptions.ConversionException;
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -34,7 +35,6 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 
@@ -122,12 +122,14 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testFirstArgumentWithInvalidType() throws Exception {
-        assertThat(getFunction(FNAME, DataTypes.LONG, DataTypes.GEO_POINT), is(nullValue()));
+        expectedException.expect(ConversionException.class);
+        getFunction(FNAME, DataTypes.LONG, DataTypes.GEO_POINT);
     }
 
     @Test
     public void testSecondArgumentWithInvalidType() throws Exception {
-        assertThat(getFunction(FNAME, DataTypes.GEO_POINT, DataTypes.LONG), is(nullValue()));
+        expectedException.expect(ConversionException.class);
+        getFunction(FNAME, DataTypes.GEO_POINT, DataTypes.LONG);
     }
 
     @Test

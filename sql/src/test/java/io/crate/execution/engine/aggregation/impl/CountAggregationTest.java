@@ -23,6 +23,9 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
+import io.crate.expression.symbol.Value;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -42,8 +45,12 @@ public class CountAggregationTest extends AggregationTest {
     @Test
     public void testReturnType() throws Exception {
         // Return type is fixed to Long
-        assertEquals(DataTypes.LONG,
-            functions.getBuiltin("count", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        assertEquals(DataTypes.LONG, getCount().info().returnType());
+    }
+
+    private FunctionImplementation getCount() {
+        return functions.get(
+            null, "count", ImmutableList.of(new Value(DataTypes.INTEGER)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     @Test

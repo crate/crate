@@ -25,8 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -42,7 +41,6 @@ import java.util.Arrays;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Mockito.mock;
 
 public class PercentileAggregationTest extends AggregationTest {
 
@@ -63,10 +61,10 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Before
     public void initFunctions() throws Exception {
-        singleArgPercentile = (PercentileAggregation) functions.getBuiltin(
-            NAME, Arrays.asList(DataTypes.DOUBLE, DataTypes.DOUBLE));
-        arraysPercentile = (PercentileAggregation) functions.getBuiltin(
-            NAME, Arrays.asList(DataTypes.DOUBLE, new ArrayType(DataTypes.DOUBLE)));
+        singleArgPercentile = (PercentileAggregation) functions.getQualified(
+            new FunctionIdent(NAME, Arrays.asList(DataTypes.DOUBLE, DataTypes.DOUBLE)));
+        arraysPercentile = (PercentileAggregation) functions.getQualified(
+            new FunctionIdent(NAME, Arrays.asList(DataTypes.DOUBLE, new ArrayType(DataTypes.DOUBLE))));
     }
 
     @Test
@@ -198,8 +196,8 @@ public class PercentileAggregationTest extends AggregationTest {
     @Test
     public void testSingleItemFractionsArgumentResultsInArrayResult() {
         ArrayType doubleArray = new ArrayType(DataTypes.DOUBLE);
-        AggregationFunction impl = (AggregationFunction<?, ?>) functions.getBuiltin(
-            NAME, Arrays.asList(DataTypes.LONG, doubleArray));
+        AggregationFunction impl = (AggregationFunction<?, ?>) functions.getQualified(
+            new FunctionIdent(NAME, Arrays.asList(DataTypes.LONG, doubleArray)));
 
         RamAccountingContext memoryCtx = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
         Object state = impl.newState(memoryCtx, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);

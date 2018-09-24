@@ -23,6 +23,9 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import io.crate.expression.symbol.Value;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -41,8 +44,12 @@ public class VarianceAggregationTest extends AggregationTest {
         for (DataType<?> type : Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Arrays.asList(DataTypes.TIMESTAMP))) {
             // Return type is fixed to Double
             assertEquals(DataTypes.DOUBLE,
-                functions.getBuiltin("variance", ImmutableList.of(type)).info().returnType());
+                getVariance(type).info().returnType());
         }
+    }
+
+    private FunctionImplementation getVariance(DataType<?> type) {
+        return functions.get(null, "variance", ImmutableList.of(new Value(type)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     @Test

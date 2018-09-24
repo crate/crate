@@ -23,13 +23,6 @@
 package io.crate.execution.engine.pipeline;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Aggregation;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
@@ -37,6 +30,7 @@ import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
@@ -49,13 +43,20 @@ import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingTopNProjector;
 import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.execution.TransportActionProvider;
+import io.crate.expression.InputFactory;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.expression.InputFactory;
-import io.crate.expression.operator.EqOperator;
+import io.crate.metadata.SearchPath;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
@@ -263,10 +264,11 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
     @Test
     public void testFilterProjection() throws Exception {
+        List<Symbol> arguments = Arrays.asList(Literal.of(2), new InputColumn(1));
         EqOperator op =
-            (EqOperator) functions.getBuiltin(EqOperator.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER));
+            (EqOperator) functions.get(null, EqOperator.NAME, arguments, SearchPath.pathWithPGCatalogAndDoc());
         Function function = new Function(
-            op.info(), Arrays.asList(Literal.of(2), new InputColumn(1)));
+            op.info(), arguments);
         FilterProjection projection = new FilterProjection(function,
             Arrays.asList(new InputColumn(0), new InputColumn(1)));
 

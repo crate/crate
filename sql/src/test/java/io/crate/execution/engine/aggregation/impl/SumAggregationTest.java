@@ -22,6 +22,9 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.expression.symbol.Value;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -36,16 +39,20 @@ public class SumAggregationTest extends AggregationTest {
     @Test
     public void testReturnType() throws Exception {
         DataType type = DataTypes.DOUBLE;
-        assertEquals(type, functions.getBuiltin("sum", ImmutableList.of(type)).info().returnType());
+        assertEquals(type, getSum(type).info().returnType());
 
         type = DataTypes.FLOAT;
-        assertEquals(type, functions.getBuiltin("sum", ImmutableList.of(type)).info().returnType());
+        assertEquals(type, getSum(type).info().returnType());
 
         type = DataTypes.LONG;
-        assertEquals(type, functions.getBuiltin("sum", ImmutableList.of(type)).info().returnType());
-        assertEquals(type, functions.getBuiltin("sum", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
-        assertEquals(type, functions.getBuiltin("sum", ImmutableList.of(DataTypes.SHORT)).info().returnType());
-        assertEquals(type, functions.getBuiltin("sum", ImmutableList.of(DataTypes.BYTE)).info().returnType());
+        assertEquals(type, getSum(type).info().returnType());
+        assertEquals(type, getSum(DataTypes.INTEGER).info().returnType());
+        assertEquals(type, getSum(DataTypes.SHORT).info().returnType());
+        assertEquals(type, getSum(DataTypes.BYTE).info().returnType());
+    }
+
+    private FunctionImplementation getSum(DataType type) {
+        return functions.get(null, "sum", ImmutableList.of(new Value(type)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     @Test

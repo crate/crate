@@ -22,6 +22,8 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -36,7 +38,8 @@ public class MaximumAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        assertEquals(DataTypes.INTEGER, functions.getBuiltin("max", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        FunctionImplementation max = functions.getQualified(new FunctionIdent("max", ImmutableList.of(DataTypes.INTEGER)));
+        assertEquals(DataTypes.INTEGER, max.info().returnType());
     }
 
     @Test

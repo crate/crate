@@ -57,7 +57,6 @@ import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.scalar.conditional.IfFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
@@ -70,7 +69,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.ExpressionFormatter;
@@ -922,11 +920,10 @@ public class ExpressionAnalyzer {
                                                        ExpressionAnalysisContext context,
                                                        Functions functions,
                                                        TransactionContext transactionContext) {
-        FunctionImplementation funcImpl = getFuncImpl(
+        FunctionImplementation funcImpl = functions.get(
             schema,
             functionName,
             arguments,
-            functions,
             transactionContext.sessionContext().searchPath());
 
         FunctionInfo functionInfo = funcImpl.info();
@@ -939,27 +936,6 @@ public class ExpressionAnalyzer {
             return funcImpl.normalizeSymbol(newFunction, transactionContext);
         }
         return newFunction;
-    }
-
-
-    private static FunctionImplementation getFuncImpl(@Nullable String schemaProvided,
-                                                      String functionName,
-                                                      List<? extends FuncArg> arguments,
-                                                      Functions functions,
-                                                      SearchPath searchPath) {
-        FunctionImplementation funcImpl;
-        if (schemaProvided == null) {
-            funcImpl = functions.getBuiltinByArgs(functionName, arguments);
-            if (funcImpl == null) {
-                funcImpl = functions.resolveUserDefinedByArgs(null, functionName, arguments, searchPath);
-            }
-        } else {
-            funcImpl = functions.resolveUserDefinedByArgs(schemaProvided, functionName, arguments, searchPath);
-        }
-        if (funcImpl == null) {
-            throw Functions.raiseUnknownFunction(schemaProvided, functionName, arguments);
-        }
-        return funcImpl;
     }
 
     private static void verifyTypesForMatch(Iterable<? extends Symbol> columns, DataType columnType) {

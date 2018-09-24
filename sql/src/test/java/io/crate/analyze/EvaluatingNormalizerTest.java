@@ -2,25 +2,26 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
-import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ClusterReferenceResolver;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.expression.NestableInput;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.reference.LiteralNestableInput;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ClusterReferenceResolver;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -118,13 +119,13 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
     }
 
     private FunctionInfo functionInfo(String name, DataType dataType, boolean isPredicate) {
-        ImmutableList dataTypes = null;
+        ImmutableList<DataType> dataTypes;
         if (isPredicate) {
             dataTypes = ImmutableList.of(dataType);
         } else {
             dataTypes = ImmutableList.of(dataType, dataType);
         }
-        return functions.getBuiltin(name, dataTypes).info();
+        return functions.getQualified(new FunctionIdent(name, dataTypes)).info();
     }
 
     private FunctionInfo functionInfo(String name, DataType dataType) {

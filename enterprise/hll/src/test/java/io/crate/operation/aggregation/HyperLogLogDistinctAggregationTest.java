@@ -20,6 +20,8 @@ package io.crate.operation.aggregation;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.module.HyperLogLogModule;
 import io.crate.types.DataType;
@@ -49,8 +51,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
     }
 
     private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {
-        return executeAggregation(HyperLogLogDistinctAggregation.NAME, dataType, data,
-            Collections.singletonList(dataType));
+        return executeAggregation(HyperLogLogDistinctAggregation.NAME, dataType, data, Collections.singletonList(dataType));
     }
 
     private Object[][] executeAggregationWithPrecision(DataType dataType, Object[][] data) throws Exception {
@@ -73,10 +74,12 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
     @Test
     public void testReturnTypeIsAlwaysLong() {
         // Return type is fixed to Long
-        assertEquals(DataTypes.LONG,
-            functions.getBuiltin(HyperLogLogDistinctAggregation.NAME, ImmutableList.of(DataTypes.INTEGER)).info().returnType());
-        assertEquals(DataTypes.LONG,
-            functions.getBuiltin(HyperLogLogDistinctAggregation.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER)).info().returnType());
+        FunctionImplementation func = functions.getQualified(
+            new FunctionIdent(HyperLogLogDistinctAggregation.NAME, ImmutableList.of(DataTypes.INTEGER)));
+        assertEquals(DataTypes.LONG, func.info().returnType());
+        func = functions.getQualified(
+            new FunctionIdent(HyperLogLogDistinctAggregation.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER)));
+        assertEquals(DataTypes.LONG, func.info().returnType());
     }
 
     @Test

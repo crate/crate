@@ -23,17 +23,18 @@ package io.crate.operation.aggregation;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Row;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
-import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
@@ -80,7 +81,7 @@ public abstract class AggregationTest extends CrateUnitTest {
             fi = new FunctionIdent(name, ImmutableList.of());
             inputs = new InputCollectExpression[0];
         }
-        AggregationFunction impl = (AggregationFunction) functions.getBuiltin(fi.name(), fi.argumentTypes());
+        AggregationFunction impl = (AggregationFunction) functions.getQualified(fi);
         Object state = impl.newState(ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);
 
         ArrayBucket bucket = new ArrayBucket(data);
@@ -101,12 +102,11 @@ public abstract class AggregationTest extends CrateUnitTest {
     }
 
     protected Symbol normalize(String functionName, Symbol... args) {
-        DataType[] argTypes = new DataType[args.length];
-        for (int i = 0; i < args.length; i++) {
-            argTypes[i] = args[i].valueType();
-        }
+        List<Symbol> arguments = Arrays.asList(args);
         AggregationFunction function =
-            (AggregationFunction) functions.getBuiltin(functionName, Arrays.asList(argTypes));
-        return function.normalizeSymbol(new Function(function.info(), Arrays.asList(args)), new TransactionContext(SessionContext.systemSessionContext()));
+            (AggregationFunction) functions.get(null, functionName, arguments, SearchPath.pathWithPGCatalogAndDoc());
+        return function.normalizeSymbol(
+            new Function(function.info(), arguments),
+            new TransactionContext(SessionContext.systemSessionContext()));
     }
 }

@@ -22,13 +22,14 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.expression.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.metadata.FunctionIdent;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -65,8 +66,8 @@ public class AggregateCollectorBenchmark {
     @Setup
     public void setup() {
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
-        SumAggregation sumAggregation = ((SumAggregation) getFunctions().getBuiltin(
-            SumAggregation.NAME, Collections.singletonList(DataTypes.INTEGER)));
+        SumAggregation sumAggregation = ((SumAggregation) getFunctions().getQualified(
+            new FunctionIdent(SumAggregation.NAME, Collections.singletonList(DataTypes.INTEGER))));
         collector = new AggregateCollector(
             Collections.singletonList(inExpr0),
             RAM_ACCOUNTING_CONTEXT,

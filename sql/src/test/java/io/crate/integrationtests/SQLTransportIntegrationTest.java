@@ -34,6 +34,7 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserLookup;
+import io.crate.collections.Lists2;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.execution.dml.TransportShardAction;
@@ -42,12 +43,15 @@ import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillableCallable;
+import io.crate.expression.symbol.Value;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -129,7 +133,6 @@ import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
 @Listeners({SystemPropsTestLoggingListener.class})
 @UseJdbc
@@ -556,10 +559,12 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     public void assertFunctionIsCreatedOnAll(String schema, String name, List<DataType> argTypes) throws Exception {
+        SearchPath searchPath = SearchPath.pathWithPGCatalogAndDoc();
         assertBusy(() -> {
             Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
             for (Functions function : functions) {
-                FunctionImplementation userDefined = function.getUserDefined(schema, name, argTypes);
+                FunctionImplementation userDefined = function.get(
+                    schema, name, Lists2.copyAndReplace(argTypes, Value::new), searchPath);
                 assertThat(userDefined, is(notNullValue()));
             }
         }, 20L, TimeUnit.SECONDS);
@@ -569,8 +574,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         assertBusy(() -> {
             Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
             for (Functions function : functions) {
-                FunctionImplementation userDefined = function.getUserDefined(schema, name, argTypes);
-                assertThat(userDefined, is(nullValue()));
+                FunctionImplementation func = function.getQualified(new FunctionIdent(schema, name, argTypes));
+                assertThat(func, Matchers.nullValue());
             }
         }, 20L, TimeUnit.SECONDS);
     }
