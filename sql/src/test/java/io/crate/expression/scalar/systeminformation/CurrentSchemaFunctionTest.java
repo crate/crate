@@ -22,11 +22,11 @@
 
 package io.crate.expression.scalar.systeminformation;
 
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.testing.SqlExpressions;
 import org.junit.Test;
 
@@ -56,7 +56,7 @@ public class CurrentSchemaFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expectMessage("Cannot evaluate CURRENT_SCHEMA function.");
         Function function = (Function) sqlExpressions.asSymbol("current_schema()");
         FunctionIdent ident = function.info().ident();
-        Scalar impl = (Scalar) functions.getBuiltin(ident.name(), ident.argumentTypes());
+        Scalar impl = (Scalar) functions.getQualified(ident);
         impl.evaluate();
     }
 }

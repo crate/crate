@@ -26,22 +26,25 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.collections.Lists2;
+import io.crate.data.Input;
+import io.crate.expression.FunctionExpression;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.data.Input;
+import io.crate.expression.symbol.Value;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.expression.FunctionExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -256,7 +259,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
     @SuppressWarnings("unchecked")
     protected FunctionImplementation getFunction(String functionName, List<DataType> argTypes) {
-        return functions.getBuiltin(functionName, argTypes);
+        return functions.get(null, functionName, Lists2.copyAndReplace(argTypes, Value::new), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     protected Symbol normalize(String functionName, Object value, DataType type) {
@@ -265,7 +268,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
     protected Symbol normalize(TransactionContext transactionContext, String functionName, Symbol... args) {
         List<Symbol> argList = Arrays.asList(args);
-        FunctionImplementation function = functions.getBuiltinByArgs(functionName, argList);
+        FunctionImplementation function = functions.get(null, functionName, argList, SearchPath.pathWithPGCatalogAndDoc());
         return function.normalizeSymbol(new Function(function.info(),
             argList), transactionContext);
     }
@@ -363,7 +366,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             } catch (Exception e) {
                 FunctionIdent ident = function.info().ident();
                 Scalar scalar =
-                    (Scalar) context.sqlExpressions.functions().getBuiltin(ident.name(), ident.argumentTypes());
+                    (Scalar) context.sqlExpressions.functions().getQualified(ident);
                 return new FunctionExpression<>(scalar, argInputs);
             }
         }

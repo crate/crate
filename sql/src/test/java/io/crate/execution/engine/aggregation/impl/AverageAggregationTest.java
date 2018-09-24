@@ -22,6 +22,9 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.expression.symbol.Value;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -36,8 +39,13 @@ public class AverageAggregationTest extends AggregationTest {
     @Test
     public void testReturnType() throws Exception {
         // Return type is fixed to Double
-        assertEquals(DataTypes.DOUBLE, functions.getBuiltin("avg", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
-        assertEquals(DataTypes.DOUBLE, functions.getBuiltin("mean", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        assertEquals(DataTypes.DOUBLE, getFunction("avg").info().returnType());
+        assertEquals(DataTypes.DOUBLE, getFunction("mean").info().returnType());
+    }
+
+    private FunctionImplementation getFunction(String name) {
+        return functions.get(
+            null, name, ImmutableList.of(new Value(DataTypes.INTEGER)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     @Test

@@ -23,6 +23,9 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.expression.symbol.Value;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -45,8 +48,9 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        assertEquals(new SetType(DataTypes.INTEGER),
-            functions.getBuiltin("collect_set", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        FunctionImplementation collectSet = functions.get(
+            null, "collect_set", ImmutableList.of(new Value(DataTypes.INTEGER)), SearchPath.pathWithPGCatalogAndDoc());
+        assertEquals(new SetType(DataTypes.INTEGER), collectSet.info().returnType());
     }
 
     @Test
@@ -60,8 +64,8 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testLongSerialization() throws Exception {
-        AggregationFunction impl
-            = (AggregationFunction) functions.getBuiltin("collect_set", ImmutableList.of(DataTypes.LONG));
+        AggregationFunction impl = (AggregationFunction) functions.get(
+                null, "collect_set", ImmutableList.of(new Value(DataTypes.LONG)), SearchPath.pathWithPGCatalogAndDoc());
 
         Object state = impl.newState(ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);
 

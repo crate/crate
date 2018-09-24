@@ -46,6 +46,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -139,10 +140,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         }
         Symbol tableNameRef = toCollect.get(12);
 
+        List<Symbol> arguments = Arrays.asList(tableNameRef, Literal.of("shards"));
         FunctionImplementation eqImpl
-            = functions.getBuiltin(EqOperator.NAME, ImmutableList.of(DataTypes.STRING, DataTypes.STRING));
-        Function whereClause = new Function(eqImpl.info(),
-            Arrays.asList(tableNameRef, Literal.of("shards")));
+            = functions.get(null, EqOperator.NAME, arguments, SearchPath.pathWithPGCatalogAndDoc());
+        Function whereClause = new Function(eqImpl.info(), arguments);
 
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         Bucket result = collect(collectNode);

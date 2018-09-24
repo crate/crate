@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.expression.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -32,9 +31,11 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.MinimumAggregation;
-import io.crate.metadata.Functions;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.Functions;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
@@ -94,8 +95,8 @@ public class GroupingBytesRefCollectorBenchmark {
         List<Input<?>> keyInputs = Collections.singletonList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 
-        AggregationFunction minAgg =
-            (AggregationFunction) functions.getBuiltin(MinimumAggregation.NAME, Collections.singletonList(DataTypes.STRING));
+        AggregationFunction minAgg = (AggregationFunction) functions.getQualified(
+                new FunctionIdent(MinimumAggregation.NAME, Collections.singletonList(DataTypes.STRING)));
 
         return GroupingCollector.singleKey(
             collectExpressions,

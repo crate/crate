@@ -83,6 +83,38 @@ public class Functions {
         udfResolversBySchema.remove(schema);
     }
 
+    /**
+     * Return a function that matches the name/arguments.
+     *
+     * <pre>
+     * {@code
+     * Lookup logic:
+     *     No schema:   Built-ins -> UDFs in searchPath
+     *     With Schema: UDFs in schema
+     * }
+     * </pre>
+     *
+     * @throws UnsupportedOperationException if the function wasn't found
+     */
+    public FunctionImplementation get(@Nullable String suppliedSchema,
+                                      String functionName,
+                                      List<? extends FuncArg> arguments,
+                                      SearchPath searchPath) {
+        FunctionImplementation func;
+        if (suppliedSchema == null) {
+            func = getBuiltinByArgs(functionName, arguments);
+            if (func == null) {
+                func = resolveUserDefinedByArgs(null, functionName, arguments, searchPath);
+            }
+        } else {
+            func = resolveUserDefinedByArgs(suppliedSchema, functionName, arguments, searchPath);
+        }
+        if (func == null) {
+            throw raiseUnknownFunction(suppliedSchema, functionName, arguments);
+        }
+        return func;
+    }
+
     @Nullable
     private static FunctionImplementation resolveFunctionForArgumentTypes(List<? extends FuncArg> types,
                                                                           FunctionResolver resolver) {
@@ -101,7 +133,7 @@ public class Functions {
      * @return a function implementation or null if it was not found.
      */
     @Nullable
-    public FunctionImplementation getBuiltin(String name, List<DataType> dataTypes) {
+    private FunctionImplementation getBuiltin(String name, List<DataType> dataTypes) {
         FunctionResolver resolver = lookupBuiltinFunctionResolver(name);
         if (resolver == null) {
             return null;
@@ -118,7 +150,7 @@ public class Functions {
      * @return a function implementation or null if it was not found.
      */
     @Nullable
-    public FunctionImplementation getBuiltinByArgs(String name, List<? extends FuncArg> argumentsTypes) {
+    private FunctionImplementation getBuiltinByArgs(String name, List<? extends FuncArg> argumentsTypes) {
         FunctionResolver resolver = lookupBuiltinFunctionResolver(name);
         if (resolver == null) {
             return null;
@@ -134,9 +166,9 @@ public class Functions {
      * @return a function implementation.
      */
     @Nullable
-    public FunctionImplementation getUserDefined(String schema,
-                                                 String name,
-                                                 List<DataType> argTypes) throws UnsupportedOperationException {
+    private FunctionImplementation getUserDefined(String schema,
+                                                  String name,
+                                                  List<DataType> argTypes) throws UnsupportedOperationException {
         FunctionResolver resolver = lookupUdfFunctionResolver(schema, name);
         if (resolver == null) {
             return null;
@@ -155,7 +187,7 @@ public class Functions {
      * @return a function implementation.
      */
     @Nullable
-    public FunctionImplementation resolveUserDefinedByArgs(@Nullable String schema,
+    private FunctionImplementation resolveUserDefinedByArgs(@Nullable String schema,
                                                            String name,
                                                            List<? extends FuncArg> arguments,
                                                            SearchPath searchPath) throws UnsupportedOperationException {
@@ -215,9 +247,9 @@ public class Functions {
         return impl;
     }
 
-    public static UnsupportedOperationException raiseUnknownFunction(@Nullable String suppliedSchema,
-                                                                     String name,
-                                                                     List<? extends FuncArg> arguments) {
+    private static UnsupportedOperationException raiseUnknownFunction(@Nullable String suppliedSchema,
+                                                                      String name,
+                                                                      List<? extends FuncArg> arguments) {
         StringJoiner joiner = new StringJoiner(", ");
         for (FuncArg arg : arguments) {
             joiner.add(arg.valueType().toString());

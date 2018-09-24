@@ -23,17 +23,17 @@
 package io.crate.expression;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.expression.symbol.Aggregation;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -175,7 +175,7 @@ public class InputFactoryTest extends CrateUnitTest {
         assertThat(impl.info(), is(function.info()));
 
         FunctionIdent ident = function.info().ident();
-        FunctionImplementation uncompiled = expressions.functions().getBuiltin(ident.name(), ident.argumentTypes());
+        FunctionImplementation uncompiled = expressions.functions().getQualified(ident);
         assertThat(uncompiled, not(sameInstance(impl)));
     }
 

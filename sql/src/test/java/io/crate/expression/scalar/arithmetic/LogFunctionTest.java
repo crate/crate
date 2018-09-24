@@ -22,20 +22,23 @@
 package io.crate.expression.scalar.arithmetic;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.data.Input;
+import io.crate.exceptions.ConversionException;
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Input;
-import io.crate.exceptions.ConversionException;
+import io.crate.expression.symbol.Value;
 import io.crate.metadata.Reference;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.createReference;
@@ -47,11 +50,13 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
     private TransactionContext transactionContext = new TransactionContext(SessionContext.systemSessionContext());
 
     private LogFunction getFunction(String name, DataType value) {
-        return (LogFunction) functions.getBuiltin(name, Arrays.asList(value));
+        return (LogFunction) functions.get(
+            null, name, Collections.singletonList(new Value(value)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     private LogFunction getFunction(String name, DataType value, DataType base) {
-        return (LogFunction) functions.getBuiltin(name, Arrays.asList(value, base));
+        return (LogFunction) functions.get(
+            null, name, Arrays.asList(new Value(value), new Value(base)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     private Symbol normalizeLog(Number value, DataType valueType) {

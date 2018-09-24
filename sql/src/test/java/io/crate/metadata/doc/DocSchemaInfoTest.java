@@ -111,9 +111,10 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
         udfService.updateImplementations("my_schema", metaData.functionsMetaData().stream());
 
-        assertThat(functions.resolveUserDefinedByArgs("my_schema", "valid", ImmutableList.of(), pathWithPGCatalogAndDoc()), Matchers.notNullValue());
+        assertThat(functions.get("my_schema", "valid", ImmutableList.of(), pathWithPGCatalogAndDoc()), Matchers.notNullValue());
 
-        assertThat(functions.resolveUserDefinedByArgs("my_schema", "invalid", ImmutableList.of(), pathWithPGCatalogAndDoc()), Matchers.nullValue());
+        expectedException.expectMessage("unknown function: my_schema.invalid()");
+        functions.get("my_schema", "invalid", ImmutableList.of(), pathWithPGCatalogAndDoc());
     }
 
     @Test

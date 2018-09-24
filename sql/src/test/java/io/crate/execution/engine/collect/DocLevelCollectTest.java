@@ -48,6 +48,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
@@ -168,12 +169,13 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectDocLevelWhereClause() throws Throwable {
+        List<Symbol> arguments = Arrays.asList(testDocLevelReference, Literal.of(2));
         EqOperator op =
-            (EqOperator) functions.getBuiltin(EqOperator.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER));
-        List<Symbol> toCollect = Collections.<Symbol>singletonList(testDocLevelReference);
+            (EqOperator) functions.get(null, EqOperator.NAME, arguments, SearchPath.pathWithPGCatalogAndDoc());
+        List<Symbol> toCollect = Collections.singletonList(testDocLevelReference);
         WhereClause whereClause = new WhereClause(new Function(
             op.info(),
-            Arrays.asList(testDocLevelReference, Literal.of(2)))
+            arguments)
         );
         RoutedCollectPhase collectNode = getCollectNode(toCollect, whereClause);
 

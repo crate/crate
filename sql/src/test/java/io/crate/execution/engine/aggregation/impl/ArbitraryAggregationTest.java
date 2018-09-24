@@ -22,6 +22,9 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.expression.symbol.Value;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -38,8 +41,9 @@ public class ArbitraryAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        assertEquals(DataTypes.INTEGER,
-            functions.getBuiltin("arbitrary", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        FunctionImplementation arbitrary = functions.get(
+            null, "arbitrary", ImmutableList.of(new Value(DataTypes.INTEGER)), SearchPath.pathWithPGCatalogAndDoc());
+        assertEquals(DataTypes.INTEGER, arbitrary.info().returnType());
     }
 
     @Test

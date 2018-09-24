@@ -92,16 +92,14 @@ public class PluginLoaderTest extends ESIntegTestCase {
         assertThat(pluginLoader.plugins.get(0).getClass().getCanonicalName(), is("io.crate.plugin.ExamplePlugin"));
 
         Functions functions = internalCluster().getInstance(Functions.class);
-        assertThat(functions.getBuiltin("is_even", Collections.singletonList(DataTypes.LONG)).info(),
-                   is(new FunctionInfo(
-                       new FunctionIdent("is_even", Collections.singletonList(DataTypes.LONG)),
-                       DataTypes.BOOLEAN)));
+        FunctionIdent isEven = new FunctionIdent("is_even", Collections.singletonList(DataTypes.LONG));
+        assertThat(functions.getQualified(isEven).info(),
+                   is(new FunctionInfo( isEven, DataTypes.BOOLEAN)));
 
         // Also check that the built-in functions are not lost
-        assertThat(functions.getBuiltin("abs", Collections.singletonList(DataTypes.LONG)).info(),
-                   is(new FunctionInfo(
-                       new FunctionIdent("abs", Collections.singletonList(DataTypes.LONG)),
-                       DataTypes.LONG)));
+        FunctionIdent abs = new FunctionIdent("abs", Collections.singletonList(DataTypes.LONG));
+        assertThat(functions.getQualified(abs).info(),
+                   is(new FunctionInfo(abs, DataTypes.LONG)));
     }
 
     @Test

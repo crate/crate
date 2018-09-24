@@ -34,6 +34,7 @@ import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -74,8 +75,8 @@ public class GroupingLongCollectorBenchmark {
     public void createGroupingCollector() {
         Functions functions = new ModulesBuilder().add(new AggregationImplModule())
             .createInjector().getInstance(Functions.class);
-        AggregationFunction sumAgg =
-            (AggregationFunction) functions.getBuiltin(SumAggregation.NAME, Arrays.asList(DataTypes.INTEGER));
+        AggregationFunction sumAgg = (AggregationFunction) functions.getQualified(
+            new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataTypes.INTEGER)));
         groupBySumCollector = createGroupBySumCollector(sumAgg);
         groupBySumSingleLongCollector = createOptimizedCollector(sumAgg);
 

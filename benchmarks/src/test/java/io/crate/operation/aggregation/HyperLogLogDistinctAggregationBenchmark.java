@@ -22,17 +22,17 @@
 
 package io.crate.operation.aggregation;
 
-import io.crate.data.RowN;
-import io.crate.expression.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.execution.engine.aggregation.AggregateCollector;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.module.HyperLogLogModule;
-import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.execution.engine.aggregation.AggregateCollector;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
@@ -78,8 +78,8 @@ public class HyperLogLogDistinctAggregationBenchmark {
         Functions functions = new ModulesBuilder()
             .add(new HyperLogLogModule())
             .createInjector().getInstance(Functions.class);
-        HyperLogLogDistinctAggregation hllAggregation = ((HyperLogLogDistinctAggregation) functions.getBuiltin(
-            HyperLogLogDistinctAggregation.NAME, Collections.singletonList(DataTypes.STRING)));
+        HyperLogLogDistinctAggregation hllAggregation = ((HyperLogLogDistinctAggregation) functions.getQualified(
+            new FunctionIdent(HyperLogLogDistinctAggregation.NAME, Collections.singletonList(DataTypes.STRING))));
         collector = new AggregateCollector(
             Collections.singletonList(inExpr0),
             RAM_ACCOUNTING_CONTEXT,

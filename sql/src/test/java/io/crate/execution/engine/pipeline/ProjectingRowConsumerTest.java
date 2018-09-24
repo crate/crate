@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.pipeline;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -33,7 +32,6 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -42,8 +40,10 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SearchPath;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
@@ -65,12 +65,12 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
@@ -134,9 +134,10 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
 
     @Test
     public void testConsumerRequiresScrollAndProjectorsDontSupportScrolling() {
+        List<Symbol> arguments = Arrays.asList(Literal.of(2), new InputColumn(1, DataTypes.INTEGER));
         EqOperator op =
-            (EqOperator) functions.getBuiltin(EqOperator.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER));
-        Function function = new Function(op.info(), Arrays.asList(Literal.of(2), new InputColumn(1)));
+            (EqOperator) functions.get(null, EqOperator.NAME, arguments, SearchPath.pathWithPGCatalogAndDoc());
+        Function function = new Function(op.info(), arguments);
         FilterProjection filterProjection = new FilterProjection(function,
             Arrays.asList(new InputColumn(0), new InputColumn(1)));
 
