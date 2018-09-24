@@ -21,105 +21,35 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
-import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Value;
-import io.crate.metadata.Reference;
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.TransactionContext;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsNull.nullValue;
 
 public class LogFunctionTest extends AbstractScalarFunctionsTest {
-
-    private TransactionContext transactionContext = new TransactionContext(SessionContext.systemSessionContext());
-
-    private LogFunction getFunction(String name, DataType value) {
-        return (LogFunction) functions.get(
-            null, name, Collections.singletonList(new Value(value)), SearchPath.pathWithPGCatalogAndDoc());
-    }
-
-    private LogFunction getFunction(String name, DataType value, DataType base) {
-        return (LogFunction) functions.get(
-            null, name, Arrays.asList(new Value(value), new Value(base)), SearchPath.pathWithPGCatalogAndDoc());
-    }
-
-    private Symbol normalizeLog(Number value, DataType valueType) {
-        return normalize(LogFunction.NAME, value, valueType);
-    }
-
-    private Symbol normalizeLn(Number value, DataType valueType) {
-        return normalize(LogFunction.LnFunction.NAME, value, valueType);
-    }
-
-    private Symbol normalizeLog(Number value, DataType valueType, Number base, DataType baseType) {
-        return normalize(LogFunction.NAME, Literal.of(valueType, value), Literal.of(baseType, base));
-    }
-
-    private Number evaluateLog(Number value, DataType valueType) {
-        return getFunction(LogFunction.NAME, valueType).evaluate((Input) Literal.of(valueType, value));
-    }
-
-    private Number evaluateLn(Number value, DataType valueType) {
-        return getFunction(LogFunction.LnFunction.NAME, valueType).evaluate((Input) Literal.of(valueType, value));
-    }
-
-    private Number evaluateLog(Number value, DataType valueType, Number base, DataType baseType) {
-        return getFunction(LogFunction.NAME, valueType, baseType).evaluate(
-            (Input) Literal.of(valueType, value),
-            (Input) Literal.of(baseType, base)
-        );
-    }
 
     @Test
     public void testNormalizeValueSymbol() throws Exception {
         // test log(x) ... implicit base of 10
-        assertThat(normalizeLog(10.0, DataTypes.DOUBLE), isLiteral(1.0));
-        assertThat(normalizeLog(10f, DataTypes.FLOAT), isLiteral(1.0));
-        assertThat(normalizeLog(10L, DataTypes.LONG), isLiteral(1.0));
-        assertThat(normalizeLog(10, DataTypes.INTEGER), isLiteral(1.0));
-        assertThat(normalizeLog(null, DataTypes.DOUBLE), isLiteral(null, DataTypes.DOUBLE));
+        assertNormalize("log(10.0)", isLiteral(1.0));
+        assertNormalize("log(10)", isLiteral(1.0));
+        assertNormalize("log(null)", isLiteral(null));
 
-        // test ln(x)
-        assertThat(normalizeLn(1.0, DataTypes.DOUBLE), isLiteral(0.0));
-        assertThat(normalizeLn(1f, DataTypes.FLOAT), isLiteral(0.0));
-        assertThat(normalizeLn(1L, DataTypes.LONG), isLiteral(0.0));
-        assertThat(normalizeLn(1, DataTypes.INTEGER), isLiteral(0.0));
-        assertThat(normalizeLn(null, DataTypes.DOUBLE), isLiteral(null, DataTypes.DOUBLE));
+        assertNormalize("ln(1.0)", isLiteral(0.0));
+        assertNormalize("ln(1)", isLiteral(0.0));
+        assertNormalize("ln(null)", isLiteral(null));
 
         // test log(x, b) ... explicit base
-        assertThat(normalizeLog(10.0, DataTypes.DOUBLE, 10.0, DataTypes.DOUBLE), isLiteral(1.0));
-        assertThat(normalizeLog(10f, DataTypes.FLOAT, 10.0, DataTypes.DOUBLE), isLiteral(1.0));
-        assertThat(normalizeLog(10.0, DataTypes.DOUBLE, 10.0f, DataTypes.FLOAT), isLiteral(1.0));
-        assertThat(normalizeLog(10f, DataTypes.FLOAT, 10.0f, DataTypes.FLOAT), isLiteral(1.0));
-
-        assertThat(normalizeLog(10L, DataTypes.LONG, 10.0, DataTypes.DOUBLE), isLiteral(1.0));
-        assertThat(normalizeLog(10.0, DataTypes.DOUBLE, 10.0f, DataTypes.FLOAT), isLiteral(1.0));
-        assertThat(normalizeLog(10f, DataTypes.FLOAT, 10.0f, DataTypes.FLOAT), isLiteral(1.0));
-
-        assertThat(normalizeLog(10L, DataTypes.LONG, 10L, DataTypes.LONG), isLiteral(1.0));
-        assertThat(normalizeLog(10, DataTypes.INTEGER, 10L, DataTypes.LONG), isLiteral(1.0));
-        assertThat(normalizeLog(10L, DataTypes.LONG, (short) 10, DataTypes.SHORT), isLiteral(1.0));
-        assertThat(normalizeLog(10, DataTypes.INTEGER, 10, DataTypes.INTEGER), isLiteral(1.0));
-
-        assertThat(normalizeLog(null, DataTypes.DOUBLE, 10, DataTypes.INTEGER), isLiteral(null, DataTypes.DOUBLE));
-        assertThat(normalizeLog(10, DataTypes.INTEGER, null, DataTypes.DOUBLE), isLiteral(null, DataTypes.DOUBLE));
-        assertThat(normalizeLog(null, DataTypes.INTEGER, null, DataTypes.DOUBLE), isLiteral(null, DataTypes.DOUBLE));
+        assertNormalize("log(10.0, 10.0)", isLiteral(1.0));
+        assertNormalize("log(10, 10.0)", isLiteral(1.0));
+        assertNormalize("log(10.0, 10)", isLiteral(1.0));
+        assertNormalize("log(10, 10)", isLiteral(1.0));
+        assertNormalize("log(null, 10)", isLiteral(null));
+        assertNormalize("log(10, null)", isLiteral(null));
+        assertNormalize("log(null, null)", isLiteral(null));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -160,63 +90,31 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testNormalizeReference() throws Exception {
-        Reference dB = createReference("dB", DataTypes.DOUBLE);
-
-        LogFunction log10 = getFunction(LogFunction.NAME, DataTypes.DOUBLE);
-        Function function = new Function(log10.info(), Arrays.<Symbol>asList(dB));
-        Function normalized = (Function) log10.normalizeSymbol(function, transactionContext);
-        assertThat(normalized, Matchers.sameInstance(function));
-
-        LogFunction ln = getFunction(LogFunction.LnFunction.NAME, DataTypes.DOUBLE);
-        function = new Function(ln.info(), Arrays.<Symbol>asList(dB));
-        normalized = (Function) ln.normalizeSymbol(function, transactionContext);
-        assertThat(normalized, Matchers.sameInstance(function));
-
-        LogFunction logBase = getFunction(LogFunction.NAME, DataTypes.DOUBLE, DataTypes.LONG);
-        function = new Function(logBase.info(), Arrays.<Symbol>asList(dB, Literal.of(10L)));
-        normalized = (Function) logBase.normalizeSymbol(function, transactionContext);
-        assertThat(normalized, Matchers.sameInstance(function));
-
-        Reference base = createReference("base", DataTypes.INTEGER);
-        function = new Function(logBase.info(), Arrays.<Symbol>asList(dB, base));
-        normalized = (Function) logBase.normalizeSymbol(function, transactionContext);
-        assertThat(normalized, Matchers.sameInstance(function));
+    public void testLogInteger() throws Exception {
+        assertEvaluate("log(x)", 1.0, Literal.of(10));
     }
 
     @Test
     public void testEvaluateLog10() throws Exception {
-        assertThat((Double) evaluateLog(100, DataTypes.INTEGER), is(2.0));
-        assertThat((Double) evaluateLog(100.0, DataTypes.DOUBLE), is(2.0));
-        assertThat((Double) evaluateLog(100f, DataTypes.FLOAT), is(2.0));
-        assertThat((Double) evaluateLog(100L, DataTypes.LONG), is(2.0));
-        assertThat((Double) evaluateLog((short) 100, DataTypes.SHORT), is(2.0));
-
-        assertThat(evaluateLog(null, DataTypes.DOUBLE), nullValue());
+        assertEvaluate("log(100)", 2.0);
+        assertEvaluate("log(100.0)", 2.0);
+        assertEvaluate("log(null)", null);
     }
 
     @Test
     public void testEvaluateLogBase() throws Exception {
-        assertThat((Double) evaluateLog((short) 10, DataTypes.SHORT, 100, DataTypes.INTEGER), is(0.5));
-        assertThat((Double) evaluateLog(10f, DataTypes.FLOAT, 100.0, DataTypes.DOUBLE), is(0.5));
-        assertThat((Double) evaluateLog(10L, DataTypes.LONG, 100f, DataTypes.FLOAT), is(0.5));
-        assertThat((Double) evaluateLog(10, DataTypes.INTEGER, 100L, DataTypes.LONG), is(0.5));
-        assertThat((Double) evaluateLog(10.0f, DataTypes.FLOAT, (short) 100, DataTypes.SHORT), is(0.5));
-
-        assertThat(evaluateLog(null, DataTypes.DOUBLE, (short) 10, DataTypes.SHORT), nullValue());
-        assertThat(evaluateLog(10.0, DataTypes.DOUBLE, null, DataTypes.DOUBLE), nullValue());
-        assertThat(evaluateLog(null, DataTypes.DOUBLE, null, DataTypes.DOUBLE), nullValue());
+        assertEvaluate("log(10, 100)", 0.5);
+        assertEvaluate("log(10.0, 100.0)", 0.5);
+        assertEvaluate("log(10, 100.0)", 0.5);
+        assertEvaluate("log(null, 10)", null);
+        assertEvaluate("log(10, null)", null);
+        assertEvaluate("log(null, null)", null);
     }
 
     @Test
     public void testEvaluateLn() throws Exception {
-        assertThat((Double) evaluateLn(1, DataTypes.INTEGER), is(0.0));
-        assertThat((Double) evaluateLn(1.0, DataTypes.DOUBLE), is(0.0));
-        assertThat((Double) evaluateLn(1f, DataTypes.FLOAT), is(0.0));
-        assertThat((Double) evaluateLn(1L, DataTypes.LONG), is(0.0));
-        assertThat((Double) evaluateLn((short) 1, DataTypes.SHORT), is(0.0));
-
-        assertThat(evaluateLn(null, DataTypes.DOUBLE), nullValue());
+        assertEvaluate("ln(1)", 0.0);
+        assertEvaluate("ln(1.0)", 0.0);
+        assertEvaluate("ln(null)", null);
     }
-
 }
