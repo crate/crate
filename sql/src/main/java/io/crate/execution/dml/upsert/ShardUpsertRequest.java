@@ -28,7 +28,6 @@ import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -52,7 +51,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
     private DuplicateKeyAction duplicateKeyAction;
     private boolean continueOnError;
-    private Boolean isRawSourceInsert;
     private boolean validateConstraints = true;
     private boolean isRetry;
 
@@ -128,15 +126,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     ShardUpsertRequest validateConstraints(boolean validateConstraints) {
         this.validateConstraints = validateConstraints;
         return this;
-    }
-
-    Boolean isRawSourceInsert() {
-        if (isRawSourceInsert == null) {
-            assert insertColumns != null : "insertColumns must not be NULL on insert requests";
-            isRawSourceInsert =
-                insertColumns.length == 1 && insertColumns[0].column().equals(DocSysColumns.RAW);
-        }
-        return isRawSourceInsert;
     }
 
     /**
@@ -223,7 +212,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         return continueOnError == items.continueOnError &&
                duplicateKeyAction == items.duplicateKeyAction &&
                validateConstraints == items.validateConstraints &&
-               Objects.equal(isRawSourceInsert, items.isRawSourceInsert) &&
                Arrays.equals(updateColumns, items.updateColumns) &&
                Arrays.equals(insertColumns, items.insertColumns) &&
                Arrays.equals(insertValuesStreamer, items.insertValuesStreamer);
@@ -231,7 +219,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), continueOnError, duplicateKeyAction, isRawSourceInsert, validateConstraints, updateColumns, insertColumns, insertValuesStreamer);
+        return Objects.hashCode(super.hashCode(), continueOnError, duplicateKeyAction, validateConstraints, updateColumns, insertColumns, insertValuesStreamer);
     }
 
     /**
