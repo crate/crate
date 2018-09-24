@@ -23,64 +23,41 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.SchemaUnknownException;
+import io.crate.expression.udf.UserDefinedFunctionMetaData;
+import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.expression.udf.UserDefinedFunctionMetaData;
-import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.view.ViewsMetaData;
 import io.crate.metadata.view.ViewsMetaDataTest;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class SchemasTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    @Mock
-    public ClusterService clusterService;
-
-    @Mock
-    public ClusterState clusterState;
-
-    @Mock
-    public MetaData metaData;
-
-    @Before
-    public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
-        when(clusterService.state()).thenReturn(clusterState);
-        when(clusterState.metaData()).thenReturn(metaData);
-        when(metaData.getConcreteAllOpenIndices()).thenReturn(new String[0]);
-        when(metaData.templates()).thenReturn(ImmutableOpenMap.of());
-    }
+public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSystemSchemaIsNotWritable() throws Exception {
@@ -181,5 +158,97 @@ public class SchemasTest {
         Map<String, SchemaInfo> builtInSchema = new HashMap<>();
         builtInSchema.put(schemaInfo.name(), schemaInfo);
         return new Schemas(Settings.EMPTY, builtInSchema, clusterService, mock(DocSchemaInfoFactory.class));
+    }
+
+    @Test
+    public void testResolveTableInfoForValidFQN() throws IOException {
+        RelationName tableIdent = new RelationName("schema", "t");
+        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(tableIdent, "doc", "schema").build();
+
+        QualifiedName fqn = QualifiedName.of("schema", "t");
+        TableInfo tableInfo = sqlExecutor.schemas()
+            .resolveTableInfo(fqn, Operation.READ, sqlExecutor.getSessionContext().searchPath());
+
+        RelationName relation = tableInfo.ident();
+        assertThat(relation.schema(), is("schema"));
+        assertThat(relation.name(), is("t"));
+    }
+
+    private SQLExecutor.Builder getSqlExecutorBuilderForTable(RelationName tableIdent, String... searchPath) throws IOException {
+        return SQLExecutor.builder(clusterService)
+            .setSearchPath(searchPath)
+            .addTable("create table " + tableIdent.fqn() + " (id int)");
+    }
+
+    @Test
+    public void testResolveTableInfoForInvalidFQNThrowsSchemaUnknownException() throws IOException {
+        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t")).build();
+        QualifiedName invalidFqn = QualifiedName.of("bogus_schema", "t");
+
+        expectedException.expect(SchemaUnknownException.class);
+        expectedException.expectMessage("Schema 'bogus_schema' unknown");
+        sqlExecutor.schemas().resolveTableInfo(invalidFqn, Operation.READ, sqlExecutor.getSessionContext().searchPath());
+    }
+
+    @Test
+    public void testResolveTableInfoThrowsRelationUnknownIfRelationIsNotInSearchPath() throws IOException {
+        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t")).build();
+        QualifiedName table = QualifiedName.of("missing_table");
+
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'missing_table' unknown");
+        sqlExecutor.schemas().resolveTableInfo(table, Operation.READ, sqlExecutor.getSessionContext().searchPath());
+    }
+
+    @Test
+    public void testResolveTableInfoLooksUpRelationInSearchPath() throws IOException {
+        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema")
+            .build();
+        QualifiedName tableQn = QualifiedName.of("t");
+        TableInfo tableInfo = sqlExecutor.schemas()
+            .resolveTableInfo(tableQn, Operation.READ, sqlExecutor.getSessionContext().searchPath());
+
+        RelationName relation = tableInfo.ident();
+        assertThat(relation.schema(), is("schema"));
+        assertThat(relation.name(), is("t"));
+    }
+
+    @Test
+    public void testResolveRelationThrowsRelationUnknownfForInvalidFQN() throws IOException {
+        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "schema")
+            .build();
+        QualifiedName invalidFqn = QualifiedName.of("bogus_schema", "t");
+
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'bogus_schema.t' unknown");
+        sqlExecutor.schemas().resolveRelation(invalidFqn, sqlExecutor.getSessionContext().searchPath());
+    }
+
+    @Test
+    public void testResolveRelationThrowsRelationUnknownIfRelationIsNotInSearchPath() throws IOException {
+        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema")
+            .build();
+        QualifiedName table = QualifiedName.of( "missing_table");
+
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'missing_table' unknown");
+        sqlExecutor.schemas().resolveRelation(table, sqlExecutor.getSessionContext().searchPath());
+    }
+
+    @Test
+    public void testResolveRelationForTableAndView() throws IOException {
+        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema")
+            .addView(new RelationName("schema", "view"), "select 1")
+            .build();
+
+        QualifiedName table = QualifiedName.of("t");
+        RelationName tableRelation = sqlExecutor.schemas().resolveRelation(table, sqlExecutor.getSessionContext().searchPath());
+        assertThat(tableRelation.schema(), is("schema"));
+        assertThat(tableRelation.name(), is("t"));
+
+        QualifiedName view = QualifiedName.of("view");
+        RelationName viewRelation = sqlExecutor.schemas().resolveRelation(view, sqlExecutor.getSessionContext().searchPath());
+        assertThat(viewRelation.schema(), is("schema"));
+        assertThat(viewRelation.name(), is("view"));
     }
 }

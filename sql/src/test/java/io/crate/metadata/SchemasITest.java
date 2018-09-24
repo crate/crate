@@ -25,23 +25,16 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.Sets;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.SchemaUnknownException;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.QualifiedName;
-import io.crate.testing.SQLExecutor;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -188,95 +181,4 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         ).locations().size(), is(1));
     }
 
-    @Test
-    public void testResolveTableInfoForValidFQN() throws IOException {
-        RelationName tableIdent = new RelationName("schema", "t");
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(tableIdent, "doc", "schema").build();
-
-        QualifiedName fqn = QualifiedName.of("schema", "t");
-        TableInfo tableInfo = sqlExecutor.schemas()
-            .resolveTableInfo(fqn, Operation.READ, sqlExecutor.getSessionContext().searchPath());
-
-        RelationName relation = tableInfo.ident();
-        assertThat(relation.schema(), Matchers.is("schema"));
-        assertThat(relation.name(), Matchers.is("t"));
-    }
-
-    private SQLExecutor.Builder getSqlExecutorBuilderForTable(RelationName tableIdent, String... searchPath) throws IOException {
-        return SQLExecutor.builder(clusterService())
-            .setSearchPath(searchPath)
-            .addTable("create table " + tableIdent.fqn() + " (id int)");
-    }
-
-    @Test
-    public void testResolveTableInfoForInvalidFQNThrowsSchemaUnknownException() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t")).build();
-        QualifiedName invalidFqn = QualifiedName.of("bogus_schema", "t");
-
-        expectedException.expect(SchemaUnknownException.class);
-        expectedException.expectMessage("Schema 'bogus_schema' unknown");
-        sqlExecutor.schemas().resolveTableInfo(invalidFqn, Operation.READ, sqlExecutor.getSessionContext().searchPath());
-    }
-
-    @Test
-    public void testResolveTableInfoThrowsRelationUnknownIfRelationIsNotInSearchPath() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t")).build();
-        QualifiedName table = QualifiedName.of("missing_table");
-
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'missing_table' unknown");
-        sqlExecutor.schemas().resolveTableInfo(table, Operation.READ, sqlExecutor.getSessionContext().searchPath());
-    }
-
-    @Test
-    public void testResolveTableInfoLooksUpRelationInSearchPath() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema")
-            .build();
-        QualifiedName tableQn = QualifiedName.of("t");
-        TableInfo tableInfo = sqlExecutor.schemas()
-            .resolveTableInfo(tableQn, Operation.READ, sqlExecutor.getSessionContext().searchPath());
-
-        RelationName relation = tableInfo.ident();
-        assertThat(relation.schema(), is("schema"));
-        assertThat(relation.name(), is("t"));
-    }
-
-    @Test
-    public void testResolveRelationThrowsRelationUnknownfForInvalidFQN() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "schema")
-            .build();
-        QualifiedName invalidFqn = QualifiedName.of("bogus_schema", "t");
-
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'bogus_schema.t' unknown");
-        sqlExecutor.schemas().resolveRelation(invalidFqn, sqlExecutor.getSessionContext().searchPath());
-    }
-
-    @Test
-    public void testResolveRelationThrowsRelationUnknownIfRelationIsNotInSearchPath() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema")
-            .build();
-        QualifiedName table = QualifiedName.of( "missing_table");
-
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'missing_table' unknown");
-        sqlExecutor.schemas().resolveRelation(table, sqlExecutor.getSessionContext().searchPath());
-    }
-
-    @Test
-    public void testResolveRelationForTableAndView() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema")
-            .addView(new RelationName("schema", "view"), "select 1")
-            .build();
-
-        QualifiedName table = QualifiedName.of("t");
-        RelationName tableRelation = sqlExecutor.schemas().resolveRelation(table, sqlExecutor.getSessionContext().searchPath());
-        assertThat(tableRelation.schema(), is("schema"));
-        assertThat(tableRelation.name(), is("t"));
-
-        QualifiedName view = QualifiedName.of("view");
-        RelationName viewRelation = sqlExecutor.schemas().resolveRelation(view, sqlExecutor.getSessionContext().searchPath());
-        assertThat(viewRelation.schema(), is("schema"));
-        assertThat(viewRelation.name(), is("view"));
-    }
 }
