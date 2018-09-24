@@ -32,7 +32,6 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Value;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
@@ -57,7 +56,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        ImmutableList<Symbol> toCollect = ImmutableList.<Symbol>of(new Value(DataTypes.STRING));
+        ImmutableList<Symbol> toCollect = ImmutableList.<Symbol>of(Literal.of(DataTypes.STRING, null));
         UUID jobId = UUID.randomUUID();
         RoutedCollectPhase cn = new RoutedCollectPhase(
             jobId,

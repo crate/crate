@@ -22,7 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.expression.symbol.Value;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
@@ -52,7 +52,7 @@ public class SumAggregationTest extends AggregationTest {
     }
 
     private FunctionImplementation getSum(DataType type) {
-        return functions.get(null, "sum", ImmutableList.of(new Value(type)), SearchPath.pathWithPGCatalogAndDoc());
+        return functions.get(null, "sum", ImmutableList.of(Literal.of(type, null)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     @Test

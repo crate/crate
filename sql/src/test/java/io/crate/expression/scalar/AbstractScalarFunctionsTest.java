@@ -31,10 +31,10 @@ import io.crate.data.Input;
 import io.crate.expression.FunctionExpression;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.Value;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -259,7 +259,8 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
     @SuppressWarnings("unchecked")
     protected FunctionImplementation getFunction(String functionName, List<DataType> argTypes) {
-        return functions.get(null, functionName, Lists2.copyAndReplace(argTypes, Value::new), SearchPath.pathWithPGCatalogAndDoc());
+        return functions.get(
+            null, functionName, Lists2.copyAndReplace(argTypes, t -> new InputColumn(0, t)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     protected Symbol normalize(String functionName, Object value, DataType type) {

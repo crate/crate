@@ -25,10 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.FormatFunction;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.expression.symbol.Value;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -54,9 +54,8 @@ import java.util.Map;
 
 public class WriterProjection extends Projection {
 
-    private static final List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
-        new Value(DataTypes.LONG) // number of lines written
-    );
+    // number of lines written
+    private static final List<Symbol> OUTPUTS = ImmutableList.of(new InputColumn(0, DataTypes.LONG));
 
     private static final Reference SHARD_ID_REF = new Reference(
         new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.ID),

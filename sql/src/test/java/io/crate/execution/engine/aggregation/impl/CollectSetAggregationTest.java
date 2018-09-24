@@ -23,7 +23,7 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.expression.symbol.Value;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
@@ -49,7 +49,7 @@ public class CollectSetAggregationTest extends AggregationTest {
     @Test
     public void testReturnType() throws Exception {
         FunctionImplementation collectSet = functions.get(
-            null, "collect_set", ImmutableList.of(new Value(DataTypes.INTEGER)), SearchPath.pathWithPGCatalogAndDoc());
+            null, "collect_set", ImmutableList.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
         assertEquals(new SetType(DataTypes.INTEGER), collectSet.info().returnType());
     }
 
@@ -65,7 +65,7 @@ public class CollectSetAggregationTest extends AggregationTest {
     @Test
     public void testLongSerialization() throws Exception {
         AggregationFunction impl = (AggregationFunction) functions.get(
-                null, "collect_set", ImmutableList.of(new Value(DataTypes.LONG)), SearchPath.pathWithPGCatalogAndDoc());
+                null, "collect_set", ImmutableList.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
 
         Object state = impl.newState(ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);
 

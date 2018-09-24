@@ -43,7 +43,6 @@ public enum SymbolType {
     LITERAL(Literal::new),
     INPUT_COLUMN(InputColumn::new),
     DYNAMIC_REFERENCE(DynamicReference::new),
-    VALUE(Value::new),
     MATCH_PREDICATE(null),
     FETCH_REFERENCE(null),
     INDEX_REFERENCE(IndexReference::new),

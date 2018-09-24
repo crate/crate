@@ -23,8 +23,8 @@
 package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Value;
 import io.crate.metadata.RowGranularity;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -37,9 +37,8 @@ public class MergeCountProjection extends Projection {
 
     public static final MergeCountProjection INSTANCE = new MergeCountProjection();
 
-    public static final List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
-        new Value(DataTypes.LONG)  // number of rows updated
-    );
+    // number of rows
+    public static final List<Symbol> OUTPUTS = ImmutableList.of(new InputColumn(0, DataTypes.LONG));
 
     private MergeCountProjection() {
     }

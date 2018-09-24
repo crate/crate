@@ -24,9 +24,9 @@ package io.crate.execution.dsl.projection;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.expression.symbol.Value;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataTypes;
@@ -41,7 +41,7 @@ import java.util.List;
 
 public abstract class AbstractIndexWriterProjection extends Projection {
 
-    public static final List<Symbol> OUTPUTS = ImmutableList.of(new Value(DataTypes.LONG));  // number of rows imported
+    public static final List<Symbol> OUTPUTS = ImmutableList.of(new InputColumn(0, DataTypes.LONG));  // number of rows imported
 
     private static final String BULK_SIZE = "bulk_size";
 
