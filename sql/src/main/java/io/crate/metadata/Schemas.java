@@ -130,7 +130,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             }
         }
 
-        if (schemaInfo == null || tableInfo == null) {
+        if (tableInfo == null) {
             throw new RelationUnknown(ident.toString());
         }
 
