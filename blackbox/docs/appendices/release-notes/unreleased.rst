@@ -40,6 +40,15 @@ Breaking Changes
 Changes
 =======
 
+-  Added support for CrateDB license management
+   enabling users to trial the enterprise features,
+   set a production enterprise license or continue
+   using the community edition.
+
+   New ``set license`` statement added for license registration.
+
+   Setting ``license.ident`` becomes ``@deprecated``.
+
 - The ``mqtt`` endpoint has been deprecated and will be removed in a future
   version.
 

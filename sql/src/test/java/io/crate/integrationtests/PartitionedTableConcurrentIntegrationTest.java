@@ -58,7 +58,9 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2)
+// disabling the transport clients because the _other_ types of nodes are likely to load a CrateDB license in the
+// metadata custom and these transport clients will not be able to deserialize it (as they're not part of the cluster)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, transportClientRatio = 0)
 public class PartitionedTableConcurrentIntegrationTest extends SQLTransportIntegrationTest {
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(10, TimeUnit.SECONDS);

@@ -42,6 +42,9 @@ import org.elasticsearch.cluster.ClusterState;
 import java.util.Collections;
 import java.util.List;
 
+import static io.crate.license.DecryptedLicenseData.EXPIRATION_DATE_IN_MS;
+import static io.crate.license.DecryptedLicenseData.ISSUED_TO;
+
 public class SysClusterTableInfo extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "cluster");
@@ -69,6 +72,9 @@ public class SysClusterTableInfo extends StaticTableInfo {
             .register("id", DataTypes.STRING, null)
             .register("name", DataTypes.STRING, null)
             .register("master_node", DataTypes.STRING, null)
+            .register("license", DataTypes.OBJECT, null)
+            .register(new ColumnIdent("license", EXPIRATION_DATE_IN_MS), DataTypes.TIMESTAMP)
+            .register(new ColumnIdent("license", ISSUED_TO), DataTypes.STRING)
             .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, null)
             // custom registration of logger expressions
             .register(ClusterSettingsExpression.NAME, new ArrayType(DataTypes.OBJECT), ImmutableList.of(

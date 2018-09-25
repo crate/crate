@@ -32,6 +32,7 @@ evaluationDependsOn(':blob')
 evaluationDependsOn(':http')
 evaluationDependsOn(':udc')
 evaluationDependsOn(':dns-discovery')
+evaluationDependsOn(':licensing')
 
 dependencies {
     compile project(':sql')
@@ -69,6 +70,7 @@ dependencies {
     compileNotTransitive project(':blob')
     compileNotTransitive project(':http')
     compileNotTransitive project(':udc')
+    compileNotTransitive project(':licensing')
     compileNotTransitive project(':dns-discovery')
     compileNotTransitive project(':es:es-discovery-ec2')
     compileNotTransitive project(':es:es-repository-url')
@@ -132,7 +134,8 @@ task myJavadocs(type: Javadoc, dependsOn: processResources) {
             project(':dex').sourceSets.main.allJava +
             project(':shared').sourceSets.main.allJava +
             project(':blob').sourceSets.main.allJava +
-            project(':udc').sourceSets.main.allJava
+            project(':udc').sourceSets.main.allJava +
+            project(':licensing').sourceSets.main.allJava
 }
 
 task javadocJar(type: Jar, dependsOn: [myJavadocs]) {
@@ -160,7 +163,8 @@ task sourceJar(type: Jar) {
             project(':dex').sourceSets.main.allJava +
             project(':shared').sourceSets.main.allJava +
             project(':blob').sourceSets.main.allJava +
-            project(':udc').sourceSets.main.allJava)
+            project(':udc').sourceSets.main.allJava +
+            project(':licensing').sourceSets.main.allJava)
     manifest {
         attributes("Implementation-Title": "Crate.IO")
     }
