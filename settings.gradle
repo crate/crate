@@ -32,4 +32,5 @@ include 'es',
         'enterprise:mqtt',
         'enterprise:hll',
         'http',
-        'benchmarks'
+        'benchmarks',
+        'licensing'

@@ -293,6 +293,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             new ParseField(ViewsMetaData.TYPE),
             ViewsMetaData::fromXContent
         ));
+
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedXContent());
         }

@@ -394,6 +394,10 @@ Code   Error
 4007   The operation is not supported on this relation, as it is not
        accessible.
 ------ ---------------------------------------------------------------------
+4008   The name of the column is invalid.
+------ ---------------------------------------------------------------------
+4009   CrateDB License is expired.
+------ ---------------------------------------------------------------------
 4010   User is not authorized to perform the SQL statement.
 ------ ---------------------------------------------------------------------
 4011   Missing privilege for user.

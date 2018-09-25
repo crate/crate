@@ -42,7 +42,6 @@
 # Enterprise features: CrateDB ships by default with all enterprise features
 # enabled. Get in touch with us to get a license: https://crate.io/enterprise/
 #license.enterprise: true
-#license.ident:
 
 
 ################################# Full Settings ##############################

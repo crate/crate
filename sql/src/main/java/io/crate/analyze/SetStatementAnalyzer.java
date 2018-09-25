@@ -50,32 +50,46 @@ class SetStatementAnalyzer {
 
     private static final Logger logger = Loggers.getLogger(SetStatementAnalyzer.class);
 
-    public static SetAnalyzedStatement analyze(SetStatement node) {
+    public static AnalyzedStatement analyze(SetStatement node) {
+
         boolean isPersistent = node.settingType().equals(SetStatement.SettingType.PERSISTENT);
         Map<String, List<Expression>> settings = new HashMap<>();
+        Assignment assignment;
 
-        if (!SetStatement.Scope.GLOBAL.equals(node.scope())) {
-            Assignment assignment = node.assignments().get(0);
-            // parser does not allow using the parameter expressions as setting names in the SET statements,
-            // therefore it is fine to convert the expression to string here.
-            String settingName = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
-            List<String> nameParts = CrateSettings.settingNamesByPrefix(settingName);
-            if (nameParts.size() != 0) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL", settingName));
-            }
-            settings.put(settingName, assignment.expressions());
-            return new SetAnalyzedStatement(node.scope(), settings, isPersistent);
-        } else {
-            for (Assignment assignment : node.assignments()) {
-                for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
-                    CrateSettings.checkIfRuntimeSetting(setting);
+        switch (node.scope()) {
+            case LICENSE:
+                if (node.assignments().size() != SetLicenseAnalyzedStatement.LICENSE_TOKEN_NUM) {
+                    throw new IllegalArgumentException("Invalid number of arguments for SET LICENSE. " +
+                                                       "Please provide only the license key");
                 }
+                assignment = node.assignments().get(0);
+                String licenseKey = ExpressionToStringVisitor.convert(assignment.expression(), Row.EMPTY);
+
+                return new SetLicenseAnalyzedStatement(licenseKey);
+            case GLOBAL:
+                for (Assignment anAssignment : node.assignments()) {
+                    for (String setting : ExpressionToSettingNameListVisitor.convert(anAssignment)) {
+                        CrateSettings.checkIfRuntimeSetting(setting);
+                    }
+                    String settingName = ExpressionToStringVisitor.convert(anAssignment.columnName(), Row.EMPTY);
+                    settings.put(settingName, ImmutableList.of(anAssignment.expression()));
+                }
+                break;
+            default:
+                assignment = node.assignments().get(0);
+                // parser does not allow using the parameter expressions as setting names in the SET statements,
+                // therefore it is fine to convert the expression to string here.
                 String settingName = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
-                settings.put(settingName, ImmutableList.of(assignment.expression()));
-            }
-            return new SetAnalyzedStatement(node.scope(), settings, isPersistent);
+                List<String> nameParts = CrateSettings.settingNamesByPrefix(settingName);
+                if (nameParts.size() != 0) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                        "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL", settingName));
+                }
+                settings.put(settingName, assignment.expressions());
+                break;
+
         }
+        return new SetAnalyzedStatement(node.scope(), settings, isPersistent);
     }
 
     public static ResetAnalyzedStatement analyze(ResetStatement node) {

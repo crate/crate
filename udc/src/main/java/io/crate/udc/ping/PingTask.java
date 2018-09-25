@@ -64,7 +64,6 @@ public class PingTask extends TimerTask {
     private final ExtendedNodeInfo extendedNodeInfo;
     private final String pingUrl;
     private final Settings settings;
-    private String licenseIdent;
 
     private AtomicLong successCounter = new AtomicLong(0);
     private AtomicLong failCounter = new AtomicLong(0);
@@ -77,9 +76,7 @@ public class PingTask extends TimerTask {
         this.clusterService = clusterService;
         this.pingUrl = pingUrl;
         this.settings = settings;
-        this.licenseIdent = SharedSettings.LICENSE_IDENT_SETTING.setting().get(settings);
         this.extendedNodeInfo = extendedNodeInfo;
-        clusterSettings.addSettingsUpdateConsumer(SharedSettings.LICENSE_IDENT_SETTING.setting(), this::setLicenseIdent);
     }
 
     private Map<String, String> getKernelData() {
@@ -97,15 +94,6 @@ public class PingTask extends TimerTask {
     @VisibleForTesting
     String isEnterprise() {
         return SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().getRaw(settings);
-    }
-
-    @VisibleForTesting
-    String getLicenseIdent() {
-        return licenseIdent;
-    }
-
-    private void setLicenseIdent(String licenseIdent) {
-        this.licenseIdent = licenseIdent;
     }
 
     private Map<String, Object> getCounters() {
@@ -135,7 +123,6 @@ public class PingTask extends TimerTask {
         queryMap.put("hardware_address", getHardwareAddress());
         queryMap.put("crate_version", Version.CURRENT.number());
         queryMap.put("java_version", System.getProperty("java.version"));
-        queryMap.put("license_ident", getLicenseIdent());
 
         if (logger.isDebugEnabled()) {
             logger.debug("Sending data: {}", queryMap);

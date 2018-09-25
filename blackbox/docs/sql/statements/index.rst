@@ -42,6 +42,7 @@ SQL Statements
     select
     set
     set-transaction
+    set-license
     show-columns
     show-create-table
     show-schemas

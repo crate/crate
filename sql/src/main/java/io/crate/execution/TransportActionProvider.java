@@ -29,6 +29,7 @@ import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.execution.engine.fetch.TransportFetchNodeAction;
 import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.license.TransportSetLicenseAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshotAction;
@@ -74,7 +75,8 @@ public class TransportActionProvider {
                                    Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider,
                                    Provider<TransportCreateSnapshotAction> transportCreateSnapshotActionProvider,
                                    Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider,
-                                   Provider<TransportGetSnapshotsAction> transportGetSnapshotsActionPovider) {
+                                   Provider<TransportGetSnapshotsAction> transportGetSnapshotsActionPovider,
+                                   Provider<TransportSetLicenseAction> transportSetLicenseActionProvider) {
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportClusterUpdateSettingsActionProvider = transportClusterUpdateSettingsActionProvider;
         this.transportShardDeleteActionProvider = transportShardDeleteActionProvider;
@@ -146,5 +148,4 @@ public class TransportActionProvider {
     public TransportGetSnapshotsAction transportGetSnapshotsAction() {
         return transportGetSnapshotsActionProvider.get();
     }
-
 }

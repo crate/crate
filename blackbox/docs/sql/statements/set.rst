@@ -37,7 +37,7 @@ keywords to set a persistent level.
 
 ``SET/SET SESSION`` may affect the current session if the setting is supported.
 Setting the unsupported settings will be ignored and logged with the ``WARN``
-logging level. See see :ref:`search_path <conf-session-search-path>`, to get an
+logging level. See :ref:`search_path <conf-session-search-path>`, to get an
 overview of the supported session setting parameters.
 
 ``SET LOCAL`` does not have any effect on CrateDB configurations. All ``SET

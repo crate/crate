@@ -61,6 +61,7 @@ statement
         (EQ | TO) (DEFAULT | setExpr (',' setExpr)*)                                 #set
     | SET GLOBAL (PERSISTENT | TRANSIENT)?
         setGlobalAssignment (',' setGlobalAssignment)*                               #setGlobal
+    | SET LICENSE stringLiteral                                                      #setLicense
     | KILL (ALL | jobId=parameterOrString)                                           #kill
     | INSERT INTO table ('(' ident (',' ident)* ')')? insertSource
         (onDuplicate | onConflict)?                                                  #insert
@@ -611,7 +612,7 @@ nonReserved
     : ALIAS | ANALYZE | ANALYZER | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
     | COLUMNS | COPY | CURRENT | DATE | DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
-    | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LOGICAL | LOCAL | MATERIALIZED | MINUTE
+    | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LICENSE | LOGICAL | LOCAL | MATERIALIZED | MINUTE
     | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED | PARTITIONS | PLAIN
     | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
     | SHARDS | SHOW | STORAGE | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
@@ -747,6 +748,7 @@ GEO_SHAPE: 'GEO_SHAPE';
 GLOBAL : 'GLOBAL';
 SESSION : 'SESSION';
 LOCAL : 'LOCAL';
+LICENSE : 'LICENSE';
 
 BEGIN: 'BEGIN';
 COMMIT: 'COMMIT';

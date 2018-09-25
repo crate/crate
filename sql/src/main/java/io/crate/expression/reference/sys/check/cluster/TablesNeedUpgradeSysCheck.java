@@ -72,7 +72,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     @Override
     public String description() {
-        return DESCRIPTION + tablesNeedUpgrade + ' ' + LINK_PATTERN + ID;
+        return DESCRIPTION + tablesNeedUpgrade + ' ' + CLUSTER_CHECK_LINK_PATTERN + ID;
     }
 
     @Override
