@@ -229,4 +229,10 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         ResetAnalyzedStatement analysis = analyze("RESET GLOBAL \"logger.action\"");
         assertThat(analysis.settingsToRemove(), Matchers.<Set<String>>is(ImmutableSet.of("logger.action")));
     }
+
+    @Test
+    public void testSetLicense() throws Exception {
+        SetLicenseAnalyzedStatement analysis = analyze("SET LICENSE 'ThisShouldBeAnEncryptedLicenseKey'");
+        assertThat(analysis.licenseKey(), is("ThisShouldBeAnEncryptedLicenseKey"));
+    }
 }

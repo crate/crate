@@ -186,6 +186,8 @@ Example::
     ... values ('localhost', 'not.a.real.ip');
     SQLActionException[ColumnValidationException: Validation failed for ip_addr: Cannot cast 'not.a.real.ip' to type ip]
 
+.. _data-type-timestamp:
+
 ``timestamp``
 =============
 

@@ -31,6 +31,6 @@ public class InvalidColumnNameException extends ValidationException implements C
 
     @Override
     public int errorCode() {
-        return 2;
+        return 8;
     }
 }

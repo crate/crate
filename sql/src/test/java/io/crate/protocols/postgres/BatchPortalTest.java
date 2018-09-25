@@ -69,7 +69,7 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
                 lastParams.set(params);
             }
         };
-        Planner planner = new Planner(Settings.EMPTY, clusterService, sqlExecutor.functions(), new TableStats()) {
+        Planner planner = new Planner(Settings.EMPTY, clusterService, sqlExecutor.functions(), new TableStats(), () -> true) {
             @Override
             public Plan plan(AnalyzedStatement analyzedStatement, PlannerContext plannerContext) {
                 return insertPlan;
