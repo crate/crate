@@ -29,6 +29,7 @@ import io.crate.metadata.RelationName;
 import io.crate.protocols.postgres.types.PGTypes;
 import org.elasticsearch.common.inject.Inject;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,7 +41,7 @@ public class PgCatalogTableDefinitions {
 
     @Inject
     public PgCatalogTableDefinitions(InformationSchemaIterables informationSchemaIterables) {
-        tableDefinitions = new HashMap<>(2);
+        tableDefinitions = new HashMap<>(4);
 
         tableDefinitions.put(PgTypeTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(PGTypes.pgTypes()),
@@ -57,6 +58,10 @@ public class PgCatalogTableDefinitions {
             informationSchemaIterables::schemas,
             (user, s) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, s.name()),
             PgNamespaceTable.expressions()
+        ));
+        tableDefinitions.put(PgAttrDefTable.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(Collections.emptyList()),
+            PgAttrDefTable.expressions()
         ));
     }
 

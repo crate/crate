@@ -133,6 +133,8 @@ following tables:
  - `pg_type`_
  - `pg_class <pgsql_pg_class_>`__
  - `pg_namespace <pgsql_pg_namespace_>`__
+ - `pg_attrdef <pgsql_pg_attrdef_>`__
+
 
 ``pg_type``
 ...........
@@ -354,3 +356,4 @@ either because of the table is empty or by a not matching where clause.
 .. _pgsql_pg_type: https://www.postgresql.org/docs/9.6/static/catalog-pg-type.html
 .. _pgsql_pg_class: https://www.postgresql.org/docs/9.6/static/catalog-pg-class.html
 .. _pgsql_pg_namespace: https://www.postgresql.org/docs/9.6/static/catalog-pg-namespace.html
+.. _pgsql_pg_attrdef: https://www.postgresql.org/docs/9.6/static/catalog-pg-attrdef.html
