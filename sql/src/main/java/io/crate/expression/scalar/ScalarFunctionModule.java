@@ -21,9 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionResolver;
 import io.crate.expression.scalar.arithmetic.AbsFunction;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
@@ -55,7 +52,11 @@ import io.crate.expression.scalar.string.HashFunctions;
 import io.crate.expression.scalar.string.LengthFunction;
 import io.crate.expression.scalar.string.StringCaseFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
+import io.crate.expression.scalar.systeminformation.PgGetExpr;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionResolver;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
@@ -138,6 +139,7 @@ public class ScalarFunctionModule extends AbstractModule {
         IfFunction.register(this);
 
         CurrentSchemaFunction.register(this);
+        PgGetExpr.register(this);
 
         PgBackendPidFunction.register(this);
 
