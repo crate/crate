@@ -25,7 +25,7 @@ Returns: ``string``
 
 ::
 
-    cr> select concat('foo', null, 'bar') from sys.cluster;
+    cr> select concat('foo', null, 'bar');
     +----------------------------+
     | concat('foo', NULL, 'bar') |
     +----------------------------+
@@ -35,7 +35,7 @@ Returns: ``string``
 
 You can also use the ``||`` operator::
 
-    cr> select 'foo' || 'bar' from sys.cluster;
+    cr> select 'foo' || 'bar';
     +----------------------+
     | concat('foo', 'bar') |
     +----------------------+
@@ -86,13 +86,12 @@ Returns: ``string``
 
 ::
 
-    cr> select substr(name, 3, 2) from sys.nodes
-    ... limit 1;
-    +--------------------+
-    | substr(name, 3, 2) |
-    +--------------------+
-    | at                 |
-    +--------------------+
+    cr> select substr('crate.io', 3, 2);
+    +--------------------------+
+    | substr('crate.io', 3, 2) |
+    +--------------------------+
+    | at                       |
+    +--------------------------+
     SELECT 1 row in set (... sec)
 
 .. _scalar_char_length:
@@ -106,7 +105,7 @@ Returns: ``integer``
 
 ::
 
-    cr> select char_length('crate.io') from sys.cluster;
+    cr> select char_length('crate.io');
     +-------------------------+
     | char_length('crate.io') |
     +-------------------------+
@@ -118,7 +117,7 @@ Each character counts only once, regardless of its byte size.
 
 ::
 
-    cr> select char_length('©rate.io') from sys.cluster;
+    cr> select char_length('©rate.io');
     +-------------------------+
     | char_length('©rate.io') |
     +-------------------------+
@@ -142,7 +141,7 @@ Returns: ``integer``
 
 ::
 
-    cr> select bit_length('crate.io') from sys.cluster;
+    cr> select bit_length('crate.io');
     +------------------------+
     | bit_length('crate.io') |
     +------------------------+
@@ -152,7 +151,7 @@ Returns: ``integer``
 
 ::
 
-    cr> select bit_length('©rate.io') from sys.cluster;
+    cr> select bit_length('©rate.io');
     +------------------------+
     | bit_length('©rate.io') |
     +------------------------+
@@ -171,7 +170,7 @@ Returns: ``integer``
 
 ::
 
-    cr> select octet_length('crate.io') from sys.cluster;
+    cr> select octet_length('crate.io');
     +--------------------------+
     | octet_length('crate.io') |
     +--------------------------+
@@ -181,7 +180,7 @@ Returns: ``integer``
 
 ::
 
-    cr> select octet_length('©rate.io') from sys.cluster;
+    cr> select octet_length('©rate.io');
     +--------------------------+
     | octet_length('©rate.io') |
     +--------------------------+
@@ -199,8 +198,7 @@ Returns: ``string``
 
 ::
 
-    cr> select lower('TransformMe') from sys.nodes
-    ... limit 1;
+    cr> select lower('TransformMe');
     +----------------------+
     | lower('TransformMe') |
     +----------------------+
@@ -218,8 +216,7 @@ Returns: ``string``
 
 ::
 
-    cr> select upper('TransformMe') from sys.nodes
-    ... limit 1;
+    cr> select upper('TransformMe');
     +----------------------+
     | upper('TransformMe') |
     +----------------------+
@@ -347,7 +344,7 @@ Synopsis
 
 ::
 
-    cr> select extract(day from '2014-08-23') from sys.cluster;
+    cr> select extract(day from '2014-08-23');
     +--------------------------------+
     | EXTRACT(DAY FROM '2014-08-23') |
     +--------------------------------+
@@ -528,7 +525,7 @@ If no ``format_string`` is given the default format will be used::
 
 ::
 
-    cr> select date_format('1970-01-01') as epoque from sys.cluster;
+    cr> select date_format('1970-01-01') as epoque;
     +-----------------------------+
     | epoque                      |
     +-----------------------------+
@@ -546,7 +543,7 @@ time zones`_ supported by `Joda-Time`_.
 
 The ``timezone`` will be ``UTC`` if not provided::
 
-    cr> select date_format('%W the %D of %M %Y %H:%i %p', 0) as epoque from sys.cluster;
+    cr> select date_format('%W the %D of %M %Y %H:%i %p', 0) as epoque;
     +-------------------------------------------+
     | epoque                                    |
     +-------------------------------------------+
@@ -556,7 +553,7 @@ The ``timezone`` will be ``UTC`` if not provided::
 
 ::
 
-    cr> select date_format('%Y/%m/%d %H:%i', 'EST',  0) as est_epoque from sys.cluster;
+    cr> select date_format('%Y/%m/%d %H:%i', 'EST',  0) as est_epoque;
     +------------------+
     | est_epoque       |
     +------------------+
@@ -584,7 +581,7 @@ Below is an example of the distance function where both points are specified
 using WKT. See :ref:`geo_point_data_type` for more information on the implicit
 type casting of geo points::
 
-    cr> select distance('POINT (10 20)', 'POINT (11 21)') from sys.cluster;
+    cr> select distance('POINT (10 20)', 'POINT (11 21)');
     +--------------------------------------------+
     | distance('POINT (10 20)', 'POINT (11 21)') |
     +--------------------------------------------+
@@ -626,7 +623,7 @@ casting from strings to geo point and geo shapes::
     cr> select within(
     ...   'POINT (10 10)',
     ...   'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))'
-    ... ) from sys.cluster;
+    ... );
     +--------------------------------------------------------------------+
     | within('POINT (10 10)', 'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))') |
     +--------------------------------------------------------------------+
@@ -664,8 +661,7 @@ Example::
     ...         [[13.4252, 52.7096],[13.9416, 52.0997],
     ...          [12.7221, 52.1334],[13.4252, 52.7096]]]},
     ...   'LINESTRING (11.0742 49.4538, 11.5686 48.1367)'
-    ... ) as disjoint
-    ... from sys.cluster;
+    ... ) as disjoint;
     +------------+----------+
     | intersects | disjoint |
     +------------+----------+
@@ -745,7 +741,7 @@ clauses.
 Returns the absolute value of the given number in the datatype of the given
 number::
 
-    cr> select abs(214748.0998), abs(0), abs(-214748) from sys.cluster;
+    cr> select abs(214748.0998), abs(0), abs(-214748);
     +------------------+--------+---------------+
     | abs(214748.0998) | abs(0) | abs(- 214748) |
     +------------------+--------+---------------+
@@ -766,7 +762,7 @@ Return value will be of type integer if the input value is an integer or float.
 If the input value is of type long or double the return value will be of type
 long::
 
-    cr> select ceil(29.9) from sys.cluster;
+    cr> select ceil(29.9);
     +------------+
     | ceil(29.9) |
     +------------+
@@ -790,7 +786,7 @@ long.
 
 See below for an example::
 
-    cr> select floor(29.9) from sys.cluster;
+    cr> select floor(29.9);
     +-------------+
     | floor(29.9) |
     +-------------+
@@ -807,7 +803,7 @@ Returns: ``double``
 
 See below for an example::
 
-    cr> SELECT ln(1) FROM sys.cluster;
+    cr> SELECT ln(1);
     +-------+
     | ln(1) |
     +-------+
@@ -830,7 +826,7 @@ Returns: ``double``
 
 See below for an example, which essentially is the same as above::
 
-    cr> SELECT log(100, 10) FROM sys.cluster;
+    cr> SELECT log(100, 10);
     +--------------+
     | log(100, 10) |
     +--------------+
@@ -840,7 +836,7 @@ See below for an example, which essentially is the same as above::
 
 The second argument (``b``) is optional. If not present, base 10 is used::
 
-    cr> SELECT log(100) FROM sys.cluster;
+    cr> SELECT log(100);
     +----------+
     | log(100) |
     +----------+
@@ -870,7 +866,7 @@ negative exponents (which will yield decimal types)
 
 See below for an example::
 
-    cr> SELECT power(2,3) FROM sys.cluster;
+    cr> SELECT power(2,3);
     +-------------+
     | power(2, 3) |
     +-------------+
@@ -904,7 +900,7 @@ Returns: ``long`` or ``integer``
 
 See below for an example::
 
-    cr> select round(42.2) from sys.cluster;
+    cr> select round(42.2);
     +-------------+
     | round(42.2) |
     +-------------+
@@ -921,7 +917,7 @@ Returns: ``double``
 
 See below for an example::
 
-    cr> select sqrt(25.0) from sys.cluster;
+    cr> select sqrt(25.0);
     +------------+
     | sqrt(25.0) |
     +------------+
@@ -938,7 +934,7 @@ Returns: ``double``
 
 See below for an example::
 
-    cr> SELECT sin(1) FROM sys.cluster;
+    cr> SELECT sin(1);
     +--------------------+
     |             sin(1) |
     +--------------------+
@@ -955,7 +951,7 @@ Returns: ``double``
 
 See below for an example::
 
-    cr> SELECT asin(1) FROM sys.cluster;
+    cr> SELECT asin(1);
     +--------------------+
     |            asin(1) |
     +--------------------+
@@ -972,7 +968,7 @@ Returns: ``double``
 
 See below for an example::
 
-    cr> SELECT cos(1) FROM sys.cluster;
+    cr> SELECT cos(1);
     +--------------------+
     |             cos(1) |
     +--------------------+
@@ -989,7 +985,7 @@ Returns: ``double``
 
 See below for an example::
 
-    cr> SELECT acos(-1) FROM sys.cluster;
+    cr> SELECT acos(-1);
     +-------------------+
     |         acos(- 1) |
     +-------------------+
@@ -1006,7 +1002,7 @@ Returns: ``double``
 
 See below for an example::
 
-    cr> SELECT tan(1) FROM sys.cluster;
+    cr> SELECT tan(1);
     +--------------------+
     |             tan(1) |
     +--------------------+
@@ -1023,7 +1019,7 @@ Returns: ``double``
 
 See below for an example::
 
-    cr> SELECT atan(1) FROM sys.cluster;
+    cr> SELECT atan(1);
     +--------------------+
     |            atan(1) |
     +--------------------+
@@ -1080,7 +1076,7 @@ For example matching the regular expression ``([Aa](.+)z)`` against
 
 The ``regexp_matches`` function will return all groups as a string array::
 
-    cr> select regexp_matches('alcatraz', '(a(.+)z)') as matched from sys.cluster;
+    cr> select regexp_matches('alcatraz', '(a(.+)z)') as matched;
     +------------------------+
     | matched                |
     +------------------------+
@@ -1090,7 +1086,7 @@ The ``regexp_matches`` function will return all groups as a string array::
 
 ::
 
-    cr> select regexp_matches('alcatraz', 'traz') as matched from sys.cluster;
+    cr> select regexp_matches('alcatraz', 'traz') as matched;
     +----------+
     | matched  |
     +----------+
@@ -1103,7 +1099,7 @@ See :ref:`sql_dql_object_arrays_select` for details.
 
 ::
 
-    cr> select regexp_matches('alcatraz', '(a(.+)z)')[2] as second_group from sys.cluster;
+    cr> select regexp_matches('alcatraz', '(a(.+)z)')[2] as second_group;
     +--------------+
     | second_group |
     +--------------+
@@ -1145,7 +1141,7 @@ Examples
 
 ::
 
-    cr> select regexp_matches('foobar', '^(a(.+)z)$') as matched from sys.cluster;
+    cr> select regexp_matches('foobar', '^(a(.+)z)$') as matched;
     +---------+
     | matched |
     +---------+
@@ -1156,7 +1152,7 @@ Examples
 ::
 
     cr> select regexp_matches('99 bottles of beer on the wall', '\d{2}\s(\w+).*', 'ixU')
-    ... as matched from sys.cluster;
+    ... as matched;
     +-------------+
     | matched     |
     +-------------+
@@ -1219,8 +1215,7 @@ Examples
 
 ::
 
-   cr> select regexp_replace('alcatraz', '(foo)(bar)+', '$1baz') as replaced
-   ... from sys.cluster;
+   cr> select regexp_replace('alcatraz', '(foo)(bar)+', '$1baz') as replaced;
     +----------+
     | replaced |
     +----------+
@@ -1255,7 +1250,7 @@ Returns: ``array``
 
 ::
 
-    cr> select array_cat([1,2,3],[3,4,5,6]) from sys.cluster;
+    cr> select array_cat([1,2,3],[3,4,5,6]);
     +------------------------------------+
     | array_cat([1, 2, 3], [3, 4, 5, 6]) |
     +------------------------------------+
@@ -1312,7 +1307,7 @@ You can also use the concat operator ``||`` with arrays
 
 ::
 
-    cr> select [1,2,3] || [4,5,6] || [7,8,9] from sys.cluster;
+    cr> select [1,2,3] || [4,5,6] || [7,8,9];
     +-------------------------------------------------+
     | concat(concat([1, 2, 3], [4, 5, 6]), [7, 8, 9]) |
     +-------------------------------------------------+
@@ -1330,7 +1325,7 @@ Returns: ``array``
 
 ::
 
-    cr> select array_unique([1, 2, 3], [3, 4, 4]) from sys.cluster;
+    cr> select array_unique([1, 2, 3], [3, 4, 4]);
     +------------------------------------+
     | array_unique([1, 2, 3], [3, 4, 4]) |
     +------------------------------------+
@@ -1341,7 +1336,7 @@ Returns: ``array``
 If the arrays have different types all elements will be cast to the element
 type of the first array with a defined type::
 
-    cr> select array_unique([10, 20], [10.2, 20.3]) from sys.cluster;
+    cr> select array_unique([10, 20], [10.2, 20.3]);
     +--------------------------------------+
     | array_unique([10, 20], [10.2, 20.3]) |
     +--------------------------------------+
@@ -1359,7 +1354,7 @@ Returns: ``array``
 
 ::
 
-    cr> select array_difference([1,2,3,4,5,6,7,8,9,10],[2,3,6,9,15]) from sys.cluster;
+    cr> select array_difference([1,2,3,4,5,6,7,8,9,10],[2,3,6,9,15]);
     +---------------------------------------------------------------------+
     | array_difference([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [2, 3, 6, 9, 15]) |
     +---------------------------------------------------------------------+
@@ -1618,8 +1613,7 @@ Returns: same type as arguments
 
 ::
 
-    cr> select greatest(1, 2)
-    ...   from sys.cluster;
+    cr> select greatest(1, 2);
     +----------------+
     | greatest(1, 2) |
     +----------------+
@@ -1638,8 +1632,7 @@ Returns: same type as arguments
 
 ::
 
-    cr> select least(1, 2)
-    ...   from sys.cluster;
+    cr> select least(1, 2);
     +-------------+
     | least(1, 2) |
     +-------------+
@@ -1914,7 +1907,7 @@ Synopsis::
 
 Example::
 
-    cr> SELECT ignore3vl(true) as v1, ignore3vl(false) as v2, ignore3vl(null) as v3 FROM sys.cluster
+    cr> SELECT ignore3vl(true) as v1, ignore3vl(false) as v2, ignore3vl(null) as v3;
     +------+-------+-------+
     | v1   | v2    | v3    |
     +------+-------+-------+
