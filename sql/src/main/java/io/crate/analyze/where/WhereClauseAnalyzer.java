@@ -22,7 +22,7 @@
 package io.crate.analyze.where;
 
 import com.google.common.collect.Iterables;
-import io.crate.analyze.SymbolToTrueVisitor;
+import io.crate.analyze.ScalarsAndRefsToTrue;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -189,14 +189,10 @@ public class WhereClauseAnalyzer {
          */
 
         List<Tuple<Symbol, List<Literal>>> canMatch = new ArrayList<>();
-        SymbolToTrueVisitor symbolToTrueVisitor = new SymbolToTrueVisitor();
         for (Map.Entry<Symbol, List<Literal>> entry : queryPartitionMap.entrySet()) {
             Symbol query = entry.getKey();
             List<Literal> partitions = entry.getValue();
-
-            Symbol symbol = symbolToTrueVisitor.process(query, null);
-            Symbol normalized = normalizer.normalize(symbol, transactionContext);
-
+            Symbol normalized = normalizer.normalize(ScalarsAndRefsToTrue.rewrite(query), transactionContext);
             assert normalized instanceof Literal :
                 "after normalization and replacing all reference occurrences with true there must only be a literal left";
 
