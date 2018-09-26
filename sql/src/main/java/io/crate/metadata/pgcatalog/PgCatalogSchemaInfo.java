@@ -44,6 +44,7 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
             .put(PgClassTable.IDENT.name(), new PgClassTable())
             .put(PgNamespaceTable.IDENT.name(), new PgNamespaceTable())
             .put(PgAttrDefTable.IDENT.name(), new PgAttrDefTable())
+            .put(PgAttributeTable.IDENT.name(), new PgAttributeTable())
             .build();
     }
 
