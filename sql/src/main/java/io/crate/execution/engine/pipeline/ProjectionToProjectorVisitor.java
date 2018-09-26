@@ -24,6 +24,7 @@ package io.crate.execution.engine.pipeline;
 
 import com.google.common.collect.Iterables;
 import io.crate.action.sql.SessionContext;
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.data.Projector;
@@ -76,16 +77,17 @@ import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
@@ -287,7 +289,8 @@ public class ProjectionToProjectorVisitor
         }
 
         projection = projection.normalize(normalizer, context.transactionContext);
-        String uri = ValueSymbolVisitor.STRING.process(projection.uri());
+        String uri = BytesRefs.toString(
+            SymbolEvaluator.evaluate(functions, projection.uri(), Row.EMPTY, SubQueryResults.EMPTY));
         assert uri != null : "URI must not be null";
 
         StringBuilder sb = new StringBuilder(uri);
@@ -295,7 +298,8 @@ public class ProjectionToProjectorVisitor
         assert resolvedFileName instanceof Literal : "resolvedFileName must be a Literal, but is: " + resolvedFileName;
         assert resolvedFileName.valueType() == StringType.INSTANCE :
             "resolvedFileName.valueType() must be " + StringType.INSTANCE;
-        String fileName = ValueSymbolVisitor.STRING.process(resolvedFileName);
+
+        String fileName = BytesRefs.toString(((Literal) resolvedFileName).value());
         if (!uri.endsWith("/")) {
             sb.append("/");
         }
