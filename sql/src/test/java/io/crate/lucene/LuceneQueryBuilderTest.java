@@ -26,19 +26,13 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.ColumnPolicy;
-import io.crate.metadata.table.TestingTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.IndexVersionCreated;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
@@ -47,8 +41,6 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
@@ -86,11 +78,10 @@ import static java.util.Collections.singletonList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
+public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUnitTest {
 
     private LuceneQueryBuilder builder;
     private IndexCache indexCache;
-    private IndexFieldDataService indexFieldDataService;
     private QueryShardContext queryShardContext;
     private MapperService mapperService;
 
@@ -104,29 +95,31 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        DocTableInfo users = TestingTableInfo.builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "users"), null)
-            .add("name", DataTypes.STRING)
-            .add("tags", DataTypes.STRING, null, ColumnPolicy.DYNAMIC, Reference.IndexType.ANALYZED, false, false)
-            .add("x", DataTypes.INTEGER, null, ColumnPolicy.DYNAMIC, Reference.IndexType.NOT_ANALYZED, false, false)
-            .add("d", DataTypes.DOUBLE)
-            .add("obj", DataTypes.OBJECT)
-            .add("obj", DataTypes.INTEGER, singletonList("x"))
-            .add("obj", DataTypes.INTEGER, singletonList("y"))
-            .add("d_array", new ArrayType(DataTypes.DOUBLE))
-            .add("y_array", new ArrayType(DataTypes.LONG))
-            .add("o_array", new ArrayType(DataTypes.OBJECT))
-            .add("o_array", new ArrayType(DataTypes.INTEGER), Collections.singletonList("xs"))
-            .add("ts_array", new ArrayType(DataTypes.TIMESTAMP))
-            .add("shape", DataTypes.GEO_SHAPE)
-            .add("point", DataTypes.GEO_POINT)
-            .add("ts", DataTypes.TIMESTAMP)
-            .add("addr", DataTypes.IP)
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .addTable("create table users (" +
+                      " name string," +
+                      " tags string index using fulltext not null," +
+                      " x integer not null," +
+                      " d double," +
+                      " obj object as (" +
+                      "     x integer," +
+                      "     y integer" +
+                      " )," +
+                      " d_array array(double)," +
+                      " y_array array(long)," +
+                      " o_array array(object as (xs array(integer)))," +
+                      " ts_array array(timestamp)," +
+                      " shape geo_shape," +
+                      " point geo_point," +
+                      " ts timestamp," +
+                      " addr ip" +
+                      ")")
             .build();
+        TableInfo users = sqlExecutor.schemas().getTableInfo(new RelationName("doc", "users"));
         TableRelation usersTr = new TableRelation(users);
         sources = ImmutableMap.of(new QualifiedName("users"), usersTr);
-
         expressions = new SqlExpressions(sources, usersTr);
-        builder = new LuceneQueryBuilder(expressions.getInstance(Functions.class));
+        builder = new LuceneQueryBuilder(sqlExecutor.functions());
         indexCache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
 
         Index index = new Index(users.ident().indexName(), UUIDs.randomBase64UUID());
@@ -141,66 +134,12 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
         ScriptService scriptService = mock(ScriptService.class);
         mapperService = createMapperService(idxSettings, indexAnalyzers, scriptService);
 
-        // @formatter:off
-        XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()
-            .startObject()
-            .startObject("default")
-                .startObject("properties")
-                    .startObject("name").field("type", "keyword").endObject()
-                    .startObject("tags").field("type", "text").endObject()
-                    .startObject("x").field("type", "integer").endObject()
-                    .startObject("d").field("type", "double").endObject()
-                    .startObject("obj")
-                        .field("type", "object")
-                        .startObject("properties")
-                            .startObject("x").field("type", "integer").endObject()
-                            .startObject("y").field("type", "integer").endObject()
-                        .endObject()
-                    .endObject()
-                    .startObject("point").field("type", "geo_point").endObject()
-                    .startObject("shape").field("type", "geo_shape").endObject()
-                    .startObject("addr").field("type", "ip").endObject()
-                    .startObject("ts").field("type", "date").endObject()
-                    .startObject("d_array")
-                        .field("type", "array")
-                        .startObject("inner")
-                            .field("type", "double")
-                        .endObject()
-                    .endObject()
-                    .startObject("y_array")
-                        .field("type", "array")
-                        .startObject("inner")
-                            .field("type", "integer")
-                        .endObject()
-                    .endObject()
-                    .startObject("o_array")
-                        .field("type", "array")
-                        .startObject("inner")
-                            .field("type", "object")
-                            .startObject("properties")
-                                .startObject("xs")
-                                    .field("type", "array")
-                                    .startObject("inner")
-                                        .field("type", "integer")
-                                    .endObject()
-                                .endObject()
-                            .endObject()
-                        .endObject()
-                    .endObject()
-                    .startObject("ts_array")
-                        .field("type", "array")
-                        .startObject("inner")
-                            .field("type", "date")
-                        .endObject()
-                    .endObject()
-                .endObject()
-            .endObject()
-            .endObject();
-        // @formatter:on
-        mapperService.merge("default",
-            new CompressedXContent(xContentBuilder.bytes()), MapperService.MergeReason.MAPPING_UPDATE, true);
+        IndexMetaData usersIndex = clusterService.state().getMetaData().getIndices().get("users");
+        CompressedXContent mappingSource = usersIndex.mappingOrDefault("default").source();
 
-        indexFieldDataService = mock(IndexFieldDataService.class);
+        mapperService.merge("default", mappingSource, MapperService.MergeReason.MAPPING_UPDATE, true);
+
+        IndexFieldDataService indexFieldDataService = mock(IndexFieldDataService.class);
         IndexFieldData geoFieldData = mock(IndexGeoPointFieldData.class);
 
         when(geoFieldData.getFieldName()).thenReturn("point");
