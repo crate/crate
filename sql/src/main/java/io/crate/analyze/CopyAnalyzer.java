@@ -27,6 +27,7 @@ import io.crate.analyze.copy.NodeFilters;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
+import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.data.Row;
@@ -36,7 +37,6 @@ import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
@@ -126,7 +126,7 @@ class CopyAnalyzer {
             // items would cause subsequent queries that hit the cache to have different genericProperties
             Map<String, Expression> properties = new HashMap<>(node.genericProperties().properties());
             nodeFilters = discoveryNodePredicate(analysis.parameterContext().parameters(), properties.remove(NodeFilters.NAME));
-            settings = settingsFromProperties(properties, expressionAnalyzer, expressionAnalysisContext);
+            settings = settingsFromProperties(properties);
         }
         Symbol uri = expressionAnalyzer.convert(node.path(), expressionAnalysisContext);
         uri = normalizer.normalize(uri, analysis.transactionContext());
@@ -293,9 +293,7 @@ class CopyAnalyzer {
         }
     }
 
-    private static Settings settingsFromProperties(Map<String, Expression> properties,
-                                                   ExpressionAnalyzer expressionAnalyzer,
-                                                   ExpressionAnalysisContext expressionAnalysisContext) {
+    private static Settings settingsFromProperties(Map<String, Expression> properties) {
         Settings.Builder builder = Settings.builder();
         for (Map.Entry<String, Expression> entry : properties.entrySet()) {
             String key = entry.getKey();
@@ -309,12 +307,13 @@ class CopyAnalyzer {
                     key,
                     ((QualifiedNameReference) expression).getName().toString()));
             }
-
-            Symbol v = expressionAnalyzer.convert(expression, expressionAnalysisContext);
-            if (!v.symbolType().isValueSymbol()) {
-                throw new UnsupportedFeatureException("Only literals are allowed as parameter values");
+            String value;
+            try {
+                value = ExpressionToStringVisitor.convert(expression, Row.EMPTY);
+            } catch (UnsupportedOperationException e) {
+                throw new UnsupportedFeatureException("Only literals are allowed as parameter values. Got " + expression);
             }
-            builder.put(key, ValueSymbolVisitor.STRING.process(v));
+            builder.put(key, value);
         }
         return builder.build();
     }
