@@ -23,6 +23,8 @@ Synopsis
 
     SET GLOBAL [ PERSISTENT | TRANSIENT ] { setting_ident [ = | TO ] { value | ident } } [, ...]
 
+    SET LICENSE { setting_ident [ = | TO ] { value | ident } } [, ...]
+
     RESET GLOBAL setting_ident [, ...]
 
 Description
@@ -37,7 +39,7 @@ keywords to set a persistent level.
 
 ``SET/SET SESSION`` may affect the current session if the setting is supported.
 Setting the unsupported settings will be ignored and logged with the ``WARN``
-logging level. See see :ref:`search_path <conf-session-search-path>`, to get an
+logging level. See :ref:`search_path <conf-session-search-path>`, to get an
 overview of the supported session setting parameters.
 
 ``SET LOCAL`` does not have any effect on CrateDB configurations. All ``SET
@@ -46,6 +48,20 @@ logging level.
 
 ``SET SESSION/LOCAL`` are introduced to be compliant with third-party
 applications which use the PostgresSQL wire protocol.
+
+``SET LICENSE`` registers :ref:`License specific Settings <conf-license>`
+for license verification. If the verification succeeds, the cluster will
+continue to operate in `Enterprise Edition`_ until the license expiry date.
+
+.. NOTE::
+
+    Should the license verification fail, the cluster will continue to
+    operate in the existing mode e.g. ``Enterprise Trial`` as long as
+    the current license is still valid (i.e. not expired).
+
+    When the existing licence expires, the cluster will *continue to operate*.
+    However, it will operate in `Community Edition`_, meaning that
+    the :ref:`enterprise_features` will be disabled.
 
 Parameters
 ==========
@@ -79,3 +95,7 @@ so that the setting will not be discarded if the cluster restarts.
 .. NOTE::
 
    The persistence keyword can only be used within a ``SET`` statement.
+
+
+.. _enterprise edition: https://crate.io/enterprise-edition/
+.. _community edition: https://crate.io/enterprise-edition/
