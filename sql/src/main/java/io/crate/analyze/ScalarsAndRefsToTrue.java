@@ -21,14 +21,14 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.operator.Operators;
+import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
-import io.crate.expression.operator.Operators;
-import io.crate.expression.predicate.NotPredicate;
 import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
@@ -54,7 +54,16 @@ import java.util.List;
  *     true and id is null  -&gt; true and true
  * </pre>
  */
-public class SymbolToTrueVisitor extends SymbolVisitor<Void, Symbol> {
+public final class ScalarsAndRefsToTrue extends SymbolVisitor<Void, Symbol> {
+
+    private static final ScalarsAndRefsToTrue INSTANCE = new ScalarsAndRefsToTrue();
+
+    private ScalarsAndRefsToTrue() {
+    }
+
+    public static Symbol rewrite(Symbol symbol) {
+        return INSTANCE.process(symbol, null);
+    }
 
     @Override
     public Symbol visitFunction(Function symbol, Void context) {
