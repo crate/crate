@@ -62,4 +62,12 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
             "NULL| pg_catalog| 0| -68025646\n" +
             "NULL| sys| 0| -458336339\n"));
     }
+
+    @Test
+    public void testPgAttributeTable() {
+        execute("select a.* from pg_catalog.pg_attribute as a join pg_catalog.pg_class as c on a.attrelid = c.oid where c.relname = 't1' order by a.attnum");
+        assertThat(printedTable(response.rows()), is(
+            "NULL| NULL| false| -1| 0| NULL| false| 0| false| true| 4| id| 0| false| 1| NULL| 728874843| 0| NULL| 23| -1\n" +
+            "NULL| NULL| false| -1| 0| NULL| false| 0| false| true| -1| s| 0| false| 2| NULL| 728874843| 0| NULL| 1043| -1\n"));
+    }
 }
