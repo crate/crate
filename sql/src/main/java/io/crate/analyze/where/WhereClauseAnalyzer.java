@@ -32,7 +32,6 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.partitioned.PartitionExpression;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.PartitionReferenceResolver;
@@ -43,6 +42,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -155,7 +155,7 @@ public class WhereClauseAnalyzer {
         if (queryPartitionMap.size() == 1) {
             Map.Entry<Symbol, List<Literal>> entry = Iterables.getOnlyElement(queryPartitionMap.entrySet());
             return new PartitionResult(
-                entry.getKey(), Lists2.map(entry.getValue(), ValueSymbolVisitor.STRING.function));
+                entry.getKey(), Lists2.map(entry.getValue(), literal -> BytesRefs.toString(literal.value())));
         } else if (queryPartitionMap.size() > 0) {
             return tieBreakPartitionQueries(normalizer, queryPartitionMap, transactionContext);
         } else {
@@ -209,7 +209,8 @@ public class WhereClauseAnalyzer {
             Tuple<Symbol, List<Literal>> symbolListTuple = canMatch.get(0);
             return new PartitionResult(
                 symbolListTuple.v1(),
-                Lists2.map(symbolListTuple.v2(), ValueSymbolVisitor.STRING.function));
+                Lists2.map(symbolListTuple.v2(), literal -> BytesRefs.toString(literal.value()))
+            );
         }
         throw new UnsupportedOperationException(
             "logical conjunction of the conditions in the WHERE clause which " +
