@@ -53,6 +53,7 @@ public class PgTypeTable extends StaticTableInfo {
         static final ColumnIdent TYPELEM = new ColumnIdent("typelem");
         static final ColumnIdent TYPTYPE = new ColumnIdent("typtype");
         static final ColumnIdent TYPBASETYPE = new ColumnIdent("typbasetype");
+        static final ColumnIdent TYPTYPMOD = new ColumnIdent("typtypmod");
     }
 
     private static final BytesRef TYPTYPE = new BytesRef("b");
@@ -71,6 +72,8 @@ public class PgTypeTable extends StaticTableInfo {
                 () -> NestableCollectExpression.constant(TYPTYPE))
             .put(Columns.TYPBASETYPE,
                 () -> NestableCollectExpression.constant(0))
+            .put(Columns.TYPTYPMOD,
+                () -> NestableCollectExpression.constant(-1))
             .build();
     }
 
@@ -81,7 +84,8 @@ public class PgTypeTable extends StaticTableInfo {
                 .register(Columns.TYPDELIM.name(), DataTypes.STRING, null)
                 .register(Columns.TYPELEM.name(), DataTypes.INTEGER, null)
                 .register(Columns.TYPTYPE.name(), DataTypes.STRING, null)
-                .register(Columns.TYPBASETYPE.name(), DataTypes.INTEGER, null),
+                .register(Columns.TYPBASETYPE.name(), DataTypes.INTEGER, null)
+                .register(Columns.TYPTYPMOD.name(), DataTypes.INTEGER, null),
             Collections.emptyList());
     }
 
