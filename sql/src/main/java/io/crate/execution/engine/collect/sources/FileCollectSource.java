@@ -22,6 +22,7 @@
 package io.crate.execution.engine.collect.sources;
 
 import io.crate.analyze.CopyFromAnalyzedStatement;
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -35,11 +36,13 @@ import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.metadata.Functions;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.CollectionType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,11 +56,13 @@ public class FileCollectSource implements CollectSource {
     private final ClusterService clusterService;
     private final Map<String, FileInputFactory> fileInputFactoryMap;
     private final InputFactory inputFactory;
+    private final Functions functions;
 
     @Inject
     public FileCollectSource(Functions functions, ClusterService clusterService, Map<String, FileInputFactory> fileInputFactoryMap) {
         this.fileInputFactoryMap = fileInputFactoryMap;
-        inputFactory = new InputFactory(functions);
+        this.functions = functions;
+        this.inputFactory = new InputFactory(functions);
         this.clusterService = clusterService;
     }
 
@@ -68,8 +73,7 @@ public class FileCollectSource implements CollectSource {
             inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);
         ctx.add(collectPhase.toCollect());
 
-        List<String> fileUris;
-        fileUris = targetUriToStringList(fileUriCollectPhase.targetUri());
+        List<String> fileUris = targetUriToStringList(functions, fileUriCollectPhase.targetUri());
         return FileReadingIterator.newInstance(
             fileUris,
             ctx.topLevelInputs(),
@@ -89,9 +93,10 @@ public class FileCollectSource implements CollectSource {
         return Arrays.binarySearch(readers, localNodeId);
     }
 
-    private static List<String> targetUriToStringList(Symbol targetUri) {
+    private static List<String> targetUriToStringList(Functions functions, Symbol targetUri) {
         if (targetUri.valueType() == DataTypes.STRING) {
-            return Collections.singletonList(ValueSymbolVisitor.STRING.process(targetUri));
+            String uri = BytesRefs.toString(SymbolEvaluator.evaluate(functions, targetUri, Row.EMPTY, SubQueryResults.EMPTY));
+            return Collections.singletonList(uri);
         } else if (targetUri.valueType() instanceof CollectionType
                    && ((CollectionType) targetUri.valueType()).innerType() == DataTypes.STRING) {
             return ValueSymbolVisitor.STRING_LIST.process(targetUri);
