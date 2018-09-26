@@ -22,6 +22,7 @@
 
 package io.crate.lucene;
 
+import org.apache.lucene.search.Query;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -58,5 +59,14 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
             convert("NOT name = 'foo' AND NOT ignore3vl(name = 'bar')").toString(),
             is("+(+(+*:* -name:foo) +ConstantScore(DocValuesFieldExistsQuery [field=name])) +(+(+*:* -name:bar))")
         );
+    }
+
+    @Test
+    public void testNullIsReplacedWithFalseToCreateOptimizedQuery() {
+        Query q1 = convert("null or name = 'foo'");
+        Query q2 = convert("name = 'foo'");
+
+        assertThat(q1, is(q2));
+        assertThat(q1.toString(), is("name:foo"));
     }
 }
