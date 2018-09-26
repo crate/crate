@@ -32,6 +32,8 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+
 import static io.crate.analyze.OptimizeTableAnalyzer.FLUSH;
 import static io.crate.analyze.OptimizeTableAnalyzer.MAX_NUM_SEGMENTS;
 import static io.crate.analyze.OptimizeTableAnalyzer.ONLY_EXPUNGE_DELETES;
@@ -45,7 +47,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "blobs");
         TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent);
         e = SQLExecutor.builder(clusterService).enableDefaultTables().addBlobTable(myBlobsTableInfo).build();

@@ -49,6 +49,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -67,9 +68,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private TransactionContext txnCtx = TransactionContext.systemTransactionContext();
 
     @Before
-    public void setUpExecutor() {
+    public void setUpExecutor() throws IOException {
         e = SQLExecutor.builder(clusterService)
-            .addDocTable(TableDefinitions.USER_TABLE_INFO)
+            .addTable(TableDefinitions.USER_TABLE_INFO)
             .addDocTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO)
             .addDocTable(T3.T1_INFO)
             .addDocTable(T3.T2_INFO)

@@ -22,10 +22,11 @@
 
 package io.crate.planner;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
-import io.crate.planner.node.dql.Collect;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -42,8 +43,8 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addDocTable(TableDefinitions.USER_TABLE_INFO)
+        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
+            .addTable(TableDefinitions.USER_TABLE_INFO)
             .addDocTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO)
             .build();
     }

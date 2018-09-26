@@ -69,6 +69,7 @@ import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
@@ -199,7 +200,7 @@ public class SQLExecutor {
         private final Map<RelationName, DocTableInfo> docTables = new HashMap<>();
         private final Map<RelationName, BlobTableInfo> blobTables = new HashMap<>();
         private final Functions functions;
-        private final TestingDocTableInfoFactory testingDocTableInfoFactory;
+        private final DocTableInfoFactory tableInfoFactory;
         private final ViewInfoFactory testingViewInfoFactory;
         private final AnalysisRegistry analysisRegistry;
         private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
@@ -221,7 +222,7 @@ public class SQLExecutor {
             schemaInfoByName.put("information_schema", new InformationSchemaInfo());
             functions = getFunctions();
 
-            testingDocTableInfoFactory = new TestingDocTableInfoFactory(
+            tableInfoFactory = new TestingDocTableInfoFactory(
                 docTables, functions, new IndexNameExpressionResolver(Settings.EMPTY));
             testingViewInfoFactory = (ident, state) -> null;
             udfService = new UserDefinedFunctionService(clusterService, functions);
@@ -230,7 +231,7 @@ public class SQLExecutor {
                 Settings.EMPTY,
                 schemaInfoByName,
                 clusterService,
-                new DocSchemaInfoFactory(testingDocTableInfoFactory, testingViewInfoFactory, functions, udfService)
+                new DocSchemaInfoFactory(tableInfoFactory, testingViewInfoFactory, functions, udfService)
             );
             File homeDir = createTempDir();
             Environment environment = new Environment(
@@ -298,9 +299,9 @@ public class SQLExecutor {
          * Using {@link #addTable(String)} is preferred for this reason.
          * </p>
          */
-        public Builder enableDefaultTables() {
+        public Builder enableDefaultTables() throws IOException {
             // we should try to reduce the number of tables here eventually...
-            addDocTable(USER_TABLE_INFO);
+            addTable(USER_TABLE_INFO);
             addDocTable(USER_TABLE_INFO_CLUSTERED_BY_ONLY);
             addDocTable(USER_TABLE_INFO_MULTI_PK);
             addDocTable(DEEPLY_NESTED_TABLE_INFO);
@@ -328,7 +329,7 @@ public class SQLExecutor {
             for (String schema : searchPath) {
                 schemaInfoByName.put(
                     schema,
-                    new DocSchemaInfo(schema, clusterService, functions, udfService, testingViewInfoFactory, testingDocTableInfoFactory)
+                    new DocSchemaInfo(schema, clusterService, functions, udfService, testingViewInfoFactory, tableInfoFactory)
                 );
             }
             // Can't use the schemas instance from the constructor because
@@ -337,7 +338,7 @@ public class SQLExecutor {
                 Settings.EMPTY,
                 schemaInfoByName,
                 clusterService,
-                new DocSchemaInfoFactory(testingDocTableInfoFactory, testingViewInfoFactory, functions, udfService)
+                new DocSchemaInfoFactory(tableInfoFactory, testingViewInfoFactory, functions, udfService)
             );
             schemas.clusterChanged(new ClusterChangedEvent("init", clusterService.state(), ClusterState.EMPTY_STATE));
             RelationAnalyzer relationAnalyzer = new RelationAnalyzer(functions, schemas);
@@ -467,7 +468,7 @@ public class SQLExecutor {
                 .build();
 
             ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
-            docTables.put(relationName, testingDocTableInfoFactory.create(relationName, clusterService.state()));
+            docTables.put(relationName, tableInfoFactory.create(relationName, clusterService.state()));
             return this;
         }
 

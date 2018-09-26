@@ -31,6 +31,7 @@ import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 import static org.hamcrest.Matchers.is;
@@ -40,7 +41,7 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "blobs");
         TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent);
         e = SQLExecutor.builder(clusterService).addBlobTable(myBlobsTableInfo).enableDefaultTables().build();

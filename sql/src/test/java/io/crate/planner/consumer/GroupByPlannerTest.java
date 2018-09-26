@@ -22,6 +22,7 @@
 
 package io.crate.planner.consumer;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -61,6 +62,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 
 import static io.crate.analyze.TableDefinitions.shardRouting;
@@ -80,9 +82,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
-        e  = SQLExecutor.builder(
-            clusterService)
+    public void prepare() throws IOException {
+        e  = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
             .enableDefaultTables()
             .addDocTable(TableDefinitions.CLUSTERED_PARTED)
             .addDocTable(TestingTableInfo.builder(

@@ -27,6 +27,7 @@ import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
@@ -37,7 +38,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void setUpExecutor() {
+    public void setUpExecutor() throws IOException {
         e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 

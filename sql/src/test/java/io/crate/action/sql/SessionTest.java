@@ -132,7 +132,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractTypesFromDelete() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(TableDefinitions.USER_TABLE_INFO).build();
+        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_INFO).build();
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("delete from users where name = ?"),
             SessionContext.systemSessionContext(),
@@ -146,7 +146,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractTypesFromUpdate() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(TableDefinitions.USER_TABLE_INFO).build();
+        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_INFO).build();
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("update users set name = ? || '_updated' where id = ?"),
             SessionContext.systemSessionContext(),
@@ -160,7 +160,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractTypesFromInsertValues() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(TableDefinitions.USER_TABLE_INFO).build();
+        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_INFO).build();
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?)"),
             SessionContext.systemSessionContext(),
@@ -175,7 +175,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExtractTypesFromInsertFromQuery() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).
-            addDocTable(TableDefinitions.USER_TABLE_INFO).
+            addTable(TableDefinitions.USER_TABLE_INFO).
             addDocTable(TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY).
             build();
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
@@ -193,7 +193,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExtractTypesFromInsertWithOnDuplicateKey() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).
-            addDocTable(TableDefinitions.USER_TABLE_INFO).
+            addTable(TableDefinitions.USER_TABLE_INFO).
             addDocTable(TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY).
             build();
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(

@@ -1,19 +1,22 @@
 package io.crate.planner;
 
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.Iterables;
-import io.crate.expression.symbol.Function;
-import io.crate.metadata.RowGranularity;
-import io.crate.planner.node.dql.Collect;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
+import io.crate.expression.symbol.Function;
+import io.crate.metadata.RowGranularity;
+import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isReference;
@@ -26,8 +29,8 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
-        e = SQLExecutor.builder(clusterService)
+    public void prepare() throws IOException {
+        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
             .enableDefaultTables()
             .build();
     }

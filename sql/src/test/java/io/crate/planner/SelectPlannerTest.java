@@ -23,6 +23,7 @@
 package io.crate.planner;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -53,9 +54,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
@@ -65,7 +63,6 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Matchers;
@@ -76,8 +73,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -104,8 +99,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addDocTable(TableDefinitions.USER_TABLE_INFO)
+        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
+            .addTable(TableDefinitions.USER_TABLE_INFO)
             .addDocTable(TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_INFO)
             .addDocTable(TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY)
             .addDocTable(TableDefinitions.PARTED_PKS_TI)
@@ -113,7 +108,13 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addDocTable(TableDefinitions.TEST_MULTIPLE_PARTITIONED_TABLE_INFO)
             .addDocTable(T3.T1_INFO)
             .addDocTable(T3.T2_INFO)
-            .addDocTable(bindGeneratedColumnTable())
+            .addTable(
+                "create table doc.gc_table (" +
+                "   revenue integer," +
+                "   cost integer," +
+                "   profit as revenue - cost" +
+                ")"
+            )
             .addTable("create table t_pk_part_generated (ts timestamp, p as date_trunc('day', ts), primary key (ts, p))")
             .addPartitionedTable(
                 "create table parted (" +
@@ -132,16 +133,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @After
     public void resetPlannerOptimizationFlags() {
         e.getSessionContext().setHashJoinEnabled(false);
-    }
-
-    private DocTableInfo bindGeneratedColumnTable() {
-        RelationName generatedColumnRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "gc_table");
-        return new TestingTableInfo.Builder(
-            generatedColumnRelationName, new Routing(Collections.emptyMap()))
-            .add("revenue", DataTypes.INTEGER, null)
-            .add("cost", DataTypes.INTEGER, null)
-            .addGeneratedColumn("profit", DataTypes.INTEGER, "subtract(revenue, cost)", false)
-            .build(TestingHelpers.getFunctions());
     }
 
     @Test
@@ -219,7 +210,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testShardSelectWithOrderBy() throws Exception {
-        Collect collect = e.plan("select id from sys.shards order by id limit 10");
+        Merge merge = e.plan("select id from sys.shards order by id limit 10");
+        Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
 
         assertEquals(DataTypes.INTEGER, collectPhase.outputTypes().get(0));
@@ -416,7 +408,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             plan.countPhase().routing().locations().entrySet().stream()
                 .flatMap(e -> e.getValue().keySet().stream())
-                .collect(Collectors.toList()),
+                .collect(Collectors.toSet()),
             Matchers.contains(
                 is(".partitioned.parted.04732cpp6ks3ed1o60o30c1g")
             )
@@ -450,16 +442,16 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGlobalAggregateWithWhereOnPartitionColumn() throws Exception {
-        Collect globalAggregate = e.plan(
-            "select min(name) from parted where date >= 1395961100000");
-        Routing routing = ((RoutedCollectPhase) globalAggregate.collectPhase()).routing();
+        Merge merge = e.plan(
+            "select min(name) from parted where date >= 1395961200000");
+        Collect collect = (Collect) merge.subPlan();
+        Routing routing = ((RoutedCollectPhase) collect.collectPhase()).routing();
 
         assertThat(
             routing.locations().values()
                 .stream()
                 .flatMap(shardsByIndex -> shardsByIndex.keySet().stream())
-                .sorted(Comparator.naturalOrder())
-                .collect(Collectors.toList()),
+                .collect(Collectors.toSet()),
             contains(
                 is(".partitioned.parted.04732cpp6ksjcc9i60o30c1g")
             ));
@@ -594,7 +586,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testShardSelect() throws Exception {
-        Collect collect = e.plan("select id from sys.shards");
+        Merge merge = e.plan("select id from sys.shards");
+        Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertThat(collectPhase.maxRowGranularity(), is(RowGranularity.SHARD));
     }
@@ -632,12 +625,16 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAggregationOnGeneratedColumns() throws Exception {
-        Collect plan = e.plan("select sum(profit) from gc_table");
-        List<Projection> projections = plan.collectPhase().projections();
+        Merge merge = e.plan("select sum(profit) from gc_table");
+        Collect collect = (Collect) merge.subPlan();
+        List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections, contains(
-            instanceOf(AggregationProjection.class), // iter-partial on shard level
-            instanceOf(AggregationProjection.class)  // partial-final on node level
+            instanceOf(AggregationProjection.class) // iter-partial on shard level
         ));
+        assertThat(
+            merge.mergePhase().projections(),
+            contains(instanceOf(AggregationProjection.class))
+        );
         assertThat(
             ((AggregationProjection)projections.get(0)).aggregations().get(0).inputs().get(0),
             isSQL("INPUT(0)"));

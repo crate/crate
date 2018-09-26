@@ -26,7 +26,7 @@ import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
@@ -35,7 +35,7 @@ import javax.script.ScriptException;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.mockito.Mockito.mock;
 
-public abstract class UdfUnitTest extends CrateUnitTest {
+public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
 
     UserDefinedFunctionService udfService = new UserDefinedFunctionService(mock(ClusterService.class), getFunctions());
 

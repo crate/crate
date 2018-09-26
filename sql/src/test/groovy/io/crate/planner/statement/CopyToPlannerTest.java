@@ -22,6 +22,7 @@
 
 package io.crate.planner.statement;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -56,8 +57,8 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addDocTable(TableDefinitions.USER_TABLE_INFO)
+        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
+            .addTable(TableDefinitions.USER_TABLE_INFO)
             .addPartitionedTable(
                 "create table parted (" +
                 "   id int," +
@@ -115,15 +116,16 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyToWithPartitionInWhereClauseRoutesToPartitionIndexOnly() throws Exception {
-        Collect collect = plan(
+        Merge merge = plan(
             "copy parted where date = 1395874800000 to directory '/tmp/foo'");
+        Collect collect = (Collect) merge.subPlan();
         String expectedIndex = new PartitionName(
             new RelationName("doc", "parted"), singletonList(new BytesRef("1395874800000"))).asIndexName();
 
         assertThat(
             ((RoutedCollectPhase) collect.collectPhase()).routing().locations().values().stream()
                 .flatMap(shardsByIndices -> shardsByIndices.keySet().stream())
-            .collect(Collectors.toList()),
+            .collect(Collectors.toSet()),
             contains(expectedIndex)
         );
     }

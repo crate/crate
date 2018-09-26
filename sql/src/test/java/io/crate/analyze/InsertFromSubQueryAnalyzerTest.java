@@ -44,6 +44,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -61,7 +62,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         SQLExecutor.Builder builder = SQLExecutor.builder(clusterService).enableDefaultTables();
 
         RelationName usersGeneratedIdent = new RelationName(Schemas.DOC_SCHEMA_NAME, "users_generated");
@@ -124,12 +125,8 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void testFromQueryWithSubQueryColumns() throws Exception {
         InsertFromSubQueryAnalyzedStatement analysis =
-            e.analyze("insert into users (" +
-                      "  select id, other_id, name, text, no_index, details, address, " +
-                      "      awesome, counters, friends, tags, bytes, shorts, date, shape, ints, floats " +
-                      "  from users " +
-                      "  where name = 'Trillian'" +
-                      ")");
+            e.analyze("insert into users (id, name) (" +
+                      "  select id, name from users where name = 'Trillian' )");
         assertCompatibleColumns(analysis);
     }
 

@@ -31,6 +31,8 @@ import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.instanceOf;
@@ -40,7 +42,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor sqlExecutor;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .build();

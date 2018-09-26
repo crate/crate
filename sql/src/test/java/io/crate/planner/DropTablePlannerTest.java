@@ -31,6 +31,8 @@ import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
@@ -39,7 +41,7 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .addBlobTable(TableDefinitions.createBlobTable(new RelationName("blob", "screenshots")))

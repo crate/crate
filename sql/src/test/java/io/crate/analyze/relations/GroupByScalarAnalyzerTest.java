@@ -5,6 +5,8 @@ import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+
 import static org.hamcrest.core.Is.is;
 
 
@@ -13,7 +15,7 @@ public class GroupByScalarAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     private SQLExecutor executor;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         executor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 
