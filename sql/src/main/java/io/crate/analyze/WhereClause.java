@@ -22,17 +22,16 @@
 package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.Iterators;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.eval.NullEliminator;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -85,8 +84,10 @@ public class WhereClause extends QueryClause {
     public Set<String> routingValues() {
         if (clusteredBy.isEmpty() == false) {
             HashSet<String> result = new HashSet<>(clusteredBy.size());
-            Iterators.addAll(result, Iterators.transform(
-                clusteredBy.iterator(), ValueSymbolVisitor.STRING.function));
+            for (Symbol symbol : clusteredBy) {
+                assert symbol instanceof Literal : "clustered by symbols must be literals";
+                result.add(BytesRefs.toString(((Literal) symbol).value()));
+            }
             return result;
         } else {
             return null;
