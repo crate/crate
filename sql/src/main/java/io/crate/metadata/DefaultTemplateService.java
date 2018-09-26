@@ -38,6 +38,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Objects;
 
 /**
  * Service that ensures a "crate_defaults" template exists.
@@ -61,7 +62,7 @@ public class DefaultTemplateService extends AbstractComponent {
 
     void createIfNotExists(ClusterState state) {
         DiscoveryNodes nodes = state.nodes();
-        if (nodes.getMasterNodeId().equals(nodes.getLocalNodeId()) == false) {
+        if (Objects.equals(nodes.getMasterNodeId(), nodes.getLocalNodeId()) == false) {
             return;
         }
         if (state.getMetaData().getTemplates().containsKey(TEMPLATE_NAME) == false) {

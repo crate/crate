@@ -91,6 +91,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
+import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.EmptyClusterInfoService;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
@@ -338,6 +339,7 @@ public class SQLExecutor {
                 clusterService,
                 new DocSchemaInfoFactory(testingDocTableInfoFactory, testingViewInfoFactory, functions, udfService)
             );
+            schemas.clusterChanged(new ClusterChangedEvent("init", clusterService.state(), ClusterState.EMPTY_STATE));
             RelationAnalyzer relationAnalyzer = new RelationAnalyzer(functions, schemas);
             return new SQLExecutor(
                 functions,

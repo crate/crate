@@ -22,38 +22,25 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.doc.TestingDocTableInfoFactory;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Provider;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 
-import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
@@ -65,24 +52,16 @@ import static org.hamcrest.core.Is.is;
 public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor sqlExecutor;
-    private Provider<RelationAnalyzer> analyzerProvider = () -> null;
 
     @Before
-    public void prepare() {
-        DocTableInfo fooUserTableInfo = TestingTableInfo.builder(new RelationName("foo", "users"), SHARD_ROUTING)
-            .add("id", DataTypes.LONG, null)
-            .add("name", DataTypes.STRING, null)
-            .add("age", DataTypes.INTEGER, null)
-            .add("height", DataTypes.INTEGER, null)
-            .addPrimaryKey("id")
-            .build();
-        DocTableInfoFactory fooTableFactory = new TestingDocTableInfoFactory(
-            ImmutableMap.of(fooUserTableInfo.ident(), fooUserTableInfo));
-        Functions functions = getFunctions();
-        UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
+    public void prepare() throws IOException {
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addSchema(new DocSchemaInfo("foo", clusterService, functions, udfService, (ident, state) -> null, fooTableFactory))
+            .addTable("create table foo.users (" +
+                      " id long primary key," +
+                      " name string," +
+                      " age integer," +
+                      " height integer)")
             .build();
     }
 
