@@ -155,7 +155,7 @@ public class SimplePortal extends AbstractPortal {
         }
         if (analyzedStatement instanceof AnalyzedRelation) {
             AnalyzedRelation rootRelation = (AnalyzedRelation) analyzedStatement;
-            this.outputTypes = Lists2.copyAndReplace(rootRelation.fields(), Field::valueType);
+            this.outputTypes = Lists2.map(rootRelation.fields(), Field::valueType);
         }
 
         this.analyzedStatement = analyzedStatement;

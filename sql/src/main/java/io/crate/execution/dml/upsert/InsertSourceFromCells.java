@@ -108,7 +108,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         private final List<ColumnIdent> columns;
 
         ReferencesFromInputRow(List<Reference> targets) {
-            this.columns = Lists2.copyAndReplace(targets, Reference::column);
+            this.columns = Lists2.map(targets, Reference::column);
             this.targets = targets;
         }
 

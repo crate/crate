@@ -260,7 +260,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     @SuppressWarnings("unchecked")
     protected FunctionImplementation getFunction(String functionName, List<DataType> argTypes) {
         return functions.get(
-            null, functionName, Lists2.copyAndReplace(argTypes, t -> new InputColumn(0, t)), SearchPath.pathWithPGCatalogAndDoc());
+            null, functionName, Lists2.map(argTypes, t -> new InputColumn(0, t)), SearchPath.pathWithPGCatalogAndDoc());
     }
 
     protected Symbol normalize(String functionName, Object value, DataType type) {

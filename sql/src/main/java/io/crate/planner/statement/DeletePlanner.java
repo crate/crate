@@ -100,7 +100,7 @@ public final class DeletePlanner {
         }
         Symbol query = detailedQuery.query();
         if (table.isPartitioned() && query instanceof Input && DataTypes.BOOLEAN.value(((Input) query).value())) {
-            return new DeleteAllPartitions(Lists2.copyAndReplace(table.partitions(), IndexParts::toIndexName));
+            return new DeleteAllPartitions(Lists2.map(table.partitions(), IndexParts::toIndexName));
         }
         return new Delete(tableRel, detailedQuery);
     }

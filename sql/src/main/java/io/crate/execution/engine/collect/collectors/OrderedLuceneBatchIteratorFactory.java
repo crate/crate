@@ -114,7 +114,7 @@ public class OrderedLuceneBatchIteratorFactory {
                 return ThreadPools.runWithAvailableThreads(
                     executor,
                     availableThreads,
-                    Lists2.copyAndReplace(orderedDocCollectors, Function.identity())
+                    Lists2.map(orderedDocCollectors, Function.identity())
                 );
             } else {
                 return loadFrom(collectorsByShardId.get(shardId));

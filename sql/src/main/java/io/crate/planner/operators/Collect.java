@@ -278,7 +278,7 @@ class Collect extends ZeroInputPlan {
             plannerContext.functions(),
             plannerContext.transactionContext());
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
-        List<Symbol> boundOutputs = Lists2.copyAndReplace(outputs, binder);
+        List<Symbol> boundOutputs = Lists2.map(outputs, binder);
 
         if (relation.tableRelation() instanceof TableFunctionRelation) {
             TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation.tableRelation();

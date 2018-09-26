@@ -147,7 +147,7 @@ public final class WhereClauseOptimizer {
         Symbol queryGenColsProcessed = GeneratedColumnExpander.maybeExpand(
             query,
             table.generatedColumns(),
-            Lists2.concat(table.partitionedByColumns(), Lists2.copyAndReplace(table.primaryKey(), table::getReference)));
+            Lists2.concat(table.partitionedByColumns(), Lists2.map(table.primaryKey(), table::getReference)));
         if (!query.equals(queryGenColsProcessed)) {
             query = normalizer.normalize(queryGenColsProcessed, txnCtx);
         }

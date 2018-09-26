@@ -564,7 +564,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
             for (Functions function : functions) {
                 FunctionImplementation userDefined = function.get(
-                    schema, name, Lists2.copyAndReplace(argTypes, t -> Literal.of(t, null)), searchPath);
+                    schema, name, Lists2.map(argTypes, t -> Literal.of(t, null)), searchPath);
                 assertThat(userDefined, is(notNullValue()));
             }
         }, 20L, TimeUnit.SECONDS);

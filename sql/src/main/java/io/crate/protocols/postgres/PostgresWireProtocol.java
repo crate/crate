@@ -680,7 +680,7 @@ class PostgresWireProtocol {
                     query,
                     channel,
                     session.sessionContext(),
-                    Lists2.copyAndReplace(fields, Field::valueType),
+                    Lists2.map(fields, Field::valueType),
                     null
                 );
                 session.execute("", 0, resultSetReceiver);

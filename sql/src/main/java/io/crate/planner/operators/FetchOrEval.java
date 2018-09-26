@@ -284,7 +284,7 @@ class FetchOrEval extends OneInputPlan {
         if (source.baseTables().size() == 1) {
             // If there are no relation boundaries involved the outputs will have contained no fields but only references
             // and the actions so far had no effect
-            Lists2.replaceItems(
+            Lists2.mutate(
                 fetchOutputs,
                 s -> transformRefs(
                     s,
@@ -441,14 +441,14 @@ class FetchOrEval extends OneInputPlan {
         PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
-        List<Symbol> boundOutputs = Lists2.copyAndReplace(outputs, binder);
+        List<Symbol> boundOutputs = Lists2.map(outputs, binder);
         if (orderBy != null) {
             newOrderBy = orderBy.tryMapToNewOutputs(sourceOutputs, boundOutputs);
             if (newOrderBy == null) {
                 executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
             }
         }
-        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists2.copyAndReplace(sourceOutputs, binder));
+        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists2.map(sourceOutputs, binder));
         executionPlan.addProjection(
             new EvalProjection(InputColumns.create(boundOutputs, ctx)),
             executionPlan.resultDescription().limit(),

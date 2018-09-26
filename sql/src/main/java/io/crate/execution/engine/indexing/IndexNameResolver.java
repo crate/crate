@@ -76,7 +76,7 @@ public class IndexNameResolver {
             });
         return () -> {
             // copy because the values of the inputs are mutable
-            List<BytesRef> partitions = Lists2.copyAndReplace(partitionedByInputs, Inputs.TO_BYTES_REF);
+            List<BytesRef> partitions = Lists2.map(partitionedByInputs, Inputs.TO_BYTES_REF);
             return cache.getUnchecked(partitions);
         };
     }

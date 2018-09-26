@@ -33,7 +33,10 @@ import java.util.NoSuchElementException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class Lists2 {
+public final class Lists2 {
+
+    private Lists2() {
+    }
 
     /**
      * Create a new list that contains the elements of both arguments
@@ -62,24 +65,24 @@ public class Lists2 {
      * This is similar to {@link Lists#transform(List, com.google.common.base.Function)}, but instead of creating a
      * view on a backing list this function is actually mutating the provided list
      */
-    public static <T> void replaceItems(@Nullable List<T> list, Function<? super T, ? extends T> replaceFunction) {
+    public static <T> void mutate(@Nullable List<T> list, Function<? super T, ? extends T> mapper) {
         if (list == null || list.isEmpty()) {
             return;
         }
         ListIterator<T> it = list.listIterator();
         while (it.hasNext()) {
-            it.set(replaceFunction.apply(it.next()));
+            it.set(mapper.apply(it.next()));
         }
     }
 
     /**
-     * Create a copy of the given list with {@code replaceFunc} applied on each item.
+     * Create a copy of the given list with {@code mapper} applied on each item.
      * Opposed to {@link java.util.stream.Stream#map(Function)} / {@link Collectors#toList()} this minimizes allocations.
      */
-    public static <I, O> List<O> copyAndReplace(List<I> list, Function<? super I, ? extends O> replaceFunc) {
+    public static <I, O> List<O> map(List<I> list, Function<? super I, ? extends O> mapper) {
         List<O> copy = new ArrayList<>(list.size());
         for (I item : list) {
-            copy.add(replaceFunc.apply(item));
+            copy.add(mapper.apply(item));
         }
         return copy;
     }

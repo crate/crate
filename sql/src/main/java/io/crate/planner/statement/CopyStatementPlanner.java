@@ -170,7 +170,7 @@ public final class CopyStatementPlanner {
         List<BytesRef> partitionValues = Collections.emptyList();
         if (partitionIdent == null) {
             if (table.isPartitioned()) {
-                partitionedByNames = Lists2.copyAndReplace(table.partitionedBy(), ColumnIdent::fqn);
+                partitionedByNames = Lists2.map(table.partitionedBy(), ColumnIdent::fqn);
             }
         } else {
             assert table.isPartitioned() : "table must be partitioned if partitionIdent is set";

@@ -84,7 +84,7 @@ final class OperatorUtils {
         if (mapping.isEmpty()) {
             return sourceOutputs;
         }
-        return Lists2.copyAndReplace(sourceOutputs, getMapper(mapping));
+        return Lists2.map(sourceOutputs, getMapper(mapping));
     }
 
     /**

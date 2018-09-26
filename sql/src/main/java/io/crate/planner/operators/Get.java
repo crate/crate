@@ -78,7 +78,7 @@ public class Get extends ZeroInputPlan {
                                SubQueryResults subQueryResults) {
         HashMap<String, Map<ShardId, List<PKAndVersion>>> idsByShardByNode = new HashMap<>();
         DocTableInfo docTableInfo = tableRelation.tableInfo();
-        List<Symbol> boundOutputs = Lists2.copyAndReplace(
+        List<Symbol> boundOutputs = Lists2.map(
             outputs, s -> SubQueryAndParamBinder.convert(s, params, subQueryResults));
         for (DocKeys.DocKey docKey : docKeys) {
             String id = docKey.getId(plannerContext.functions(), params, subQueryResults);

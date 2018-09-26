@@ -256,7 +256,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     public RoutedCollectPhase normalize(EvaluatingNormalizer normalizer, TransactionContext transactionContext) {
         RoutedCollectPhase result = this;
         Function<Symbol, Symbol> normalize = s -> normalizer.normalize(s, transactionContext);
-        List<Symbol> newToCollect = Lists2.copyAndReplace(toCollect, normalize);
+        List<Symbol> newToCollect = Lists2.map(toCollect, normalize);
         boolean changed = !newToCollect.equals(toCollect);
         Symbol newWhereClause = normalizer.normalize(where, transactionContext);
         OrderBy orderBy = this.orderBy;

@@ -99,7 +99,7 @@ public class OrderBy implements Writeable {
     }
 
     public OrderBy copyAndReplace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        return new OrderBy(Lists2.copyAndReplace(orderBySymbols, replaceFunction), reverseFlags, nullsFirst);
+        return new OrderBy(Lists2.map(orderBySymbols, replaceFunction), reverseFlags, nullsFirst);
     }
 
     @Override

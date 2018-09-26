@@ -85,7 +85,7 @@ public class DeletePartitions implements Plan {
         Function<Symbol, BytesRef> symbolToBytesRef =
             s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, s, parameters, subQueryResults));
         for (List<Symbol> partitionValues : partitions) {
-            List<BytesRef> values = Lists2.copyAndReplace(partitionValues, symbolToBytesRef);
+            List<BytesRef> values = Lists2.map(partitionValues, symbolToBytesRef);
             String indexName = IndexParts.toIndexName(relationName, PartitionName.encodeIdent(values));
             indexNames.add(indexName);
         }

@@ -155,7 +155,7 @@ public class WhereClauseAnalyzer {
         if (queryPartitionMap.size() == 1) {
             Map.Entry<Symbol, List<Literal>> entry = Iterables.getOnlyElement(queryPartitionMap.entrySet());
             return new PartitionResult(
-                entry.getKey(), Lists2.copyAndReplace(entry.getValue(), ValueSymbolVisitor.STRING.function));
+                entry.getKey(), Lists2.map(entry.getValue(), ValueSymbolVisitor.STRING.function));
         } else if (queryPartitionMap.size() > 0) {
             return tieBreakPartitionQueries(normalizer, queryPartitionMap, transactionContext);
         } else {
@@ -209,7 +209,7 @@ public class WhereClauseAnalyzer {
             Tuple<Symbol, List<Literal>> symbolListTuple = canMatch.get(0);
             return new PartitionResult(
                 symbolListTuple.v1(),
-                Lists2.copyAndReplace(symbolListTuple.v2(), ValueSymbolVisitor.STRING.function));
+                Lists2.map(symbolListTuple.v2(), ValueSymbolVisitor.STRING.function));
         }
         throw new UnsupportedOperationException(
             "logical conjunction of the conditions in the WHERE clause which " +

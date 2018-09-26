@@ -233,7 +233,7 @@ public class TestingHelpers {
         return new TypeSafeDiagnosingMatcher<DocKeys.DocKey>() {
             @Override
             protected boolean matchesSafely(DocKeys.DocKey item, Description mismatchDescription) {
-                List<Object> docKeyValues = Lists2.copyAndReplace(
+                List<Object> docKeyValues = Lists2.map(
                     item.values(),
                     s -> {
                         Object val = ((Literal) s).value();

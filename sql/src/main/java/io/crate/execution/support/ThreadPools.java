@@ -77,7 +77,7 @@ public class ThreadPools {
 
             ArrayList<CompletableFuture<List<T>>> futures = new ArrayList<>(threadsToUse + 1);
             for (List<Supplier<T>> partition : partitions) {
-                Supplier<List<T>> executePartition = () -> Lists2.copyAndReplace(partition, Supplier::get);
+                Supplier<List<T>> executePartition = () -> Lists2.map(partition, Supplier::get);
                 futures.add(CompletableFutures.supplyAsync(executePartition, executor));
             }
             return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))

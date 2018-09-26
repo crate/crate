@@ -138,7 +138,7 @@ public class QuerySpec {
             .limit(limit)
             .offset(offset)
             .hasAggregates(hasAggregates)
-            .outputs(Lists2.copyAndReplace(outputs, replaceFunction));
+            .outputs(Lists2.map(outputs, replaceFunction));
         newSpec.where(where.copyAndReplace(replaceFunction));
         if (orderBy != null) {
             newSpec.orderBy(orderBy.copyAndReplace(replaceFunction));
@@ -151,7 +151,7 @@ public class QuerySpec {
             }
         }
         if (!groupBy.isEmpty()) {
-            newSpec.groupBy(Lists2.copyAndReplace(groupBy, replaceFunction));
+            newSpec.groupBy(Lists2.map(groupBy, replaceFunction));
         }
         return newSpec;
     }

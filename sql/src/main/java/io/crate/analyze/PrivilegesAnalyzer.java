@@ -118,7 +118,7 @@ class PrivilegesAnalyzer {
                                                  SearchPath searchPath,
                                                  Schemas schemas) {
         if (Privilege.Clazz.SCHEMA.equals(clazz)) {
-            List<String> schemaNames = Lists2.copyAndReplace(tableOrSchemaNames, QualifiedName::toString);
+            List<String> schemaNames = Lists2.map(tableOrSchemaNames, QualifiedName::toString);
             if (isRevoke) {
                 return schemaNames;
             }
@@ -186,7 +186,7 @@ class PrivilegesAnalyzer {
                                                             SearchPath searchPath,
                                                             Schemas schemas,
                                                             boolean isRevoke) {
-        return Lists2.copyAndReplace(relations, q -> {
+        return Lists2.map(relations, q -> {
             try {
                 RelationName relationName = schemas.resolveRelation(q, searchPath);
                 if (!isRevoke) {
