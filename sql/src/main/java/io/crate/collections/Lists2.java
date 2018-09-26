@@ -79,7 +79,7 @@ public final class Lists2 {
      * Create a copy of the given list with {@code mapper} applied on each item.
      * Opposed to {@link java.util.stream.Stream#map(Function)} / {@link Collectors#toList()} this minimizes allocations.
      */
-    public static <I, O> List<O> map(List<I> list, Function<? super I, ? extends O> mapper) {
+    public static <I, O> List<O> map(Collection<I> list, Function<? super I, ? extends O> mapper) {
         List<O> copy = new ArrayList<>(list.size());
         for (I item : list) {
             copy.add(mapper.apply(item));

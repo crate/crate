@@ -34,7 +34,6 @@ import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.metadata.Functions;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.CollectionType;
@@ -44,6 +43,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -94,12 +94,18 @@ public class FileCollectSource implements CollectSource {
     }
 
     private static List<String> targetUriToStringList(Functions functions, Symbol targetUri) {
+        Object value = SymbolEvaluator.evaluate(functions, targetUri, Row.EMPTY, SubQueryResults.EMPTY);
         if (targetUri.valueType() == DataTypes.STRING) {
-            String uri = BytesRefs.toString(SymbolEvaluator.evaluate(functions, targetUri, Row.EMPTY, SubQueryResults.EMPTY));
+            String uri = BytesRefs.toString(value);
             return Collections.singletonList(uri);
         } else if (targetUri.valueType() instanceof CollectionType
                    && ((CollectionType) targetUri.valueType()).innerType() == DataTypes.STRING) {
-            return ValueSymbolVisitor.STRING_LIST.process(targetUri);
+            Object[] values = (Object[]) value;
+            ArrayList<String> uris = new ArrayList<>(values.length);
+            for (Object v : values) {
+                uris.add(BytesRefs.toString(v));
+            }
+            return uris;
         }
 
         // this case actually never happens because the check is already done in the analyzer
