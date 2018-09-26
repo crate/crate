@@ -37,6 +37,7 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,7 +51,7 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .addDocTable(TableDefinitions.PARTED_PKS_TI)

@@ -62,11 +62,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
@@ -291,19 +289,16 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         };
         AnalyzedUpdateStatement update = analyze("update users set name=?, other_id=?, friends=? where id=?",
             new Object[]{"Jeltz", 0, friends, "9"});
+
+        RelationName usersRelation = new RelationName("doc", "users");
         assertThat(update.assignmentByTargetCol().size(), is(3));
-        assertThat(
-            update.assignmentByTargetCol().get(USER_TABLE_INFO.getReference(new ColumnIdent("name"))),
-            instanceOf(ParameterSymbol.class)
-        );
-        assertThat(
-            update.assignmentByTargetCol().get(USER_TABLE_INFO.getReference(new ColumnIdent("friends"))),
-            instanceOf(ParameterSymbol.class)
-        );
-        assertThat(
-            update.assignmentByTargetCol().get(USER_TABLE_INFO.getReference(new ColumnIdent("other_id"))),
-            instanceOf(ParameterSymbol.class)
-        );
+        DocTableInfo tableInfo = e.schemas().getTableInfo(usersRelation);
+        Reference name = tableInfo.getReference(new ColumnIdent("name"));
+        Reference friendsRef = tableInfo.getReference(new ColumnIdent("friends"));
+        Reference otherId = tableInfo.getReference(new ColumnIdent("other_id"));
+        assertThat(update.assignmentByTargetCol().get(name), instanceOf(ParameterSymbol.class));
+        assertThat(update.assignmentByTargetCol().get(friendsRef), instanceOf(ParameterSymbol.class));
+        assertThat(update.assignmentByTargetCol().get(otherId), instanceOf(ParameterSymbol.class));
 
         assertThat(update.query(), isFunction(EqOperator.NAME, isReference("id"), instanceOf(ParameterSymbol.class)));
     }

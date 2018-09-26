@@ -30,6 +30,7 @@ import io.crate.data.Row;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.BooleanLiteral;
@@ -38,11 +39,13 @@ import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.StringLiteral;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -51,10 +54,20 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.is;
 
-public class RerouteActionsTest extends CrateUnitTest {
+public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
 
     public static final BlobTableInfo BLOB_TABLE_INFO = TableDefinitions.createBlobTable(
         new RelationName(BlobSchemaInfo.NAME, "screenshots"));
+    private DocTableInfo userTable;
+
+    @Before
+    public void setupTable() throws Exception {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_INFO)
+            .build();
+
+        userTable = sqlExecutor.schemas().getTableInfo(new RelationName("doc", "users"));
+    }
 
     @Test
     public void testRerouteIndexOfBlobTable() throws Exception {
@@ -118,7 +131,7 @@ public class RerouteActionsTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("table 'doc.users' is not partitioned");
         RerouteMoveShardAnalyzedStatement statement = new RerouteMoveShardAnalyzedStatement(
-            TableDefinitions.USER_TABLE_INFO,
+            userTable,
             Arrays.asList(new Assignment(
                 new QualifiedNameReference(new QualifiedName("date")), new StringLiteral("1"))),
             SqlParser.createExpression("0"),
@@ -134,7 +147,7 @@ public class RerouteActionsTest extends CrateUnitTest {
         AtomicReference<ClusterRerouteRequest> reqRef = new AtomicReference<>();
 
         RerouteAllocateReplicaShardAnalyzedStatement statement = new RerouteAllocateReplicaShardAnalyzedStatement(
-            TableDefinitions.USER_TABLE_INFO,
+            userTable,
             Collections.emptyList(),
             SqlParser.createExpression("0"),
             SqlParser.createExpression("node1"));
@@ -163,7 +176,7 @@ public class RerouteActionsTest extends CrateUnitTest {
     @Test
     public void testAllocateReplicaShardRequest() throws Exception {
         RerouteAllocateReplicaShardAnalyzedStatement statement = new RerouteAllocateReplicaShardAnalyzedStatement(
-            TableDefinitions.USER_TABLE_INFO,
+            userTable,
             Collections.emptyList(),
             SqlParser.createExpression("0"),
             SqlParser.createExpression("node1"));
@@ -171,7 +184,7 @@ public class RerouteActionsTest extends CrateUnitTest {
 
         ClusterRerouteRequest request = new ClusterRerouteRequest();
         AllocateReplicaAllocationCommand command = new AllocateReplicaAllocationCommand(
-            TableDefinitions.USER_TABLE_INFO.ident().indexName(), 0, "node1");
+            userTable.ident().indexName(), 0, "node1");
         request.add(command);
         assertEquals(request, actualRequest);
     }
@@ -179,7 +192,7 @@ public class RerouteActionsTest extends CrateUnitTest {
     @Test
     public void testMoveShardRequest() throws Exception {
         RerouteMoveShardAnalyzedStatement statement = new RerouteMoveShardAnalyzedStatement(
-            TableDefinitions.USER_TABLE_INFO,
+            userTable,
             Collections.EMPTY_LIST,
             SqlParser.createExpression("0"),
             SqlParser.createExpression("node1"),
@@ -188,7 +201,7 @@ public class RerouteActionsTest extends CrateUnitTest {
 
         ClusterRerouteRequest request = new ClusterRerouteRequest();
         MoveAllocationCommand command = new MoveAllocationCommand(
-            TableDefinitions.USER_TABLE_INFO.ident().indexName(), 0, "node1", "node2");
+            userTable.ident().indexName(), 0, "node1", "node2");
         request.add(command);
         assertEquals(request, actualRequest);
     }
@@ -198,7 +211,7 @@ public class RerouteActionsTest extends CrateUnitTest {
         GenericProperties properties = new GenericProperties();
         properties.add(new GenericProperty("allow_primary", BooleanLiteral.TRUE_LITERAL));
         RerouteCancelShardAnalyzedStatement statement = new RerouteCancelShardAnalyzedStatement(
-            TableDefinitions.USER_TABLE_INFO,
+            userTable,
             Collections.EMPTY_LIST,
             SqlParser.createExpression("0"),
             SqlParser.createExpression("node1"),
@@ -207,7 +220,7 @@ public class RerouteActionsTest extends CrateUnitTest {
 
         ClusterRerouteRequest request = new ClusterRerouteRequest();
         CancelAllocationCommand command = new CancelAllocationCommand(
-            TableDefinitions.USER_TABLE_INFO.ident().indexName(), 0, "node1", true);
+            userTable.ident().indexName(), 0, "node1", true);
         request.add(command);
         assertEquals(request, actualRequest);
     }
@@ -220,7 +233,7 @@ public class RerouteActionsTest extends CrateUnitTest {
         properties.add(new GenericProperty("invalid", BooleanLiteral.FALSE_LITERAL));
 
         RerouteCancelShardAnalyzedStatement statement = new RerouteCancelShardAnalyzedStatement(
-            TableDefinitions.USER_TABLE_INFO,
+            userTable,
             Collections.EMPTY_LIST,
             SqlParser.createExpression("0"),
             SqlParser.createExpression("node1"),

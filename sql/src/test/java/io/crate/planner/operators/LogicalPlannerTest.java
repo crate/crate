@@ -43,6 +43,7 @@ import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
@@ -57,7 +58,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     private TableStats tableStats;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .addView(new RelationName("doc", "v2"), "select a, x from doc.t1")

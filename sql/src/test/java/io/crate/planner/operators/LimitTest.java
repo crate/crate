@@ -22,6 +22,7 @@
 
 package io.crate.planner.operators;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
@@ -45,8 +46,8 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testLimitOnLimitOperator() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addDocTable(TableDefinitions.USER_TABLE_INFO)
+        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
+            .addTable(TableDefinitions.USER_TABLE_INFO)
             .build();
         QueriedTable queriedDocTable = e.analyze("select name from users");
 

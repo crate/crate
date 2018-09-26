@@ -35,6 +35,8 @@ import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static java.util.Locale.ENGLISH;
@@ -52,7 +54,7 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService).enableDefaultTables().addDocTable(aliasInfo).build();
     }
 

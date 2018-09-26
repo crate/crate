@@ -40,6 +40,7 @@ import io.crate.testing.SQLExecutor;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -49,7 +50,7 @@ import static org.mockito.Mockito.mock;
 public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void testEachStatementReceivesCorrectParams() {
+    public void testEachStatementReceivesCorrectParams() throws IOException {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
 
         AtomicReference<Row> lastParams = new AtomicReference<>();

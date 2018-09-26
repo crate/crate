@@ -49,6 +49,7 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -104,7 +105,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         SQLExecutor.Builder executorBuilder = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .addDocTable(TEST_ALIAS_TABLE_INFO)
@@ -274,7 +275,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void testInsertWithoutColumns() throws Exception {
-        InsertFromValuesAnalyzedStatement analysis = e.analyze("insert into users values (1, 1, 'Trillian')");
+        InsertFromValuesAnalyzedStatement analysis = e.analyze("insert into users (id, other_id, name) values (1, 1, 'Trillian')");
         assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(3));
 
@@ -296,7 +297,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void testInsertWithoutColumnsAndOnlyOneColumn() throws Exception {
-        InsertFromValuesAnalyzedStatement analysis = e.analyze("insert into users values (1)");
+        InsertFromValuesAnalyzedStatement analysis = e.analyze("insert into users (id) values (1)");
         assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(1));
 

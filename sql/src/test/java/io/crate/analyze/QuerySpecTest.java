@@ -28,6 +28,7 @@ import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.core.Is.is;
@@ -37,7 +38,7 @@ public class QuerySpecTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 

@@ -27,6 +27,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+
 import static io.crate.testing.SettingMatcher.hasEntry;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -37,7 +39,7 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 

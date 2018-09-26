@@ -79,7 +79,6 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -112,7 +111,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     private SQLExecutor sqlExecutor;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         DocTableInfo fooUserTableInfo = TestingTableInfo.builder(new RelationName("foo", "users"), SHARD_ROUTING)
             .add("id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)

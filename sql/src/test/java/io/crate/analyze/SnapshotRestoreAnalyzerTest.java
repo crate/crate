@@ -46,6 +46,8 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
@@ -62,7 +64,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     private SQLExecutor executor;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         RepositoriesMetaData repositoriesMetaData = new RepositoriesMetaData(
             new RepositoryMetaData(
                 "my_repo",
@@ -77,7 +79,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "my_blobs");
         TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent);
         executor = SQLExecutor.builder(clusterService)
-            .addDocTable(USER_TABLE_INFO)
+            .addTable(USER_TABLE_INFO)
             .addDocTable(TEST_DOC_LOCATIONS_TABLE_INFO)
             .addDocTable(TEST_PARTITIONED_TABLE_INFO)
             .addBlobTable(myBlobsTableInfo)
@@ -189,8 +191,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testCreateSnapshotNoWildcards() throws Exception {
         expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'user*' unknown");
-        analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE \"user*\"");
+        expectedException.expectMessage("Relation 'foobar*' unknown");
+        analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE \"foobar*\"");
     }
 
     @Test

@@ -53,6 +53,7 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -72,7 +73,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         String analyzerSettings = FulltextAnalyzerResolver.encodeSettings(
             Settings.builder().put("search", "foobar").build()).utf8ToString();
         MetaData metaData = MetaData.builder()

@@ -22,6 +22,7 @@
 
 package io.crate.planner;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -42,6 +43,8 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
@@ -54,8 +57,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
-        e = SQLExecutor.builder(clusterService)
+    public void prepare() throws IOException {
+        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
             .enableDefaultTables()
             .addDocTable(TableDefinitions.PARTED_PKS_TI)
             .addDocTable(TableDefinitions.TEST_EMPTY_PARTITIONED_TABLE_INFO)
@@ -71,7 +74,6 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = (Collect) merge.subPlan();
 
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.routing(), is(TableDefinitions.SHARD_ROUTING));
         assertThat(collectPhase.where(), isSQL("true"));
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(UpdateProjection.class));

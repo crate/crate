@@ -25,9 +25,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.TreeMapBuilder;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
@@ -40,8 +38,6 @@ import org.apache.lucene.util.BytesRef;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 public final class TableDefinitions {
@@ -69,31 +65,32 @@ public final class TableDefinitions {
 
     public static final RelationName USER_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
 
-    public static final DocTableInfo USER_TABLE_INFO = TestingTableInfo.builder(USER_TABLE_IDENT, SHARD_ROUTING)
-        .add("id", DataTypes.LONG, null)
-        .add("other_id", DataTypes.LONG, null)
-        .add("name", DataTypes.STRING, null)
-        .add("text", DataTypes.STRING, null, Reference.IndexType.ANALYZED)
-        .add("no_index", DataTypes.STRING, null, Reference.IndexType.NO)
-        .add("details", DataTypes.OBJECT, null)
-        .add("address", DataTypes.OBJECT, null, ColumnPolicy.STRICT)
-        .add("postcode", DataTypes.STRING, Collections.singletonList("address"))
-        .add("awesome", DataTypes.BOOLEAN, null)
-        .add("counters", new ArrayType(DataTypes.LONG), null)
-        .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
-        .add("friends", DataTypes.LONG, Arrays.asList("id"))
-        .add("friends", new ArrayType(DataTypes.STRING), Arrays.asList("groups"))
-        .add("tags", new ArrayType(DataTypes.STRING), null)
-        .add("bytes", DataTypes.BYTE, null)
-        .add("shorts", DataTypes.SHORT, null)
-        .add("date", DataTypes.TIMESTAMP, null)
-        .add("shape", DataTypes.GEO_SHAPE)
-        .add("ints", DataTypes.INTEGER, null)
-        .add("floats", DataTypes.FLOAT, null)
-        .addIndex(ColumnIdent.fromPath("name_text_ft"), Reference.IndexType.ANALYZED)
-        .addPrimaryKey("id")
-        .clusteredBy("id")
-        .build();
+    public static final String USER_TABLE_INFO =
+        "create table doc.users (" +
+         "  id long primary key," +
+         "  other_id long," +
+         "  name string," +
+         "  text string index using fulltext," +
+         "  no_index string index off," +
+         "  details object," +
+         "  address object (strict) as (" +
+         "      postcode string" +
+         "  )," +
+         "  awesome boolean," +
+         "  counters array(long)," +
+         "  friends array(object as (" +
+         "      id long," +
+         "      groups array(string)" +
+         "  ))," +
+         "  tags array(string)," +
+         "  bytes byte," +
+         "  shorts short," +
+         "  date timestamp," +
+         "  shape geo_shape," +
+         "  ints integer," +
+         "  floats float," +
+         "  index name_text_ft using fulltext (name, text)" +
+         ") clustered by (id)";
     public static final RelationName USER_TABLE_IDENT_MULTI_PK = new RelationName(Schemas.DOC_SCHEMA_NAME, "users_multi_pk");
     public static final DocTableInfo USER_TABLE_INFO_MULTI_PK = TestingTableInfo.builder(USER_TABLE_IDENT_MULTI_PK, SHARD_ROUTING)
         .add("id", DataTypes.LONG, null)

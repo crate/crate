@@ -27,12 +27,14 @@ import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+
 public class AlterTableOpenCloseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 
