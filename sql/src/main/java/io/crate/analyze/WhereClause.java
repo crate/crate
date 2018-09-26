@@ -23,14 +23,11 @@ package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterators;
-import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.eval.NullEliminator;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.ValueSymbolVisitor;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.common.Nullable;
 
@@ -62,19 +59,6 @@ public class WhereClause extends QueryClause {
 
     public WhereClause(@Nullable Symbol query) {
         super(query);
-    }
-
-    public WhereClause normalize(EvaluatingNormalizer normalizer, TransactionContext transactionContext) {
-        if (noMatch || query == null) {
-            return this;
-        }
-        Symbol normalizedQuery = normalizer.normalize(query, transactionContext);
-        Symbol nullReplacedQuery = NullEliminator.eliminateNullsIfPossible(
-            normalizedQuery, s -> normalizer.normalize(s, transactionContext));
-        if (nullReplacedQuery == query) {
-            return this;
-        }
-        return new WhereClause(nullReplacedQuery, partitions, clusteredBy);
     }
 
     public Set<Symbol> clusteredBy() {
