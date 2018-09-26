@@ -21,17 +21,13 @@
 
 package io.crate.analyze.where;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.core.collections.TreeMapBuilder;
 import io.crate.data.Row;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -40,12 +36,9 @@ import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.table.ColumnPolicy;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -58,109 +51,92 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
 @SuppressWarnings("unchecked")
 public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final String GENERATED_COL_TABLE_NAME = "generated_col";
-    private static final String DOUBLE_GEN_PARTITIONED_TABLE_NAME = "double_gen_parted";
-
-    private final Routing twoNodeRouting = new Routing(TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
-        .put("nodeOne", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put("t1", IntArrayList.from(1, 2)).map())
-        .put("nodeTow", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put("t1", IntArrayList.from(3, 4)).map())
-        .map());
     private final TransactionContext transactionContext = new TransactionContext(SessionContext.systemSessionContext());
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         SQLExecutor.Builder builder = SQLExecutor.builder(clusterService);
         registerTables(builder);
 
-        TestingTableInfo.Builder genInfo =
-            TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, GENERATED_COL_TABLE_NAME), new Routing(ImmutableMap.of()))
-                .add("ts", DataTypes.TIMESTAMP, null)
-                .add("x", DataTypes.INTEGER, null)
-                .add("y", DataTypes.LONG, null)
-                .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
-                .addGeneratedColumn("minus_y", DataTypes.LONG, "y * -1", true)
-                .addGeneratedColumn("x_incr", DataTypes.LONG, "x + 1", false)
-                .addPartitions(
-                    new PartitionName(new RelationName("doc", "generated_col"), Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName(),
-                    new PartitionName(new RelationName("doc", "generated_col"), Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()
-                );
-        builder.addDocTable(genInfo);
-
-        RelationName ident = new RelationName(DocSchemaInfo.NAME, DOUBLE_GEN_PARTITIONED_TABLE_NAME);
-        TestingTableInfo.Builder doubleGenPartedInfo =
-            TestingTableInfo.builder(ident, new Routing(ImmutableMap.of()))
-                .add("x", DataTypes.INTEGER, null)
-                .addGeneratedColumn("x1", DataTypes.INTEGER, "x+1", true)
-                .addGeneratedColumn("x2", DataTypes.INTEGER, "x+2", true)
-                .addPartitions(
-                    new PartitionName(ident, Arrays.asList(new BytesRef("4"), new BytesRef("5"))).toString(),
-                    new PartitionName(ident, Arrays.asList(new BytesRef("5"), new BytesRef("6"))).toString()
-                );
-        builder.addDocTable(doubleGenPartedInfo);
+        RelationName docGeneratedCol = new RelationName("doc", "generated_col");
+        builder.addPartitionedTable(
+            "create table doc.generated_col (" +
+            "   ts timestamp," +
+            "   x integer," +
+            "   y long," +
+            "   day as date_trunc('day', ts)," +
+            "   minus_y as y * -1," +
+            "   x_incr as x + 1" +
+            ") partitioned by (day, minus_y)",
+            new PartitionName(docGeneratedCol, Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName(),
+            new PartitionName(docGeneratedCol, Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()
+        );
+        RelationName docDoubleGenParted = new RelationName(DocSchemaInfo.NAME, "double_gen_parted");
+        builder.addPartitionedTable(
+            "create table doc.double_gen_parted (" +
+            "   x integer," +
+            "   x1 as x + 1," +
+            "   x2 as x + 2" +
+            ") partitioned by (x1, x2)",
+                new PartitionName(docDoubleGenParted, Arrays.asList(new BytesRef("4"), new BytesRef("5"))).toString(),
+                new PartitionName(docDoubleGenParted, Arrays.asList(new BytesRef("5"), new BytesRef("6"))).toString()
+        );
         e = builder.build();
     }
 
-    private void registerTables(SQLExecutor.Builder builder) {
-        builder.addDocTable(
-            TestingTableInfo.builder(new RelationName("doc", "users"), twoNodeRouting)
-                .add("id", DataTypes.STRING, null)
-                .add("name", DataTypes.STRING, null)
-                .add("tags", new ArrayType(DataTypes.STRING), null)
-                .addPrimaryKey("id")
-                .clusteredBy("id")
-                .build());
-        builder.addDocTable(
-            TestingTableInfo.builder(new RelationName("doc", "parted"), twoNodeRouting)
-                .add("id", DataTypes.INTEGER, null)
-                .add("name", DataTypes.STRING, null)
-                .add("date", DataTypes.TIMESTAMP, null, true)
-                .add("obj", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
-                .addPartitions(
-                    new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                    new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395961200000"))).asIndexName(),
-                    new PartitionName(new RelationName("doc", "parted"), new ArrayList<BytesRef>() {{
-                        add(null);
-                    }}).asIndexName())
-                .build());
-        builder.addDocTable(
-            TestingTableInfo.builder(new RelationName("doc", "users_multi_pk"), twoNodeRouting)
-                .add("id", DataTypes.LONG, null)
-                .add("name", DataTypes.STRING, null)
-                .add("details", DataTypes.OBJECT, null)
-                .add("awesome", DataTypes.BOOLEAN, null)
-                .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
-                .addPrimaryKey("id")
-                .addPrimaryKey("name")
-                .clusteredBy("id")
-                .build());
-        builder.addDocTable(
-            TestingTableInfo.builder(new RelationName("doc", "pk4"), twoNodeRouting)
-                .add("i1", DataTypes.INTEGER, null)
-                .add("i2", DataTypes.INTEGER, null)
-                .add("i3", DataTypes.INTEGER, null)
-                .add("i4", DataTypes.INTEGER, null)
-                .addPrimaryKey("i1")
-                .addPrimaryKey("i2")
-                .addPrimaryKey("i3")
-                .addPrimaryKey("i4")
-                .clusteredBy("_id")
-                .build());
+    private void registerTables(SQLExecutor.Builder builder) throws IOException {
+        builder.addTable(
+            "create table users (" +
+             "  id string primary key," +
+             "  name string," +
+             "  tags array(string)" +
+             ") clustered by (id)");
+        RelationName docParted = new RelationName("doc", "parted");
+        builder.addPartitionedTable(
+            "create table doc.parted (" +
+            "   id integer," +
+            "   name string," +
+            "   date timestamp," +
+            "   obj object (ignored)" +
+            ") partitioned by (date)",
+            new PartitionName(docParted, singletonList(new BytesRef("1395874800000"))).asIndexName(),
+            new PartitionName(docParted, singletonList(new BytesRef("1395961200000"))).asIndexName(),
+            new PartitionName(docParted, singletonList(null)).asIndexName()
+        );
+        builder.addTable(
+            "create table doc.users_multi_pk (" +
+            "   id long primary key," +
+            "   name string primary key," +
+            "   details object," +
+            "   awesome boolean," +
+            "   friends array(object)" +
+            ") clustered by (id)"
+        );
+        builder.addTable(
+            "create table doc.pk4 (" +
+            "   i1 integer primary key," +
+            "   i2 integer primary key," +
+            "   i3 integer primary key," +
+            "   i4 integer primary key" +
+            ")"
+        );
     }
 
     private AnalyzedUpdateStatement analyzeUpdate(String stmt) {
@@ -445,11 +421,11 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGenColRangeOptimization() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts >= '2015-01-01T12:00:00' and ts <= '2015-01-02T00:00:00'");
-        assertThat(whereClause.partitions().size(), is(2));
-        assertThat(whereClause.partitions().get(0), is(new PartitionName(new RelationName("doc", "generated_col"),
-            Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName()));
-        assertThat(whereClause.partitions().get(1), is(new PartitionName(new RelationName("doc", "generated_col"),
-            Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
+        RelationName relationName = new RelationName("doc", "generated_col");
+        assertThat(whereClause.partitions(), containsInAnyOrder(
+            new PartitionName(relationName, Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName(),
+            new PartitionName(relationName, Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName())
+        );
     }
 
     @Test
