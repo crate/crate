@@ -30,6 +30,7 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import io.crate.expression.InputFactory;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
@@ -64,6 +65,7 @@ import io.crate.metadata.DocReferences;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataTypes;
@@ -95,6 +97,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.crate.expression.eval.NullEliminator.eliminateNullsIfPossible;
 import static io.crate.metadata.DocReferences.inverseSourceLookup;
 
 
@@ -104,10 +107,12 @@ public class LuceneQueryBuilder {
     private static final Logger LOGGER = Loggers.getLogger(LuceneQueryBuilder.class);
     private static final Visitor VISITOR = new Visitor();
     private final Functions functions;
+    private final EvaluatingNormalizer normalizer;
 
     @Inject
     public LuceneQueryBuilder(Functions functions) {
         this.functions = functions;
+        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
     }
 
     public Context convert(Symbol query,
@@ -115,7 +120,11 @@ public class LuceneQueryBuilder {
                            QueryShardContext queryShardContext,
                            IndexCache indexCache) throws UnsupportedFeatureException {
         Context ctx = new Context(functions, mapperService, indexCache, queryShardContext);
-        ctx.query = VISITOR.process(inverseSourceLookup(query), ctx);
+        TransactionContext transactionContext = TransactionContext.systemTransactionContext();
+        ctx.query = VISITOR.process(
+            eliminateNullsIfPossible(inverseSourceLookup(query), s -> normalizer.normalize(s, transactionContext)),
+            ctx
+        );
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolPrinter.INSTANCE.printUnqualified(query), ctx.query);
         }
