@@ -64,13 +64,5 @@ Changes
 - Added support of using units inside byte-size or time bases statement
   parameters values. E.g. '1mb' for 1 MegaByte or '1s' for 1 Second.
 
-- Added support for using generated columns inside object columns.
-
 Fixes
 =====
-
-- Calling an unknown user defined function now results in an appropriate error
-  message instead of a ``NullPointerException``.
-
-- Fixed processing of the ``endpoint``, ``protocol`` and ``max_retries`` S3
-  repository parameters.
