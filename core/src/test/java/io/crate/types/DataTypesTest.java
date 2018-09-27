@@ -310,6 +310,31 @@ public class DataTypesTest extends CrateUnitTest {
         assertCompareValueTo(true, null, 1);
     }
 
+    @Test
+    public void testSmallIntIsAliasedToShort() {
+        assertThat(DataTypes.ofName("smallint"), is(DataTypes.SHORT));
+    }
+
+    @Test
+    public void testInt2IsAliasedToShort() {
+        assertThat(DataTypes.ofName("int2"), is(DataTypes.SHORT));
+    }
+
+    @Test
+    public void testInt4IsAliasedToInteger() {
+        assertThat(DataTypes.ofName("int4"), is(DataTypes.INTEGER));
+    }
+
+    @Test
+    public void testBigIntIsAliasedToLong() {
+        assertThat(DataTypes.ofName("bigint"), is(DataTypes.LONG));
+    }
+
+    @Test
+    public void testInt8IsAliasedToLong() {
+        assertThat(DataTypes.ofName("int8"), is(DataTypes.LONG));
+    }
+
     private static void assertCompareValueTo(Object val1, Object val2, int expected) {
         DataType type = DataTypes.guessType(firstNonNull(val1, val2));
         assertThat(type, not(instanceOf(DataTypes.UNDEFINED.getClass())));

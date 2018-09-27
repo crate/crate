@@ -393,4 +393,10 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage("unknown function: foo.bar(long)");
         executor.analyze("select foo.bar(1)");
     }
+
+    @Test
+    public void testTypeAliasCanBeUsedInCastNotation() {
+        Symbol symbol = executor.asSymbol(Collections.emptyMap(), "10::int2");
+        assertThat(symbol.valueType(), is(DataTypes.SHORT));
+    }
 }
