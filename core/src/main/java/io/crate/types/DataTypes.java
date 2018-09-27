@@ -276,12 +276,18 @@ public final class DataTypes {
         .put(OBJECT.getName(), OBJECT)
         .put(GEO_POINT.getName(), GEO_POINT)
         .put(GEO_SHAPE.getName(), GEO_SHAPE)
+        .put("int2", SHORT)
+        .put("int4", INTEGER)
+        .put("int8", LONG)
+        .put("smallint", SHORT)
+        .put("bigint", LONG)
+        .put("name", STRING)
         .build();
 
     public static DataType ofName(String name) {
         DataType dataType = staticTypesNameMap.get(name);
         if (dataType == null) {
-            throw new IllegalArgumentException("Cannot find data type of name " + name);
+            throw new IllegalArgumentException("Cannot find data type: " + name);
         }
         return dataType;
     }
