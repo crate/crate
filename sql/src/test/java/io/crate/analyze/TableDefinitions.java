@@ -68,7 +68,7 @@ public final class TableDefinitions {
     public static final String USER_TABLE_INFO =
         "create table doc.users (" +
          "  id long primary key," +
-         "  other_id long," +
+         "  other_id bigint," +
          "  name string," +
          "  text string index using fulltext," +
          "  no_index string index off," +

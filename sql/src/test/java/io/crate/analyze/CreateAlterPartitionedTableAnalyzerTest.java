@@ -94,7 +94,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                                                           "  date timestamp" +
                                                           ") partitioned by (name)");
         assertThat(analysis.partitionedBy().size(), is(1));
-        assertThat(analysis.partitionedBy().get(0), contains("name", "string"));
+        assertThat(analysis.partitionedBy().get(0), contains("name", "keyword"));
 
         // partitioned columns must be not indexed in mapping
         Map<String, Object> nameMapping = (Map<String, Object>) analysis.mappingProperties().get("name");
@@ -106,7 +106,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         assertTrue(analysis.isPartitioned());
         assertThat(partitionedByMeta.size(), is(1));
         assertThat(partitionedByMeta.get(0).get(0), is("name"));
-        assertThat(partitionedByMeta.get(0).get(1), is("string"));
+        assertThat(partitionedByMeta.get(0).get(1), is("keyword"));
     }
 
     @Test
@@ -125,7 +125,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                 not(hasKey("name")),
                 not(hasKey("date"))
             ));
-        assertThat(analysis.partitionedBy().get(0), contains("name", "string"));
+        assertThat(analysis.partitionedBy().get(0), contains("name", "keyword"));
         assertThat(analysis.partitionedBy().get(1), contains("date", "date"));
     }
 
@@ -148,7 +148,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         Map metaColumns = (Map) ((Map) analysis.mapping().get("_meta")).get("columns");
         assertNull(metaColumns);
         assertThat(analysis.partitionedBy().get(0), contains("date", "date"));
-        assertThat(analysis.partitionedBy().get(1), contains("o.name", "string"));
+        assertThat(analysis.partitionedBy().get(1), contains("o.name", "keyword"));
     }
 
     @Test(expected = IllegalArgumentException.class)

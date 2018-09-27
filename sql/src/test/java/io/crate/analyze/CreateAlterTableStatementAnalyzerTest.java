@@ -42,6 +42,7 @@ import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
@@ -1077,7 +1078,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         AnalyzedColumnDefinition obj = stmt.analyzedTableElements().columns().get(0);
         AnalyzedColumnDefinition c = obj.children().get(0);
 
-        assertThat(c.dataType(), is("long"));
+        assertThat(c.dataType(), is(DataTypes.LONG));
         assertThat(c.formattedGeneratedExpression(), is("2"));
         assertThat(stmt.analyzedTableElements().toMapping().toString(),
             is("{_meta={generated_columns={obj.c=2}}, " +
