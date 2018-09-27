@@ -41,7 +41,7 @@ public class PgCatalogTableDefinitions {
 
     @Inject
     public PgCatalogTableDefinitions(InformationSchemaIterables informationSchemaIterables) {
-        tableDefinitions = new HashMap<>(5);
+        tableDefinitions = new HashMap<>(6);
 
         tableDefinitions.put(PgTypeTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(PGTypes.pgTypes()),
@@ -68,6 +68,10 @@ public class PgCatalogTableDefinitions {
             (user, c) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, c.tableInfo.ident().fqn())
                          || user.hasAnyPrivilege(Privilege.Clazz.VIEW, c.tableInfo.ident().fqn()),
             PgAttributeTable.expressions()
+        ));
+        tableDefinitions.put(PgIndexTable.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(Collections.emptyList()),
+            PgIndexTable.expressions()
         ));
     }
 
