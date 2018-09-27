@@ -70,4 +70,10 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
             "NULL| NULL| false| -1| 0| NULL| false| 0| false| true| 4| id| 0| false| 1| NULL| 728874843| 0| NULL| 23| -1\n" +
             "NULL| NULL| false| -1| 0| NULL| false| 0| false| true| -1| s| 0| false| 2| NULL| 728874843| 0| NULL| 1043| -1\n"));
     }
+
+    @Test
+    public void testPgIndexTable() {
+        execute("select * from pg_catalog.pg_index");
+        assertThat(printedTable(response.rows()), is(""));
+    }
 }

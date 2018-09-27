@@ -75,6 +75,8 @@ public final class DataTypes {
     public static final DataType DOUBLE_ARRAY = new ArrayType(DOUBLE);
     public static final DataType OBJECT_ARRAY = new ArrayType(OBJECT);
     public static final DataType STRING_ARRAY = new ArrayType(STRING);
+    public static final DataType INTEGER_ARRAY = new ArrayType(INTEGER);
+    public static final DataType SHORT_ARRAY = new ArrayType(SHORT);
 
     public static final ImmutableList<DataType> PRIMITIVE_TYPES = ImmutableList.of(
         BYTE,
