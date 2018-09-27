@@ -261,7 +261,7 @@ public final class DataTypes {
         return conversions != null && conversions.contains(target);
     }
 
-    private static final ImmutableMap<String, DataType> staticTypesNameMap = ImmutableMap.<String, DataType>builder()
+    private static final ImmutableMap<String, DataType> TYPES_BY_NAME_OR_ALIAS = ImmutableMap.<String, DataType>builder()
         .put(UNDEFINED.getName(), UNDEFINED)
         .put(BYTE.getName(), BYTE)
         .put(BOOLEAN.getName(), BOOLEAN)
@@ -277,6 +277,7 @@ public final class DataTypes {
         .put(GEO_POINT.getName(), GEO_POINT)
         .put(GEO_SHAPE.getName(), GEO_SHAPE)
         .put("int2", SHORT)
+        .put("int", INTEGER)
         .put("int4", INTEGER)
         .put("int8", LONG)
         .put("smallint", SHORT)
@@ -285,7 +286,7 @@ public final class DataTypes {
         .build();
 
     public static DataType ofName(String name) {
-        DataType dataType = staticTypesNameMap.get(name);
+        DataType dataType = TYPES_BY_NAME_OR_ALIAS.get(name);
         if (dataType == null) {
             throw new IllegalArgumentException("Cannot find data type: " + name);
         }

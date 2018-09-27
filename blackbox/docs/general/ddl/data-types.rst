@@ -807,6 +807,44 @@ Trying to cast a ``string`` to ``integer``, will fail with ``cast`` if
     +---------------------------+
     SELECT 1 row in set (... sec)
 
+Type aliases
+============
+
+For compatibility with PostgreSQL we include some type aliases which can be
+used instead of the CrateDB specific type names.
+
+For example, in a type cast::
+
+  cr> select 10::int2;
+  +------------------+
+  | CAST(10 AS int2) |
+  +------------------+
+  |               10 |
+  +------------------+
+  SELECT 1 row in set (... sec)
+
+
+See the table below for a full list of aliases:
+
++----------+------------+
+| Alias    | Crate Type |
++==========+============+
+| int2     | short      |
++----------+------------+
+| int      | integer    |
++----------+------------+
+| int4     | integer    |
++----------+------------+
+| int8     | long       |
++----------+------------+
+| smallint | short      |
++----------+------------+
+| bigint   | long       |
++----------+------------+
+| name     | string     |
++----------+------------+
+
+
 .. _dateOptionalTime: http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser()
 .. _Java types: http://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text

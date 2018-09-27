@@ -24,14 +24,17 @@ package io.crate.analyze;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.crate.analyze.ddl.GeoSettingsApplier;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.sql.tree.Expression;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.GeoShapeType;
+import io.crate.types.StringType;
+import io.crate.types.TimestampType;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -46,25 +49,22 @@ import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
 public class AnalyzedColumnDefinition {
 
-    private static final Set<String> UNSUPPORTED_PK_TYPES = Sets.newHashSet(
-        DataTypes.OBJECT.getName(),
-        DataTypes.GEO_POINT.getName(),
-        DataTypes.GEO_SHAPE.getName()
+    private static final Set<DataType> UNSUPPORTED_PK_TYPES = Sets.newHashSet(
+        DataTypes.OBJECT,
+        DataTypes.GEO_POINT,
+        DataTypes.GEO_SHAPE
     );
 
-    private static final Set<String> UNSUPPORTED_INDEX_TYPES = Sets.newHashSet(
-        "array",
-        DataTypes.OBJECT.getName(),
-        DataTypes.GEO_POINT.getName(),
-        DataTypes.GEO_SHAPE.getName()
+    private static final Set<DataType> UNSUPPORTED_INDEX_TYPES = Sets.newHashSet(
+        DataTypes.OBJECT,
+        DataTypes.GEO_POINT,
+        DataTypes.GEO_SHAPE
     );
-
-    private static final Set<String> STRING_TYPES = ImmutableSet.of("string", "keyword", "text");
 
     private final AnalyzedColumnDefinition parent;
     private ColumnIdent ident;
     private String name;
-    private String dataType;
+    private DataType dataType;
     private String collectionType;
     private Reference.IndexType indexType;
     private String geoTree;
@@ -126,19 +126,10 @@ public class AnalyzedColumnDefinition {
     }
 
     public void dataType(String dataType) {
-        switch (dataType) {
-            case "timestamp":
-                this.dataType = "date";
-                break;
-            case "int":
-                this.dataType = "integer";
-                break;
-            default:
-                this.dataType = dataType;
-        }
+        this.dataType = DataTypes.ofName(dataType);
     }
 
-    public String dataType() {
+    public DataType dataType() {
         return this.dataType;
     }
 
@@ -179,7 +170,7 @@ public class AnalyzedColumnDefinition {
     }
 
     public void validate() {
-        if (analyzer != null && !"not_analyzed".equals(analyzer) && !STRING_TYPES.contains(dataType)) {
+        if (analyzer != null && !"not_analyzed".equals(analyzer) && !DataTypes.STRING.equals(dataType)) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Can't use an Analyzer on column %s because analyzers are only allowed on columns of type \"string\".",
                     ident.sqlFqn()
@@ -218,9 +209,8 @@ public class AnalyzedColumnDefinition {
 
     Map<String, Object> toMapping() {
         Map<String, Object> mapping = new HashMap<>();
-
-        String dataType = addTypeOptions(mapping);
-        mapping.put("type", dataType);
+        addTypeOptions(mapping);
+        mapping.put("type", typeNameForESMapping());
 
         if (indexType == Reference.IndexType.NO) {
             // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
@@ -233,12 +223,12 @@ public class AnalyzedColumnDefinition {
         if ("array".equals(collectionType)) {
             Map<String, Object> outerMapping = new HashMap<>();
             outerMapping.put("type", "array");
-            if (dataType().equals("object")) {
+            if (dataType().equals(DataTypes.OBJECT)) {
                 objectMapping(mapping);
             }
             outerMapping.put("inner", mapping);
             return outerMapping;
-        } else if (dataType().equals("object")) {
+        } else if (dataType().equals(DataTypes.OBJECT)) {
             objectMapping(mapping);
         }
 
@@ -248,37 +238,41 @@ public class AnalyzedColumnDefinition {
         return mapping;
     }
 
-    /**
-     * @return ES internal type name .
-     *          Usually this equals the crate type name, but for example string may become keyword or text
-     */
-    private String addTypeOptions(Map<String, Object> mapping) {
-        switch (dataType) {
-            case "date":
+    String typeNameForESMapping() {
+        switch (dataType.id()) {
+            case TimestampType.ID:
+                return "date";
+
+            case StringType.ID:
+                return analyzer == null && !isIndex ? "keyword" : "text";
+
+            default:
+                return dataType.getName();
+        }
+    }
+
+    private void addTypeOptions(Map<String, Object> mapping) {
+        switch (dataType.id()) {
+            case TimestampType.ID:
                 /*
                  * We want 1000 not be be interpreted as year 1000AD but as 1970-01-01T00:00:01.000
                  * so prefer date mapping format epoch_millis over strict_date_optional_time
                  */
                 mapping.put("format", "epoch_millis||strict_date_optional_time");
                 break;
-            case "geo_shape":
+            case GeoShapeType.ID:
                 GeoSettingsApplier.applySettings(mapping, geoSettings, geoTree);
                 break;
-            case "string":
-                if (analyzer == null) {
-                    return "keyword";
-                }
-                mapping.put("analyzer", analyzer);
-                return "text";
-            case "text":
-                // explicit index definition
+            case StringType.ID:
                 if (analyzer != null) {
                     mapping.put("analyzer", analyzer);
                 }
                 break;
+
             default:
+                // noop
+                break;
         }
-        return dataType;
     }
 
     private void objectMapping(Map<String, Object> mapping) {
