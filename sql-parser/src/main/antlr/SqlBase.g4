@@ -495,19 +495,9 @@ rerouteOption
     ;
 
 dataType
-    : STRING_TYPE
-    | BOOLEAN
-    | BYTE
-    | SHORT
-    | INT
-    | INTEGER
-    | LONG
-    | FLOAT
-    | DOUBLE
-    | TIMESTAMP
-    | IP
-    | GEO_POINT
-    | GEO_SHAPE
+    : IDENTIFIER
+    | quotedIdentifier
+    | nonReserved
     | objectTypeDefinition
     | arrayTypeDefinition
     | setTypeDefinition
@@ -632,6 +622,7 @@ nonReserved
     | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED
     | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION | RETURN | SUMMARY
     | WORK | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | DEFERRABLE
+    | STRING_TYPE | IP | DOUBLE | FLOAT | TIMESTAMP | LONG | INT | INTEGER | SHORT | BYTE | BOOLEAN
     ;
 
 SELECT: 'SELECT';
