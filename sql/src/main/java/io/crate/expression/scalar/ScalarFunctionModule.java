@@ -128,6 +128,7 @@ public class ScalarFunctionModule extends AbstractModule {
         ArrayCatFunction.register(this);
         ArrayDifferenceFunction.register(this);
         ArrayUniqueFunction.register(this);
+        ArrayUpperFunction.register(this);
 
         CoalesceFunction.register(this);
         GreatestFunction.register(this);

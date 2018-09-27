@@ -40,6 +40,9 @@ Breaking Changes
 Changes
 =======
 
+- Implemented the ``array_upper`` scalar that returns the number of elements in
+  an array's dimension.
+
 - Added some type aliases for improved compatibility with postgresql.
 
 - Expand the ``search_path`` setting to accept a list of schemas that will be
