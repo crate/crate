@@ -33,7 +33,6 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
 
     private static final ArrayType INTEGER_ARRAY_TYPE = new ArrayType(DataTypes.INTEGER);
-    private static final ArrayType LONG_ARRAY_TYPE = new ArrayType(DataTypes.LONG);
 
     @Test
     public void testNormalizeWithValueSymbols() throws Exception {

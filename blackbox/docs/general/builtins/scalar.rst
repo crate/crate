@@ -1418,6 +1418,24 @@ Returns: ``array``
     :ref:`Array construction with subquery <sql_expressions_array_subquery>`
 
 
+``array_upper(anyarray, dimension)``
+------------------------------------
+The ``array_upper`` function returns the number of elements in the requested
+array dimmension.
+
+Returns: ``integer``
+
+::
+
+    cr> select array_upper([[1, 4], [3]], 1);
+    +-------------------------------+
+    | array_upper([[1, 4], [3]], 1) |
+    +-------------------------------+
+    | 2                             |
+    +-------------------------------+
+    SELECT 1 row in set (... sec)
+
+
 Conditional Functions and Expressions
 =====================================
 
