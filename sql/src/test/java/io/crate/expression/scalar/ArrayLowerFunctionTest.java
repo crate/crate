@@ -24,35 +24,35 @@ package io.crate.expression.scalar;
 
 import org.junit.Test;
 
-public class ArrayUpperFunctionTest extends AbstractScalarFunctionsTest {
+public class ArrayLowerFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testSecondArgumentIsNull() {
-        assertEvaluate("array_upper([1, 2], null)", null);
+        assertEvaluate("array_lower([1, 2], null)", null);
     }
 
     @Test
     public void testSingleDimensionArrayValidDimension() {
-        assertEvaluate("array_upper([4, 5], 1)", 2);
+        assertEvaluate("array_lower([4, 5], 1)", 1);
     }
 
     @Test
     public void testSingleDimensionArrayInvalidDimension() {
-        assertEvaluate("array_upper([4, 5], 3)", null);
+        assertEvaluate("array_lower([4, 5], 3)", null);
     }
 
     @Test
     public void testMultiDimensionArrayValidDimension() {
-        assertEvaluate("array_upper([[1, 2, 3], [3, 4]], 2)", 2);
+        assertEvaluate("array_lower([[1, 2, 3], [3, 4]], 2)", 1);
     }
 
     @Test
     public void testMultiDimensionArrayInvalidDimension() {
-        assertEvaluate("array_upper([[1, 2, 3], [3, 4]], 3)", null);
+        assertEvaluate("array_lower([[1, 2, 3], [3, 4]], 3)", null);
     }
 
     @Test
     public void testEmptyArray() {
-        assertEvaluate("array_upper(cast([] as array(integer)), 1)", null);
+        assertEvaluate("array_lower(cast([] as array(integer)), 1)", null);
     }
 }

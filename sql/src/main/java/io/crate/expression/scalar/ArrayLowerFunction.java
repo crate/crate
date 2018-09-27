@@ -23,28 +23,19 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
-import java.util.List;
+class ArrayLowerFunction extends Scalar<Integer, Object[]> {
 
-class ArrayUpperFunction extends Scalar<Integer, Object[]> {
-
-    public static final String NAME = "array_upper";
+    public static final String NAME = "array_lower";
     private FunctionInfo functionInfo;
 
-    public static FunctionInfo createInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.INTEGER);
-    }
-
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new ArrayBoundFunctionResolver(NAME, ArrayUpperFunction::new));
+        module.register(NAME, new ArrayBoundFunctionResolver(NAME, ArrayLowerFunction::new));
     }
 
-    private ArrayUpperFunction(FunctionInfo functionInfo) {
+    private ArrayLowerFunction(FunctionInfo functionInfo) {
         this.functionInfo = functionInfo;
     }
 
@@ -67,10 +58,9 @@ class ArrayUpperFunction extends Scalar<Integer, Object[]> {
             Object dimensionValue = array[dimension];
             if (dimensionValue.getClass().isArray()) {
                 Object[] dimensionArray = (Object[]) dimensionValue;
-                return dimensionArray.length;
+                return dimensionArray.length > 0 ? 1 : null;
             }
-            // it's a one dimension array so return the argument length
-            return array.length;
+            return 1;
         } catch (ArrayIndexOutOfBoundsException e) {
             return null;
         }
