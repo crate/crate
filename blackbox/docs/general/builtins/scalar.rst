@@ -1421,7 +1421,7 @@ Returns: ``array``
 ``array_upper(anyarray, dimension)``
 ------------------------------------
 The ``array_upper`` function returns the number of elements in the requested
-array dimmension.
+array dimmension (the upper bound of the dimension).
 
 Returns: ``integer``
 
@@ -1432,6 +1432,25 @@ Returns: ``integer``
     | array_upper([[1, 4], [3]], 1) |
     +-------------------------------+
     | 2                             |
+    +-------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+``array_lower(anyarray, dimension)``
+------------------------------------
+The ``array_lower`` function returns the lower bound of the requested array
+dimension (which is ``1`` if the dimension is valid and has at least one
+element).
+
+Returns: ``integer``
+
+::
+
+    cr> select array_lower([[1, 4], [3]], 1);
+    +-------------------------------+
+    | array_lower([[1, 4], [3]], 1) |
+    +-------------------------------+
+    | 1                             |
     +-------------------------------+
     SELECT 1 row in set (... sec)
 

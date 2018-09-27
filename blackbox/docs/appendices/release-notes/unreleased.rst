@@ -40,8 +40,8 @@ Breaking Changes
 Changes
 =======
 
-- Implemented the ``array_upper`` scalar that returns the number of elements in
-  an array's dimension.
+- Implemented the ``array_upper`` and ``array_lower`` scalars that return the
+  upper and respectively lower bound of a given array dimension.
 
 - Added some type aliases for improved compatibility with postgresql.
 
