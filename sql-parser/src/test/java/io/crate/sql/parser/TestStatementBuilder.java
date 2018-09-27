@@ -55,6 +55,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.SetLicenseStatement;
 import io.crate.sql.tree.ShowCreateTable;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
@@ -314,6 +315,32 @@ public class TestStatementBuilder {
         printStatement("set global sys.cluster['some_settings'] = '1', other_setting = 2");
         printStatement("set global transient sys.cluster['some_settings'] = '1'");
         printStatement("set global persistent sys.cluster['some_settings'] = '1'");
+    }
+
+    @Test
+    public void testSetLicenseStmtBuilder() throws Exception {
+        printStatement("set license expirationDate = '01/01/2020'");
+        printStatement("set license expirationDate = '01/01/2020', signature='XXX', issuedTo='anOrganisation'");
+    }
+
+    @Test
+    public void testSetLicenseWithoutParamThrowsParsingException() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage(containsString("no viable alternative at input 'set license'"));
+        printStatement("set license");
+    }
+
+    @Test
+    public void testSetLicense() {
+        SetLicenseStatement stmt = (SetLicenseStatement) SqlParser.createStatement("set license aSetting = 'aStringValue'");
+        assertThat(stmt.scope(), is(SetLicenseStatement.Scope.GLOBAL));
+        assertThat(stmt.settingType(), is(SetLicenseStatement.SettingType.PERSISTENT));
+        assertThat(stmt.assignments().size(), is(1));
+
+        Assignment assignment = stmt.assignments().get(0);
+        assertThat(assignment.columnName().toString(), is("\"aSetting\"".toLowerCase()));
+        assertThat(assignment.expressions().size(), is(1));
+        assertThat(assignment.expressions().get(0).toString(), is("'aStringValue'"));
     }
 
     @Test
