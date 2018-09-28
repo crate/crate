@@ -79,6 +79,7 @@ import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.SetLicenseStatement;
 import io.crate.sql.tree.SetStatement;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
@@ -365,6 +366,11 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitSetStatement(SetStatement node, Analysis context) {
+            return SetStatementAnalyzer.analyze(node);
+        }
+
+        @Override
+        public AnalyzedStatement visitSetLicenseStatement(SetLicenseStatement node, Analysis context) {
             return SetStatementAnalyzer.analyze(node);
         }
 
