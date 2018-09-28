@@ -34,6 +34,7 @@ import io.crate.sql.tree.Node;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.ResetStatement;
+import io.crate.sql.tree.SetLicenseStatement;
 import io.crate.sql.tree.SetStatement;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
@@ -76,6 +77,15 @@ class SetStatementAnalyzer {
             }
             return new SetAnalyzedStatement(node.scope(), settings, isPersistent);
         }
+    }
+
+    public static SetLicenseAnalyzedStatement analyze(SetLicenseStatement node) {
+        Map<String, List<Expression>> settings = new HashMap<>();
+        for (Assignment assignment : node.assignments()) {
+            String settingName = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
+            settings.put(settingName, ImmutableList.of(assignment.expression()));
+        }
+        return new SetLicenseAnalyzedStatement(settings);
     }
 
     public static ResetAnalyzedStatement analyze(ResetStatement node) {

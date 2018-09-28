@@ -29,6 +29,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.SetStatement;
+import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;
@@ -228,5 +229,19 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testResetLoggingSetting() {
         ResetAnalyzedStatement analysis = analyze("RESET GLOBAL \"logger.action\"");
         assertThat(analysis.settingsToRemove(), Matchers.<Set<String>>is(ImmutableSet.of("logger.action")));
+    }
+
+    @Test
+    public void testSetLicense() throws Exception {
+        SetLicenseAnalyzedStatement analysis = analyze("SET LICENSE expiryDate='01/01/2099', signature='XXX'");
+        assertThat(analysis.settings().size(), is(2));
+        assertThat(
+            analysis.settings().get("expiryDate".toLowerCase()).get(0),
+            Matchers.<Expression>is(StringLiteral.fromObject("01/01/2099"))
+        );
+        assertThat(
+            analysis.settings().get("signature".toLowerCase()).get(0),
+            Matchers.<Expression>is(StringLiteral.fromObject("XXX"))
+        );
     }
 }
