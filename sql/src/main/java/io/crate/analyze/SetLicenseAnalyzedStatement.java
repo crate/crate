@@ -22,21 +22,48 @@
 
 package io.crate.analyze;
 
-import io.crate.sql.tree.Expression;
+import com.google.common.base.Preconditions;
+import io.crate.expression.symbol.Symbol;
 
-import java.util.List;
-import java.util.Map;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public class SetLicenseAnalyzedStatement implements AnalyzedStatement {
 
-    private final Map<String, List<Expression>> settings;
+    static final String EXPIRY_DATE_TOKEN = "expirationdate";
+    static final String ISSUED_TO_TOKEN = "issuedto";
+    static final String SIGN_TOKEN = "signature";
 
-    SetLicenseAnalyzedStatement(Map<String, List<Expression>> settings) {
-        this.settings = settings;
+    static final int LICENSE_TOKEN_NUM = 3;
+
+    static final Set<String> LICENSE_ALLOWED_TOKENS = new HashSet<>(
+        Arrays.asList(EXPIRY_DATE_TOKEN, ISSUED_TO_TOKEN, SIGN_TOKEN));
+
+    static final String LICENSE_ALLOWED_TOKENS_AS_STRING = String.join(", ", LICENSE_ALLOWED_TOKENS);
+
+    private static final String MISSING_SETTING_ERROR_TEMPLATE = "Missing setting for SET LICENSE. Please provide the following settings: [%s]";
+
+    private final Symbol expirationDateSymbol;
+    private final Symbol issuedToSymbol;
+    private final Symbol signatureSymbol;
+
+    SetLicenseAnalyzedStatement(final Symbol expirationDateSymbol, final Symbol issuedToSymbol, final Symbol signatureSymbol) {
+        this.expirationDateSymbol = Preconditions.checkNotNull(expirationDateSymbol, MISSING_SETTING_ERROR_TEMPLATE, LICENSE_ALLOWED_TOKENS_AS_STRING);
+        this.issuedToSymbol = Preconditions.checkNotNull(issuedToSymbol, MISSING_SETTING_ERROR_TEMPLATE, LICENSE_ALLOWED_TOKENS_AS_STRING);
+        this.signatureSymbol = Preconditions.checkNotNull(signatureSymbol, MISSING_SETTING_ERROR_TEMPLATE, LICENSE_ALLOWED_TOKENS_AS_STRING);
     }
 
-    public Map<String, List<Expression>> settings() {
-        return settings;
+    public final Symbol expirationDateSymbol() {
+        return expirationDateSymbol;
+    }
+
+    public final Symbol issuedToSymbol() {
+        return issuedToSymbol;
+    }
+
+    public final Symbol signatureSymbol() {
+        return signatureSymbol;
     }
 
     @Override

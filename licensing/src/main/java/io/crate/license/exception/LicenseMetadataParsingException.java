@@ -20,29 +20,15 @@
  * agreement.
  */
 
-package io.crate.sql.tree;
+package io.crate.license.exception;
 
-import com.google.common.base.MoreObjects;
+public class LicenseMetadataParsingException extends LicenseException {
 
-import java.util.List;
-
-public class SetLicenseStatement extends SetStatement {
-
-
-    public SetLicenseStatement(List<Assignment> assignments) {
-        // treat License settings as Global and Persistent
-        super(Scope.GLOBAL, SettingType.PERSISTENT, assignments);
+    public LicenseMetadataParsingException(String message) {
+        super("License Metadata parsing error: " + message);
     }
 
-    @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("assignments", assignments())
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitSetLicenseStatement(this, context);
+    public LicenseMetadataParsingException(String message, Throwable cause) {
+        super("License Metadata parsing error: " + message, cause);
     }
 }

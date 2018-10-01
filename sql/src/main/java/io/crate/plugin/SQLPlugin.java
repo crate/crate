@@ -46,6 +46,7 @@ import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.ingestion.IngestionModules;
 import io.crate.ingestion.IngestionService;
+import io.crate.license.LicenseMetaData;
 import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
@@ -255,6 +256,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             ViewsMetaData::new
         ));
         entries.add(new NamedWriteableRegistry.Entry(
+            MetaData.Custom.class,
+            LicenseMetaData.TYPE,
+            LicenseMetaData::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             UserDefinedFunctionsMetaData.TYPE,
             in -> UserDefinedFunctionsMetaData.readDiffFrom(MetaData.Custom.class, UserDefinedFunctionsMetaData.TYPE, in)
@@ -268,6 +274,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             NamedDiff.class,
             ViewsMetaData.TYPE,
             in -> ViewsMetaData.readDiffFrom(MetaData.Custom.class, ViewsMetaData.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            LicenseMetaData.TYPE,
+            in -> LicenseMetaData.readDiffFrom(MetaData.Custom.class, LicenseMetaData.TYPE, in)
         ));
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedWriteables());
@@ -293,6 +304,12 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             new ParseField(ViewsMetaData.TYPE),
             ViewsMetaData::fromXContent
         ));
+        entries.add(new NamedXContentRegistry.Entry(
+            MetaData.Custom.class,
+            new ParseField(LicenseMetaData.TYPE),
+            LicenseMetaData::fromXContent
+        ));
+
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedXContent());
         }

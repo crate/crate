@@ -20,14 +20,32 @@
  * agreement.
  */
 
-apply from: "$rootDir/gradle/javaModule.gradle"
+package io.crate.license;
 
-archivesBaseName = 'crate-license'
-group = 'io.crate'
-description = 'CrateDB License Management'
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-dependencies {
-    compile project(':es:es-core')
-    testCompile "junit:junit:${versions.junit}"
-    testCompile project(':integration-testing')
+import java.io.IOException;
+
+public class SetLicenseResponse extends AcknowledgedResponse {
+
+    public SetLicenseResponse() {
+    }
+
+    public SetLicenseResponse(boolean acknowledged) {
+        super(acknowledged);
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        readAcknowledged(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        writeAcknowledged(out);
+    }
 }

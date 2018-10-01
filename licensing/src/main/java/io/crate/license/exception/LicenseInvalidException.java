@@ -20,14 +20,11 @@
  * agreement.
  */
 
-apply from: "$rootDir/gradle/javaModule.gradle"
+package io.crate.license.exception;
 
-archivesBaseName = 'crate-license'
-group = 'io.crate'
-description = 'CrateDB License Management'
+public class LicenseInvalidException extends LicenseException {
 
-dependencies {
-    compile project(':es:es-core')
-    testCompile "junit:junit:${versions.junit}"
-    testCompile project(':integration-testing')
+    public LicenseInvalidException() {
+        super("Unable to validate license");
+    }
 }

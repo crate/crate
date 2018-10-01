@@ -20,14 +20,17 @@
  * agreement.
  */
 
-apply from: "$rootDir/gradle/javaModule.gradle"
+package io.crate.license.exception;
 
-archivesBaseName = 'crate-license'
-group = 'io.crate'
-description = 'CrateDB License Management'
 
-dependencies {
-    compile project(':es:es-core')
-    testCompile "junit:junit:${versions.junit}"
-    testCompile project(':integration-testing')
+abstract class LicenseException extends RuntimeException {
+
+    public LicenseException(String message) {
+        super(message);
+    }
+
+    public LicenseException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
 }
