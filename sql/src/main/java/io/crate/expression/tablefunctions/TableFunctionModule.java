@@ -22,8 +22,8 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.expression.AbstractFunctionModule;
+import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 
 public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImplementation> {
 
@@ -31,5 +31,6 @@ public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImp
     public void configureFunctions() {
         UnnestFunction.register(this);
         EmptyRowTableFunction.register(this);
+        GenerateSeries.register(this);
     }
 }

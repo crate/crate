@@ -68,3 +68,26 @@ possible to access values of the object using the subscript notation::
 
     cr> select col1['x'] from unnest([{x=10}]);
     SQLActionException[ColumnUnknownException: Column col1['x'] unknown]
+
+``generate_series(start, stop, [step])``
+========================================
+
+Generate a series of values from inclusive start to inclusive stop with
+``step`` increments.
+The ``step`` parameter is optional and defaults to 1.
+
+The arguments can be either of type ``integer`` or ``long`` and the return
+value will match the argument types.
+
+::
+
+    cr> SELECT * FROM generate_series(1, 4);
+    +------+
+    | col1 |
+    +------+
+    |    1 |
+    |    2 |
+    |    3 |
+    |    4 |
+    +------+
+    SELECT 4 rows in set (... sec)
