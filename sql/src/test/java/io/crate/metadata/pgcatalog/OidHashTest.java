@@ -24,12 +24,14 @@ package io.crate.metadata.pgcatalog;
 
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import java.util.Collections;
 
+import static io.crate.metadata.pgcatalog.OidHash.constraintOid;
 import static io.crate.metadata.pgcatalog.OidHash.relationOid;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.testing.T3.T1_INFO;
@@ -53,5 +55,11 @@ public class OidHashTest extends CrateUnitTest {
     @Test
     public void testSchemaOid() {
         assertThat(schemaOid(Schemas.DOC_SCHEMA_NAME), is(-2048275947));
+    }
+
+    @Test
+    public void testConstraintOid() {
+        assertThat(constraintOid(TABLE_INFO.ident().fqn(), "id_pk", ConstraintInfo.Type.PRIMARY_KEY.toString()),
+            is(279835673));
     }
 }
