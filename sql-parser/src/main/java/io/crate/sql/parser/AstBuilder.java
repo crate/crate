@@ -147,7 +147,6 @@ import io.crate.sql.tree.RevokePrivilege;
 import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.Select;
 import io.crate.sql.tree.SelectItem;
-import io.crate.sql.tree.SetLicenseStatement;
 import io.crate.sql.tree.SetStatement;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
@@ -553,7 +552,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSetLicense(SqlBaseParser.SetLicenseContext ctx) {
-        return new SetLicenseStatement(visitCollection(ctx.setGlobalAssignment(), Assignment.class));
+        return new SetStatement(SetStatement.Scope.LICENSE,
+            SetStatement.SettingType.PERSISTENT,
+            visitCollection(ctx.setGlobalAssignment(), Assignment.class));
     }
 
     @Override

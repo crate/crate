@@ -46,6 +46,7 @@ import io.crate.analyze.InsertFromValuesAnalyzedStatement;
 import io.crate.analyze.KillAnalyzedStatement;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
+import io.crate.analyze.SetLicenseAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.UnhandledServerException;
@@ -66,6 +67,7 @@ import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.statement.CopyStatementPlanner;
 import io.crate.planner.statement.DeletePlanner;
+import io.crate.planner.statement.SetLicensePlan;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
@@ -260,8 +262,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitSetStatement(SetAnalyzedStatement setStatement, PlannerContext context) {
         switch (setStatement.scope()) {
+            case LICENSE:
+                LOGGER.warn("SET LICENSE STATEMENT WILL BE IGNORED: {}", setStatement.settings());
+                return NoopPlan.INSTANCE;
             case LOCAL:
-                LOGGER.warn("SET LOCAL STATEMENT  WILL BE IGNORED: {}", setStatement.settings());
+                LOGGER.warn("SET LOCAL STATEMENT WILL BE IGNORED: {}", setStatement.settings());
                 return NoopPlan.INSTANCE;
             case SESSION_TRANSACTION_MODE:
                 LOGGER.warn("'SET SESSION CHARACTERISTICS AS TRANSACTION' STATEMENT WILL BE IGNORED");
@@ -279,6 +284,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                     );
                 }
         }
+    }
+
+    @Override
+    public Plan visitSetLicenseStatement(SetLicenseAnalyzedStatement setLicenseAnalyzedStatement, PlannerContext context) {
+        return new SetLicensePlan(setLicenseAnalyzedStatement);
     }
 
     @Override

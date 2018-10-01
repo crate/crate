@@ -29,7 +29,6 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.SetStatement;
-import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;
@@ -232,16 +231,37 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testSetLicense() throws Exception {
-        SetLicenseAnalyzedStatement analysis = analyze("SET LICENSE expiryDate='01/01/2099', signature='XXX'");
-        assertThat(analysis.settings().size(), is(2));
-        assertThat(
-            analysis.settings().get("expiryDate".toLowerCase()).get(0),
-            Matchers.<Expression>is(StringLiteral.fromObject("01/01/2099"))
-        );
-        assertThat(
-            analysis.settings().get("signature".toLowerCase()).get(0),
-            Matchers.<Expression>is(StringLiteral.fromObject("XXX"))
-        );
+    public void testSetLicenseAcceptValidSymbolValues() throws Exception {
+        SetLicenseAnalyzedStatement analysis = analyze("SET LICENSE expirationDate='2020-12-31T01:02:03.123', issuedTo='me', signature='XXX'");
+        assertThat(analysis.expirationDateSymbol(),
+            is(io.crate.expression.symbol.Literal.of("2020-12-31T01:02:03.123")));
+        assertThat(analysis.issuedToSymbol(),
+            is(io.crate.expression.symbol.Literal.of("me")));
+        assertThat(analysis.signatureSymbol(),
+            is(io.crate.expression.symbol.Literal.of("XXX")));
+    }
+
+    @Test
+    public void testSetLicenseWrongNumberOfSettingsThrowsIllegalArgumentException() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid number of settings for SET LICENSE. " +
+                                        "Please provide the following settings: [issuedto, signature, expirationdate]");
+        analyze("SET LICENSE issuedTo='me', signature='XXX'");
+    }
+
+    @Test
+    public void testSetLicenseInvalidSettingNameThrowsIllegalArgumentException() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid setting 'expirationdat' for SET LICENSE. " +
+                                        "Please provide the following settings: [issuedto, signature, expirationdate]");
+        analyze("SET LICENSE expirationDat='2020-12-31T01:02:03.123', issuedTo='me', signature='XXX'");
+    }
+
+    @Test
+    public void testSetLicenseMissingSettingThrowsNullPointerException() throws Exception {
+        expectedException.expect(NullPointerException.class);
+        expectedException.expectMessage("Missing setting for SET LICENSE. " +
+                                        "Please provide the following settings: [issuedto, signature, expirationdate]");
+        analyze("SET LICENSE issuedTo='you', issuedTo='me', signature='XXX'");
     }
 }

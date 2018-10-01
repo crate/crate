@@ -477,10 +477,6 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitSetLicenseStatement(SetLicenseStatement node, C context) {
-        return visitStatement(node, context);
-    }
-
     public R visitResetStatement(ResetStatement node, C context) {
         return visitStatement(node, context);
     }

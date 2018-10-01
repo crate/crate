@@ -23,8 +23,13 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.analyze.relations.FieldProvider;
 import io.crate.data.Row;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
@@ -34,7 +39,6 @@ import io.crate.sql.tree.Node;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.ResetStatement;
-import io.crate.sql.tree.SetLicenseStatement;
 import io.crate.sql.tree.SetStatement;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
@@ -51,7 +55,15 @@ class SetStatementAnalyzer {
 
     private static final Logger logger = Loggers.getLogger(SetStatementAnalyzer.class);
 
+    private final Functions functions;
+
+    SetStatementAnalyzer(Functions functions) {
+        this.functions = functions;
+    }
+
     public static SetAnalyzedStatement analyze(SetStatement node) {
+        assert !SetStatement.Scope.LICENSE.equals(node.scope())  : "cannot analyze statements of scope: LICENSE";
+
         boolean isPersistent = node.settingType().equals(SetStatement.SettingType.PERSISTENT);
         Map<String, List<Expression>> settings = new HashMap<>();
 
@@ -79,13 +91,37 @@ class SetStatementAnalyzer {
         }
     }
 
-    public static SetLicenseAnalyzedStatement analyze(SetLicenseStatement node) {
-        Map<String, List<Expression>> settings = new HashMap<>();
+    public SetLicenseAnalyzedStatement analyze(SetStatement node, Analysis context) {
+        assert SetStatement.Scope.LICENSE.equals(node.scope()) : "Should only analyze statements of scope: LICENSE";
+
+        if (node.assignments().size() != SetLicenseAnalyzedStatement.LICENSE_TOKEN_NUM) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "Invalid number of settings for SET LICENSE. Please provide the following settings: [%s]",
+                SetLicenseAnalyzedStatement.LICENSE_ALLOWED_TOKENS_AS_STRING));
+        }
+
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            context.transactionContext(),
+            context.paramTypeHints(),
+            FieldProvider.UNSUPPORTED,
+            null);
+        Map<String, Symbol> statementSymbols = new HashMap<>(SetLicenseAnalyzedStatement.LICENSE_TOKEN_NUM);
+        ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
+
         for (Assignment assignment : node.assignments()) {
             String settingName = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
-            settings.put(settingName, ImmutableList.of(assignment.expression()));
+            if (!SetLicenseAnalyzedStatement.LICENSE_ALLOWED_TOKENS.contains(settingName)) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Invalid setting '%s' for SET LICENSE. Please provide the following settings: [%s]",
+                    settingName, SetLicenseAnalyzedStatement.LICENSE_ALLOWED_TOKENS_AS_STRING));
+            }
+            Symbol valueSymbol = expressionAnalyzer.convert(assignment.expression(), exprCtx);
+            statementSymbols.put(settingName, valueSymbol);
         }
-        return new SetLicenseAnalyzedStatement(settings);
+        return new SetLicenseAnalyzedStatement(statementSymbols.get(SetLicenseAnalyzedStatement.EXPIRY_DATE_TOKEN),
+            statementSymbols.get(SetLicenseAnalyzedStatement.ISSUED_TO_TOKEN),
+            statementSymbols.get(SetLicenseAnalyzedStatement.SIGN_TOKEN));
     }
 
     public static ResetAnalyzedStatement analyze(ResetStatement node) {
