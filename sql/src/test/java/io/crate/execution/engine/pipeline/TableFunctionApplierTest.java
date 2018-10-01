@@ -22,41 +22,40 @@
 
 package io.crate.execution.engine.pipeline;
 
+import io.crate.data.Bucket;
+import io.crate.data.CollectionBucket;
+import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.data.Row1;
+import io.crate.data.RowN;
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.Functions;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 public class TableFunctionApplierTest {
 
     @Test
-    public void testUnnestFunctionsAreApplied() {
-        Functions functions = getFunctions();
-        ArrayType intArray = new ArrayType(DataTypes.INTEGER);
-        FunctionIdent unnestIdent = new FunctionIdent("unnest", Collections.singletonList(intArray));
-        TableFunctionImplementation unnest = (TableFunctionImplementation) functions.getQualified(unnestIdent);
+    public void testFunctionsAreApplied() {
+        Input<Bucket> fstFunc = () -> new CollectionBucket(Arrays.asList(
+            new Object[]{1},
+            new Object[]{2},
+            new Object[]{3}
+        ));
+        Input<Bucket> sndFunc = () -> new CollectionBucket(Arrays.asList(
+            new Object[]{4},
+            new Object[]{5}
+        ));
         TableFunctionApplier tableFunctionApplier = new TableFunctionApplier(
-            Arrays.asList(
-                new TableFunctionApplier.Func(unnest, Collections.singletonList(Literal.of(new Object[] { 1, 2, 3 }, intArray)), 0),
-                new TableFunctionApplier.Func(unnest, Collections.singletonList(Literal.of(new Object[] { 4, 5 }, intArray)), 1)
-            ),
-            new int[] { 2 }
+            Arrays.asList(fstFunc, sndFunc),
+            Collections.singletonList(Literal.of(10)),
+            Collections.emptyList()
         );
-
-        Iterator<Row> iterator = tableFunctionApplier.apply(new Row1(10));
+        Iterator<Row> iterator = tableFunctionApplier.apply(new RowN(0));
         assertThat(iterator.next().materialize(), is(new Object[]{1, 4, 10}));
         assertThat(iterator.next().materialize(), is(new Object[]{2, 5, 10}));
         assertThat(iterator.next().materialize(), is(new Object[]{3, null, 10}));

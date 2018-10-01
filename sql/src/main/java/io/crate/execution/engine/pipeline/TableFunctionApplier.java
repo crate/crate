@@ -22,11 +22,12 @@
 
 package io.crate.execution.engine.pipeline;
 
+import io.crate.collections.Lists2;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.execution.engine.collect.CollectExpression;
 
 import java.util.Iterator;
 import java.util.List;
@@ -38,38 +39,41 @@ public final class TableFunctionApplier implements Function<Row, Iterator<Row>> 
     private final RowN outgoingRow;
     private final Object[] outgoingCells;
     private final List<Func> tableFunctions;
-    private final int[] incomingValueMapping;
+    private final List<Input<?>> standalone;
+    private final List<CollectExpression<Row, ?>> expressions;
 
-    public static class Func {
-        final TableFunctionImplementation implementation;
-        final List<Input> args;
-        final int posInOutput;
+    private static class Func {
+        private final Input<Bucket> input;
+        Iterator<Row> iterator;
 
-        private Iterator<Row> bucket;
-
-        public Func(TableFunctionImplementation implementation, List<Input> args, int posInOutput) {
-            this.implementation = implementation;
-            this.args = args;
-            this.posInOutput = posInOutput;
+        private Func(Input<Bucket> input) {
+            this.input = input;
         }
     }
 
-    public TableFunctionApplier(List<Func> tableFunctions, int[] incomingValueMapping) {
-        this.tableFunctions = tableFunctions;
-        this.incomingValueMapping = incomingValueMapping;
-        this.outgoingCells = new Object[tableFunctions.size() + incomingValueMapping.length];
+
+    public TableFunctionApplier(List<Input<Bucket>> tableFunctions,
+                                List<Input<?>> standalone,
+                                List<CollectExpression<Row, ?>> expressions) {
+        this.tableFunctions = Lists2.map(tableFunctions, Func::new);
+        this.standalone = standalone;
+        this.expressions = expressions;
+        this.outgoingCells = new Object[tableFunctions.size() + standalone.size()];
         this.outgoingRow = new RowN(outgoingCells);
     }
 
     @Override
     public Iterator<Row> apply(Row row) {
         int maxRows = 0;
-        for (Func tableFunction : tableFunctions) {
-            Bucket bucket = tableFunction.implementation.execute(tableFunction.args);
-            maxRows = Math.max(bucket.size(), maxRows);
-            tableFunction.bucket = bucket.iterator();
+        for (int i = 0; i < expressions.size(); i++) {
+            expressions.get(i).setNextRow(row);
         }
-        mapIncomingValuesToOutgoingCells(row);
+        for (Func tableFunction : tableFunctions) {
+            Bucket bucket = tableFunction.input.value();
+            maxRows = Math.max(bucket.size(), maxRows);
+            tableFunction.iterator = bucket.iterator();
+        }
+        mapIncomingValuesToOutgoingCells();
         final int numRows = maxRows;
         return new Iterator<Row>() {
 
@@ -95,14 +99,13 @@ public final class TableFunctionApplier implements Function<Row, Iterator<Row>> 
     private void fillOutgoingCellsFromBuckets() {
         for (int i = 0; i < tableFunctions.size(); i++) {
             Func func = tableFunctions.get(i);
-            outgoingCells[func.posInOutput] = func.bucket.hasNext() ? func.bucket.next().get(0) : null;
+            outgoingCells[i] = func.iterator.hasNext() ? func.iterator.next().get(0) : null;
         }
     }
 
-    private void mapIncomingValuesToOutgoingCells(Row incomingRow) {
-        for (int inCellPos = 0; inCellPos < incomingValueMapping.length; inCellPos++) {
-            int outCellPos = incomingValueMapping[inCellPos];
-            outgoingCells[outCellPos] = incomingRow.get(inCellPos);
+    private void mapIncomingValuesToOutgoingCells() {
+        for (int i = 0; i < standalone.size(); i++) {
+            outgoingCells[tableFunctions.size() + i] = standalone.get(i).value();
         }
     }
 }

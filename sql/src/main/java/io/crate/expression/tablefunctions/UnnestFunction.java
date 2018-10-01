@@ -64,7 +64,7 @@ public class UnnestFunction {
     private static final String NAME = "unnest";
     public static final RelationName TABLE_IDENT = new RelationName("", NAME);
 
-    static class UnnestTableFunctionImplementation implements TableFunctionImplementation {
+    static class UnnestTableFunctionImplementation extends TableFunctionImplementation {
 
         private final FunctionInfo info;
 
@@ -84,9 +84,9 @@ public class UnnestFunction {
          * [ [1, Marvin], [2, Trillian] ]
          */
         @Override
-        public Bucket execute(Collection<? extends Input> arguments) {
+        public Bucket evaluate(Input[] arguments) {
             final List<Object[]> values = extractValues(arguments);
-            final int numCols = arguments.size();
+            final int numCols = arguments.length;
             final int numRows = maxLength(values);
 
             return new Bucket() {
@@ -136,8 +136,8 @@ public class UnnestFunction {
             };
         }
 
-        private static List<Object[]> extractValues(Collection<? extends Input> arguments) {
-            List<Object[]> values = new ArrayList<>(arguments.size());
+        private static List<Object[]> extractValues(Input[] arguments) {
+            List<Object[]> values = new ArrayList<>(arguments.length);
             for (Input argument : arguments) {
                 Object value = argument.value();
                 assert value instanceof Object[] : "must be an array because unnest only accepts array arguments";
@@ -197,8 +197,9 @@ public class UnnestFunction {
 
             @Override
             public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+                DataType returnType = dataTypes.size() == 1 ? CollectionType.unnest(dataTypes.get(0)) : DataTypes.OBJECT;
                 return new UnnestTableFunctionImplementation(
-                    new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.OBJECT, FunctionInfo.Type.TABLE));
+                    new FunctionInfo(new FunctionIdent(NAME, dataTypes), returnType, FunctionInfo.Type.TABLE));
             }
         });
     }

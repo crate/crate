@@ -25,7 +25,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.exceptions.UnsupportedFeatureException;
 
 import java.util.Collection;
 import java.util.Locale;
@@ -47,9 +46,8 @@ public class SelectSymbolValidator {
             switch (symbol.info().type()) {
                 case SCALAR:
                 case AGGREGATE:
-                    break;
                 case TABLE:
-                    throw new UnsupportedFeatureException("Table functions are not supported in select list");
+                    break;
                 default:
                     throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                         "FunctionInfo.Type %s not handled", symbol.info().type()));

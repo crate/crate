@@ -25,6 +25,7 @@ package io.crate.execution.engine.collect.sources;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.data.BatchIterator;
+import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -61,7 +62,7 @@ public class TableFunctionCollectSource implements CollectSource {
     @Override
     public BatchIterator<Row> getIterator(CollectPhase collectPhase, CollectTask collectTask, boolean supportMoveToStart) {
         TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
-        TableFunctionImplementation functionImplementation = phase.functionImplementation();
+        TableFunctionImplementation<?> functionImplementation = phase.functionImplementation();
         TableInfo tableInfo = functionImplementation.createTableInfo();
 
         //noinspection unchecked  Only literals can be passed to table functions. Anything else is invalid SQL
@@ -75,8 +76,9 @@ public class TableFunctionCollectSource implements CollectSource {
             topLevelInputs.add(ctx.add(symbol));
         }
 
+        Bucket buckets = functionImplementation.evaluate(inputs.toArray(new Input[0]));
         Iterable<Row> rows = Iterables.transform(
-            functionImplementation.execute(inputs),
+            buckets,
             new ValueAndInputRow<>(topLevelInputs, ctx.expressions()));
         Input<Boolean> condition = (Input<Boolean>) ctx.add(phase.where());
         rows = Iterables.filter(rows, InputCondition.asPredicate(condition));

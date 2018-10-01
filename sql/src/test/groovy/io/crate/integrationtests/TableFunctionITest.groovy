@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests
 
+
 import org.junit.Test
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$
@@ -93,5 +94,17 @@ class TableFunctionITest extends SQLTransportIntegrationTest {
     public void testValueExpression() throws Exception {
         execute("select * from unnest(coalesce([1,2]))")
         assert printedTable(response.rows()) == "1\n2\n"
+    }
+
+    @Test
+    public void testUnnestUsedInSelectList() {
+        execute("select unnest(col1) * 2, col2 from unnest([[1, 2, 3, 4]], ['foo']) order by 1 desc limit 2")
+        assert printedTable(response.rows()) == "8| foo\n6| foo\n";
+    }
+
+    @Test
+    public void testAggregationOnResultOfTableFunctionWithinSubQuery() {
+        execute("select max(x) from (select unnest([1, 2, 3, 4]) as x) as t");
+        assert response.rows()[0][0] == 4L;
     }
 }
