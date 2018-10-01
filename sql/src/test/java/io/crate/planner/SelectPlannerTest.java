@@ -773,4 +773,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "Collect[sys.nodes | [[1, 2]] | All]\n"
         ));
     }
+
+    @Test
+    public void testUnnestCannotReturnMultipleColumnsIfUsedInSelectList() {
+        expectedException.expectMessage("Table function used in select list must not return multiple columns");
+        e.logicalPlan("select unnest([1, 2], [3, 4])");
+    }
 }

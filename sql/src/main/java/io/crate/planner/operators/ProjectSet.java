@@ -32,6 +32,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
@@ -62,6 +63,14 @@ public class ProjectSet extends OneInputPlan {
         super(source, Lists2.concat(tableFunctions, standalone));
         this.tableFunctions = tableFunctions;
         this.standalone = standalone;
+        for (Function tableFunction : tableFunctions) {
+            // We should distinguish between single-column objects and multiple columns;
+            // but the type system doesn't allow that yet.
+            // So this restricts us to table functions that don't return objects
+            if (tableFunction.info().returnType().equals(DataTypes.OBJECT)) {
+                throw new UnsupportedOperationException("Table function used in select list must not return multiple columns");
+            }
+        }
     }
 
     @Override
