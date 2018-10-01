@@ -111,9 +111,9 @@ public class InformationSchemaIterables implements ClusterStateListener {
                                        (i.primaryKey().size() == 1 && !i.primaryKey().get(0).name().equals("_id"))));
         FluentIterable<ConstraintInfo> primaryKeyConstraints = primaryKeys
             .transform(t -> new ConstraintInfo(
-                t.ident(),
+                t,
                 t.ident().name() + PK_SUFFIX,
-                ConstraintInfo.Constraint.PRIMARY_KEY));
+                ConstraintInfo.Type.PRIMARY_KEY));
         FluentIterable<ConstraintInfo> notnullConstraints = tables.transformAndConcat(NotNullConstraintIterable::new);
         constraints = FluentIterable.concat(primaryKeyConstraints, notnullConstraints);
 
@@ -261,9 +261,9 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
             // Return nullable columns instead.
             return new ConstraintInfo(
-                this.relationInfo.ident(),
+                this.relationInfo,
                 constraintName,
-                ConstraintInfo.Constraint.CHECK
+                ConstraintInfo.Type.CHECK
             );
         }
     }

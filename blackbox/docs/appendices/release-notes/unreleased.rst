@@ -40,9 +40,9 @@ Breaking Changes
 Changes
 =======
 
-- Added ``pg_class``, ``pg_namespace``, ``pg_attribute``, ``pg_attrdef`` and
-  ``pg_index`` tables to the ``pg_catalog`` schema for improved compatibility
-  with postgresql.
+- Added ``pg_class``, ``pg_namespace``, ``pg_attribute``, ``pg_attrdef``,
+  ``pg_index`` and ``pg_constraint`` tables to the ``pg_catalog`` schema for
+  improved compatibility with postgresql.
 
 - Added support for using table functions in the select list of a query.
 

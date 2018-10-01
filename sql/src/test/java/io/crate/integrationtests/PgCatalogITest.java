@@ -76,4 +76,11 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
         execute("select * from pg_catalog.pg_index");
         assertThat(printedTable(response.rows()), is(""));
     }
+
+    @Test
+    public void testPgConstraintTable() {
+        execute("select cn.* from pg_constraint cn, pg_class c where cn.conrelid = c.oid and c.relname = 't1'");
+        assertThat(printedTable(response.rows()), is(
+            "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| NULL| t1_pk| -2048275947| true| NULL| NULL| 728874843| NULL| p| 0| true| -874078436\n"));
+    }
 }

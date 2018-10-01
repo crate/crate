@@ -32,7 +32,8 @@ final class OidHash {
     enum Type {
         SCHEMA,
         TABLE,
-        VIEW
+        VIEW,
+        CONSTRAINT
     }
 
     static int relationOid(RelationInfo relationInfo) {
@@ -43,6 +44,11 @@ final class OidHash {
 
     static int schemaOid(String name) {
         BytesRef b = new BytesRef(Type.SCHEMA.toString() + name);
+        return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
+    }
+
+    static int constraintOid(String relationName, String constraintName, String constraintType) {
+        BytesRef b = new BytesRef(Type.CONSTRAINT.toString() + relationName + constraintName + constraintType);
         return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
     }
 }
