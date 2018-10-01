@@ -31,7 +31,7 @@ import java.util.List;
 public class SetStatement extends Statement {
 
     public enum Scope {
-        GLOBAL, SESSION, LOCAL, SESSION_TRANSACTION_MODE
+        GLOBAL, SESSION, LOCAL, SESSION_TRANSACTION_MODE, LICENSE
     }
 
     public enum SettingType {

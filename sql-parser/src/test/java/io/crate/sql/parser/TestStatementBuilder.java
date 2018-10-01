@@ -55,7 +55,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RevokePrivilege;
-import io.crate.sql.tree.SetLicenseStatement;
+import io.crate.sql.tree.SetStatement;
 import io.crate.sql.tree.ShowCreateTable;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
@@ -332,9 +332,9 @@ public class TestStatementBuilder {
 
     @Test
     public void testSetLicense() {
-        SetLicenseStatement stmt = (SetLicenseStatement) SqlParser.createStatement("set license aSetting = 'aStringValue'");
-        assertThat(stmt.scope(), is(SetLicenseStatement.Scope.GLOBAL));
-        assertThat(stmt.settingType(), is(SetLicenseStatement.SettingType.PERSISTENT));
+        SetStatement stmt = (SetStatement) SqlParser.createStatement("set license aSetting = 'aStringValue'");
+        assertThat(stmt.scope(), is(SetStatement.Scope.LICENSE));
+        assertThat(stmt.settingType(), is(SetStatement.SettingType.PERSISTENT));
         assertThat(stmt.assignments().size(), is(1));
 
         Assignment assignment = stmt.assignments().get(0);
