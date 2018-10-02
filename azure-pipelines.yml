@@ -1,0 +1,35 @@
+---
+jobs:
+  - job: Linux
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    steps:
+      - script: git submodule update --init -- es/upstream
+      - task: Gradle@2
+        inputs:
+          workingDirectory: ''
+          gradleWrapperFile: 'gradlew'
+          gradleOptions: '-Xmx3072m'
+          javaHomeOption: 'JDKVersion'
+          jdkVersionOption: '1.10'
+          jdkArchitectureOption: 'x64'
+          publishJUnitResults: true
+          testResultsFiles: '**/TEST-*.xml'
+          tasks: ':sql:test -PtestForks=2'
+
+  - job: Windows
+    pool:
+      vmImage: 'VS2017-Win2016'
+    steps:
+      - script: git submodule update --init -- es/upstream
+      - task: Gradle@2
+        inputs:
+          workingDirectory: ''
+          gradleWrapperFile: 'gradlew'
+          gradleOptions: '-Xmx3072m'
+          javaHomeOption: 'JDKVersion'
+          jdkVersionOption: '1.10'
+          jdkArchitectureOption: 'x64'
+          publishJUnitResults: true
+          testResultsFiles: '**/TEST-*.xml'
+          tasks: ':sql:test -PtestForks=2'
