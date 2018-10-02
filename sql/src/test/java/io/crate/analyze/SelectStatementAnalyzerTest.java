@@ -2011,4 +2011,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("Table functions are not allowed in HAVING");
         analyze("select count(*) from t1 having unnest([1]) > 1");
     }
+
+    @Test
+    public void testUsingTableFunctionInWhereClauseIsNotAllowed() {
+        expectedException.expectMessage("Table functions are not allowed in WHERE");
+        analyze("select * from sys.nodes where unnest([1]) = 1");
+    }
 }
