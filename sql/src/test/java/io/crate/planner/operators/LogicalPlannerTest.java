@@ -490,7 +490,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 ProjectSet projectSet = (ProjectSet) plan;
                 startLine("ProjectSet[");
                 addSymbolsList(projectSet.tableFunctions);
-                addSymbolsList(projectSet.standalone);
+                if (!projectSet.standalone.isEmpty()) {
+                    sb.append(" | ");
+                    addSymbolsList(projectSet.standalone);
+                }
                 sb.append("]\n");
                 plan = projectSet.source;
             }

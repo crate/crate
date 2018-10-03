@@ -27,6 +27,14 @@ values will be returned for the functions that are exhausted. An example::
     SELECT 3 rows in set (... sec)
 
 
+.. note::
+
+    Table functions in the select list are executed after aggregations. So
+    aggregations can be used as arguments to table functions, but the other way
+    around is not allowed, unless sub queries are utilized.
+    (SELECT aggregate_func(col) FROM (SELECT table_func(...) as col) ...)
+
+
 .. rubric:: Table of Contents
 
 .. contents::

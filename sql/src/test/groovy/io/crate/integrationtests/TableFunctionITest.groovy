@@ -118,4 +118,13 @@ class TableFunctionITest extends SQLTransportIntegrationTest {
                 "1| foo\n" +
                 "1| bar\n";
     }
+
+    @Test
+    public void testTableFunctionIsAppliedAfterAggregationAndAggregationCanBeAnArgumentToTableFunction() {
+        execute("select sum(col1), generate_series(1, sum(col1)) from unnest([1, 2])");
+        assert printedTable(response.rows()) == "" +
+                "3| 1\n" +
+                "3| 2\n" +
+                "3| 3\n"
+    }
 }

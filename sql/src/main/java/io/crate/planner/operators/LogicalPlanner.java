@@ -300,7 +300,7 @@ public class LogicalPlanner {
         return columns;
     }
 
-    static Set<Symbol> extractColumns(Collection<? extends Symbol> symbols) {
+    public static Set<Symbol> extractColumns(Collection<? extends Symbol> symbols) {
         LinkedHashSet<Symbol> columns = new LinkedHashSet<>();
         for (Symbol symbol : symbols) {
             RefVisitor.visitRefs(symbol, columns::add);
