@@ -56,7 +56,6 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Path;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
@@ -111,6 +110,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private final Functions functions;
     private final Schemas schemas;
     private final RelationNormalizer relationNormalizer;
+    private final SymbolPrinter symbolPrinter;
 
     private static final List<Relation> EMPTY_ROW_TABLE_RELATION = ImmutableList.of(
         new TableFunction(new FunctionCall(QualifiedName.of("empty_row"), Collections.emptyList()))
@@ -120,6 +120,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     public RelationAnalyzer(Functions functions, Schemas schemas) {
         relationNormalizer = new RelationNormalizer(functions);
         this.functions = functions;
+        this.symbolPrinter = new SymbolPrinter(functions);
         this.schemas = schemas;
     }
 
@@ -310,7 +311,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             expressionAnalysisContext);
 
         if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates()) {
-            ensureNonAggregatesInGroupBy(selectAnalysis.outputSymbols(), groupBy);
+            ensureNonAggregatesInGroupBy(symbolPrinter, selectAnalysis.outputSymbols(), groupBy);
         }
 
         boolean distinctProcessed = false;
@@ -452,7 +453,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return groupBy;
     }
 
-    private static void ensureNonAggregatesInGroupBy(List<Symbol> outputSymbols,
+    private static void ensureNonAggregatesInGroupBy(SymbolPrinter symbolPrinter,
+                                                     List<Symbol> outputSymbols,
                                                      List<Symbol> groupBy) throws IllegalArgumentException {
         for (int i = 0; i < outputSymbols.size(); i++) {
             Symbol output = outputSymbols.get(i);
@@ -464,21 +466,23 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
                 if (Aggregations.containsAggregationOrscalar(output) == false ||
                     Aggregations.matchGroupBySymbol(output, groupBy) == false) {
-                    String offendingSymbolName = output.representation();
+                    String offendingSymbolName = symbolPrinter.printUnqualified(output);
                     if (output instanceof Function) {
                         Function function = (Function) output;
                         if (function.info().type() == FunctionInfo.Type.TABLE) {
-                            ensureNonAggregatesInGroupBy(function.arguments(), groupBy);
+                            // table function can occur in the outputs without being present in the GROUP BY
+                            // if the arguments to it are within GROUP BY
+                            ensureNonAggregatesInGroupBy(symbolPrinter, function.arguments(), groupBy);
                             return;
                         }
-                        ensureNonAggregatesInGroupBy(function.arguments(), groupBy);
-                    } else if (output instanceof Path) {
-                        offendingSymbolName = ((Path) output).outputName();
                     }
-
                     throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "column '%s' must appear in the GROUP BY clause " +
-                                                      "or be used in an aggregation function", offendingSymbolName));
+                        String.format(Locale.ENGLISH,
+                            "'%s' must appear in the GROUP BY clause " +
+                            "or be used in an aggregation function." +
+                            " Perhaps you grouped by an alias that clashes with a column in the relations",
+                            offendingSymbolName
+                        ));
                 }
             }
         }
