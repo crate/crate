@@ -210,8 +210,7 @@ public class LogicalPlanner {
                                 splitPoints.aggregates()),
                             relation.having()
                         ),
-                        splitPoints.tableFunctions(),
-                        splitPoints.standalone()
+                        splitPoints.tableFunctions()
                     ),
                     relation.orderBy()
                 ),

@@ -33,10 +33,13 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.util.set.Sets;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
@@ -45,17 +48,22 @@ public class ProjectSet extends OneInputPlan {
     final List<Function> tableFunctions;
     final List<Symbol> standalone;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder source,
-                                      List<Function> tableFunctions,
-                                      List<Symbol> standalone) {
+    static LogicalPlan.Builder create(LogicalPlan.Builder source, List<Function> tableFunctions) {
         if (tableFunctions.isEmpty()) {
             return source;
         }
         return (tableStats, usedBeforeNextFetch) -> {
             HashSet<Symbol> allUsedColumns = new HashSet<>(usedBeforeNextFetch);
-            allUsedColumns.addAll(extractColumns(tableFunctions));
+            Set<Symbol> columnsUsedInTableFunctions = extractColumns(tableFunctions);
+            allUsedColumns.addAll(columnsUsedInTableFunctions);
             LogicalPlan sourcePlan = source.build(tableStats, allUsedColumns);
-            return new ProjectSet(sourcePlan, tableFunctions, standalone);
+            HashSet<Symbol> tableFunctionArguments = new HashSet<>();
+            for (Function tableFunction : tableFunctions) {
+                tableFunctionArguments.addAll(tableFunction.arguments());
+            }
+            HashSet<Symbol> sourceOutputs = new HashSet<>(sourcePlan.outputs());
+            Set<Symbol> outputsNotUsedInTableFunctions = Sets.difference(sourceOutputs, tableFunctionArguments);
+            return new ProjectSet(sourcePlan, tableFunctions, new ArrayList<>(outputsNotUsedInTableFunctions));
         };
     }
 

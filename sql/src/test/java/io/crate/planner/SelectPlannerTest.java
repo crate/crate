@@ -38,6 +38,7 @@ import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
@@ -772,6 +773,21 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "ProjectSet[unnest([1, 2])]\n" +
             "Collect[sys.nodes | [[1, 2]] | All]\n"
         ));
+    }
+
+    @Test
+    public void testSelectingTableFunctionAndStandaloneColumnOnUserTablesCanDealWithFetchId() {
+        QueryThenFetch qtf = e.plan("select unnest([1, 2]), name from users");
+        Merge merge = (Merge) qtf.subPlan();
+        Collect collect = (Collect) merge.subPlan();
+        assertThat(
+            collect.collectPhase().projections(),
+            contains(instanceOf(ProjectSetProjection.class))
+        );
+        assertThat(
+            merge.mergePhase().projections(),
+            contains(instanceOf(FetchProjection.class))
+        );
     }
 
     @Test

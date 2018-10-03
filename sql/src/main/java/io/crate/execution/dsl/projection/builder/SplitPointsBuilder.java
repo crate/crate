@@ -89,7 +89,6 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         }
         return new SplitPoints(
             new ArrayList<>(context.toCollect),
-            context.standalone,
             context.aggregatesOrTableFunctions,
             context.functionsType
         );

@@ -107,4 +107,15 @@ class TableFunctionITest extends SQLTransportIntegrationTest {
         execute("select max(x) from (select unnest([1, 2, 3, 4]) as x) as t");
         assert response.rows()[0][0] == 4L;
     }
+
+    @Test
+    public void testSelectUnnestAndStandaloneColumnFromUserTable() {
+        execute("create table t1 (x int, arr array(string))");
+        execute("insert into t1 (x, arr) values (1, ['foo', 'bar'])");
+        execute("refresh table t1");
+        execute("select x, unnest(arr) from t1");
+        assert printedTable(response.rows()) == "" +
+                "1| foo\n" +
+                "1| bar\n";
+    }
 }
