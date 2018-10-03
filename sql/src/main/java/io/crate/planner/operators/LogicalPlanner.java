@@ -40,6 +40,7 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.MultiPhaseExecutor;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.builder.SplitPoints;
+import io.crate.execution.dsl.projection.builder.SplitPointsBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.FieldsVisitor;
@@ -189,11 +190,11 @@ public class LogicalPlanner {
                                                boolean isLastFetch,
                                                Functions functions,
                                                TransactionContext txnCtx) {
-        SplitPoints splitPoints = SplitPoints.create(relation);
-        return
-            FetchOrEval.create(
-                Limit.create(
-                    Order.create(
+        SplitPoints splitPoints = SplitPointsBuilder.create(relation);
+        return FetchOrEval.create(
+            Limit.create(
+                Order.create(
+                    ProjectSet.create(
                         Filter.create(
                             groupByOrAggregate(
                                 collectAndFilter(
@@ -209,16 +210,18 @@ public class LogicalPlanner {
                                 splitPoints.aggregates()),
                             relation.having()
                         ),
-                        relation.orderBy()
+                        splitPoints.tableFunctions()
                     ),
-                    relation.limit(),
-                    relation.offset()
+                    relation.orderBy()
                 ),
-                relation.outputs(),
-                fetchMode,
-                isLastFetch,
-                relation.limit() != null
-            );
+                relation.limit(),
+                relation.offset()
+            ),
+            relation.outputs(),
+            fetchMode,
+            isLastFetch,
+            relation.limit() != null
+        );
     }
 
     private static LogicalPlan.Builder groupByOrAggregate(LogicalPlan.Builder source,

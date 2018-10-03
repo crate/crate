@@ -24,7 +24,6 @@ package io.crate.expression.tablefunctions;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
@@ -43,7 +42,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -55,7 +53,7 @@ public class EmptyRowTableFunction {
     private static final String NAME = "empty_row";
     public static final RelationName TABLE_IDENT = new RelationName("", NAME);
 
-    static class EmptyRowTableFunctionImplementation implements TableFunctionImplementation {
+    static class EmptyRowTableFunctionImplementation extends TableFunctionImplementation {
 
         private final FunctionInfo info;
 
@@ -69,7 +67,7 @@ public class EmptyRowTableFunction {
         }
 
         @Override
-        public Bucket execute(Collection<? extends Input> arguments) {
+        public Object evaluate(Input[] args) {
             return new CollectionBucket(Collections.singletonList(new Object[0]));
         }
 

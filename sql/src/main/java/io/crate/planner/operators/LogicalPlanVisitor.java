@@ -97,4 +97,8 @@ public class LogicalPlanVisitor<C, R> {
     public R visitUnion(Union logicalPlan, C context) {
         return visitPlan(logicalPlan, context);
     }
+
+    public R visitProjectSet(ProjectSet projectSet, C context) {
+        return visitPlan(projectSet, context);
+    }
 }

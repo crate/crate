@@ -69,20 +69,23 @@ public class HavingSymbolValidator {
         }
 
         @Override
-        public Void visitFunction(Function symbol, HavingContext context) {
-            if (symbol.info().type() == FunctionInfo.Type.AGGREGATE) {
+        public Void visitFunction(Function function, HavingContext context) {
+            FunctionInfo.Type type = function.info().type();
+            if (type == FunctionInfo.Type.TABLE) {
+                throw new IllegalArgumentException("Table functions are not allowed in HAVING");
+            } else if (type == FunctionInfo.Type.AGGREGATE) {
                 context.insideAggregation = true;
             } else {
                 // allow function if it is part of the grouping symbols
-                if (context.groupByContains(symbol)) {
+                if (context.groupByContains(function)) {
                     return null;
                 }
             }
 
-            for (Symbol argument : symbol.arguments()) {
+            for (Symbol argument : function.arguments()) {
                 process(argument, context);
             }
-            if (symbol.info().type() == FunctionInfo.Type.AGGREGATE) {
+            if (type == FunctionInfo.Type.AGGREGATE) {
                 context.insideAggregation = false;
             }
             return null;

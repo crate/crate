@@ -40,6 +40,14 @@ Breaking Changes
 Changes
 =======
 
+- Added the ``generate_series(start, stop [, step ])`` table function.
+
+- Added ``pg_class``, ``pg_namespace``, ``pg_attribute``, ``pg_attrdef``,
+  ``pg_index`` and ``pg_constraint`` tables to the ``pg_catalog`` schema for
+  improved compatibility with postgresql.
+
+- Added support for using table functions in the select list of a query.
+
 - Implemented the ``array_upper`` and ``array_lower`` scalars that return the
   upper and respectively lower bound of a given array dimension.
 

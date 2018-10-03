@@ -20,17 +20,26 @@
  * agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.execution.engine.pipeline;
 
-import io.crate.expression.AbstractFunctionModule;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.data.BatchIterator;
+import io.crate.data.FlatMapBatchIterator;
+import io.crate.data.Projector;
+import io.crate.data.Row;
 
-public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImplementation> {
+import java.util.Iterator;
+import java.util.function.Function;
+
+public class FlatMapProjector implements Projector {
+
+    private final Function<Row, Iterator<Row>> mapper;
+
+    public FlatMapProjector(Function<Row, Iterator<Row>> mapper) {
+        this.mapper = mapper;
+    }
 
     @Override
-    public void configureFunctions() {
-        UnnestFunction.register(this);
-        EmptyRowTableFunction.register(this);
-        GenerateSeries.register(this);
+    public BatchIterator<Row> apply(BatchIterator<Row> source) {
+        return new FlatMapBatchIterator<>(source, mapper);
     }
 }

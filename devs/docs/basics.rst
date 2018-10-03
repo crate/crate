@@ -40,20 +40,19 @@ To compile the CrateDB sources, run::
 
     $ ./gradlew compileJava
 
-To run CrateDB as a Gradle task, you need to create configuration file for
-logging::
-
-    $ mkdir -pv config && touch config/log4j2.properties
-
-You can use a *minimal logging configuration*. For more information, see the
-`logging documentation`_.
-
 Run CrateDB like so::
+
+    $ ./gradlew run
+
+or with remote debugging enabled::
 
     $ ./gradlew runDebug
 
 *Note*: If you run CrateDB like this, CrateDB will wait for a remote debugger
 on port ``5005`` before fully starting up!
+
+Both ``run`` and ``runDebug`` comands will set the HOME to ``sandbox/crate`` and
+so uses the configuration files located there.
 
 To install the CrateDB locally, run::
 

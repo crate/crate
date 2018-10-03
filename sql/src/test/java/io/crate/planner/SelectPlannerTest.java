@@ -38,6 +38,7 @@ import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
@@ -732,5 +733,66 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         e.getSessionContext().setHashJoinEnabled(true);
         Join join = e.plan("select t2.b, t1.a from t1 inner join t2 on t1.i = t2.i order by 1, 2");
         assertThat(join.joinPhase().type(), is(ExecutionPhase.Type.HASH_JOIN));
+    }
+
+    @Test
+    public void testUnnestInSelectListResultsInPlanWithProjectSetOperator() {
+        LogicalPlan plan = e.logicalPlan("select unnest([1, 2])");
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[unnest([1, 2])]\n" +
+            "ProjectSet[unnest([1, 2])]\n" +
+            "Collect[.empty_row | [[1, 2]] | All]\n"
+        ));
+        Symbol output = plan.outputs().get(0);
+        assertThat(output.valueType(), is(DataTypes.LONG));
+    }
+
+    @Test
+    public void testScalarCanBeUsedAroundTableGeneratingFunctionInSelectList() {
+        LogicalPlan plan = e.logicalPlan("select unnest([1, 2]) + 1");
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[(unnest([1, 2]) + 1)]\n" +
+            "FetchOrEval[(unnest([1, 2]) + 1)]\n" +
+            "ProjectSet[unnest([1, 2])]\n" +
+            "Collect[.empty_row | [[1, 2]] | All]\n"
+        ));
+    }
+
+    @Test
+    public void testMixingAggregationsAndTableFunctionsIsNotPossible() {
+        expectedException.expectMessage("Cannot mix aggregates and table functions");
+        e.logicalPlan("select sum(col1), sum(unnest([1, 2])) from unnest([2, 3])");
+    }
+
+    @Test
+    public void testOrderByOnTableFunctionMustOrderAfterProjectSet() {
+        LogicalPlan plan = e.logicalPlan("select unnest([1, 2]) from sys.nodes order by 1");
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[unnest([1, 2])]\n" +
+            "OrderBy['unnest([1, 2])' ASC]\n" +
+            "ProjectSet[unnest([1, 2])]\n" +
+            "Collect[sys.nodes | [[1, 2]] | All]\n"
+        ));
+    }
+
+    @Test
+    public void testSelectingTableFunctionAndStandaloneColumnOnUserTablesCanDealWithFetchId() {
+        QueryThenFetch qtf = e.plan("select unnest([1, 2]), name from users");
+        Merge merge = (Merge) qtf.subPlan();
+        Collect collect = (Collect) merge.subPlan();
+        assertThat(
+            collect.collectPhase().projections(),
+            contains(instanceOf(ProjectSetProjection.class))
+        );
+        assertThat(
+            merge.mergePhase().projections(),
+            contains(instanceOf(FetchProjection.class))
+        );
+    }
+
+    @Test
+    public void testUnnestCannotReturnMultipleColumnsIfUsedInSelectList() {
+        expectedException.expectMessage("Table function used in select list must not return multiple columns");
+        e.logicalPlan("select unnest([1, 2], [3, 4])");
     }
 }

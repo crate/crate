@@ -20,17 +20,34 @@
  * agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.expression.scalar.systeminformation;
 
-import io.crate.expression.AbstractFunctionModule;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.data.Input;
+import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
+import io.crate.types.DataTypes;
 
-public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImplementation> {
+import java.util.Arrays;
+
+public class PgGetExpr extends Scalar<String, Object> {
+
+    public static final String NAME = "pg_get_expr";
+
+    public static void register(ScalarFunctionModule scalarFunctionModule) {
+        scalarFunctionModule.register(new PgGetExpr());
+    }
 
     @Override
-    public void configureFunctions() {
-        UnnestFunction.register(this);
-        EmptyRowTableFunction.register(this);
-        GenerateSeries.register(this);
+    public String evaluate(Input<Object>... args) {
+        return null;
+    }
+
+    @Override
+    public FunctionInfo info() {
+        return new FunctionInfo(
+            new FunctionIdent(NAME, Arrays.asList(DataTypes.STRING, DataTypes.INTEGER)),
+            DataTypes.STRING);
     }
 }

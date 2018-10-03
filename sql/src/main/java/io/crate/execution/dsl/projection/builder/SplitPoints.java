@@ -21,13 +21,13 @@
 
 package io.crate.execution.dsl.projection.builder;
 
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.collections.Lists2;
+import io.crate.metadata.FunctionInfo;
 
-import java.util.ArrayList;
+import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.List;
 
 
 /**
@@ -46,34 +46,37 @@ import java.util.ArrayList;
  */
 public class SplitPoints {
 
-    private final ArrayList<Symbol> toCollect;
-    private final ArrayList<Function> aggregates;
+    private final List<Symbol> toCollect;
+    private final List<Function> aggregatesOrTableFunctions;
 
-    public static SplitPoints create(QueriedRelation relation) {
-        SplitPoints splitPoints = new SplitPoints();
-        if (relation.hasAggregates() || !relation.groupBy().isEmpty()) {
-            SplitPointVisitor.addAggregatesAndToCollectSymbols(relation, splitPoints);
-        } else {
-            OrderBy orderBy = relation.orderBy();
-            if (orderBy == null) {
-                splitPoints.toCollect.addAll(relation.outputs());
-            } else {
-                splitPoints.toCollect.addAll(Lists2.concatUnique(relation.outputs(), orderBy.orderBySymbols()));
-            }
-        }
-        return splitPoints;
+    @Nullable
+    private final FunctionInfo.Type functionsType;
+
+    SplitPoints(List<Symbol> toCollect,
+                List<Function> aggregatesOrTableFunctions,
+                @Nullable FunctionInfo.Type functionsType) {
+        this.toCollect = toCollect;
+        this.aggregatesOrTableFunctions = aggregatesOrTableFunctions;
+        this.functionsType = functionsType;
     }
 
-    private SplitPoints() {
-        this.toCollect = new ArrayList<>();
-        this.aggregates = new ArrayList<>();
-    }
-
-    public ArrayList<Symbol> toCollect() {
+    public List<Symbol> toCollect() {
         return toCollect;
     }
 
-    public ArrayList<Function> aggregates() {
-        return aggregates;
+    public List<Function> aggregates() {
+        if (FunctionInfo.Type.AGGREGATE.equals(functionsType)) {
+            return aggregatesOrTableFunctions;
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    public List<Function> tableFunctions() {
+        if (FunctionInfo.Type.TABLE.equals(functionsType)) {
+            return aggregatesOrTableFunctions;
+        } else {
+            return Collections.emptyList();
+        }
     }
 }

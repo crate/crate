@@ -1905,13 +1905,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testSelectFromTableFunctionInSelectList() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("Table functions are not supported in select list");
-        analyze("select unnest([1, 2])");
-    }
-
-    @Test
     public void testSelectFromNonTableFunction() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Non table function 'abs' is not supported in from clause");
@@ -2005,5 +1998,23 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testTableAliasIsNotAddressableByColumnNameWithSchema() {
         expectedException.expectMessage("Relation 'doc.a' unknown");
         analyze("select doc.a.x from t1 as a");
+    }
+
+    @Test
+    public void testUsingTableFunctionInGroupByIsProhibited() {
+        expectedException.expectMessage("Table functions are not allowed in GROUP BY");
+        analyze("select count(*) from t1 group by unnest([1])");
+    }
+
+    @Test
+    public void testUsingTableFunctionInHavingIsProhibited() {
+        expectedException.expectMessage("Table functions are not allowed in HAVING");
+        analyze("select count(*) from t1 having unnest([1]) > 1");
+    }
+
+    @Test
+    public void testUsingTableFunctionInWhereClauseIsNotAllowed() {
+        expectedException.expectMessage("Table functions are not allowed in WHERE");
+        analyze("select * from sys.nodes where unnest([1]) = 1");
     }
 }

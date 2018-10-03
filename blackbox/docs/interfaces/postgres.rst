@@ -124,40 +124,55 @@ Operations can be cancelled using the ``KILL`` statement, hence the
 ``CancelRequest`` message  is unsupported. Consequently, the server won't send
 a ``BackendKeyData`` message during connection initialization.
 
+``pg_catalog``
+--------------
+
+For improved compatibility, the ``pg_catalog`` schema is implemented containing
+following tables:
+
+ - `pg_type`_
+ - `pg_class <pgsql_pg_class_>`__
+ - `pg_namespace <pgsql_pg_namespace_>`__
+ - `pg_attribute <pgsql_pg_attribute_>`__
+ - `pg_attrdef <pgsql_pg_attrdef_>`__
+ - `pg_index <pgsql_pg_index_>`__
+ - `pg_constraint <pgsql_pg_constraint_>`__
+
+
 ``pg_type``
------------
+...........
 
 Some clients require the ``pg_catalog.pg_type`` in order to be able to stream
 arrays or other non-primitive types.
 
-For compatibility reasons there is a trimmed down ``pg_type`` table available in
+For compatibility reasons there is a trimmed down `pg_type <pgsql_pg_type_>`__ table available in
 CrateDB::
 
     cr> select * from pg_catalog.pg_type order by oid;
-    +------+-------------+----------+---------+--------------+---------+
-    |  oid | typbasetype | typdelim | typelem | typname      | typtype |
-    +------+-------------+----------+---------+--------------+---------+
-    |   16 |           0 | ,        |       0 | bool         | b       |
-    |   18 |           0 | ,        |       0 | char         | b       |
-    |   20 |           0 | ,        |       0 | int8         | b       |
-    |   21 |           0 | ,        |       0 | int2         | b       |
-    |   23 |           0 | ,        |       0 | int4         | b       |
-    |  114 |           0 | ,        |       0 | json         | b       |
-    |  199 |           0 | ,        |     114 | _json        | b       |
-    |  700 |           0 | ,        |       0 | float4       | b       |
-    |  701 |           0 | ,        |       0 | float8       | b       |
-    | 1000 |           0 | ,        |      16 | _bool        | b       |
-    | 1002 |           0 | ,        |      18 | _char        | b       |
-    | 1005 |           0 | ,        |      21 | _int2        | b       |
-    | 1007 |           0 | ,        |      23 | _int4        | b       |
-    | 1015 |           0 | ,        |    1043 | _varchar     | b       |
-    | 1016 |           0 | ,        |      20 | _int8        | b       |
-    | 1021 |           0 | ,        |     700 | _float4      | b       |
-    | 1022 |           0 | ,        |     701 | _float8      | b       |
-    | 1043 |           0 | ,        |       0 | varchar      | b       |
-    | 1184 |           0 | ,        |       0 | timestamptz  | b       |
-    | 1185 |           0 | ,        |    1184 | _timestamptz | b       |
-    +------+-------------+----------+---------+--------------+---------+
+    +------+-------------+----------+---------+--------------+---------+-----------+
+    |  oid | typbasetype | typdelim | typelem | typname      | typtype | typtypmod |
+    +------+-------------+----------+---------+--------------+---------+-----------+
+    |   16 |           0 | ,        |       0 | bool         | b       |        -1 |
+    |   18 |           0 | ,        |       0 | char         | b       |        -1 |
+    |   20 |           0 | ,        |       0 | int8         | b       |        -1 |
+    |   21 |           0 | ,        |       0 | int2         | b       |        -1 |
+    |   23 |           0 | ,        |       0 | int4         | b       |        -1 |
+    |  114 |           0 | ,        |       0 | json         | b       |        -1 |
+    |  199 |           0 | ,        |     114 | _json        | b       |        -1 |
+    |  700 |           0 | ,        |       0 | float4       | b       |        -1 |
+    |  701 |           0 | ,        |       0 | float8       | b       |        -1 |
+    | 1000 |           0 | ,        |      16 | _bool        | b       |        -1 |
+    | 1002 |           0 | ,        |      18 | _char        | b       |        -1 |
+    | 1005 |           0 | ,        |      21 | _int2        | b       |        -1 |
+    | 1007 |           0 | ,        |      23 | _int4        | b       |        -1 |
+    | 1015 |           0 | ,        |    1043 | _varchar     | b       |        -1 |
+    | 1016 |           0 | ,        |      20 | _int8        | b       |        -1 |
+    | 1021 |           0 | ,        |     700 | _float4      | b       |        -1 |
+    | 1022 |           0 | ,        |     701 | _float8      | b       |        -1 |
+    | 1043 |           0 | ,        |       0 | varchar      | b       |        -1 |
+    | 1184 |           0 | ,        |       0 | timestamptz  | b       |        -1 |
+    | 1185 |           0 | ,        |    1184 | _timestamptz | b       |        -1 |
+    +------+-------------+----------+---------+--------------+---------+-----------+
     SELECT 20 rows in set (... sec)
 
 Show Transaction Isolation
@@ -341,3 +356,10 @@ either because of the table is empty or by a not matching where clause.
 .. _PostgreSQL JDBC connection failover: https://jdbc.postgresql.org/documentation/head/connect.html#connection-failover
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
 .. _Value Expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html
+.. _pgsql_pg_type: https://www.postgresql.org/docs/9.6/static/catalog-pg-type.html
+.. _pgsql_pg_class: https://www.postgresql.org/docs/9.6/static/catalog-pg-class.html
+.. _pgsql_pg_namespace: https://www.postgresql.org/docs/9.6/static/catalog-pg-namespace.html
+.. _pgsql_pg_attrdef: https://www.postgresql.org/docs/9.6/static/catalog-pg-attrdef.html
+.. _pgsql_pg_attribute: https://www.postgresql.org/docs/9.6/static/catalog-pg-attribute.html
+.. _pgsql_pg_index: https://www.postgresql.org/docs/9.6/static/catalog-pg-index.html
+.. _pgsql_pg_constraint: https://www.postgresql.org/docs/9.6/static/catalog-pg-constraint.html

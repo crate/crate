@@ -41,7 +41,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
         QueriedRelation relation = e.analyze("select sum(coalesce(x, 0::integer)) + 10 from t1");
 
-        SplitPoints splitPoints = SplitPoints.create(relation);
+        SplitPoints splitPoints = SplitPointsBuilder.create(relation);
 
         //noinspection unchecked
         assertThat(splitPoints.toCollect(), contains(isFunction("coalesce")));
@@ -54,7 +54,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
         QueriedRelation relation = e.analyze("select sum(coalesce(x, 0::integer)), sum(coalesce(x, 0::integer)) + 10 from t1");
 
-        SplitPoints splitPoints = SplitPoints.create(relation);
+        SplitPoints splitPoints = SplitPointsBuilder.create(relation);
 
         //noinspection unchecked
         assertThat(splitPoints.toCollect(), contains(isFunction("coalesce")));
@@ -68,8 +68,19 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
         QueriedRelation relation = e.analyze("select x + 1 from t1 group by x");
 
-        SplitPoints splitPoints = SplitPoints.create(relation);
+        SplitPoints splitPoints = SplitPointsBuilder.create(relation);
         assertThat(splitPoints.toCollect(), contains(isReference("x")));
         assertThat(splitPoints.aggregates(), Matchers.emptyIterable());
+    }
+
+    @Test
+    public void testTableFunctionArgsAndStandaloneColumnsAreAddedToCollect() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t1 (x int, xs array(integer))")
+            .build();
+        QueriedRelation relation = e.analyze("select unnest(xs), x from t1");
+        SplitPoints splitPoints = SplitPointsBuilder.create(relation);
+        assertThat(splitPoints.toCollect(), contains(isReference("xs"), isReference("x")));
+        assertThat(splitPoints.tableFunctions(), contains(isFunction("unnest")));
     }
 }

@@ -37,8 +37,6 @@ import io.crate.testing.SqlExpressions;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 
-import java.util.stream.Collectors;
-
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.mockito.Mockito.mock;
 
@@ -58,8 +56,8 @@ public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         Function function = (Function) functionSymbol;
         FunctionIdent ident = function.info().ident();
-        TableFunctionImplementation tableFunction = (TableFunctionImplementation) functions.getQualified(ident);
-        return tableFunction.execute(function.arguments().stream().map(a -> (Input) a).collect(Collectors.toList()));
+        TableFunctionImplementation<?> tableFunction = (TableFunctionImplementation) functions.getQualified(ident);
+        return tableFunction.evaluate(function.arguments().stream().map(a -> (Input) a).toArray(Input[]::new));
     }
 
     protected void assertExecute(String expr, String expected) {

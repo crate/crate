@@ -7,7 +7,25 @@ Table Functions
 ===============
 
 Table functions are functions that produce a set of rows. They are used like a
-table or subquery in the FROM clause of a query.
+table or subquery in the ``FROM`` clause of a query.
+
+Table functions can also be used in the select list of a query. The table
+functions will be evaluated per row of the relations in the ``FROM`` clause,
+generating one or more rows which are appended to the result set.
+If multiple table functions with different amount of rows are used, ``null``
+values will be returned for the functions that are exhausted. An example::
+
+
+    cr> select unnest([1, 2, 3]), unnest([1, 2]); 
+    +-------------------+----------------+
+    | unnest([1, 2, 3]) | unnest([1, 2]) |
+    +-------------------+----------------+
+    |                 1 |              1 |
+    |                 2 |              2 |
+    |                 3 |           NULL |
+    +-------------------+----------------+
+    SELECT 3 rows in set (... sec)
+
 
 .. rubric:: Table of Contents
 
@@ -50,3 +68,26 @@ possible to access values of the object using the subscript notation::
 
     cr> select col1['x'] from unnest([{x=10}]);
     SQLActionException[ColumnUnknownException: Column col1['x'] unknown]
+
+``generate_series(start, stop, [step])``
+========================================
+
+Generate a series of values from inclusive start to inclusive stop with
+``step`` increments.
+The ``step`` parameter is optional and defaults to 1.
+
+The arguments can be either of type ``integer`` or ``long`` and the return
+value will match the argument types.
+
+::
+
+    cr> SELECT * FROM generate_series(1, 4);
+    +------+
+    | col1 |
+    +------+
+    |    1 |
+    |    2 |
+    |    3 |
+    |    4 |
+    +------+
+    SELECT 4 rows in set (... sec)

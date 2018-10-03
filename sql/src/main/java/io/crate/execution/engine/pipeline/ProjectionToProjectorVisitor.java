@@ -26,6 +26,7 @@ import com.google.common.collect.Iterables;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
@@ -42,6 +43,7 @@ import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
+import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.ProjectionVisitor;
 import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
@@ -543,6 +545,25 @@ public class ProjectionToProjectorVisitor
         assert rowUpdater != null : "row updater needs to exist";
         Consumer<Object> rowWriter = rowUpdater.newRowWriter(assignmentCols, valueInputs, readCtx.expressions());
         return new SysUpdateProjector(rowWriter);
+    }
+
+    @Override
+    public Projector visitProjectSet(ProjectSetProjection projectSet, Context context) {
+        ArrayList<Input<Bucket>> tableFunctions = new ArrayList<>(projectSet.tableFunctions().size());
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
+
+        for (int i = 0; i < projectSet.tableFunctions().size(); i++) {
+            Symbol tableFunction = projectSet.tableFunctions().get(i);
+            Input<Bucket> implementation = (Input<Bucket>) ctx.add(tableFunction);
+            tableFunctions.add(implementation);
+        }
+        ctx.add(projectSet.standalone());
+        TableFunctionApplier tableFunctionApplier = new TableFunctionApplier(
+            tableFunctions,
+            ctx.topLevelInputs(),
+            ctx.expressions()
+        );
+        return new FlatMapProjector(tableFunctionApplier);
     }
 
     @Override

@@ -23,25 +23,24 @@
 package io.crate.metadata.tablefunctions;
 
 import io.crate.data.Bucket;
-import io.crate.data.Input;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
-
-import java.util.Collection;
 
 /**
  * Interface which needs to be implemented by functions returning whole tables as result.
  */
-public interface TableFunctionImplementation extends FunctionImplementation {
+public abstract class TableFunctionImplementation<T> extends Scalar<Bucket, T> {
 
-    /**
-     * Executes the function.
-     *
-     * @param arguments the argument values
-     * @return the resulting table rows as bucket
-     */
-    Bucket execute(Collection<? extends Input> arguments);
+    @Override
+    public Symbol normalizeSymbol(Function function, TransactionContext transactionContext) {
+        // Never normalize table functions;
+        // The RelationAnalyzer expects a function symbol and can't deal with Literals
+        return function;
+    }
 
     /**
      * Creates the metadata for the table that is generated upon execution of this function. This is the actual return
@@ -52,5 +51,5 @@ public interface TableFunctionImplementation extends FunctionImplementation {
      *
      * @return a table info object representing the actual return type of the function.
      */
-    TableInfo createTableInfo();
+    public abstract TableInfo createTableInfo();
 }

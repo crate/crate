@@ -22,8 +22,8 @@
 
 package io.crate.metadata.table;
 
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
-import org.apache.lucene.util.BytesRef;
 
 /**
  * This class is used as information store of table constraints when
@@ -38,40 +38,51 @@ public class ConstraintInfo {
      * PRIMARY KEY is the primary key constraint of a table.
      * CHECK       is only used for NOT NULL constraints.
      */
-    public enum Constraint {
-        PRIMARY_KEY("PRIMARY KEY"),
-        CHECK("CHECK");
+    public enum Type {
+        PRIMARY_KEY("PRIMARY KEY", "p"),
+        CHECK("CHECK", "c");
 
         private final String text;
+        private final String postgresChar;
 
-        Constraint(final String text) {
+        Type(final String text, String postgresChar) {
             this.text = text;
+            this.postgresChar = postgresChar;
         }
 
-        public BytesRef getReference() {
-            return new BytesRef(this.text);
+        @Override
+        public String toString() {
+            return text;
+        }
+
+        public String postgresChar() {
+            return postgresChar;
         }
     }
 
     private final String constraintName;
-    private final RelationName relationName;
-    private final Constraint constraintType;
+    private final RelationInfo relationInfo;
+    private final Type constraintType;
 
-    public ConstraintInfo(RelationName relationName, String constraintName, Constraint constraintType) {
-        this.relationName = relationName;
+    public ConstraintInfo(RelationInfo relationInfo, String constraintName, Type constraintType) {
+        this.relationInfo = relationInfo;
         this.constraintName = constraintName;
         this.constraintType = constraintType;
     }
 
-    public RelationName tableIdent() {
-        return this.relationName;
+    public RelationName relationName() {
+        return relationInfo.ident();
+    }
+
+    public RelationInfo relationInfo() {
+        return relationInfo;
     }
 
     public String constraintName() {
-        return this.constraintName;
+        return constraintName;
     }
 
-    public BytesRef constraintType() {
-        return this.constraintType.getReference();
+    public Type constraintType() {
+        return constraintType;
     }
 }

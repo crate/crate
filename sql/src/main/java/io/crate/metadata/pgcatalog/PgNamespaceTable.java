@@ -33,8 +33,8 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.protocols.postgres.types.PGType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
@@ -42,64 +42,48 @@ import org.elasticsearch.cluster.ClusterState;
 import java.util.Collections;
 import java.util.Map;
 
-public class PgTypeTable extends StaticTableInfo {
+import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_type");
+public class PgNamespaceTable extends StaticTableInfo {
+
+    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_namespace");
 
     static class Columns {
         static final ColumnIdent OID = new ColumnIdent("oid");
-        static final ColumnIdent TYPNAME = new ColumnIdent("typname");
-        static final ColumnIdent TYPDELIM = new ColumnIdent("typdelim");
-        static final ColumnIdent TYPELEM = new ColumnIdent("typelem");
-        static final ColumnIdent TYPTYPE = new ColumnIdent("typtype");
-        static final ColumnIdent TYPBASETYPE = new ColumnIdent("typbasetype");
-        static final ColumnIdent TYPTYPMOD = new ColumnIdent("typtypmod");
+        static final ColumnIdent NSPNAME = new ColumnIdent("nspname");
+        static final ColumnIdent NSPOWNER = new ColumnIdent("nspowner");
+        static final ColumnIdent NSPACL = new ColumnIdent("nspacl");
     }
 
-    private static final BytesRef TYPTYPE = new BytesRef("b");
-
-    public static Map<ColumnIdent, RowCollectExpressionFactory<PGType>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PGType>>builder()
-            .put(Columns.OID,
-                () -> NestableCollectExpression.forFunction(PGType::oid))
-            .put(Columns.TYPNAME,
-                () -> NestableCollectExpression.objToBytesRef(PGType::typName))
-            .put(Columns.TYPDELIM,
-                () -> NestableCollectExpression.objToBytesRef(PGType::typDelim))
-            .put(Columns.TYPELEM,
-                () -> NestableCollectExpression.forFunction(PGType::typElem))
-            .put(Columns.TYPTYPE,
-                () -> NestableCollectExpression.constant(TYPTYPE))
-            .put(Columns.TYPBASETYPE,
-                () -> NestableCollectExpression.constant(0))
-            .put(Columns.TYPTYPMOD,
-                () -> NestableCollectExpression.constant(-1))
+    public static Map<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>>builder()
+            .put(Columns.OID, () -> NestableCollectExpression.forFunction(s -> schemaOid(s.name())))
+            .put(Columns.NSPNAME, () -> NestableCollectExpression.objToBytesRef(s -> new BytesRef(s.name())))
+            .put(Columns.NSPOWNER, () -> NestableCollectExpression.constant(0))
+            .put(Columns.NSPACL, () -> NestableCollectExpression.constant(null))
             .build();
     }
 
-    PgTypeTable() {
+    PgNamespaceTable() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
                 .register(Columns.OID.name(), DataTypes.INTEGER, null)
-                .register(Columns.TYPNAME.name(), DataTypes.STRING, null)
-                .register(Columns.TYPDELIM.name(), DataTypes.STRING, null)
-                .register(Columns.TYPELEM.name(), DataTypes.INTEGER, null)
-                .register(Columns.TYPTYPE.name(), DataTypes.STRING, null)
-                .register(Columns.TYPBASETYPE.name(), DataTypes.INTEGER, null)
-                .register(Columns.TYPTYPMOD.name(), DataTypes.INTEGER, null),
+                .register(Columns.NSPNAME.name(), DataTypes.STRING, null)
+                .register(Columns.NSPOWNER.name(), DataTypes.INTEGER, null)
+                .register(Columns.NSPACL.name(), DataTypes.OBJECT_ARRAY, null),
             Collections.emptyList());
+    }
+
+    @Override
+    public Routing getRouting(ClusterState state,
+                              RoutingProvider routingProvider,
+                              WhereClause whereClause,
+                              RoutingProvider.ShardSelection shardSelection,
+                              SessionContext sessionContext) {
+        return Routing.forTableOnSingleNode(IDENT, state.getNodes().getLocalNodeId());
     }
 
     @Override
     public RowGranularity rowGranularity() {
         return RowGranularity.DOC;
-    }
-
-    @Override
-    public Routing getRouting(ClusterState clusterState,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, clusterState.getNodes().getLocalNodeId());
     }
 }

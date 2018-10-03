@@ -84,6 +84,8 @@ public class GroupBySymbolValidator {
                     break;
                 case AGGREGATE:
                     throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
+                case TABLE:
+                    throw new IllegalArgumentException("Table functions are not allowed in GROUP BY");
                 default:
                     throw new UnsupportedOperationException(
                         String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", function.info().type()));
