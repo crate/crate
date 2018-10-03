@@ -30,40 +30,45 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+
+import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<SplitPointsBuilder.Context, Void> {
 
     private static final SplitPointsBuilder INSTANCE = new SplitPointsBuilder();
 
     static class Context {
-        private final LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>();
-        private final ArrayList<Function> aggregatesOrTableFunctions = new ArrayList<>();
+        private final ArrayList<Function> aggregates = new ArrayList<>();
+        private final ArrayList<Function> tableFunctions = new ArrayList<>();
         private final ArrayList<Symbol> standalone = new ArrayList<>();
+        private boolean insideAggregate = false;
 
-        boolean foundFunction = false;
-
-        @Nullable
-        FunctionInfo.Type functionsType;
+        boolean foundAggregateOrTableFunction = false;
 
         Context() {
         }
 
-        void allocateFunction(Function aggregate) {
-            if (aggregatesOrTableFunctions.contains(aggregate) == false) {
-                aggregatesOrTableFunctions.add(aggregate);
+        void allocateTableFunction(Function tableFunction) {
+            if (tableFunctions.contains(tableFunction) == false) {
+                tableFunctions.add(tableFunction);
+            }
+        }
+
+        void allocateAggregate(Function aggregate) {
+            if (aggregates.contains(aggregate) == false) {
+                aggregates.add(aggregate);
             }
         }
     }
 
     private void process(Collection<Symbol> symbols, Context context) {
         for (Symbol symbol : symbols) {
-            context.foundFunction = false;
+            context.foundAggregateOrTableFunction = false;
             process(symbol, context);
-            if (context.foundFunction == false) {
+            if (context.foundAggregateOrTableFunction == false) {
                 context.standalone.add(symbol);
             }
         }
@@ -80,18 +85,18 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         if (having != null && having.hasQuery()) {
             INSTANCE.process(having.query(), context);
         }
-        for (Function aggregatesOrTableFunction : context.aggregatesOrTableFunctions) {
-            context.toCollect.addAll(aggregatesOrTableFunction.arguments());
+        LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>();
+        for (Function tableFunction : context.tableFunctions) {
+            toCollect.addAll(extractColumns(tableFunction.arguments()));
         }
-        context.toCollect.addAll(relation.groupBy());
-        if (!FunctionInfo.Type.AGGREGATE.equals(context.functionsType) && relation.groupBy().isEmpty()) {
-            context.toCollect.addAll(context.standalone);
+        for (Function aggregate : context.aggregates) {
+            toCollect.addAll(aggregate.arguments());
         }
-        return new SplitPoints(
-            new ArrayList<>(context.toCollect),
-            context.aggregatesOrTableFunctions,
-            context.functionsType
-        );
+        toCollect.addAll(relation.groupBy());
+        if (context.aggregates.isEmpty() && relation.groupBy().isEmpty()) {
+            toCollect.addAll(context.standalone);
+        }
+        return new SplitPoints(new ArrayList<>(toCollect), context.aggregates, context.tableFunctions);
     }
 
     @Override
@@ -102,14 +107,19 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
                 return super.visitFunction(function, context);
 
             case AGGREGATE:
+                context.foundAggregateOrTableFunction = true;
+                context.allocateAggregate(function);
+                context.insideAggregate = true;
+                super.visitFunction(function, context);
+                context.insideAggregate = false;
+                return null;
+
             case TABLE:
-                context.foundFunction = true;
-                if (context.functionsType == null) {
-                    context.functionsType = type;
-                } else if (!context.functionsType.equals(type)) {
-                    throw new UnsupportedOperationException("Cannot mix aggregates and table functions");
+                if (context.insideAggregate) {
+                    throw new UnsupportedOperationException("Cannot use table functions inside aggregates");
                 }
-                context.allocateFunction(function);
+                context.foundAggregateOrTableFunction = true;
+                context.allocateTableFunction(function);
                 return super.visitFunction(function, context);
 
             default:

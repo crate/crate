@@ -33,10 +33,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.util.set.Sets;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -57,13 +55,16 @@ public class ProjectSet extends OneInputPlan {
             Set<Symbol> columnsUsedInTableFunctions = extractColumns(tableFunctions);
             allUsedColumns.addAll(columnsUsedInTableFunctions);
             LogicalPlan sourcePlan = source.build(tableStats, allUsedColumns);
-            HashSet<Symbol> tableFunctionArguments = new HashSet<>();
-            for (Function tableFunction : tableFunctions) {
-                tableFunctionArguments.addAll(tableFunction.arguments());
-            }
-            HashSet<Symbol> sourceOutputs = new HashSet<>(sourcePlan.outputs());
-            Set<Symbol> outputsNotUsedInTableFunctions = Sets.difference(sourceOutputs, tableFunctionArguments);
-            return new ProjectSet(sourcePlan, tableFunctions, new ArrayList<>(outputsNotUsedInTableFunctions));
+
+            // Use sourcePlan.outputs() as standalone to simply pass along all source outputs as well;
+            // Parent operators will discard them if not required
+            // The reason to do this is that we've no good way to detect what is required. E.g.
+            // select tableFunction(agg), agg, x
+            //  -> agg is used as argument in tableFunction, but is also standalone,
+            //     so we can't simply discard any source outputs that are used as arguments for the table functions.
+            //  -> x might be converted to _fetch by the Collect operator,
+            //       so we don't necessarily "get" the outputs we would expect based on the select list.
+            return new ProjectSet(sourcePlan, tableFunctions, sourcePlan.outputs());
         };
     }
 

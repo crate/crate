@@ -741,7 +741,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[unnest([1, 2])]\n" +
             "ProjectSet[unnest([1, 2])]\n" +
-            "Collect[.empty_row | [[1, 2]] | All]\n"
+            "Collect[.empty_row | [] | All]\n"
         ));
         Symbol output = plan.outputs().get(0);
         assertThat(output.valueType(), is(DataTypes.LONG));
@@ -754,14 +754,37 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "RootBoundary[(unnest([1, 2]) + 1)]\n" +
             "FetchOrEval[(unnest([1, 2]) + 1)]\n" +
             "ProjectSet[unnest([1, 2])]\n" +
-            "Collect[.empty_row | [[1, 2]] | All]\n"
+            "Collect[.empty_row | [] | All]\n"
         ));
     }
 
     @Test
-    public void testMixingAggregationsAndTableFunctionsIsNotPossible() {
-        expectedException.expectMessage("Cannot mix aggregates and table functions");
-        e.logicalPlan("select sum(col1), sum(unnest([1, 2])) from unnest([2, 3])");
+    public void testAggregationOnTopOfTableFunctionIsNotPossibleWithoutSeparateSubQuery() {
+        expectedException.expectMessage("Cannot use table functions inside aggregates");
+        e.logicalPlan("select sum(unnest([1, 2]))");
+    }
+
+    @Test
+    public void testTableFunctionIsExecutedAfterAggregation() {
+        LogicalPlan plan = e.logicalPlan("select count(*), generate_series(1, 2) from users");
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[count(*), generate_series(1, 2)]\n" +
+            "FetchOrEval[count(*), generate_series(1, 2)]\n" +
+            "ProjectSet[generate_series(1, 2) | count(*)]\n" +
+            "Count[doc.users | All]\n"
+        ));
+    }
+
+    @Test
+    public void testAggregationCanBeUsedAsArgumentToTableFunction() {
+        LogicalPlan plan = e.logicalPlan("select count(name), generate_series(1, count(name)) from users");
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[count(name), generate_series(1, count(name))]\n" +
+            "FetchOrEval[count(name), generate_series(1, count(name))]\n" +
+            "ProjectSet[generate_series(1, count(name)) | count(name)]\n" +
+            "Aggregate[count(name)]\n" +
+            "Collect[doc.users | [name] | All]\n"
+        ));
     }
 
     @Test
@@ -771,7 +794,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "RootBoundary[unnest([1, 2])]\n" +
             "OrderBy['unnest([1, 2])' ASC]\n" +
             "ProjectSet[unnest([1, 2])]\n" +
-            "Collect[sys.nodes | [[1, 2]] | All]\n"
+            "Collect[sys.nodes | [] | All]\n"
         ));
     }
 

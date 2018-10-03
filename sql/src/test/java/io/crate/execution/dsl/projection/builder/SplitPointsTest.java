@@ -83,4 +83,16 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(splitPoints.toCollect(), contains(isReference("xs"), isReference("x")));
         assertThat(splitPoints.tableFunctions(), contains(isFunction("unnest")));
     }
+
+    @Test
+    public void testAggregationPlusTableFunctionUsingAggregation() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t1 (x int)")
+            .build();
+        QueriedRelation relation = e.analyze("select max(x), generate_series(0, max(x)) from t1");
+        SplitPoints splitPoints = SplitPointsBuilder.create(relation);
+        assertThat(splitPoints.toCollect(), contains(isReference("x")));
+        assertThat(splitPoints.aggregates(), contains(isFunction("max")));
+        assertThat(splitPoints.tableFunctions(), contains(isFunction("generate_series")));
+    }
 }
