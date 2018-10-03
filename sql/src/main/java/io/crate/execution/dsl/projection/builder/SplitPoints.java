@@ -47,18 +47,15 @@ import java.util.List;
 public class SplitPoints {
 
     private final List<Symbol> toCollect;
-    private final List<Symbol> standalone;
     private final List<Function> aggregatesOrTableFunctions;
 
     @Nullable
     private final FunctionInfo.Type functionsType;
 
     SplitPoints(List<Symbol> toCollect,
-                List<Symbol> standalone,
                 List<Function> aggregatesOrTableFunctions,
                 @Nullable FunctionInfo.Type functionsType) {
         this.toCollect = toCollect;
-        this.standalone = standalone;
         this.aggregatesOrTableFunctions = aggregatesOrTableFunctions;
         this.functionsType = functionsType;
     }
@@ -81,9 +78,5 @@ public class SplitPoints {
         } else {
             return Collections.emptyList();
         }
-    }
-
-    public List<Symbol> standalone() {
-        return standalone;
     }
 }
