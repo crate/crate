@@ -686,14 +686,13 @@ Inserting objects::
 Object Arrays
 =============
 
-Arrays in CrateDB can only be queried for containment using the
-:ref:`sql_dql_any_array` operator. One exception are object arrays. As you can
-access fields of :ref:`sql_dql_objects` using subscript expressions, you can
-access fields of object arrays.
+Arrays in CrateDB can be queried for containment using the
+:ref:`sql_dql_any_array` operator. 
 
-As an object array is no object, you won't get the value for a single field,
-but an array of all the values of that field for all objects in that object
-array.
+It is possible to access fields of :ref:`sql_dql_objects` using subscript
+expressions. If the parent is an object array, you'll get an array of the
+selected field.
+
 
 Examples::
 
@@ -747,6 +746,13 @@ Examples::
     | North West Ripple |
     +-------------------+
     SELECT 2 rows in set (... sec)
+
+
+.. note::
+
+    Although it is possible to use ``? = ANY (object_array)`` it's usage is
+    discouraged as it cannot utilize the index and has to do the equivalent of
+    a table scan.
 
 .. _sql_dql_object_arrays_select:
 
