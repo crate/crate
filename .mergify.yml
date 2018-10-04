@@ -5,6 +5,12 @@ rules:
         strict: true
         contexts:
           - ci/jenkins/pr_tests
+          - crate.crate
+          - Shippable
+          - continuous-integration/travis-ci/pr
+          - continuous-integration/appveyor/pr
+          - 'LGTM analysis: Java'
+          - 'LGTM analysis: Python'
           - mergify/allow
       required_pull_request_reviews:
         required_approving_review_count: 1
