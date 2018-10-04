@@ -186,10 +186,9 @@ public class DistributingConsumerTest extends CrateUnitTest {
             PageBucketReceiver bucketReceiver = distResultRXTask.getBucketReceiver(resultRequest.executionPhaseInputId());
             assertThat(bucketReceiver, Matchers.notNullValue());
             if (throwable == null) {
-                resultRequest.streamers(streamers);
                 bucketReceiver.setBucket(
                     resultRequest.bucketIdx(),
-                    resultRequest.rows(),
+                    resultRequest.readRows(streamers),
                     resultRequest.isLast(),
                     needMore -> listener.onResponse(new DistributedResultResponse(needMore)));
             } else {

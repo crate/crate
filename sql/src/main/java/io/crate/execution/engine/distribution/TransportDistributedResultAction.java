@@ -150,11 +150,10 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
 
         Throwable throwable = request.throwable();
         if (throwable == null) {
-            request.streamers(pageBucketReceiver.streamers());
             SendResponsePageResultListener pageResultListener = new SendResponsePageResultListener();
             pageBucketReceiver.setBucket(
                 request.bucketIdx(),
-                request.rows(),
+                request.readRows(pageBucketReceiver.streamers()),
                 request.isLast(),
                 pageResultListener
             );

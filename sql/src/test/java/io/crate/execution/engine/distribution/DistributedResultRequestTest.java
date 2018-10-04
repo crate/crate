@@ -58,14 +58,12 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         StreamInput in = out.bytes().streamInput();
         DistributedResultRequest r2 = new DistributedResultRequest();
         r2.readFrom(in);
-        r2.streamers(streamers);
-        assertTrue(r2.rowsCanBeRead());
 
-        assertEquals(r1.rows().size(), r2.rows().size());
+        assertEquals(r1.readRows(streamers).size(), r2.readRows(streamers).size());
         assertThat(r1.isLast(), is(r2.isLast()));
         assertThat(r1.executionPhaseInputId(), is(r2.executionPhaseInputId()));
 
-        assertThat(r2.rows(), contains(isRow("ab"), isNullRow(), isRow("cd")));
+        assertThat(r2.readRows(streamers), contains(isRow("ab"), isNullRow(), isRow("cd")));
     }
 
     @Test

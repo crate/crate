@@ -96,22 +96,11 @@ public class DistributedResultRequest extends TransportRequest {
         return bucketIdx;
     }
 
-    public void streamers(Streamer<?>[] streamers) {
+    public Bucket readRows(Streamer<?>[] streamers) {
         if (rows instanceof StreamBucket) {
-            assert streamers != null : "streamers must not be null";
             ((StreamBucket) rows).streamers(streamers);
         }
         this.streamers = streamers;
-    }
-
-    public boolean rowsCanBeRead() {
-        if (rows instanceof StreamBucket) {
-            return streamers != null;
-        }
-        return true;
-    }
-
-    public Bucket rows() {
         return rows;
     }
 
@@ -164,7 +153,6 @@ public class DistributedResultRequest extends TransportRequest {
             out.writeException(throwable);
             out.writeBoolean(isKilled);
         } else {
-            // TODO: we should not rely on another bucket in this class and instead write to the stream directly
             StreamBucket.writeBucket(out, streamers, rows);
         }
     }
