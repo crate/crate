@@ -532,4 +532,10 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         expectedException.expectMessage("Cannot use any_<= when the left side is an array");
         convert("[1, 2] <= any(o_array['xs'])");
     }
+
+    @Test
+    public void testAnyOnObjectArrayResultsInXY() {
+        Query query = convert("{xs=[1, 1]} = ANY(o_array)");
+        assertThat(query, instanceOf(GenericFunctionQuery.class));
+    }
 }

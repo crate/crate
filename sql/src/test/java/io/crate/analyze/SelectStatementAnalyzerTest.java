@@ -890,13 +890,12 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         analyze("select * from users where 'George' = ANY (name)");
     }
 
-    @Test // TODO: remove this artificial limitation in general
+    @Test
     public void testArrayCompareObjectArray() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("ANY on object arrays is not supported");
-        analyze("select * from users where ? = ANY (friends)", new Object[]{
+        QueriedRelation relation = analyze("select * from users where ? = ANY (friends)", new Object[]{
             new MapBuilder<String, Object>().put("id", 1L).map()
         });
+        assertThat(relation.where().queryOrFallback(), is(isFunction("any_=")));
     }
 
     @Test

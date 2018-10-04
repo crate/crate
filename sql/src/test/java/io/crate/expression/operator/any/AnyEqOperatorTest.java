@@ -21,7 +21,6 @@
 
 package io.crate.expression.operator.any;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.expression.operator.input.ObjectInput;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.metadata.FunctionIdent;
@@ -51,35 +50,8 @@ public class AnyEqOperatorTest extends AbstractScalarFunctionsTest {
         assertEvaluate("1 = ANY([1])", true);
         assertEvaluate("1 = ANY([2])", false);
 
-        /*
-        below is the same as - but the ExpressionAnalyzer prohibits this currently
         assertEvaluate("{i=1, b=true} = ANY([{i=1, b=true}])", true);
         assertEvaluate("{i=1, b=true} = ANY([{i=2, b=true}])", false);
-        */
-        assertTrue(anyEq(
-            ImmutableMap.<String, Object>builder()
-                .put("int", 1)
-                .put("boolean", true)
-                .build(),
-            new Object[]{
-                ImmutableMap.<String, Object>builder()
-                    .put("int", 1)
-                    .put("boolean", true)
-                    .build()
-            }
-        ));
-        assertFalse(anyEq(
-            ImmutableMap.<String, Object>builder()
-                .put("int", 1)
-                .put("boolean", true)
-                .build(),
-            new Object[]{
-                ImmutableMap.<String, Object>builder()
-                    .put("int", 2)
-                    .put("boolean", false)
-                    .build()
-            }
-        ));
     }
 
     @Test
