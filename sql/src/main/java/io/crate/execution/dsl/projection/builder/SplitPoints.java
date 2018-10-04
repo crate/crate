@@ -23,10 +23,7 @@ package io.crate.execution.dsl.projection.builder;
 
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionInfo;
 
-import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.List;
 
 
@@ -47,17 +44,14 @@ import java.util.List;
 public class SplitPoints {
 
     private final List<Symbol> toCollect;
-    private final List<Function> aggregatesOrTableFunctions;
+    private final List<Function> aggregates;
+    private final List<Function> tableFunctions;
 
-    @Nullable
-    private final FunctionInfo.Type functionsType;
 
-    SplitPoints(List<Symbol> toCollect,
-                List<Function> aggregatesOrTableFunctions,
-                @Nullable FunctionInfo.Type functionsType) {
+    SplitPoints(List<Symbol> toCollect, List<Function> aggregates, List<Function> tableFunctions) {
         this.toCollect = toCollect;
-        this.aggregatesOrTableFunctions = aggregatesOrTableFunctions;
-        this.functionsType = functionsType;
+        this.aggregates = aggregates;
+        this.tableFunctions = tableFunctions;
     }
 
     public List<Symbol> toCollect() {
@@ -65,18 +59,10 @@ public class SplitPoints {
     }
 
     public List<Function> aggregates() {
-        if (FunctionInfo.Type.AGGREGATE.equals(functionsType)) {
-            return aggregatesOrTableFunctions;
-        } else {
-            return Collections.emptyList();
-        }
+        return aggregates;
     }
 
     public List<Function> tableFunctions() {
-        if (FunctionInfo.Type.TABLE.equals(functionsType)) {
-            return aggregatesOrTableFunctions;
-        } else {
-            return Collections.emptyList();
-        }
+        return tableFunctions;
     }
 }

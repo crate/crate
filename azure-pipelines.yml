@@ -6,6 +6,8 @@ jobs:
     steps:
       - script: git submodule update --init -- es/upstream
       - task: Gradle@2
+        env:
+          CRATE_TESTS_SQL_REQUEST_TIMEOUT: 20
         inputs:
           workingDirectory: ''
           gradleWrapperFile: 'gradlew'
@@ -23,6 +25,8 @@ jobs:
     steps:
       - script: git submodule update --init -- es/upstream
       - task: Gradle@2
+        env:
+          CRATE_TESTS_SQL_REQUEST_TIMEOUT: 20
         inputs:
           workingDirectory: ''
           gradleWrapperFile: 'gradlew'

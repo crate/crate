@@ -466,7 +466,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     Aggregations.matchGroupBySymbol(output, groupBy) == false) {
                     String offendingSymbolName = output.representation();
                     if (output instanceof Function) {
-                        ensureNonAggregatesInGroupBy(((Function) output).arguments(), groupBy);
+                        Function function = (Function) output;
+                        if (function.info().type() == FunctionInfo.Type.TABLE) {
+                            ensureNonAggregatesInGroupBy(function.arguments(), groupBy);
+                            return;
+                        }
+                        ensureNonAggregatesInGroupBy(function.arguments(), groupBy);
                     } else if (output instanceof Path) {
                         offendingSymbolName = ((Path) output).outputName();
                     }
