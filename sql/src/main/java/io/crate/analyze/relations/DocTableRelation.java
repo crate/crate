@@ -72,9 +72,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
                 }
             }
         }
-        reference = checkNestedArray(ci, reference);
-        // TODO: check allocated fields first?
-        return allocate(ci, reference);
+        return allocate(ci, makeArrayIfContainedInObjectArray(reference));
     }
 
     /**
