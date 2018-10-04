@@ -121,13 +121,13 @@ public class SQLExceptions {
         if (e instanceof SQLActionException) {
             return (SQLActionException) e;
         }
-        e = esToCrateException(e);
+        Throwable unwrappedError = SQLExceptions.unwrap(e);
+        e = esToCrateException(unwrappedError);
         try {
             validator.ensureExceptionAuthorized(e);
         } catch (Exception mpe) {
             e = mpe;
         }
-
 
         int errorCode = 5000;
         HttpResponseStatus httpStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
@@ -173,50 +173,51 @@ public class SQLExceptions {
         } else {
             message = e.getClass().getSimpleName() + ": " + message;
         }
-        return new SQLActionException(message, errorCode, httpStatus, e.getStackTrace());
+
+        StackTraceElement[] usefulStacktrace =
+            e instanceof MissingPrivilegeException ? e.getStackTrace() : unwrappedError.getStackTrace();
+        return new SQLActionException(message, errorCode, httpStatus, usefulStacktrace);
     }
 
-    private static Throwable esToCrateException(Throwable e) {
-        e = SQLExceptions.unwrap(e);
-
-        if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
-            return new SQLParseException(e.getMessage(), (Exception) e);
-        } else if (e instanceof UnsupportedOperationException) {
-            return new UnsupportedFeatureException(e.getMessage(), (Exception) e);
-        } else if (isDocumentAlreadyExistsException(e)) {
+    private static Throwable esToCrateException(Throwable unwrappedError) {
+        if (unwrappedError instanceof IllegalArgumentException || unwrappedError instanceof ParsingException) {
+            return new SQLParseException(unwrappedError.getMessage(), (Exception) unwrappedError);
+        } else if (unwrappedError instanceof UnsupportedOperationException) {
+            return new UnsupportedFeatureException(unwrappedError.getMessage(), (Exception) unwrappedError);
+        } else if (isDocumentAlreadyExistsException(unwrappedError)) {
             return new DuplicateKeyException(
-                ((EngineException) e).getIndex().getName(),
-                "A document with the same primary key exists already", e);
-        } else if (e instanceof ResourceAlreadyExistsException) {
-            return new RelationAlreadyExists(((ResourceAlreadyExistsException) e).getIndex().getName(), e);
-        } else if ((e instanceof InvalidIndexNameException)) {
-            if (e.getMessage().contains("already exists as alias")) {
+                ((EngineException) unwrappedError).getIndex().getName(),
+                "A document with the same primary key exists already", unwrappedError);
+        } else if (unwrappedError instanceof ResourceAlreadyExistsException) {
+            return new RelationAlreadyExists(((ResourceAlreadyExistsException) unwrappedError).getIndex().getName(), unwrappedError);
+        } else if ((unwrappedError instanceof InvalidIndexNameException)) {
+            if (unwrappedError.getMessage().contains("already exists as alias")) {
                 // treat an alias like a table as aliases are not officially supported
-                return new RelationAlreadyExists(((InvalidIndexNameException) e).getIndex().getName(),
-                    e);
+                return new RelationAlreadyExists(((InvalidIndexNameException) unwrappedError).getIndex().getName(),
+                    unwrappedError);
             }
-            return new InvalidRelationName(((InvalidIndexNameException) e).getIndex().getName(), e);
-        } else if (e instanceof InvalidIndexTemplateException) {
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(((InvalidIndexTemplateException) e).name());
-            return new InvalidRelationName(partitionName.relationName().fqn(), e);
-        } else if (e instanceof IndexNotFoundException) {
-            return new RelationUnknown(((IndexNotFoundException) e).getIndex().getName(), e);
-        } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
-            return new CircuitBreakingException(e.getMessage());
-        } else if (e instanceof InterruptedException) {
+            return new InvalidRelationName(((InvalidIndexNameException) unwrappedError).getIndex().getName(), unwrappedError);
+        } else if (unwrappedError instanceof InvalidIndexTemplateException) {
+            PartitionName partitionName = PartitionName.fromIndexOrTemplate(((InvalidIndexTemplateException) unwrappedError).name());
+            return new InvalidRelationName(partitionName.relationName().fqn(), unwrappedError);
+        } else if (unwrappedError instanceof IndexNotFoundException) {
+            return new RelationUnknown(((IndexNotFoundException) unwrappedError).getIndex().getName(), unwrappedError);
+        } else if (unwrappedError instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
+            return new CircuitBreakingException(unwrappedError.getMessage());
+        } else if (unwrappedError instanceof InterruptedException) {
             return new JobKilledException();
-        } else if (e instanceof RepositoryMissingException) {
-            return new RepositoryUnknownException(((RepositoryMissingException) e).repository());
-        } else if (e instanceof  InvalidSnapshotNameException) {
-            return new SnapshotNameInvalidException(e.getMessage());
-        } else if (e instanceof SnapshotMissingException) {
-            SnapshotMissingException snapshotException = (SnapshotMissingException) e;
-            return new SnapshotUnknownException(snapshotException.getRepositoryName(), snapshotException.getSnapshotName(), e);
-        } else if (e instanceof SnapshotCreationException) {
-            SnapshotCreationException creationException = (SnapshotCreationException) e;
+        } else if (unwrappedError instanceof RepositoryMissingException) {
+            return new RepositoryUnknownException(((RepositoryMissingException) unwrappedError).repository());
+        } else if (unwrappedError instanceof  InvalidSnapshotNameException) {
+            return new SnapshotNameInvalidException(unwrappedError.getMessage());
+        } else if (unwrappedError instanceof SnapshotMissingException) {
+            SnapshotMissingException snapshotException = (SnapshotMissingException) unwrappedError;
+            return new SnapshotUnknownException(snapshotException.getRepositoryName(), snapshotException.getSnapshotName(), unwrappedError);
+        } else if (unwrappedError instanceof SnapshotCreationException) {
+            SnapshotCreationException creationException = (SnapshotCreationException) unwrappedError;
             return new SnapshotAlreadyExistsException(creationException.getRepositoryName(), creationException.getSnapshotName());
         }
-        return e;
+        return unwrappedError;
     }
 
     public static boolean isDocumentAlreadyExistsException(Throwable e) {
