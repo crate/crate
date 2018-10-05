@@ -290,9 +290,6 @@ Arrays
 Declaration of Arrays
 .....................
 
-The definition of an array by writing its values as a literal constant with the
-syntax of  ``'{ val1 delim val2 delim ... }'`` is not supported.
-
 While multidimensional arrays in PostgreSQL must have matching extends for each
 dimension, CrateDB allows different length nested arrays as this example
 shows::
