@@ -30,7 +30,6 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -64,50 +63,57 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
 
     @Nullable
     public Field getField(Path path) {
-        ColumnIdent ci = toColumnIdent(path);
-        Reference reference = tableInfo.getReference(ci);
+        Reference reference = tableInfo.getReference(toColumnIdent(path));
         if (reference == null) {
             return null;
         }
-        reference = checkNestedArray(ci, reference);
-        return allocate(ci, reference);
+        return allocate(path, makeArrayIfContainedInObjectArray(reference));
 
     }
 
-    protected Reference checkNestedArray(ColumnIdent ci, Reference reference) {
-        // TODO: build type correctly as array when the tableInfo is created and remove the conversion here
-        DataType dataType = null;
-        ColumnIdent tmpCI = ci;
-        Reference tmpRI = reference;
-
-        while (!tmpCI.isTopLevel() && hasMatchingParent(tmpRI, IS_OBJECT_ARRAY)) {
-            // for child fields of object arrays
-            // return references of primitive types as array
-            if (dataType == null) {
-                dataType = new ArrayType(reference.valueType());
-                if (hasNestedObjectReference(tmpRI)) break;
-            } else {
-                dataType = new ArrayType(dataType);
+    /**
+     * Changes the type of a reference to be an array if the reference is the child of an object array
+     *
+     * <pre>
+     * {@code
+     *      CREATE TABLE t (addresses array(object as (street string)))
+     *      -> `street` isolated within a single object is a string
+     *      -> Accessed via `addresses['street']` (E.g. in a SELECT) it becomes an ARRAY because `addresses` is
+     * }
+     * </pre>
+     */
+    Reference makeArrayIfContainedInObjectArray(Reference reference) {
+        Reference rootRef = reference;
+        int numArrayDimensions = 0;
+        while ((!rootRef.column().isTopLevel())) {
+            rootRef = tableInfo.getReference(rootRef.column().getParent());
+            assert rootRef != null : "The parent column of a nested object column must always exist";
+            if (IS_OBJECT_ARRAY.test(rootRef)) {
+                numArrayDimensions++;
             }
-            tmpCI = tmpCI.getParent();
-            tmpRI = tableInfo.getReference(tmpCI);
         }
-
-        if (dataType != null) {
-            return new Reference(
+        return numArrayDimensions == 0
+            ? reference
+            : new Reference(
                 reference.ident(),
                 reference.granularity(),
-                dataType,
+                makeArray(reference.valueType(), numArrayDimensions),
                 reference.columnPolicy(),
                 reference.indexType(),
                 reference.isNullable(),
-                reference.isColumnStoreDisabled());
-        } else {
-            return reference;
-        }
+                reference.isColumnStoreDisabled()
+            );
     }
 
-    protected static ColumnIdent toColumnIdent(Path path) {
+    private static DataType makeArray(DataType valueType, int numArrayDimensions) {
+        DataType arrayType = valueType;
+        for (int i = 0; i < numArrayDimensions; i++) {
+            arrayType = new ArrayType(arrayType);
+        }
+        return arrayType;
+    }
+
+    static ColumnIdent toColumnIdent(Path path) {
         try {
             return (ColumnIdent) path;
         } catch (ClassCastException e) {
@@ -143,34 +149,6 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         this.qualifiedName = qualifiedName;
-    }
-
-    /**
-     * return true if the given {@linkplain com.google.common.base.Predicate}
-     * returns true for a parent column of this one.
-     * returns false if info has no parent column.
-     */
-    private boolean hasMatchingParent(Reference ref, Predicate<Reference> parentMatchPredicate) {
-        ColumnIdent parent = ref.column().getParent();
-        while (parent != null) {
-            Reference parentInfo = tableInfo.getReference(parent);
-            if (parentMatchPredicate.test(parentInfo)) {
-                return true;
-            }
-            parent = parent.getParent();
-        }
-        return false;
-    }
-
-    private boolean hasNestedObjectReference(Reference ref) {
-        ColumnIdent parent = ref.column().getParent();
-        if (parent != null) {
-            Reference parentRef = tableInfo.getReference(parent);
-            if (parentRef.valueType().id() == ObjectType.ID) {
-                return hasMatchingParent(parentRef, IS_OBJECT_ARRAY);
-            }
-        }
-        return false;
     }
 
     @Override

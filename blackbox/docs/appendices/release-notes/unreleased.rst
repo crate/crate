@@ -61,8 +61,8 @@ Changes
 - Improved the handling of function expressions inside subscripts used on
   object columns. This allows expressions like ``obj['x' || 'x']`` to be used.
 
-- The ``= ANY`` operator now also supports operations on nested arrays. This
-  enables queries like ``WHERE ['foo', 'bar'] =
+- The ``= ANY`` operator now also supports operations on object arrays or
+  nested arrays. This enables queries like ``WHERE ['foo', 'bar'] =
   ANY(object_array(string_array))``.
 
 - Added support for the ``array(subquery)`` expression.
@@ -79,3 +79,7 @@ Changes
 
 Fixes
 =====
+
+- Fixed decoding of postgres specific array literal constant: unquoted elements
+  and single element arrays were not decoded correctly and resulted in an empty
+  array.

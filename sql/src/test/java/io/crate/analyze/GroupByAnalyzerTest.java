@@ -72,7 +72,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGroupBySubscriptMissingOutput() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("column 'load['5']' must appear in the GROUP BY clause or be used in an aggregation function");
+        expectedException.expectMessage("'load['5']' must appear in the GROUP BY clause");
         analyze("select load['5'] from sys.nodes group by load['1']");
     }
 
@@ -118,7 +118,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupByScalarAliasedWithRealColumnNameFailsIfScalarColumnIsNotGrouped() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-            "column 'height' must appear in the GROUP BY clause or be used in an aggregation function");
+            "'(1 / height)' must appear in the GROUP BY clause");
         analyze("select 1/height as age from foo.users group by age");
     }
 
@@ -219,16 +219,14 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSelectAggregationMissingGroupBy() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "column 'name' must appear in the GROUP BY clause or be used in an aggregation function");
+        expectedException.expectMessage("'name' must appear in the GROUP BY clause");
         analyze("select name, count(id) from users");
     }
 
     @Test
     public void testSelectGlobalDistinctAggregationMissingGroupBy() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "column 'name' must appear in the GROUP BY clause or be used in an aggregation function");
+        expectedException.expectMessage("'name' must appear in the GROUP BY clause");
         analyze("select distinct name, count(id) from users");
     }
 

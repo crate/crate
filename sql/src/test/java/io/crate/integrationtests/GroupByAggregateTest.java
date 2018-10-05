@@ -664,7 +664,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testGroupByUnknownResultColumn() throws Exception {
         this.setup.groupBySetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("column 'details_ignored['lol']' must appear in the GROUP BY clause or be used in an aggregation function");
+        expectedException.expectMessage("'details_ignored['lol']' must appear in the GROUP BY clause");
         execute("select details_ignored['lol'] from characters group by race");
     }
 

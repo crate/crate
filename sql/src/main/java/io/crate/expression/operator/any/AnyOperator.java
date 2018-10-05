@@ -124,13 +124,9 @@ public final class AnyOperator extends Operator<Object> {
             DataType<?> innerType = ((CollectionType) dataTypes.get(1)).innerType();
             checkArgument(innerType.equals(dataTypes.get(0)),
                 "The inner type of the array/set passed to ANY must match its left expression");
-            checkArgument(!innerType.equals(DataTypes.OBJECT),
-                "ANY on object arrays is not supported");
 
             return new AnyOperator(
-                new FunctionInfo(new FunctionIdent(name, dataTypes), BooleanType.INSTANCE),
-                cmpIsMatch
-            );
+                new FunctionInfo(new FunctionIdent(name, dataTypes), BooleanType.INSTANCE), cmpIsMatch);
         }
     }
 }

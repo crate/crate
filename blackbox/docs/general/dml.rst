@@ -186,10 +186,10 @@ Resulting partitions of the last insert by query::
    ``limit``, ``offset`` and ``order by`` are not supported inside the query
    statement.
 
-Upserts (``ON DUPLICATE KEY UPDATE``)
--------------------------------------
+Upserts (``ON CONFLICT DO UPDATE SET``)
+---------------------------------------
 
-The ``ON DUPLICATE KEY UPDATE`` clause is used to update the existing row if
+The ``ON CONFLICT DO UPDATE SET`` clause is used to update the existing row if
 inserting is not possible because of a duplicate-key conflict if a document
 with the same ``PRIMARY KEY`` already exists. This is type of opperation is
 commonly referred to as an *upsert*, being a combination of "update" and
@@ -218,7 +218,7 @@ commonly referred to as an *upsert*, being a combination of "update" and
     ...     'Ford',
     ...     1,
     ...     '2015-09-12'
-    ... ) on duplicate key update
+    ... ) on conflict (id) do update set
     ...     visits = visits + 1,
     ...     last_visit = '2015-01-12';
     INSERT OK, 1 row affected (... sec)
@@ -243,8 +243,8 @@ commonly referred to as an *upsert*, being a combination of "update" and
     SELECT 1 row in set (... sec)
 
 It's possible to refer to values which would be inserted if no duplicate-key
-conflict occured, by using the ``VALUES(column_ident)`` function. This function
-is especially useful in multiple-row inserts, to refer to the current rows
+conflict occured, by using the special ``excluded`` table. This table is
+especially useful in multiple-row inserts, to refer to the current rows
 values::
 
     cr> insert into uservisits (id, name, visits, last_visit) values
@@ -259,9 +259,9 @@ values::
     ...     'Trillian',
     ...     5,
     ...     '2016-01-15'
-    ... ) on duplicate key update
-    ...     visits = visits + VALUES(visits),
-    ...     last_visit = VALUES(last_visit);
+    ... ) on conflict (id) do update set
+    ...     visits = visits + excluded.visits,
+    ...     last_visit = excluded.last_visit;
     INSERT OK, 2 rows affected (... sec)
 
 .. Hidden: refresh uservisits
@@ -314,10 +314,9 @@ This can also be done when using a query instead of values::
     ... (
     ...     select id, name, visits, last_visit
     ...     from uservisits
-    ... )
-    ... on duplicate key update
-    ...     visits = visits + VALUES(visits),
-    ...     last_visit = VALUES(last_visit);
+    ... ) on conflict (id) do update set
+    ...     visits = visits + excluded.visits,
+    ...     last_visit = excluded.last_visit;
     INSERT OK, 2 rows affected (... sec)
 
 .. Hidden: refresh uservisits2
