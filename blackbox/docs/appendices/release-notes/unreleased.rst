@@ -79,3 +79,7 @@ Changes
 
 Fixes
 =====
+
+- Fixed decoding of postgres specific array literal constant: unquoted elements
+  and single element arrays were not decoded correctly and resulted in an empty
+  array.
