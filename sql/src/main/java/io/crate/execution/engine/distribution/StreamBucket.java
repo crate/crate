@@ -31,7 +31,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -39,7 +39,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 
-public class StreamBucket implements Bucket, Streamable {
+public class StreamBucket implements Bucket, Writeable {
 
     private Streamer<?>[] streamers;
     private int size = -1;
@@ -171,8 +171,20 @@ public class StreamBucket implements Bucket, Streamable {
         }
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    /**
+     * Create a StreamBucket by reading from an input stream.
+     * The created buckets rows are lazily de-serialized using the provided streamers
+     */
+    public StreamBucket(StreamInput in, Streamer[] streamers) throws IOException {
+        this(in);
+        this.streamers = streamers;
+    }
+
+    /**
+     * Create a StreamBucket by reading from an input stream.
+     * Before consuming the rows it is necessary to set the {@link #streamers(Streamer[])}
+     */
+    public StreamBucket(StreamInput in) throws IOException {
         size = in.readVInt();
         if (size > 0) {
             bytes = in.readBytesReference();

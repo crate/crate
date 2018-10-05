@@ -82,7 +82,7 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
             new Streamer[0], new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")));
         try {
             transportDistributedResultAction.nodeOperation(
-                new DistributedResultRequest(UUID.randomUUID(), 0, (byte) 0, 0, new Streamer[0], builder.build(), true)
+                new DistributedResultRequest(UUID.randomUUID(), 0, (byte) 0, 0, builder.build(), true)
             ).get(5, TimeUnit.SECONDS);
             fail("nodeOperation call should fail with TaskMissing");
         } catch (ExecutionException e) {
