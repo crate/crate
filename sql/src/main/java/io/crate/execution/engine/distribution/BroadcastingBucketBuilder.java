@@ -25,8 +25,6 @@ package io.crate.execution.engine.distribution;
 import io.crate.Streamer;
 import io.crate.data.Row;
 
-import java.io.IOException;
-
 /**
  * MultiBucketBuilder that returns N buckets where N is the number of buckets specified in the constructor.
  * Internally only one bucket is built - the same instance is returned N number of times.
@@ -44,13 +42,9 @@ public class BroadcastingBucketBuilder implements MultiBucketBuilder {
 
     @Override
     public void add(Row row) {
-        try {
-            synchronized (this) {
-                bucketBuilder.add(row);
-                size++;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        synchronized (this) {
+            bucketBuilder.add(row);
+            size++;
         }
     }
 
