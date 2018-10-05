@@ -22,6 +22,7 @@
 
 package io.crate.execution;
 
+import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.execution.ddl.tables.TransportCreateTableAction;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.ddl.tables.TransportOpenCloseTableOrPartitionAction;
@@ -38,6 +39,10 @@ import io.crate.execution.jobs.JobSetup;
 import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
+import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
+import io.crate.ingestion.TransportCreateIngestRuleAction;
+import io.crate.ingestion.TransportDropIngestRuleAction;
 import io.crate.lucene.LuceneQueryBuilder;
 import org.elasticsearch.common.inject.AbstractModule;
 
@@ -62,6 +67,11 @@ public class TransportExecutorModule extends AbstractModule {
         bind(TransportRenameTableAction.class).asEagerSingleton();
         bind(TransportOpenCloseTableOrPartitionAction.class).asEagerSingleton();
         bind(TransportDropTableAction.class).asEagerSingleton();
+        bind(TransportCreateUserDefinedFunctionAction.class).asEagerSingleton();
+        bind(TransportDropUserDefinedFunctionAction.class).asEagerSingleton();
+        bind(TransportSchemaUpdateAction.class).asEagerSingleton();
+        bind(TransportCreateIngestRuleAction.class).asEagerSingleton();
+        bind(TransportDropIngestRuleAction.class).asEagerSingleton();
         bind(TransportCreateViewAction.class).asEagerSingleton();
         bind(TransportDropViewAction.class).asEagerSingleton();
     }
