@@ -43,7 +43,7 @@ public class ModuloBucketBuilderTest extends CrateUnitTest {
         builder.add(new Row1(3));
         builder.add(new Row1(4));
 
-        Bucket[] buckets = new Bucket[2];
+        StreamBucket[] buckets = new StreamBucket[2];
         builder.build(buckets);
 
         final Bucket rowsD1 = buckets[0];

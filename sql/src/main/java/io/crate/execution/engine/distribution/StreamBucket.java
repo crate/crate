@@ -33,6 +33,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collections;
@@ -76,14 +77,7 @@ public class StreamBucket implements Bucket, Streamable {
             }
         }
 
-        public void writeToStream(StreamOutput output) throws IOException {
-            output.writeVInt(size);
-            if (size > 0) {
-                output.writeBytesReference(out.bytes());
-            }
-        }
-
-        public StreamBucket build() throws IOException {
+        public StreamBucket build() {
             StreamBucket sb = new StreamBucket(streamers);
             sb.size = size;
             sb.bytes = out.bytes();
@@ -121,21 +115,6 @@ public class StreamBucket implements Bucket, Streamable {
             }
         }
         return true;
-    }
-
-    public static void writeBucket(StreamOutput out, @Nullable Streamer<?>[] streamers, @Nullable Bucket bucket) throws IOException {
-        if (bucket == null || bucket.size() == 0) {
-            out.writeVInt(0);
-        } else if (bucket instanceof Streamable) {
-            ((Streamable) bucket).writeTo(out);
-        } else {
-            assert streamers != null : "Need streamers for non-streamable bucket implementation";
-            StreamBucket.Builder builder = new StreamBucket.Builder(streamers, null);
-            for (Row row : bucket) {
-                builder.add(row);
-            }
-            builder.writeToStream(out);
-        }
     }
 
     private static class RowIterator implements Iterator<Row> {
@@ -179,6 +158,7 @@ public class StreamBucket implements Bucket, Streamable {
     }
 
     @Override
+    @Nonnull
     public Iterator<Row> iterator() {
         if (size < 1) {
             return Collections.emptyIterator();

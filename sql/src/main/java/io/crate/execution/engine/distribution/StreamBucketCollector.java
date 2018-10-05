@@ -23,9 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
-import io.crate.data.Bucket;
 import io.crate.data.Row;
-import io.crate.execution.engine.distribution.StreamBucket;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -37,9 +35,9 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 /**
- * Collector implementation that collects Rows creating a (Stream)Bucket
+ * Collector implementation that collects Rows creating a StreamBucket
  */
-public class StreamBucketCollector implements Collector<Row, StreamBucket.Builder, Bucket> {
+public class StreamBucketCollector implements Collector<Row, StreamBucket.Builder, StreamBucket> {
 
     private final Streamer<?>[] streamers;
 
@@ -71,14 +69,8 @@ public class StreamBucketCollector implements Collector<Row, StreamBucket.Builde
     }
 
     @Override
-    public Function<StreamBucket.Builder, Bucket> finisher() {
-        return (builder) -> {
-            try {
-                return builder.build();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        };
+    public Function<StreamBucket.Builder, StreamBucket> finisher() {
+        return StreamBucket.Builder::build;
     }
 
     @Override

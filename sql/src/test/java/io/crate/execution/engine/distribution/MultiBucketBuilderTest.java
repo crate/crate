@@ -23,7 +23,6 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
-import io.crate.data.Bucket;
 import io.crate.data.Row1;
 import io.crate.types.DataTypes;
 import org.junit.Before;
@@ -47,7 +46,7 @@ public class MultiBucketBuilderTest {
 
     @Test
     public void testBucketIsEmptyAfterSecondBuildBucket() throws Exception {
-        Bucket[] buckets = new Bucket[1];
+        StreamBucket[] buckets = new StreamBucket[1];
         for (MultiBucketBuilder builder : builders) {
             builder.add(new Row1(42));
 
@@ -61,7 +60,7 @@ public class MultiBucketBuilderTest {
 
     @Test
     public void testSizeIsResetOnBuildBuckets() throws Exception {
-        Bucket[] buckets = new Bucket[1];
+        StreamBucket[] buckets = new StreamBucket[1];
 
         for (MultiBucketBuilder builder : builders) {
             builder.add(new Row1(42));

@@ -31,6 +31,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.execution.jobs.JobSetup;
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.SharedShardContexts;
@@ -243,7 +244,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         NodeOperation nodeOperation = NodeOperation.withDirectResponse(collectNode, mock(ExecutionPhase.class), (byte) 0,
             "remoteNode");
 
-        List<CompletableFuture<Bucket>> results = jobSetup.prepareOnRemote(
+        List<CompletableFuture<StreamBucket>> results = jobSetup.prepareOnRemote(
             ImmutableList.of(nodeOperation), builder, sharedShardContexts);
         RootTask rootTask = tasksService.createTask(builder);
         rootTask.start();

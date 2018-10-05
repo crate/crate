@@ -23,7 +23,6 @@
 package io.crate.execution.jobs.transport;
 
 import io.crate.Streamer;
-import io.crate.data.Bucket;
 import io.crate.execution.engine.distribution.StreamBucket;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -32,41 +31,37 @@ import org.elasticsearch.transport.TransportResponse;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class JobResponse extends TransportResponse {
 
-    private List<Bucket> directResponse = new ArrayList<>();
-    private Streamer<?>[] streamers = null;
+    private List<StreamBucket> directResponse = Collections.emptyList();
 
     public JobResponse() {
     }
 
-    public JobResponse(@Nonnull List<Bucket> buckets) {
+    public JobResponse(@Nonnull List<StreamBucket> buckets) {
         this.directResponse = buckets;
     }
 
-    public List<Bucket> directResponse() {
+    public List<StreamBucket> directResponse() {
         return directResponse;
     }
 
     public void streamers(Streamer<?>[] streamers) {
-        List<Bucket> directResponse = directResponse();
-        for (Bucket bucket : directResponse) {
-            if (bucket instanceof StreamBucket) {
-                assert streamers != null : "streamers must not be null";
-                ((StreamBucket) bucket).streamers(streamers);
-            }
+        for (StreamBucket bucket : directResponse) {
+            bucket.streamers(streamers);
         }
-        this.streamers = streamers;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         int size = in.readVInt();
+        directResponse = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            StreamBucket bucket = new StreamBucket(streamers);
+            StreamBucket bucket = new StreamBucket(null);
             bucket.readFrom(in);
             directResponse.add(bucket);
         }
@@ -76,8 +71,8 @@ public class JobResponse extends TransportResponse {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeVInt(directResponse.size());
-        for (Bucket bucket : directResponse) {
-            StreamBucket.writeBucket(out, streamers, bucket);
+        for (StreamBucket bucket : directResponse) {
+            bucket.writeTo(out);
         }
     }
 }
