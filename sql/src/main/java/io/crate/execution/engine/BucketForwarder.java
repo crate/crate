@@ -99,8 +99,7 @@ final class BucketForwarder {
 
         @Override
         public void onResponse(JobResponse jobResponse) {
-            jobResponse.streamers(responseDeserializer);
-            forwarder.setBuckets(jobResponse.directResponse());
+            forwarder.setBuckets(jobResponse.getDirectResponses(responseDeserializer));
         }
 
         @Override

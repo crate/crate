@@ -151,7 +151,6 @@ public class DistributingConsumerTest extends CrateUnitTest {
             0,
             Collections.singletonList("n1"),
             distributedResultAction,
-            streamers,
             2 // pageSize
         );
     }

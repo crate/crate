@@ -45,14 +45,15 @@ public class JobResponse extends TransportResponse {
         this.directResponse = buckets;
     }
 
-    public List<StreamBucket> directResponse() {
-        return directResponse;
-    }
-
-    public void streamers(Streamer<?>[] streamers) {
+    public List<StreamBucket> getDirectResponses(Streamer<?>[] streamers) {
         for (StreamBucket bucket : directResponse) {
             bucket.streamers(streamers);
         }
+        return directResponse;
+    }
+
+    public boolean hasDirectResponses() {
+        return !directResponse.isEmpty();
     }
 
     @Override
@@ -61,8 +62,7 @@ public class JobResponse extends TransportResponse {
         int size = in.readVInt();
         directResponse = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            StreamBucket bucket = new StreamBucket(null);
-            bucket.readFrom(in);
+            StreamBucket bucket = new StreamBucket(in);
             directResponse.add(bucket);
         }
     }

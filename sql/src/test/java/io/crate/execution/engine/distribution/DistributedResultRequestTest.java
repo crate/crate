@@ -53,7 +53,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         builder.add(new RowN(new Object[] {new BytesRef("ab")}));
         builder.add(new RowN(new Object[] {null}));
         builder.add(new RowN(new Object[] {new BytesRef("cd")}));
-        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, (byte) 3, 1, streamers, builder.build(), false);
+        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, (byte) 3, 1, builder.build(), false);
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
