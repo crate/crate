@@ -48,6 +48,17 @@ Released on 2018/09/25.
 Changelog
 =========
 
+Breaking Changes
+----------------
+
+- Previously, :ref:`version_3.0.0` advertised a breaking change for the removal
+  of the ``region`` setting when using the ``CREATE REPOSITORY`` query for S3
+  based snapshot repositories. However, due to a bug, using the ``region``
+  setting was valid syntax in versions 3.0.0 through to 3.0.6.
+
+  This bug has been fixed in 3.0.7. Due to this, ``CREATE REPOSITORY`` queries
+  that were accepted (erroneously) in 3.0.6 may no longer work in 3.0.7.
+
 Fixes
 -----
 
@@ -59,3 +70,4 @@ Fixes
 
 - Fixed processing of the ``endpoint``, ``protocol`` and ``max_retries`` S3
   repository parameters.
+
