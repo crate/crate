@@ -11,13 +11,13 @@ jobs:
         inputs:
           workingDirectory: ''
           gradleWrapperFile: 'gradlew'
-          gradleOptions: '-Xmx3072m'
+          gradleOptions: '-Xmx2048m'
           javaHomeOption: 'JDKVersion'
           jdkVersionOption: '1.10'
           jdkArchitectureOption: 'x64'
           publishJUnitResults: true
           testResultsFiles: '**/TEST-*.xml'
-          tasks: ':sql:test -PtestForks=2'
+          tasks: ':sql:test'
 
   - job: Windows
     pool:
@@ -30,10 +30,10 @@ jobs:
         inputs:
           workingDirectory: ''
           gradleWrapperFile: 'gradlew'
-          gradleOptions: '-Xmx3072m'
+          gradleOptions: '-Xmx2048m'
           javaHomeOption: 'JDKVersion'
           jdkVersionOption: '1.10'
           jdkArchitectureOption: 'x64'
           publishJUnitResults: true
           testResultsFiles: '**/TEST-*.xml'
-          tasks: ':sql:test -PtestForks=2'
+          tasks: ':sql:test'
