@@ -21,16 +21,11 @@
 
 package io.crate.plugin;
 
-import io.crate.execution.ddl.DDLStatementDispatcher;
 import io.crate.action.sql.SQLOperations;
-import io.crate.execution.ddl.TransportSchemaUpdateAction;
+import io.crate.execution.ddl.DDLStatementDispatcher;
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.ingestion.IngestionService;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.ingestion.TransportCreateIngestRuleAction;
-import io.crate.ingestion.TransportDropIngestRuleAction;
-import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
-import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
-import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.planner.Planner;
 import io.crate.planner.TableStats;
 import io.crate.planner.TableStatsService;
@@ -52,13 +47,8 @@ public class SQLModule extends AbstractModule {
         bind(TableStats.class).asEagerSingleton();
         bind(TableStatsService.class).asEagerSingleton();
         bind(UserDefinedFunctionService.class).asEagerSingleton();
-        bind(TransportCreateUserDefinedFunctionAction.class).asEagerSingleton();
-        bind(TransportDropUserDefinedFunctionAction.class).asEagerSingleton();
-        bind(TransportSchemaUpdateAction.class).asEagerSingleton();
         bind(SslContextProvider.class).asEagerSingleton();
         bind(RestSQLAction.class).asEagerSingleton();
-        bind(TransportCreateIngestRuleAction.class).asEagerSingleton();
-        bind(TransportDropIngestRuleAction.class).asEagerSingleton();
         bind(IngestionService.class).asEagerSingleton();
     }
 }
