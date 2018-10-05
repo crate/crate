@@ -25,7 +25,6 @@ package io.crate.execution.engine.distribution;
 import io.crate.Streamer;
 import io.crate.data.Row;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -52,13 +51,7 @@ public class StreamBucketCollector implements Collector<Row, StreamBucket.Builde
 
     @Override
     public BiConsumer<StreamBucket.Builder, Row> accumulator() {
-        return (builder, row) -> {
-            try {
-                builder.add(row);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        };
+        return StreamBucket.Builder::add;
     }
 
     @Override

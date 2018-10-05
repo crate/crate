@@ -63,13 +63,17 @@ public class StreamBucket implements Bucket, Writeable {
             out = new BytesStreamOutput(INITIAL_PAGE_SIZE);
         }
 
-        public void add(Row row) throws IOException {
+        public void add(Row row) {
             assert streamers.length == row.numColumns() : "number of streamer must match row size";
 
             size++;
             for (int i = 0; i < row.numColumns(); i++) {
-                //noinspection unchecked
-                ((Streamer) streamers[i]).writeValueTo(out, row.get(i));
+                try {
+                    //noinspection unchecked
+                    ((Streamer) streamers[i]).writeValueTo(out, row.get(i));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
             if (ramAccountingContext != null) {
                 ramAccountingContext.addBytes(out.size() - prevOutSize);
