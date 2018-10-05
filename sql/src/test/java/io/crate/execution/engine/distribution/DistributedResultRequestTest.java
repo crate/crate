@@ -23,10 +23,12 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
-import io.crate.data.ArrayBucket;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.data.RowN;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -46,12 +48,12 @@ public class DistributedResultRequestTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
         Streamer<?>[] streamers = new Streamer[]{DataTypes.STRING.streamer()};
 
-        Object[][] rows = new Object[][]{
-            {new BytesRef("ab")}, {null}, {new BytesRef("cd")}
-        };
         UUID uuid = UUID.randomUUID();
-
-        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, (byte) 3, 1, streamers, new ArrayBucket(rows), false);
+        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")));
+        builder.add(new RowN(new Object[] {new BytesRef("ab")}));
+        builder.add(new RowN(new Object[] {null}));
+        builder.add(new RowN(new Object[] {new BytesRef("cd")}));
+        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, (byte) 3, 1, streamers, builder.build(), false);
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);

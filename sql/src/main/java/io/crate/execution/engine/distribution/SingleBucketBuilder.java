@@ -26,7 +26,6 @@ import io.crate.Streamer;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
-import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 
@@ -34,17 +33,17 @@ import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 
 
-public class SingleBucketBuilder implements RowConsumer, CompletionListenable<Bucket> {
+public class SingleBucketBuilder implements RowConsumer, CompletionListenable<StreamBucket> {
 
     private final Streamer<?>[] streamers;
-    private final CompletableFuture<Bucket> bucketFuture = new CompletableFuture<>();
+    private final CompletableFuture<StreamBucket> bucketFuture = new CompletableFuture<>();
 
     public SingleBucketBuilder(Streamer<?>[] streamers) {
         this.streamers = streamers;
     }
 
     @Override
-    public CompletableFuture<Bucket> completionFuture() {
+    public CompletableFuture<StreamBucket> completionFuture() {
         return bucketFuture;
     }
 

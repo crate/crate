@@ -38,7 +38,7 @@ public class BroadcastingBucketBuilderTest {
         final BroadcastingBucketBuilder builder = new BroadcastingBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 3);
         builder.add(new Row1(10));
 
-        Bucket[] buckets = new Bucket[3];
+        StreamBucket[] buckets = new StreamBucket[3];
         builder.build(buckets);
 
         final Bucket rows = buckets[0];

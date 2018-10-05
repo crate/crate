@@ -23,12 +23,12 @@
 package io.crate.execution.jobs.transport;
 
 import io.crate.concurrent.CompletableFutures;
-import io.crate.data.Bucket;
-import io.crate.execution.jobs.JobSetup;
+import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.execution.jobs.InstrumentedIndexSearcher;
+import io.crate.execution.jobs.JobSetup;
 import io.crate.execution.jobs.RootTask;
-import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.Transports;
@@ -87,7 +87,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(request.enableProfiling(), contextBuilder);
 
-        List<CompletableFuture<Bucket>> directResponseFutures = jobSetup.prepareOnRemote(
+        List<CompletableFuture<StreamBucket>> directResponseFutures = jobSetup.prepareOnRemote(
             request.nodeOperations(), contextBuilder, sharedShardContexts);
 
         try {

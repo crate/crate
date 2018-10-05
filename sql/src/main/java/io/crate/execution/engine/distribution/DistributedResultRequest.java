@@ -39,7 +39,7 @@ public class DistributedResultRequest extends TransportRequest {
     private int bucketIdx;
 
     private Streamer<?>[] streamers;
-    private Bucket rows;
+    private StreamBucket rows;
     private UUID jobId;
     private boolean isLast = true;
 
@@ -61,7 +61,7 @@ public class DistributedResultRequest extends TransportRequest {
                                     byte inputId,
                                     int bucketIdx,
                                     Streamer<?>[] streamers,
-                                    Bucket rows,
+                                    StreamBucket rows,
                                     boolean isLast) {
         this(jobId, inputId, executionPhaseId, bucketIdx);
         this.streamers = streamers;
@@ -97,10 +97,7 @@ public class DistributedResultRequest extends TransportRequest {
     }
 
     public Bucket readRows(Streamer<?>[] streamers) {
-        if (rows instanceof StreamBucket) {
-            ((StreamBucket) rows).streamers(streamers);
-        }
-        this.streamers = streamers;
+        rows.streamers(streamers);
         return rows;
     }
 
@@ -153,7 +150,7 @@ public class DistributedResultRequest extends TransportRequest {
             out.writeException(throwable);
             out.writeBoolean(isKilled);
         } else {
-            StreamBucket.writeBucket(out, streamers, rows);
+            rows.writeTo(out);
         }
     }
 }

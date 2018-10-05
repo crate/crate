@@ -39,7 +39,6 @@ import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.data.Bucket;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -71,6 +70,7 @@ import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.execution.engine.collect.sources.SystemCollectSource;
 import io.crate.execution.engine.distribution.DistributingConsumerFactory;
 import io.crate.execution.engine.distribution.SingleBucketBuilder;
+import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.crate.execution.engine.fetch.FetchTask;
 import io.crate.execution.engine.join.HashJoinOperation;
@@ -172,9 +172,9 @@ public class JobSetup extends AbstractComponent {
         );
     }
 
-    public List<CompletableFuture<Bucket>> prepareOnRemote(Collection<? extends NodeOperation> nodeOperations,
-                                                           RootTask.Builder contextBuilder,
-                                                           SharedShardContexts sharedShardContexts) {
+    public List<CompletableFuture<StreamBucket>> prepareOnRemote(Collection<? extends NodeOperation> nodeOperations,
+                                                                 RootTask.Builder contextBuilder,
+                                                                 SharedShardContexts sharedShardContexts) {
         Context context = new Context(
             clusterService.localNode().getId(),
             contextBuilder,
@@ -193,10 +193,10 @@ public class JobSetup extends AbstractComponent {
         return context.directResponseFutures;
     }
 
-    public List<CompletableFuture<Bucket>> prepareOnHandler(Collection<? extends NodeOperation> nodeOperations,
-                                                            RootTask.Builder taskBuilder,
-                                                            List<Tuple<ExecutionPhase, RowConsumer>> handlerPhases,
-                                                            SharedShardContexts sharedShardContexts) {
+    public List<CompletableFuture<StreamBucket>> prepareOnHandler(Collection<? extends NodeOperation> nodeOperations,
+                                                                  RootTask.Builder taskBuilder,
+                                                                  List<Tuple<ExecutionPhase, RowConsumer>> handlerPhases,
+                                                                  SharedShardContexts sharedShardContexts) {
         Context context = new Context(
             clusterService.localNode().getId(),
             taskBuilder,
@@ -424,7 +424,7 @@ public class JobSetup extends AbstractComponent {
 
         private final SharedShardContexts sharedShardContexts;
 
-        private final List<CompletableFuture<Bucket>> directResponseFutures = new ArrayList<>();
+        private final List<CompletableFuture<StreamBucket>> directResponseFutures = new ArrayList<>();
         private final NodeOperationCtx opCtx;
         private final RootTask.Builder taskBuilder;
         private final Logger logger;

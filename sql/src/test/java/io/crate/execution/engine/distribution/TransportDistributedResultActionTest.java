@@ -23,7 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
-import io.crate.data.Bucket;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
@@ -33,6 +33,7 @@ import io.crate.execution.support.Transports;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.transport.TransportService;
@@ -43,7 +44,6 @@ import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.is;
@@ -52,7 +52,7 @@ import static org.mockito.Mockito.mock;
 public class TransportDistributedResultActionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void testKillIsInvokedIfContextIsNotFound() throws InterruptedException, TimeoutException {
+    public void testKillIsInvokedIfContextIsNotFound() throws Exception {
         TasksService tasksService = new TasksService(
             Settings.EMPTY, clusterService, new JobsLogs(() -> false));
         AtomicInteger numBroadcasts = new AtomicInteger(0);
@@ -78,9 +78,11 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
             BackoffPolicy.exponentialBackoff(TimeValue.ZERO, 0)
         );
 
+        StreamBucket.Builder builder = new StreamBucket.Builder(
+            new Streamer[0], new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")));
         try {
             transportDistributedResultAction.nodeOperation(
-                new DistributedResultRequest(UUID.randomUUID(), 0, (byte) 0, 0, new Streamer[0], Bucket.EMPTY, true)
+                new DistributedResultRequest(UUID.randomUUID(), 0, (byte) 0, 0, new Streamer[0], builder.build(), true)
             ).get(5, TimeUnit.SECONDS);
             fail("nodeOperation call should fail with TaskMissing");
         } catch (ExecutionException e) {
