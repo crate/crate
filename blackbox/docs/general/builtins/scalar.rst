@@ -1431,6 +1431,25 @@ Returns: ``integer``
     SELECT 1 row in set (... sec)
 
 
+``array_length(anyarray, dimension)``
+-------------------------------------
+
+The ``array_length`` function returns the number of elements in the requested
+array dimmension.
+
+Returns: ``integer``
+
+::
+
+    cr> select array_length([[1, 4], [3]], 1);
+    +--------------------------------+
+    | array_length([[1, 4], [3]], 1) |
+    +--------------------------------+
+    | 2                              |
+    +--------------------------------+
+    SELECT 1 row in set (... sec)
+
+
 ``array_lower(anyarray, dimension)``
 ------------------------------------
 The ``array_lower`` function returns the lower bound of the requested array
