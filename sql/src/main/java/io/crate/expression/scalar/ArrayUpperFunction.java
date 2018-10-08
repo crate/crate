@@ -26,7 +26,7 @@ import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 
-class ArrayUpperFunction extends Scalar<Integer, Object[]> {
+public class ArrayUpperFunction extends Scalar<Integer, Object[]> {
 
     public static final String ARRAY_UPPER = "array_upper";
     public static final String ARRAY_LENGTH = "array_length";
