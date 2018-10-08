@@ -48,8 +48,9 @@ Changes
 
 - Added support for using table functions in the select list of a query.
 
-- Implemented the ``array_upper`` and ``array_lower`` scalars that return the
-  upper and respectively lower bound of a given array dimension.
+- Implemented the ``array_upper``, ``array_length`` and ``array_lower`` scalars
+  that return the upper and respectively lower bound of a given array
+  dimension.
 
 - Added some type aliases for improved compatibility with postgresql.
 
