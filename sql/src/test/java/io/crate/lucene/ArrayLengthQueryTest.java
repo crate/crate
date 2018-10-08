@@ -23,16 +23,22 @@
 package io.crate.lucene;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.core.Is.is;
 
 public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
 
@@ -230,13 +236,24 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testArrayLengthEq1ReturnsArraysWith1Element() throws Exception {
-        // Since `array_length([], 1)` returns NULL, there can't be a match for < 1
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) = 1");
         assertThat(
             rows,
             containsInAnyOrder(
                 new Object[] { 10 },
                 new Object[] { 20 }
+            )
+        );
+    }
+
+    @Test
+    public void testArrayLengthEq1ReturnsArraysWith2Elements() throws Exception {
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) = 2");
+        assertThat(
+            rows,
+            containsInAnyOrder(
+                new Object[] { 10, 10 },
+                new Object[] { 10, 20 }
             )
         );
     }
@@ -249,5 +266,37 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             rows,
             empty()
         );
+    }
+
+
+    @Test
+    public void testArrayLengthWithAllSupportedTypes() throws Exception {
+        for (DataType type : DataTypeTesting.ALL_TYPES_EXCEPT_ARRAYS) {
+            Supplier dataGenerator = DataTypeTesting.getDataGenerator(type);
+            Object val1 = dataGenerator.get();
+            Object val2 = dataGenerator.get();
+            Object[] arr = {val1, val2};
+            Object[] values = new Object[] {
+                arr
+            };
+            try (QueryTester tester = new QueryTester.Builder(
+                createTempDir(),
+                THREAD_POOL,
+                clusterService,
+                Version.CURRENT,
+                "create table t (xs array(" + type.getName() + "))"
+            ).indexValues("xs", values).build()) {
+                System.out.println(type);
+                List<Object> result = tester.runQuery("xs", "array_length(xs, 1) >= 2");
+                assertThat(result.size(), is(1));
+                ArrayType arrayType = new ArrayType(type);
+                // Object compareValueTo does type-guessing which might result in
+                // double/float conversions which are not fully accurate, so we skip that here
+                // having the result size check should be sufficient anyway
+                if (!type.equals(DataTypes.OBJECT)) {
+                    assertThat(arrayType.compareValueTo(result.get(0), arr), is(0));
+                }
+            }
+        }
     }
 }

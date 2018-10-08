@@ -27,7 +27,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -35,7 +34,7 @@ import java.util.Collection;
  */
 public abstract class CollectionType extends DataType {
 
-    protected DataType<?> innerType;
+    protected DataType innerType;
     protected Streamer streamer;
 
     /**
@@ -104,10 +103,20 @@ public abstract class CollectionType extends DataType {
         } else if (val1 == null) {
             return -1;
         }
-        if (val1 instanceof Collection) {
-            return val1.equals(val2) ? 0 : 1;
+        Object[] arr1 = val1 instanceof Collection ? ((Collection) val1).toArray() : (Object[]) val1;
+        Object[] arr2 = val2 instanceof Collection ? ((Collection) val2).toArray() : (Object[]) val2;
+        if (arr1.length > arr2.length) {
+            return 1;
+        } else if (arr2.length > arr1.length) {
+            return -1;
         }
-        return Arrays.deepEquals((Object[]) val1, (Object[]) val2) ? 0 : 1;
+        for (int i = 0; i < arr1.length; i++) {
+            int cmp = innerType.compareValueTo(arr1[i], arr2[i]);
+            if (cmp != 0) {
+                return cmp;
+            }
+        }
+        return 0;
     }
 
     @Override

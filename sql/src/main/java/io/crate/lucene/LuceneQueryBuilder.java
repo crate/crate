@@ -49,6 +49,7 @@ import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.scalar.ArrayUpperFunction;
 import io.crate.expression.scalar.Ignore3vlFunction;
 import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
@@ -407,6 +408,8 @@ public class LuceneQueryBuilder {
                 .put(DistanceFunction.NAME, new DistanceQuery())
                 .put(WithinFunction.NAME, withinQuery)
                 .put(SubscriptFunction.NAME, new SubscriptQuery())
+                .put(ArrayUpperFunction.ARRAY_LENGTH, new ArrayLengthQuery())
+                .put(ArrayUpperFunction.ARRAY_UPPER, new ArrayLengthQuery())
                 .build();
 
         @Override
