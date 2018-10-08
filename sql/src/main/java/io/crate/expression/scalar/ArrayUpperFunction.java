@@ -56,12 +56,13 @@ class ArrayUpperFunction extends Scalar<Integer, Object[]> {
     @Override
     public Integer evaluate(Input[] args) {
         Object[] array = (Object[]) args[0].value();
-        if (array == null || array.length == 0 || args[1].value() == null) {
+        Object dimension1Indexed = args[1].value();
+        if (array == null || array.length == 0 || dimension1Indexed == null) {
             return null;
         }
 
         // sql dimensions are 1 indexed
-        int dimension = (int) args[1].value() - 1;
+        int dimension = (int) dimension1Indexed - 1;
 
         try {
             Object dimensionValue = array[dimension];
