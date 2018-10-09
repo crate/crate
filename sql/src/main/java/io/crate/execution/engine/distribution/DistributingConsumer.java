@@ -23,9 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.Streamer;
 import io.crate.data.BatchIterator;
-import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
@@ -59,9 +57,8 @@ public class DistributingConsumer implements RowConsumer {
     private final byte inputId;
     private final int bucketIdx;
     private final TransportDistributedResultAction distributedResultAction;
-    private final Streamer<?>[] streamers;
     private final int pageSize;
-    private final Bucket[] buckets;
+    private final StreamBucket[] buckets;
     private final List<Downstream> downstreams;
     private final boolean traceEnabled;
 
@@ -79,7 +76,6 @@ public class DistributingConsumer implements RowConsumer {
                                 int bucketIdx,
                                 Collection<String> downstreamNodeIds,
                                 TransportDistributedResultAction distributedResultAction,
-                                Streamer<?>[] streamers,
                                 int pageSize) {
         this.traceEnabled = logger.isTraceEnabled();
         this.logger = logger;
@@ -90,9 +86,8 @@ public class DistributingConsumer implements RowConsumer {
         this.inputId = inputId;
         this.bucketIdx = bucketIdx;
         this.distributedResultAction = distributedResultAction;
-        this.streamers = streamers;
         this.pageSize = pageSize;
-        this.buckets = new Bucket[downstreamNodeIds.size()];
+        this.buckets = new StreamBucket[downstreamNodeIds.size()];
         downstreams = new ArrayList<>(downstreamNodeIds.size());
         for (String downstreamNodeId : downstreamNodeIds) {
             downstreams.add(new Downstream(downstreamNodeId));
@@ -194,7 +189,7 @@ public class DistributingConsumer implements RowConsumer {
             }
             distributedResultAction.pushResult(
                 downstream.nodeId,
-                new DistributedResultRequest(jobId, targetPhaseId, inputId, bucketIdx, streamers, buckets[i], isLast),
+                new DistributedResultRequest(jobId, targetPhaseId, inputId, bucketIdx, buckets[i], isLast),
                 new ActionListener<DistributedResultResponse>() {
                     @Override
                     public void onResponse(DistributedResultResponse response) {

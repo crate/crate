@@ -42,9 +42,9 @@ final class BucketForwarder {
     private final int bucketIdx;
     private final InitializationTracker initializationTracker;
 
-    static BiConsumer<List<Bucket>, Throwable> asConsumer(List<PageBucketReceiver> pageBucketReceivers,
-                                                          int bucketIdx,
-                                                          InitializationTracker initializationTracker) {
+    static BiConsumer<List<? extends Bucket>, Throwable> asConsumer(List<PageBucketReceiver> pageBucketReceivers,
+                                                                    int bucketIdx,
+                                                                    InitializationTracker initializationTracker) {
         BucketForwarder forwarder = new BucketForwarder(pageBucketReceivers, bucketIdx, initializationTracker);
         return (buckets, failure) -> {
             if (failure == null) {
@@ -71,7 +71,7 @@ final class BucketForwarder {
         this.initializationTracker = initializationTracker;
     }
 
-    protected void setBuckets(List<Bucket> buckets) {
+    protected void setBuckets(List<? extends Bucket> buckets) {
         initializationTracker.jobInitialized();
         for (int i = 0; i < pageBucketReceivers.size(); i++) {
             PageBucketReceiver pageBucketReceiver = pageBucketReceivers.get(i);
@@ -99,8 +99,7 @@ final class BucketForwarder {
 
         @Override
         public void onResponse(JobResponse jobResponse) {
-            jobResponse.streamers(responseDeserializer);
-            forwarder.setBuckets(jobResponse.directResponse());
+            forwarder.setBuckets(jobResponse.getDirectResponses(responseDeserializer));
         }
 
         @Override

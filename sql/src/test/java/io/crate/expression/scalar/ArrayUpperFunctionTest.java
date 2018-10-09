@@ -52,6 +52,11 @@ public class ArrayUpperFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void testCanBeAddressedAsArrayLength() {
+        assertEvaluate("array_length([2, 3, 4], 1)", 3);
+    }
+
+    @Test
     public void testEmptyArray() {
         assertEvaluate("array_upper(cast([] as array(integer)), 1)", null);
     }

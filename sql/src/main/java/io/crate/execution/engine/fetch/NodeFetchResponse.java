@@ -78,8 +78,7 @@ public class NodeFetchResponse extends TransportResponse {
             fetched = new IntObjectHashMap<>(numReaders);
             for (int i = 0; i < numReaders; i++) {
                 int readerId = in.readVInt();
-                StreamBucket bucket = new StreamBucket(streamers.get(readerId));
-                bucket.readFrom(in);
+                StreamBucket bucket = new StreamBucket(in, streamers.get(readerId));
                 fetched.put(readerId, bucket);
             }
         }

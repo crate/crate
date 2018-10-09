@@ -23,25 +23,18 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-
-import java.util.List;
 
 class ArrayUpperFunction extends Scalar<Integer, Object[]> {
 
-    public static final String NAME = "array_upper";
+    public static final String ARRAY_UPPER = "array_upper";
+    public static final String ARRAY_LENGTH = "array_length";
     private FunctionInfo functionInfo;
 
-    public static FunctionInfo createInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.INTEGER);
-    }
-
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new ArrayBoundFunctionResolver(NAME, ArrayUpperFunction::new));
+        module.register(ARRAY_UPPER, new ArrayBoundFunctionResolver(ARRAY_UPPER, ArrayUpperFunction::new));
+        module.register(ARRAY_LENGTH, new ArrayBoundFunctionResolver(ARRAY_LENGTH, ArrayUpperFunction::new));
     }
 
     private ArrayUpperFunction(FunctionInfo functionInfo) {
@@ -56,12 +49,13 @@ class ArrayUpperFunction extends Scalar<Integer, Object[]> {
     @Override
     public Integer evaluate(Input[] args) {
         Object[] array = (Object[]) args[0].value();
-        if (array == null || array.length == 0 || args[1].value() == null) {
+        Object dimension1Indexed = args[1].value();
+        if (array == null || array.length == 0 || dimension1Indexed == null) {
             return null;
         }
 
         // sql dimensions are 1 indexed
-        int dimension = (int) args[1].value() - 1;
+        int dimension = (int) dimension1Indexed - 1;
 
         try {
             Object dimensionValue = array[dimension];

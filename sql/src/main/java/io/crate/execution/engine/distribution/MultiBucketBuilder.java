@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.distribution;
 
-import io.crate.data.Bucket;
 import io.crate.data.Row;
 
 /**
@@ -47,5 +46,5 @@ public interface MultiBucketBuilder {
      * <p>
      * N is usually specified in the constructor of a specific PageBuilder implementation.
      */
-    void build(Bucket[] buckets);
+    void build(StreamBucket[] buckets);
 }

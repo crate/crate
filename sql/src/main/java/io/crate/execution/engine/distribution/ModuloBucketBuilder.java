@@ -23,13 +23,11 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
-import io.crate.data.Bucket;
 import io.crate.data.Row;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.StringHelper;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,13 +54,9 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
     @Override
     public void add(Row row) {
         final StreamBucket.Builder builder = bucketBuilders.get(getBucket(row));
-        try {
-            synchronized (this) {
-                builder.add(row);
-                size++;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        synchronized (this) {
+            builder.add(row);
+            size++;
         }
     }
 
@@ -72,16 +66,12 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
     }
 
     @Override
-    public synchronized void build(Bucket[] buckets) {
+    public synchronized void build(StreamBucket[] buckets) {
         assert buckets.length == numBuckets : "length of the provided array must match numBuckets";
         for (int i = 0; i < numBuckets; i++) {
-            try {
-                final StreamBucket.Builder builder = bucketBuilders.get(i);
-                buckets[i] = builder.build();
-                builder.reset();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            StreamBucket.Builder builder = bucketBuilders.get(i);
+            buckets[i] = builder.build();
+            builder.reset();
         }
         size = 0;
     }

@@ -1,6 +1,6 @@
 ---
 jobs:
-  - job: Linux
+  - job: LinuxJDK10
     pool:
       vmImage: 'Ubuntu 16.04'
     steps:
@@ -14,6 +14,25 @@ jobs:
           gradleOptions: '-Xmx2048m'
           javaHomeOption: 'JDKVersion'
           jdkVersionOption: '1.10'
+          jdkArchitectureOption: 'x64'
+          publishJUnitResults: true
+          testResultsFiles: '**/TEST-*.xml'
+          tasks: ':sql:test'
+
+  - job: LinuxJDK8
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    steps:
+      - script: git submodule update --init -- es/upstream
+      - task: Gradle@2
+        env:
+          CRATE_TESTS_SQL_REQUEST_TIMEOUT: 20
+        inputs:
+          workingDirectory: ''
+          gradleWrapperFile: 'gradlew'
+          gradleOptions: '-Xmx2048m'
+          javaHomeOption: 'JDKVersion'
+          jdkVersionOption: '1.8'
           jdkArchitectureOption: 'x64'
           publishJUnitResults: true
           testResultsFiles: '**/TEST-*.xml'

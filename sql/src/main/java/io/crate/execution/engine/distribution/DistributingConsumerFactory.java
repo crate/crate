@@ -104,7 +104,6 @@ public class DistributingConsumerFactory extends AbstractComponent {
             bucketIdx,
             nodeOperation.downstreamNodes(),
             transportDistributedResultAction,
-            streamers,
             pageSize
         );
     }

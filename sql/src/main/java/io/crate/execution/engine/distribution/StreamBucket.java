@@ -31,14 +31,15 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 
-public class StreamBucket implements Bucket, Streamable {
+public class StreamBucket implements Bucket, Writeable {
 
     private Streamer<?>[] streamers;
     private int size = -1;
@@ -62,13 +63,17 @@ public class StreamBucket implements Bucket, Streamable {
             out = new BytesStreamOutput(INITIAL_PAGE_SIZE);
         }
 
-        public void add(Row row) throws IOException {
+        public void add(Row row) {
             assert streamers.length == row.numColumns() : "number of streamer must match row size";
 
             size++;
             for (int i = 0; i < row.numColumns(); i++) {
-                //noinspection unchecked
-                ((Streamer) streamers[i]).writeValueTo(out, row.get(i));
+                try {
+                    //noinspection unchecked
+                    ((Streamer) streamers[i]).writeValueTo(out, row.get(i));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
             if (ramAccountingContext != null) {
                 ramAccountingContext.addBytes(out.size() - prevOutSize);
@@ -76,14 +81,7 @@ public class StreamBucket implements Bucket, Streamable {
             }
         }
 
-        public void writeToStream(StreamOutput output) throws IOException {
-            output.writeVInt(size);
-            if (size > 0) {
-                output.writeBytesReference(out.bytes());
-            }
-        }
-
-        public StreamBucket build() throws IOException {
+        public StreamBucket build() {
             StreamBucket sb = new StreamBucket(streamers);
             sb.size = size;
             sb.bytes = out.bytes();
@@ -121,21 +119,6 @@ public class StreamBucket implements Bucket, Streamable {
             }
         }
         return true;
-    }
-
-    public static void writeBucket(StreamOutput out, @Nullable Streamer<?>[] streamers, @Nullable Bucket bucket) throws IOException {
-        if (bucket == null || bucket.size() == 0) {
-            out.writeVInt(0);
-        } else if (bucket instanceof Streamable) {
-            ((Streamable) bucket).writeTo(out);
-        } else {
-            assert streamers != null : "Need streamers for non-streamable bucket implementation";
-            StreamBucket.Builder builder = new StreamBucket.Builder(streamers, null);
-            for (Row row : bucket) {
-                builder.add(row);
-            }
-            builder.writeToStream(out);
-        }
     }
 
     private static class RowIterator implements Iterator<Row> {
@@ -179,6 +162,7 @@ public class StreamBucket implements Bucket, Streamable {
     }
 
     @Override
+    @Nonnull
     public Iterator<Row> iterator() {
         if (size < 1) {
             return Collections.emptyIterator();
@@ -191,8 +175,20 @@ public class StreamBucket implements Bucket, Streamable {
         }
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    /**
+     * Create a StreamBucket by reading from an input stream.
+     * The created buckets rows are lazily de-serialized using the provided streamers
+     */
+    public StreamBucket(StreamInput in, Streamer[] streamers) throws IOException {
+        this(in);
+        this.streamers = streamers;
+    }
+
+    /**
+     * Create a StreamBucket by reading from an input stream.
+     * Before consuming the rows it is necessary to set the {@link #streamers(Streamer[])}
+     */
+    public StreamBucket(StreamInput in) throws IOException {
         size = in.readVInt();
         if (size > 0) {
             bytes = in.readBytesReference();

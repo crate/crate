@@ -266,21 +266,21 @@ Limits a timestamps precision to a given interval.
 
 Valid intervals are:
 
-* second
+* ``second``
 
-* minute
+* ``minute``
 
-* hour
+* ``hour``
 
-* day
+* ``day``
 
-* week
+* ``week``
 
-* month
+* ``month``
 
-* quarter
+* ``quarter``
 
-* year
+* ``year``
 
 Valid values for ``timezone`` are either the name of a time zone (for example
 'Europe/Vienna') or the UTC offset of a time zone (for example '+01:00'). To
@@ -359,7 +359,7 @@ an implicit cast will be attempted.
 ``field`` is an identifier that selects which part of the timestamp to extract.
 The following fields are supported:
 
-**CENTURY**
+``CENTURY``
   | *Return type:* ``integer``
   | century of era
 
@@ -368,59 +368,59 @@ The following fields are supported:
   Year 2000 century 20 and year 2001 is also century 20. This is different to
   the GregorianJulian (GJ) calendar system where 2001 would be century 21.
 
-**YEAR**
+``YEAR``
   | *Return type:* ``integer``
   | the year field
 
-**QUARTER**
+``QUARTER``
   | *Return type:* ``integer``
   | the quarter of the year (1 - 4)
 
-**MONTH**
+``MONTH``
   | *Return type:* ``integer``
   | the month of the year
 
-**WEEK**
+``WEEK``
   | *Return type:* ``integer``
   | the week of the year
 
-**DAY**
+``DAY``
   | *Return type:* ``integer``
   | the day of the month
 
-**DAY_OF_MONTH**
+``DAY_OF_MONTH``
   | *Return type:* ``integer``
   | same as ``day``
 
-**DAY_OF_WEEK**
+``DAY_OF_WEEK``
   | *Return type:* ``integer``
   | day of the week. Starting with Monday (1) to Sunday (7)
 
-**DOW**
+``DOW``
   | *Return type:* ``integer``
   | same as ``day_of_week``
 
-**DAY_OF_YEAR**
+``DAY_OF_YEAR``
   | *Return type:* ``integer``
   | the day of the year (1 - 365 / 366)
 
-**DOY**
+``DOY``
   | *Return type:* ``integer``
   | same as ``day_of_year``
 
-**HOUR**
+``HOUR``
   | *Return type:* ``integer``
   | the hour field
 
-**MINUTE**
+``MINUTE``
   | *Return type:* ``integer``
   | the minute field
 
-**SECOND**
+``SECOND``
   | *Return type:* ``integer``
   | the second field
 
-**EPOCH**
+``EPOCH``
   | *Return type:* ``double``
   | The number of seconds since Jan 1, 1970.
   | Can be negative if earlier than Jan 1, 1970.
@@ -485,39 +485,39 @@ below [#MySQL-Docs]_:
 .. csv-table:: date_format Format
    :header: "Format Specifier", "Description"
 
-   %a,	"Abbreviated weekday name (Sun..Sat)"
-   %b,	"Abbreviated month name (Jan..Dec)"
-   %c,	"Month in year, numeric (0..12)"
-   %D,	"Day of month as ordinal number (1st, 2nd, ... 24th)"
-   %d,	"Day of month, padded to 2 digits (00..31)"
-   %e,	"Day of month (0..31)"
-   %f,	"Microseconds, padded to 6 digits (000000..999999)"
-   %H,	"Hour in 24-hour clock, padded to 2 digits (00..23)"
-   %h,	"Hour in 12-hour clock, padded to 2 digits (01..12)"
-   %I,	"Hour in 12-hour clock, padded to 2 digits (01..12)"
-   %i,	"Minutes, numeric (00..59)"
-   %j,	"Day of year, padded to 3 digits (001..366)"
-   %k,	"Hour in 24-hour clock (0..23)"
-   %l,	"Hour in 12-hour clock (1..12)"
-   %M,	"Month name (January..December)"
-   %m,	"Month in year, numeric, padded to 2 digits (00..12)"
-   %p,	"AM or PM"
-   %r,	"Time, 12-hour (hh:mm:ss followed by AM or PM)"
-   %S,	"Seconds, padded to 2 digits (00..59)"
-   %s,	"Seconds, padded to 2 digits (00..59)"
-   %T,	"Time, 24-hour (hh:mm:ss)"
-   %U,	"Week number, sunday as first day of the week, first week of the year (01) is the one starting in this year, week 00 starts in last year (00..53)"
-   %u,	"Week number, monday as first day of the week, first week of the year (01) is the one with at least 4 days in this year (00..53)"
-   %V,	"Week number, sunday as first day of the week, first week of the year (01) is the one starting in this year, uses the week number of the last year, if the week started in last year (01..53)"
-   %v,	"Week number, monday as first day of the week, first week of the year (01) is the one with at least 4 days in this year, uses the week number of the last year, if the week started in last year (01..53)"
-   %W,	"Weekday name (Sunday..Saturday)"
-   %w,	"Day of the week (0=Sunday..6=Saturday)"
-   %X,	"weekyear, sunday as first day of the week, numeric, four digits; used with %V"
-   %x,	"weekyear, monday as first day of the week, numeric, four digits; used with %v"
-   %Y,	"Year, numeric, four digits"
-   %y,	"Year, numeric, two digits"
-   %%,	"A literal '%' character"
-   %x,	"x, for any 'x' not listed above"
+   ``%a``,	"Abbreviated weekday name (Sun..Sat)"
+   ``%b``,	"Abbreviated month name (Jan..Dec)"
+   ``%c``,	"Month in year, numeric (0..12)"
+   ``%D``,	"Day of month as ordinal number (1st, 2nd, ... 24th)"
+   ``%d``,	"Day of month, padded to 2 digits (00..31)"
+   ``%e``,	"Day of month (0..31)"
+   ``%f``,	"Microseconds, padded to 6 digits (000000..999999)"
+   ``%H``,	"Hour in 24-hour clock, padded to 2 digits (00..23)"
+   ``%h``,	"Hour in 12-hour clock, padded to 2 digits (01..12)"
+   ``%I``,	"Hour in 12-hour clock, padded to 2 digits (01..12)"
+   ``%i``,	"Minutes, numeric (00..59)"
+   ``%j``,	"Day of year, padded to 3 digits (001..366)"
+   ``%k``,	"Hour in 24-hour clock (0..23)"
+   ``%l``,	"Hour in 12-hour clock (1..12)"
+   ``%M``,	"Month name (January..December)"
+   ``%m``,	"Month in year, numeric, padded to 2 digits (00..12)"
+   ``%p``,	"AM or PM"
+   ``%r``,	"Time, 12-hour (hh:mm:ss followed by AM or PM)"
+   ``%S``,	"Seconds, padded to 2 digits (00..59)"
+   ``%s``,	"Seconds, padded to 2 digits (00..59)"
+   ``%T``,	"Time, 24-hour (hh:mm:ss)"
+   ``%U``,	"Week number, sunday as first day of the week, first week of the year (01) is the one starting in this year, week 00 starts in last year (00..53)"
+   ``%u``,	"Week number, monday as first day of the week, first week of the year (01) is the one with at least 4 days in this year (00..53)"
+   ``%V``,	"Week number, sunday as first day of the week, first week of the year (01) is the one starting in this year, uses the week number of the last year, if the week started in last year (01..53)"
+   ``%v``,	"Week number, monday as first day of the week, first week of the year (01) is the one with at least 4 days in this year, uses the week number of the last year, if the week started in last year (01..53)"
+   ``%W``,	"Weekday name (Sunday..Saturday)"
+   ``%w``,	"Day of the week (0=Sunday..6=Saturday)"
+   ``%X``,	"weekyear, sunday as first day of the week, numeric, four digits; used with %V"
+   ``%x``,	"weekyear, monday as first day of the week, numeric, four digits; used with %v"
+   ``%Y``,	"Year, numeric, four digits"
+   ``%y``,	"Year, numeric, two digits"
+   ``%%``,	"A literal '%' character"
+   ``%x``,	"x, for any 'x' not listed above"
 
 If no ``format_string`` is given the default format will be used::
 
@@ -1119,20 +1119,20 @@ not matter.
 +-------+---------------------------------------------------------------------+
 | Flag  | Description                                                         |
 +=======+=====================================================================+
-| i     | enable case insensitive matching                                    |
+| ``i`` | enable case insensitive matching                                    |
 +-------+---------------------------------------------------------------------+
-| u     | enable unicode case folding when used together with ``i``           |
+| ``u`` | enable unicode case folding when used together with ``i``           |
 +-------+---------------------------------------------------------------------+
-| U     | enable unicode support for character classes like ``\W``            |
+| ``U`` | enable unicode support for character classes like ``\W``            |
 +-------+---------------------------------------------------------------------+
-| s     | make ``.`` match line terminators, too                              |
+| ``s`` | make ``.`` match line terminators, too                              |
 +-------+---------------------------------------------------------------------+
-| m     | make ``^`` and ``$`` match on the beginning or end of a line        |
+| ``m`` | make ``^`` and ``$`` match on the beginning or end of a line        |
 |       | too.                                                                |
 +-------+---------------------------------------------------------------------+
-| x     | permit whitespace and line comments starting with ``#``             |
+| ``x`` | permit whitespace and line comments starting with ``#``             |
 +-------+---------------------------------------------------------------------+
-| d     | only ``\n`` is considered a line-terminator when using ``^``, ``$`` |
+| ``d`` | only ``\n`` is considered a line-terminator when using ``^``, ``$`` |
 |       | and ``.``                                                           |
 +-------+---------------------------------------------------------------------+
 
@@ -1191,7 +1191,7 @@ Flags
 +-------+---------------------------------------------------------------------+
 | Flag  | Description                                                         |
 +=======+=====================================================================+
-| g     | replace all occurrences of a subsequence matching ``pattern``,      |
+| ``g`` | replace all occurrences of a subsequence matching ``pattern``,      |
 |       | not only the first                                                  |
 +-------+---------------------------------------------------------------------+
 
@@ -1428,6 +1428,25 @@ Returns: ``integer``
     +-------------------------------+
     | 2                             |
     +-------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+``array_length(anyarray, dimension)``
+-------------------------------------
+
+The ``array_length`` function returns the number of elements in the requested
+array dimmension.
+
+Returns: ``integer``
+
+::
+
+    cr> select array_length([[1, 4], [3]], 1);
+    +--------------------------------+
+    | array_length([[1, 4], [3]], 1) |
+    +--------------------------------+
+    | 2                              |
+    +--------------------------------+
     SELECT 1 row in set (... sec)
 
 

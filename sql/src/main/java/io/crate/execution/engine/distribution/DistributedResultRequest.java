@@ -38,8 +38,7 @@ public class DistributedResultRequest extends TransportRequest {
     private int executionPhaseId;
     private int bucketIdx;
 
-    private Streamer<?>[] streamers;
-    private Bucket rows;
+    private StreamBucket rows;
     private UUID jobId;
     private boolean isLast = true;
 
@@ -60,11 +59,9 @@ public class DistributedResultRequest extends TransportRequest {
                                     int executionPhaseId,
                                     byte inputId,
                                     int bucketIdx,
-                                    Streamer<?>[] streamers,
-                                    Bucket rows,
+                                    StreamBucket rows,
                                     boolean isLast) {
         this(jobId, inputId, executionPhaseId, bucketIdx);
-        this.streamers = streamers;
         this.rows = rows;
         this.isLast = isLast;
     }
@@ -96,22 +93,8 @@ public class DistributedResultRequest extends TransportRequest {
         return bucketIdx;
     }
 
-    public void streamers(Streamer<?>[] streamers) {
-        if (rows instanceof StreamBucket) {
-            assert streamers != null : "streamers must not be null";
-            ((StreamBucket) rows).streamers(streamers);
-        }
-        this.streamers = streamers;
-    }
-
-    public boolean rowsCanBeRead() {
-        if (rows instanceof StreamBucket) {
-            return streamers != null;
-        }
-        return true;
-    }
-
-    public Bucket rows() {
+    public Bucket readRows(Streamer<?>[] streamers) {
+        rows.streamers(streamers);
         return rows;
     }
 
@@ -142,9 +125,7 @@ public class DistributedResultRequest extends TransportRequest {
             throwable = in.readException();
             isKilled = in.readBoolean();
         } else {
-            StreamBucket bucket = new StreamBucket(streamers);
-            bucket.readFrom(in);
-            rows = bucket;
+            rows = new StreamBucket(in);
         }
     }
 
@@ -164,8 +145,7 @@ public class DistributedResultRequest extends TransportRequest {
             out.writeException(throwable);
             out.writeBoolean(isKilled);
         } else {
-            // TODO: we should not rely on another bucket in this class and instead write to the stream directly
-            StreamBucket.writeBucket(out, streamers, rows);
+            rows.writeTo(out);
         }
     }
 }

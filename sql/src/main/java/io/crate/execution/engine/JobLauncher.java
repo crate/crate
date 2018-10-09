@@ -25,7 +25,6 @@ package io.crate.execution.engine;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import io.crate.concurrent.CompletableFutures;
-import io.crate.data.Bucket;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.ExecutionPhase;
@@ -33,6 +32,7 @@ import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.NodeOperationGrouper;
 import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.execution.jobs.DownstreamRXTask;
 import io.crate.execution.jobs.InstrumentedIndexSearcher;
 import io.crate.execution.jobs.JobSetup;
@@ -202,7 +202,7 @@ public final class JobLauncher {
 
         RootTask.Builder builder = tasksService.newBuilder(jobId, localNodeId, operationByServer.keySet());
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(builder);
-        List<CompletableFuture<Bucket>> directResponseFutures = jobSetup.prepareOnHandler(
+        List<CompletableFuture<StreamBucket>> directResponseFutures = jobSetup.prepareOnHandler(
             localNodeOperations,
             builder,
             handlerPhaseAndReceiver,
