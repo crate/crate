@@ -2,6 +2,7 @@ version: 1.0.{build}
 branches:
   only:
   - master
+  - 3.1
 
 environment:
     JAVA_OPTS: -Xmx2g
