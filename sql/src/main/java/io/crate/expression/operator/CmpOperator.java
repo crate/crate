@@ -36,26 +36,16 @@ import io.crate.types.DataTypes;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.IntPredicate;
 
-public abstract class CmpOperator extends Operator<Object> {
+public final class CmpOperator extends Operator<Object> {
 
-    /**
-     * called inside {@link #normalizeSymbol(io.crate.expression.symbol.Function)}
-     * in order to interpret the result of compareTo
-     * <p>
-     * subclass has to implement this to evaluate the -1, 0, 1 to boolean
-     * e.g. for Lt  -1 is true, 0 and 1 is false.
-     *
-     * @param comparisonResult the result of someLiteral.compareTo(otherLiteral)
-     * @return true/false
-     */
-    protected abstract boolean compare(int comparisonResult);
+    private final FunctionInfo info;
+    private final IntPredicate isMatch;
 
-    protected FunctionInfo info;
-
-    protected CmpOperator(FunctionInfo info) {
+    public CmpOperator(FunctionInfo info, IntPredicate cmpResultIsMatch) {
         this.info = info;
+        this.isMatch = cmpResultIsMatch;
     }
 
     @Override
@@ -78,9 +68,9 @@ public abstract class CmpOperator extends Operator<Object> {
         assert (left.getClass().equals(right.getClass())) : "left and right must have the same type for comparison";
 
         if (left instanceof Comparable) {
-            return compare(((Comparable) left).compareTo(right));
+            return isMatch.test(((Comparable) left).compareTo(right));
         } else if (left instanceof Map) {
-            return compare(Objects.compare((Map) left, (Map) right, MapComparator.getInstance()));
+            return isMatch.test(Objects.compare((Map) left, (Map) right, MapComparator.getInstance()));
         } else {
             return null;
         }
@@ -91,31 +81,27 @@ public abstract class CmpOperator extends Operator<Object> {
         private static final Param primitiveTypes = Param.of(DataTypes.PRIMITIVE_TYPES);
 
         private final String name;
-        private final Function<FunctionInfo, FunctionImplementation> functionFactory;
+        private final IntPredicate isMatch;
 
-        CmpResolver(String name, Function<FunctionInfo, FunctionImplementation> functionFactory) {
-            this(name, FuncParams.builder(primitiveTypes, primitiveTypes).build(), functionFactory);
+        CmpResolver(String name, IntPredicate isMatch) {
+            this(name, FuncParams.builder(primitiveTypes, primitiveTypes).build(), isMatch);
         }
 
-        CmpResolver(String name,
-                    FuncParams funcParams,
-                    Function<FunctionInfo, FunctionImplementation> functionFactory) {
+        CmpResolver(String name, FuncParams funcParams, IntPredicate isMatch) {
             super(funcParams);
             this.name = name;
-            this.functionFactory = functionFactory;
+            this.isMatch = isMatch;
         }
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             FunctionInfo info = createInfo(name, dataTypes);
-            return functionFactory.apply(info);
+            return new CmpOperator(info, isMatch);
         }
 
 
         protected static FunctionInfo createInfo(String name, List<DataType> dataTypes) {
             return new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.BOOLEAN);
         }
-
     }
-
 }
