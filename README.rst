@@ -4,8 +4,8 @@
 
 ----
 
-.. image:: https://travis-ci.org/crate/crate.svg?branch=master
-    :target: https://travis-ci.org/crate/crate
+.. image:: https://dev.azure.com/cratedb/cratedb/_apis/build/status/crate.crate
+    :target: https://dev.azure.com/cratedb/cratedb/_build/latest?definitionId=1
 
 .. image:: https://img.shields.io/badge/docs-latest-brightgreen.svg
     :target: https://crate.io/docs/en/latest/
