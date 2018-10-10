@@ -47,6 +47,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.logging.ServerLoggers;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
@@ -128,6 +129,12 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         port = MQTT_PORT_SETTING.setting().get(settings);
         defaultIdleTimeout = MQTT_TIMEOUT_SETTING.setting().get(settings);
         mqttMessageLogger = new MqttMessageLogger(settings);
+        if (isEnabled) {
+            DeprecationLogger deprecationLogger = new DeprecationLogger(logger);
+            deprecationLogger.deprecated(
+                "MQTT endpoint has been deprecated and will be removed in the future. " +
+                "It is recommended to use a dedicated broker and an external connector service.");
+        }
         mqttIngestService = new MqttIngestService(functions, sqlOperations, userManager, ingestionService);
         this.sslContextProvider = sslContextProvider;
     }

@@ -40,6 +40,9 @@ Breaking Changes
 Changes
 =======
 
+- The ``mqtt`` endpoint has been deprecated and will be removed in a future
+  version.
+
 - Upgraded to Elasticsearch 6.2.4
 
 - Renamed the ``delimited_payload_filter`` token filter to
