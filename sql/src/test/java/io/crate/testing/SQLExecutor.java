@@ -468,7 +468,6 @@ public class SQLExecutor {
                 .build();
 
             ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
-            docTables.put(relationName, tableInfoFactory.create(relationName, clusterService.state()));
             return this;
         }
 
