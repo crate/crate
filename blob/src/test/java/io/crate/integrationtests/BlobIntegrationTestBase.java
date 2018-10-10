@@ -47,6 +47,8 @@ import java.util.stream.Stream;
 
 import static io.crate.rest.CrateRestMainAction.ES_API_ENABLED_SETTING;
 import static org.elasticsearch.common.network.NetworkModule.HTTP_ENABLED;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ALLOW_ORIGIN;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ENABLED;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.core.Is.is;
@@ -70,6 +72,8 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
             .put(super.nodeSettings(nodeOrdinal))
             .put(HTTP_ENABLED.getKey(), true)
             .put(ES_API_ENABLED_SETTING.getKey(), true)
+            .put(SETTING_CORS_ENABLED.getKey(), true)
+            .put(SETTING_CORS_ALLOW_ORIGIN.getKey(), "*")
             .put(SETTING_HTTP_COMPRESSION.getKey(), false)
             .build();
     }

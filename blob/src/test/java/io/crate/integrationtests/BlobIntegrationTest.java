@@ -68,6 +68,13 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     }
 
     @Test
+    public void testCorsHeadersAreSet() throws Exception {
+        String digest = uploadTinyBlob();
+        CloseableHttpResponse response = get(blobUri(digest));
+        assertThat(response.containsHeader("Access-Control-Allow-Origin"), is(true));
+    }
+
+    @Test
     public void testNonExistingFile() throws IOException {
         CloseableHttpResponse response = get("test/d937ea65641c23fadc83616309e5b0e11acc5806");
         assertThat(response.getStatusLine().getStatusCode(), is(404));
