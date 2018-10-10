@@ -22,8 +22,9 @@
 
 package io.crate.plugin;
 
-import io.crate.license.License;
+import io.crate.license.LicenseKey;
 import io.crate.license.LicenseModule;
+import io.crate.license.LicenseService;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.ParseField;
@@ -57,12 +58,12 @@ public class LicensePlugin extends Plugin implements ActionPlugin {
 
     @Override
     public List<Setting<?>> getSettings() {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        return Collections.EMPTY_LIST;
+        return Collections.singletonList(LicenseService.class);
     }
 
     @Override
@@ -70,13 +71,13 @@ public class LicensePlugin extends Plugin implements ActionPlugin {
         List<NamedWriteableRegistry.Entry> entries = new ArrayList<>();
         entries.add(new NamedWriteableRegistry.Entry(
             MetaData.Custom.class,
-            License.TYPE,
-            License::new
+            LicenseKey.WRITEABLE_TYPE,
+            LicenseKey::new
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
-            License.TYPE,
-            in -> License.readDiffFrom(MetaData.Custom.class, License.TYPE, in)
+            LicenseKey.WRITEABLE_TYPE,
+            in -> LicenseKey.readDiffFrom(MetaData.Custom.class, LicenseKey.WRITEABLE_TYPE, in)
         ));
         return entries;
     }
@@ -85,8 +86,8 @@ public class LicensePlugin extends Plugin implements ActionPlugin {
     public List<NamedXContentRegistry.Entry> getNamedXContent() {
         return Collections.singletonList(new NamedXContentRegistry.Entry(
             MetaData.Custom.class,
-            new ParseField(License.TYPE),
-            License::fromXContent
+            new ParseField(LicenseKey.WRITEABLE_TYPE),
+            LicenseKey::fromXContent
         ));
     }
 }

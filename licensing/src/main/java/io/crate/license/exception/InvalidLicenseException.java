@@ -24,7 +24,7 @@ package io.crate.license.exception;
 
 public class InvalidLicenseException extends LicenseException {
 
-    public InvalidLicenseException() {
-        super("Unable to validate license");
+    public InvalidLicenseException(String message) {
+        super(message);
     }
 }

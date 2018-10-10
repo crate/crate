@@ -20,17 +20,29 @@
  * agreement.
  */
 
-package io.crate.license.exception;
+package io.crate.license;
 
+public class DecodedLicense {
 
-abstract class LicenseException extends RuntimeException {
+    private final int type;
+    private final int version;
+    private final byte[] encryptedContent;
 
-    LicenseException(String message) {
-        super(message);
+    DecodedLicense(int type, int version, byte[] encryptedContent) {
+        this.type = type;
+        this.version = version;
+        this.encryptedContent = encryptedContent;
     }
 
-    LicenseException(String message, Throwable cause) {
-        super(message, cause);
+    public int type() {
+        return type;
     }
 
+    public int version() {
+        return version;
+    }
+
+    byte[] encryptedContent() {
+        return encryptedContent;
+    }
 }

@@ -22,30 +22,31 @@
 
 package io.crate.license;
 
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import org.junit.Test;
 
 import java.io.IOException;
 
-public class SetLicenseResponse extends AcknowledgedResponse {
+import static io.crate.license.SelfGeneratedLicense.decryptLicenseContent;
+import static io.crate.license.SelfGeneratedLicense.encryptLicenseContent;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
-    SetLicenseResponse() {
+public class SelfGeneratedLicenseTest {
+
+    @Test
+    public void testGenerateSelfGeneratedKey() {
+        byte[] encryptedContent = encryptLicenseContent(new DecryptedLicenseData(Long.MAX_VALUE, "test").formatLicenseData());
+        assertThat(encryptedContent, is(notNullValue()));
     }
 
-    SetLicenseResponse(boolean acknowledged) {
-        super(acknowledged);
-    }
+    @Test
+    public void testDecryptSelfGeneratedLicense() throws IOException {
+        byte[] encryptedContent = encryptLicenseContent(new DecryptedLicenseData(Long.MAX_VALUE, "test").formatLicenseData());
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        readAcknowledged(in);
-    }
+        DecryptedLicenseData licenseInfo = decryptLicenseContent(encryptedContent);
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        writeAcknowledged(out);
+        assertThat(licenseInfo.expirationDateInMs(), is(Long.MAX_VALUE));
+        assertThat(licenseInfo.issuedTo(), is("test"));
     }
 }

@@ -27,8 +27,4 @@ public class LicenseMetadataParsingException extends LicenseException {
     public LicenseMetadataParsingException(String message) {
         super("License Metadata parsing error: " + message);
     }
-
-    public LicenseMetadataParsingException(String message, Throwable cause) {
-        super("License Metadata parsing error: " + message, cause);
-    }
 }
