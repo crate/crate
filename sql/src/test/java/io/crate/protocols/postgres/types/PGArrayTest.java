@@ -145,12 +145,16 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
         assertThat(o, is(new Object[] {10, 20}));
 
         // ensure unquoted integer values are decoded correctly (a bug prevented that once)
-        o = pgArray.decodeUTF8Text("{10,20}".getBytes(StandardCharsets.UTF_8));
-        assertThat(o, is(new Object[] {10, 20}));
+        o = pgArray.decodeUTF8Text("{10,2}".getBytes(StandardCharsets.UTF_8));
+        assertThat(o, is(new Object[] {10, 2}));
 
         // ensure array with single value is decoded correctly (a bug prevented that once)
         o = pgArray.decodeUTF8Text("{10}".getBytes(StandardCharsets.UTF_8));
         assertThat(o, is(new Object[] {10}));
+
+        // ensure that elements consisting of only a single character within an array can be decoded (a bug prevented that once)
+        o = pgArray.decodeUTF8Text("{1}".getBytes(StandardCharsets.UTF_8));
+        assertThat(o, is(new Object[]{1}));
 
         // 2-dimension array
         o = pgArray.decodeUTF8Text("{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}}".getBytes(StandardCharsets.UTF_8));
