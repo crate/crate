@@ -206,7 +206,7 @@ class PGArray extends PGType {
                             // n-dimensions array -> call recursively
                             List<Object> nestedObjects = new ArrayList<>();
                             i = decodeUTF8Text(bytes, i + 1, endIdx, nestedObjects);
-                            valIdx = i;
+                            valIdx = i + 1;
                             objects.add(nestedObjects.toArray());
                         } else {
                             // 1-dimension array -> call recursively
@@ -247,12 +247,16 @@ class PGArray extends PGType {
 
     // Decode individual inner object
     private void addObject(byte[] bytes, int startIdx, int endIdx, List<Object> objects) {
-        if (endIdx > startIdx) {
+        if (endIdx >= startIdx) {
             byte firstValueByte = bytes[startIdx];
             if (firstValueByte == 'N') {
                 objects.add(null);
             } else {
                 if (firstValueByte == '"') {
+                    // skip any quote character
+                    if (startIdx == endIdx) {
+                        return;
+                    }
                     startIdx++;
                     endIdx--;
                 }
