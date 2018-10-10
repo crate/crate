@@ -46,6 +46,11 @@ import static org.hamcrest.Matchers.instanceOf;
 
 public class MqttNettyNetworkConfigTest extends CrateUnitTest {
 
+    @Override
+    protected boolean enableWarningsCheck() {
+        return false;
+    }
+
     @Test
     public void testPublishPortSelection() throws Exception {
         int boundPort = randomIntBetween(9000, 9100);

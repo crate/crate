@@ -28,6 +28,10 @@ persistence.
    The MQTT ingestion source an
    :ref:`enterprise feature <enterprise_features>`.
 
+.. WARNING::
+
+   The MQTT ingestion is deprecated and will be removed in the future.
+
 .. rubric:: Table of Contents
 
 .. contents::
