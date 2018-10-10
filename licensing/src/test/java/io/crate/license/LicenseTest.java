@@ -40,35 +40,35 @@ public class LicenseTest extends CrateUnitTest {
 
     private static final String LICENSE_KEY = "ThisShouldBeAnEncryptedLicenseKey";
 
-    public static License createMetaData() {
-        return new License(LICENSE_KEY);
+    public static LicenseKey createMetaData() {
+        return new LicenseKey(LICENSE_KEY);
     }
 
     @Test
     public void testLicenseMetaDataStreaming() throws IOException {
         BytesStreamOutput stream = new BytesStreamOutput();
-        License license = createMetaData();
-        license.writeTo(stream);
+        LicenseKey licenseKey = createMetaData();
+        licenseKey.writeTo(stream);
 
         StreamInput in = stream.bytes().streamInput();
-        License license2 = new License(in);
-        assertEquals(license, license2);
+        LicenseKey licenseKey2 = new LicenseKey(in);
+        assertEquals(licenseKey, licenseKey2);
     }
 
     @Test
     public void testLicenceMetaDataToXContent() throws IOException {
-        License license = createMetaData();
+        LicenseKey licenseKey = createMetaData();
         XContentBuilder builder = XContentFactory.jsonBuilder();
 
         // reflects the logic used to process custom metadata in the cluster state
         builder.startObject();
-        license.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        licenseKey.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
         XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
         parser.nextToken(); // start object
-        License license2 = License.fromXContent(parser);
-        assertEquals(license, license2);
+        LicenseKey licenseKey2 = LicenseKey.fromXContent(parser);
+        assertEquals(licenseKey, licenseKey2);
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
         assertThat(parser.nextToken(), nullValue());
     }
@@ -79,15 +79,15 @@ public class LicenseTest extends CrateUnitTest {
 
         // reflects the logic used to process custom metadata in the cluster state
         builder.startObject();
-        builder.startObject(License.TYPE)
-            .field("licenseKey", LICENSE_KEY)
+        builder.startObject(LicenseKey.WRITEABLE_TYPE)
+            .field("license_key", LICENSE_KEY)
             .endObject();
         builder.endObject();
 
         XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
         parser.nextToken(); // start object
-        License license2 = License.fromXContent(parser);
-        assertEquals(createMetaData(), license2);
+        LicenseKey licenseKey2 = LicenseKey.fromXContent(parser);
+        assertEquals(createMetaData(), licenseKey2);
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
         assertThat(parser.nextToken(), nullValue());
     }

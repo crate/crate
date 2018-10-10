@@ -20,17 +20,23 @@
  * agreement.
  */
 
-package io.crate.license.exception;
+package io.crate.license;
 
+import java.io.IOException;
 
-abstract class LicenseException extends RuntimeException {
+import static io.crate.license.DecryptedLicenseData.fromFormattedLicenseData;
 
-    LicenseException(String message) {
-        super(message);
+final class SelfGeneratedLicense {
+
+    private SelfGeneratedLicense() {
     }
 
-    LicenseException(String message, Throwable cause) {
-        super(message, cause);
+    static byte[] encryptLicenseContent(byte[] content) {
+        return Cryptos.encrypt(content);
     }
 
+    static DecryptedLicenseData decryptLicenseContent(byte[] encryptedContent) throws IOException {
+        byte[] decryptedContent = Cryptos.decrypt(encryptedContent);
+        return fromFormattedLicenseData(decryptedContent);
+    }
 }

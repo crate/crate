@@ -22,6 +22,7 @@
 
 package io.crate.license;
 
+import io.crate.license.exception.InvalidLicenseException;
 import io.crate.license.exception.LicenseMetadataParsingException;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -31,25 +32,65 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Base64;
 import java.util.EnumSet;
 import java.util.Objects;
 
-public class License extends AbstractNamedDiffable<MetaData.Custom> implements MetaData.Custom {
+public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implements MetaData.Custom {
 
-    public static final String TYPE = "license";
+    public static final String WRITEABLE_TYPE = "license";
+
+    static final int SELF_GENERATED = 0;
+    static final int VERSION = 1;
+
+    // limit the maximum license content number of bytes (this can vary based on the algorithm used for encryption and
+    // the length of the client's name the license is issued to
+    private static final int MAX_LICENSE_CONTENT_LENGTH = 256;
 
     private String licenseKey;
 
-    public License(final String licenseKey) {
+    public LicenseKey(final String licenseKey) {
         this.licenseKey = licenseKey;
     }
 
-    public License(StreamInput in) throws IOException {
+    public LicenseKey(StreamInput in) throws IOException {
         readFrom(in);
     }
 
-    public String licenseKey() {
+    String licenseKey() {
         return licenseKey;
+    }
+
+    static DecodedLicense decodeLicense(LicenseKey licenseKey) {
+        byte[] keyBytes = Base64.getDecoder().decode(licenseKey.licenseKey());
+        ByteBuffer byteBuffer = ByteBuffer.wrap(keyBytes);
+        int licenseType = byteBuffer.getInt();
+        int version = byteBuffer.getInt();
+        int contentLength = byteBuffer.getInt();
+        if (contentLength > MAX_LICENSE_CONTENT_LENGTH) {
+            throw new InvalidLicenseException("The provided license key exceeds the maximum length of " + MAX_LICENSE_CONTENT_LENGTH);
+        }
+        byte[] contentBytes = new byte[contentLength];
+        byteBuffer.get(contentBytes);
+
+        return new DecodedLicense(licenseType, version, contentBytes);
+    }
+
+    /**
+     * Creates a LicenseKey by encoding the license information in the following structure:
+     *
+     *      base64Encode(licenseType, version, contentLength, content)
+     *
+     */
+    static LicenseKey createLicenseKey(int licenseType, int version, byte[] content) {
+        byte[] bytes = new byte[4 + 4 + 4 + content.length];
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        byteBuffer.putInt(licenseType)
+            .putInt(version)
+            .putInt(content.length)
+            .put(content);
+        return new LicenseKey(Base64.getEncoder().encodeToString(bytes));
     }
 
     public void readFrom(StreamInput in) throws IOException {
@@ -75,16 +116,16 @@ public class License extends AbstractNamedDiffable<MetaData.Custom> implements M
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         return builder
-            .startObject(TYPE)
-                .field("licenseKey", licenseKey)
+            .startObject(WRITEABLE_TYPE)
+                .field("license_key", licenseKey)
             .endObject();
     }
 
-    public static License fromXContent(XContentParser parser) throws IOException {
+    public static LicenseKey fromXContent(XContentParser parser) throws IOException {
         String licenseKey = null;
         // advance from metadata START_OBJECT
         XContentParser.Token token = parser.nextToken();
-        if (token != XContentParser.Token.FIELD_NAME || !Objects.equals(parser.currentName(), TYPE)) {
+        if (token != XContentParser.Token.FIELD_NAME || !Objects.equals(parser.currentName(), WRITEABLE_TYPE)) {
             throw new LicenseMetadataParsingException("license FIELD_NAME expected but got " + parser.currentToken());
         }
         // advance to license START_OBJECT
@@ -93,7 +134,7 @@ public class License extends AbstractNamedDiffable<MetaData.Custom> implements M
         }
 
         while ((token = parser.nextToken()) == XContentParser.Token.FIELD_NAME) {
-            if ("licenseKey".equals(parser.currentName())) {
+            if ("license_key".equals(parser.currentName())) {
                 licenseKey = parseStringField(parser);
             } else {
                 throw new LicenseMetadataParsingException("unexpected FIELD_NAME " + parser.currentToken());
@@ -109,7 +150,7 @@ public class License extends AbstractNamedDiffable<MetaData.Custom> implements M
             // each custom must move the parser to the end otherwise possible following customs won't be read
             throw new LicenseMetadataParsingException("expected an object token at the end");
         }
-        return new License(licenseKey);
+        return new LicenseKey(licenseKey);
     }
 
     private static String parseStringField(XContentParser parser) throws IOException {
@@ -122,8 +163,8 @@ public class License extends AbstractNamedDiffable<MetaData.Custom> implements M
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        License license = (License) o;
-        return Objects.equals(licenseKey, license.licenseKey);
+        LicenseKey licenseKey = (LicenseKey) o;
+        return Objects.equals(this.licenseKey, licenseKey.licenseKey);
     }
 
     @Override
@@ -138,7 +179,7 @@ public class License extends AbstractNamedDiffable<MetaData.Custom> implements M
 
     @Override
     public String getWriteableName() {
-        return TYPE;
+        return WRITEABLE_TYPE;
     }
 
 }
