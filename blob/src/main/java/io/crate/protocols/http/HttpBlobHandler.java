@@ -59,6 +59,8 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
+import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import java.io.IOException;
@@ -90,6 +92,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     private final Matcher blobsMatcher = BLOBS_PATTERN.matcher("");
     private final BlobService blobService;
     private final BlobIndicesService blobIndicesService;
+    private final Netty4CorsConfig corsConfig;
     private String activeScheme;
     private boolean sslEnabled;
     private HttpRequest currentMessage;
@@ -99,10 +102,11 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     private String index;
     private String digest;
 
-    public HttpBlobHandler(BlobService blobService, BlobIndicesService blobIndicesService) {
+    public HttpBlobHandler(BlobService blobService, BlobIndicesService blobIndicesService, Netty4CorsConfig corsConfig) {
         super(false);
         this.blobService = blobService;
         this.blobIndicesService = blobIndicesService;
+        this.corsConfig = corsConfig;
         this.activeScheme = SCHEME_HTTP;
         this.sslEnabled = false;
     }
@@ -117,13 +121,13 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             try {
                 redirectAddress = blobService.getRedirectAddress(index, digest);
             } catch (MissingHTTPEndpointException ex) {
-                simpleResponse(HttpResponseStatus.BAD_GATEWAY);
+                simpleResponse(request, HttpResponseStatus.BAD_GATEWAY);
                 return true;
             }
 
             if (redirectAddress != null) {
                 LOGGER.trace("redirectAddress: {}", redirectAddress);
-                sendRedirect(activeScheme + redirectAddress);
+                sendRedirect(request, activeScheme + redirectAddress);
                 return true;
             }
         }
@@ -144,7 +148,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
 
             Matcher matcher = blobsMatcher.reset(uri);
             if (!matcher.matches()) {
-                simpleResponse(HttpResponseStatus.NOT_FOUND);
+                simpleResponse(request, HttpResponseStatus.NOT_FOUND);
                 return;
             }
             digestBlob = null;
@@ -181,13 +185,13 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             get(request, index, digest);
             reset();
         } else if (method.equals(HttpMethod.HEAD)) {
-            head(index, digest);
+            head(request, index, digest);
         } else if (method.equals(HttpMethod.PUT)) {
-            put(content, index, digest);
+            put(request, content, index, digest);
         } else if (method.equals(HttpMethod.DELETE)) {
-            delete(index, digest);
+            delete(request, index, digest);
         } else {
-            simpleResponse(HttpResponseStatus.METHOD_NOT_ALLOWED);
+            simpleResponse(request, HttpResponseStatus.METHOD_NOT_ALLOWED);
         }
     }
 
@@ -197,10 +201,10 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         currentMessage = null;
     }
 
-    private void sendRedirect(String newUri) {
+    private void sendRedirect(HttpRequest request, String newUri) {
         HttpResponse response = prepareResponse(TEMPORARY_REDIRECT);
         response.headers().add(HttpHeaderNames.LOCATION, newUri);
-        sendResponse(response);
+        sendResponse(request, response);
     }
 
     private HttpResponse prepareResponse(HttpResponseStatus status) {
@@ -210,13 +214,13 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         return response;
     }
 
-    private void simpleResponse(HttpResponseStatus status) {
-        sendResponse(prepareResponse(status));
+    private void simpleResponse(HttpRequest request, HttpResponseStatus status) {
+        sendResponse(request, prepareResponse(status));
     }
 
-    private void simpleResponse(HttpResponseStatus status, String body) {
+    private void simpleResponse(HttpRequest request, HttpResponseStatus status, String body) {
         if (body == null) {
-            simpleResponse(status);
+            simpleResponse(request, status);
             return;
         }
         if (!body.endsWith("\n")) {
@@ -226,7 +230,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         DefaultFullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, status, content);
         HttpUtil.setContentLength(response, body.length());
         maybeSetConnectionCloseHeader(response);
-        sendResponse(response);
+        sendResponse(request, response);
     }
 
     private void maybeSetConnectionCloseHeader(HttpResponse response) {
@@ -235,7 +239,10 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         }
     }
 
-    private void sendResponse(HttpResponse response) {
+    private void sendResponse(HttpRequest request, HttpResponse response) {
+        if (request != null) {
+            Netty4CorsHandler.setCorsResponseHeaders(request, response, corsConfig);
+        }
         ChannelFuture cf = ctx.channel().writeAndFlush(response);
         if (currentMessage != null && !HttpUtil.isKeepAlive(currentMessage)) {
             cf.addListener(ChannelFutureListener.CLOSE);
@@ -283,10 +290,10 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         if (body != null) {
             LOGGER.debug(body);
         }
-        simpleResponse(status, body);
+        simpleResponse(null, status, body);
     }
 
-    private void head(String index, String digest) throws IOException {
+    private void head(HttpRequest request, String index, String digest) throws IOException {
 
         // this method only supports local mode, which is ok, since there
         // should be a redirect upfront if data is not local
@@ -294,13 +301,13 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         BlobShard blobShard = localBlobShard(index, digest);
         long length = blobShard.blobContainer().getFile(digest).length();
         if (length < 1) {
-            simpleResponse(HttpResponseStatus.NOT_FOUND);
+            simpleResponse(request, HttpResponseStatus.NOT_FOUND);
             return;
         }
         HttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, HttpResponseStatus.OK);
         HttpUtil.setContentLength(response, length);
         setDefaultGetHeaders(response);
-        sendResponse(response);
+        sendResponse(request, response);
     }
 
     private void get(HttpRequest request, String index, final String digest) throws IOException {
@@ -335,7 +342,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
                 start = Long.parseLong(matcher.group(1));
                 if (start > raf.length()) {
                     LOGGER.warn("416 Requested Range not satisfiable");
-                    simpleResponse(HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE);
+                    simpleResponse(request, HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE);
                     raf.close();
                     return;
                 }
@@ -352,6 +359,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             DefaultHttpResponse response = new DefaultHttpResponse(HTTP_1_1, PARTIAL_CONTENT);
             maybeSetConnectionCloseHeader(response);
             HttpUtil.setContentLength(response, end - start + 1);
+            Netty4CorsHandler.setCorsResponseHeaders(request, response, corsConfig);
             response.headers().set(HttpHeaderNames.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + raf.length());
             setDefaultGetHeaders(response);
 
@@ -374,6 +382,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     private void fullContentResponse(HttpRequest request, String index, final String digest) throws IOException {
         BlobShard blobShard = localBlobShard(index, digest);
         HttpResponse response = new DefaultHttpResponse(HTTP_1_1, HttpResponseStatus.OK);
+        Netty4CorsHandler.setCorsResponseHeaders(request, response, corsConfig);
         final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest);
         try {
             HttpUtil.setContentLength(response, raf.length());
@@ -436,7 +445,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         response.headers().set(HttpHeaderNames.CACHE_CONTROL, CACHE_CONTROL_VALUE);
     }
 
-    private void put(HttpContent content, String index, String digest) throws IOException {
+    private void put(HttpRequest request, HttpContent content, String index, String digest) throws IOException {
         if (digestBlob == null) {
             digestBlob = blobService.newBlob(index, digest);
         }
@@ -452,23 +461,23 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         boolean isLast = content instanceof LastHttpContent;
         ByteBuf byteBuf = content.content();
         try {
-            writeToFile(byteBuf, isLast, continueExpected);
+            writeToFile(request, byteBuf, isLast, continueExpected);
         } finally {
             byteBuf.release();
         }
     }
 
-    private void delete(String index, String digest) throws IOException {
+    private void delete(HttpRequest request, String index, String digest) throws IOException {
         digestBlob = blobService.newBlob(index, digest);
         if (digestBlob.delete()) {
             // 204 for success
-            simpleResponse(HttpResponseStatus.NO_CONTENT);
+            simpleResponse(request, HttpResponseStatus.NO_CONTENT);
         } else {
-            simpleResponse(HttpResponseStatus.NOT_FOUND);
+            simpleResponse(request, HttpResponseStatus.NOT_FOUND);
         }
     }
 
-    private void writeToFile(ByteBuf input, boolean last, final boolean continueExpected) throws IOException {
+    private void writeToFile(HttpRequest request, ByteBuf input, boolean last, final boolean continueExpected) throws IOException {
         if (digestBlob == null) {
             throw new IllegalStateException("digestBlob is null in writeToFile");
         }
@@ -500,7 +509,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
 
         assert exitStatus != null : "exitStatus should not be null";
         LOGGER.trace("writeToFile exit status http:{} blob: {}", exitStatus, status);
-        simpleResponse(exitStatus);
+        simpleResponse(request, exitStatus);
     }
 
     @Override

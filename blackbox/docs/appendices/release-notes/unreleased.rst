@@ -44,6 +44,9 @@ Changes
 Fixes
 =====
 
+- The ``Access-Control-Allow-Origin`` header is now correctly served by
+  resources in the ``/_blobs`` endpoint if the relevant settings are enabled.
+
 - Fixed decoding of postgres specific array literal constant: unquoted elements
   and single element arrays were not decoded correctly and resulted in an empty
   array.
