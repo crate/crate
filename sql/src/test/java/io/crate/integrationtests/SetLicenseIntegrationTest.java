@@ -22,24 +22,20 @@
 
 package io.crate.integrationtests;
 
-import io.crate.license.License;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.license.LicenseKey;
 import org.junit.Test;
 
-@ESIntegTestCase.ClusterScope()
+import static org.hamcrest.core.Is.is;
+
 public class SetLicenseIntegrationTest extends SQLTransportIntegrationTest {
 
-    private static final String ENCRYPTED_LICENSE_KEY = "ThisShouldBeTheEncryptedLicenseKey";
-
-    private static License createMetaData() {
-        return new License(ENCRYPTED_LICENSE_KEY);
-    }
+    private static final String LICENSE_KEY = "AAAAAAAAAAEAAABACYK5Ua3JBI98IJ99P/AsXCsV7UpHiBzSjkg+pFNDkpYAZUttlnqldjF5BAtRfzuJHA+2091XDmHACmF+M1J0NQ==";
 
     @Test
-    public void testLicenseIsAvailableInClusterStateAfterSetLicense () {
-        execute("set license '" + ENCRYPTED_LICENSE_KEY + "'");
+    public void testLicenseIsAvailableInClusterStateAfterSetLicense() {
+        execute("set license '" + LICENSE_KEY + "'");
 
-        License license = clusterService().state().metaData().custom(License.TYPE);
-        assertEquals(createMetaData(), license);
+        LicenseKey licenseKey = clusterService().state().metaData().custom(LicenseKey.WRITEABLE_TYPE);
+        assertThat(licenseKey, is(new LicenseKey(LICENSE_KEY)));
     }
 }
