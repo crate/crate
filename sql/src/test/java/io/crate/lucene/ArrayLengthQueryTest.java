@@ -32,6 +32,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 
 public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
 
@@ -68,8 +69,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testGt0FiltersEmptyAndNullRecords() throws Exception {
-        List<Object> rows = tester.runQuery("xs", "array_upper(xs, 1) > 0");
+    public void testArrayLengthGt0FiltersEmptyAndNullRecords() throws Exception {
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) > 0");
         assertThat(
             rows,
             containsInAnyOrder(
@@ -84,9 +85,9 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testGte0FiltersZeroLengthAndNullRecords() throws Exception {
+    public void testArrayLengthGte0FiltersZeroLengthAndNullRecords() throws Exception {
         // array_upper([], 1) evaluates to NULL so NULL >= 0 -> no match
-        List<Object> rows = tester.runQuery("xs", "array_upper(xs, 1) >= 0");
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) >= 0");
         assertThat(
             rows,
             containsInAnyOrder(
@@ -97,6 +98,156 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 new Object[] { 10, 10, 20 },
                 new Object[] { 10, 20, 30 }
             )
+        );
+    }
+
+    @Test
+    public void testArrayLengthGt1FiltersNullEmptyAndLength1Records() throws Exception {
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) > 1");
+        assertThat(
+            rows,
+            containsInAnyOrder(
+                new Object[] { 10, 10 },
+                new Object[] { 10, 20 },
+                new Object[] { 10, 10, 20 },
+                new Object[] { 10, 20, 30 }
+            )
+        );
+    }
+
+    @Test
+    public void testArrayLengthGte1ReturnsAllButEmptyOrNullValues() throws Exception {
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) >= 1");
+        assertThat(
+            rows,
+            containsInAnyOrder(
+                new Object[] { 10 },
+                new Object[] { 20 },
+                new Object[] { 10, 10 },
+                new Object[] { 10, 20 },
+                new Object[] { 10, 10, 20 },
+                new Object[] { 10, 20, 30 }
+            )
+        );
+    }
+
+    @Test
+    public void testArrayLengthGt2ReturnsAllGreater2() throws Exception {
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) > 2");
+        assertThat(
+            rows,
+            containsInAnyOrder(
+                new Object[] { 10, 10, 20 },
+                new Object[] { 10, 20, 30 }
+            )
+        );
+    }
+
+    @Test
+    public void testArrayLengthGte2ReturnsAllGreaterOrEq2() throws Exception {
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) >= 2");
+        assertThat(
+            rows,
+            containsInAnyOrder(
+                new Object[] { 10, 10 },
+                new Object[] { 10, 20 },
+                new Object[] { 10, 10, 20 },
+                new Object[] { 10, 20, 30 }
+            )
+        );
+    }
+
+    @Test
+    public void testArrayLengthLt0ReturnsNothing() throws Exception {
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) < 0");
+        assertThat(
+            rows,
+            empty()
+        );
+    }
+
+    @Test
+    public void testArrayLengthLte0ReturnsNothing() throws Exception {
+        // `array_length([], 1)` <= 0 --> `NULL <= 0` --> NO MATCH
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) <= 0");
+        assertThat(
+            rows,
+            empty()
+        );
+    }
+
+    @Test
+    public void testArrayLengthLt1ReturnsNothing() throws Exception {
+        // Since `array_length([], 1)` returns NULL, there can't be a match for < 1
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) < 1");
+        assertThat(
+            rows,
+            empty()
+        );
+    }
+
+    @Test
+    public void testArrayLengthLte1ReturnsArraysWith1Element() throws Exception {
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) <= 1");
+        assertThat(
+            rows,
+            containsInAnyOrder(
+                new Object[] { 10 },
+                new Object[] { 20 }
+            )
+        );
+    }
+
+    @Test
+    public void testArrayLengthLte3ReturnsArraysWithUpToIncl3Element() throws Exception {
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) <= 3");
+        assertThat(
+            rows,
+            containsInAnyOrder(
+                new Object[] { 10 },
+                new Object[] { 20 },
+                new Object[] { 10, 10 },
+                new Object[] { 10, 20 },
+                new Object[] { 10, 10, 20 },
+                new Object[] { 10, 20, 30 }
+            )
+        );
+    }
+
+    @Test
+    public void testArrayLengthLt3ReturnsArraysWithUpToExcl3Element() throws Exception {
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) < 3");
+        assertThat(
+            rows,
+            containsInAnyOrder(
+                new Object[] { 10 },
+                new Object[] { 20 },
+                new Object[] { 10, 10 },
+                new Object[] { 10, 20 }
+            )
+        );
+    }
+
+    @Test
+    public void testArrayLengthEq1ReturnsArraysWith1Element() throws Exception {
+        // Since `array_length([], 1)` returns NULL, there can't be a match for < 1
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) = 1");
+        assertThat(
+            rows,
+            containsInAnyOrder(
+                new Object[] { 10 },
+                new Object[] { 20 }
+            )
+        );
+    }
+
+    @Test
+    public void testArrayLengthEq0ReturnsNoElements() throws Exception {
+        // Since `array_length([], 1)` returns NULL, there can't be a match for = 0
+        List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) = 0");
+        assertThat(
+            rows,
+            empty()
         );
     }
 }
