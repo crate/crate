@@ -36,6 +36,7 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -146,7 +147,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
     }
 
     protected CloseableHttpResponse get(String uri) throws IOException {
-        return get(uri, null);
+        return get(uri, new Header[] { new BasicHeader("Origin", "http://example.com") });
     }
 
     protected boolean mget(String[] uris, Header[][] headers, final String[] expectedContent) throws Throwable {
