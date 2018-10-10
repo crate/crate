@@ -23,6 +23,7 @@
 package io.crate.testing;
 
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.auth.user.User;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterators;
 import io.crate.data.Input;
@@ -34,6 +35,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Schemas;
@@ -113,7 +115,8 @@ import static org.elasticsearch.mock.orig.Mockito.mock;
 public final class QueryTester implements AutoCloseable {
 
     private final BiFunction<ColumnIdent, Query, LuceneBatchIterator> getIterator;
-    private final Function<String, Query> expressionToQuery;
+    private final BiFunction<String, Object[], Symbol> expressionToSymbol;
+    private final Function<Symbol, Query> symbolToQuery;
     private final AutoCloseable onClose;
 
     public static class Builder {
@@ -129,10 +132,13 @@ public final class QueryTester implements AutoCloseable {
         private final SqlExpressions expressions;
         private final LuceneReferenceResolver luceneReferenceResolver;
         private final NodeEnvironment nodeEnvironment;
+        private final DocTableRelation docTableRelation;
+        private final QualifiedName tableName;
 
         public Builder(Path tempDir,
                        ThreadPool threadPool,
                        ClusterService clusterService,
+                       Version indexVersion,
                        String createTableStmt) throws IOException {
             sqlExecutor = SQLExecutor
                 .builder(clusterService)
@@ -144,7 +150,7 @@ public final class QueryTester implements AutoCloseable {
             Index index = new Index(table.ident().indexName(), UUIDs.randomBase64UUID());
             queryBuilder = new LuceneQueryBuilder(sqlExecutor.functions());
             Settings nodeSettings = Settings.builder()
-                .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
+                .put(IndexMetaData.SETTING_VERSION_CREATED, indexVersion)
                 .put("path.home", tempDir.toAbsolutePath())
                 .build();
             Environment env = new Environment(nodeSettings, tempDir.resolve("config"));
@@ -220,8 +226,8 @@ public final class QueryTester implements AutoCloseable {
             indexFieldDataService = indexService.fieldData();
             IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());
             writer = new IndexWriter(new RAMDirectory(), conf);
-            QualifiedName tableName = new QualifiedName(table.ident().name());
-            DocTableRelation docTableRelation = new DocTableRelation(table);
+            tableName = new QualifiedName(table.ident().name());
+            docTableRelation = new DocTableRelation(table);
             expressions = new SqlExpressions(
                 Collections.singletonMap(tableName, docTableRelation),
                 docTableRelation
@@ -253,7 +259,14 @@ public final class QueryTester implements AutoCloseable {
             throw new IllegalArgumentException("Create table statement must result in the creation of a user table");
         }
 
-        public Builder addDoc(String column, Object value) throws IOException {
+        public Builder indexValues(String column, Object ... values) throws IOException {
+            for (Object value : values) {
+                indexValue(column, value);
+            }
+            return this;
+        }
+
+        void indexValue(String column, Object value) throws IOException {
             DocumentMapper mapper = mapperService.documentMapperWithAutoCreate("default").getDocumentMapper();
             InsertSourceGen sourceGen = InsertSourceGen.of(
                 sqlExecutor.functions(),
@@ -271,8 +284,6 @@ public final class QueryTester implements AutoCloseable {
             );
             ParsedDocument parsedDocument = mapper.parse(sourceToParse);
             writer.addDocuments(parsedDocument.docs());
-            writer.commit();
-            return this;
         }
 
         private LuceneBatchIterator getIterator(ColumnIdent column, Query query) {
@@ -298,15 +309,24 @@ public final class QueryTester implements AutoCloseable {
             );
         }
 
-        public QueryTester build() {
+        public QueryTester build() throws IOException {
+            writer.commit();
             return new QueryTester(
                 this::getIterator,
-                expr -> queryBuilder.convert(
-                    expressions.normalize(expressions.asSymbol(expr)),
-                    mapperService,
-                    queryShardContext.get(),
-                    indexCache
-                ).query(),
+                (expr, params) -> {
+                    if (params == null) {
+                        return expressions.normalize(expressions.asSymbol(expr));
+                    } else {
+                        SqlExpressions sqlExpressions = new SqlExpressions(
+                            Collections.singletonMap(tableName, docTableRelation),
+                            docTableRelation,
+                            params,
+                            User.CRATE_USER
+                        );
+                        return sqlExpressions.normalize(sqlExpressions.asSymbol(expr));
+                    }
+                },
+                symbol -> queryBuilder.convert(symbol, mapperService, queryShardContext.get(), indexCache).query(),
                 () -> {
                     writer.close();
                     nodeEnvironment.close();
@@ -316,15 +336,29 @@ public final class QueryTester implements AutoCloseable {
     }
 
     private QueryTester(BiFunction<ColumnIdent, Query, LuceneBatchIterator> getIterator,
-                        Function<String, Query> expressionToQuery,
+                        BiFunction<String, Object[], Symbol> expressionToSymbol,
+                        Function<Symbol, Query> symbolToQuery,
                         AutoCloseable onClose) {
         this.getIterator = getIterator;
-        this.expressionToQuery = expressionToQuery;
+        this.expressionToSymbol = expressionToSymbol;
+        this.symbolToQuery = symbolToQuery;
         this.onClose = onClose;
     }
 
+    public Query toQuery(String expression) {
+        return symbolToQuery.apply(expressionToSymbol.apply(expression, null));
+    }
+
+    public Query toQuery(String expression, Object ... params) {
+        return symbolToQuery.apply(expressionToSymbol.apply(expression, params));
+    }
+
+    public Query toQuery(Symbol expression) {
+        return symbolToQuery.apply(expression);
+    }
+
     public List<Object> runQuery(String resultColumn, String expression) throws Exception {
-        Query query = expressionToQuery.apply(expression);
+        Query query = toQuery(expression);
         LuceneBatchIterator batchIterator = getIterator.apply(ColumnIdent.fromPath(resultColumn), query);
         return BatchIterators.collect(
             batchIterator,
