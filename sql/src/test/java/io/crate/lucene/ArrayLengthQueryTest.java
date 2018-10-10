@@ -24,6 +24,7 @@ package io.crate.lucene;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.QueryTester;
+import org.elasticsearch.Version;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,18 +43,22 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             createTempDir(),
             THREAD_POOL,
             clusterService,
+            Version.CURRENT,
             "create table t (xs array(integer))"
         );
         tester = builder
-            .addDoc("xs", null)
-            .addDoc("xs", new Object[0])
-            .addDoc("xs", new Object[0])
-            .addDoc("xs", new Object[] { 10 })
-            .addDoc("xs", new Object[] { 20 })
-            .addDoc("xs", new Object[] { 10, 10 })
-            .addDoc("xs", new Object[] { 10, 20 })
-            .addDoc("xs", new Object[] { 10, 10, 20 })
-            .addDoc("xs", new Object[] { 10, 20, 30 })
+            .indexValues(
+                "xs",
+                null,
+                new Object[0],
+                new Object[0],
+                new Object[] { 10 },
+                new Object[] { 20 },
+                new Object[] { 10, 10 },
+                new Object[] { 10, 20 },
+                new Object[] { 10, 10, 20 },
+                new Object[] { 10, 20, 30 }
+            )
             .build();
     }
 
