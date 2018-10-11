@@ -22,7 +22,7 @@
 
 package io.crate.license;
 
-import io.crate.license.exception.LicenseInvalidException;
+import io.crate.license.exception.InvalidLicenseException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -50,7 +50,7 @@ public class LicenseService {
         if (validateLicense(licenseMetaData)) {
             transportSetLicenseAction.execute(new SetLicenseRequest(licenseMetaData), listener);
         } else {
-            listener.onFailure(new LicenseInvalidException());
+            listener.onFailure(new InvalidLicenseException());
         }
     }
 }

@@ -22,7 +22,6 @@
 
 package io.crate.license;
 
-import io.crate.license.exception.LicenseInvalidException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
