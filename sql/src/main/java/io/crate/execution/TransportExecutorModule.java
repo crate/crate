@@ -75,6 +75,5 @@ public class TransportExecutorModule extends AbstractModule {
         bind(TransportDropIngestRuleAction.class).asEagerSingleton();
         bind(TransportCreateViewAction.class).asEagerSingleton();
         bind(TransportDropViewAction.class).asEagerSingleton();
-        bind(TransportSetLicenseAction.class).asEagerSingleton();
     }
 }

@@ -22,27 +22,19 @@
 
 package io.crate.license;
 
-import org.apache.logging.log4j.Logger;
+import io.crate.license.exception.LicenseInvalidException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.unit.TimeValue;
 
 @Singleton
 public class LicenseService {
 
-    private static final Logger LOGGER = Loggers.getLogger(LicenseService.class);
-
-    private final ClusterService clusterService;
+    private final TransportSetLicenseAction transportSetLicenseAction;
 
     @Inject
-    public LicenseService(ClusterService clusterService) {
-        this.clusterService = clusterService;
+    public LicenseService(TransportSetLicenseAction transportSetLicenseAction) {
+        this.transportSetLicenseAction = transportSetLicenseAction;
     }
 
     boolean validateLicense(final LicenseMetaData license) {
@@ -53,32 +45,12 @@ public class LicenseService {
     }
 
 
-    void registerLicense(final LicenseMetaData licenseMetaData,
-                         final ActionListener<SetLicenseResponse> listener,
-                         final TimeValue timeout) {
-        clusterService.submitStateUpdateTask("register license to [" + licenseMetaData.issuedTo() + "]",
-            new ClusterStateUpdateTask() {
-                @Override
-                public ClusterState execute(ClusterState currentState) throws Exception {
-                    MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
-                    mdBuilder.putCustom(LicenseMetaData.TYPE, licenseMetaData);
-                    return ClusterState.builder(currentState).metaData(mdBuilder).build();
-                }
-
-                @Override
-                public TimeValue timeout() {
-                    return timeout;
-                }
-
-                @Override
-                public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                    listener.onResponse(new SetLicenseResponse(true));
-                }
-
-                @Override
-                public void onFailure(String source, Exception e) {
-                    listener.onFailure(e);
-                }
-            });
+    public void registerLicense(final LicenseMetaData licenseMetaData,
+                                final ActionListener<SetLicenseResponse> listener) {
+        if (validateLicense(licenseMetaData)) {
+            transportSetLicenseAction.execute(new SetLicenseRequest(licenseMetaData), listener);
+        } else {
+            listener.onFailure(new LicenseInvalidException());
+        }
     }
 }

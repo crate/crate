@@ -27,13 +27,16 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -41,19 +44,15 @@ import org.elasticsearch.transport.TransportService;
 public class TransportSetLicenseAction
     extends TransportMasterNodeAction<SetLicenseRequest, SetLicenseResponse> {
 
-    private final LicenseService licenseService;
-
     @Inject
     public TransportSetLicenseAction(Settings settings,
                                      TransportService transportService,
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
-                                     LicenseService licenseService,
                                      ActionFilters actionFilters,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, "crate/sql/set_license", transportService, clusterService, threadPool, actionFilters,
             indexNameExpressionResolver, SetLicenseRequest::new);
-        this.licenseService = licenseService;
     }
 
     @Override
@@ -70,13 +69,31 @@ public class TransportSetLicenseAction
     protected void masterOperation(final SetLicenseRequest request,
                                    ClusterState state,
                                    ActionListener<SetLicenseResponse> listener) throws Exception {
-
         LicenseMetaData metaData = request.licenseMetaData();
-        if (licenseService.validateLicense(metaData)) {
-            licenseService.registerLicense(metaData, listener, request.masterNodeTimeout());
-        } else {
-            listener.onFailure(new LicenseInvalidException());
-        }
+        clusterService.submitStateUpdateTask("register license to [" + metaData.issuedTo() + "]",
+            new ClusterStateUpdateTask() {
+                @Override
+                public ClusterState execute(ClusterState currentState) throws Exception {
+                    MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
+                    mdBuilder.putCustom(LicenseMetaData.TYPE, metaData);
+                    return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                }
+
+                @Override
+                public TimeValue timeout() {
+                    return request.masterNodeTimeout();
+                }
+
+                @Override
+                public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
+                    listener.onResponse(new SetLicenseResponse(true));
+                }
+
+                @Override
+                public void onFailure(String source, Exception e) {
+                    listener.onFailure(e);
+                }
+            });
     }
 
     @Override

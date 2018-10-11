@@ -60,7 +60,6 @@ public class TransportActionProvider {
     private final Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider;
     private final Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider;
     private final Provider<TransportGetSnapshotsAction> transportGetSnapshotsActionProvider;
-    private final Provider<TransportSetLicenseAction> transportSetLicenseActionProvider;
 
     @Inject
     public TransportActionProvider(Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
@@ -92,7 +91,6 @@ public class TransportActionProvider {
         this.transportCreateSnapshotActionProvider = transportCreateSnapshotActionProvider;
         this.transportRestoreSnapshotActionProvider = transportRestoreSnapshotActionProvider;
         this.transportGetSnapshotsActionProvider = transportGetSnapshotsActionPovider;
-        this.transportSetLicenseActionProvider = transportSetLicenseActionProvider;
     }
 
     public TransportCreatePartitionsAction transportBulkCreateIndicesAction() {
@@ -149,9 +147,5 @@ public class TransportActionProvider {
 
     public TransportGetSnapshotsAction transportGetSnapshotsAction() {
         return transportGetSnapshotsActionProvider.get();
-    }
-
-    public TransportSetLicenseAction transportSetLicenseAction() {
-        return transportSetLicenseActionProvider.get();
     }
 }
