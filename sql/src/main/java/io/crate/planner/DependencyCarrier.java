@@ -30,6 +30,7 @@ import io.crate.execution.ddl.views.TransportCreateViewAction;
 import io.crate.execution.ddl.views.TransportDropViewAction;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.PhasesTaskFactory;
+import io.crate.license.LicenseService;
 import io.crate.metadata.Functions;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -57,6 +58,7 @@ public class DependencyCarrier {
     private final ProjectionBuilder projectionBuilder;
     private final TransportCreateViewAction createViewAction;
     private final TransportDropViewAction dropViewAction;
+    private final LicenseService licenseService;
 
     @Inject
     public DependencyCarrier(Settings settings,
@@ -66,6 +68,7 @@ public class DependencyCarrier {
                              Functions functions,
                              DDLStatementDispatcher ddlAnalysisDispatcherProvider,
                              ClusterService clusterService,
+                             LicenseService licenseService,
                              DCLStatementDispatcher dclStatementDispatcher,
                              TransportDropTableAction transportDropTableAction,
                              TransportCreateViewAction createViewAction,
@@ -77,6 +80,7 @@ public class DependencyCarrier {
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.clusterService = clusterService;
+        this.licenseService = licenseService;
         this.dclStatementDispatcher = dclStatementDispatcher;
         this.transportDropTableAction = transportDropTableAction;
         projectionBuilder = new ProjectionBuilder(functions);
@@ -102,6 +106,10 @@ public class DependencyCarrier {
 
     public ClusterService clusterService() {
         return clusterService;
+    }
+
+    public LicenseService licenseService() {
+        return licenseService;
     }
 
     public ScheduledExecutorService scheduler() {

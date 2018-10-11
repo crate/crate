@@ -30,7 +30,6 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.license.LicenseMetaData;
-import io.crate.license.SetLicenseRequest;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -84,8 +83,6 @@ public class SetLicensePlan implements Plan {
 
         LicenseMetaData metaData = new LicenseMetaData(expirationDateMs,
             issueTo.utf8ToString(), signature.utf8ToString());
-        SetLicenseRequest request = new SetLicenseRequest(metaData);
-        executor.transportActionProvider().transportSetLicenseAction().execute(request, new
-            OneRowActionListener<>(consumer, response -> new Row1(1L)));
+        executor.licenseService().registerLicense(metaData, new OneRowActionListener<>(consumer, response -> new Row1(1L)));
     }
 }
