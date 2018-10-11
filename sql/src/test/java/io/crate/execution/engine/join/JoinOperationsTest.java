@@ -162,4 +162,22 @@ public class JoinOperationsTest extends CrateUnitTest {
         assertThat(joinPair.joinType(), is(JoinType.SEMI));
         assertThat(remainingQueries.size(), is(1));
     }
+
+    @Test
+    public void testImplicitToExplicit_OrderOfPairsRemains() {
+        List<JoinPair> joinPairs = new ArrayList<>();
+        joinPairs.add(JoinPair.of(T3.T1, T3.T2, JoinType.INNER, asSymbol("t1.a = t2.b")));
+        joinPairs.add(JoinPair.of(T3.T2, T3.T3, JoinType.INNER, asSymbol("t2.y = t3.z")));
+        Map<Set<QualifiedName>, Symbol> remainingQueries = new HashMap<>();
+        remainingQueries.put(Sets.newHashSet(T3.T2, T3.T3), asSymbol("t2.b = t3.c"));
+        List<JoinPair> newJoinPairs =
+            JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
+
+        for (int i = 0; i < joinPairs.size(); i++) {
+            JoinPair oldPairAtPos = joinPairs.get(i);
+            JoinPair newPairAtPos = newJoinPairs.get(i);
+            assertThat(oldPairAtPos.left(), is(newPairAtPos.left()));
+            assertThat(oldPairAtPos.right(), is(newPairAtPos.right()));
+        }
+    }
 }
