@@ -100,7 +100,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     private String[] awarenessAttributes;
 
-
     @Inject
     public Planner(Settings settings, ClusterService clusterService, Functions functions, TableStats tableStats) {
         this.clusterService = clusterService;
