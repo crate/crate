@@ -43,7 +43,6 @@ import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -144,15 +143,16 @@ public final class JoinOperations {
     /**
      * Converts any implicit join conditions of the WHERE clause to explicit {@link JoinPair}.
      * Every join condition that gets to be converted is removed from the {@code splitQueries}
+     *
      * @param explicitJoinPairs The explicitJoinPairs as originally written in the query
      * @param splitQueries      The remaining queries of the WHERE clause split by involved relations
      * @return the new list of {@link JoinPair}
      */
     public static List<JoinPair> convertImplicitJoinConditionsToJoinPairs(List<JoinPair> explicitJoinPairs,
                                                                           Map<Set<QualifiedName>, Symbol> splitQueries) {
-        BitSet processedJoinPairs = new BitSet(explicitJoinPairs.size());
         Iterator<Map.Entry<Set<QualifiedName>, Symbol>> queryIterator = splitQueries.entrySet().iterator();
-        List<JoinPair> newJoinPairs = new ArrayList<>(explicitJoinPairs.size() + splitQueries.size());
+        ArrayList<JoinPair> newJoinPairs = new ArrayList<>(explicitJoinPairs.size() + splitQueries.size());
+        newJoinPairs.addAll(explicitJoinPairs);
 
         while (queryIterator.hasNext()) {
             Map.Entry<Set<QualifiedName>, Symbol> queryEntry = queryIterator.next();
@@ -161,10 +161,11 @@ public final class JoinOperations {
             if (relations.size() == 2) { // If more than 2 relations are involved it cannot be converted to a JoinPair
                 Symbol implicitJoinCondition = queryEntry.getValue();
                 JoinPair newJoinPair = null;
+                int existingJoinPairIdx = -1;
                 for (int i = 0; i < explicitJoinPairs.size(); i++) {
                     JoinPair joinPair = explicitJoinPairs.get(i);
                     if (relations.contains(joinPair.left()) && relations.contains(joinPair.right())) {
-                        processedJoinPairs.set(i);
+                        existingJoinPairIdx = i;
                         // If a JoinPair with the involved relations already exists then depending on the JoinType:
                         //  - INNER JOIN:  the implicit join condition can be "AND joined" with
                         //                 the existing explicit condition of the JoinPair.
@@ -194,23 +195,13 @@ public final class JoinOperations {
                     Iterator<QualifiedName> namesIter = relations.iterator();
                     newJoinPair = JoinPair.of(namesIter.next(), namesIter.next(), JoinType.INNER, implicitJoinCondition);
                     queryIterator.remove();
+                    newJoinPairs.add(newJoinPair);
+                } else {
+                    newJoinPairs.set(existingJoinPairIdx, newJoinPair);
                 }
-
-                newJoinPairs.add(newJoinPair);
             }
         }
-        addNotProcessedExcistingJoinPairs(explicitJoinPairs, processedJoinPairs, newJoinPairs);
         return newJoinPairs;
-    }
-
-    private static void addNotProcessedExcistingJoinPairs(List<JoinPair> explicitJoinPairs,
-                                                           BitSet processedJoinPairs,
-                                                           List<JoinPair> newJoinPairs) {
-        for (int i = 0; i < explicitJoinPairs.size(); i++) {
-            if (processedJoinPairs.get(i) == false) {
-                newJoinPairs.add(explicitJoinPairs.get(i));
-            }
-        }
     }
 
     private static Symbol mergeJoinConditions(@Nullable Symbol condition1, Symbol condition2) {
