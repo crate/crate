@@ -24,7 +24,6 @@ package io.crate.planner.consumer;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.Iterables;
-import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -42,10 +41,10 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PositionalOrderBy;
@@ -56,6 +55,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Before;
@@ -65,10 +65,10 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.List;
 
-import static io.crate.analyze.TableDefinitions.shardRouting;
 import static io.crate.testing.SymbolMatchers.isAggregation;
 import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static io.crate.testing.SymbolMatchers.isReference;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -85,15 +85,20 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws IOException {
         e  = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
             .enableDefaultTables()
-            .addDocTable(TableDefinitions.CLUSTERED_PARTED)
-            .addDocTable(TestingTableInfo.builder(
-                new RelationName("doc", "empty_parted"), shardRouting("empty_parted"))
-                .add("id", DataTypes.INTEGER)
-                .add("date", DataTypes.TIMESTAMP, null, true)
-                .addPrimaryKey("id")
-                .addPrimaryKey("date")
-                .clusteredBy("id")
-                .build()
+            .addPartitionedTable(
+                "create table doc.clustered_parted (" +
+                "   id integer," +
+                "   date timestamp," +
+                "   city string" +
+                ") clustered by (city) partitioned by (date) ",
+                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList(new BytesRef("1395874800000"))).asIndexName(),
+                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList(new BytesRef("1395961200000"))).asIndexName()
+            )
+            .addPartitionedTable(
+                "create table doc.empty_parted (" +
+                "   id integer primary key," +
+                "   date timestamp primary key" +
+                ") clustered by (id) partitioned by (date)"
             ).build();
     }
 
@@ -558,35 +563,27 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNoDistributedGroupByOnAllPrimaryKeys() throws Exception {
-        Merge merge = e.plan(
+        Collect collect = e.plan(
             "select count(*), id, date from empty_parted group by id, date limit 20");
-        Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertThat(collectPhase.projections().size(), is(3));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(collectPhase.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(collectPhase.projections().get(2), instanceOf(EvalProjection.class));
-        MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections().size(), is(1));
-        assertThat(mergePhase.projections().get(0), instanceOf(TopNProjection.class));
     }
 
     @Test
     public void testNonDistributedGroupByAggregationsWrappedInScalar() throws Exception {
-        Merge planNode = e.plan(
+        Collect collect = e.plan(
             "select (count(*) + 1), id from empty_parted group by id");
-        Merge reduceMerge = (Merge) planNode.subPlan();
 
-        CollectPhase collectPhase = ((Collect) reduceMerge.subPlan()).collectPhase();
+        CollectPhase collectPhase = collect.collectPhase();
         assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class)
+            instanceOf(GroupProjection.class), // shard level
+            instanceOf(GroupProjection.class), // node level
+            instanceOf(EvalProjection.class) // count(*) + 1
         ));
-        assertThat(collectPhase.projections().size(), is(1));
-        assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
-
-        MergePhase mergePhase = planNode.mergePhase();
-        assertThat(mergePhase.projections().size(), is(0));
     }
 
     @Test
