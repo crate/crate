@@ -22,9 +22,9 @@
 
 package io.crate.license.exception;
 
-public class LicenseInvalidException extends LicenseException {
+public class InvalidLicenseException extends LicenseException {
 
-    public LicenseInvalidException() {
+    public InvalidLicenseException() {
         super("Unable to validate license");
     }
 }
