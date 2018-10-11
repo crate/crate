@@ -122,8 +122,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testEqOnTwoArraysBecomesGenericFunctionQueryAllValuesNull() throws Exception {
-        SqlExpressions sqlExpressions = new SqlExpressions(sources, new Object[]{new Object[]{null, null, null}});
-        Query query = convert(expressions.normalize(sqlExpressions.asSymbol("y_array = ?")));
+        Query query = convert("y_array = [null, null, null]");
         assertThat(query, instanceOf(GenericFunctionQuery.class));
     }
 
@@ -131,8 +130,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testEqOnArrayWithTooManyClauses() throws Exception {
         Object[] values = new Object[2000]; // should trigger the TooManyClauses exception
         Arrays.fill(values, 10L);
-        SqlExpressions sqlExpressions = new SqlExpressions(sources, new Object[]{values});
-        Query query = convert(expressions.normalize(sqlExpressions.asSymbol("y_array = ?")));
+        Query query = convert("y_array = ?", new Object[] { values });
         assertThat(query, instanceOf(BooleanQuery.class));
         BooleanQuery booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(PointInSetQuery.class));
