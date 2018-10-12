@@ -22,7 +22,7 @@
 
 package io.crate.plugin;
 
-import io.crate.license.LicenseMetaData;
+import io.crate.license.License;
 import io.crate.license.LicenseModule;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -70,13 +70,13 @@ public class LicensePlugin extends Plugin implements ActionPlugin {
         List<NamedWriteableRegistry.Entry> entries = new ArrayList<>();
         entries.add(new NamedWriteableRegistry.Entry(
             MetaData.Custom.class,
-            LicenseMetaData.TYPE,
-            LicenseMetaData::new
+            License.TYPE,
+            License::new
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
-            LicenseMetaData.TYPE,
-            in -> LicenseMetaData.readDiffFrom(MetaData.Custom.class, LicenseMetaData.TYPE, in)
+            License.TYPE,
+            in -> License.readDiffFrom(MetaData.Custom.class, License.TYPE, in)
         ));
         return entries;
     }
@@ -85,8 +85,8 @@ public class LicensePlugin extends Plugin implements ActionPlugin {
     public List<NamedXContentRegistry.Entry> getNamedXContent() {
         return Collections.singletonList(new NamedXContentRegistry.Entry(
             MetaData.Custom.class,
-            new ParseField(LicenseMetaData.TYPE),
-            LicenseMetaData::fromXContent
+            new ParseField(License.TYPE),
+            License::fromXContent
         ));
     }
 }
