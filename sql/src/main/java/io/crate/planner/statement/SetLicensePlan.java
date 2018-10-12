@@ -27,7 +27,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.license.LicenseMetaData;
+import io.crate.license.License;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -52,7 +52,7 @@ public class SetLicensePlan implements Plan {
                         RowConsumer consumer,
                         Row params,
                         SubQueryResults subQueryResults) {
-        LicenseMetaData metaData = new LicenseMetaData(stmt.licenseKey());
+        License metaData = new License(stmt.licenseKey());
         executor.licenseService().registerLicense(metaData, new OneRowActionListener<>(consumer, response -> new Row1(1L)));
     }
 }

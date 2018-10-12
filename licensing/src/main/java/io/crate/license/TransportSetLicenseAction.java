@@ -68,13 +68,13 @@ public class TransportSetLicenseAction
     protected void masterOperation(final SetLicenseRequest request,
                                    ClusterState state,
                                    ActionListener<SetLicenseResponse> listener) throws Exception {
-        LicenseMetaData metaData = request.licenseMetaData();
+        License metaData = request.licenseMetaData();
         clusterService.submitStateUpdateTask("register license with key [" + metaData.licenseKey() + "]",
             new ClusterStateUpdateTask() {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
-                    mdBuilder.putCustom(LicenseMetaData.TYPE, metaData);
+                    mdBuilder.putCustom(License.TYPE, metaData);
                     return ClusterState.builder(currentState).metaData(mdBuilder).build();
                 }
 

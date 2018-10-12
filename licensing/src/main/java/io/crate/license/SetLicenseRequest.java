@@ -32,22 +32,22 @@ import java.io.IOException;
 
 public class SetLicenseRequest extends MasterNodeRequest<SetLicenseRequest> {
 
-    private LicenseMetaData licenseMetaData;
+    private License license;
 
     public SetLicenseRequest() {
     }
 
-    public SetLicenseRequest(LicenseMetaData licenseMetaData) {
-        this.licenseMetaData = licenseMetaData;
+    public SetLicenseRequest(License license) {
+        this.license = license;
     }
 
-    public LicenseMetaData licenseMetaData() {
-        return licenseMetaData;
+    public License licenseMetaData() {
+        return license;
     }
 
     @Override
     public ActionRequestValidationException validate() {
-        if (licenseMetaData == null) {
+        if (license == null) {
             return ValidateActions.addValidationError("licenseMetaData is missing", null);
         }
         return null;
@@ -56,12 +56,12 @@ public class SetLicenseRequest extends MasterNodeRequest<SetLicenseRequest> {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        licenseMetaData = new LicenseMetaData(in);
+        license = new License(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        licenseMetaData.writeTo(out);
+        license.writeTo(out);
     }
 }

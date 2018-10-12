@@ -37,7 +37,7 @@ public class LicenseService {
         this.transportSetLicenseAction = transportSetLicenseAction;
     }
 
-    boolean validateLicense(final LicenseMetaData license) {
+    boolean validateLicense(final License license) {
         // todo: implement
         // 1. check for future expiry date
         // 2. validate signature
@@ -45,10 +45,10 @@ public class LicenseService {
     }
 
 
-    public void registerLicense(final LicenseMetaData licenseMetaData,
+    public void registerLicense(final License license,
                                 final ActionListener<SetLicenseResponse> listener) {
-        if (validateLicense(licenseMetaData)) {
-            transportSetLicenseAction.execute(new SetLicenseRequest(licenseMetaData), listener);
+        if (validateLicense(license)) {
+            transportSetLicenseAction.execute(new SetLicenseRequest(license), listener);
         } else {
             listener.onFailure(new InvalidLicenseException());
         }
