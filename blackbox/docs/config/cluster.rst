@@ -930,6 +930,26 @@ exception is raised.
   A constant that all request estimations are multiplied with to determine a
   final estimation.
 
+Accounting Circuit Breaker
+--------------------------
+
+Tracks things that are held in memory independent of queries. For example the
+memory used by Lucene for segments.
+
+**indices.breaker.accounting.limit**
+  | *Default:*  ``100%``
+  | *Runtime:*  ``yes``
+
+  Specifies the JVM heap limit for the accounting circuit breaker
+
+
+**indices.breaker.accounting.overhead**
+  | *Default:*  ``1.0``
+  | *Runtime:*  ``yes``
+
+  A constant that all accounting estimations are multiplied with to determine a
+  final estimation.
+
 .. _stats.breaker.log:
 
 Stats Circuit Breakers

@@ -40,6 +40,11 @@ Breaking Changes
 Changes
 =======
 
+- Upgraded to Elasticsearch 6.2.4
+
+- Renamed the ``delimited_payload_filter`` token filter to
+  ``delimited_payload``. The old name can still be used, but is deprecated.
+
 - Added the ``generate_series(start, stop [, step ])`` table function.
 
 - Added ``pg_class``, ``pg_namespace``, ``pg_attribute``, ``pg_attrdef``,

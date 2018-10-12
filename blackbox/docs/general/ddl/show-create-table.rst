@@ -45,7 +45,7 @@ already existing user-created doc tables in the cluster::
     |    max_shingle_diff = 3,                            |
     |    number_of_replicas = '0-1',                      |
     |    refresh_interval = 1000,                         |
-    |    "routing.allocation.enable" = 'ALL',             |
+    |    "routing.allocation.enable" = 'all',             |
     |    "routing.allocation.total_shards_per_node" = -1, |
     |    "translog.durability" = 'REQUEST',               |
     |    "translog.flush_threshold_size" = 536870912,     |

@@ -29,7 +29,7 @@ configurations {
 }
 
 dependencies {
-    compile project(':es:es-core')
+    compile project(':es:es-server')
 
     compile("org.apache.hadoop:hadoop-client:${versions.hadoop2}") {
         exclude module: "commons-cli"
@@ -128,7 +128,6 @@ task writePropertiesFileRepositoryHSFS {
             ant.entry(key: 'name', value: project.name)
             ant.entry(key: 'description', value: project.description)
             ant.entry(key: 'version', value: plugin_repositoryhdfs_version)
-            ant.entry(key: 'site', value: true)
             ant.entry(key: 'elasticsearch.version', value: "${versions.elasticsearch}")
             ant.entry(key: 'java.version', value: project.targetCompatibility)
             ant.entry(key: 'classname', value: classname)

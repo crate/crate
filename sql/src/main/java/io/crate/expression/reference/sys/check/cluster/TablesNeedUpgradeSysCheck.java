@@ -35,7 +35,7 @@ import org.apache.lucene.util.Version;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.logging.ServerLoggers;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
@@ -68,7 +68,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         super(ID, DESCRIPTION, Severity.MEDIUM);
         this.sqlOperationsProvider = sqlOperationsProvider;
 
-        this.logger = Loggers.getLogger(TablesNeedUpgradeSysCheck.class, settings);
+        this.logger = ServerLoggers.getLogger(TablesNeedUpgradeSysCheck.class, settings);
     }
 
     @Override

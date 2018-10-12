@@ -317,7 +317,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
         Collections.sort(tokenFilters);
         assertThat(Joiner.on(", ").join(tokenFilters),
             is("apostrophe, arabic_normalization, arabic_stem, asciifolding, bengali_normalization, brazilian_stem, " +
-               "cjk_bigram, cjk_width, classic, common_grams, czech_stem, decimal_digit, " +
+               "cjk_bigram, cjk_width, classic, common_grams, czech_stem, decimal_digit, delimited_payload, " +
                "delimited_payload_filter, dictionary_decompounder, dutch_stem, " +
                "edgeNGram, edge_ngram, elision, fingerprint, flatten_graph, french_stem, german_normalization, " +
                "german_stem, hindi_normalization, hunspell, " +

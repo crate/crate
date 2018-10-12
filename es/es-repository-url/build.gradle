@@ -21,7 +21,7 @@
  */
 
 dependencies {
-    compile project(':es:es-core')
+    compile project(':es:es-server')
 }
 
 def moduleDir = file('../upstream/modules/repository-url')

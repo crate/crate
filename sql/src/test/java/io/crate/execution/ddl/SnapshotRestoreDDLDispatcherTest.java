@@ -64,7 +64,7 @@ public class SnapshotRestoreDDLDispatcherTest extends CrateUnitTest {
         SnapshotRestoreDDLDispatcher.ResolveFromSnapshotActionListener.resolveTableFromSnapshot(
             new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(new RelationName("custom", "restoreme"), null),
             Collections.singletonList(
-                new SnapshotInfo(new SnapshotId("snapshot01", UUID.randomUUID().toString()), Collections.singletonList("custom.restoreme"), 0L)
+                new SnapshotInfo(new SnapshotId("snapshot01", UUID.randomUUID().toString()), Collections.singletonList("custom.restoreme"), 0L, false)
             ),
             ctx
         );
@@ -79,7 +79,7 @@ public class SnapshotRestoreDDLDispatcherTest extends CrateUnitTest {
             new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null),
             Collections.singletonList(
                 new SnapshotInfo(new SnapshotId("snapshot01", UUID.randomUUID().toString()),
-                    Collections.singletonList(".partitioned.restoreme.046jcchm6krj4e1g60o30c0"), 0L)
+                    Collections.singletonList(".partitioned.restoreme.046jcchm6krj4e1g60o30c0"), 0L, false)
             ),
             ctx
         );
@@ -94,7 +94,7 @@ public class SnapshotRestoreDDLDispatcherTest extends CrateUnitTest {
         SnapshotRestoreDDLDispatcher.ResolveFromSnapshotActionListener.resolveTableFromSnapshot(
             new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null),
             Collections.singletonList(
-                new SnapshotInfo(new SnapshotId("snapshot01", UUID.randomUUID().toString()), ImmutableList.of(), 0L)
+                new SnapshotInfo(new SnapshotId("snapshot01", UUID.randomUUID().toString()), ImmutableList.of(), 0L, false)
             ),
             ctx
         );
@@ -112,8 +112,8 @@ public class SnapshotRestoreDDLDispatcherTest extends CrateUnitTest {
         );
         List<SnapshotInfo> snapshots = Arrays.asList(
                 new SnapshotInfo(
-                    new SnapshotId("snapshot01", UUID.randomUUID().toString()), Collections.singletonList(".partitioned.my_partitioned_table.046jcchm6krj4e1g60o30c0"), 0),
-                new SnapshotInfo(new SnapshotId("snapshot03", UUID.randomUUID().toString()), Collections.singletonList("my_table"), 0)
+                    new SnapshotId("snapshot01", UUID.randomUUID().toString()), Collections.singletonList(".partitioned.my_partitioned_table.046jcchm6krj4e1g60o30c0"), 0, false),
+                new SnapshotInfo(new SnapshotId("snapshot03", UUID.randomUUID().toString()), Collections.singletonList("my_table"), 0, false)
             );
 
         CompletableFuture<SnapshotRestoreDDLDispatcher.ResolveIndicesAndTemplatesContext> future = new CompletableFuture<>();

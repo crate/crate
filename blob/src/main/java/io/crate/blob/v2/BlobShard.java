@@ -28,7 +28,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.internal.Nullable;
 import org.elasticsearch.common.io.PathUtils;
-import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.logging.ServerLoggers;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardPath;
@@ -54,7 +54,7 @@ public class BlobShard {
 
     public BlobShard(IndexShard indexShard, @Nullable Path globalBlobPath) {
         this.indexShard = indexShard;
-        logger = Loggers.getLogger(BlobShard.class, indexShard.indexSettings().getSettings(), indexShard.shardId());
+        logger = ServerLoggers.getLogger(BlobShard.class, indexShard.indexSettings().getSettings(), indexShard.shardId());
         blobDir = resolveBlobDir(indexShard.indexSettings(), indexShard.shardPath(), globalBlobPath);
         logger.info("creating BlobContainer at {}", blobDir);
         this.blobContainer = new BlobContainer(blobDir);

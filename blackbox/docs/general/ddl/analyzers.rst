@@ -1106,10 +1106,10 @@ scandinavian languages using this folding algorithm.
 
 .. _delimited_payload-tokenfilter:
 
-``delimited_payload_filter``
-----------------------------
+``delimited_payload``
+---------------------
 
-``type='delimited_payload_filter'``
+``type='delimited_payload'``
 
 Split tokens up by delimiter (default ``|``) into the real token being indexed
 and the payload stored additionally into the index. For example

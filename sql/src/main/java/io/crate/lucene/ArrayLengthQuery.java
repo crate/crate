@@ -331,6 +331,11 @@ public final class ArrayLengthQuery implements InnerFunctionToQuery {
         public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) {
             return new ConstantScoreWeight(this, boost) {
                 @Override
+                public boolean isCacheable(LeafReaderContext ctx) {
+                    return false;
+                }
+
+                @Override
                 public Scorer scorer(LeafReaderContext context) {
                     return new ConstantScoreScorer(
                         this,

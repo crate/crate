@@ -47,7 +47,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.logging.ServerLoggers;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
@@ -120,7 +120,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
                                      SslContextProvider sslContextProvider) {
         super(settings);
         this.networkService = networkService;
-        logger = Loggers.getLogger("mqtt", settings);
+        logger = ServerLoggers.getLogger("mqtt", settings);
         isEnterprise = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
         isEnabled = MQTT_ENABLED_SETTING.setting().get(settings);
         bindHosts = NetworkService.GLOBAL_NETWORK_BINDHOST_SETTING.get(settings).toArray(new String[0]);

@@ -25,8 +25,6 @@ package io.crate.execution.engine.collect.collectors;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Scorer;
 
-import java.io.IOException;
-
 /**
  * Dummy {@link org.apache.lucene.search.Scorer} implementation just for passing the
  * <code>score</code> float value of a {@link org.apache.lucene.search.ScoreDoc} to a
@@ -45,13 +43,8 @@ class DummyScorer extends Scorer {
     }
 
     @Override
-    public float score() throws IOException {
+    public float score() {
         return score;
-    }
-
-    @Override
-    public int freq() throws IOException {
-        return 0;
     }
 
     @Override

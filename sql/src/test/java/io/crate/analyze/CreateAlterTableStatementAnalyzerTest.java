@@ -848,7 +848,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testRoutingAllocationEnable() {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"routing.allocation.enable\"=\"none\")");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.ROUTING_ALLOCATION_ENABLE.getKey()), is("NONE"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.ROUTING_ALLOCATION_ENABLE.getKey()), is("none"));
     }
 
     @Test
