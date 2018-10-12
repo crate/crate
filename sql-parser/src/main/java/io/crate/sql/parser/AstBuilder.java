@@ -552,9 +552,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSetLicense(SqlBaseParser.SetLicenseContext ctx) {
+        Assignment assignment = new Assignment(
+            new StringLiteral("license"), (Expression) visit(ctx.stringLiteral()));
+
         return new SetStatement(SetStatement.Scope.LICENSE,
-            SetStatement.SettingType.PERSISTENT,
-            visitCollection(ctx.setGlobalAssignment(), Assignment.class));
+            SetStatement.SettingType.PERSISTENT, Collections.singletonList(assignment));
     }
 
     @Override

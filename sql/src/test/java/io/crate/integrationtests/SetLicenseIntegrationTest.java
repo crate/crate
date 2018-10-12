@@ -29,21 +29,17 @@ import org.junit.Test;
 @ESIntegTestCase.ClusterScope()
 public class SetLicenseIntegrationTest extends SQLTransportIntegrationTest {
 
-    private static final String EXPIRATION_DATE = "2020-12-31T01:02:03.123";
-    private static final long EXPIRATION_DATE_IN_MS = 1609376523123L;  // equivalent for EXPIRATION_DATE
-    private static final String ISSUED_TO = "me";
-    private static final String SIGNATURE = "SIGNATURE";
+    private static final String ENCRYPTED_LICENSE_KEY = "ThisShouldBeTheEncryptedLicenseKey";
 
     private static LicenseMetaData createMetaData() {
-        return new LicenseMetaData(EXPIRATION_DATE_IN_MS, ISSUED_TO, SIGNATURE);
+        return new LicenseMetaData(ENCRYPTED_LICENSE_KEY);
     }
 
     @Test
     public void testLicenseIsAvailableInClusterStateAfterSetLicense () {
-        execute("set license expirationDate=?, issuedto=?, signature=?", new Object[] {EXPIRATION_DATE, ISSUED_TO, SIGNATURE});
+        execute("set license '" + ENCRYPTED_LICENSE_KEY + "'");
 
         LicenseMetaData license = clusterService().state().metaData().custom(LicenseMetaData.TYPE);
         assertEquals(createMetaData(), license);
     }
-
 }

@@ -69,7 +69,7 @@ public class TransportSetLicenseAction
                                    ClusterState state,
                                    ActionListener<SetLicenseResponse> listener) throws Exception {
         LicenseMetaData metaData = request.licenseMetaData();
-        clusterService.submitStateUpdateTask("register license to [" + metaData.issuedTo() + "]",
+        clusterService.submitStateUpdateTask("register license with key [" + metaData.licenseKey() + "]",
             new ClusterStateUpdateTask() {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
