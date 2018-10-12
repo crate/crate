@@ -38,12 +38,10 @@ import static org.hamcrest.Matchers.nullValue;
 
 public class LicenseMetaDataTest extends CrateUnitTest {
 
-    private static final long EXPIRATION_DATE_IN_MS = 1609376523123L;  // equivalent for EXPIRATION_DATE
-    private static final String ISSUED_TO = "me";
-    private static final String SIGNATURE = "SIGNATURE";
+    private static final String LICENSE_KEY = "ThisShouldBeAnEncryptedLicenseKey";
 
     public static LicenseMetaData createMetaData() {
-        return new LicenseMetaData(EXPIRATION_DATE_IN_MS, ISSUED_TO, SIGNATURE);
+        return new LicenseMetaData(LICENSE_KEY);
     }
 
     @Test
@@ -82,9 +80,7 @@ public class LicenseMetaDataTest extends CrateUnitTest {
         // reflects the logic used to process custom metadata in the cluster state
         builder.startObject();
         builder.startObject(LicenseMetaData.TYPE)
-            .field("expirationDateInMs", EXPIRATION_DATE_IN_MS)
-            .field("issuedTo", ISSUED_TO)
-            .field("signature", SIGNATURE)
+            .field("licenseKey", LICENSE_KEY)
             .endObject();
         builder.endObject();
 
@@ -94,27 +90,5 @@ public class LicenseMetaDataTest extends CrateUnitTest {
         assertEquals(createMetaData(), license2);
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
         assertThat(parser.nextToken(), nullValue());
-    }
-
-    @Test
-    public void testLicenceMetaDataFromXContentInvalidArgumentThrowException() throws IOException {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("For input string: \"invalid_long_value\"");
-
-        XContentBuilder builder = XContentFactory.jsonBuilder();
-
-        // reflects the logic used to process custom metadata in the cluster state
-        builder.startObject();
-        builder.startObject(LicenseMetaData.TYPE)
-            .field("expirationDateInMs", "invalid_long_value")
-            .field("issuedTo", ISSUED_TO)
-            .field("signature", SIGNATURE)
-            .endObject();
-        builder.endObject();
-
-        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
-
-        parser.nextToken(); // start object
-        LicenseMetaData.fromXContent(parser);
     }
 }

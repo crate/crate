@@ -61,7 +61,7 @@ statement
         (EQ | TO) (DEFAULT | setExpr (',' setExpr)*)                                 #set
     | SET GLOBAL (PERSISTENT | TRANSIENT)?
         setGlobalAssignment (',' setGlobalAssignment)*                               #setGlobal
-    | SET LICENSE setGlobalAssignment (',' setGlobalAssignment)*                     #setLicense
+    | SET LICENSE stringLiteral                                                      #setLicense
     | KILL (ALL | jobId=parameterOrString)                                           #kill
     | INSERT INTO table ('(' ident (',' ident)* ')')? insertSource
         (onDuplicate | onConflict)?                                                  #insert

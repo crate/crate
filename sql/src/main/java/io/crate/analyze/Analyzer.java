@@ -137,7 +137,6 @@ public class Analyzer {
     private final CreateUserAnalyzer createUserAnalyzer;
     private final AlterUserAnalyzer alterUserAnalyzer;
     private final CreateViewAnalyzer createViewAnalyzer;
-    private final SetStatementAnalyzer setStatementAnalyzer;
     private final Schemas schemas;
 
     /**
@@ -206,7 +205,6 @@ public class Analyzer {
         this.createIngestionRuleAnalyzer = new CreateIngestionRuleAnalyzer(schemas);
         this.createUserAnalyzer = new CreateUserAnalyzer(functions);
         this.alterUserAnalyzer = new AlterUserAnalyzer(functions);
-        this.setStatementAnalyzer = new SetStatementAnalyzer(functions);
     }
 
     public Analysis boundAnalyze(Statement statement, TransactionContext transactionContext, ParameterContext parameterContext) {
@@ -367,9 +365,6 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitSetStatement(SetStatement node, Analysis context) {
-            if (SetStatement.Scope.LICENSE.equals(node.scope())) {
-                return setStatementAnalyzer.analyze(node, context);
-            }
             return SetStatementAnalyzer.analyze(node);
         }
 

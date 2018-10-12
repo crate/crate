@@ -23,22 +23,15 @@
 package io.crate.planner.statement;
 
 import io.crate.analyze.SetLicenseAnalyzedStatement;
-import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.expression.symbol.Symbol;
 import io.crate.license.LicenseMetaData;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
-
-import java.util.Locale;
-import java.util.function.Function;
 
 public class SetLicensePlan implements Plan {
 
@@ -46,15 +39,6 @@ public class SetLicensePlan implements Plan {
 
     public SetLicensePlan(final SetLicenseAnalyzedStatement stmt) {
         this.stmt = stmt;
-    }
-
-    static <T, R> R cast(Function<T, R> function, T argument, Symbol subject) {
-        try {
-            return function.apply(argument);
-        } catch (ClassCastException e) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "SET LICENSE - Invalid type for setting '%s'", subject.toString()), e);
-        }
     }
 
     @Override
@@ -68,21 +52,7 @@ public class SetLicensePlan implements Plan {
                         RowConsumer consumer,
                         Row params,
                         SubQueryResults subQueryResults) {
-
-        Long expirationDateMs = cast(DataTypes.TIMESTAMP::value,
-            SymbolEvaluator.evaluate(plannerContext.functions(), stmt.expirationDateSymbol(), params, subQueryResults),
-            stmt.expirationDateSymbol());
-
-        BytesRef issueTo = cast(DataTypes.STRING::value,
-            SymbolEvaluator.evaluate(plannerContext.functions(), stmt.issuedToSymbol(), params, subQueryResults),
-            stmt.issuedToSymbol());
-
-        BytesRef signature = cast(DataTypes.STRING::value,
-            SymbolEvaluator.evaluate(plannerContext.functions(), stmt.signatureSymbol(), params, subQueryResults),
-            stmt.signatureSymbol());
-
-        LicenseMetaData metaData = new LicenseMetaData(expirationDateMs,
-            issueTo.utf8ToString(), signature.utf8ToString());
+        LicenseMetaData metaData = new LicenseMetaData(stmt.licenseKey());
         executor.licenseService().registerLicense(metaData, new OneRowActionListener<>(consumer, response -> new Row1(1L)));
     }
 }

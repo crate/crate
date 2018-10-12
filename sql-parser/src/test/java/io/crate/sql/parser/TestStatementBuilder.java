@@ -319,8 +319,14 @@ public class TestStatementBuilder {
 
     @Test
     public void testSetLicenseStmtBuilder() throws Exception {
-        printStatement("set license expirationDate = '01/01/2020'");
-        printStatement("set license expirationDate = '01/01/2020', signature='XXX', issuedTo='anOrganisation'");
+        printStatement("set license 'LICENSE_KEY'");
+    }
+
+    @Test
+    public void testSetLicenseInputWithoutQuotesThrowsParsingException() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage(containsString("no viable alternative at input"));
+        printStatement("set license LICENSE_KEY");
     }
 
     @Test
@@ -331,16 +337,29 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testSetLicenseLikeAnExpressionThrowsParsingException() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage(containsString("no viable alternative at input"));
+        printStatement("set license key='LICENSE_KEY'");
+    }
+
+    @Test
+    public void testSetLicenseMultipleInputThrowsParsingException() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage(containsString("extraneous input ''LICENSE_KEY2'' expecting <EOF>"));
+        printStatement("set license 'LICENSE_KEY' 'LICENSE_KEY2'");
+    }
+
+    @Test
     public void testSetLicense() {
-        SetStatement stmt = (SetStatement) SqlParser.createStatement("set license aSetting = 'aStringValue'");
+        SetStatement stmt = (SetStatement) SqlParser.createStatement("set license 'LICENSE_KEY'");
         assertThat(stmt.scope(), is(SetStatement.Scope.LICENSE));
         assertThat(stmt.settingType(), is(SetStatement.SettingType.PERSISTENT));
         assertThat(stmt.assignments().size(), is(1));
 
         Assignment assignment = stmt.assignments().get(0);
-        assertThat(assignment.columnName().toString(), is("\"aSetting\"".toLowerCase()));
         assertThat(assignment.expressions().size(), is(1));
-        assertThat(assignment.expressions().get(0).toString(), is("'aStringValue'"));
+        assertThat(assignment.expressions().get(0).toString(), is("'LICENSE_KEY'"));
     }
 
     @Test
