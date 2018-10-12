@@ -22,7 +22,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.license.LicenseMetaData;
+import io.crate.license.License;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -31,15 +31,15 @@ public class SetLicenseIntegrationTest extends SQLTransportIntegrationTest {
 
     private static final String ENCRYPTED_LICENSE_KEY = "ThisShouldBeTheEncryptedLicenseKey";
 
-    private static LicenseMetaData createMetaData() {
-        return new LicenseMetaData(ENCRYPTED_LICENSE_KEY);
+    private static License createMetaData() {
+        return new License(ENCRYPTED_LICENSE_KEY);
     }
 
     @Test
     public void testLicenseIsAvailableInClusterStateAfterSetLicense () {
         execute("set license '" + ENCRYPTED_LICENSE_KEY + "'");
 
-        LicenseMetaData license = clusterService().state().metaData().custom(LicenseMetaData.TYPE);
+        License license = clusterService().state().metaData().custom(License.TYPE);
         assertEquals(createMetaData(), license);
     }
 }

@@ -22,53 +22,123 @@
 
 package io.crate.license;
 
+import io.crate.license.exception.LicenseMetadataParsingException;
+import org.elasticsearch.cluster.AbstractNamedDiffable;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
+
+import java.io.IOException;
+import java.util.EnumSet;
 import java.util.Objects;
 
-/**
- * Data structure for CrateDB Licence
- */
-public class License  {
+public class License extends AbstractNamedDiffable<MetaData.Custom> implements MetaData.Custom {
 
-    private final long expirationDateInMs;
-    private final String issuedTo;
-    private final String signature;
+    public static final String TYPE = "license";
 
-    public License(long expirationDateInMs, String issuedTo, String signature) {
-        this.expirationDateInMs = expirationDateInMs;
-        this.issuedTo = issuedTo;
-        this.signature = signature;
+    private String licenseKey;
+
+    public License(final String licenseKey) {
+        this.licenseKey = licenseKey;
     }
 
-    public long expirationDateInMs() {
-        return expirationDateInMs;
+    public License(StreamInput in) throws IOException {
+        readFrom(in);
     }
 
-    public String issuedTo() {
-        return issuedTo;
+    public String licenseKey() {
+        return licenseKey;
     }
 
-    public String signature() {
-        return signature;
+    public void readFrom(StreamInput in) throws IOException {
+        this.licenseKey = in.readString();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(licenseKey);
+    }
+
+    /*
+     * LicenseMetaData XContent has the following structure:
+     *
+     * <pre>
+     *     {
+     *       "license": {
+     *           "licenseKey": "XXX"
+     *       }
+     *     }
+     * </pre>
+     */
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        return builder
+            .startObject(TYPE)
+                .field("licenseKey", licenseKey)
+            .endObject();
+    }
+
+    public static License fromXContent(XContentParser parser) throws IOException {
+        String licenseKey = null;
+        // advance from metadata START_OBJECT
+        XContentParser.Token token = parser.nextToken();
+        if (token != XContentParser.Token.FIELD_NAME || !Objects.equals(parser.currentName(), TYPE)) {
+            throw new LicenseMetadataParsingException("license FIELD_NAME expected but got " + parser.currentToken());
+        }
+        // advance to license START_OBJECT
+        if (parser.nextToken() != XContentParser.Token.START_OBJECT) {
+            throw new LicenseMetadataParsingException("license START_OBJECT expected but got " + parser.currentToken());
+        }
+
+        while ((token = parser.nextToken()) == XContentParser.Token.FIELD_NAME) {
+            if ("licenseKey".equals(parser.currentName())) {
+                licenseKey = parseStringField(parser);
+            } else {
+                throw new LicenseMetadataParsingException("unexpected FIELD_NAME " + parser.currentToken());
+            }
+        }
+        // license END_OBJECT is already consumed - check for correctness
+        if (parser.currentToken() != XContentParser.Token.END_OBJECT) {
+            throw new LicenseMetadataParsingException("expected the license object token at the end");
+
+        }
+        if (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            // each custom metadata is packed inside an object.
+            // each custom must move the parser to the end otherwise possible following customs won't be read
+            throw new LicenseMetadataParsingException("expected an object token at the end");
+        }
+        return new License(licenseKey);
+    }
+
+    private static String parseStringField(XContentParser parser) throws IOException {
+        parser.nextToken();
+        return parser.textOrNull();
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+
         License license = (License) o;
-        return expirationDateInMs == license.expirationDateInMs &&
-               Objects.equals(issuedTo, license.issuedTo) &&
-               Objects.equals(signature, license.signature);
+        return Objects.equals(licenseKey, license.licenseKey);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(expirationDateInMs, issuedTo, signature);
+        return Objects.hash(licenseKey);
     }
 
+    @Override
+    public EnumSet<MetaData.XContentContext> context() {
+        return EnumSet.of(MetaData.XContentContext.GATEWAY, MetaData.XContentContext.SNAPSHOT);
+    }
 
-    public boolean isExpired() {
-        return System.currentTimeMillis() > expirationDateInMs;
+    @Override
+    public String getWriteableName() {
+        return TYPE;
     }
 
 }
