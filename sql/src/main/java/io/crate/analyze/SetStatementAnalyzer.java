@@ -23,13 +23,8 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.analyze.relations.FieldProvider;
 import io.crate.data.Row;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
@@ -55,73 +50,46 @@ class SetStatementAnalyzer {
 
     private static final Logger logger = Loggers.getLogger(SetStatementAnalyzer.class);
 
-    private final Functions functions;
-
-    SetStatementAnalyzer(Functions functions) {
-        this.functions = functions;
-    }
-
-    public static SetAnalyzedStatement analyze(SetStatement node) {
-        assert !SetStatement.Scope.LICENSE.equals(node.scope())  : "cannot analyze statements of scope: LICENSE";
+    public static AnalyzedStatement analyze(SetStatement node) {
 
         boolean isPersistent = node.settingType().equals(SetStatement.SettingType.PERSISTENT);
         Map<String, List<Expression>> settings = new HashMap<>();
+        Assignment assignment;
 
-        if (!SetStatement.Scope.GLOBAL.equals(node.scope())) {
-            Assignment assignment = node.assignments().get(0);
-            // parser does not allow using the parameter expressions as setting names in the SET statements,
-            // therefore it is fine to convert the expression to string here.
-            String settingName = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
-            List<String> nameParts = CrateSettings.settingNamesByPrefix(settingName);
-            if (nameParts.size() != 0) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL", settingName));
-            }
-            settings.put(settingName, assignment.expressions());
-            return new SetAnalyzedStatement(node.scope(), settings, isPersistent);
-        } else {
-            for (Assignment assignment : node.assignments()) {
-                for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
-                    CrateSettings.checkIfRuntimeSetting(setting);
+        switch (node.scope()) {
+            case LICENSE:
+                if (node.assignments().size() != SetLicenseAnalyzedStatement.LICENSE_TOKEN_NUM) {
+                    throw new IllegalArgumentException("Invalid number of arguments for SET LICENSE. " +
+                                                       "Please provide only the license key");
                 }
+                assignment = node.assignments().get(0);
+                String licenseKey = ExpressionToStringVisitor.convert(assignment.expression(), Row.EMPTY);
+
+                return new SetLicenseAnalyzedStatement(licenseKey);
+            case GLOBAL:
+                for (Assignment anAssignment : node.assignments()) {
+                    for (String setting : ExpressionToSettingNameListVisitor.convert(anAssignment)) {
+                        CrateSettings.checkIfRuntimeSetting(setting);
+                    }
+                    String settingName = ExpressionToStringVisitor.convert(anAssignment.columnName(), Row.EMPTY);
+                    settings.put(settingName, ImmutableList.of(anAssignment.expression()));
+                }
+                break;
+            default:
+                assignment = node.assignments().get(0);
+                // parser does not allow using the parameter expressions as setting names in the SET statements,
+                // therefore it is fine to convert the expression to string here.
                 String settingName = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
-                settings.put(settingName, ImmutableList.of(assignment.expression()));
-            }
-            return new SetAnalyzedStatement(node.scope(), settings, isPersistent);
+                List<String> nameParts = CrateSettings.settingNamesByPrefix(settingName);
+                if (nameParts.size() != 0) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                        "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL", settingName));
+                }
+                settings.put(settingName, assignment.expressions());
+                break;
+
         }
-    }
-
-    public SetLicenseAnalyzedStatement analyze(SetStatement node, Analysis context) {
-        assert SetStatement.Scope.LICENSE.equals(node.scope()) : "Should only analyze statements of scope: LICENSE";
-
-        if (node.assignments().size() != SetLicenseAnalyzedStatement.LICENSE_TOKEN_NUM) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "Invalid number of settings for SET LICENSE. Please provide the following settings: [%s]",
-                SetLicenseAnalyzedStatement.LICENSE_ALLOWED_TOKENS_AS_STRING));
-        }
-
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
-            context.transactionContext(),
-            context.paramTypeHints(),
-            FieldProvider.UNSUPPORTED,
-            null);
-        Map<String, Symbol> statementSymbols = new HashMap<>(SetLicenseAnalyzedStatement.LICENSE_TOKEN_NUM);
-        ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
-
-        for (Assignment assignment : node.assignments()) {
-            String settingName = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
-            if (!SetLicenseAnalyzedStatement.LICENSE_ALLOWED_TOKENS.contains(settingName)) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Invalid setting '%s' for SET LICENSE. Please provide the following settings: [%s]",
-                    settingName, SetLicenseAnalyzedStatement.LICENSE_ALLOWED_TOKENS_AS_STRING));
-            }
-            Symbol valueSymbol = expressionAnalyzer.convert(assignment.expression(), exprCtx);
-            statementSymbols.put(settingName, valueSymbol);
-        }
-        return new SetLicenseAnalyzedStatement(statementSymbols.get(SetLicenseAnalyzedStatement.EXPIRY_DATE_TOKEN),
-            statementSymbols.get(SetLicenseAnalyzedStatement.ISSUED_TO_TOKEN),
-            statementSymbols.get(SetLicenseAnalyzedStatement.SIGN_TOKEN));
+        return new SetAnalyzedStatement(node.scope(), settings, isPersistent);
     }
 
     public static ResetAnalyzedStatement analyze(ResetStatement node) {

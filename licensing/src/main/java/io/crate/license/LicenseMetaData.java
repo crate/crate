@@ -38,43 +38,27 @@ public class LicenseMetaData extends AbstractNamedDiffable<MetaData.Custom> impl
 
     public static final String TYPE = "license";
 
-    private long expirationDateInMs;
-    private String issuedTo;
-    private String signature;
+    private String licenseKey;
 
-    public LicenseMetaData(long expirationDateInMs, String issuedTo, String signature) {
-        this.expirationDateInMs = expirationDateInMs;
-        this.issuedTo = issuedTo;
-        this.signature = signature;
+    public LicenseMetaData(final String licenseKey) {
+        this.licenseKey = licenseKey;
     }
 
     public LicenseMetaData(StreamInput in) throws IOException {
         readFrom(in);
     }
 
-    public long expirationDateInMs() {
-        return expirationDateInMs;
-    }
-
-    public String issuedTo() {
-        return issuedTo;
-    }
-
-    public String signature() {
-        return signature;
+    public String licenseKey() {
+        return licenseKey;
     }
 
     public void readFrom(StreamInput in) throws IOException {
-        this.expirationDateInMs = in.readLong();
-        this.issuedTo = in.readString();
-        this.signature = in.readString();
+        this.licenseKey = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeLong(expirationDateInMs);
-        out.writeString(issuedTo);
-        out.writeString(signature);
+        out.writeString(licenseKey);
     }
 
     /*
@@ -83,9 +67,7 @@ public class LicenseMetaData extends AbstractNamedDiffable<MetaData.Custom> impl
      * <pre>
      *     {
      *       "license": {
-     *           "expirationDateInMs": 202020202,
-     *           "issuedTo": "organisation",
-     *           "signture": "XXX"
+     *           "licenseKey": "XXX"
      *       }
      *     }
      * </pre>
@@ -94,16 +76,12 @@ public class LicenseMetaData extends AbstractNamedDiffable<MetaData.Custom> impl
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         return builder
             .startObject(TYPE)
-                .field("expirationDateInMs", expirationDateInMs)
-                .field("issuedTo", issuedTo)
-                .field("signature", signature)
+                .field("licenseKey", licenseKey)
             .endObject();
     }
 
     public static LicenseMetaData fromXContent(XContentParser parser) throws IOException {
-        long expirationDateInMs = 0L;
-        String issuedTo = null;
-        String signature = null;
+        String licenseKey = null;
         // advance from metadata START_OBJECT
         XContentParser.Token token = parser.nextToken();
         if (token != XContentParser.Token.FIELD_NAME || !Objects.equals(parser.currentName(), TYPE)) {
@@ -115,12 +93,8 @@ public class LicenseMetaData extends AbstractNamedDiffable<MetaData.Custom> impl
         }
 
         while ((token = parser.nextToken()) == XContentParser.Token.FIELD_NAME) {
-            if ("expirationDateInMs".equals(parser.currentName())) {
-                expirationDateInMs = parseLongField(parser);
-            } else if ("issuedTo".equals(parser.currentName())) {
-                issuedTo = parseStringField(parser);
-            } else if ("signature".equals(parser.currentName())) {
-                signature = parseStringField(parser);
+            if ("licenseKey".equals(parser.currentName())) {
+                licenseKey = parseStringField(parser);
             } else {
                 throw new LicenseMetadataParsingException("unexpected FIELD_NAME " + parser.currentToken());
             }
@@ -135,17 +109,12 @@ public class LicenseMetaData extends AbstractNamedDiffable<MetaData.Custom> impl
             // each custom must move the parser to the end otherwise possible following customs won't be read
             throw new LicenseMetadataParsingException("expected an object token at the end");
         }
-        return new LicenseMetaData(expirationDateInMs, issuedTo, signature);
+        return new LicenseMetaData(licenseKey);
     }
 
     private static String parseStringField(XContentParser parser) throws IOException {
         parser.nextToken();
         return parser.textOrNull();
-    }
-
-    private static long parseLongField(XContentParser parser) throws IOException {
-        parser.nextToken();
-        return parser.longValue();
     }
 
     @Override
@@ -154,14 +123,12 @@ public class LicenseMetaData extends AbstractNamedDiffable<MetaData.Custom> impl
         if (o == null || getClass() != o.getClass()) return false;
 
         LicenseMetaData licenseMetaData = (LicenseMetaData) o;
-        return expirationDateInMs == licenseMetaData.expirationDateInMs &&
-               Objects.equals(issuedTo, licenseMetaData.issuedTo) &&
-               Objects.equals(signature, licenseMetaData.signature);
+        return Objects.equals(licenseKey, licenseMetaData.licenseKey);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(expirationDateInMs, issuedTo, signature);
+        return Objects.hash(licenseKey);
     }
 
     @Override
