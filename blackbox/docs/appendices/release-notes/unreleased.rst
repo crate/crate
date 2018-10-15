@@ -86,6 +86,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue which caused tables created on version < 3.0 using not anymore
+  supported table parameters to fail on ``ALTER TABLE`` statements.
+
 - ``CORS`` pre-flight requests now no longer require authentication.
 
 - Fixed an issue which caused joins over multiple relations and implicit join
