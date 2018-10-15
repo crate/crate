@@ -4,7 +4,7 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 archivesBaseName = 'crate-core'
 
 dependencies {
-    compile project(':es:es-core')
+    compile project(':es:es-server')
     compile "com.google.guava:guava:${versions.guava}"
     testCompile project(':integration-testing')
 }

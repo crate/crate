@@ -22,11 +22,26 @@
 
 package io.crate.azure.discovery;
 
-import com.microsoft.azure.management.network.*;
-import com.microsoft.azure.management.network.models.*;
+import com.microsoft.azure.management.network.NetworkInterfaceOperations;
+import com.microsoft.azure.management.network.NetworkInterfaceOperationsImpl;
+import com.microsoft.azure.management.network.NetworkResourceProviderClient;
+import com.microsoft.azure.management.network.NetworkResourceProviderClientImpl;
+import com.microsoft.azure.management.network.PublicIpAddressOperations;
+import com.microsoft.azure.management.network.PublicIpAddressOperationsImpl;
+import com.microsoft.azure.management.network.VirtualNetworkOperations;
+import com.microsoft.azure.management.network.VirtualNetworkOperationsImpl;
+import com.microsoft.azure.management.network.models.NetworkInterface;
+import com.microsoft.azure.management.network.models.NetworkInterfaceGetResponse;
+import com.microsoft.azure.management.network.models.NetworkInterfaceIpConfiguration;
+import com.microsoft.azure.management.network.models.PublicIpAddress;
+import com.microsoft.azure.management.network.models.PublicIpAddressGetResponse;
+import com.microsoft.azure.management.network.models.ResourceId;
+import com.microsoft.azure.management.network.models.Subnet;
+import com.microsoft.azure.management.network.models.VirtualNetwork;
+import com.microsoft.azure.management.network.models.VirtualNetworkGetResponse;
 import com.microsoft.windowsazure.exception.ServiceException;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.logging.ServerLoggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.CollectionUtils;
 import org.junit.Before;
@@ -50,7 +65,7 @@ public class AzureUnicastHostsProviderTest {
 
     @Before
     public void setUp() throws IOException, ServiceException {
-        logger = Loggers.getLogger(this.getClass(), Settings.EMPTY, new String[0]);
+        logger = ServerLoggers.getLogger(this.getClass(), Settings.EMPTY);
 
         ResourceId resourceId = new ResourceId();
         resourceId.setId("/subscriptions/xx/resourceGroups/my_resourcegroup/providers/Microsoft.Network/networkInterfaces/nic_dummy/ipConfigurations/Nic-IP-config");

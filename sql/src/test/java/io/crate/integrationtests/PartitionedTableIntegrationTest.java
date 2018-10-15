@@ -1524,7 +1524,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
         execute("select settings['routing']['allocation'] from information_schema.table_partitions where table_name='attrs'");
         HashMap<String, Object> routingAllocation = new HashMap<String, Object>() {{
-            put("enable", "ALL");
+            put("enable", "all");
             put("total_shards_per_node", 5);
         }};
         assertEquals(routingAllocation, response.rows()[0][0]);
@@ -1533,7 +1533,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("alter table attrs set (\"routing.allocation.total_shards_per_node\"=1)");
         execute("select settings['routing']['allocation'] from information_schema.table_partitions where table_name='attrs'");
         routingAllocation = new HashMap<String, Object>() {{
-            put("enable", "ALL");
+            put("enable", "all");
             put("total_shards_per_node", 1);
         }};
         assertEquals(routingAllocation, response.rows()[0][0]);

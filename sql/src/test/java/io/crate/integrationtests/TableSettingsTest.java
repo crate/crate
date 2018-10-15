@@ -141,7 +141,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
     @Test
     public void testFilterOnString() throws Exception {
         execute("select * from information_schema.tables " +
-                "where settings['routing']['allocation']['enable'] = 'PRIMARIES'");
+                "where settings['routing']['allocation']['enable'] = 'primaries'");
         assertEquals(1, response.rowCount());
     }
 

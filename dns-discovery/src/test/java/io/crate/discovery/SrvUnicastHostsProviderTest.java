@@ -97,7 +97,8 @@ public class SrvUnicastHostsProviderTest {
                 Collections.emptySet(),
                 Version.CURRENT
             ),
-            null
+            null,
+            Collections.emptySet()
         ) {
             @Override
             public TransportAddress[] addressesFromString(String address, int perAddressLimit) {

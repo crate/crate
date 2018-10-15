@@ -40,7 +40,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.MetaDataIndexAliasesService;
-import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.logging.ServerLoggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -70,7 +70,7 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
                                            MetaDataIndexAliasesService metaDataIndexAliasesService,
                                            NamedXContentRegistry namedXContentRegistry,
                                            DDLClusterStateService ddlClusterStateService) {
-        logger = Loggers.getLogger(getClass(), settings);
+        logger = ServerLoggers.getLogger(getClass(), settings);
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.metaDataIndexAliasesService = metaDataIndexAliasesService;
         this.xContentRegistry = namedXContentRegistry;

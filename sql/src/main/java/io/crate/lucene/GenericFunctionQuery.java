@@ -87,6 +87,11 @@ class GenericFunctionQuery extends Query {
     public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
         return new Weight(this) {
             @Override
+            public boolean isCacheable(LeafReaderContext ctx) {
+                return false;
+            }
+
+            @Override
             public void extractTerms(Set<Term> terms) {
             }
 

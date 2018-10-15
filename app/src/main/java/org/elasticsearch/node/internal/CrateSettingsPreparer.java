@@ -64,6 +64,7 @@ public class CrateSettingsPreparer {
         settingsBuilder.putProperties(cmdLineSettings, Function.identity());
         settingsBuilder.replacePropertyPlaceholders();
         Environment env = new Environment(settingsBuilder.build(), configPath);
+        LogConfigurator.configureWithoutConfig(settingsBuilder.build());
 
         // add error listener before everything else
         LogConfigurator.registerErrorListener();

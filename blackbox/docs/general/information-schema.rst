@@ -192,7 +192,7 @@ The settings can be verified by querying ``information_schema.tables``::
     +--------------+------------------+
     | alloc_enable | refresh_interval |
     +--------------+------------------+
-    | PRIMARIES    |              500 |
+    | primaries    |              500 |
     +--------------+------------------+
     SELECT 1 row in set (... sec)
 
@@ -637,7 +637,7 @@ Or get an overview of how many routines and routine types are available::
     |       45 | ANALYZER     |
     |        3 | CHAR_FILTER  |
     |       17 | TOKENIZER    |
-    |       60 | TOKEN_FILTER |
+    |       61 | TOKEN_FILTER |
     +----------+--------------+
     SELECT 4 rows in set (... sec)
 

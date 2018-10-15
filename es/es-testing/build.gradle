@@ -1,5 +1,5 @@
 dependencies {
-    compile project(':es:es-core')
+    compile project(':es:es-server')
     compile project(':es:es-client')
 
     // same deps as in es/upstream/test/framework/build.gradle  except ES/ES-client (we compile the project)
