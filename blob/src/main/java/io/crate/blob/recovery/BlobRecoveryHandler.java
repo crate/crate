@@ -32,6 +32,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.CancellableThreads;
@@ -106,9 +107,10 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                 new BlobStartPrefixSyncRequest(request.recoveryId(), request.shardId(), prefix),
                 TransportRequestOptions.EMPTY,
                 new FutureTransportResponseHandler<TransportResponse>() {
+
                     @Override
-                    public TransportResponse newInstance() {
-                        return new BlobStartPrefixResponse();
+                    public TransportResponse read(StreamInput in) throws IOException {
+                        return new BlobStartPrefixResponse(in);
                     }
                 }
             ).txGet();

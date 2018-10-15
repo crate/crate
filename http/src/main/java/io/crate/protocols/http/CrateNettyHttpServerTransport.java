@@ -36,6 +36,7 @@ import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
+import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -46,6 +47,7 @@ import java.net.InetSocketAddress;
 import java.nio.file.Path;
 
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ENABLED;
 
 
 public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
@@ -85,6 +87,12 @@ public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
             super.initChannel(ch);
             ChannelPipeline pipeline = ch.pipeline();
             pipelineRegistry.registerItems(pipeline, transport.getCorsConfig());
+            // re-arrange cors so that it is utilized before the auth handler.
+            // (Options pre-flight requests shouldn't require auth)
+            if (SETTING_CORS_ENABLED.get(transport.settings())) {
+                pipeline.remove("cors");
+                pipeline.addAfter("encoder", "cors", new Netty4CorsHandler(transport.getCorsConfig()));
+            }
         }
     }
 
