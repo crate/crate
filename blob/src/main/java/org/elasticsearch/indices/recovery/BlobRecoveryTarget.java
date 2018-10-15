@@ -176,8 +176,8 @@ public class BlobRecoveryTarget extends AbstractComponent {
             if (status.canceled()) {
                 throw new IndexShardClosedException(status.shardId());
             }
-            BlobStartPrefixResponse response = new BlobStartPrefixResponse();
-            response.existingDigests = status.blobShard.currentDigests(request.prefix());
+            byte[][] currentDigests = status.blobShard.currentDigests(request.prefix());
+            BlobStartPrefixResponse response = new BlobStartPrefixResponse(currentDigests);
             channel.sendResponse(response);
         }
     }
