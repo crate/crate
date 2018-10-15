@@ -50,7 +50,7 @@ import java.io.IOException;
 
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_INFO;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.testing.SettingMatcher.hasEntry;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
@@ -79,7 +79,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "my_blobs");
         TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent);
         executor = SQLExecutor.builder(clusterService)
-            .addTable(USER_TABLE_INFO)
+            .addTable(USER_TABLE_DEFINITION)
             .addDocTable(TEST_DOC_LOCATIONS_TABLE_INFO)
             .addDocTable(TEST_PARTITIONED_TABLE_INFO)
             .addBlobTable(myBlobsTableInfo)

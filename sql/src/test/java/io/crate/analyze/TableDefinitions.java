@@ -58,7 +58,7 @@ public final class TableDefinitions {
 
     public static final RelationName USER_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
 
-    public static final String USER_TABLE_INFO =
+    public static final String USER_TABLE_DEFINITION =
         "create table doc.users (" +
          "  id long primary key," +
          "  other_id bigint," +
@@ -120,6 +120,7 @@ public final class TableDefinitions {
         .clusteredBy("o.b")
         .build();
     public static final RelationName TEST_PARTITIONED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "parted");
+
     public static final DocTableInfo TEST_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
         TEST_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("id", DataTypes.INTEGER, null)

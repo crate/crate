@@ -101,7 +101,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
-            .addTable(TableDefinitions.USER_TABLE_INFO)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addDocTable(TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_INFO)
             .addDocTable(TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY)
             .addDocTable(TableDefinitions.PARTED_PKS_TI)

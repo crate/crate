@@ -47,7 +47,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testLimitOnLimitOperator() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
-            .addTable(TableDefinitions.USER_TABLE_INFO)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
         QueriedTable queriedDocTable = e.analyze("select name from users");
 

@@ -45,7 +45,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         sqlExecutor = SQLExecutor.builder(clusterService)
             .addDocTable(T3.T1_INFO)
             .addDocTable(T3.T2_INFO)
-            .addTable(TableDefinitions.USER_TABLE_INFO)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
 
         // push down is currently NOT possible when using hash joins. To test the push downs we must disable hash joins.

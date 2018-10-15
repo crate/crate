@@ -139,7 +139,7 @@ import static io.crate.analyze.TableDefinitions.TEST_DOC_TRANSACTIONS_TABLE_INFO
 import static io.crate.analyze.TableDefinitions.TEST_MULTIPLE_PARTITIONED_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.TEST_NESTED_PARTITIONED_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_INFO;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_MULTI_PK;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY;
@@ -301,7 +301,7 @@ public class SQLExecutor {
          */
         public Builder enableDefaultTables() throws IOException {
             // we should try to reduce the number of tables here eventually...
-            addTable(USER_TABLE_INFO);
+            addTable(USER_TABLE_DEFINITION);
             addDocTable(USER_TABLE_INFO_CLUSTERED_BY_ONLY);
             addDocTable(USER_TABLE_INFO_MULTI_PK);
             addDocTable(DEEPLY_NESTED_TABLE_INFO);

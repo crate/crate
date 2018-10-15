@@ -51,7 +51,7 @@ public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest
     @Before
     public void setUpExecutor() throws Exception {
         e = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_INFO)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addDocTable(T3.T1_INFO)
             .build();
     }

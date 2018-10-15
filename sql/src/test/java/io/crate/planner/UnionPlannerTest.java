@@ -44,7 +44,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setUpExecutor() throws Exception {
         e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
-            .addTable(TableDefinitions.USER_TABLE_INFO)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addDocTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO)
             .build();
     }
