@@ -262,7 +262,7 @@ public class LogicalPlanner {
                 );
 
                 Optional<DocKeys> docKeys = detailedQuery.docKeys();
-                if (docKeys.isPresent() && !((DocTableInfo) table).isAlias()) {
+                if (docKeys.isPresent()) {
                     return (tableStats, usedBeforeNextFetch) ->
                         new Get(queriedTable, docKeys.get(), toCollect, tableStats);
                 }

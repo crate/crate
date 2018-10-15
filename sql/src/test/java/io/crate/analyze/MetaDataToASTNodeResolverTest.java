@@ -80,7 +80,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 analyzers,
                 primaryKeys,
                 clusteredBy,
-                false, false,
+                false,
                 new String[0],
                 new String[0],
                 new IndexNameExpressionResolver(Settings.EMPTY),

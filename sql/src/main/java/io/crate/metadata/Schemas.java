@@ -32,7 +32,6 @@ import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
@@ -360,27 +359,9 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         TableInfo tableInfo = schemaInfo.getTableInfo(relationName.name());
         if (tableInfo == null) {
             return false;
-        } else if ((tableInfo instanceof DocTableInfo)) {
-            return !isOrphanedAlias((DocTableInfo) tableInfo);
+        } else {
+            return true;
         }
-        return true;
-    }
-
-    /**
-     * checks if the given TableInfo has been created from an orphaned alias left from
-     * an incomplete drop table on a partitioned table
-     */
-    public boolean isOrphanedAlias(DocTableInfo table) {
-        if (table.isPartitioned() && table.isAlias()
-            && table.concreteIndices().length >= 1) {
-            String templateName = PartitionName.templateName(table.ident().schema(), table.ident().name());
-            MetaData metaData = clusterService.state().metaData();
-            if (!metaData.templates().containsKey(templateName)) {
-                // template or alias missing
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override

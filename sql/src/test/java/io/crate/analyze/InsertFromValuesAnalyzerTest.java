@@ -72,12 +72,6 @@ import static org.hamcrest.core.Is.is;
 
 public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationName TEST_ALIAS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "alias");
-    private static final DocTableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
-        TEST_ALIAS_TABLE_IDENT, new Routing(ImmutableMap.of()))
-        .add("bla", DataTypes.STRING, null)
-        .isAlias(true).build();
-
     private static final RelationName NESTED_CLUSTERED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "nested_clustered");
     private static final DocTableInfo NESTED_CLUSTERED_TABLE_INFO = new TestingTableInfo.Builder(
         NESTED_CLUSTERED_TABLE_IDENT, new Routing(ImmutableMap.of()))
@@ -108,7 +102,6 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void prepare() throws IOException {
         SQLExecutor.Builder executorBuilder = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addDocTable(TEST_ALIAS_TABLE_INFO)
             .addDocTable(NESTED_CLUSTERED_TABLE_INFO)
             .addDocTable(THREE_PK_TABLE_INFO);
 
@@ -322,14 +315,6 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow INSERT " +
                                         "operations, as it is read-only.");
         e.analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
-    }
-
-    @Test
-    public void testInsertIntoAliasTable() throws Exception {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"doc.alias\" doesn't support or allow INSERT " +
-                                        "operations, as it is read-only.");
-        e.analyze("insert into alias (bla) values ('blubb')");
     }
 
     @Test(expected = IllegalArgumentException.class)

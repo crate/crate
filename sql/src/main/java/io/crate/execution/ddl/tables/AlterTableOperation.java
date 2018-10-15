@@ -38,7 +38,6 @@ import io.crate.analyze.TableParameter;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
-import io.crate.exceptions.AlterTableAliasException;
 import io.crate.execution.support.ChainableAction;
 import io.crate.execution.support.ChainableActions;
 import io.crate.metadata.IndexParts;
@@ -196,12 +195,7 @@ public class AlterTableOperation {
 
     public CompletableFuture<Long> executeAlterTable(AlterTableAnalyzedStatement analysis) {
         DocTableInfo table = analysis.table();
-        if (table.isAlias() && !table.isPartitioned()) {
-            return CompletableFutures.failedFuture(new AlterTableAliasException(table.ident()));
-        }
-
         List<CompletableFuture<Long>> results = new ArrayList<>(3);
-
         if (table.isPartitioned()) {
             Optional<PartitionName> partitionName = analysis.partitionName();
             if (partitionName.isPresent()) {

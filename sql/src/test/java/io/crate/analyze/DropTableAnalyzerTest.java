@@ -21,23 +21,16 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
 
-import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static java.util.Locale.ENGLISH;
 import static org.hamcrest.Matchers.instanceOf;
@@ -45,17 +38,11 @@ import static org.hamcrest.Matchers.is;
 
 public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private final RelationName aliasIdent = new RelationName(DocSchemaInfo.NAME, "alias_table");
-    private final DocTableInfo aliasInfo = TestingTableInfo.builder(aliasIdent, SHARD_ROUTING)
-        .add("col", DataTypes.STRING, ImmutableList.<String>of())
-        .isAlias(true)
-        .build();
-
     private SQLExecutor e;
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().addDocTable(aliasInfo).build();
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 
     @Test
@@ -119,21 +106,5 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
         assertThat(dropTableAnalysis.dropIfExists(), is(true));
         assertThat(dropTableAnalysis.noop(), is(true));
-    }
-
-    @Test
-    public void testDropAliasFails() throws Exception {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"doc.alias_table\" doesn't support or allow DROP " +
-                                        "operations, as it is read-only.");
-        e.analyze("drop table alias_table");
-    }
-
-    @Test
-    public void testDropAliasIfExists() throws Exception {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"doc.alias_table\" doesn't support or allow DROP " +
-                                        "operations, as it is read-only.");
-        e.analyze("drop table if exists alias_table");
     }
 }

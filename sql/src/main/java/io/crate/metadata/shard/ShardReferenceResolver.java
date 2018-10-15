@@ -68,23 +68,19 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
         RelationName relationName = partitionName.relationName();
         try {
             DocTableInfo info = schemas.getTableInfo(relationName);
-            if (!schemas.isOrphanedAlias(info)) {
-                assert info.isPartitioned() : "table must be partitioned";
-                int i = 0;
-                int numPartitionedColumns = info.partitionedByColumns().size();
+            assert info.isPartitioned() : "table must be partitioned";
+            int i = 0;
+            int numPartitionedColumns = info.partitionedByColumns().size();
 
-                List<BytesRef> partitionValue = partitionName.values();
-                assert partitionValue.size() ==
-                       numPartitionedColumns : "invalid number of partitioned columns";
-                for (Reference partitionedInfo : info.partitionedByColumns()) {
-                    builder.put(
-                        partitionedInfo.ident(),
-                        new LiteralNestableInput<>(partitionedInfo.valueType().value(partitionValue.get(i)))
-                    );
-                    i++;
-                }
-            } else {
-                LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, relationName.fqn());
+            List<BytesRef> partitionValue = partitionName.values();
+            assert partitionValue.size() ==
+                   numPartitionedColumns : "invalid number of partitioned columns";
+            for (Reference partitionedInfo : info.partitionedByColumns()) {
+                builder.put(
+                    partitionedInfo.ident(),
+                    new LiteralNestableInput<>(partitionedInfo.valueType().value(partitionValue.get(i)))
+                );
+                i++;
             }
         } catch (ResourceUnknownException e) {
             LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, relationName.fqn());
