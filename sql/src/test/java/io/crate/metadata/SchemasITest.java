@@ -96,26 +96,6 @@ public class SchemasITest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testTableAlias() throws Exception {
-        execute("create table terminator (model string, good boolean, actor object)");
-        IndicesAliasesRequest request = new IndicesAliasesRequest();
-        request.addAliasAction(IndicesAliasesRequest.AliasActions.add()
-            .alias(getFqn("entsafter"))
-            .index(getFqn("terminator")));
-        client().admin().indices().aliases(request).actionGet();
-        ensureYellow();
-
-        DocTableInfo terminatorTable = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "terminator"));
-        DocTableInfo entsafterTable = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "entsafter"));
-
-        assertNotNull(terminatorTable);
-        assertFalse(terminatorTable.isAlias());
-
-        assertNotNull(entsafterTable);
-        assertTrue(entsafterTable.isAlias());
-    }
-
-    @Test
     public void testAliasPartitions() throws Exception {
         execute("create table terminator (model string, good boolean, actor object)");
         execute("create table transformer (model string, good boolean, actor object)");

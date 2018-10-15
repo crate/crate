@@ -28,7 +28,6 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -72,24 +71,6 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         when(tableInfo.supportedOperations()).thenReturn(Operation.SYS_READ_ONLY);
         when(schemaInfo.getTableInfo(relationName.name())).thenReturn(tableInfo);
         when(schemaInfo.name()).thenReturn(relationName.schema());
-
-        Schemas schemas = getReferenceInfos(schemaInfo);
-        schemas.getTableInfo(relationName, Operation.INSERT);
-    }
-
-    @Test
-    public void testTableAliasIsNotWritable() throws Exception {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"foo.bar\" doesn't support or allow INSERT operations.");
-
-        RelationName relationName = new RelationName("foo", "bar");
-        SchemaInfo schemaInfo = mock(SchemaInfo.class);
-        DocTableInfo tableInfo = mock(DocTableInfo.class);
-        when(tableInfo.ident()).thenReturn(relationName);
-        when(schemaInfo.getTableInfo(relationName.name())).thenReturn(tableInfo);
-        when(schemaInfo.name()).thenReturn(relationName.schema());
-        when(tableInfo.isAlias()).thenReturn(true);
-
 
         Schemas schemas = getReferenceInfos(schemaInfo);
         schemas.getTableInfo(relationName, Operation.INSERT);

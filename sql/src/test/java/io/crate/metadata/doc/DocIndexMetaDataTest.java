@@ -20,8 +20,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.view.ViewInfoFactory;
@@ -1264,26 +1264,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
         metaData = getDocIndexMetaDataFromStatement("create table t (x object as (y object as (z int primary key)))");
         assertThat(metaData.primaryKey(), contains(new ColumnIdent("x", Arrays.asList("y", "z"))));
-    }
-
-    @Test
-    public void testSchemaEquals() throws Exception {
-        DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table schema_equals1 (id byte, tags array(string))");
-        DocIndexMetaData mdSame = getDocIndexMetaDataFromStatement("create table schema_equals1 (id byte, tags array(string))");
-        DocIndexMetaData mdOther = getDocIndexMetaDataFromStatement("create table schema_equals2 (id byte, tags array(string))");
-        DocIndexMetaData mdWithPk = getDocIndexMetaDataFromStatement("create table schema_equals3 (id byte primary key, tags array(string))");
-        DocIndexMetaData mdWithStringCol = getDocIndexMetaDataFromStatement("create table schema_equals4 (id byte, tags array(string), col string)");
-        DocIndexMetaData mdWithStringColNotAnalyzed = getDocIndexMetaDataFromStatement("create table schema_equals5 (id byte, tags array(string), col string index off)");
-        DocIndexMetaData mdWithStringColNotAnalyzedAndIndex = getDocIndexMetaDataFromStatement("create table schema_equals6 (id byte, tags array(string), col string index off, index ft_index using fulltext(col))");
-        assertThat(md.schemaEquals(md), is(true));
-        assertThat(md == mdSame, is(false));
-        assertThat(md.schemaEquals(mdSame), is(true));   // same table name
-        assertThat(md.schemaEquals(mdOther), is(false)); // different table name
-        assertThat(md.schemaEquals(mdWithPk), is(false));
-        assertThat(md.schemaEquals(mdWithStringCol), is(false));
-        assertThat(mdWithPk.schemaEquals(mdWithStringCol), is(false));
-        assertThat(mdWithStringCol.schemaEquals(mdWithStringColNotAnalyzed), is(false));
-        assertThat(mdWithStringColNotAnalyzed.schemaEquals(mdWithStringColNotAnalyzedAndIndex), is(false));
     }
 
     @Test
