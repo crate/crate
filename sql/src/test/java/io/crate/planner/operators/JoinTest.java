@@ -70,7 +70,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setUpExecutor() throws IOException {
         e = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_INFO)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addDocTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO)
             .addDocTable(T3.T1_INFO)
             .addDocTable(T3.T2_INFO)

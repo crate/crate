@@ -55,7 +55,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
-            .addTable(TableDefinitions.USER_TABLE_INFO)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 "create table parted (" +
                 "   id int," +

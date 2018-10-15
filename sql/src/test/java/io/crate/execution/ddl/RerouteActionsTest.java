@@ -63,7 +63,7 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setupTable() throws Exception {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_INFO)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
 
         userTable = sqlExecutor.schemas().getTableInfo(new RelationName("doc", "users"));
