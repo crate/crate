@@ -21,13 +21,21 @@ package io.crate.auth;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.testing.UseJdbc;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpOptions;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.http.HttpServerTransport;
 import org.junit.After;
 import org.junit.Test;
 
+import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Properties;
 
 import static org.hamcrest.Matchers.containsString;
@@ -42,6 +50,10 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put("network.host", "127.0.0.1")
+            .put("http.enabled", true)
+            .put("http.host", "127.0.0.1")
+            .put("http.cors.enabled", true)
+            .put("http.cors.allow-origin", "*")
             .put("auth.host_based.enabled", true)
             .put("auth.host_based.config",
                 "a", new String[]{"user", "method", "address"}, new String[]{"crate", "trust", "127.0.0.1"})
@@ -64,6 +76,20 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
                 new String[]{"user", HostBasedAuthentication.SSL.KEY},
                 new String[]{"neverssluser", HostBasedAuthentication.SSL.NEVER.VALUE})
             .build();
+    }
+
+    @Test
+    public void testOptionsRequestDoesNotRequireAuth() throws Exception {
+        HttpServerTransport httpTransport = internalCluster().getInstance(HttpServerTransport.class);
+        InetSocketAddress address = httpTransport.boundAddress().publishAddress().address();
+        String uri = String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort());
+        HttpOptions request = new HttpOptions(uri);
+        request.setHeader(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
+        request.setHeader(HttpHeaderNames.ORIGIN.toString(), "http://example.com");
+        request.setHeader(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET");
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        CloseableHttpResponse resp = httpClient.execute(request);
+        assertThat(resp.getStatusLine().getReasonPhrase(), is("OK"));
     }
 
     @Test
