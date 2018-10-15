@@ -44,6 +44,8 @@ Changes
 Fixes
 =====
 
+- ``CORS`` pre-flight requests now no longer require authentication.
+
 - Fixed an issue which caused joins over multiple relations and implicit join
   conditions inside the ``WHERE`` clause to fail.
 
