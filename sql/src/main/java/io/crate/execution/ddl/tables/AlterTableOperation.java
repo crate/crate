@@ -46,8 +46,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.logging.log4j.util.Supplier;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
@@ -98,6 +96,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
 @Singleton
 public class AlterTableOperation {
@@ -401,13 +401,10 @@ public class AlterTableOperation {
         settingsBuilder.put(indexTemplateMetaData.settings());
         settingsBuilder.put(newSettings);
 
-        // archive unsupported/old settings
-        Settings settings = indexScopedSettings.archiveUnknownOrInvalidSettings(
-            settingsBuilder.build(),
-            e -> logger.warn("{} ignoring unknown table setting: [{}] with value [{}]; archiving",
-                relationName.fqn(), e.getKey(), e.getValue()),
-            (e, ex) -> logger.warn((Supplier<?>) () -> new ParameterizedMessage("{} ignoring invalid table setting: [{}] with value [{}]; archiving",
-                relationName.fqn(), e.getKey(), e.getValue()), ex));
+        // Private settings must not be (over-)written as they are generated, remove them.
+        // Validation will fail otherwise.
+        Settings settings = settingsBuilder.build()
+            .filter(k -> indexScopedSettings.isPrivateSetting(k) == false);
 
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
             .create(false)
@@ -508,15 +505,31 @@ public class AlterTableOperation {
     }
 
     private CompletableFuture<Long> updateSettings(TableParameter concreteTableParameter, String... indices) {
-        if (concreteTableParameter.settings().isEmpty() || indices.length == 0) {
+        Settings newSettings = concreteTableParameter.settings();
+        if (newSettings.isEmpty() || indices.length == 0) {
             return CompletableFuture.completedFuture(null);
         }
-        UpdateSettingsRequest request = new UpdateSettingsRequest(concreteTableParameter.settings(), indices);
+        UpdateSettingsRequest request = new UpdateSettingsRequest(markArchivedSettings(newSettings), indices);
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
         FutureActionListener<UpdateSettingsResponse, Long> listener = new FutureActionListener<>(r -> 0L);
         transportUpdateSettingsAction.execute(request, listener);
         return listener;
+    }
+
+    /**
+     * Mark possible archived settings to be removed, they are not allowed to be written.
+     * (Private settings are already filtered out later at the meta data update service.)
+     */
+    @VisibleForTesting
+    static Settings markArchivedSettings(Settings settings) {
+        if (settings.getGroups("archived").keySet().isEmpty() == false) {
+            return Settings.builder()
+                .put(settings)
+                .putNull(ARCHIVED_SETTINGS_PREFIX + "*")
+                .build();
+        }
+        return settings;
     }
 
     private void addColumnToTable(AddColumnAnalyzedStatement analysis, final CompletableFuture<?> result) {
