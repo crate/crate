@@ -32,12 +32,10 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,7 +44,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-import static io.crate.analyze.TableDefinitions.shardRouting;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -70,13 +67,13 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted"), singletonList(new BytesRef("1395961200000"))).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
             )
-            .addDocTable(
-                new TestingTableInfo.Builder(new RelationName("doc", "parted_generated"), shardRouting("parted_generated"))
-                    .add("ts", DataTypes.TIMESTAMP, null)
-                    .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
-                    .addPartitions(
-                        new PartitionName(new RelationName("doc", "parted_generated"), Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                        new PartitionName(new RelationName("doc", "parted_generated"), Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
+            .addPartitionedTable(
+                "create table parted_generated (" +
+                "   ts timestamp," +
+                "   day as date_trunc('day', ts)" +
+                ") partitioned by (day) ",
+                new PartitionName(new RelationName("doc", "parted_generated"), Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_generated"), Arrays.asList(new BytesRef("1395961200000"))).asIndexName()
             ).build();
     }
 
