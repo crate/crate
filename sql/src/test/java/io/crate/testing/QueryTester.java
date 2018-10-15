@@ -134,6 +134,7 @@ public final class QueryTester implements AutoCloseable {
         private final NodeEnvironment nodeEnvironment;
         private final DocTableRelation docTableRelation;
         private final QualifiedName tableName;
+        private final IndexService indexService;
 
         public Builder(Path tempDir,
                        ThreadPool threadPool,
@@ -199,7 +200,7 @@ public final class QueryTester implements AutoCloseable {
                 mapperService::fullName,
                 idxSettings
             );
-            IndexService indexService = indexModule.newIndexService(
+            indexService = indexModule.newIndexService(
                 nodeEnvironment,
                 NamedXContentRegistry.EMPTY,
                 new IndexService.ShardStoreDeleter() {
@@ -328,6 +329,7 @@ public final class QueryTester implements AutoCloseable {
                 },
                 symbol -> queryBuilder.convert(symbol, mapperService, queryShardContext.get(), indexCache).query(),
                 () -> {
+                    indexService.close("stopping", true);
                     writer.close();
                     nodeEnvironment.close();
                 }
