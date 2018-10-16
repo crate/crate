@@ -29,23 +29,18 @@ import java.io.IOException;
 
 public class BlobTransferInfoResponse extends TransportResponse {
 
-    public String digest;
-    public String index;
+    public final String digest;
+    public final String index;
 
-    public BlobTransferInfoResponse() {
-
+    public BlobTransferInfoResponse(StreamInput in) throws IOException {
+        super.readFrom(in);
+        digest = in.readString();
+        index = in.readString();
     }
 
     public BlobTransferInfoResponse(String index, String digest) {
         this.index = index;
         this.digest = digest;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        digest = in.readString();
-        index = in.readString();
     }
 
     @Override

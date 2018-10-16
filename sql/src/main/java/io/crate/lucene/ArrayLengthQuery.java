@@ -162,8 +162,11 @@ public final class ArrayLengthQuery implements InnerFunctionToQuery {
             case GteOperator.NAME:
                 if (cmpVal == 0) {
                     return existsQuery(context, arrayRef);
+                } else if (cmpVal == 1) {
+                    return numTermsPerDocQuery(arrayRef, valueCountIsMatch);
+                } else {
+                    return genericFunctionFilter(parent, context);
                 }
-                return numTermsPerDocQuery(arrayRef, valueCountIsMatch);
 
             case LtOperator.NAME:
                 if (cmpVal == 0 || cmpVal == 1) {

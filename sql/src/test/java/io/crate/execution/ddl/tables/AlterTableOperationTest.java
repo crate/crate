@@ -23,7 +23,6 @@
 package io.crate.execution.ddl.tables;
 
 import io.crate.Constants;
-import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateUnitTest;
@@ -38,9 +37,12 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.Map;
 
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_CREATION_DATE;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 public class AlterTableOperationTest extends CrateUnitTest {
 
@@ -67,23 +69,36 @@ public class AlterTableOperationTest extends CrateUnitTest {
     }
 
     @Test
-    public void testOldSettingsAreArchivedOnPrepareIndexTemplateRequest() {
+    public void testPrivateSettingsAreRemovedOnPrepareIndexTemplateRequest() {
         IndexScopedSettings indexScopedSettings = new IndexScopedSettings(Settings.EMPTY, Collections.emptySet());
 
-        String unsupportedSetting = "index.translog.disable_flush";
-        Settings unsupportedSettings = Settings.builder()
-            .put(unsupportedSetting, false)
+        Settings settings = Settings.builder()
+            .put(SETTING_CREATION_DATE, false)      // private, must be filtered out
+            .put(SETTING_NUMBER_OF_SHARDS, 4)
             .build();
         IndexTemplateMetaData indexTemplateMetaData = IndexTemplateMetaData.builder("t1")
             .patterns(Collections.singletonList("*"))
-            .settings(unsupportedSettings)
+            .settings(settings)
             .build();
 
         PutIndexTemplateRequest request = AlterTableOperation.preparePutIndexTemplateRequest(indexScopedSettings, indexTemplateMetaData,
             Collections.emptyMap(), Collections.emptyMap(), Settings.EMPTY, new RelationName(Schemas.DOC_SCHEMA_NAME, "t1"), "t1.*",
             logger);
 
-        assertThat(request.settings().get(unsupportedSetting), nullValue());
-        assertThat(request.settings().get(ARCHIVED_SETTINGS_PREFIX + unsupportedSetting), is("false"));
+        assertThat(request.settings().keySet(), contains(SETTING_NUMBER_OF_SHARDS));
+    }
+
+    @Test
+    public void testMarkArchivedSettings() {
+        String oldSetting = ARCHIVED_SETTINGS_PREFIX + "some.old.setting";
+        Settings.Builder builder = Settings.builder()
+            .put(oldSetting, true);
+        Settings preparedSettings = AlterTableOperation.markArchivedSettings(builder.build());
+        assertThat(preparedSettings.keySet(), containsInAnyOrder(ARCHIVED_SETTINGS_PREFIX + "*", oldSetting));
+
+        builder = Settings.builder()
+            .put(SETTING_NUMBER_OF_SHARDS, 4);
+        preparedSettings = AlterTableOperation.markArchivedSettings(builder.build());
+        assertThat(preparedSettings.keySet(), contains(SETTING_NUMBER_OF_SHARDS));
     }
 }

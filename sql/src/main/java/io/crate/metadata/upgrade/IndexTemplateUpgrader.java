@@ -22,9 +22,12 @@
 
 package io.crate.metadata.upgrade;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.metadata.DefaultTemplateService;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.logging.ServerLoggers;
 import org.elasticsearch.common.settings.Settings;
 
@@ -34,6 +37,9 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static io.crate.metadata.DefaultTemplateService.TEMPLATE_NAME;
+import static io.crate.metadata.IndexParts.PARTITIONED_TABLE_PART;
+import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
+import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
 
 public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTemplateMetaData>> {
 
@@ -45,11 +51,54 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
 
     @Override
     public Map<String, IndexTemplateMetaData> apply(Map<String, IndexTemplateMetaData> templates) {
-        HashMap<String, IndexTemplateMetaData> upgradedTemplates = new HashMap<>(templates);
+        HashMap<String, IndexTemplateMetaData> upgradedTemplates = archiveUnknownOrInvalidSettings(templates);
         try {
             upgradedTemplates.put(TEMPLATE_NAME, DefaultTemplateService.createDefaultIndexTemplateMetaData());
         } catch (IOException e) {
             logger.error("Error while trying to upgrade the default template", e);
+        }
+        return upgradedTemplates;
+    }
+
+    /**
+     * Filter out all unknown/old/invalid settings. Archiving them *only* is not working as they would be "un-archived"
+     * by {@link IndexTemplateMetaData.Builder#fromXContent} logic to prefix all settings with `index.` when applying
+     * the new cluster state.
+     */
+    private HashMap<String, IndexTemplateMetaData> archiveUnknownOrInvalidSettings(Map<String, IndexTemplateMetaData> templates) {
+        HashMap<String, IndexTemplateMetaData> upgradedTemplates = new HashMap<>(templates.size());
+        for (Map.Entry<String, IndexTemplateMetaData> entry : templates.entrySet()) {
+            IndexTemplateMetaData templateMetaData = entry.getValue();
+            Settings.Builder settingsBuilder = Settings.builder().put(templateMetaData.settings());
+            String templateName = entry.getKey();
+
+            // only process partition table templates
+            if (templateName.startsWith(PARTITIONED_TABLE_PART) == false) {
+                upgradedTemplates.put(templateName, templateMetaData);
+                continue;
+            }
+
+            Settings settings = DEFAULT_SCOPED_SETTINGS.archiveUnknownOrInvalidSettings(
+                settingsBuilder.build(), e -> { }, (e, ex) -> { })
+                .filter(k -> k.startsWith(ARCHIVED_SETTINGS_PREFIX) == false);
+
+            IndexTemplateMetaData.Builder builder = IndexTemplateMetaData.builder(templateName)
+                .patterns(templateMetaData.patterns())
+                .order(templateMetaData.order())
+                .settings(settings);
+            try {
+                for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetaData.getMappings()) {
+                    builder.putMapping(cursor.key, cursor.value);
+                }
+            } catch (IOException e) {
+                logger.error("Error while trying to upgrade template '" + templateName + "'", e);
+                continue;
+            }
+
+            for (ObjectObjectCursor<String, AliasMetaData> container : templateMetaData.aliases()) {
+                builder.putAlias(container.value);
+            }
+            upgradedTemplates.put(templateName, builder.build());
         }
         return upgradedTemplates;
     }

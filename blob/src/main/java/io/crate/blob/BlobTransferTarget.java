@@ -35,6 +35,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
@@ -46,6 +47,7 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -175,8 +177,8 @@ public class BlobTransferTarget extends AbstractComponent {
                 TransportRequestOptions.EMPTY,
                 new FutureTransportResponseHandler<TransportResponse>() {
                     @Override
-                    public TransportResponse newInstance() {
-                        return new BlobTransferInfoResponse();
+                    public TransportResponse read(StreamInput in) throws IOException {
+                        return new BlobTransferInfoResponse(in);
                     }
                 }
             ).txGet();
