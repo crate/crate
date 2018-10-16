@@ -24,6 +24,8 @@ package io.crate.metadata.sys;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.expression.reference.sys.cluster.ClusterLoggingOverridesExpression;
+import io.crate.expression.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -32,8 +34,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.expression.reference.sys.cluster.ClusterLoggingOverridesExpression;
-import io.crate.expression.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.settings.CrateSetting;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -41,6 +41,9 @@ import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Collections;
 import java.util.List;
+
+import static io.crate.license.DecryptedLicenseData.EXPIRATION_DATE_IN_MS;
+import static io.crate.license.DecryptedLicenseData.ISSUED_TO;
 
 public class SysClusterTableInfo extends StaticTableInfo {
 
@@ -69,6 +72,9 @@ public class SysClusterTableInfo extends StaticTableInfo {
             .register("id", DataTypes.STRING, null)
             .register("name", DataTypes.STRING, null)
             .register("master_node", DataTypes.STRING, null)
+            .register("license", DataTypes.OBJECT, null)
+            .register(new ColumnIdent("license", EXPIRATION_DATE_IN_MS), DataTypes.TIMESTAMP)
+            .register(new ColumnIdent("license", ISSUED_TO), DataTypes.STRING)
             .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, null)
             // custom registration of logger expressions
             .register(ClusterSettingsExpression.NAME, new ArrayType(DataTypes.OBJECT), ImmutableList.of(

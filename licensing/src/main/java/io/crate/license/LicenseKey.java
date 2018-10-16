@@ -62,7 +62,7 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
         return licenseKey;
     }
 
-    static DecodedLicense decodeLicense(LicenseKey licenseKey) {
+    public static DecodedLicense decodeLicense(LicenseKey licenseKey) {
         byte[] keyBytes = Base64.getDecoder().decode(licenseKey.licenseKey());
         ByteBuffer byteBuffer = ByteBuffer.wrap(keyBytes);
         int licenseType = byteBuffer.getInt();

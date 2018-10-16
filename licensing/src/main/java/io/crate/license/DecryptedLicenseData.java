@@ -34,8 +34,8 @@ import java.util.Objects;
 
 public class DecryptedLicenseData {
 
-    private static final String EXPIRATION_DATE_IN_MS = "expirationDateInMs";
-    private static final String ISSUED_TO = "issuedTo";
+    public static final String EXPIRATION_DATE_IN_MS = "expirationDateInMs";
+    public static final String ISSUED_TO = "issuedTo";
 
     private final long expirationDateInMs;
     private final String issuedTo;
@@ -45,11 +45,11 @@ public class DecryptedLicenseData {
         this.issuedTo = issuedTo;
     }
 
-    long expirationDateInMs() {
+    public long expirationDateInMs() {
         return expirationDateInMs;
     }
 
-    String issuedTo() {
+    public String issuedTo() {
         return issuedTo;
     }
 
