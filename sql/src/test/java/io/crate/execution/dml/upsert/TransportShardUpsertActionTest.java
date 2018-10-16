@@ -70,7 +70,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.instanceOf;
@@ -269,7 +268,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         // would fail with NPE if not skipped
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
         verify(indexShard, times(0)).applyIndexOperationOnReplica(
-            anyLong(), anyLong(), any(VersionType.class), anyLong(), anyBoolean(), any(SourceToParse.class),
-            any(Consumer.class));
+            anyLong(), anyLong(), any(VersionType.class), anyLong(), anyBoolean(), any(SourceToParse.class));
     }
 }

@@ -25,8 +25,6 @@ package io.crate.execution.ddl;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
-import io.crate.execution.ddl.SchemaUpdateRequest;
-import io.crate.execution.ddl.SchemaUpdateResponse;
 import io.crate.execution.support.ActionListeners;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -47,12 +45,14 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -149,7 +149,8 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         String templateName = PartitionName.templateName(indexName);
         Map<String, Object> newMapping;
         try {
-            XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, mappingSource);
+            XContentParser parser = JsonXContent.jsonXContent.createParser(
+                NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource);
             newMapping = parser.map();
             if (newMappingAlreadyApplied(templates.get(templateName), newMapping)) {
                 return CompletableFuture.completedFuture(new SchemaUpdateResponse(true));
@@ -201,7 +202,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
             Map<String, Object> source = parseMapping(xContentRegistry, cursor.value.toString());
             XContentHelper.update(source, newMapping, true);
             try (XContentBuilder xContentBuilder = JsonXContent.contentBuilder()) {
-                templateBuilder.putMapping(cursor.key, xContentBuilder.map(source).string());
+                templateBuilder.putMapping(cursor.key, Strings.toString(xContentBuilder.map(source)));
             }
         }
 

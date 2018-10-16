@@ -29,6 +29,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -126,7 +127,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     public void testSelectRaw() throws Exception {
         SQLResponse response = execute("select _raw from characters order by name desc limit 1");
         Object raw = response.rows()[0][0];
-        Map<String, Object> rawMap = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, (String) raw).map();
+        Map<String, Object> rawMap = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, (String) raw).map();
 
         assertThat(rawMap.get("race"), is("Human"));
         assertThat(rawMap.get("gender"), is("female"));
@@ -140,7 +142,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
                                        "group by _raw, name order by name desc limit 1");
 
         Object raw = response.rows()[0][1];
-        Map<String, Object> rawMap = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, (String) raw).map();
+        Map<String, Object> rawMap = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, (String) raw).map();
 
         assertThat(rawMap.get("race"), is("Human"));
         assertThat(rawMap.get("gender"), is("female"));

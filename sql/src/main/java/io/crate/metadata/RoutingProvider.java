@@ -43,6 +43,7 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -61,7 +62,7 @@ import static io.crate.metadata.Routing.forTableOnSingleNode;
 public final class RoutingProvider {
 
     private final int seed;
-    private final String[] awarenessAttributes;
+    private final List<String> awarenessAttributes;
 
     public enum ShardSelection {
         ANY,
@@ -75,7 +76,7 @@ public final class RoutingProvider {
      *                   It's recommended to use *different* seeds across different instances to distribute the load
      *                   across different (replica) shards
      */
-    public RoutingProvider(int randomSeed, String[] awarenessAttributes) {
+    public RoutingProvider(int randomSeed, List<String> awarenessAttributes) {
         this.awarenessAttributes = awarenessAttributes;
         this.seed = randomSeed;
     }
@@ -122,7 +123,7 @@ public final class RoutingProvider {
             final ShardIterator shardIt;
             switch (shardSelection) {
                 case ANY:
-                    if (awarenessAttributes.length == 0) {
+                    if (awarenessAttributes.isEmpty()) {
                         shardIt = shard.activeInitializingShardsIt(seed);
                     } else {
                         shardIt = shard.preferAttributesActiveInitializingShardsIt(

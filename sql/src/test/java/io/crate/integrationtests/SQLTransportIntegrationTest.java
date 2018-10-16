@@ -88,6 +88,7 @@ import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.ConfigurationException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
@@ -541,7 +542,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         }
         builder.endObject();
 
-        return builder.string();
+        return Strings.toString(builder);
     }
 
     public void waitForMappingUpdateOnAll(final RelationName relationName, final String... fieldNames) throws Exception {
@@ -617,7 +618,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
         builder.endObject();
 
-        return builder.string();
+        return Strings.toString(builder);
     }
 
     /**

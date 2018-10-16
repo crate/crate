@@ -1,0 +1,28 @@
+def libDir = file('../upstream/libs/x-content')
+
+dependencies {
+    compile project(':es:es-core')
+
+    //compile "org.yaml:snakeyaml:${versions.snakeyaml}"
+    compile "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${versions.jackson}"
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${versions.jackson}"
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir {
+                "$libDir/src/main/java"
+            }
+        }
+    }
+}
+
+idea {
+    module {
+        contentRoot = libDir
+        excludeDirs += files('build', 'src/test')
+    }
+}

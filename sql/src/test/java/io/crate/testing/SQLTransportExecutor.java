@@ -54,8 +54,10 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -383,7 +385,7 @@ public class SQLTransportExecutor {
         XContentBuilder builder = JsonXContent.contentBuilder();
         builder.map(value);
         builder.close();
-        return builder.bytes().utf8ToString();
+        return Strings.toString(builder);
     }
 
     private static String toJsonString(Collection values) throws IOException {
@@ -395,7 +397,7 @@ public class SQLTransportExecutor {
         }
         builder.endArray();
         builder.close();
-        return builder.bytes().utf8ToString();
+        return Strings.toString(builder);
     }
 
     private static PGobject toPGObjectJson(String json) throws SQLException {
@@ -494,7 +496,8 @@ public class SQLTransportExecutor {
         try {
             if (json != null) {
                 byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-                XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, bytes);
+                XContentParser parser = JsonXContent.jsonXContent.createParser(
+                    NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
                 if (bytes.length >= 1 && bytes[0] == '[') {
                     parser.nextToken();
                     return recursiveListToArray(parser.list());

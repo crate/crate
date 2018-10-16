@@ -100,7 +100,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             Maps.mergeInto(source, column.name(), column.path(), entry.getValue().value());
         }
 
-        return XContentFactory.jsonBuilder().map(source).bytes();
+        return BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
     }
 
     private static class ReferencesFromInputRow implements ReferenceResolver<CollectExpression<Row, ?>> {

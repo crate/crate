@@ -33,6 +33,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.get.GetResult;
 import org.junit.Test;
@@ -65,7 +66,7 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
             "1",
             1,
             true,
-            XContentFactory.jsonBuilder()
+            BytesReference.bytes(XContentFactory.jsonBuilder()
                 .startObject()
                 .startObject("obj")
                     .startArray("arr")
@@ -73,7 +74,7 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
                         .value(20)
                     .endArray()
                 .endObject()
-                .endObject().bytes(),
+                .endObject()),
             Collections.emptyMap()
         )));
         Map.Entry<Reference, Input<?>> generatedColumn = generatedColumns.toInject().iterator().next();

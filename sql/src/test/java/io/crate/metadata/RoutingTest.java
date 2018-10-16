@@ -34,6 +34,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -88,7 +89,7 @@ public class RoutingTest extends CrateUnitTest {
             .localNodeId(local.getId())
             .build();
 
-        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);
+        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
         Routing routing = routingProvider.forRandomMasterOrDataNode(new RelationName("doc", "table"), nodes);
         assertThat(routing.locations().keySet(), anyOf(contains("data_master_node_1"), contains("data_master_node_2")));
 
@@ -111,7 +112,7 @@ public class RoutingTest extends CrateUnitTest {
             .add(new DiscoveryNode("data_4", buildNewFakeTransportAddress(), attr, data, null))
             .build();
 
-        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);
+        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
         Routing routing = routingProvider.forRandomMasterOrDataNode(new RelationName("doc", "table"), nodes);
         assertThat(routing.locations().keySet(), contains("local_data"));
     }

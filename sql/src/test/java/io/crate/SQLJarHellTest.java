@@ -29,7 +29,7 @@ public class SQLJarHellTest {
 
     @Test
     public void testInvoke() throws Exception {
-        JarHell.checkJarHell();
+        JarHell.checkJarHell(output -> {});
     }
 
 }

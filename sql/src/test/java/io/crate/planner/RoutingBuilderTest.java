@@ -24,6 +24,7 @@ package io.crate.planner;
 
 import com.carrotsearch.hppc.IntSet;
 import io.crate.analyze.WhereClause;
+import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
@@ -34,13 +35,13 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.expression.operator.EqOperator;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Randomness;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static io.crate.analyze.TableDefinitions.shardRouting;
@@ -48,7 +49,7 @@ import static org.hamcrest.Matchers.is;
 
 public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 
-    private RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);
+    private RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
 
     @Test
     public void testAllocateRouting() throws Exception {

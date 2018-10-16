@@ -64,10 +64,12 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -492,7 +494,8 @@ public class TransportCreatePartitionsAction
     }
 
     private Map<String, Object> parseMapping(String mappingSource) throws Exception {
-        try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(xContentRegistry, mappingSource)) {
+        try (XContentParser parser = XContentFactory.xContent(XContentType.JSON)
+            .createParser(xContentRegistry, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)) {
             return parser.map();
         } catch (IOException e) {
             throw new ElasticsearchException("failed to parse mapping", e);
