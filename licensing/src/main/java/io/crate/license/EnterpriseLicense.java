@@ -22,23 +22,29 @@
 
 package io.crate.license;
 
-import org.junit.Test;
+import org.elasticsearch.common.io.Streams;
 
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNull.notNullValue;
-import static org.junit.Assert.assertThat;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
-public class CryptosTest {
+final class EnterpriseLicense {
 
-    @Test
-    public void testEncryption() {
-        String data = "data";
-        byte[] encrypt = Cryptos.encrypt(data.getBytes());
-        assertThat(encrypt, is(notNullValue()));
-
-        byte[] decrypt = Cryptos.decrypt(encrypt);
-        assertThat(decrypt, is(notNullValue()));
-        assertThat(new String(decrypt), is(data));
+    private EnterpriseLicense() {
     }
 
+    static byte[] decrypt(byte[] encryptedContent) {
+        return CryptoUtils.decryptRsaUsingPublicKey(encryptedContent, publicKey());
+
+    }
+
+    private static byte[] publicKey() {
+        try (InputStream is = LicenseService.class.getResourceAsStream("/public.key")) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            Streams.copy(is, out);
+            return out.toByteArray();
+        } catch (IOException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
 }

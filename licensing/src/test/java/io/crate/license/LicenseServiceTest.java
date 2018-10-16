@@ -23,15 +23,19 @@
 package io.crate.license;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.license.LicenseKey.VERSION;
+import static io.crate.license.LicenseKey.LicenseType;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static org.hamcrest.core.Is.is;
@@ -41,34 +45,71 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
 
     private LicenseService licenseService;
 
+    private static byte[] getPrivateKey() {
+        try (InputStream is = LicenseServiceTest.class.getResourceAsStream("/private.key")) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            Streams.copy(is, out);
+            return out.toByteArray();
+        } catch (IOException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    private static LicenseKey createEnterpriseLicenseKey(int version, DecryptedLicenseData decryptedLicenseData) {
+        byte[] encryptedContent = encrypt(decryptedLicenseData.formatLicenseData(), getPrivateKey());
+        return LicenseKey.createLicenseKey(LicenseType.ENTERPRISE,
+            version,
+            encryptedContent);
+    }
+
+    private static byte[] encrypt(byte[] data, byte[] privateKeyBytes) {
+        return CryptoUtilsTest.encryptRsaUsingPrivateKey(data, privateKeyBytes);
+    }
+
     @Before
     public void setupLicenseService() {
         licenseService = new LicenseService(Settings.EMPTY, mock(TransportSetLicenseAction.class), clusterService);
     }
 
     @Test
-    public void testVerifyValidLicense() {
-        LicenseKey licenseKey = licenseService.createLicenseKey(LicenseKey.TRIAL, VERSION,
-            new DecryptedLicenseData(Long.MAX_VALUE, "test"));
-        assertThat(licenseService.verifyLicense(licenseKey), is(true));
+    public void testGetLicenseDataForTrialLicenseKeyProduceValidValues() throws IOException {
+        LicenseKey key = TrialLicense.createLicenseKey(VERSION, new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+        DecryptedLicenseData licenseData = LicenseService.licenseData(LicenseKey.decodeLicense(key));
+
+        assertThat(licenseData.expirationDateInMs(), Matchers.is(Long.MAX_VALUE));
+        assertThat(licenseData.issuedTo(), Matchers.is("test"));
     }
 
     @Test
-    public void testVerifyExpiredLicense() {
-        LicenseKey expiredLicense = licenseService.createLicenseKey(LicenseKey.TRIAL, VERSION,
-            new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5), "test"));
+    public void testGetLicenseDataForEnterpriseLicenseKeyProduceValidValues() throws IOException {
+        LicenseKey key = createEnterpriseLicenseKey(VERSION, new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+        DecryptedLicenseData licenseData = LicenseService.licenseData(LicenseKey.decodeLicense(key));
 
-        assertThat(licenseService.verifyLicense(expiredLicense), is(false));
+        assertThat(licenseData.expirationDateInMs(), Matchers.is(Long.MAX_VALUE));
+        assertThat(licenseData.issuedTo(), Matchers.is("test"));
     }
 
     @Test
-    public void testGetLicenseData() throws IOException {
-        LicenseKey licenseKey = licenseService.createLicenseKey(LicenseKey.TRIAL, VERSION,
+    public void testVerifyValidTrialLicense() {
+        LicenseKey licenseKey = TrialLicense.createLicenseKey(VERSION,
             new DecryptedLicenseData(Long.MAX_VALUE, "test"));
-        DecryptedLicenseData licenseData = licenseService.licenseData(LicenseKey.decodeLicense(licenseKey));
 
-        assertThat(licenseData.expirationDateInMs(), is(Long.MAX_VALUE));
-        assertThat(licenseData.issuedTo(), is("test"));
+        assertThat(LicenseService.verifyLicense(licenseKey), is(true));
+    }
+
+    @Test
+    public void testVerifyExpiredTrialLicense() {
+        LicenseKey expiredLicense = TrialLicense.createLicenseKey(VERSION,
+            new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5),"test"));
+
+        assertThat(LicenseService.verifyLicense(expiredLicense), is(false));
+    }
+
+    @Test
+    public void testVerifyValidEnterpriseLicense() {
+        LicenseKey key = createEnterpriseLicenseKey(VERSION,
+            new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+        assertThat(LicenseService.verifyLicense(key), is(true));
     }
 
     @Test
@@ -100,19 +141,18 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testGetLicenseDataOnlySupportsSelfGeneratedLicense() throws IOException {
-        DecodedLicense decodedLicense = new DecodedLicense(-2, VERSION, new byte[]{1, 2, 3, 4});
-
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Only self generated licenses are supported");
-        licenseService.licenseData(decodedLicense);
+    public void testVerifyTamperedEnterpriseLicenseThrowsException() {
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage("Decryption error");
+        LicenseKey tamperedKey = new LicenseKey("AAAAAQAAAAEAAAEAU2d2c5fhWCGYEOlcedLoffev+ymwGM/yZKtMK50NYsTEFMz+Gun2YC7oRMy5rARb1gJbZQNRKBP/G2/e2QiS0ncvw/LChBLbTKD2m3PR1Efi9vl7GNgcz3pBbtDs/+/BDvTpOyyJxsvE9h+wUOnb9uppSK/kAx0/VIcXfezRSqFLOz7yH5F+w0rvXKYIuWZpfDpGmNl1gsBp6Pb+dPzA2rS8ty/+riaC5viT7gmdq+HJzAx28M1IYatq3IqwWpyG5HzciMSiiLVEAg7D1yj/QXoP39N3Ehceoh+Q9JCPndHDA0F54UZVGsMAddVkBO1kUf50sVXndwRJB9MUXVZQdQ==");
+        LicenseService.verifyLicense(tamperedKey);
     }
 
     @Test
-    public void testOnlySelfGeneratedLicenseIsSupported() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Only self generated licenses are supported");
+    public void testDoNotVerifyExpiredEnterpriseLicense() {
+        LicenseKey key = createEnterpriseLicenseKey(VERSION,
+            new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5), "test"));
 
-        licenseService.createLicenseKey(-2, VERSION, new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+        assertThat(LicenseService.verifyLicense(key), is(false));
     }
 }
