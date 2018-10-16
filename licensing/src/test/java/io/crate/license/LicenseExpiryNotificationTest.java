@@ -35,14 +35,14 @@ import static org.hamcrest.core.StringContains.containsString;
 public class LicenseExpiryNotificationTest extends CrateUnitTest {
 
     @Test
-    public void testModerateNotificatiton() {
+    public void testModerateNotification() {
         String moderateNotification = MODERATE.notificationMessage(TimeUnit.DAYS.toMillis(2));
         assertThat(moderateNotification, containsString("Your CrateDB license will expire in 2 days"));
         assertThat(moderateNotification, containsString("Please request another license."));
     }
 
     @Test
-    public void testSevereHoursNotificaiton() {
+    public void testSevereHoursNotification() {
         String moderateNotification = SEVERE.notificationMessage(TimeUnit.HOURS.toMillis(24));
         assertThat(moderateNotification, containsString("Your CrateDB license will expire in 24 hours"));
         assertThat(moderateNotification, containsString("Please request another license."));

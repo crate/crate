@@ -57,6 +57,10 @@ public class DecryptedLicenseData {
         return issuedTo;
     }
 
+    boolean isExpired() {
+        return millisToExpiration() < 0;
+    }
+
     /*
      * Creates the json representation of the license information with the following structure:
      *
