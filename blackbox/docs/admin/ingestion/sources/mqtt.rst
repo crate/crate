@@ -33,52 +33,11 @@ persistence.
 .. contents::
    :local:
 
-.. _ingest_mqtt_config:
-
 Configuration
 =============
 
-This ingestion source adds a few additional settings that you can configure.
-
-These node settings can be :ref:`configured like usual <config>`, via the
-``crate.yml`` configuration file or as command line parameters using the ``-C``
-option.
-
-Node Settings
--------------
-
-.. NOTE::
-
-   Node settings only affect the node they are configured on.
-
-**ingestion.mqtt.enabled**
-  | *Default:*   ``false``
-  | *Runtime:*  ``no``
-
-  Enables the MQTT_ ingestion source on this node.
-
-.. _ingestion_mqtt_port:
-
-**ingestion.mqtt.port**
-  | *Default:*   ``1883``
-  | *Runtime:*  ``no``
-
-  TCP port on which the endpoint is exposed.
-
-  Can either be a number, or a string defining a port range. The first free
-  port of this range is used.
-
-**ingestion.mqtt.timeout**
-  | *Default:*   ``10s``
-  | *Runtime:*  ``no``
-
-  The default keep-alive timeout for establised connections.
-
-  This timeout is used if the client does not specify a ``keepAlive`` option
-  when sending the ``CONNECT`` message.
-
-SSL Support
-...........
+This ingestion source has a few :ref:`node settings <ingest_mqtt_config>` that
+you can configure.
 
 SSL support is available for the MQTT connections and can be enabled using the
 ``ssl.ingestion.mqtt.enabled`` setting. When SSL is enabled for the MQTT
