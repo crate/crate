@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -47,7 +48,7 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
     private final TransportSetLicenseAction transportSetLicenseAction;
     private final ClusterService clusterService;
 
-    private AtomicReference<LicenseKey> currentLicense = new AtomicReference<>();
+    private AtomicReference<DecryptedLicenseData> currentLicense = new AtomicReference<>();
 
     @Inject
     public LicenseService(Settings settings,
@@ -80,18 +81,27 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
         return LicenseKey.createLicenseKey(licenseType, version, encryptedContent);
     }
 
-
     boolean verifyLicense(LicenseKey licenseKey) {
         try {
             DecodedLicense decodedLicense = decodeLicense(licenseKey);
-            if (decodedLicense.type() == LicenseKey.SELF_GENERATED) {
-                DecryptedLicenseData licenseInfo = decryptLicenseContent(decodedLicense.encryptedContent());
-                return System.currentTimeMillis() < licenseInfo.expirationDateInMs();
-            }
-            return false;
+            DecryptedLicenseData licenseData = licenseData(decodedLicense);
+            return System.currentTimeMillis() < licenseData.expirationDateInMs();
         } catch (IOException e) {
             return false;
         }
+    }
+
+    DecryptedLicenseData licenseData(DecodedLicense decodedLicense) throws IOException {
+        if (decodedLicense.type() == LicenseKey.SELF_GENERATED) {
+            return decryptLicenseContent(decodedLicense.encryptedContent());
+        } else {
+            throw new UnsupportedOperationException("Only self generated licenses are supported.");
+        }
+    }
+
+    @Nullable
+    public DecryptedLicenseData currentLicense() {
+        return currentLicense.get();
     }
 
     @Override
@@ -107,12 +117,13 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
         DiscoveryNodes nodes = clusterState.getNodes();
         if (nodes != null) {
             if (nodes.isLocalNodeElectedMaster()) {
+                DecryptedLicenseData licenseData = new DecryptedLicenseData(Long.MAX_VALUE, clusterState.getClusterName().value());
                 LicenseKey licenseKey = createLicenseKey(
                     LicenseKey.SELF_GENERATED,
                     LicenseKey.VERSION,
-                    new DecryptedLicenseData(Long.MAX_VALUE, clusterState.getClusterName().value())
+                    licenseData
                 );
-                currentLicense.set(licenseKey);
+                currentLicense.set(licenseData);
                 registerLicense(licenseKey,
                     new ActionListener<SetLicenseResponse>() {
 
@@ -147,16 +158,21 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
             return;
         }
 
+        LicenseKey previousLicenseKey = getLicenseMetadata(event.previousState());
         LicenseKey newLicenseKey = getLicenseMetadata(currentState);
 
-        LicenseKey currentLicense = this.currentLicense.get();
-        if (currentLicense == null && newLicenseKey == null) {
+        if (previousLicenseKey == null && newLicenseKey == null) {
             registerSelfGeneratedLicense(currentState);
             return;
         }
 
-        if (newLicenseKey != null && !newLicenseKey.equals(currentLicense)) {
-            this.currentLicense.set(newLicenseKey);
+        if (newLicenseKey != null && !newLicenseKey.equals(previousLicenseKey)) {
+            try {
+                this.currentLicense.set(licenseData(decodeLicense(newLicenseKey)));
+            } catch (IOException e) {
+                logger.error("Received invalid license. Unable to read the license data.");
+                throw new InvalidLicenseException("Invalid license present in cluster");
+            }
         }
     }
 
