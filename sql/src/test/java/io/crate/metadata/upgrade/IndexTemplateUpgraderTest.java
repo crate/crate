@@ -23,6 +23,7 @@
 package io.crate.metadata.upgrade;
 
 import io.crate.metadata.DefaultTemplateService;
+import io.crate.metadata.PartitionName;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -56,7 +57,7 @@ public class IndexTemplateUpgraderTest {
     }
 
     @Test
-    public void testArchivedSettingsAreRemoved() {
+    public void testArchivedSettingsAreRemovedOnPartitionedTableTemplates() {
         IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader(Settings.EMPTY);
 
         Settings settings = Settings.builder()
@@ -65,20 +66,31 @@ public class IndexTemplateUpgraderTest {
             .build();
 
         HashMap<String, IndexTemplateMetaData> templates = new HashMap<>();
-        IndexTemplateMetaData oldTemplate = IndexTemplateMetaData.builder("dummy")
+        String partitionTemplateName = PartitionName.templateName("doc", "t1");
+        IndexTemplateMetaData oldPartitionTemplate = IndexTemplateMetaData.builder(partitionTemplateName)
             .settings(settings)
             .patterns(Collections.singletonList("*"))
             .build();
-        templates.put("dummy", oldTemplate);
+        templates.put(partitionTemplateName, oldPartitionTemplate);
+
+        String nonPartitionTemplateName = "non-partition-template";
+        IndexTemplateMetaData oldNonPartitionTemplate = IndexTemplateMetaData.builder(nonPartitionTemplateName)
+            .settings(settings)
+            .patterns(Collections.singletonList("*"))
+            .build();
+        templates.put(nonPartitionTemplateName, oldNonPartitionTemplate);
 
         Map<String, IndexTemplateMetaData> upgradedTemplates = upgrader.apply(templates);
-        IndexTemplateMetaData upgradedTemplate = upgradedTemplates.get("dummy");
+        IndexTemplateMetaData upgradedTemplate = upgradedTemplates.get(partitionTemplateName);
         assertThat(upgradedTemplate.settings().keySet(), contains(SETTING_NUMBER_OF_SHARDS));
 
         // ensure all other attributes remains the same
-        assertThat(upgradedTemplate.mappings(), is(oldTemplate.mappings()));
-        assertThat(upgradedTemplate.patterns(), is(oldTemplate.patterns()));
-        assertThat(upgradedTemplate.order(), is(oldTemplate.order()));
-        assertThat(upgradedTemplate.aliases(), is(oldTemplate.aliases()));
+        assertThat(upgradedTemplate.mappings(), is(oldPartitionTemplate.mappings()));
+        assertThat(upgradedTemplate.patterns(), is(oldPartitionTemplate.patterns()));
+        assertThat(upgradedTemplate.order(), is(oldPartitionTemplate.order()));
+        assertThat(upgradedTemplate.aliases(), is(oldPartitionTemplate.aliases()));
+
+        // ensure non partitioned table templates are untouched
+        assertThat(upgradedTemplates.get(nonPartitionTemplateName), is(oldNonPartitionTemplate));
     }
 }
