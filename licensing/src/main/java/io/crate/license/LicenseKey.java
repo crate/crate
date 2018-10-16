@@ -41,12 +41,37 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
 
     public static final String WRITEABLE_TYPE = "license";
 
-    static final int TRIAL = 0;
+    enum LicenseType {
+        TRIAL(0),
+        ENTERPRISE(1);
+
+        private int value;
+
+        LicenseType(int value) {
+            this.value = value;
+        }
+
+        static LicenseType of(int value) {
+            switch (value) {
+                case 0:
+                    return LicenseType.TRIAL;
+                case 1:
+                    return LicenseType.ENTERPRISE;
+                default:
+                    throw new InvalidLicenseException("Invalid License Type of value: " + value);
+            }
+        }
+
+        int value() {
+            return value;
+        }
+    }
+
     static final int VERSION = 1;
 
     // limit the maximum license content number of bytes (this can vary based on the algorithm used for encryption and
     // the length of the client's name the license is issued to
-    private static final int MAX_LICENSE_CONTENT_LENGTH = 256;
+    static final int MAX_LICENSE_CONTENT_LENGTH = 256;
 
     private String licenseKey;
 
@@ -65,7 +90,7 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
     public static DecodedLicense decodeLicense(LicenseKey licenseKey) {
         byte[] keyBytes = Base64.getDecoder().decode(licenseKey.licenseKey());
         ByteBuffer byteBuffer = ByteBuffer.wrap(keyBytes);
-        int licenseType = byteBuffer.getInt();
+        LicenseType licenseType = LicenseType.of(byteBuffer.getInt());
         int version = byteBuffer.getInt();
         int contentLength = byteBuffer.getInt();
         if (contentLength > MAX_LICENSE_CONTENT_LENGTH) {
@@ -83,10 +108,10 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
      *      base64Encode(licenseType, version, contentLength, content)
      *
      */
-    static LicenseKey createLicenseKey(int licenseType, int version, byte[] content) {
-        byte[] bytes = new byte[4 + 4 + 4 + content.length];
+    static LicenseKey createLicenseKey(LicenseType licenseType, int version, byte[] content) {
+        byte[] bytes = new byte[3 * Integer.BYTES + content.length];
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
-        byteBuffer.putInt(licenseType)
+        byteBuffer.putInt(licenseType.value())
             .putInt(version)
             .putInt(content.length)
             .put(content);

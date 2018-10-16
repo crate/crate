@@ -22,31 +22,26 @@
 
 package io.crate.license;
 
-import org.junit.Test;
+import static io.crate.license.LicenseKey.LicenseType;
 
-import java.io.IOException;
+final class TrialLicense {
 
-import static io.crate.license.SelfGeneratedLicense.decryptLicenseContent;
-import static io.crate.license.SelfGeneratedLicense.encryptLicenseContent;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+    private TrialLicense() {
 
-public class SelfGeneratedLicenseTest {
-
-    @Test
-    public void testGenerateSelfGeneratedKey() {
-        byte[] encryptedContent = encryptLicenseContent(new DecryptedLicenseData(Long.MAX_VALUE, "test").formatLicenseData());
-        assertThat(encryptedContent, is(notNullValue()));
     }
 
-    @Test
-    public void testDecryptSelfGeneratedLicense() throws IOException {
-        byte[] encryptedContent = encryptLicenseContent(new DecryptedLicenseData(Long.MAX_VALUE, "test").formatLicenseData());
+    static LicenseKey createLicenseKey(int version, DecryptedLicenseData decryptedLicenseData) {
+        byte[] encryptedContent = encrypt(decryptedLicenseData.formatLicenseData());
+        return LicenseKey.createLicenseKey(LicenseType.TRIAL,
+            version,
+            encryptedContent);
+    }
 
-        DecryptedLicenseData licenseInfo = decryptLicenseContent(encryptedContent);
+    static byte[] encrypt(byte[] data) {
+        return CryptoUtils.encryptAes(data);
+    }
 
-        assertThat(licenseInfo.expirationDateInMs(), is(Long.MAX_VALUE));
-        assertThat(licenseInfo.issuedTo(), is("test"));
+    static byte[] decrypt(byte[] encryptedContent) {
+        return CryptoUtils.decryptAes(encryptedContent);
     }
 }

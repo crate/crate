@@ -22,19 +22,21 @@
 
 package io.crate.license;
 
+import static io.crate.license.LicenseKey.LicenseType;
+
 public class DecodedLicense {
 
-    private final int type;
+    private final LicenseType type;
     private final int version;
     private final byte[] encryptedContent;
 
-    DecodedLicense(int type, int version, byte[] encryptedContent) {
+    DecodedLicense(LicenseType type, int version, byte[] encryptedContent) {
         this.type = type;
         this.version = version;
         this.encryptedContent = encryptedContent;
     }
 
-    public int type() {
+    public LicenseType type() {
         return type;
     }
 
