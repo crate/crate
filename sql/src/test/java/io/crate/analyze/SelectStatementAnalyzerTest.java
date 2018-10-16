@@ -224,9 +224,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testAllColumnCluster() throws Exception {
         QueriedRelation relation = analyze("select * from sys.cluster");
-        assertThat(relation.fields().size(), is(4));
-        assertThat(outputNames(relation), containsInAnyOrder("id", "master_node", "name", "settings"));
-        assertThat(relation.querySpec().outputs().size(), is(4));
+        assertThat(relation.fields().size(), is(5));
+        assertThat(outputNames(relation), containsInAnyOrder("id", "license", "master_node", "name", "settings"));
+        assertThat(relation.querySpec().outputs().size(), is(5));
     }
 
     @Test

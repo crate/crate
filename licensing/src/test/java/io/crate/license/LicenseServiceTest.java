@@ -27,6 +27,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+
+import static io.crate.license.LicenseKey.VERSION;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
@@ -41,17 +44,36 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testVerifyValidLicense() {
-        LicenseKey licenseKey = licenseService.createLicenseKey(LicenseKey.SELF_GENERATED, LicenseKey.VERSION,
+        LicenseKey licenseKey = licenseService.createLicenseKey(LicenseKey.SELF_GENERATED, VERSION,
             new DecryptedLicenseData(Long.MAX_VALUE, "test"));
         assertThat(licenseService.verifyLicense(licenseKey), is(true));
     }
 
     @Test
     public void testVerifyExpiredLicense() {
-        LicenseKey expiredLicense = licenseService.createLicenseKey(LicenseKey.SELF_GENERATED, LicenseKey.VERSION,
+        LicenseKey expiredLicense = licenseService.createLicenseKey(LicenseKey.SELF_GENERATED, VERSION,
             new DecryptedLicenseData(System.currentTimeMillis() - 5 * 60 * 60 * 1000, "test"));
 
         assertThat(licenseService.verifyLicense(expiredLicense), is(false));
+    }
+
+    @Test
+    public void testGetLicenseData() throws IOException {
+        LicenseKey licenseKey = licenseService.createLicenseKey(LicenseKey.SELF_GENERATED, VERSION,
+            new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+        DecryptedLicenseData licenseData = licenseService.licenseData(LicenseKey.decodeLicense(licenseKey));
+
+        assertThat(licenseData.expirationDateInMs(), is(Long.MAX_VALUE));
+        assertThat(licenseData.issuedTo(), is("test"));
+    }
+
+    @Test
+    public void testGetLicenseDataOnlySupportsSelfGeneratedLicense() throws IOException {
+        DecodedLicense decodedLicense = new DecodedLicense(-2, VERSION, new byte[]{1,2,3,4});
+
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Only self generated licenses are supported");
+        licenseService.licenseData(decodedLicense);
     }
 
     @Test
@@ -59,6 +81,6 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Only self generated licenses are supported");
 
-        licenseService.createLicenseKey(-2, LicenseKey.VERSION, new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+        licenseService.createLicenseKey(-2, VERSION, new DecryptedLicenseData(Long.MAX_VALUE, "test"));
     }
 }
