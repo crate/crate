@@ -338,15 +338,34 @@ Discovery
   operational within the cluster. It's recommended to set it to a higher value
   than 1 when running more than 2 nodes in the cluster.
 
+.. _discovery.zen.ping_interval:
+
+**discovery.zen.ping_interval**
+  | *Default:*   ``1s``
+  | *Runtime:*  ``yes``
+
+  How often to ping other nodes.
+
+  Nodes must remain responsive to pings or they will be marked as failed and
+  removed from the cluster.
+
 .. _discovery.zen.ping_timeout:
 
 **discovery.zen.ping_timeout**
   | *Default:*   ``3s``
   | *Runtime:*  ``yes``
 
-  Set the time to wait for ping responses from other nodes when discovering.
+  The time to wait for ping responses from other nodes when discovering.
   Set this option to a higher value on a slow or congested network to minimize
   discovery failures.
+
+.. _discovery.zen.ping_retries:
+
+**discovery.zen.ping_retries**
+  | *Default:*   ``3``
+  | *Runtime:*  ``yes``
+
+  How many ping failures (network timeouts) indicate that a node has failed.
 
 .. _discovery.zen.publish_timeout:
 
