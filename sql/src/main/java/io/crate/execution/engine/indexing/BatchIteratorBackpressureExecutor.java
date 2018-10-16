@@ -25,7 +25,6 @@ package io.crate.execution.engine.indexing;
 import io.crate.data.BatchIterator;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
@@ -192,7 +191,7 @@ public class BatchIteratorBackpressureExecutor<T, R> {
         }
         try {
             executor.execute(() -> doResumeConsumption(item));
-        } catch (EsRejectedExecutionException | RejectedExecutionException e) {
+        } catch (RejectedExecutionException e) {
             doResumeConsumption(item);
         }
     }

@@ -31,6 +31,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -1568,8 +1569,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                                                     "Galactic Sector QQ7 Active J Gamma| Galaxy| 3\n");
 
         execute("select _raw, id from locations where id in (2,3) order by id");
-        Map<String, Object> firstRaw = JsonXContent.jsonXContent
-            .createParser(NamedXContentRegistry.EMPTY, (String) response.rows()[0][0]).map();
+        Map<String, Object> firstRaw = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            (String) response.rows()[0][0]).map();
 
         assertThat(response.rows()[0][1], is("2"));
         assertThat(firstRaw.get("id"), is("2"));
@@ -1577,8 +1580,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(firstRaw.get("date"), is(308534400000L));
         assertThat(firstRaw.get("kind"), is("Galaxy"));
 
-        Map<String, Object> secondRaw = JsonXContent.jsonXContent
-            .createParser(NamedXContentRegistry.EMPTY, (String) response.rows()[1][0]).map();
+        Map<String, Object> secondRaw = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            (String) response.rows()[1][0]).map();
         assertThat(response.rows()[1][1], is("3"));
         assertThat(secondRaw.get("id"), is("3"));
         assertThat(secondRaw.get("name"), is("Galactic Sector QQ7 Active J Gamma"));

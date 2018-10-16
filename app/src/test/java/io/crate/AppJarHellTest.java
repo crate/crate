@@ -29,6 +29,6 @@ public class AppJarHellTest {
 
     @Test
     public void testInvoke() throws Exception {
-        JarHell.checkJarHell();
+        JarHell.checkJarHell(output -> {});
     }
 }

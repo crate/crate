@@ -70,7 +70,7 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
         for (Map.Entry<ColumnIdent, Input<?>> entry : generatedCols.entrySet()) {
             source.putIfAbsent(entry.getKey().fqn(), entry.getValue().value());
         }
-        return XContentFactory.jsonBuilder().map(source).bytes();
+        return BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
     }
 
 }

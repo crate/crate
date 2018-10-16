@@ -24,7 +24,6 @@ import org.elasticsearch.threadpool.ThreadPoolStats;
 import javax.annotation.Nullable;
 import java.beans.ConstructorProperties;
 
-import static org.elasticsearch.threadpool.ThreadPool.Names.BULK;
 import static org.elasticsearch.threadpool.ThreadPool.Names.FETCH_SHARD_STARTED;
 import static org.elasticsearch.threadpool.ThreadPool.Names.FETCH_SHARD_STORE;
 import static org.elasticsearch.threadpool.ThreadPool.Names.FLUSH;
@@ -37,6 +36,7 @@ import static org.elasticsearch.threadpool.ThreadPool.Names.MANAGEMENT;
 import static org.elasticsearch.threadpool.ThreadPool.Names.REFRESH;
 import static org.elasticsearch.threadpool.ThreadPool.Names.SEARCH;
 import static org.elasticsearch.threadpool.ThreadPool.Names.SNAPSHOT;
+import static org.elasticsearch.threadpool.ThreadPool.Names.WRITE;
 
 public class ThreadPools implements ThreadPoolsMXBean {
 
@@ -150,7 +150,7 @@ public class ThreadPools implements ThreadPoolsMXBean {
 
     @Override
     public ThreadPoolInfo getBulk() {
-        return getThreadPoolInfo(BULK);
+        return getThreadPoolInfo(WRITE);
     }
 
     @Override

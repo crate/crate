@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -48,7 +49,7 @@ import static org.hamcrest.core.Is.is;
 public class SchemasITest extends SQLTransportIntegrationTest {
 
     private Schemas schemas;
-    private RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);
+    private RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
 
     @Before
     public void setUpService() {

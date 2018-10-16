@@ -60,11 +60,10 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             assignments.targetNames()
         );
 
-        BytesReference source = XContentFactory.jsonBuilder()
+        BytesReference source = BytesReference.bytes(XContentFactory.jsonBuilder()
             .startObject()
             .field("x", 1)
-            .endObject()
-            .bytes();
+            .endObject());
         BytesReference updatedSource = updateSourceGen.generateSource(
             Doc.fromGetResult(new GetResult(
                 table.concreteIndices()[0],
@@ -95,11 +94,10 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             assignments.targetNames()
         );
 
-        BytesReference source = XContentFactory.jsonBuilder()
+        BytesReference source = BytesReference.bytes(XContentFactory.jsonBuilder()
             .startObject()
             .field("y", 100)
-            .endObject()
-            .bytes();
+            .endObject());
         BytesReference updatedSource = updateSourceGen.generateSource(
             Doc.fromGetResult(new GetResult(
                 table.concreteIndices()[0],

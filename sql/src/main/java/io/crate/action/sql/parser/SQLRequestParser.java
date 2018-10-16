@@ -24,11 +24,14 @@ package io.crate.action.sql.parser;
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.SQLParseException;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+
+import java.io.IOException;
 
 /**
  * Parser for SQL statements in JSON and other XContent formats
@@ -62,14 +65,15 @@ public final class SQLRequestParser {
         }
     }
 
-    public static SQLRequestParseContext parseSource(BytesReference source) throws SQLParseException {
+    public static SQLRequestParseContext parseSource(BytesReference source) throws IOException {
         if (source.length() == 0) {
             throw new SQLParseException("Missing request body");
         }
         XContentParser parser = null;
         try {
             SQLRequestParseContext parseContext = new SQLRequestParseContext();
-            parser = XContentFactory.xContent(XContentType.JSON).createParser(NamedXContentRegistry.EMPTY, source);
+            parser = XContentFactory.xContent(XContentType.JSON).createParser(
+                NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source));
             parse(parseContext, parser);
             validate(parseContext);
             return parseContext;

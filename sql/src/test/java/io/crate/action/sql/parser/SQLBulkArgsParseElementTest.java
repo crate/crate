@@ -23,9 +23,10 @@ package io.crate.action.sql.parser;
 
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Test;
 
 public class SQLBulkArgsParseElementTest extends CrateUnitTest {
@@ -33,8 +34,8 @@ public class SQLBulkArgsParseElementTest extends CrateUnitTest {
     private Object[][] parse(String bulk_args) throws Exception {
         SQLRequestParseContext context = new SQLRequestParseContext();
         String json = "{\"bulk_args\":" + bulk_args + "}";
-        BytesArray bytes = new BytesArray(json);
-        XContentParser parser = XContentFactory.xContent(bytes).createParser(xContentRegistry(), bytes);
+        XContentParser parser = XContentFactory.xContent(XContentType.JSON).createParser(
+            xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, json);
         parser.nextToken();
         parser.nextToken();
         parser.nextToken();

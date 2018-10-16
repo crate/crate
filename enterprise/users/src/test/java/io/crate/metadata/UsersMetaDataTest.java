@@ -20,8 +20,10 @@ package io.crate.metadata;
 
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.user.SecureHash;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -59,7 +61,10 @@ public class UsersMetaDataTest extends CrateUnitTest {
         users.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            xContentRegistry(),
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            Strings.toString(builder));
         parser.nextToken(); // start object
         UsersMetaData users2 = UsersMetaData.fromXContent(parser);
         assertEquals(users, users2);
@@ -85,7 +90,10 @@ public class UsersMetaDataTest extends CrateUnitTest {
         expectedUsers.put("Ford", null);
         expectedUsers.put("Arthur", null);
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            xContentRegistry(),
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            Strings.toString(builder));
         parser.nextToken(); // start object
         UsersMetaData users = UsersMetaData.fromXContent(parser);
         assertEquals(users, new UsersMetaData(expectedUsers));
@@ -105,7 +113,10 @@ public class UsersMetaDataTest extends CrateUnitTest {
         users.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            xContentRegistry(),
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            Strings.toString(builder));
         parser.nextToken(); // start object
         UsersMetaData users2 = UsersMetaData.fromXContent(parser);
         assertEquals(users, users2);

@@ -54,6 +54,7 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -160,7 +161,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
         final DefaultFullHttpResponse resp;
         final ByteBuf content;
         if (t == null) {
-            content = Netty4Utils.toByteBuf(result.bytes());
+            content = Netty4Utils.toByteBuf(BytesReference.bytes(result));
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, result.contentType().mediaType());
         } else {
@@ -168,7 +169,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
             String mediaType;
             boolean includeErrorTrace = paramContainFlag(parameters, "error_trace");
             try (XContentBuilder contentBuilder = HTTPErrorFormatter.convert(sqlActionException, includeErrorTrace)) {
-                content = Netty4Utils.toByteBuf(contentBuilder.bytes());
+                content = Netty4Utils.toByteBuf(BytesReference.bytes(contentBuilder));
                 mediaType = contentBuilder.contentType().mediaType();
             } catch (IOException e) {
                 throw new RuntimeException(e);

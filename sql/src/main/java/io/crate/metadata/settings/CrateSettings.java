@@ -48,7 +48,7 @@ import org.elasticsearch.cluster.routing.allocation.decider.FilterAllocationDeci
 import org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.ServerLoggers;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoverySettings;
@@ -252,7 +252,7 @@ public final class CrateSettings implements ClusterStateListener {
 
     @Inject
     public CrateSettings(ClusterService clusterService, Settings settings) {
-        logger = ServerLoggers.getLogger(this.getClass(), settings);
+        logger = Loggers.getLogger(this.getClass(), settings);
         Settings.Builder defaultsBuilder = Settings.builder();
         for (CrateSetting builtInSetting : BUILT_IN_SETTINGS) {
             defaultsBuilder.put(builtInSetting.getKey(), builtInSetting.setting().getDefaultRaw(settings));

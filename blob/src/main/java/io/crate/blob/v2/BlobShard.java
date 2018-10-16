@@ -26,13 +26,13 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.inject.internal.Nullable;
 import org.elasticsearch.common.io.PathUtils;
-import org.elasticsearch.common.logging.ServerLoggers;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardPath;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -54,7 +54,7 @@ public class BlobShard {
 
     public BlobShard(IndexShard indexShard, @Nullable Path globalBlobPath) {
         this.indexShard = indexShard;
-        logger = ServerLoggers.getLogger(BlobShard.class, indexShard.indexSettings().getSettings(), indexShard.shardId());
+        logger = Loggers.getLogger(BlobShard.class, indexShard.indexSettings().getSettings(), indexShard.shardId());
         blobDir = resolveBlobDir(indexShard.indexSettings(), indexShard.shardPath(), globalBlobPath);
         logger.info("creating BlobContainer at {}", blobDir);
         this.blobContainer = new BlobContainer(blobDir);

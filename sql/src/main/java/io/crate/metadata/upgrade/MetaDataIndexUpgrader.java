@@ -28,7 +28,7 @@ import io.crate.Constants;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.logging.ServerLoggers;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.MapperParsingException;
 
@@ -44,7 +44,7 @@ public class MetaDataIndexUpgrader implements UnaryOperator<IndexMetaData> {
     private final Logger logger;
 
     public MetaDataIndexUpgrader(Settings settings) {
-        this.logger = ServerLoggers.getLogger(MetaDataIndexUpgrader.class, settings);
+        this.logger = Loggers.getLogger(MetaDataIndexUpgrader.class, settings);
     }
 
     @Override

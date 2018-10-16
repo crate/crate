@@ -26,7 +26,7 @@ import io.crate.plugin.IndexEventListenerProxy;
 import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.logging.ServerLoggers;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 public class CrateCoreModule extends AbstractModule {
@@ -34,7 +34,7 @@ public class CrateCoreModule extends AbstractModule {
     private final IndexEventListenerProxy indexEventListenerProxy;
 
     public CrateCoreModule(Settings settings, IndexEventListenerProxy indexEventListenerProxy) {
-        Logger logger = ServerLoggers.getLogger(getClass().getPackage().getName(), settings);
+        Logger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
         this.indexEventListenerProxy = indexEventListenerProxy;
         if (SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings) &&
             "".equals(SharedSettings.LICENSE_IDENT_SETTING.setting().get(settings))) {

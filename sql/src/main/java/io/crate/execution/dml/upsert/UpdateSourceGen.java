@@ -128,7 +128,7 @@ final class UpdateSourceGen {
         }
         injectGeneratedColumns(updatedSource);
         checks.validate(updatedDoc);
-        return XContentFactory.jsonBuilder().map(updatedSource).bytes();
+        return BytesReference.bytes(XContentFactory.jsonBuilder().map(updatedSource));
     }
 
     private void injectGeneratedColumns(HashMap<String, Object> updatedSource) {

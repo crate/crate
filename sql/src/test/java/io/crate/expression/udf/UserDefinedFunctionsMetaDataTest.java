@@ -26,8 +26,10 @@ import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -91,7 +93,8 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         DUMMY_UDF_META_DATA.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // start object
         UserDefinedFunctionsMetaData functions = UserDefinedFunctionsMetaData.fromXContent(parser);
         assertEquals(DUMMY_UDF_META_DATA, functions);
@@ -107,7 +110,8 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         functions.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // enter START_OBJECT
         UserDefinedFunctionsMetaData functions2 = UserDefinedFunctionsMetaData.fromXContent(parser);
         assertEquals(functions, functions2);
@@ -119,7 +123,8 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
 
         ArrayType type = new ArrayType(new ArrayType(DataTypes.STRING));
         UserDefinedFunctionMetaData.DataTypeXContent.toXContent(type, builder, ToXContent.EMPTY_PARAMS);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken();  // enter START_OBJECT
         ArrayType type2 = (ArrayType) UserDefinedFunctionMetaData.DataTypeXContent.fromXContent(parser);
         assertTrue(type.equals(type2));
