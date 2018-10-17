@@ -22,11 +22,10 @@
 package io.crate.expression.reference.sys.cluster;
 
 import io.crate.expression.NestableInput;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
-public class ClusterIdExpression implements NestableInput<BytesRef> {
+public class ClusterIdExpression implements NestableInput<String> {
 
     public static final String NAME = "id";
     private final ClusterService clusterService;
@@ -37,8 +36,7 @@ public class ClusterIdExpression implements NestableInput<BytesRef> {
     }
 
     @Override
-    public BytesRef value() {
-        return new BytesRef(clusterService.state().metaData().clusterUUID());
+    public String value() {
+        return clusterService.state().metaData().clusterUUID();
     }
-
 }

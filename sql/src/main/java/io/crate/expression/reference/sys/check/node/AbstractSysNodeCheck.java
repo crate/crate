@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.Id;
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.List;
@@ -34,14 +33,14 @@ import java.util.function.Function;
 
 public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements SysNodeCheck {
 
-    private static final Function<List<BytesRef>, String> PK_FUNC = Id.compile(2, -1);
+    private static final Function<List<String>, String> PK_FUNC = Id.compile(2, -1);
 
 
     private static final String LINK_PATTERN = "https://cr8.is/d-node-check-";
     protected final ClusterService clusterService;
 
-    private BytesRef nodeId;
-    private BytesRef rowId;
+    private String nodeId;
+    private String rowId;
     private boolean acknowledged;
 
     AbstractSysNodeCheck(int id, String description, Severity severity, ClusterService clusterService) {
@@ -51,13 +50,13 @@ public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements S
     }
 
     @Override
-    public BytesRef nodeId() {
+    public String nodeId() {
         assert nodeId != null : "local node required, setNodeId not called";
         return nodeId;
     }
 
     @Override
-    public BytesRef rowId() {
+    public String rowId() {
         assert rowId != null : "local node required, setNodeId not called";
         return rowId;
     }
@@ -72,12 +71,11 @@ public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements S
         acknowledged = value;
     }
 
-    private BytesRef generateId(BytesRef nodeId) {
-        //noinspection ConstantConditions
-        return new BytesRef(PK_FUNC.apply(ImmutableList.of(DataTypes.STRING.value(id()), nodeId)));
+    private String generateId(String nodeId) {
+        return PK_FUNC.apply(ImmutableList.of(DataTypes.STRING.value(id()), nodeId));
     }
 
-    public void setNodeId(BytesRef nodeId) {
+    public void setNodeId(String nodeId) {
         this.nodeId = nodeId;
         this.rowId = generateId(nodeId);
     }

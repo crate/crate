@@ -46,7 +46,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.StoredTable;
 import io.crate.metadata.table.TableInfo;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 
@@ -127,7 +126,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final String[] concreteOpenIndices;
     private final List<ColumnIdent> partitionedBy;
     private final int numberOfShards;
-    private final BytesRef numberOfReplicas;
+    private final String numberOfReplicas;
     private final ImmutableMap<String, Object> tableParameters;
     private final TableColumn docColumn;
     private final TableParameterInfo tableParameterInfo;
@@ -160,7 +159,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         String[] concreteOpenIndices,
                         IndexNameExpressionResolver indexNameExpressionResolver,
                         int numberOfShards,
-                        BytesRef numberOfReplicas,
+                        String numberOfReplicas,
                         ImmutableMap<String, Object> tableParameters,
                         List<ColumnIdent> partitionedBy,
                         List<PartitionName> partitions,
@@ -272,7 +271,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public BytesRef numberOfReplicas() {
+    public String numberOfReplicas() {
         return numberOfReplicas;
     }
 

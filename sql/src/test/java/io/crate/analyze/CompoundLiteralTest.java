@@ -22,10 +22,10 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.exceptions.ConversionException;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -35,7 +35,6 @@ import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -68,14 +67,14 @@ public class CompoundLiteralTest extends CrateUnitTest {
         Literal objectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{ident='value'}"));
         assertThat(objectLiteral.symbolType(), is(SymbolType.LITERAL));
         assertThat(objectLiteral.valueType(), is((DataType) ObjectType.INSTANCE));
-        assertThat(objectLiteral.value(), is((Object) new MapBuilder<String, Object>().put("ident", new BytesRef("value")).map()));
+        assertThat(objectLiteral.value(), is((Object) new MapBuilder<String, Object>().put("ident", "value").map()));
 
         Literal multipleObjectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{\"Ident\"=123.4, a={}, ident='string'}"));
         Map<String, Object> values = (Map<String, Object>) multipleObjectLiteral.value();
         assertThat(values, is(new MapBuilder<String, Object>()
             .put("Ident", 123.4d)
             .put("a", new HashMap<String, Object>())
-            .put("ident", new BytesRef("string"))
+            .put("ident", "string")
             .map()));
     }
 
@@ -89,7 +88,7 @@ public class CompoundLiteralTest extends CrateUnitTest {
         @SuppressWarnings("unchecked") Map<String, Object> values = (Map<String, Object>) nestedObjectLiteral.value();
         assertThat(values, is(new MapBuilder<String, Object>()
             .put("a", new HashMap<String, Object>() {{
-                put("name", new BytesRef("foobar"));
+                put("name", "foobar");
             }})
             .map()));
     }

@@ -29,7 +29,6 @@ import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.DummyOsInfo;
 import org.elasticsearch.monitor.os.OsProbe;
@@ -67,15 +66,15 @@ public class NodeStatsContextTest extends CrateUnitTest {
     @Test
     public void testStreamContext() throws Exception {
         NodeStatsContext ctx1 = new NodeStatsContext(true);
-        ctx1.id(BytesRefs.toBytesRef("93c7ff92-52fa-11e6-aad8-3c15c2d3ad18"));
-        ctx1.name(BytesRefs.toBytesRef("crate1"));
-        ctx1.hostname(BytesRefs.toBytesRef("crate1.example.com"));
+        ctx1.id("93c7ff92-52fa-11e6-aad8-3c15c2d3ad18");
+        ctx1.name("crate1");
+        ctx1.hostname("crate1.example.com");
         ctx1.timestamp(100L);
         ctx1.version(Version.CURRENT);
         ctx1.build(Build.CURRENT);
-        ctx1.restUrl(BytesRefs.toBytesRef("10.0.0.1:4200"));
         ctx1.httpPort(4200);
         ctx1.transportPort(4300);
+        ctx1.restUrl("10.0.0.1:4200");
         ctx1.jvmStats(JvmStats.jvmStats());
         ctx1.osInfo(DummyOsInfo.INSTANCE);
         ProcessProbe processProbe = ProcessProbe.getInstance();

@@ -43,15 +43,15 @@ import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -180,8 +180,8 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
         assertThat(analysis.sourceMaps().size(), is(1));
         assertThat(analysis.sourceMaps().get(0).length, is(2));
-        assertThat((Long) analysis.sourceMaps().get(0)[0], is(1L));
-        assertThat((BytesRef) analysis.sourceMaps().get(0)[1], is(new BytesRef("Trillian")));
+        assertThat(analysis.sourceMaps().get(0)[0], is(1L));
+        assertThat(analysis.sourceMaps().get(0)[1], is("Trillian"));
     }
 
     @Test
@@ -198,8 +198,8 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
         assertThat(analysis.sourceMaps().size(), is(1));
         assertThat(analysis.sourceMaps().get(0).length, is(2));
-        assertThat((BytesRef) analysis.sourceMaps().get(0)[0], is(new BytesRef("Trillian")));
-        assertThat((Long) analysis.sourceMaps().get(0)[1], is(2L));
+        assertThat(analysis.sourceMaps().get(0)[0], is("Trillian"));
+        assertThat(analysis.sourceMaps().get(0)[1], is(2L));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -262,8 +262,8 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
         assertThat(analysis.sourceMaps().size(), is(1));
         assertThat(analysis.sourceMaps().get(0).length, is(2));
-        assertThat((Long) analysis.sourceMaps().get(0)[0], is(1L));
-        assertThat((BytesRef) analysis.sourceMaps().get(0)[1], is(new BytesRef("Trillian")));
+        assertThat(analysis.sourceMaps().get(0)[0], is(1L));
+        assertThat(analysis.sourceMaps().get(0)[1], is("Trillian"));
     }
 
     @Test
@@ -283,9 +283,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
         assertThat(analysis.sourceMaps().size(), is(1));
         assertThat(analysis.sourceMaps().get(0).length, is(3));
-        assertThat((Long) analysis.sourceMaps().get(0)[0], is(1L));
-        assertThat((Long) analysis.sourceMaps().get(0)[1], is(1L));
-        assertThat((BytesRef) analysis.sourceMaps().get(0)[2], is(new BytesRef("Trillian")));
+        assertThat(analysis.sourceMaps().get(0)[0], is(1L));
+        assertThat(analysis.sourceMaps().get(0)[1], is(1L));
+        assertThat(analysis.sourceMaps().get(0)[2], is("Trillian"));
     }
 
     @Test
@@ -452,8 +452,8 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         Object[] arrayValue = (Object[]) analysis.sourceMaps().get(0)[0];
         assertThat(arrayValue.length, is(2));
         assertThat(arrayValue[0], instanceOf(Map.class));
-        assertThat((BytesRef) ((Map) arrayValue[0]).get("name"), is(new BytesRef("cool")));
-        assertThat((BytesRef) ((Map) arrayValue[1]).get("name"), is(new BytesRef("fancy")));
+        assertThat(((Map) arrayValue[0]).get("name"), is("cool"));
+        assertThat(((Map) arrayValue[1]).get("name"), is("fancy"));
         assertThat(Arrays.toString(((Object[]) ((Map) arrayValue[0]).get("metadata"))), is("[{id=0}, {id=1}]"));
         assertThat(Arrays.toString(((Object[]) ((Map) arrayValue[1]).get("metadata"))), is("[{id=2}, {id=3}]"));
     }
@@ -479,7 +479,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
         assertThat(analysis.ids().size(), is(1));
         assertThat(analysis.ids().get(0),
-            is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList(new BytesRef("1"), new BytesRef("4")), new ColumnIdent("o.b"))));
+            is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList("1", "4"), new ColumnIdent("o.b"))));
     }
 
     @Test
@@ -488,7 +488,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
         assertThat(analysis.ids().size(), is(1));
         assertThat(analysis.ids().get(0),
-            is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList(new BytesRef("1"), new BytesRef("4")), new ColumnIdent("o.b"))));
+            is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList("1", "4"), new ColumnIdent("o.b"))));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -506,11 +506,11 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         InsertFromValuesAnalyzedStatement analysis = e.analyze("insert into nested_pk (o, id) values (?, ?)",
             new Object[]{new MapBuilder<String, Object>().put("b", 4).map(), 1});
         assertThat(analysis.ids().get(0),
-            is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList(new BytesRef("1"), new BytesRef("4")), new ColumnIdent("o.b"))));
+            is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList("1", "4"), new ColumnIdent("o.b"))));
 
     }
 
-    private String generateId(List<ColumnIdent> pkColumns, List<BytesRef> pkValues, ColumnIdent clusteredBy) {
+    private String generateId(List<ColumnIdent> pkColumns, List<String> pkValues, ColumnIdent clusteredBy) {
         return Id.compileWithNullValidation(pkColumns, clusteredBy).apply(pkValues);
     }
 
@@ -521,13 +521,13 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             new Object[]{99, "Marvin", true, 42, "Deep Thought", false});
         assertThat(analysis.sourceMaps().size(), is(2));
 
-        assertThat((Long) analysis.sourceMaps().get(0)[0], is(99L));
-        assertThat((BytesRef) analysis.sourceMaps().get(0)[1], is(new BytesRef("Marvin")));
-        assertThat((Boolean) analysis.sourceMaps().get(0)[2], is(true));
+        assertThat(analysis.sourceMaps().get(0)[0], is(99L));
+        assertThat(analysis.sourceMaps().get(0)[1], is("Marvin"));
+        assertThat(analysis.sourceMaps().get(0)[2], is(true));
 
-        assertThat((Long) analysis.sourceMaps().get(1)[0], is(42L));
-        assertThat((BytesRef) analysis.sourceMaps().get(1)[1], is(new BytesRef("Deep Thought")));
-        assertThat((Boolean) analysis.sourceMaps().get(1)[2], is(false));
+        assertThat(analysis.sourceMaps().get(1)[0], is(42L));
+        assertThat(analysis.sourceMaps().get(1)[1], is("Deep Thought"));
+        assertThat(analysis.sourceMaps().get(1)[2], is(false));
     }
 
     @Test
@@ -579,22 +579,20 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
     private void validateBulkIndexPartitionedTableAnalysis(InsertFromValuesAnalyzedStatement analysis) {
         assertThat(analysis.generatePartitions(), contains(
-            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("13963670051500"))).asIndexName(),
-            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("0"))).asIndexName(),
-            new PartitionName(new RelationName("doc", "parted"), new ArrayList<BytesRef>() {{
-                add(null);
-            }}).asIndexName()
-        ));
+            new PartitionName(new RelationName("doc", "parted"), Arrays.asList("13963670051500")).asIndexName(),
+            new PartitionName(new RelationName("doc", "parted"), Arrays.asList("0")).asIndexName(),
+            new PartitionName(new RelationName("doc", "parted"), Collections.singletonList(null)).asIndexName())
+        );
         assertThat(analysis.sourceMaps().size(), is(3));
 
-        assertThat((Integer) analysis.sourceMaps().get(0)[0], is(1));
-        assertThat((BytesRef) analysis.sourceMaps().get(0)[1], is(new BytesRef("Trillian")));
+        assertThat(analysis.sourceMaps().get(0)[0], is(1));
+        assertThat(analysis.sourceMaps().get(0)[1], is("Trillian"));
 
-        assertThat((Integer) analysis.sourceMaps().get(1)[0], is(2));
-        assertThat((BytesRef) analysis.sourceMaps().get(1)[1], is(new BytesRef("Ford")));
+        assertThat(analysis.sourceMaps().get(1)[0], is(2));
+        assertThat(analysis.sourceMaps().get(1)[1], is("Ford"));
 
-        assertThat((Integer) analysis.sourceMaps().get(2)[0], is(3));
-        assertThat((BytesRef) analysis.sourceMaps().get(2)[1], is(new BytesRef("Zaphod")));
+        assertThat(analysis.sourceMaps().get(2)[0], is(3));
+        assertThat(analysis.sourceMaps().get(2)[1], is("Zaphod"));
 
         assertThat(analysis.partitionMaps().size(), is(3));
         assertThat(analysis.partitionMaps().get(0),
@@ -624,8 +622,8 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
                 2, "2014-05-21", new MapBuilder<String, Object>().put("name", "Arthur").map()
             });
         assertThat(analysis.generatePartitions(), contains(
-            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList(new BytesRef("0"), new BytesRef("Zaphod"))).asIndexName(),
-            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList(new BytesRef("1400630400000"), new BytesRef("Arthur"))).asIndexName()
+            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList("0", "Zaphod")).asIndexName(),
+            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList("1400630400000", "Arthur")).asIndexName()
 
         ));
         assertThat(analysis.sourceMaps().size(), is(2));
@@ -693,7 +691,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             });
 
         assertThat(analysis.sourceMaps().size(), is(2));
-        assertEquals(analysis.sourceMaps().get(0)[1], new BytesRef("foo"));
+        assertEquals(analysis.sourceMaps().get(0)[1], "foo");
         assertEquals(analysis.sourceMaps().get(1)[1], null);
     }
 
@@ -708,7 +706,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
         assertThat(analysis.sourceMaps().size(), is(2));
         assertEquals(analysis.sourceMaps().get(0)[1], null);
-        assertEquals(analysis.sourceMaps().get(1)[1], new BytesRef("foo"));
+        assertEquals(analysis.sourceMaps().get(1)[1], "foo");
     }
 
     @Test
@@ -722,7 +720,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
         assertThat(analysis.sourceMaps().size(), is(2));
         assertThat((Object[]) analysis.sourceMaps().get(0)[1], arrayContaining((Object) null));
-        assertThat((Object[]) analysis.sourceMaps().get(1)[1], arrayContaining((Object) new BytesRef("foo")));
+        assertThat((Object[]) analysis.sourceMaps().get(1)[1], arrayContaining((Object) "foo"));
     }
 
     @Test
@@ -821,10 +819,10 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         InsertFromValuesAnalyzedStatement analysis = e.analyze("insert into users (id, name, theses) " +
                                                              "values (1, 'Marx', [['string1', 'string2']])");
         assertThat(analysis.sourceMaps().size(), is(1));
-        assertThat((Long) analysis.sourceMaps().get(0)[0], is(1L));
-        assertThat((BytesRef) analysis.sourceMaps().get(0)[1], is(new BytesRef("Marx")));
+        assertThat(analysis.sourceMaps().get(0)[0], is(1L));
+        assertThat(analysis.sourceMaps().get(0)[1], is("Marx"));
         assertThat((Object[]) ((Object[]) analysis.sourceMaps().get(0)[2])[0],
-            arrayContaining(new Object[]{new BytesRef("string1"), new BytesRef("string2")}));
+            arrayContaining(new Object[]{"string1", "string2"}));
     }
 
     @Test
@@ -839,9 +837,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
                                                              "values (1, 'Marx', [['string1', 'string2']])");
         assertThat(analysis.sourceMaps().size(), is(1));
         assertThat((Long) analysis.sourceMaps().get(0)[0], is(1L));
-        assertThat((BytesRef) analysis.sourceMaps().get(0)[1], is(new BytesRef("Marx")));
+        assertThat(analysis.sourceMaps().get(0)[1], is("Marx"));
         assertThat((Object[]) ((Object[]) analysis.sourceMaps().get(0)[2])[0],
-            arrayContaining(new Object[]{new BytesRef("string1"), new BytesRef("string2")}));
+            arrayContaining(new Object[]{"string1", "string2"}));
     }
 
     @Test
@@ -858,9 +856,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
                                                              "values (1, 'Marx', [['string1', 'string2']])");
         assertThat(analysis.sourceMaps().size(), is(1));
         assertThat((Long) analysis.sourceMaps().get(0)[0], is(1L));
-        assertThat((BytesRef) analysis.sourceMaps().get(0)[1], is(new BytesRef("Marx")));
+        assertThat(analysis.sourceMaps().get(0)[1], is("Marx"));
         assertThat((Object[]) ((Object[]) analysis.sourceMaps().get(0)[2])[0],
-            arrayContaining(new Object[]{new BytesRef("string1"), new BytesRef("string2")}));
+            arrayContaining(new Object[]{"string1", "string2"}));
     }
 
     @Test
@@ -1215,7 +1213,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         // generated column 'day'
         assertThat(values[1], nullValue());
         // generated column 'name'
-        assertThat((BytesRef) values[2], is(new BytesRef("bar")));
+        assertThat(values[2], is("bar"));
     }
 
     @Test
@@ -1253,9 +1251,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(analysis.columns(), hasSize(4));
         assertThat(analysis.columns(), contains(isReference("ts"), isReference("user"), isReference("day"), isReference("name")));
         assertThat(analysis.sourceMaps(), hasSize(2));
-        assertThat(analysis.sourceMaps(), contains(
-            Matchers.arrayContaining(0L, ImmutableMap.<String, Object>of("name", new BytesRef("Johnny")), 0L, new BytesRef("Johnnybar")),
-            Matchers.arrayContaining(626603400000L, ImmutableMap.<String, Object>of("name", new BytesRef("Egon")), 626572800000L, new BytesRef("Egonbar"))));
+        Matcher<Object[]> firstRow = arrayContaining(0L, ImmutableMap.<String, Object>of("name", "Johnny"), 0L, "Johnnybar");
+        Matcher<Object[]> secondRow = arrayContaining(626603400000L, ImmutableMap.<String, Object>of("name", "Egon"), 626572800000L, "Egonbar");
+        assertThat(analysis.sourceMaps(), contains(firstRow, secondRow));
     }
 
     @Test
@@ -1265,9 +1263,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(analysis.columns(), hasSize(4));
         assertThat(analysis.columns(), contains(isReference("ts"), isReference("user"), isReference("day"), isReference("name")));
         assertThat(analysis.sourceMaps(), hasSize(2));
-        assertThat(analysis.sourceMaps(), contains(
-            Matchers.arrayContaining(0L, ImmutableMap.<String, Object>of("name", new BytesRef("Johnny")), 0L, new BytesRef("Johnnybar")),
-            Matchers.arrayContaining(626603400000L, ImmutableMap.<String, Object>of("name", new BytesRef("Egon")), 626572800000L, new BytesRef("Egonbar"))));
+        Matcher<Object[]> firstRow = arrayContaining(0L, ImmutableMap.<String, Object>of("name", "Johnny"), 0L, "Johnnybar");
+        Matcher<Object[]> secondRow = arrayContaining(626603400000L, ImmutableMap.<String, Object>of("name", "Egon"), 626572800000L, "Egonbar");
+        assertThat(analysis.sourceMaps(), contains(firstRow, secondRow));
     }
 
     @Test
@@ -1277,7 +1275,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         );
         assertThat(analysis.routingValues(), contains("AgEyATI="));
         assertThat(analysis.ids().get(0),
-            is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("id2")), Arrays.asList(new BytesRef("2"), new BytesRef("2")), new ColumnIdent("id"))));
+            is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("id2")), Arrays.asList("2", "2"), new ColumnIdent("id"))));
     }
 
     @Test
@@ -1289,10 +1287,10 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(analysis.ids(), contains(
             is(generateId(
                 Arrays.asList(new ColumnIdent("id"), new ColumnIdent("id2")),
-                Arrays.asList(new BytesRef("2"), new BytesRef("2")), new ColumnIdent("id"))),
+                Arrays.asList("2", "2"), new ColumnIdent("id"))),
             is(generateId(
                 Arrays.asList(new ColumnIdent("id"), new ColumnIdent("id2")),
-                Arrays.asList(new BytesRef("3"), new BytesRef("3")), new ColumnIdent("id")))
+                Arrays.asList("3", "3"), new ColumnIdent("id")))
         ));
     }
 
@@ -1304,7 +1302,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(analysis.ids().get(0),
             is(generateId(
                 Arrays.asList(new ColumnIdent("value"), new ColumnIdent("part_key__generated")),
-                Arrays.asList(new BytesRef("1"), new BytesRef("1508803200000")),
+                Arrays.asList("1", "1508803200000"),
                 null)));
         assertThat(analysis.generatePartitions().size(), is(1));
     }
@@ -1361,10 +1359,10 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertArrayLiteralWithOneNullValue() throws Exception {
         InsertFromValuesAnalyzedStatement stmt = e.analyze("insert into users (id, tags) values (1, ['foo', 'bar', null])");
-        assertThat(stmt.sourceMaps().get(0), is(new Object[]{1L, new Object[]{new BytesRef("foo"), new BytesRef("bar"), null}}));
+        assertThat(stmt.sourceMaps().get(0), is(new Object[]{1L, new Object[]{"foo", "bar", null}}));
 
         stmt = e.analyze("insert into users (id, tags) values (1, [null, 'foo', 'bar'])");
-        assertThat(stmt.sourceMaps().get(0), is(new Object[]{1L, new Object[]{null, new BytesRef("foo"), new BytesRef("bar")}}));
+        assertThat(stmt.sourceMaps().get(0), is(new Object[]{1L, new Object[]{null, "foo", "bar"}}));
     }
 
     @Test

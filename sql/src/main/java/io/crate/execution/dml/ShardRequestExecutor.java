@@ -35,7 +35,6 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -138,7 +137,7 @@ public class ShardRequestExecutor<Req> {
                 continue;
             }
             String routing = docKey.getRouting(functions, parameters, subQueryResults);
-            List<BytesRef> partitionValues = docKey.getPartitionValues(functions, parameters, subQueryResults);
+            List<String> partitionValues = docKey.getPartitionValues(functions, parameters, subQueryResults);
             final String indexName;
             if (partitionValues == null) {
                 indexName = table.ident().indexName();

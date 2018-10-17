@@ -30,7 +30,6 @@ import io.crate.metadata.Schemas;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
@@ -683,7 +682,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             new Object[]{3, "Time is a illusion. Lunchtime doubles so", 1495961200000L}
         );
         String partition = new PartitionName(
-            new RelationName("doc", "quotes"), Arrays.asList(new BytesRef("1495961200000"))).asIndexName();
+            new RelationName("doc", "quotes"), Arrays.asList("1495961200000")).asIndexName();
         GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(partition).execute().get();
         assertThat(settingsResponse.getSetting(partition, IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("5"));
     }

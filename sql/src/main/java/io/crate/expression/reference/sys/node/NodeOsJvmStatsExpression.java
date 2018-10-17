@@ -22,8 +22,6 @@
 
 package io.crate.expression.reference.sys.node;
 
-import org.apache.lucene.util.BytesRef;
-
 class NodeOsJvmStatsExpression extends NestedNodeStatsExpression {
 
     private static final String VERSION = "version";
@@ -32,27 +30,27 @@ class NodeOsJvmStatsExpression extends NestedNodeStatsExpression {
     private static final String VM_VERSION = "vm_version";
 
     NodeOsJvmStatsExpression() {
-        childImplementations.put(VERSION, new SimpleNodeStatsExpression<BytesRef>() {
+        childImplementations.put(VERSION, new SimpleNodeStatsExpression<String>() {
             @Override
-            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+            public String innerValue(NodeStatsContext nodeStatsContext) {
                 return nodeStatsContext.javaVersion();
             }
         });
-        childImplementations.put(VM_NAME, new SimpleNodeStatsExpression<BytesRef>() {
+        childImplementations.put(VM_NAME, new SimpleNodeStatsExpression<String>() {
             @Override
-            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+            public String innerValue(NodeStatsContext nodeStatsContext) {
                 return nodeStatsContext.jvmName();
             }
         });
-        childImplementations.put(VM_VENDOR, new SimpleNodeStatsExpression<BytesRef>() {
+        childImplementations.put(VM_VENDOR, new SimpleNodeStatsExpression<String>() {
             @Override
-            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+            public String innerValue(NodeStatsContext nodeStatsContext) {
                 return nodeStatsContext.jvmVendor();
             }
         });
-        childImplementations.put(VM_VERSION, new SimpleNodeStatsExpression<BytesRef>() {
+        childImplementations.put(VM_VERSION, new SimpleNodeStatsExpression<String>() {
             @Override
-            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+            public String innerValue(NodeStatsContext nodeStatsContext) {
                 return nodeStatsContext.jvmVersion();
             }
         });

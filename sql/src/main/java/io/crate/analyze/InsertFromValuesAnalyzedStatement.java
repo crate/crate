@@ -26,8 +26,6 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -98,10 +96,10 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
     public List<String> generatePartitions() {
         List<String> partitionValues = new ArrayList<>(partitionMaps.size());
         for (Map<String, String> map : partitionMaps) {
-            List<BytesRef> values = new ArrayList<>(map.size());
+            List<String> values = new ArrayList<>(map.size());
             List<String> columnNames = partitionedByColumnNames();
             for (String columnName : columnNames) {
-                values.add(BytesRefs.toBytesRef(map.get(columnName)));
+                values.add(map.get(columnName));
             }
             partitionValues.add(IndexParts.toIndexName(tableInfo.ident(), PartitionName.encodeIdent(values)));
         }

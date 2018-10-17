@@ -24,18 +24,16 @@ package io.crate.expression.scalar;
 
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.List;
 import java.util.Locale;
@@ -80,10 +78,10 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> {
             return null;
         }
         assert element instanceof Map : "first argument must be of type Map";
-        assert key instanceof BytesRef : "second argument must be of type BytesRef";
+        assert key instanceof String : "second argument must be of type String";
 
         Map m = (Map) element;
-        String k = BytesRefs.toString(key);
+        String k = (String) key;
         if (!m.containsKey(k)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The object does not contain [%s] key", k));
         }

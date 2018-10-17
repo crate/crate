@@ -48,7 +48,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -205,7 +204,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Test
     public void visitStringLiteral() throws Exception {
-        Literal<BytesRef> l = Literal.of("fooBar");
+        Literal<String> l = Literal.of("fooBar");
         assertPrint(l, "'fooBar'");
     }
 

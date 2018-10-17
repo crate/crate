@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.execution.dml.ShardResponse;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
 import java.util.Collections;
@@ -44,8 +43,8 @@ final class UpsertResultCollectors {
 
     static UpsertResultCollector newSummaryCollector(DiscoveryNode localNode) {
         return new SummaryCollector(ImmutableMap.of(
-            "id", new BytesRef(localNode.getId()),
-            "name", new BytesRef(localNode.getName())
+            "id", localNode.getId(),
+            "name", localNode.getName()
         ));
     }
 
@@ -91,11 +90,11 @@ final class UpsertResultCollectors {
 
     private static class SummaryCollector implements UpsertResultCollector {
 
-        private final ImmutableMap<String, BytesRef> nodeInfo;
+        private final ImmutableMap<String, String> nodeInfo;
 
         private final Object lock = new Object();
 
-        SummaryCollector(ImmutableMap<String, BytesRef> nodeInfo) {
+        SummaryCollector(ImmutableMap<String, String> nodeInfo) {
             this.nodeInfo = nodeInfo;
         }
 

@@ -24,14 +24,15 @@ package io.crate.expression.operator;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.ByteRunAutomaton;
 import org.apache.lucene.util.automaton.RegExp;
+
+import java.nio.charset.StandardCharsets;
 
 import static io.crate.expression.scalar.regex.RegexMatcher.isPcrePattern;
 
 
-public class RegexpMatchOperator extends Operator<BytesRef> {
+public class RegexpMatchOperator extends Operator<String> {
 
     public static final String NAME = "op_~";
     public static final FunctionInfo INFO = generateInfo(NAME, DataTypes.STRING);
@@ -42,23 +43,23 @@ public class RegexpMatchOperator extends Operator<BytesRef> {
 
 
     @Override
-    public Boolean evaluate(Input<BytesRef>... args) {
+    public Boolean evaluate(Input<String>... args) {
         assert args.length == 2 : "invalid number of arguments";
-        BytesRef source = args[0].value();
+        String source = args[0].value();
         if (source == null) {
             return null;
         }
-        BytesRef pattern = args[1].value();
+        String pattern = args[1].value();
         if (pattern == null) {
             return null;
         }
-        String sPattern = pattern.utf8ToString();
-        if (isPcrePattern(sPattern)) {
-            return source.utf8ToString().matches(sPattern);
+        if (isPcrePattern(pattern)) {
+            return source.matches(pattern);
         } else {
-            RegExp regexp = new RegExp(sPattern);
+            RegExp regexp = new RegExp(pattern);
             ByteRunAutomaton regexpRunAutomaton = new ByteRunAutomaton(regexp.toAutomaton());
-            return regexpRunAutomaton.run(source.bytes, source.offset, source.length);
+            byte[] bytes = source.getBytes(StandardCharsets.UTF_8);
+            return regexpRunAutomaton.run(bytes, 0, bytes.length);
         }
     }
 

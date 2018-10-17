@@ -45,7 +45,6 @@ import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Randomness;
 import org.junit.Before;
 import org.junit.Test;
@@ -93,7 +92,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(item.insertValues().length, is(2));
         assertThat(item.insertValues()[0], is(42L));
-        assertThat(item.insertValues()[1], is(new BytesRef("Deep Thought")));
+        assertThat(item.insertValues()[1], is("Deep Thought"));
     }
 
     @Test
@@ -114,7 +113,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(item1.routing(), is("42"));
         assertThat(item1.insertValues().length, is(2));
         assertThat(item1.insertValues()[0], is(42L));
-        assertThat(item1.insertValues()[1], is(new BytesRef("Deep Thought")));
+        assertThat(item1.insertValues()[1], is("Deep Thought"));
 
         LegacyUpsertById.Item item2 = legacyUpsertById.items().get(1);
         assertThat(item2.index(), is("users"));
@@ -122,7 +121,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(item2.routing(), is("99"));
         assertThat(item2.insertValues().length, is(2));
         assertThat(item2.insertValues()[0], is(99L));
-        assertThat(item2.insertValues()[1], is(new BytesRef("Marvin")));
+        assertThat(item2.insertValues()[1], is("Marvin"));
     }
 
 

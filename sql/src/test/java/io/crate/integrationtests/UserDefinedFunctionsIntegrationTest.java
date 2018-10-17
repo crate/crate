@@ -37,8 +37,6 @@ import io.crate.metadata.Scalar;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,7 +57,7 @@ import static org.hamcrest.CoreMatchers.is;
 @UseJdbc(0) // create/drop function has no rowcount
 public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegrationTest {
 
-    public static class DummyFunction<InputType> extends Scalar<BytesRef, InputType>  {
+    public static class DummyFunction<InputType> extends Scalar<String, InputType>  {
 
         private final FunctionInfo info;
         private final UserDefinedFunctionMetaData metaData;
@@ -75,9 +73,9 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         }
 
         @Override
-        public BytesRef evaluate(Input<InputType>... args) {
+        public String evaluate(Input<InputType>... args) {
             // dummy-lang functions simple print the type of the only argument
-            return BytesRefs.toBytesRef("DUMMY EATS " + metaData.argumentTypes().get(0).getName());
+            return "DUMMY EATS " + metaData.argumentTypes().get(0).getName();
         }
     }
 

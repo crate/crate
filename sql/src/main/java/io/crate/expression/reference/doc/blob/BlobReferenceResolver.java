@@ -39,7 +39,7 @@ public class BlobReferenceResolver implements ReferenceResolver<CollectExpressio
 
     private static final Map<String, ExpressionBuilder> EXPRESSION_BUILDER =
         ImmutableMap.of(
-            DIGEST, () -> NestableCollectExpression.objToBytesRef(File::getName),
+            DIGEST, () -> NestableCollectExpression.forFunction(File::getName),
             LAST_MODIFIED, () -> NestableCollectExpression.forFunction(File::lastModified)
         );
 

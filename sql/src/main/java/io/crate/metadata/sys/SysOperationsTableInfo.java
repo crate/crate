@@ -35,7 +35,6 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
@@ -61,11 +60,11 @@ public class SysOperationsTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContext>> expressions(Supplier<DiscoveryNode> localNode) {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<OperationContext>>builder()
             .put(SysOperationsTableInfo.Columns.ID,
-                () -> NestableCollectExpression.objToBytesRef(OperationContext::id))
+                () -> NestableCollectExpression.forFunction(c -> String.valueOf(c.id())))
             .put(SysOperationsTableInfo.Columns.JOB_ID,
-                () -> NestableCollectExpression.objToBytesRef(OperationContext::jobId))
+                () -> NestableCollectExpression.forFunction(c -> c.jobId().toString()))
             .put(SysOperationsTableInfo.Columns.NAME,
-                () -> NestableCollectExpression.objToBytesRef(OperationContext::name))
+                () -> NestableCollectExpression.forFunction(OperationContext::name))
             .put(SysOperationsTableInfo.Columns.STARTED,
                 () -> NestableCollectExpression.forFunction(OperationContext::started))
             .put(SysOperationsTableInfo.Columns.USED_BYTES, () -> NestableCollectExpression.forFunction(r -> {
@@ -75,11 +74,11 @@ public class SysOperationsTableInfo extends StaticTableInfo {
                 return r.usedBytes;
             }))
             .put(Columns.NODE, () -> NestableCollectExpression.forFunction(ignored -> ImmutableMap.of(
-                "id", new BytesRef(localNode.get().getId()),
-                "name", new BytesRef(localNode.get().getName())
+                "id", localNode.get().getId(),
+                "name", localNode.get().getName()
             )))
-            .put(Columns.NODE_ID, () -> NestableCollectExpression.forFunction(ignored -> new BytesRef(localNode.get().getId())))
-            .put(Columns.NODE_NAME, () -> NestableCollectExpression.forFunction(ignored -> new BytesRef(localNode.get().getName())))
+            .put(Columns.NODE_ID, () -> NestableCollectExpression.forFunction(ignored -> localNode.get().getId()))
+            .put(Columns.NODE_NAME, () -> NestableCollectExpression.forFunction(ignored -> localNode.get().getName()))
             .build();
     }
 

@@ -24,7 +24,6 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -38,13 +37,13 @@ public class IdTest extends CrateUnitTest {
 
     private static final ColumnIdent _ID = ci("_id");
     private static final ImmutableList<ColumnIdent> _ID_LIST = ImmutableList.of(_ID);
-    private static final ImmutableList<BytesRef> EMPTY_PK_VALUES = ImmutableList.of();
+    private static final ImmutableList<String> EMPTY_PK_VALUES = ImmutableList.of();
 
     private static ColumnIdent ci(String ident) {
         return new ColumnIdent(ident);
     }
 
-    private static String generateId(List<ColumnIdent> pkColumns, List<BytesRef> values, ColumnIdent clusteredBy) {
+    private static String generateId(List<ColumnIdent> pkColumns, List<String> values, ColumnIdent clusteredBy) {
         return Id.compileWithNullValidation(pkColumns, clusteredBy).apply(values);
     }
 
@@ -67,7 +66,7 @@ public class IdTest extends CrateUnitTest {
 
     @Test
     public void testSinglePrimaryKey() throws Exception {
-        String id = generateId(ImmutableList.of(ci("id")), ImmutableList.of(new BytesRef("1")), ci("id"));
+        String id = generateId(ImmutableList.of(ci("id")), ImmutableList.of("1"), ci("id"));
 
         assertThat(id, is("1"));
     }
@@ -75,14 +74,14 @@ public class IdTest extends CrateUnitTest {
     @Test
     public void testSinglePrimaryKeyWithoutValue() throws Exception {
         expectedException.expect(NoSuchElementException.class);
-        generateId(ImmutableList.of(ci("id")), ImmutableList.<BytesRef>of(), ci("id"));
+        generateId(ImmutableList.of(ci("id")), Collections.emptyList(), ci("id"));
     }
 
     @Test
     public void testMultiplePrimaryKey() throws Exception {
         String id = generateId(
             ImmutableList.of(ci("id"), ci("name")),
-            ImmutableList.of(new BytesRef("1"), new BytesRef("foo")), null);
+            ImmutableList.of("1", "foo"), null);
 
         assertThat(id, is("AgExA2Zvbw=="));
     }
@@ -91,7 +90,7 @@ public class IdTest extends CrateUnitTest {
     public void testMultiplePrimaryKeyWithClusteredBy() throws Exception {
         String id = generateId(
             ImmutableList.of(ci("id"), ci("name")),
-            ImmutableList.of(new BytesRef("1"), new BytesRef("foo")),
+            ImmutableList.of("1", "foo"),
             ci("name")
         );
         assertThat(id, is("AgNmb28BMQ=="));
@@ -101,6 +100,6 @@ public class IdTest extends CrateUnitTest {
     public void testNull() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("A primary key value must not be NULL");
-        generateId(ImmutableList.of(ci("id")), Collections.<BytesRef>singletonList(null), ci("id"));
+        generateId(ImmutableList.of(ci("id")), Collections.singletonList(null), ci("id"));
     }
 }

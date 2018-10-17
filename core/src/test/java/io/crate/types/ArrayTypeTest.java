@@ -23,7 +23,6 @@ package io.crate.types;
 
 import io.crate.Streamer;
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -62,10 +61,10 @@ public class ArrayTypeTest extends CrateUnitTest {
 
         Streamer streamer = arrayType.streamer();
 
-        BytesRef[] serArray = new BytesRef[]{
-            new BytesRef("foo"),
-            new BytesRef("bar"),
-            new BytesRef("foobar")
+        String[] serArray = new String[]{
+            "foo",
+            "bar",
+            "foobar"
         };
 
         BytesStreamOutput out = new BytesStreamOutput();

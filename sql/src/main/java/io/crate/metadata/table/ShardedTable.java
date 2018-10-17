@@ -22,13 +22,12 @@
 package io.crate.metadata.table;
 
 import io.crate.metadata.ColumnIdent;
-import org.apache.lucene.util.BytesRef;
 
 public interface ShardedTable {
 
     int numberOfShards();
 
-    BytesRef numberOfReplicas();
+    String numberOfReplicas();
 
     ColumnIdent clusteredBy();
 

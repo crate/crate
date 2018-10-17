@@ -22,7 +22,6 @@
 package io.crate.types;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -33,7 +32,7 @@ public class IpTypeTest extends CrateUnitTest {
     @Test
     public void testValue() throws Exception {
         assertThat(DataTypes.IP.value(null), is(nullValue()));
-        assertThat(DataTypes.IP.value("127.0.0.1"), is(new BytesRef("127.0.0.1")));
+        assertThat(DataTypes.IP.value("127.0.0.1"), is("127.0.0.1"));
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Failed to validate ip [2000.0.0.1], not a valid ipv4 address");

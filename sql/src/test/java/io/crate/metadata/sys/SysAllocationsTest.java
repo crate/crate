@@ -95,8 +95,8 @@ public class SysAllocationsTest extends SQLTransportIntegrationTest {
 
         // first row: UNASSIGNED shard
         row = response.rows()[0];
-        String[] nodeIds = (String[]) row[0];
-        String[] nodeNames = (String[]) row[1];
+        Object[] nodeIds = (Object[]) row[0];
+        Object[] nodeNames = (Object[]) row[1];
         Object[] explanations = (Object[]) row[2]; // we have Object[] because of unknown type in nested array
         assertNotNull("first element of nodeId must not be null", nodeIds[0]);
         assertNotNull("first element of nodeName must not be null", nodeNames[0]);
@@ -111,5 +111,4 @@ public class SysAllocationsTest extends SQLTransportIntegrationTest {
         assertNull("nodeName must be null", nodeNames);
         assertNull("explanations must be null", explanations);
     }
-
 }

@@ -23,8 +23,6 @@
 package io.crate.execution.engine.collect;
 
 import io.crate.expression.NestableInput;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.function.Function;
 
@@ -42,10 +40,6 @@ public abstract class NestableCollectExpression<TRow, TReturnValue>
 
     public static <TRow, TReturnValue> NestableCollectExpression<TRow, TReturnValue> forFunction(Function<TRow, TReturnValue> fun) {
         return new FuncExpression<>(fun);
-    }
-
-    public static <TRow> NestableCollectExpression<TRow, BytesRef> objToBytesRef(Function<TRow, Object> fun) {
-        return forFunction(fun.andThen(BytesRefs::toBytesRef));
     }
 
     public static <TRow, TIntermediate> NestableCollectExpression<TRow, Object> withNullableProperty(Function<TRow, TIntermediate> getProperty,

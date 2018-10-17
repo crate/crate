@@ -29,13 +29,9 @@ import io.crate.data.Row1;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.export.Output;
-import io.crate.execution.engine.export.OutputFile;
-import io.crate.execution.engine.export.OutputS3;
 import io.crate.execution.dsl.projection.WriterProjection;
-import org.apache.lucene.util.BytesRef;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.metadata.ColumnIdent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -45,6 +41,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -67,14 +64,12 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
 
     private static final byte NEW_LINE = (byte) '\n';
 
-    private final URI uri;
     private final Iterable<CollectExpression<Row, ?>> collectExpressions;
     private final List<Input<?>> inputs;
     private final Map<String, Object> overwrites;
     @Nullable
     private final List<String> outputNames;
     private final WriterProjection.OutputFormat outputFormat;
-    private final WriterProjection.CompressionType compressionType;
     private Output output;
 
     private final RowWriter rowWriter;
@@ -92,18 +87,18 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         this.overwrites = toNestedStringObjectMap(overwrites);
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
-        this.compressionType = compressionType;
+        URI uri1;
         try {
-            this.uri = new URI(uri);
+            uri1 = new URI(uri);
         } catch (URISyntaxException e) {
             throw new SQLParseException(String.format(Locale.ENGLISH, "Invalid uri '%s'", uri), e);
         }
-        if (this.uri.getScheme() == null || this.uri.getScheme().equals("file")) {
-            this.output = new OutputFile(this.uri, this.compressionType);
-        } else if (this.uri.getScheme().equalsIgnoreCase("s3")) {
-            this.output = new OutputS3(executorService, this.uri, this.compressionType);
+        if (uri1.getScheme() == null || uri1.getScheme().equals("file")) {
+            this.output = new OutputFile(uri1, compressionType);
+        } else if (uri1.getScheme().equalsIgnoreCase("s3")) {
+            this.output = new OutputS3(executorService, uri1, compressionType);
         } else {
-            throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", this.uri.getScheme()));
+            throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", uri1.getScheme()));
         }
         this.rowWriter = initWriter();
     }
@@ -264,9 +259,10 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
 
         @Override
         public void write(Row row) {
-            BytesRef value = (BytesRef) row.get(0);
+            String value = (String) row.get(0);
             try {
-                outputStream.write(value.bytes, value.offset, value.length);
+                byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+                outputStream.write(bytes);
                 outputStream.write(NEW_LINE);
             } catch (IOException e) {
                 throw new UnhandledServerException("Failed to write row to output", e);

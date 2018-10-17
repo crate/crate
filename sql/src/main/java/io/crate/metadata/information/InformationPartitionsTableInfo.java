@@ -59,13 +59,13 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<PartitionInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PartitionInfo>>builder()
             .put(InformationTablesTableInfo.Columns.TABLE_NAME,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.name().relationName().name()))
+                () -> NestableCollectExpression.forFunction(r -> r.name().relationName().name()))
             .put(Columns.TABLE_SCHEMA,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.name().relationName().schema()))
+                () -> NestableCollectExpression.forFunction(r -> r.name().relationName().schema()))
             .put(InformationTablesTableInfo.Columns.TABLE_TYPE,
-                () -> NestableCollectExpression.objToBytesRef(r -> RelationType.BASE_TABLE.pretty()))
+                () -> NestableCollectExpression.forFunction(r -> RelationType.BASE_TABLE.pretty()))
             .put(Columns.PARTITION_IDENT,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.name().ident()))
+                () -> NestableCollectExpression.forFunction(r -> r.name().ident()))
             .put(Columns.VALUES, () -> new NestableCollectExpression<PartitionInfo, Map<String, Object>>() {
                 private Map<String, Object> value;
 
@@ -90,9 +90,9 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
             .put(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS,
                 () -> NestableCollectExpression.forFunction(PartitionInfo::numberOfShards))
             .put(InformationTablesTableInfo.Columns.NUMBER_OF_REPLICAS,
-                () -> NestableCollectExpression.objToBytesRef(PartitionInfo::numberOfReplicas))
+                () -> NestableCollectExpression.forFunction(PartitionInfo::numberOfReplicas))
             .put(InformationTablesTableInfo.Columns.ROUTING_HASH_FUNCTION,
-                () -> NestableCollectExpression.objToBytesRef(r -> IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME))
+                () -> NestableCollectExpression.forFunction(r -> IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME))
             .put(InformationTablesTableInfo.Columns.CLOSED,
                 () -> NestableCollectExpression.forFunction(PartitionInfo::isClosed))
             .put(InformationTablesTableInfo.Columns.TABLE_VERSION, PartitionsVersionExpression::new)

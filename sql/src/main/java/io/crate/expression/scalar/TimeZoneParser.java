@@ -22,7 +22,6 @@
 package io.crate.expression.scalar;
 
 import io.crate.expression.symbol.Literal;
-import org.apache.lucene.util.BytesRef;
 import org.joda.time.DateTimeZone;
 
 import java.util.Locale;
@@ -35,42 +34,40 @@ import java.util.concurrent.ConcurrentMap;
 public class TimeZoneParser {
 
     public static final DateTimeZone DEFAULT_TZ = DateTimeZone.UTC;
-    public static final Literal<BytesRef> DEFAULT_TZ_LITERAL = Literal.of("UTC");
-    public static final BytesRef DEFAULT_TZ_BYTES_REF = DEFAULT_TZ_LITERAL.value();
+    public static final Literal<String> DEFAULT_TZ_LITERAL = Literal.of("UTC");
 
-    private static final ConcurrentMap<BytesRef, DateTimeZone> TIME_ZONE_MAP = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, DateTimeZone> TIME_ZONE_MAP = new ConcurrentHashMap<>();
 
     private TimeZoneParser() {
     }
 
-    public static DateTimeZone parseTimeZone(BytesRef timezone) throws IllegalArgumentException {
+    public static DateTimeZone parseTimeZone(String timezone) throws IllegalArgumentException {
         if (timezone == null) {
             throw new IllegalArgumentException("invalid time zone value NULL");
         }
-        if (timezone.equals(DEFAULT_TZ_BYTES_REF)) {
+        if (timezone.equals(DEFAULT_TZ_LITERAL.value())) {
             return DEFAULT_TZ;
         }
 
         DateTimeZone tz = TIME_ZONE_MAP.get(timezone);
         if (tz == null) {
             try {
-                String text = timezone.utf8ToString();
-                int index = text.indexOf(':');
+                int index = timezone.indexOf(':');
                 if (index != -1) {
-                    int beginIndex = text.charAt(0) == '+' ? 1 : 0;
+                    int beginIndex = timezone.charAt(0) == '+' ? 1 : 0;
                     // format like -02:30
                     tz = DateTimeZone.forOffsetHoursMinutes(
-                        Integer.parseInt(text.substring(beginIndex, index)),
-                        Integer.parseInt(text.substring(index + 1))
+                        Integer.parseInt(timezone.substring(beginIndex, index)),
+                        Integer.parseInt(timezone.substring(index + 1))
                     );
                 } else {
                     // id, listed here: http://joda-time.sourceforge.net/timezones.html
                     // or here: http://www.joda.org/joda-time/timezones.html
-                    tz = DateTimeZone.forID(text);
+                    tz = DateTimeZone.forID(timezone);
                 }
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "invalid time zone value '%s'", timezone.utf8ToString()));
+                    "invalid time zone value '%s'", timezone));
             }
             TIME_ZONE_MAP.putIfAbsent(timezone, tz);
         }

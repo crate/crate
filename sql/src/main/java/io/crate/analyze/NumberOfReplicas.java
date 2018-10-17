@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.Booleans;
@@ -66,14 +65,14 @@ public class NumberOfReplicas {
         return esSettingsValue;
     }
 
-    public static BytesRef fromSettings(Settings settings) {
-        BytesRef numberOfReplicas;
+    public static String fromSettings(Settings settings) {
+        String numberOfReplicas;
         String autoExpandReplicas = settings.get(AUTO_EXPAND_REPLICAS);
         if (autoExpandReplicas != null && !Booleans.isFalse(autoExpandReplicas)) {
             validateExpandReplicaSetting(autoExpandReplicas);
-            numberOfReplicas = new BytesRef(autoExpandReplicas);
+            numberOfReplicas = autoExpandReplicas;
         } else {
-            numberOfReplicas = new BytesRef(MoreObjects.firstNonNull(settings.get(NUMBER_OF_REPLICAS), "1"));
+            numberOfReplicas = MoreObjects.firstNonNull(settings.get(NUMBER_OF_REPLICAS), "1");
         }
         return numberOfReplicas;
     }

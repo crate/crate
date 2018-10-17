@@ -69,7 +69,7 @@ public class BytesRefColumnReferenceTest extends DocLevelExpressionsTest {
         for (ScoreDoc doc : topDocs.scoreDocs) {
             builder.append(i);
             bytesRefColumn.setNextDocId(doc.doc);
-            assertThat(bytesRefColumn.value().utf8ToString(), is(builder.toString()));
+            assertThat(bytesRefColumn.value(), is(builder.toString()));
             i++;
         }
     }

@@ -22,7 +22,6 @@
 package io.crate.expression.reference;
 
 import io.crate.expression.NestableInput;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,12 +45,6 @@ public abstract class NestedObjectExpression implements NestableInput<Map<String
         Map<String, Object> map = new HashMap<>(childImplementations.size());
         for (Map.Entry<String, NestableInput> e : childImplementations.entrySet()) {
             Object value = e.getValue().value();
-
-            // convert nested columns of type e.getValue().value() to String here
-            // as we do not want to convert them when building the response
-            if (value instanceof BytesRef) {
-                value = ((BytesRef) value).utf8ToString();
-            }
             map.put(e.getKey(), value);
         }
         return Collections.unmodifiableMap(map);

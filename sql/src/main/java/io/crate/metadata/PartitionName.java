@@ -22,9 +22,8 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.types.StringType;
 import org.apache.commons.codec.binary.Base32;
-import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.UnicodeUtil;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -32,6 +31,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -45,7 +45,7 @@ public class PartitionName {
     private final RelationName relationName;
 
     @Nullable
-    private List<BytesRef> values;
+    private List<String> values;
 
     @Nullable
     private String indexName;
@@ -53,7 +53,7 @@ public class PartitionName {
     @Nullable
     private String ident;
 
-    public PartitionName(RelationName relationName, @Nonnull List<BytesRef> values) {
+    public PartitionName(RelationName relationName, @Nonnull List<String> values) {
         this.relationName = relationName;
         this.values = Objects.requireNonNull(values);
     }
@@ -72,16 +72,16 @@ public class PartitionName {
      * decodes an encoded ident into it's values
      */
     @Nullable
-    public static List<BytesRef> decodeIdent(@Nullable String ident) {
+    public static List<String> decodeIdent(@Nullable String ident) {
         if (ident == null) {
             return ImmutableList.of();
         }
         byte[] inputBytes = BASE32.decode(ident.toUpperCase(Locale.ROOT));
         try (StreamInput in = StreamInput.wrap(inputBytes)) {
             int size = in.readVInt();
-            List<BytesRef> values = new ArrayList<>(size);
+            List<String> values = new ArrayList<>(size);
             for (int i = 0; i < size; i++) {
-                values.add(StringType.INSTANCE.streamer().readValueFrom(in));
+                values.add(readValueFrom(in));
             }
             return values;
         } catch (IOException e) {
@@ -90,8 +90,43 @@ public class PartitionName {
         }
     }
 
+    /**
+     * Read utf8 bytes for bwc, with 0 as `null` indicator
+     */
+    private static String readValueFrom(StreamInput in) throws IOException {
+        int length = in.readVInt() - 1;
+        if (length == -1) {
+            return null;
+        }
+        if (length == 0) {
+            return "";
+        }
+        byte[] bytes = new byte[length];
+        in.readBytes(bytes, 0, length);
+        char[] chars = new char[length];
+        int len = UnicodeUtil.UTF8toUTF16(bytes, 0, length, chars);
+        return new String(chars, 0, len);
+    }
+
+    /**
+     * Write utf8 bytes for bwc, with 0 as `null` indicator
+     */
+    private static void writeValueTo(BytesStreamOutput out, @Nullable String value) throws IOException {
+        // 1 is always added to the length so that
+        // 0 is null
+        // 1 is 0
+        // ...
+        if (value == null) {
+            out.writeVInt(0);
+        } else {
+            byte[] v = value.getBytes(StandardCharsets.UTF_8);
+            out.writeVInt(v.length + 1);
+            out.writeBytes(v, 0, v.length);
+        }
+    }
+
     @Nullable
-    public static String encodeIdent(Collection<? extends BytesRef> values) {
+    public static String encodeIdent(Collection<? extends String> values) {
         if (values.size() == 0) {
             return null;
         }
@@ -99,8 +134,8 @@ public class PartitionName {
         BytesStreamOutput streamOutput = new BytesStreamOutput(estimateSize(values));
         try {
             streamOutput.writeVInt(values.size());
-            for (BytesRef value : values) {
-                StringType.INSTANCE.streamer().writeValueTo(streamOutput, value);
+            for (String value : values) {
+                writeValueTo(streamOutput, value);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -115,14 +150,15 @@ public class PartitionName {
         return identBase32;
     }
 
+
     /**
      * estimates the size the bytesRef values will take if written onto a StreamOutput using the String streamer
      */
-    private static int estimateSize(Iterable<? extends BytesRef> values) {
+    private static int estimateSize(Iterable<? extends String> values) {
         int expectedEncodedSize = 0;
-        for (BytesRef value : values) {
+        for (String value : values) {
             // 5 bytes for the value of the length itself using vInt
-            expectedEncodedSize += 5 + (value != null ? value.length : 0);
+            expectedEncodedSize += 5 + (value != null ? value.length() : 0);
         }
         return expectedEncodedSize;
     }
@@ -145,7 +181,7 @@ public class PartitionName {
         return ident;
     }
 
-    public List<BytesRef> values() {
+    public List<String> values() {
         if (values == null) {
             if (ident == null) {
                 return ImmutableList.of();

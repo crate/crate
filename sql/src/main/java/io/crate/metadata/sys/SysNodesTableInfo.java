@@ -59,9 +59,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.threadpool.ThreadPoolStats;
@@ -71,8 +69,6 @@ import java.util.Map;
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 public class SysNodesTableInfo extends StaticTableInfo {
-
-    public static final String SYS_COL_NAME = "_node";
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "nodes");
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("id"));
@@ -242,13 +238,13 @@ public class SysNodesTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>>builder()
             .put(Columns.ID,
-                () -> NestableCollectExpression.objToBytesRef(NodeStatsContext::id))
+                () -> NestableCollectExpression.forFunction(NodeStatsContext::id))
             .put(Columns.NAME,
-                () -> NestableCollectExpression.objToBytesRef(NodeStatsContext::name))
+                () -> NestableCollectExpression.forFunction(NodeStatsContext::name))
             .put(Columns.HOSTNAME,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.isComplete() ? r.hostname() : null))
+                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? r.hostname() : null))
             .put(Columns.REST_URL,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.isComplete() ? r.restUrl() : null))
+                () -> NestableCollectExpression.forFunction(r -> r.isComplete() ? r.restUrl() : null))
             .put(Columns.PORT, NodePortStatsExpression::new)
             .put(Columns.LOAD, NodeLoadStatsExpression::new)
             .put(Columns.MEM, NodeMemoryStatsExpression::new)
@@ -261,10 +257,10 @@ public class SysNodesTableInfo extends StaticTableInfo {
                 }
             })
             .put(Columns.THREAD_POOLS, NodeThreadPoolsExpression::new)
-            .put(Columns.THREAD_POOLS_NAME, () -> new NodeStatsThreadPoolExpression<BytesRef>() {
+            .put(Columns.THREAD_POOLS_NAME, () -> new NodeStatsThreadPoolExpression<String>() {
                 @Override
-                protected BytesRef valueForItem(ThreadPoolStats.Stats input) {
-                    return BytesRefs.toBytesRef(input.getName());
+                protected String valueForItem(ThreadPoolStats.Stats input) {
+                    return input.getName();
                 }
             })
             .put(Columns.THREAD_POOLS_ACTIVE, () -> new NodeStatsThreadPoolExpression<Integer>() {
@@ -324,10 +320,10 @@ public class SysNodesTableInfo extends StaticTableInfo {
             .put(Columns.FS_TOTAL_BYTES_WRITTEN,
                 () -> forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.bytesWritten(r.fsInfo().getIoStats()) : null))
             .put(Columns.FS_DISKS, NodeStatsFsDisksExpression::new)
-            .put(Columns.FS_DISKS_DEV, () -> new NodeStatsFsArrayExpression<BytesRef>() {
+            .put(Columns.FS_DISKS_DEV, () -> new NodeStatsFsArrayExpression<String>() {
                 @Override
-                protected BytesRef valueForItem(FsInfo.Path input) {
-                    return BytesRefs.toBytesRef(FsInfoHelpers.Path.dev(input));
+                protected String valueForItem(FsInfo.Path input) {
+                    return FsInfoHelpers.Path.dev(input);
                 }
             })
             .put(Columns.FS_DISKS_SIZE, () -> new NodeStatsFsArrayExpression<Long>() {
@@ -373,16 +369,16 @@ public class SysNodesTableInfo extends StaticTableInfo {
                 }
             })
             .put(Columns.FS_DATA, NodeStatsFsDataExpression::new)
-            .put(Columns.FS_DATA_DEV, () -> new NodeStatsFsArrayExpression<BytesRef>() {
+            .put(Columns.FS_DATA_DEV, () -> new NodeStatsFsArrayExpression<String>() {
                 @Override
-                protected BytesRef valueForItem(FsInfo.Path input) {
-                    return BytesRefs.toBytesRef(FsInfoHelpers.Path.dev(input));
+                protected String valueForItem(FsInfo.Path input) {
+                    return FsInfoHelpers.Path.dev(input);
                 }
             })
-            .put(Columns.FS_DATA_PATH, () -> new NodeStatsFsArrayExpression<BytesRef>() {
+            .put(Columns.FS_DATA_PATH, () -> new NodeStatsFsArrayExpression<String>() {
                 @Override
-                protected BytesRef valueForItem(FsInfo.Path input) {
-                    return BytesRefs.toBytesRef(input.getPath());
+                protected String valueForItem(FsInfo.Path input) {
+                    return input.getPath();
                 }
             })
             .put(Columns.CONNECTIONS, SysNodesTableInfo::createConnectionsExpression)

@@ -30,7 +30,6 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
@@ -96,19 +95,19 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
             indexMetaData.getState() == IndexMetaData.State.CLOSE);
     }
 
-    private BytesRef blobsPath(Settings indexMetaDataSettings) {
-        BytesRef blobsPath;
+    private String blobsPath(Settings indexMetaDataSettings) {
+        String blobsPath;
         String blobsPathStr = BlobIndicesService.SETTING_INDEX_BLOBS_PATH.get(indexMetaDataSettings);
         if (!Strings.isNullOrEmpty(blobsPathStr)) {
-            blobsPath = new BytesRef(blobsPathStr);
+            blobsPath = blobsPathStr;
         } else {
             Path path = globalBlobPath;
             if (path != null) {
-                blobsPath = new BytesRef(path.toString());
+                blobsPath = path.toString();
             } else {
                 // TODO: should we set this to null because there is no special blobPath?
                 Path[] dataFiles = environment.dataFiles();
-                blobsPath = new BytesRef(dataFiles[0].toString());
+                blobsPath = dataFiles[0].toString();
             }
         }
         return blobsPath;

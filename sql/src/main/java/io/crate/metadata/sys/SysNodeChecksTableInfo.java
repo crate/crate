@@ -66,9 +66,9 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
             .put(SysNodeChecksTableInfo.Columns.ID,
                 () -> NestableCollectExpression.forFunction(SysNodeCheck::id))
             .put(SysNodeChecksTableInfo.Columns.NODE_ID,
-                () -> NestableCollectExpression.objToBytesRef(SysNodeCheck::nodeId))
+                () -> NestableCollectExpression.forFunction(SysNodeCheck::nodeId))
             .put(SysNodeChecksTableInfo.Columns.DESCRIPTION,
-                () -> NestableCollectExpression.objToBytesRef(SysNodeCheck::description))
+                () -> NestableCollectExpression.forFunction(SysNodeCheck::description))
             .put(SysNodeChecksTableInfo.Columns.SEVERITY,
                 () -> NestableCollectExpression.forFunction((SysNodeCheck x) -> x.severity().value()))
             .put(SysNodeChecksTableInfo.Columns.PASSED,
@@ -76,7 +76,7 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
             .put(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED,
                 () -> NestableCollectExpression.forFunction(SysNodeCheck::acknowledged))
             .put(DocSysColumns.ID,
-                () -> NestableCollectExpression.objToBytesRef(SysNodeCheck::rowId))
+                () -> NestableCollectExpression.forFunction(SysNodeCheck::rowId))
             .build();
     }
 

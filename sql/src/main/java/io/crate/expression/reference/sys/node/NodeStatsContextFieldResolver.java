@@ -37,7 +37,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
@@ -163,18 +162,18 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.ID, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.id(BytesRefs.toBytesRef(localNode.get().getId()));
+                    context.id(localNode.get().getId());
                 }
             })
             .put(SysNodesTableInfo.Columns.NAME, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.name(BytesRefs.toBytesRef(localNode.get().getName()));
+                    context.name(localNode.get().getName());
                 }
             })
             .put(SysNodesTableInfo.Columns.HOSTNAME, context -> {
                 try {
-                    context.hostname(BytesRefs.toBytesRef(InetAddress.getLocalHost().getHostName()));
+                    context.hostname(InetAddress.getLocalHost().getHostName());
                 } catch (UnknownHostException e) {
                     LOGGER.warn("Cannot resolve the hostname.", e);
                 }
@@ -185,7 +184,7 @@ public class NodeStatsContextFieldResolver {
                     DiscoveryNode node = localNode.get();
                     if (node != null) {
                         String url = node.getAttributes().get("http_address");
-                        context.restUrl(BytesRefs.toBytesRef(url));
+                        context.restUrl(url);
                     }
                 }
             })

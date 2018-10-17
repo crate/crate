@@ -57,6 +57,7 @@ import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.ObjectArray;
 import org.elasticsearch.index.engine.Engine;
@@ -236,7 +237,7 @@ final class GroupByOptimizedIterator {
 
                 @Override
                 public Row apply(Map.Entry<BytesRef, Object[]> entry) {
-                    cells[0] = entry.getKey();
+                    cells[0] = BytesRefs.toString(entry.getKey());
                     Object[] states = entry.getValue();
                     for (int i = 0, c = 1; i < states.length; i++, c++) {
                         //noinspection unchecked

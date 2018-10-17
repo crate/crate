@@ -46,7 +46,7 @@ public class InformationSchemataTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>>builder()
             .put(Columns.SCHEMA_NAME,
-                () -> NestableCollectExpression.objToBytesRef(SchemaInfo::name)).build();
+                () -> NestableCollectExpression.forFunction(SchemaInfo::name)).build();
     }
 
     private static ColumnRegistrar columnRegistrar() {

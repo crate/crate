@@ -36,7 +36,6 @@ import io.crate.execution.support.RetryListener;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsResponse;
@@ -150,15 +149,15 @@ public class ShardingUpsertExecutor
 
     private static void collectFailingSourceUris(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests,
                                                  final UpsertResults upsertResults) {
-        for (Map.Entry<BytesRef, String> entry : requests.sourceUrisWithFailure.entrySet()) {
+        for (Map.Entry<String, String> entry : requests.sourceUrisWithFailure.entrySet()) {
             upsertResults.addUriFailure(entry.getKey(), entry.getValue());
         }
     }
 
     private static void collectFailingItems(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests,
                                             final UpsertResults upsertResults) {
-        for (Map.Entry<BytesRef, List<ShardedRequests.ReadFailureAndLineNumber>> entry : requests.itemsWithFailureBySourceUri.entrySet()) {
-            BytesRef sourceUri = entry.getKey();
+        for (Map.Entry<String, List<ShardedRequests.ReadFailureAndLineNumber>> entry : requests.itemsWithFailureBySourceUri.entrySet()) {
+            String sourceUri = entry.getKey();
             for (ShardedRequests.ReadFailureAndLineNumber readFailureAndLineNumber : entry.getValue()) {
                 upsertResults.addResult(sourceUri, readFailureAndLineNumber.readFailure, readFailureAndLineNumber.lineNumber);
             }

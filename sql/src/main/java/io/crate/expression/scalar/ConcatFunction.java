@@ -22,30 +22,28 @@
 package io.crate.expression.scalar;
 
 import com.google.common.base.Preconditions;
+import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 import java.util.Locale;
 
-public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
+public abstract class ConcatFunction extends Scalar<String, String> {
 
     public static final String NAME = "concat";
-    private static final BytesRef EMPTY_STRING = new BytesRef("");
     private FunctionInfo functionInfo;
 
     public static void register(ScalarFunctionModule module) {
@@ -81,22 +79,19 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
         }
 
         @Override
-        public BytesRef evaluate(Input[] args) {
-            BytesRef firstArg = (BytesRef) args[0].value();
-            BytesRef secondArg = (BytesRef) args[1].value();
+        public String evaluate(Input[] args) {
+            String firstArg = (String) args[0].value();
+            String secondArg = (String) args[1].value();
             if (firstArg == null) {
                 if (secondArg == null) {
-                    return EMPTY_STRING;
+                    return "";
                 }
                 return secondArg;
             }
             if (secondArg == null) {
                 return firstArg;
             }
-            byte[] bytes = new byte[firstArg.length + secondArg.length];
-            System.arraycopy(firstArg.bytes, firstArg.offset, bytes, 0, firstArg.length);
-            System.arraycopy(secondArg.bytes, secondArg.offset, bytes, firstArg.length, secondArg.length);
-            return new BytesRef(bytes);
+            return firstArg + secondArg;
         }
     }
 
@@ -107,26 +102,16 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
         }
 
         @Override
-        public BytesRef evaluate(Input[] args) {
-            BytesRef[] bytesRefs = new BytesRef[args.length];
-            int numBytes = 0;
+        public String evaluate(Input[] args) {
+            StringBuilder sb = new StringBuilder();
             for (int i = 0; i < args.length; i++) {
                 Input input = args[i];
-                BytesRef value = DataTypes.STRING.value(input.value());
-                if (value == null) {
-                    value = EMPTY_STRING;
+                String value = DataTypes.STRING.value(input.value());
+                if (value != null) {
+                    sb.append(value);
                 }
-                bytesRefs[i] = value;
-                numBytes += value.length;
             }
-
-            byte[] bytes = new byte[numBytes];
-            int numWritten = 0;
-            for (BytesRef bytesRef : bytesRefs) {
-                System.arraycopy(bytesRef.bytes, bytesRef.offset, bytes, numWritten, bytesRef.length);
-                numWritten += bytesRef.length;
-            }
-            return new BytesRef(bytes);
+            return sb.toString();
         }
     }
 

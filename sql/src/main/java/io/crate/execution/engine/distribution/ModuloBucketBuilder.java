@@ -24,8 +24,6 @@ package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
 import io.crate.data.Row;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.StringHelper;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -90,14 +88,6 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
     private static int hashCode(@Nullable Object value) {
         if (value == null) {
             return 0;
-        }
-        if (value instanceof BytesRef) {
-            // since lucene 4.8
-            // BytesRef.hashCode() uses a random seed across different jvm
-            // which causes the hashCode / routing to be different on each node
-            // this breaks the group by redistribution logic - need to use a fixed seed here
-            // to be consistent.
-            return StringHelper.murmurhash3_x86_32(((BytesRef) value), 1);
         }
         return value.hashCode();
     }

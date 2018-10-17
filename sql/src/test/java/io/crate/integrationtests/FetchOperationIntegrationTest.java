@@ -28,7 +28,6 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.testing.TestingRowConsumer;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -73,10 +72,10 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(result.size(), is(2));
         assertThat(result.get(0).length, is(3));
         assertThat(result.get(0)[0], is(1));
-        assertThat(result.get(0)[1], is(new BytesRef("Arthur")));
-        assertThat(result.get(0)[2], is(new BytesRef("rthur")));
+        assertThat(result.get(0)[1], is("Arthur"));
+        assertThat(result.get(0)[2], is("rthur"));
         assertThat(result.get(1)[0], is(2));
-        assertThat(result.get(1)[1], is(new BytesRef("Ford")));
-        assertThat(result.get(1)[2], is(new BytesRef("ord")));
+        assertThat(result.get(1)[1], is("Ford"));
+        assertThat(result.get(1)[2], is("ord"));
     }
 }

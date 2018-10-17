@@ -34,7 +34,6 @@ import io.crate.planner.PositionalOrderBy;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -54,8 +53,8 @@ public class RamAccountingPageIteratorTest extends CrateUnitTest {
 
     private static NoopCircuitBreaker NOOP_CIRCUIT_BREAKER = new NoopCircuitBreaker("dummy");
     private static RowN[] TEST_ROWS = new RowN[]{
-        new RowN(new BytesRef[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")}),
-        new RowN(new BytesRef[]{new BytesRef("d"), new BytesRef("e"), new BytesRef("f")})
+        new RowN(new String[]{"a", "b", "c"}),
+        new RowN(new String[]{"d", "e", "f"})
     };
 
     private long originalBufferSize;

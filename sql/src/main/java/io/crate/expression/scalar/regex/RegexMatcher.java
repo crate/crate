@@ -21,29 +21,19 @@
 
 package io.crate.expression.scalar.regex;
 
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.CharsRef;
-import org.apache.lucene.util.UnicodeUtil;
-import org.elasticsearch.common.lucene.BytesRefs;
-
 import javax.annotation.Nullable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class RegexMatcher {
 
-    private final Matcher matcher;
-    private final CharsRef utf16 = new CharsRef(10);
     private final boolean globalFlag;
+    private final Pattern pattern;
+    private Matcher matcher;
 
     public RegexMatcher(String regex, int flags, boolean globalFlag) {
-        Pattern pattern = Pattern.compile(regex, flags);
-        this.matcher = pattern.matcher(utf16);
+        pattern = Pattern.compile(regex, flags);
         this.globalFlag = globalFlag;
-    }
-
-    public RegexMatcher(String regex, @Nullable BytesRef flags) {
-        this(regex, parseFlags(BytesRefs.toString(flags)), isGlobal(BytesRefs.toString(flags)));
     }
 
     public RegexMatcher(String regex, @Nullable String flags) {
@@ -54,47 +44,42 @@ public class RegexMatcher {
         this(regex, 0, false);
     }
 
-    private static void utf8toUtf16(BytesRef bytes, CharsRef charsRef) {
-        if (charsRef.chars.length < bytes.length) {
-            charsRef.chars = new char[bytes.length];
-        }
-        charsRef.length = UnicodeUtil.UTF8toUTF16(bytes, charsRef.chars);
-    }
-
-    public boolean match(BytesRef term) {
-        utf8toUtf16(term, utf16);
-        return matcher.reset().find();
+    public boolean match(String term) {
+        initMatcher(term);
+        return matcher.find();
     }
 
     @Nullable
-    public BytesRef[] groups() {
-        try {
-            if (matcher.groupCount() == 0) {
-                return new BytesRef[]{new BytesRef(matcher.group())};
+    public String[] groups() {
+        int groupCount = matcher.groupCount();
+        if (groupCount == 0) {
+            try {
+                return new String[]{matcher.group()};
+            } catch (IllegalStateException e) {
+                return null;
             }
-            BytesRef[] groups = new BytesRef[matcher.groupCount()];
-            // skip first group (the original string)
-            for (int i = 1; i <= matcher.groupCount(); i++) {
-                String group = matcher.group(i);
-                if (group != null) {
-                    groups[i - 1] = new BytesRef(group);
-                } else {
-                    groups[i - 1] = null;
-                }
-            }
-            return groups;
-        } catch (IllegalStateException e) {
-            // no match -> no groups
         }
-        return null;
+        String[] groups = new String[groupCount];
+        for (int i = 0; i < groupCount; i++) {
+            groups[i] = matcher.group(i + 1);
+        }
+        return groups;
     }
 
-    public BytesRef replace(BytesRef term, String replacement) {
-        utf8toUtf16(term, utf16);
+    public String replace(String term, String replacement) {
+        initMatcher(term);
         if (globalFlag) {
-            return new BytesRef(matcher.replaceAll(replacement));
+            return matcher.replaceAll(replacement);
         } else {
-            return new BytesRef(matcher.replaceFirst(replacement));
+            return matcher.replaceFirst(replacement);
+        }
+    }
+
+    private void initMatcher(String term) {
+        if (matcher == null) {
+            matcher = pattern.matcher(term);
+        } else {
+            matcher.reset(term);
         }
     }
 

@@ -22,12 +22,11 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.compress.CompressorFactory;
 
 import java.io.IOException;
 
-public class RawCollectorExpression extends LuceneCollectorExpression<BytesRef> {
+public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
     private CollectorFieldsVisitor visitor;
 
@@ -38,9 +37,9 @@ public class RawCollectorExpression extends LuceneCollectorExpression<BytesRef> 
     }
 
     @Override
-    public BytesRef value() {
+    public String value() {
         try {
-            return CompressorFactory.uncompressIfNeeded(visitor.source()).toBytesRef();
+            return CompressorFactory.uncompressIfNeeded(visitor.source()).utf8ToString();
         } catch (IOException e) {
             throw new RuntimeException("Failed to uncompress source", e);
         }

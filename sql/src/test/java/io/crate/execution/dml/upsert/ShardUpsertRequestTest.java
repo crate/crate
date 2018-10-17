@@ -32,7 +32,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -71,12 +70,12 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         request.add(123, new ShardUpsertRequest.Item(
             "99",
             null,
-            new Object[]{99, new BytesRef("Marvin")},
+            new Object[]{99, "Marvin"},
             null));
         request.add(42, new ShardUpsertRequest.Item(
             "99",
             new Symbol[0],
-            new Object[]{99, new BytesRef("Marvin")},
+            new Object[]{99, "Marvin"},
             null));
         request.add(5, new ShardUpsertRequest.Item(
             "42",

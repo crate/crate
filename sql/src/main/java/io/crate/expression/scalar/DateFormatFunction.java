@@ -29,17 +29,15 @@ import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TimestampType;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.util.List;
 
-public class DateFormatFunction extends Scalar<BytesRef, Object> {
+public class DateFormatFunction extends Scalar<String, Object> {
 
     public static final String NAME = "date_format";
-    public static final BytesRef DEFAULT_FORMAT = new BytesRef("%Y-%m-%dT%H:%i:%s.%fZ");
+    public static final String DEFAULT_FORMAT = "%Y-%m-%dT%H:%i:%s.%fZ";
 
     public static void register(ScalarFunctionModule module) {
         List<DataType> supportedTimestampTypes = ImmutableList.<DataType>of(
@@ -71,13 +69,13 @@ public class DateFormatFunction extends Scalar<BytesRef, Object> {
     }
 
     @Override
-    public BytesRef evaluate(Input<Object>... args) {
-        BytesRef format;
+    public String evaluate(Input<Object>... args) {
+        String format;
         Input<?> timezoneLiteral = null;
         if (args.length == 1) {
             format = DEFAULT_FORMAT;
         } else {
-            format = (BytesRef) args[0].value();
+            format = (String) args[0].value();
             if (format == null) {
                 return null;
             }
@@ -96,7 +94,7 @@ public class DateFormatFunction extends Scalar<BytesRef, Object> {
             if (timezoneValue == null) {
                 return null;
             }
-            timezone = TimeZoneParser.parseTimeZone(BytesRefs.toBytesRef(timezoneValue));
+            timezone = TimeZoneParser.parseTimeZone((String) timezoneValue);
         }
         DateTime dateTime = new DateTime(timestamp, timezone);
         return TimestampFormatter.format(format, dateTime);

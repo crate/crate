@@ -36,7 +36,6 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Collections;
@@ -50,8 +49,8 @@ public class PgConstraintTable extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_constraint");
 
-    private static final BytesRef NO_ACTION = new BytesRef("a");
-    private static final BytesRef MATCH_SIMPLE = new BytesRef("s");
+    private static final String NO_ACTION = "a";
+    private static final String MATCH_SIMPLE = "s";
 
     static class Columns {
         static final ColumnIdent OID = new ColumnIdent("oid");
@@ -85,9 +84,9 @@ public class PgConstraintTable extends StaticTableInfo {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ConstraintInfo>>builder()
             .put(Columns.OID, () -> NestableCollectExpression.forFunction(
                 c -> constraintOid(c.relationName().fqn(), c.constraintName(), c.constraintType().toString())))
-            .put(Columns.CONNAME, () -> NestableCollectExpression.objToBytesRef(ConstraintInfo::constraintName))
+            .put(Columns.CONNAME, () -> NestableCollectExpression.forFunction(ConstraintInfo::constraintName))
             .put(Columns.CONNAMESPACE, () -> NestableCollectExpression.forFunction(c -> schemaOid(c.relationName().schema())))
-            .put(Columns.CONTYPE, () -> NestableCollectExpression.objToBytesRef(c -> c.constraintType().postgresChar()))
+            .put(Columns.CONTYPE, () -> NestableCollectExpression.forFunction(c -> c.constraintType().postgresChar()))
             .put(Columns.CONDEFERRABLE, () -> NestableCollectExpression.constant(false))
             .put(Columns.CONDEFERRED, () -> NestableCollectExpression.constant(false))
             .put(Columns.CONVALIDATED, () -> NestableCollectExpression.constant(true))

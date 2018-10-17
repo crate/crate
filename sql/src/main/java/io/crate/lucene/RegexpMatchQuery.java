@@ -28,15 +28,13 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.RegexpQuery;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import static io.crate.expression.scalar.regex.RegexMatcher.isPcrePattern;
 
 class RegexpMatchQuery implements FunctionToQuery {
 
-    private static Query toLuceneRegexpQuery(String fieldName, BytesRef value) {
+    private static Query toLuceneRegexpQuery(String fieldName, String value) {
         return new ConstantScoreQuery(
             new RegexpQuery(new Term(fieldName, value), RegExp.ALL));
     }
@@ -48,12 +46,12 @@ class RegexpMatchQuery implements FunctionToQuery {
             return null;
         }
         String fieldName = refAndLiteral.reference().column().fqn();
-        BytesRef pattern = BytesRefs.toBytesRef(refAndLiteral.literal().value());
+        String pattern = (String) refAndLiteral.literal().value();
         if (pattern == null) {
             // cannot build query using null pattern value
             return null;
         }
-        if (isPcrePattern(pattern.utf8ToString())) {
+        if (isPcrePattern(pattern)) {
             return new CrateRegexQuery(new Term(fieldName, pattern));
         } else {
             return toLuceneRegexpQuery(fieldName, pattern);

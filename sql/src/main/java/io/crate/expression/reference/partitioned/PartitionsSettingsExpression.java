@@ -25,8 +25,6 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.metadata.PartitionInfo;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 public class PartitionsSettingsExpression extends ObjectCollectExpression<PartitionInfo> {
 
@@ -63,22 +61,22 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         }
     }
 
-    static class BytesRefPartitionTableParameterExpression extends NestableCollectExpression<PartitionInfo, BytesRef> {
+    static class StringPartitionTableParameterExpression extends NestableCollectExpression<PartitionInfo, String> {
 
         private final String paramName;
-        private BytesRef value;
+        private String value;
 
-        BytesRefPartitionTableParameterExpression(String paramName) {
+        StringPartitionTableParameterExpression(String paramName) {
             this.paramName = paramName;
         }
 
         @Override
         public void setNextRow(PartitionInfo row) {
-            value = BytesRefs.toBytesRef(row.tableParameters().get(paramName));
+            value = row.tableParameters().get(paramName).toString();
         }
 
         @Override
-        public BytesRef value() {
+        public String value() {
             return value;
         }
     }
@@ -148,7 +146,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         static final String TOTAL_SHARDS_PER_NODE = "total_shards_per_node";
 
         private void addChildImplementations() {
-            childImplementations.put(ENABLE, new BytesRefPartitionTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE.getKey()));
+            childImplementations.put(ENABLE, new StringPartitionTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE.getKey()));
             childImplementations.put(TOTAL_SHARDS_PER_NODE, new PartitionTableParameterExpression(TableParameterInfo.TOTAL_SHARDS_PER_NODE.getKey()));
         }
     }

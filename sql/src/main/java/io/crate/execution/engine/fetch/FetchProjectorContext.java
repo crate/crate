@@ -33,7 +33,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.fetch.FetchSource;
-import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -92,7 +91,7 @@ public class FetchProjectorContext {
             return null;
         }
         PartitionName pn = PartitionName.fromIndexOrTemplate(index);
-        List<BytesRef> partitionRowValues = pn.values();
+        List<String> partitionRowValues = pn.values();
         Object[] partitionValues = new Object[partitionRowValues.size()];
         for (int i = 0; i < partitionRowValues.size(); i++) {
             partitionValues[i] = partitionByColumns.get(i).valueType().value(partitionRowValues.get(i));

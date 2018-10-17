@@ -57,11 +57,11 @@ public class SysOperationsLogTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContextLog>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<OperationContextLog>>builder()
             .put(SysOperationsLogTableInfo.Columns.ID,
-                () -> NestableCollectExpression.objToBytesRef(OperationContextLog::id))
+                () -> NestableCollectExpression.forFunction(l -> String.valueOf(l.id())))
             .put(SysOperationsLogTableInfo.Columns.JOB_ID,
-                () -> NestableCollectExpression.objToBytesRef(OperationContextLog::jobId))
+                () -> NestableCollectExpression.forFunction(l -> l.jobId().toString()))
             .put(SysOperationsLogTableInfo.Columns.NAME,
-                () -> NestableCollectExpression.objToBytesRef(OperationContextLog::name))
+                () -> NestableCollectExpression.forFunction(OperationContextLog::name))
             .put(SysOperationsLogTableInfo.Columns.STARTED,
                 () -> NestableCollectExpression.forFunction(OperationContextLog::started))
             .put(SysOperationsLogTableInfo.Columns.USED_BYTES, () -> NestableCollectExpression.forFunction(r -> {
@@ -72,7 +72,7 @@ public class SysOperationsLogTableInfo extends StaticTableInfo {
                 return usedBytes;
             }))
             .put(SysOperationsLogTableInfo.Columns.ERROR,
-                () -> NestableCollectExpression.objToBytesRef(OperationContextLog::errorMessage))
+                () -> NestableCollectExpression.forFunction(OperationContextLog::errorMessage))
             .put(SysOperationsLogTableInfo.Columns.ENDED,
                 () -> NestableCollectExpression.forFunction(OperationContextLog::ended))
             .build();

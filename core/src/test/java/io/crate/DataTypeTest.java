@@ -41,24 +41,24 @@ public class DataTypeTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        BytesRef b1 = new BytesRef("hello");
+        String s1 = "hello";
         BytesStreamOutput out = new BytesStreamOutput();
         Streamer streamer = DataTypes.STRING.streamer();
-        streamer.writeValueTo(out, b1);
+        streamer.writeValueTo(out, s1);
         StreamInput in = out.bytes().streamInput();
-        BytesRef b2 = (BytesRef) streamer.readValueFrom(in);
-        assertEquals(b1, b2);
+        String b2 = (String) streamer.readValueFrom(in);
+        assertEquals(s1, b2);
     }
 
     @Test
     public void testStreamingNull() throws Exception {
-        BytesRef b1 = null;
+        String s1 = null;
         BytesStreamOutput out = new BytesStreamOutput();
         Streamer streamer = DataTypes.STRING.streamer();
-        streamer.writeValueTo(out, b1);
+        streamer.writeValueTo(out, s1);
         StreamInput in = out.bytes().streamInput();
-        BytesRef b2 = (BytesRef) streamer.readValueFrom(in);
-        assertNull(b2);
+        String s2 = (String) streamer.readValueFrom(in);
+        assertNull(s2);
     }
 
     @Test

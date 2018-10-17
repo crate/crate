@@ -22,28 +22,27 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.auth.user.User;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.auth.user.User;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Map;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 public class SysUsersTableInfo extends StaticTableInfo {
 
     private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "users");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
-    private static final BytesRef PASSWORD_PLACEHOLDER = BytesRefs.toBytesRef("********");
+    private static final String PASSWORD_PLACEHOLDER = "********";
 
     private static class Columns {
         private static final ColumnIdent NAME = new ColumnIdent("name");
@@ -77,10 +76,9 @@ public class SysUsersTableInfo extends StaticTableInfo {
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<User>> sysUsersExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<User>>builder()
-            .put(Columns.NAME, () -> NestableCollectExpression.objToBytesRef(User::name))
-            .put(Columns.SUPERUSER, () -> NestableCollectExpression.forFunction(User::isSuperUser))
-            .put(Columns.PASSWORD, () -> NestableCollectExpression.forFunction(
-                u -> u.password() != null ? PASSWORD_PLACEHOLDER : null))
+            .put(Columns.NAME, () -> forFunction(User::name))
+            .put(Columns.SUPERUSER, () -> forFunction(User::isSuperUser))
+            .put(Columns.PASSWORD, () -> forFunction(u -> u.password() != null ? PASSWORD_PLACEHOLDER : null))
             .build();
     }
 }

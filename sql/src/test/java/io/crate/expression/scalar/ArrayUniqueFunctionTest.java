@@ -22,11 +22,10 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.ConversionException;
+import io.crate.expression.symbol.Literal;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
@@ -66,10 +65,10 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testOneArgument() throws Exception {
         assertEvaluate("array_unique(['foo', 'bar', 'baz', 'baz'])",
-            new BytesRef[]{
-                new BytesRef("foo"),
-                new BytesRef("bar"),
-                new BytesRef("baz")
+            new String[]{
+                "foo",
+                "bar",
+                "baz"
             }
         );
     }

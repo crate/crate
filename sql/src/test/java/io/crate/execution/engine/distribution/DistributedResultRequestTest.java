@@ -27,7 +27,6 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.data.RowN;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -50,9 +49,9 @@ public class DistributedResultRequestTest extends CrateUnitTest {
 
         UUID uuid = UUID.randomUUID();
         StreamBucket.Builder builder = new StreamBucket.Builder(streamers, new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")));
-        builder.add(new RowN(new Object[] {new BytesRef("ab")}));
+        builder.add(new RowN(new Object[] {"ab"}));
         builder.add(new RowN(new Object[] {null}));
-        builder.add(new RowN(new Object[] {new BytesRef("cd")}));
+        builder.add(new RowN(new Object[] {"cd"}));
         DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, (byte) 3, 1, builder.build(), false);
 
         BytesStreamOutput out = new BytesStreamOutput();

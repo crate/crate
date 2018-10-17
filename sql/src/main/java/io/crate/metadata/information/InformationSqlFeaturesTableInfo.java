@@ -65,19 +65,19 @@ public class InformationSqlFeaturesTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<SqlFeatureContext>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SqlFeatureContext>>builder()
             .put(Columns.FEATURE_ID,
-                () -> NestableCollectExpression.objToBytesRef(SqlFeatureContext::getFeatureId))
+                () -> NestableCollectExpression.forFunction(SqlFeatureContext::getFeatureId))
             .put(Columns.FEATURE_NAME,
-                () -> NestableCollectExpression.objToBytesRef(SqlFeatureContext::getFeatureName))
+                () -> NestableCollectExpression.forFunction(SqlFeatureContext::getFeatureName))
             .put(Columns.SUB_FEATURE_ID,
-                () -> NestableCollectExpression.objToBytesRef(SqlFeatureContext::getSubFeatureId))
+                () -> NestableCollectExpression.forFunction(SqlFeatureContext::getSubFeatureId))
             .put(Columns.SUB_FEATURE_NAME,
-                () -> NestableCollectExpression.objToBytesRef(SqlFeatureContext::getSubFeatureName))
+                () -> NestableCollectExpression.forFunction(SqlFeatureContext::getSubFeatureName))
             .put(Columns.IS_SUPPORTED,
                 () -> NestableCollectExpression.forFunction(SqlFeatureContext::isSupported))
             .put(Columns.IS_VERIFIED_BY,
-                () -> NestableCollectExpression.objToBytesRef(SqlFeatureContext::getIsVerifiedBy))
+                () -> NestableCollectExpression.forFunction(SqlFeatureContext::getIsVerifiedBy))
             .put(Columns.COMMENTS,
-                () -> NestableCollectExpression.objToBytesRef(SqlFeatureContext::getComments))
+                () -> NestableCollectExpression.forFunction(SqlFeatureContext::getComments))
             .build();
     }
 

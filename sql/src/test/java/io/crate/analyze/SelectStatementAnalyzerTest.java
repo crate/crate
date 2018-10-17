@@ -667,7 +667,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
         Literal stringLiteral = (Literal) whereClause.arguments().get(1);
-        assertThat(stringLiteral.value(), is(new BytesRef("1")));
+        assertThat(stringLiteral.value(), is("1"));
     }
 
     @Test
@@ -960,7 +960,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             isFunction(
                 "any_=",
                 isLiteral(
-                    new Object[] {new BytesRef("vogon lyric lovers")},
+                    new Object[] {"vogon lyric lovers"},
                     new ArrayType(DataTypes.STRING)),
                 isReference("friends['groups']", new ArrayType(new ArrayType(DataTypes.STRING)))
             )
@@ -1287,7 +1287,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     private String getMatchType(Function matchFunction) {
-        return ((BytesRef) ((Literal) matchFunction.arguments().get(2)).value()).utf8ToString();
+        return (String) ((Literal) matchFunction.arguments().get(2)).value();
     }
 
     @Test

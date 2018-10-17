@@ -44,7 +44,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -105,7 +104,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         );
 
         BatchIterator rowsIterator = InMemoryBatchIterator.of(IntStream.range(0, 100)
-            .mapToObj(i -> new RowN(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Arthur\"}")}))
+            .mapToObj(i -> new RowN(new Object[]{i, "{\"id\": " + i + ", \"name\": \"Arthur\"}"}))
             .collect(Collectors.toList()), SENTINEL);
 
         TestingRowConsumer consumer = new TestingRowConsumer();

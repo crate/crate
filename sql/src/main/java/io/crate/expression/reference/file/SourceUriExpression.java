@@ -29,9 +29,8 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 
-public class SourceUriExpression extends LineCollectorExpression<BytesRef> {
+public class SourceUriExpression extends LineCollectorExpression<String> {
 
     public static final String COLUMN_NAME = "_uri";
     private static final ColumnIdent COLUMN_IDENT = new ColumnIdent(COLUMN_NAME);
@@ -44,7 +43,7 @@ public class SourceUriExpression extends LineCollectorExpression<BytesRef> {
     }
 
     @Override
-    public BytesRef value() {
+    public String value() {
         return context.currentUri();
     }
 

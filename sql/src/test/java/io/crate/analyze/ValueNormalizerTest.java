@@ -24,30 +24,28 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.expressions.ValueNormalizer;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
@@ -247,7 +245,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
     @Test
     public void testNormalizeStringToNumberColumn() throws Exception {
         Reference objInfo = userTableInfo.getReference(new ColumnIdent("d"));
-        Literal<BytesRef> stringDoubleLiteral = Literal.of("298.444");
+        Literal<String> stringDoubleLiteral = Literal.of("298.444");
         Literal literal = (Literal) normalizeInputForReference(
             stringDoubleLiteral, objInfo);
         assertThat(literal, isLiteral(298.444d, DataTypes.DOUBLE));

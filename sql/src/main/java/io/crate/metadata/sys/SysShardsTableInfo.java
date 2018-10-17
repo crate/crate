@@ -126,27 +126,27 @@ public class SysShardsTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<ShardRowContext>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ShardRowContext>>builder()
             .put(Columns.SCHEMA_NAME,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.indexParts().getSchema()))
+                () -> NestableCollectExpression.forFunction(r -> r.indexParts().getSchema()))
             .put(Columns.TABLE_NAME,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.indexParts().getTable()))
+                () -> NestableCollectExpression.forFunction(r -> r.indexParts().getTable()))
             .put(Columns.PARTITION_IDENT,
-                () -> NestableCollectExpression.objToBytesRef(ShardRowContext::partitionIdent))
+                () -> NestableCollectExpression.forFunction(ShardRowContext::partitionIdent))
             .put(Columns.ID, () -> NestableCollectExpression.forFunction(ShardRowContext::id))
             .put(Columns.NUM_DOCS, ShardNumDocsExpression::new)
             .put(Columns.PRIMARY,
                 () -> NestableCollectExpression.forFunction(r -> r.indexShard().routingEntry().primary()))
             .put(Columns.RELOCATING_NODE,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.indexShard().routingEntry().relocatingNodeId()))
+                () -> NestableCollectExpression.forFunction(r -> r.indexShard().routingEntry().relocatingNodeId()))
             .put(Columns.SIZE,
                 () -> NestableCollectExpression.forFunction(ShardRowContext::size))
             .put(Columns.STATE,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.indexShard().state().toString()))
+                () -> NestableCollectExpression.forFunction(r -> r.indexShard().state().toString()))
             .put(Columns.ROUTING_STATE,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.indexShard().routingEntry().state().toString()))
+                () -> NestableCollectExpression.forFunction(r -> r.indexShard().routingEntry().state().toString()))
             .put(Columns.ORPHAN_PARTITION, ShardPartitionOrphanedExpression::new)
             .put(Columns.RECOVERY, ShardRecoveryExpression::new)
-            .put(Columns.PATH, () -> NestableCollectExpression.objToBytesRef(ShardRowContext::path))
-            .put(Columns.BLOB_PATH, () -> NestableCollectExpression.objToBytesRef(ShardRowContext::blobPath))
+            .put(Columns.PATH, () -> NestableCollectExpression.forFunction(ShardRowContext::path))
+            .put(Columns.BLOB_PATH, () -> NestableCollectExpression.forFunction(ShardRowContext::blobPath))
             .put(Columns.MIN_LUCENE_VERSION, ShardMinLuceneVersionExpression::new)
             .put(Columns.NODE, NodeNestableInput::new)
             .build();
@@ -155,11 +155,11 @@ public class SysShardsTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>>builder()
             .put(Columns.SCHEMA_NAME,
-                () -> NestableCollectExpression.objToBytesRef(UnassignedShard::schemaName))
+                () -> NestableCollectExpression.forFunction(UnassignedShard::schemaName))
             .put(Columns.TABLE_NAME,
-                () -> NestableCollectExpression.objToBytesRef(UnassignedShard::tableName))
+                () -> NestableCollectExpression.forFunction(UnassignedShard::tableName))
             .put(Columns.PARTITION_IDENT,
-                () -> NestableCollectExpression.objToBytesRef(UnassignedShard::partitionIdent))
+                () -> NestableCollectExpression.forFunction(UnassignedShard::partitionIdent))
             .put(Columns.ID,
                 () -> NestableCollectExpression.forFunction(UnassignedShard::id))
             .put(Columns.NUM_DOCS,
@@ -167,13 +167,13 @@ public class SysShardsTableInfo extends StaticTableInfo {
             .put(Columns.PRIMARY,
                 () -> NestableCollectExpression.forFunction(UnassignedShard::primary))
             .put(Columns.RELOCATING_NODE,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.forFunction(r -> null))
             .put(Columns.SIZE,
                 () -> NestableCollectExpression.forFunction(r -> 0L))
             .put(Columns.STATE,
-                () -> NestableCollectExpression.objToBytesRef(UnassignedShard::state))
+                () -> NestableCollectExpression.forFunction(UnassignedShard::state))
             .put(Columns.ROUTING_STATE,
-                () -> NestableCollectExpression.objToBytesRef(UnassignedShard::state))
+                () -> NestableCollectExpression.forFunction(UnassignedShard::state))
             .put(Columns.ORPHAN_PARTITION,
                 () -> NestableCollectExpression.forFunction(UnassignedShard::orphanedPartition))
             .put(Columns.RECOVERY, () -> new NestableCollectExpression<UnassignedShard, Object>() {
@@ -192,11 +192,11 @@ public class SysShardsTableInfo extends StaticTableInfo {
                 }
             })
             .put(Columns.PATH,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.forFunction(r -> null))
             .put(Columns.BLOB_PATH,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.forFunction(r -> null))
             .put(Columns.MIN_LUCENE_VERSION,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.forFunction(r -> null))
             .put(Columns.NODE, () -> new NestableCollectExpression<UnassignedShard, Object>() {
                 @Override
                 public void setNextRow(UnassignedShard unassignedShard) {

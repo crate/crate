@@ -23,7 +23,6 @@
 package io.crate.execution.engine.indexing;
 
 import io.crate.execution.dml.ShardRequest;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.ArrayList;
@@ -35,8 +34,8 @@ import java.util.function.Function;
 public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item> {
 
     final Map<String, List<ItemAndRoutingAndSourceInfo<TItem>>> itemsByMissingIndex = new HashMap<>();
-    final Map<BytesRef, List<ReadFailureAndLineNumber>> itemsWithFailureBySourceUri = new HashMap<>();
-    final Map<BytesRef, String> sourceUrisWithFailure = new HashMap<>();
+    final Map<String, List<ReadFailureAndLineNumber>> itemsWithFailureBySourceUri = new HashMap<>();
+    final Map<String, String> sourceUrisWithFailure = new HashMap<>();
     final List<RowSourceInfo> rowSourceInfos = new ArrayList<>();
     final Map<ShardLocation, TReq> itemsByShard = new HashMap<>();
 
@@ -67,13 +66,13 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         rowSourceInfos.add(rowSourceInfo);
     }
 
-    void addFailedItem(BytesRef sourceUri, String readFailure, Long lineNumber) {
+    void addFailedItem(String sourceUri, String readFailure, Long lineNumber) {
         List<ReadFailureAndLineNumber> itemsWithFailure = itemsWithFailureBySourceUri.computeIfAbsent(
             sourceUri, k -> new ArrayList<>());
         itemsWithFailure.add(new ReadFailureAndLineNumber(readFailure, lineNumber));
     }
 
-    void addFailedUri(BytesRef sourceUri, String uriReadFailure) {
+    void addFailedUri(String sourceUri, String uriReadFailure) {
         assert sourceUrisWithFailure.get(sourceUri) == null : "A failure was already stored for this URI, should happen only once";
         sourceUrisWithFailure.put(sourceUri, uriReadFailure);
     }

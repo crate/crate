@@ -30,7 +30,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.search.lookup.SourceLookup;
@@ -49,7 +48,7 @@ public class DocRefResolverTest extends CrateUnitTest {
     private static final DocRefResolver REF_RESOLVER =
         new DocRefResolver(Collections.emptyList());
     private static final Doc GET_RESULT =
-        new Doc("t1", "abc", 1L, SourceLookup.sourceAsMap(SOURCE), SOURCE::toBytesRef, true);
+        new Doc("t1", "abc", 1L, SourceLookup.sourceAsMap(SOURCE), SOURCE::utf8ToString, true);
 
     @Test
     public void testSystemColumnsCollectExpressions() throws Exception {
@@ -67,9 +66,9 @@ public class DocRefResolverTest extends CrateUnitTest {
             collectExpressions.add(collectExpression);
         }
 
-        assertThat(collectExpressions.get(0).value(), is(new BytesRef("abc")));
+        assertThat(collectExpressions.get(0).value(), is("abc"));
         assertThat(collectExpressions.get(1).value(), is(1L));
         assertThat(collectExpressions.get(2).value(), is(SourceLookup.sourceAsMap(SOURCE)));
-        assertThat(collectExpressions.get(3).value(), is(SOURCE.toBytesRef()));
+        assertThat(collectExpressions.get(3).value(), is(SOURCE.utf8ToString()));
     }
 }

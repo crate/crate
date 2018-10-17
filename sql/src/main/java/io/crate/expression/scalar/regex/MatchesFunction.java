@@ -21,28 +21,27 @@
 
 package io.crate.expression.scalar.regex;
 
+import io.crate.data.Input;
+import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 
-public class MatchesFunction extends Scalar<BytesRef[], Object> {
+public class MatchesFunction extends Scalar<String[], Object> {
 
     public static final String NAME = "regexp_matches";
     private static final DataType ARRAY_STRING_TYPE = new ArrayType(DataTypes.STRING);
@@ -106,22 +105,22 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> {
     }
 
     @Override
-    public Scalar<BytesRef[], Object> compile(List<Symbol> arguments) {
+    public Scalar<String[], Object> compile(List<Symbol> arguments) {
         assert arguments.size() > 1 : "number of arguments must be > 1";
         String pattern = null;
         if (arguments.get(1).symbolType() == SymbolType.LITERAL) {
             Literal literal = (Literal) arguments.get(1);
-            Object patternVal = literal.value();
+            String patternVal = (String) literal.value();
             if (patternVal == null) {
                 return this;
             }
-            pattern = ((BytesRef) patternVal).utf8ToString();
+            pattern = patternVal;
         }
-        BytesRef flags = null;
+        String flags = null;
         if (arguments.size() == 3) {
             assert arguments.get(2).symbolType() == SymbolType.LITERAL :
                 "3rd argument must be a " + SymbolType.LITERAL;
-            flags = (BytesRef) ((Literal) arguments.get(2)).value();
+            flags = (String) ((Literal) arguments.get(2)).value();
         }
 
         if (pattern != null) {
@@ -133,32 +132,25 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> {
     }
 
     @Override
-    public BytesRef[] evaluate(Input[] args) {
+    public String[] evaluate(Input[] args) {
         assert args.length == 2 || args.length == 3 : "number of args must be 2 or 3";
-        Object val = args[0].value();
-        final Object patternValue = args[1].value();
-        if (val == null || patternValue == null) {
+        String val = (String) args[0].value();
+        String pattern = (String) args[1].value();
+        if (val == null || pattern == null) {
             return null;
         }
-        assert patternValue instanceof BytesRef : "patternValue must be BytesRef";
-        // value can be a string if e.g. result is retrieved by ESSearchTask
-        if (val instanceof String) {
-            val = new BytesRef((String) val);
-        }
-
         RegexMatcher matcher;
         if (regexMatcher == null) {
-            String pattern = ((BytesRef) patternValue).utf8ToString();
-            BytesRef flags = null;
+            String flags = null;
             if (args.length == 3) {
-                flags = (BytesRef) args[2].value();
+                flags = (String) args[2].value();
             }
             matcher = new RegexMatcher(pattern, flags);
         } else {
             matcher = regexMatcher;
         }
 
-        if (matcher.match((BytesRef) val)) {
+        if (matcher.match(val)) {
             return matcher.groups();
         }
         return null;

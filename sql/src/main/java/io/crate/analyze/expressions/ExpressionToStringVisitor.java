@@ -36,7 +36,6 @@ import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.SubscriptExpression;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
@@ -89,7 +88,7 @@ public class ExpressionToStringVisitor extends AstVisitor<String, Row> {
 
     @Override
     public String visitParameterExpression(ParameterExpression node, Row parameters) {
-        return BytesRefs.toString(parameters.get(node.index()));
+        return parameters.get(node.index()).toString();
     }
 
     @Override

@@ -38,7 +38,6 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.UseJdbc;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -94,7 +93,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         String partitionName = IndexParts.toIndexName(
             sqlExecutor.getCurrentSchema(),
             "test",
-            PartitionName.encodeIdent(singletonList(new BytesRef("foo")))
+            PartitionName.encodeIdent(singletonList("foo"))
         );
         client().admin().indices().prepareCreate(partitionName)
             .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
@@ -118,7 +117,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
     @UseJdbc(0) // create table has no rowcount
     public void testCreateTableWithOrphanedAlias() throws Exception {
         String partitionName = IndexParts.toIndexName(
-            sqlExecutor.getCurrentSchema(), "test", PartitionName.encodeIdent(singletonList(new BytesRef("foo"))));
+            sqlExecutor.getCurrentSchema(), "test", PartitionName.encodeIdent(singletonList("foo")));
         client().admin().indices().prepareCreate(partitionName)
             .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
             .setSettings(TEST_SETTINGS)
@@ -163,7 +162,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
 
         String schema= sqlExecutor.getCurrentSchema();
         String partitionName = IndexParts.toIndexName(
-            schema, "t", PartitionName.encodeIdent(ImmutableList.of(new BytesRef("1"))));
+            schema, "t", PartitionName.encodeIdent(ImmutableList.of("1")));
         PlanForNode plan = plan("delete from t where id = ?");
 
         assertTrue(client().admin().indices().prepareClose(partitionName).execute().actionGet().isAcknowledged());
