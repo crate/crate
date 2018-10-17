@@ -90,15 +90,9 @@ public class AlterTableOperationTest extends CrateUnitTest {
 
     @Test
     public void testMarkArchivedSettings() {
-        String oldSetting = ARCHIVED_SETTINGS_PREFIX + "some.old.setting";
         Settings.Builder builder = Settings.builder()
-            .put(oldSetting, true);
-        Settings preparedSettings = AlterTableOperation.markArchivedSettings(builder.build());
-        assertThat(preparedSettings.keySet(), containsInAnyOrder(ARCHIVED_SETTINGS_PREFIX + "*", oldSetting));
-
-        builder = Settings.builder()
             .put(SETTING_NUMBER_OF_SHARDS, 4);
-        preparedSettings = AlterTableOperation.markArchivedSettings(builder.build());
-        assertThat(preparedSettings.keySet(), contains(SETTING_NUMBER_OF_SHARDS));
+        Settings preparedSettings = AlterTableOperation.markArchivedSettings(builder.build());
+        assertThat(preparedSettings.keySet(), containsInAnyOrder(SETTING_NUMBER_OF_SHARDS, ARCHIVED_SETTINGS_PREFIX + "*"));
     }
 }
