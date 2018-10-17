@@ -37,8 +37,12 @@ import org.elasticsearch.gateway.Gateway;
 import org.elasticsearch.gateway.GatewayService;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.crate.license.LicenseExpiryNotification.EXPIRED;
+import static io.crate.license.LicenseExpiryNotification.MODERATE;
+import static io.crate.license.LicenseExpiryNotification.SEVERE;
 import static io.crate.license.LicenseKey.SELF_GENERATED;
 import static io.crate.license.LicenseKey.decodeLicense;
 import static io.crate.license.SelfGeneratedLicense.decryptLicenseContent;
@@ -84,11 +88,30 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
     boolean verifyLicense(LicenseKey licenseKey) {
         try {
             DecodedLicense decodedLicense = decodeLicense(licenseKey);
-            DecryptedLicenseData licenseData = licenseData(decodedLicense);
-            return System.currentTimeMillis() < licenseData.expirationDateInMs();
+            return !isLicenseExpired(licenseData(decodedLicense));
         } catch (IOException e) {
             return false;
         }
+    }
+
+    @Nullable
+    public LicenseExpiryNotification getLicenseExpiryNotification(DecryptedLicenseData decryptedLicenseData) {
+        long millisToExpiration = decryptedLicenseData.millisToExpiration();
+        if (millisToExpiration < 0) {
+            return EXPIRED;
+        } else if (millisToExpiration < TimeUnit.DAYS.toMillis(1)) {
+            return SEVERE;
+        } else if (millisToExpiration < TimeUnit.DAYS.toMillis(15)) {
+            return MODERATE;
+        }
+        return null;
+    }
+
+    private boolean isLicenseExpired(DecryptedLicenseData decryptedLicenseData) {
+        if (decryptedLicenseData == null) {
+            return false;
+        }
+        return System.currentTimeMillis() > decryptedLicenseData.expirationDateInMs();
     }
 
     DecryptedLicenseData licenseData(DecodedLicense decodedLicense) throws IOException {
@@ -123,7 +146,6 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
                     LicenseKey.VERSION,
                     licenseData
                 );
-                currentLicense.set(licenseData);
                 registerLicense(licenseKey,
                     new ActionListener<SetLicenseResponse>() {
 
@@ -168,10 +190,23 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
 
         if (newLicenseKey != null && !newLicenseKey.equals(previousLicenseKey)) {
             try {
-                this.currentLicense.set(licenseData(decodeLicense(newLicenseKey)));
+                DecryptedLicenseData decryptedLicenseData = licenseData(decodeLicense(newLicenseKey));
+                LicenseExpiryNotification expiryNotification = getLicenseExpiryNotification(decryptedLicenseData);
+
+                if (expiryNotification != null) {
+                    long millisToExpiration = decryptedLicenseData.millisToExpiration();
+                    if (expiryNotification.equals(LicenseExpiryNotification.EXPIRED)) {
+                        logger.error(expiryNotification.notificationMessage(millisToExpiration));
+                    } else if (expiryNotification.equals(LicenseExpiryNotification.SEVERE)) {
+                        logger.error(expiryNotification.notificationMessage(millisToExpiration));
+                    } else if (expiryNotification.equals(LicenseExpiryNotification.MODERATE)) {
+                        logger.warn(expiryNotification.notificationMessage(millisToExpiration));
+                    }
+                }
+
+                this.currentLicense.set(decryptedLicenseData);
             } catch (IOException e) {
                 logger.error("Received invalid license. Unable to read the license data.");
-                throw new InvalidLicenseException("Invalid license present in cluster");
             }
         }
     }
