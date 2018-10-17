@@ -517,13 +517,10 @@ public class AlterTableOperation {
      */
     @VisibleForTesting
     static Settings markArchivedSettings(Settings settings) {
-        if (settings.getGroups("archived").keySet().isEmpty() == false) {
-            return Settings.builder()
-                .put(settings)
-                .putNull(ARCHIVED_SETTINGS_PREFIX + "*")
-                .build();
-        }
-        return settings;
+        return Settings.builder()
+            .put(settings)
+            .putNull(ARCHIVED_SETTINGS_PREFIX + "*")
+            .build();
     }
 
     private void addColumnToTable(AddColumnAnalyzedStatement analysis, final CompletableFuture<?> result) {
