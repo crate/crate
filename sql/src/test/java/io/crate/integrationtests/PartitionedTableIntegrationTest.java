@@ -21,11 +21,12 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
+import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -35,10 +36,13 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
@@ -71,7 +75,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
+import static io.crate.Constants.DEFAULT_MAPPING_TYPE;
+import static io.crate.Version.CRATEDB_VERSION_KEY;
+import static io.crate.Version.ES_VERSION_KEY;
+import static io.crate.metadata.IndexMappings.VERSION_STRING;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
@@ -305,7 +314,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             .getState().metaData();
         assertNotNull(metaData.indices().get(partitionName).getAliases().get(getFqn("parted")));
         assertThat(
-            client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+            client().prepareSearch(partitionName).setTypes(DEFAULT_MAPPING_TYPE)
                 .setSize(0).setQuery(new MatchAllQueryBuilder())
                 .execute().actionGet().getHits().getTotalHits(),
             is(1L)
@@ -331,7 +340,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         indexUUIDs.add(indexMetaData.getIndexUUID());
         assertThat(indexMetaData.getAliases().get(getFqn("parted")), notNullValue());
         assertThat(
-            client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+            client().prepareSearch(partitionName).setTypes(DEFAULT_MAPPING_TYPE)
                 .setSize(0).setQuery(new MatchAllQueryBuilder())
                 .execute().actionGet().getHits().getTotalHits(),
             is(1L)
@@ -346,7 +355,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         indexUUIDs.add(indexMetaData.getIndexUUID());
         assertThat(indexMetaData.getAliases().get(getFqn("parted")), notNullValue());
         assertThat(
-            client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+            client().prepareSearch(partitionName).setTypes(DEFAULT_MAPPING_TYPE)
                 .setSize(0).setQuery(new MatchAllQueryBuilder())
                 .execute().actionGet().getHits().getTotalHits(),
             is(1L)
@@ -362,7 +371,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         indexUUIDs.add(indexMetaData.getIndexUUID());
         assertThat(indexMetaData.getAliases().get(getFqn("parted")), notNullValue());
         assertThat(
-            client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+            client().prepareSearch(partitionName).setTypes(DEFAULT_MAPPING_TYPE)
                 .setSize(0).setQuery(new MatchAllQueryBuilder())
                 .execute().actionGet().getHits().getTotalHits(),
             is(1L)
@@ -423,7 +432,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
             .getState().metaData().indices().get(partitionName).getAliases().get(getFqn("parted")));
         assertThat(
-            client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+            client().prepareSearch(partitionName).setTypes(DEFAULT_MAPPING_TYPE)
                 .setSize(0).setQuery(new MatchAllQueryBuilder())
                 .execute().actionGet().getHits().getTotalHits(),
             is(1L)
@@ -1691,7 +1700,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             .get(new PartitionName(
                 new RelationName(sqlExecutor.getDefaultSchema(), "dynamic_table"),
                 Collections.singletonList(new BytesRef("10.0"))).asIndexName())
-            .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+            .getMappings().get(DEFAULT_MAPPING_TYPE);
         Map<String, Object> metaMap = (Map) partitionMetaData.getSourceAsMap().get("_meta");
         assertThat(String.valueOf(metaMap.get("partitioned_by")), Matchers.is("[[score, double]]"));
         execute("alter table dynamic_table set (column_policy= 'dynamic')");
@@ -1700,7 +1709,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             .get(new PartitionName(
                 new RelationName(sqlExecutor.getDefaultSchema(), "dynamic_table"),
                 Collections.singletonList(new BytesRef("10.0"))).asIndexName())
-            .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+            .getMappings().get(DEFAULT_MAPPING_TYPE);
         metaMap = (Map) partitionMetaData.getSourceAsMap().get("_meta");
         assertThat(String.valueOf(metaMap.get("partitioned_by")), Matchers.is("[[score, double]]"));
     }
@@ -1745,11 +1754,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).actionGet();
         IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
-        String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
+        String mappingSource = metaData.mappings().get(DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
             .createParser(NamedXContentRegistry.EMPTY, mappingSource)
             .map()
-            .get(Constants.DEFAULT_MAPPING_TYPE);
+            .get(DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
         assertNotNull(((Map) mapping.get("properties")).get("ft_name"));
     }
@@ -1773,10 +1782,10 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).actionGet();
         IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
-        String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
+        String mappingSource = metaData.mappings().get(DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
             .createParser(NamedXContentRegistry.EMPTY, mappingSource)
-            .map().get(Constants.DEFAULT_MAPPING_TYPE);
+            .map().get(DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
         // template order must not be touched
         assertThat(metaData.order(), is(100));
@@ -2238,5 +2247,46 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                "1| 1\n" +
                "1| 2\n")
         );
+    }
+
+    @Test
+    public void testCurrentVersionsAreSetOnPartitionCreation() throws Exception {
+        execute("create table doc.p1 (id int, p int) partitioned by (p)");
+        writeOldVersionsToTemplate();
+
+        execute("insert into doc.p1 (id, p) values (1, 2)");
+        execute("select version['created']['cratedb'] from information_schema.table_partitions where table_name='p1'");
+
+        assertThat(response.rows()[0][0], is(Version.CURRENT.number()));
+    }
+
+    private void writeOldVersionsToTemplate() throws Exception {
+        String templateName = PartitionName.templateName("doc", "p1");
+        GetIndexTemplatesResponse templatesResponse = admin().indices()
+            .getTemplates(new GetIndexTemplatesRequest(templateName))
+            .actionGet(5, TimeUnit.SECONDS);
+        IndexTemplateMetaData templateMetaData = templatesResponse.getIndexTemplates().get(0);
+        Map<String, Object> mapping = AlterTableOperation.parseMapping(
+            templateMetaData.mappings().get(DEFAULT_MAPPING_TYPE).toString());
+
+        Map<String, Object> metaMap = IndexMappings.getMetaMapFromMapping(mapping);
+        assert metaMap != null : "could not resolve _meta map from template";
+        Map<String, Object> versionMap =  MapBuilder.<String, Object>newMapBuilder()
+            .put(CRATEDB_VERSION_KEY, 2031299)
+            .put(ES_VERSION_KEY, 5060899)
+            .map();
+        metaMap.put(VERSION_STRING, versionMap);
+
+        PutIndexTemplateRequest templateRequest = new PutIndexTemplateRequest(templateName)
+            .patterns(templateMetaData.patterns())
+            .settings(templateMetaData.settings())
+            .order(templateMetaData.order());
+
+        for (ObjectObjectCursor<String, AliasMetaData> container : templateMetaData.aliases()) {
+            templateRequest.alias(new Alias(container.key));
+        }
+        templateRequest.mapping(DEFAULT_MAPPING_TYPE, mapping);
+
+        admin().indices().putTemplate(templateRequest).actionGet(5, TimeUnit.SECONDS);
     }
 }
