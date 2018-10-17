@@ -44,13 +44,11 @@ public class InternalDocTableInfoFactory implements DocTableInfoFactory {
 
     @Override
     public DocTableInfo create(RelationName ident, ClusterState state) {
-        boolean checkAliasSchema = state.metaData().settings().getAsBoolean("crate.table_alias.schema_check", true);
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
             functions,
             ident,
             state,
-            indexNameExpressionResolver,
-            checkAliasSchema
+            indexNameExpressionResolver
         );
         return builder.build();
     }

@@ -34,8 +34,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexNotFoundException;
 
-import java.util.Locale;
-
 import static io.crate.data.SentinelRow.SENTINEL;
 
 public class DropTableTask {
@@ -70,13 +68,6 @@ public class DropTableTask {
 
             @Override
             public void onFailure(Exception e) {
-                if (tableInfo.isPartitioned()) {
-                    LOGGER.warn(
-                        String.format(Locale.ENGLISH, "Could not (fully) delete all partitions of %s. " +
-                                                      "Some orphaned partitions might still exist, " +
-                                                      "but are not accessible.", tableInfo.ident().fqn()),
-                        e);
-                }
                 if (ifExists && e instanceof IndexNotFoundException) {
                     consumer.accept(InMemoryBatchIterator.of(ROW_ZERO, SENTINEL), null);
                 } else {

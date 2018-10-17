@@ -86,8 +86,7 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
             functions,
             new RelationName(schemaName, "test"),
             state,
-            new IndexNameExpressionResolver(Settings.EMPTY),
-            false
+            new IndexNameExpressionResolver(Settings.EMPTY)
         );
 
         expectedException.expect(RelationUnknown.class);
