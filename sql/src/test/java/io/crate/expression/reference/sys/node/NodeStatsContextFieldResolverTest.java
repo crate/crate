@@ -29,8 +29,6 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.protocols.ConnectionStats;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpStats;
@@ -172,7 +170,7 @@ public class NodeStatsContextFieldResolverTest {
             new ColumnIdent(SysNodesTableInfo.Columns.PORT.name())
         ));
         assertThat(context.isComplete(), is(true));
-        assertThat(context.port().get("psql"), is(5432));
+        assertThat(context.pgPort(), is(5432));
     }
 
     @Test
@@ -198,7 +196,7 @@ public class NodeStatsContextFieldResolverTest {
         assertThat(context.hostname(), is(nullValue()));
         assertThat(context.build(), is(nullValue()));
         assertThat(context.restUrl(), is(nullValue()));
-        assertThat(context.port(), is(nullValue()));
+        assertThat(context.pgPort(), is(nullValue()));
         assertThat(context.jvmStats(), is(nullValue()));
         assertThat(context.osInfo(), is(nullValue()));
         assertThat(context.processStats(), is(nullValue()));

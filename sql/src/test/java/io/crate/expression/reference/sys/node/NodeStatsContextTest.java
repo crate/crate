@@ -42,7 +42,6 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
@@ -75,10 +74,8 @@ public class NodeStatsContextTest extends CrateUnitTest {
         ctx1.version(Version.CURRENT);
         ctx1.build(Build.CURRENT);
         ctx1.restUrl(BytesRefs.toBytesRef("10.0.0.1:4200"));
-        ctx1.port(new HashMap<String, Integer>(2) {{
-            put("http", 4200);
-            put("transport", 4300);
-        }});
+        ctx1.httpPort(4200);
+        ctx1.transportPort(4300);
         ctx1.jvmStats(JvmStats.jvmStats());
         ctx1.osInfo(DummyOsInfo.INSTANCE);
         ProcessProbe processProbe = ProcessProbe.getInstance();
@@ -105,7 +102,9 @@ public class NodeStatsContextTest extends CrateUnitTest {
         assertThat(ctx1.version(), is(ctx2.version()));
         assertThat(ctx1.build().hash(), is(ctx2.build().hash()));
         assertThat(ctx1.restUrl(), is(ctx2.restUrl()));
-        assertThat(ctx1.port(), is(ctx2.port()));
+        assertThat(ctx1.httpPort(), is(ctx2.httpPort()));
+        assertThat(ctx1.transportPort(), is(ctx2.transportPort()));
+        assertThat(ctx1.pgPort(), is(ctx2.pgPort()));
         assertThat(ctx1.jvmStats().getTimestamp(), is(ctx2.jvmStats().getTimestamp()));
         assertThat(ctx1.osInfo().getArch(), is(ctx2.osInfo().getArch()));
         assertThat(ctx1.processStats().getTimestamp(), is(ctx2.processStats().getTimestamp()));
@@ -131,7 +130,9 @@ public class NodeStatsContextTest extends CrateUnitTest {
         assertNull(ctx2.name());
         assertNull(ctx2.hostname());
         assertNull(ctx2.restUrl());
-        assertNull(ctx2.port());
+        assertNull(ctx2.httpPort());
+        assertNull(ctx2.transportPort());
+        assertNull(ctx2.pgPort());
         assertNull(ctx2.jvmStats());
         assertNull(ctx2.osInfo());
         assertNull(ctx2.processStats());
@@ -143,10 +144,8 @@ public class NodeStatsContextTest extends CrateUnitTest {
     @Test
     public void testStreamContextWithNullPorts() throws Exception {
         NodeStatsContext ctx1 = new NodeStatsContext(false);
-        ctx1.port(new HashMap<String, Integer>() {{
-            put("http", null);
-            put("transport", 4300);
-        }});
+        ctx1.transportPort(4300);
+        ctx1.httpPort(null);
         ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
         StreamOutput out = new OutputStreamStreamOutput(outBuffer);
         ctx1.writeTo(out);
@@ -156,7 +155,7 @@ public class NodeStatsContextTest extends CrateUnitTest {
         NodeStatsContext ctx2 = new NodeStatsContext(false);
         ctx2.readFrom(in);
 
-        assertThat(ctx2.port().get("http"), nullValue());
-        assertThat(ctx2.port().get("transport"), is(4300));
+        assertThat(ctx2.httpPort(), nullValue());
+        assertThat(ctx2.transportPort(), is(4300));
     }
 }
