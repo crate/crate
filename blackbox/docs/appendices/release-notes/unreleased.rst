@@ -86,6 +86,9 @@ Changes
 Fixes
 =====
 
+- Store current ``created`` versions at new table partitions instead of using
+  maybe older versions stored at the partition table.
+
 - Fixed an issue which caused tables created on version < 3.0 using not anymore
   supported table parameters to fail on ``ALTER TABLE`` statements.
 
