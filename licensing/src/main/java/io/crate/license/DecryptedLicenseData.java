@@ -40,13 +40,17 @@ public class DecryptedLicenseData {
     private final long expirationDateInMs;
     private final String issuedTo;
 
-    DecryptedLicenseData(long expirationDateInMs, String issuedTo) {
+    public DecryptedLicenseData(long expirationDateInMs, String issuedTo) {
         this.expirationDateInMs = expirationDateInMs;
         this.issuedTo = issuedTo;
     }
 
     public long expirationDateInMs() {
         return expirationDateInMs;
+    }
+
+    public long millisToExpiration() {
+        return expirationDateInMs - System.currentTimeMillis();
     }
 
     public String issuedTo() {

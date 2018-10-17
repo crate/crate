@@ -1378,8 +1378,9 @@ Here's an example query::
   |  2 | The total number of partitions of one or more partitioned tab... |
   |  3 | The following tables need to be upgraded for compatibility wi... |
   |  4 | CrateDB Enterprise features are active. Please request a lice... |
+  |  5 | Your CrateDB license is not close to expiry. Enjoy CrateDB!      |
   +----+--------------------------------------------------------------...-+
-  SELECT 4 rows in set (... sec)
+  SELECT 5 rows in set (... sec)
 
 Cluster checks are also indicated in the CrateDB `admin console`_. When all
 cluster checks (and all :ref:`sys-node-checks`) pass, the *Checks* icon will be
@@ -1512,6 +1513,15 @@ procedure, this cluster check should disappear.
    Snapshots of your tables created prior to them being recreated will not work
    with future versions of CrateDB. For this reason, you should create a new
    snapshot for each of your tables. (See :ref:`snapshot-restore`.)
+
+License exipry check
+....................
+
+This check warns you when your license is close to expiration. It will yield a
+``MEDIUM`` alert when your license is valid for less than 15 days and a
+``HIGH`` alert when your license is valid for less than a day.
+It's highly recommended you request a new license when this check triggers in
+order to avoid any cluster downtime.
 
 .. _sys-health:
 
