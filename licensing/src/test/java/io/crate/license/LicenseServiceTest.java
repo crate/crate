@@ -24,12 +24,16 @@ package io.crate.license;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.settings.Settings;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.license.LicenseKey.VERSION;
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.HOURS;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
@@ -52,7 +56,7 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testVerifyExpiredLicense() {
         LicenseKey expiredLicense = licenseService.createLicenseKey(LicenseKey.SELF_GENERATED, VERSION,
-            new DecryptedLicenseData(System.currentTimeMillis() - 5 * 60 * 60 * 1000, "test"));
+            new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5), "test"));
 
         assertThat(licenseService.verifyLicense(expiredLicense), is(false));
     }
@@ -68,8 +72,36 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testLicenseNotificationIsExpiredForExpiredLicense() {
+        DecryptedLicenseData expiredLicense = new DecryptedLicenseData(
+            System.currentTimeMillis() - HOURS.toMillis(5), "test");
+        assertThat(licenseService.getLicenseExpiryNotification(expiredLicense), is(LicenseExpiryNotification.EXPIRED));
+    }
+
+    @Test
+    public void testLicenseNotificationIsSevereForLicenseThatExpiresWithin1Day() {
+        DecryptedLicenseData licenseData = new DecryptedLicenseData(
+            System.currentTimeMillis() + HOURS.toMillis(5), "test");
+        assertThat(licenseService.getLicenseExpiryNotification(licenseData), is(LicenseExpiryNotification.SEVERE));
+    }
+
+    @Test
+    public void testLicenseNotificationIsModerateForLicenseThatExpiresWithin15Days() {
+        DecryptedLicenseData licenseData = new DecryptedLicenseData(
+            System.currentTimeMillis() + DAYS.toMillis(13), "test");
+        assertThat(licenseService.getLicenseExpiryNotification(licenseData), is(LicenseExpiryNotification.MODERATE));
+    }
+
+    @Test
+    public void testLicenseNotificationIsNullForLicenseWithMoreThan15DaysLeft() {
+        DecryptedLicenseData licenseData = new DecryptedLicenseData(
+            System.currentTimeMillis() + DAYS.toMillis(30), "test");
+        assertThat(licenseService.getLicenseExpiryNotification(licenseData), is(Matchers.nullValue()));
+    }
+
+    @Test
     public void testGetLicenseDataOnlySupportsSelfGeneratedLicense() throws IOException {
-        DecodedLicense decodedLicense = new DecodedLicense(-2, VERSION, new byte[]{1,2,3,4});
+        DecodedLicense decodedLicense = new DecodedLicense(-2, VERSION, new byte[]{1, 2, 3, 4});
 
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Only self generated licenses are supported");

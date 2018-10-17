@@ -73,7 +73,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     @Override
     public BytesRef description() {
-        String linkedDescriptionBuilder = DESCRIPTION + tablesNeedUpgrade + ' ' + LINK_PATTERN + ID;
+        String linkedDescriptionBuilder = DESCRIPTION + tablesNeedUpgrade + ' ' + CLUSTER_CHECK_LINK_PATTERN + ID;
         return new BytesRef(linkedDescriptionBuilder);
     }
 
