@@ -21,11 +21,15 @@
 
 package io.crate.metadata;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.Version;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.MapBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static io.crate.Constants.DEFAULT_MAPPING_TYPE;
 
 public final class IndexMappings {
 
@@ -34,23 +38,42 @@ public final class IndexMappings {
 
     public static final Map<String, Object> DEFAULT_TABLE_MAPPING = createDefaultTableMapping();
 
-    public static void putDefaultSettingsToMeta(Map<String, Object> metaMap) {
-        // set the created version
-        IndexMappings.putVersionToMap(metaMap, Version.Property.CREATED, Version.CURRENT);
+    public static void putDefaultSettingsToMappings(Map<String, Map<String, Object>> mappings) {
+        Map<String, Object> metaMap = getMetaMapFromMapping(mappings.get(DEFAULT_MAPPING_TYPE));
+        if (metaMap != null) {
+            putDefaultSettingsToMeta(metaMap);
+        }
     }
 
-    private static void putVersionToMap(Map<String, Object> metaMap, Version.Property key, Version version) {
+    public static void putDefaultSettingsToMeta(Map<String, Object> metaMap) {
+        // set the created version
+        IndexMappings.putVersionToMap(metaMap);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void putVersionToMap(Map<String, Object> metaMap) {
         Map<String, Object> versionMap = (Map<String, Object>) metaMap.get(VERSION_STRING);
         if (versionMap == null) {
             versionMap = new HashMap<>(1);
             metaMap.put(VERSION_STRING, versionMap);
         }
-        versionMap.put(key.toString(), Version.toMap(version));
+        versionMap.put(Version.Property.CREATED.toString(), Version.toMap(Version.CURRENT));
     }
 
     private static Map<String, Object> createDefaultTableMapping() {
         Map<String, Object> metaMap = new HashMap<>(1);
         putDefaultSettingsToMeta(metaMap);
         return MapBuilder.<String, Object>newMapBuilder().put("_meta", metaMap).map();
+    }
+
+    @Nullable
+    @VisibleForTesting
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> getMetaMapFromMapping(Map<String, Object> mapping) {
+        mapping = (Map<String, Object>) mapping.get(DEFAULT_MAPPING_TYPE);
+        if (mapping != null) {
+            return  (Map<String, Object>) mapping.get("_meta");
+        }
+        return null;
     }
 }
