@@ -32,7 +32,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
@@ -75,29 +74,19 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     private Functions functions;
     private UserDefinedFunctionService udfService;
 
-    private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
-        return getIndexMetaData(indexName, builder, Settings.EMPTY, null);
-    }
-
     private IndexMetaData getIndexMetaData(String indexName,
-                                           XContentBuilder builder,
-                                           Settings settings,
-                                           @Nullable AliasMetaData aliasMetaData) throws IOException {
+                                           XContentBuilder builder) throws IOException {
         Map<String, Object> mappingSource = XContentHelper.convertToMap(builder.bytes(), true, XContentType.JSON).v2();
         mappingSource = sortProperties(mappingSource);
 
         Settings.Builder settingsBuilder = Settings.builder()
             .put("index.number_of_shards", 1)
             .put("index.number_of_replicas", 0)
-            .put("index.version.created", org.elasticsearch.Version.CURRENT)
-            .put(settings);
+            .put("index.version.created", org.elasticsearch.Version.CURRENT);
 
         IndexMetaData.Builder mdBuilder = IndexMetaData.builder(indexName)
             .settings(settingsBuilder)
             .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, mappingSource));
-        if (aliasMetaData != null) {
-            mdBuilder.putAlias(aliasMetaData);
-        }
         return mdBuilder.build();
     }
 
@@ -718,7 +707,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                 .endObject()
             .endObject();
 
-        IndexMetaData metaData = getIndexMetaData("test1", builder, Settings.EMPTY, null);
+        IndexMetaData metaData = getIndexMetaData("test1", builder);
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertThat(md.columns().size(), is(2));
@@ -1281,7 +1270,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                 .endObject()
             .endObject();
 
-        IndexMetaData metaData = getIndexMetaData("test1", builder, Settings.EMPTY, null);
+        IndexMetaData metaData = getIndexMetaData("test1", builder);
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertThat(md.columns().size(), is(2));
@@ -1310,7 +1299,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endObject();
 
-        IndexMetaData metaData = getIndexMetaData("test1", builder, Settings.EMPTY, null);
+        IndexMetaData metaData = getIndexMetaData("test1", builder);
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertThat(md.indices().size(), is(1));
@@ -1342,7 +1331,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
         // @formatter: on
 
-        IndexMetaData metaData = getIndexMetaData("test1", builder, Settings.EMPTY, null);
+        IndexMetaData metaData = getIndexMetaData("test1", builder);
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertThat(md.versionCreated().id, is(560499));
