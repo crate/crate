@@ -42,8 +42,6 @@ import org.elasticsearch.monitor.process.ProcessStats;
 import org.elasticsearch.threadpool.ThreadPoolStats;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class NodeStatsContext implements Streamable {
 
@@ -57,7 +55,6 @@ public class NodeStatsContext implements Streamable {
     private long clusterStateVersion;
     private Build build;
     private BytesRef restUrl;
-    private Map<String, Integer> port;
     private JvmStats jvmStats;
     private OsInfo osInfo;
     private ProcessStats processStats;
@@ -77,6 +74,9 @@ public class NodeStatsContext implements Streamable {
     private BytesRef jvmVendor;
     private BytesRef jvmVersion;
     private long openTransportConnections = 0L;
+    private Integer transportPort;
+    private Integer httpPort;
+    private Integer pgPort;
 
     public NodeStatsContext(String id, String name) {
         this(false);
@@ -131,10 +131,6 @@ public class NodeStatsContext implements Streamable {
 
     public BytesRef restUrl() {
         return restUrl;
-    }
-
-    public Map<String, Integer> port() {
-        return port;
     }
 
     public JvmStats jvmStats() {
@@ -205,6 +201,18 @@ public class NodeStatsContext implements Streamable {
         return openTransportConnections;
     }
 
+    public Integer httpPort() {
+        return httpPort;
+    }
+
+    public Integer pgPort() {
+        return pgPort;
+    }
+
+    public Integer transportPort() {
+        return transportPort;
+    }
+
     public void id(BytesRef id) {
         this.id = id;
     }
@@ -237,8 +245,16 @@ public class NodeStatsContext implements Streamable {
         this.restUrl = restUrl;
     }
 
-    public void port(Map<String, Integer> port) {
-        this.port = port;
+    public void httpPort(Integer http) {
+        this.httpPort = http;
+    }
+
+    public void pgPort(Integer pgPort) {
+        this.pgPort = pgPort;
+    }
+
+    public void transportPort(Integer transportPort) {
+        this.transportPort = transportPort;
     }
 
     public void jvmStats(JvmStats jvmStats) {
@@ -290,15 +306,9 @@ public class NodeStatsContext implements Streamable {
         version = in.readBoolean() ? Version.readVersion(in) : null;
         build = in.readBoolean() ? Build.readBuild(in) : null;
         restUrl = DataTypes.STRING.readValueFrom(in);
-        if (in.readBoolean()) {
-            int size = in.readVInt();
-            port = new HashMap<>(size);
-            for (int i = 0; i < size; i++) {
-                port.put(in.readString(), in.readOptionalVInt());
-            }
-        } else {
-            port = null;
-        }
+        pgPort = in.readOptionalVInt();
+        httpPort = in.readOptionalVInt();
+        transportPort = in.readOptionalVInt();
         jvmStats = in.readOptionalWriteable(JvmStats::new);
         osInfo = in.readOptionalWriteable(OsInfo::new);
         processStats = in.readOptionalWriteable(ProcessStats::new);
@@ -335,14 +345,9 @@ public class NodeStatsContext implements Streamable {
             Build.writeBuildTo(build, out);
         }
         DataTypes.STRING.writeValueTo(out, restUrl);
-        out.writeBoolean(port != null);
-        if (port != null) {
-            out.writeVInt(port.size());
-            for (Map.Entry<String, Integer> p : port.entrySet()) {
-                out.writeString(p.getKey());
-                out.writeOptionalVInt(p.getValue());
-            }
-        }
+        out.writeOptionalVInt(pgPort);
+        out.writeOptionalVInt(httpPort);
+        out.writeOptionalVInt(transportPort);
         out.writeOptionalWriteable(jvmStats);
         out.writeOptionalWriteable(osInfo);
         out.writeOptionalWriteable(processStats);
@@ -363,5 +368,4 @@ public class NodeStatsContext implements Streamable {
         DataTypes.STRING.writeValueTo(out, jvmVendor);
         DataTypes.STRING.writeValueTo(out, jvmVersion);
     }
-
 }

@@ -55,7 +55,6 @@ import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -196,11 +195,9 @@ public class NodeStatsContextFieldResolver {
                     Integer http = portFromAddress(boundHttpAddress.get());
                     Integer transport = portFromAddress(localNode.get().getAddress());
                     Integer pgsql = portFromAddress(boundPostgresAddress.get());
-                    Map<String, Integer> port = new HashMap<>(3);
-                    port.put("http", http);
-                    port.put("transport", transport);
-                    port.put("psql", pgsql);
-                    context.port(port);
+                    context.httpPort(http);
+                    context.transportPort(transport);
+                    context.pgPort(pgsql);
                 }
             })
             .put(SysNodesTableInfo.Columns.CLUSTER_STATE_VERSION, new Consumer<NodeStatsContext>() {
