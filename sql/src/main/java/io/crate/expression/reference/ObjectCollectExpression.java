@@ -24,7 +24,6 @@ package io.crate.expression.reference;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -58,12 +57,6 @@ public class ObjectCollectExpression<R> extends NestableCollectExpression<R, Map
                 ((CollectExpression) nestableInput).setNextRow(r);
             }
             Object value = nestableInput.value();
-
-            // convert nested columns of type e.getValue().value() to String here
-            // as we do not want to convert them when building the response
-            if (value instanceof BytesRef) {
-                value = ((BytesRef) value).utf8ToString();
-            }
             map.put(e.getKey(), value);
         }
         value = Collections.unmodifiableMap(map);

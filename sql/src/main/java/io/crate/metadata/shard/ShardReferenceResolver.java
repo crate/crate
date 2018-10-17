@@ -40,7 +40,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.Index;
 
@@ -72,7 +71,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
             int i = 0;
             int numPartitionedColumns = info.partitionedByColumns().size();
 
-            List<BytesRef> partitionValue = partitionName.values();
+            List<String> partitionValue = partitionName.values();
             assert partitionValue.size() ==
                    numPartitionedColumns : "invalid number of partitioned columns";
             for (Reference partitionedInfo : info.partitionedByColumns()) {

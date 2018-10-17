@@ -22,10 +22,10 @@
 package io.crate.expression.scalar;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -33,7 +33,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TimestampType;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.elasticsearch.common.rounding.Rounding;
@@ -48,17 +47,17 @@ public class DateTruncFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "date_trunc";
 
-    private static final Map<BytesRef, DateTimeUnit> DATE_FIELD_PARSERS = MapBuilder.<BytesRef, DateTimeUnit>newMapBuilder()
+    private static final Map<String, DateTimeUnit> DATE_FIELD_PARSERS = MapBuilder.<String, DateTimeUnit>newMapBuilder()
         // we only store timestamps in milliseconds since epoch.
         // therefore, we supporting 'milliseconds' and 'microseconds' wouldn't affect anything.
-        .put(new BytesRef("year"), DateTimeUnit.YEAR_OF_CENTURY)
-        .put(new BytesRef("quarter"), DateTimeUnit.QUARTER)
-        .put(new BytesRef("month"), DateTimeUnit.MONTH_OF_YEAR)
-        .put(new BytesRef("week"), DateTimeUnit.WEEK_OF_WEEKYEAR)
-        .put(new BytesRef("day"), DateTimeUnit.DAY_OF_MONTH)
-        .put(new BytesRef("hour"), DateTimeUnit.HOUR_OF_DAY)
-        .put(new BytesRef("minute"), DateTimeUnit.MINUTES_OF_HOUR)
-        .put(new BytesRef("second"), DateTimeUnit.SECOND_OF_MINUTE)
+        .put("year", DateTimeUnit.YEAR_OF_CENTURY)
+        .put("quarter", DateTimeUnit.QUARTER)
+        .put("month", DateTimeUnit.MONTH_OF_YEAR)
+        .put("week", DateTimeUnit.WEEK_OF_WEEKYEAR)
+        .put("day", DateTimeUnit.DAY_OF_MONTH)
+        .put("hour", DateTimeUnit.HOUR_OF_DAY)
+        .put("minute", DateTimeUnit.MINUTES_OF_HOUR)
+        .put("second", DateTimeUnit.SECOND_OF_MINUTE)
         .immutableMap();
 
     public static void register(ScalarFunctionModule module) {
@@ -105,13 +104,13 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         }
 
         // all validation is already done by {@link #normalizeSymbol()}
-        BytesRef interval = (BytesRef) ((Input) arguments.get(0)).value();
+        String interval = (String) ((Input) arguments.get(0)).value();
         if (interval == null) {
             return this;
         }
-        BytesRef timeZone = TimeZoneParser.DEFAULT_TZ_BYTES_REF;
+        String timeZone = TimeZoneParser.DEFAULT_TZ_LITERAL.value();
         if (arguments.size() == 3) {
-            timeZone = (BytesRef) ((Input) arguments.get(1)).value();
+            timeZone = (String) ((Input) arguments.get(1)).value();
         }
 
         return new DateTruncFunction(this.info, rounding(interval, timeZone));
@@ -147,18 +146,18 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     public final Long evaluate(Input[] args) {
         assert args.length > 1 && args.length < 4 : "Invalid number of arguments";
         Object value;
-        BytesRef timeZone = TimeZoneParser.DEFAULT_TZ_BYTES_REF;
+        String timeZone = TimeZoneParser.DEFAULT_TZ_LITERAL.value();
         if (args.length == 2) {
             value = args[1].value();
         } else {
-            timeZone = (BytesRef) args[1].value();
+            timeZone = (String) args[1].value();
             value = args[2].value();
         }
         if (value == null) {
             return null;
         }
         if (tzRounding == null) {
-            BytesRef interval = (BytesRef) args[0].value();
+            String interval = (String) args[0].value();
             if (interval == null) {
                 return null;
             }
@@ -167,7 +166,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         return truncate(tzRounding, TimestampType.INSTANCE.value(value));
     }
 
-    private Rounding rounding(BytesRef interval, BytesRef timeZoneString) {
+    private Rounding rounding(String interval, String timeZoneString) {
         DateTimeUnit intervalAsUnit = intervalAsUnit(interval);
         DateTimeZone timeZone = TimeZoneParser.parseTimeZone(timeZoneString);
 
@@ -185,7 +184,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         return rounding.round(ts);
     }
 
-    private DateTimeUnit intervalAsUnit(BytesRef interval) {
+    private DateTimeUnit intervalAsUnit(String interval) {
         if (interval == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "invalid interval NULL for scalar '%s'", NAME));
@@ -193,7 +192,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         DateTimeUnit intervalAsUnit = DATE_FIELD_PARSERS.get(interval);
         if (intervalAsUnit == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "invalid interval '%s' for scalar '%s'", interval.utf8ToString(), NAME));
+                "invalid interval '%s' for scalar '%s'", interval, NAME));
         }
         return intervalAsUnit;
     }

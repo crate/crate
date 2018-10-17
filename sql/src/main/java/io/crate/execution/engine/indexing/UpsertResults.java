@@ -25,7 +25,6 @@ package io.crate.execution.engine.indexing;
 import com.google.common.collect.ImmutableMap;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -38,14 +37,14 @@ import java.util.stream.Stream;
 
 class UpsertResults {
 
-    private final Map<BytesRef, Result> resultsByUri = new HashMap<>(1);
-    private final ImmutableMap<String, BytesRef> nodeInfo;
+    private final Map<String, Result> resultsByUri = new HashMap<>(1);
+    private final ImmutableMap<String, String> nodeInfo;
 
     UpsertResults() {
         this.nodeInfo = null;
     }
 
-    UpsertResults(ImmutableMap<String, BytesRef> nodeInfo) {
+    UpsertResults(ImmutableMap<String, String> nodeInfo) {
         this.nodeInfo = nodeInfo;
     }
 
@@ -54,7 +53,7 @@ class UpsertResults {
         result.successRowCount += successRowCount;
     }
 
-    void addResult(BytesRef uri, @Nullable String failureMessage, long lineNumber) {
+    void addResult(String uri, @Nullable String failureMessage, long lineNumber) {
         Result result = getResultSafe(uri);
         if (failureMessage == null) {
             result.successRowCount += 1;
@@ -64,14 +63,14 @@ class UpsertResults {
         }
     }
 
-    void addUriFailure(BytesRef uri, String uriFailure) {
+    void addUriFailure(String uri, String uriFailure) {
         assert uri != null : "expecting URI argument not to be null";
         Result result = getResultSafe(uri);
         result.sourceUriFailure = true;
         result.updateErrorCount(uriFailure, Collections.emptyList(), 1L);
     }
 
-    private Result getResultSafe(@Nullable BytesRef uri) {
+    private Result getResultSafe(@Nullable String uri) {
         Result result = resultsByUri.get(uri);
         if (result == null) {
             result = new Result();
@@ -85,7 +84,7 @@ class UpsertResults {
     }
 
     void merge(UpsertResults other) {
-        for (Map.Entry<BytesRef, Result> entry : other.resultsByUri.entrySet()) {
+        for (Map.Entry<String, Result> entry : other.resultsByUri.entrySet()) {
             Result result = resultsByUri.get(entry.getKey());
             if (result == null) {
                 resultsByUri.put(entry.getKey(), entry.getValue());

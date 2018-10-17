@@ -23,8 +23,6 @@
 package io.crate.metadata.sys;
 
 import io.crate.metadata.IndexParts;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
 
@@ -40,18 +38,18 @@ class TableHealth {
         }
     }
 
-    private final BytesRef tableName;
-    private final BytesRef tableSchema;
+    private final String tableName;
+    private final String tableSchema;
     @Nullable
-    private final BytesRef partitionIdent;
+    private final String partitionIdent;
     private final Health health;
     private final long missingShards;
     private final long underreplicatedShards;
     private final String fqn;
 
-    TableHealth(BytesRef tableName,
-                BytesRef tableSchema,
-                @Nullable BytesRef partitionIdent,
+    TableHealth(String tableName,
+                String tableSchema,
+                @Nullable String partitionIdent,
                 Health health,
                 long missingShards,
                 long underreplicatedShards) {
@@ -61,19 +59,19 @@ class TableHealth {
         this.health = health;
         this.missingShards = missingShards;
         this.underreplicatedShards = underreplicatedShards;
-        fqn = IndexParts.toIndexName(BytesRefs.toString(tableSchema), BytesRefs.toString(tableName), null);
+        fqn = IndexParts.toIndexName(tableSchema, tableName, null);
     }
 
-    public BytesRef getTableName() {
+    public String getTableName() {
         return tableName;
     }
 
-    public BytesRef getTableSchema() {
+    public String getTableSchema() {
         return tableSchema;
     }
 
     @Nullable
-    public BytesRef getPartitionIdent() {
+    public String getPartitionIdent() {
         return partitionIdent;
     }
 

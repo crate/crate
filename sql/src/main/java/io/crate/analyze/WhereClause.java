@@ -28,7 +28,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -70,7 +69,7 @@ public class WhereClause extends QueryClause {
             HashSet<String> result = new HashSet<>(clusteredBy.size());
             for (Symbol symbol : clusteredBy) {
                 assert symbol instanceof Literal : "clustered by symbols must be literals";
-                result.add(BytesRefs.toString(((Literal) symbol).value()));
+                result.add(((Literal) symbol).value().toString());
             }
             return result;
         } else {

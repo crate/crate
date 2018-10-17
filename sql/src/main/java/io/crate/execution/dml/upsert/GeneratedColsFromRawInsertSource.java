@@ -28,7 +28,6 @@ import io.crate.expression.InputFactory;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -63,7 +62,7 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
 
     @Override
     public BytesReference generateSource(Object[] values) throws IOException {
-        BytesRef rawSource = (BytesRef) values[0];
+        String rawSource = (String) values[0];
         Map<String, Object>  source = XContentHelper.convertToMap(new BytesArray(rawSource), false, XContentType.JSON).v2();
         for (int i = 0; i < expressions.size(); i++) {
             expressions.get(i).setNextRow(source);

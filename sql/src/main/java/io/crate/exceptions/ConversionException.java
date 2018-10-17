@@ -25,7 +25,6 @@ import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.types.DataType;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.Collection;
 import java.util.Locale;
@@ -65,9 +64,6 @@ public class ConversionException extends IllegalArgumentException {
     private static String generateMessage(Object value, DataType type) {
         if (value instanceof Symbol) {
             return generateMessage((Symbol) value, type);
-        } else if (value instanceof BytesRef) {
-            return String.format(Locale.ENGLISH, ERROR_MESSAGE,
-                String.format(Locale.ENGLISH, "'%s'", ((BytesRef) value).utf8ToString()), type.toString());
         } else if (value instanceof String) {
             return String.format(Locale.ENGLISH, ERROR_MESSAGE,
                 String.format(Locale.ENGLISH, "'%s'", value), type.toString());

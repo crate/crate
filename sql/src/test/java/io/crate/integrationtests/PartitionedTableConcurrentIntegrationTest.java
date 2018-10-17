@@ -29,7 +29,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -107,7 +106,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
 
         PartitionName partitionName = new PartitionName(
             new RelationName(sqlExecutor.getCurrentSchema(), "t"),
-            Collections.singletonList(new BytesRef("a")));
+            Collections.singletonList("a"));
         final String indexName = partitionName.asIndexName();
 
         ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
@@ -298,7 +297,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         final CountDownLatch deleteLatch = new CountDownLatch(1);
         final String partitionName = new PartitionName(
             new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
-            Collections.singletonList(new BytesRef(String.valueOf(idToDelete)))
+            Collections.singletonList(String.valueOf(idToDelete))
         ).asIndexName();
         final Object[] deleteArgs = new Object[]{idToDelete};
         Thread deleteThread = new Thread(() -> {

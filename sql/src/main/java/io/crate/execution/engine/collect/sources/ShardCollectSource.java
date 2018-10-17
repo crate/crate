@@ -348,7 +348,9 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     }
                     throw e;
                 } catch (Throwable t) {
-                    throw new UnhandledServerException(t);
+                    UnhandledServerException unhandledServerException = new UnhandledServerException(t);
+                    unhandledServerException.setStackTrace(t.getStackTrace());
+                    throw unhandledServerException;
                 }
             }
         }
@@ -431,7 +433,9 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     // Prevent wrapping this to not break retry-detection
                     throw e;
                 } catch (Exception e) {
-                    throw new UnhandledServerException(e);
+                    UnhandledServerException unhandledServerException = new UnhandledServerException(e);
+                    unhandledServerException.setStackTrace(e.getStackTrace());
+                    throw unhandledServerException;
                 }
             }
         }

@@ -25,7 +25,6 @@ package io.crate.expression;
 import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.types.DataType;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 import java.util.Map;
@@ -35,10 +34,6 @@ import static io.crate.core.collections.Maps.getByPath;
 
 
 public final class ValueExtractors {
-
-    public static Object stringAsBytesRef(Object o) {
-        return o instanceof String ? new BytesRef((String) o) : o;
-    }
 
     public static Object fromMap(Map<String, Object> map, ColumnIdent column) {
         Object o = map.get(column.name());
@@ -73,7 +68,7 @@ public final class ValueExtractors {
         public Object apply(Row row) {
             Object o = row.get(idx);
             if (o instanceof Map) {
-                return stringAsBytesRef(getByPath((Map) o, subscript));
+                return getByPath((Map) o, subscript);
             }
             return null;
         }

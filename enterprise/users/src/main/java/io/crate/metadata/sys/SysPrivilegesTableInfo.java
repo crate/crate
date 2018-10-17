@@ -24,7 +24,6 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.user.Privilege;
 import io.crate.auth.user.User;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -39,6 +38,8 @@ import org.elasticsearch.cluster.ClusterState;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 public class SysPrivilegesTableInfo extends StaticTableInfo {
 
@@ -95,12 +96,12 @@ public class SysPrivilegesTableInfo extends StaticTableInfo {
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<PrivilegeRow>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PrivilegeRow>>builder()
-            .put(Columns.GRANTEE, () -> NestableCollectExpression.objToBytesRef(r -> r.grantee))
-            .put(Columns.GRANTOR, () -> NestableCollectExpression.objToBytesRef(r -> r.privilege.grantor()))
-            .put(Columns.STATE, () -> NestableCollectExpression.objToBytesRef(r -> r.privilege.state()))
-            .put(Columns.TYPE, () -> NestableCollectExpression.objToBytesRef(r -> r.privilege.ident().type()))
-            .put(Columns.CLASS, () -> NestableCollectExpression.objToBytesRef(r -> r.privilege.ident().clazz()))
-            .put(Columns.IDENT, () -> NestableCollectExpression.objToBytesRef(r -> r.privilege.ident().ident()))
+            .put(Columns.GRANTEE, () -> forFunction(r -> r.grantee))
+            .put(Columns.GRANTOR, () -> forFunction(r -> r.privilege.grantor()))
+            .put(Columns.STATE, () -> forFunction(r -> r.privilege.state().toString()))
+            .put(Columns.TYPE, () -> forFunction(r -> r.privilege.ident().type().toString()))
+            .put(Columns.CLASS, () -> forFunction(r -> r.privilege.ident().clazz().toString()))
+            .put(Columns.IDENT, () -> forFunction(r -> r.privilege.ident().ident()))
             .build();
     }
 

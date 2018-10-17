@@ -22,8 +22,6 @@
 
 package io.crate.expression.reference.sys.check;
 
-import org.apache.lucene.util.BytesRef;
-
 import java.util.concurrent.CompletableFuture;
 
 public abstract class AbstractSysCheck implements SysCheck {
@@ -31,7 +29,7 @@ public abstract class AbstractSysCheck implements SysCheck {
     public static final String LINK_PATTERN = "https://cr8.is/d-cluster-check-";
 
     private final int id;
-    private final BytesRef description;
+    private final String description;
     private final Severity severity;
 
 
@@ -40,9 +38,7 @@ public abstract class AbstractSysCheck implements SysCheck {
     }
 
     protected AbstractSysCheck(int id, String description, Severity severity, String linkPattern) {
-        String linkedDescriptionBuilder = description + " " + linkPattern + id;
-        this.description = new BytesRef(linkedDescriptionBuilder);
-
+        this.description = description + " " + linkPattern + id;
         this.id = id;
         this.severity = severity;
     }
@@ -51,7 +47,7 @@ public abstract class AbstractSysCheck implements SysCheck {
         return id;
     }
 
-    public BytesRef description() {
+    public String description() {
         return description;
     }
 

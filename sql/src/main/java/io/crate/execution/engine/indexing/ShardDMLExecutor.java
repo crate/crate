@@ -31,11 +31,10 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.support.RetryListener;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -101,7 +100,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     private void addRowToRequest(TReq req, Row row) {
         numItems++;
         uidExpression.setNextRow(row);
-        req.add(numItems, itemFactory.apply(((BytesRef) uidExpression.value()).utf8ToString()));
+        req.add(numItems, itemFactory.apply((String) uidExpression.value()));
     }
 
     private CompletableFuture<Long> executeBatch(TReq request) {

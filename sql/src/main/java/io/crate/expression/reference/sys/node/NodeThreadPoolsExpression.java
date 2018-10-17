@@ -23,7 +23,6 @@
 package io.crate.expression.reference.sys.node;
 
 import io.crate.expression.reference.sys.ArrayTypeNestableContextCollectExpression;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.threadpool.ThreadPoolStats;
 
 import java.util.HashMap;
@@ -54,7 +53,7 @@ public class NodeThreadPoolsExpression
     @Override
     protected Object valueForItem(ThreadPoolStats.Stats stats) {
         HashMap<String, Object> result = new HashMap<>(7);
-        result.put(POOL_NAME, BytesRefs.toBytesRef(stats.getName()));
+        result.put(POOL_NAME, stats.getName());
         result.put(ACTIVE, stats.getActive());
         result.put(COMPLETED, stats.getCompleted());
         result.put(REJECTED, stats.getRejected());

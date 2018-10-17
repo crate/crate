@@ -25,8 +25,6 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
@@ -71,12 +69,12 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         }
     }
 
-    static class BytesRefTableParameterExpression extends NestableCollectExpression<RelationInfo, BytesRef> {
+    static class StringTableParameterExpression extends NestableCollectExpression<RelationInfo, String> {
 
         private final String paramName;
-        private BytesRef value;
+        private String value;
 
-        BytesRefTableParameterExpression(String paramName) {
+        StringTableParameterExpression(String paramName) {
             this.paramName = paramName;
         }
 
@@ -84,12 +82,12 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public void setNextRow(RelationInfo row) {
             value = null;
             if (row instanceof DocTableInfo) {
-                value = BytesRefs.toBytesRef(row.parameters().get(paramName));
+                value = row.parameters().get(paramName).toString();
             }
         }
 
         @Override
-        public BytesRef value() {
+        public String value() {
             return value;
         }
     }
@@ -159,7 +157,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         static final String TOTAL_SHARDS_PER_NODE = "total_shards_per_node";
 
         private void addChildImplementations() {
-            childImplementations.put(ENABLE, new BytesRefTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE.getKey()));
+            childImplementations.put(ENABLE, new StringTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE.getKey()));
             childImplementations.put(TOTAL_SHARDS_PER_NODE, new TableParameterExpression(TableParameterInfo.TOTAL_SHARDS_PER_NODE.getKey()));
         }
     }
@@ -211,7 +209,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         private void addChildImplementations() {
             childImplementations.put(
                 WAIT_FOR_ACTIVE_SHARDS,
-                new BytesRefTableParameterExpression(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()));
+                new StringTableParameterExpression(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()));
         }
     }
 

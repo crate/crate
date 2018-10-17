@@ -153,7 +153,7 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
                 StringType.INSTANCE,
                 StringType.INSTANCE
             }));
-        assertThat((String[]) response.rows()[0][0], arrayContaining(getFqn("test_table")));
+        assertThat((Object[]) response.rows()[0][0], arrayContaining(getFqn("test_table")));
         assertThat((Long) response.rows()[0][1], lessThanOrEqualTo(finishedTime));
         assertThat((String) response.rows()[0][2], is("test_snap_1"));
         assertThat((String) response.rows()[0][3], is(REPOSITORY_NAME));

@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -32,25 +31,25 @@ public class NumberOfReplicasTest extends CrateUnitTest {
 
     @Test
     public void testFromEmptySettings() throws Exception {
-        BytesRef numberOfResplicas = NumberOfReplicas.fromSettings(Settings.EMPTY);
-        assertThat(numberOfResplicas.utf8ToString(), is("1"));
+        String numberOfResplicas = NumberOfReplicas.fromSettings(Settings.EMPTY);
+        assertThat(numberOfResplicas, is("1"));
     }
 
     @Test
     public void testNumber() throws Exception {
-        BytesRef numberOfResplicas = NumberOfReplicas.fromSettings(Settings.builder()
+        String numberOfResplicas = NumberOfReplicas.fromSettings(Settings.builder()
             .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 4)
             .build());
-        assertThat(numberOfResplicas.utf8ToString(), is("4"));
+        assertThat(numberOfResplicas, is("4"));
     }
 
     @Test
     public void testAutoExpandSettingsTakePrecedence() throws Exception {
-        BytesRef numberOfResplicas = NumberOfReplicas.fromSettings(Settings.builder()
+        String numberOfResplicas = NumberOfReplicas.fromSettings(Settings.builder()
             .put(NumberOfReplicas.AUTO_EXPAND_REPLICAS, "0-all")
             .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 1)
             .build());
-        assertThat(numberOfResplicas.utf8ToString(), is("0-all"));
+        assertThat(numberOfResplicas, is("0-all"));
     }
 
     @Test

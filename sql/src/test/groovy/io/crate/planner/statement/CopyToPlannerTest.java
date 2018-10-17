@@ -36,7 +36,6 @@ import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -63,8 +62,8 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp," +
                 "   obj object" +
                 ") partitioned by (date) ",
-                new PartitionName(new RelationName("doc", "parted"), singletonList(new BytesRef("1395874800000"))).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList(new BytesRef("1395961200000"))).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
             )
             .addPartitionedTable(
@@ -72,8 +71,8 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   ts timestamp," +
                 "   day as date_trunc('day', ts)" +
                 ") partitioned by (day) ",
-                new PartitionName(new RelationName("doc", "parted_generated"), Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_generated"), Arrays.asList(new BytesRef("1395961200000"))).asIndexName()
+                new PartitionName(new RelationName("doc", "parted_generated"), Arrays.asList("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_generated"), Arrays.asList("1395961200000")).asIndexName()
             ).build();
     }
 
@@ -117,7 +116,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
             "copy parted where date = 1395874800000 to directory '/tmp/foo'");
         Collect collect = (Collect) merge.subPlan();
         String expectedIndex = new PartitionName(
-            new RelationName("doc", "parted"), singletonList(new BytesRef("1395874800000"))).asIndexName();
+            new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName();
 
         assertThat(
             ((RoutedCollectPhase) collect.collectPhase()).routing().locations().values().stream()

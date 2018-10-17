@@ -41,7 +41,6 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -96,14 +95,14 @@ public class FileCollectSource implements CollectSource {
     private static List<String> targetUriToStringList(Functions functions, Symbol targetUri) {
         Object value = SymbolEvaluator.evaluate(functions, targetUri, Row.EMPTY, SubQueryResults.EMPTY);
         if (targetUri.valueType() == DataTypes.STRING) {
-            String uri = BytesRefs.toString(value);
+            String uri = (String) value;
             return Collections.singletonList(uri);
         } else if (targetUri.valueType() instanceof CollectionType
                    && ((CollectionType) targetUri.valueType()).innerType() == DataTypes.STRING) {
             Object[] values = (Object[]) value;
             ArrayList<String> uris = new ArrayList<>(values.length);
             for (Object v : values) {
-                uris.add(BytesRefs.toString(v));
+                uris.add((String) v);
             }
             return uris;
         }

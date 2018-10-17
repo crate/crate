@@ -75,7 +75,7 @@ public class ParameterContextTest extends CrateUnitTest {
         assertThat(ctx.getAsSymbol(1), isLiteral(2));
         assertThat(ctx.getAsSymbol(2), isLiteral("bar"));
         assertThat(ctx.getAsSymbol(3), isLiteral(new Object[0], new ArrayType(DataTypes.UNDEFINED)));
-        assertThat(ctx.getAsSymbol(4), isLiteral(new BytesRef[]{new BytesRef("foo"), new BytesRef("bar")}, new ArrayType(DataTypes.STRING)));
+        assertThat(ctx.getAsSymbol(4), isLiteral(new String[]{"foo", "bar"}, new ArrayType(DataTypes.STRING)));
     }
 
     @Test

@@ -24,8 +24,6 @@ package io.crate.analyze;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -40,7 +38,7 @@ public class MatchOptionsAnalysis {
             return input != null && input instanceof Number && ((Number) input).doubleValue() > 0;
         }
     };
-    private static final Predicate<Object> IS_STRING = Predicates.instanceOf(BytesRef.class);
+    private static final Predicate<Object> IS_STRING = Predicates.instanceOf(String.class);
     private static final Predicate<Object> IS_NUMBER = Predicates.instanceOf(Number.class);
     private static final Predicate<Object> NUMBER_OR_STRING = Predicates.or(IS_STRING, IS_NUMBER);
 
@@ -53,10 +51,10 @@ public class MatchOptionsAnalysis {
         .put("max_expansions", POSITIVE_NUMBER)
         .put("minimum_should_match", NUMBER_OR_STRING)
         .put("operator", Predicates.in(Arrays.<Object>asList(
-            new BytesRef("or"),
-            new BytesRef("and"),
-            new BytesRef("OR"),
-            new BytesRef("AND"))))
+            "or",
+            "and",
+            "OR",
+            "AND")))
         .put("prefix_length", POSITIVE_NUMBER)
         .put("rewrite", IS_STRING)
         .put("slop", POSITIVE_NUMBER)
@@ -75,7 +73,7 @@ public class MatchOptionsAnalysis {
             Object value = e.getValue();
             if (!validator.apply(value)) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "invalid value for option '%s': %s", optionName, BytesRefs.toString(value)));
+                    "invalid value for option '%s': %s", optionName, value));
             }
         }
     }

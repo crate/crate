@@ -22,7 +22,6 @@
 package io.crate.expression.scalar.regex;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.arrayContaining;
@@ -32,7 +31,7 @@ public class RegexMatcherTest extends CrateUnitTest {
     @Test
     public void testMatch() throws Exception {
         String pattern = "hello";
-        BytesRef text = new BytesRef("foobarbequebaz");
+        String text = "foobarbequebaz";
         RegexMatcher regexMatcher = new RegexMatcher(pattern);
         assertEquals(false, regexMatcher.match(text));
         assertArrayEquals(null, regexMatcher.groups());
@@ -40,29 +39,28 @@ public class RegexMatcherTest extends CrateUnitTest {
         pattern = "ba";
         regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
-        assertThat(regexMatcher.groups(), arrayContaining(new BytesRef("ba")));
+        assertThat(regexMatcher.groups(), arrayContaining("ba"));
 
         pattern = "(ba)";
         regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
-        assertThat(regexMatcher.groups(), arrayContaining(new BytesRef("ba")));
+        assertThat(regexMatcher.groups(), arrayContaining("ba"));
 
         pattern = ".*(ba).*";
         regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
-        assertThat(regexMatcher.groups(), arrayContaining(new BytesRef("ba")));
+        assertThat(regexMatcher.groups(), arrayContaining("ba"));
 
         pattern = "((\\w+?)(ba))";
         regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
-        assertThat(regexMatcher.groups(),
-            arrayContaining(new BytesRef("fooba"), new BytesRef("foo"), new BytesRef("ba")));
+        assertThat(regexMatcher.groups(), arrayContaining("fooba", "foo", "ba"));
     }
 
     @Test
     public void testReplaceNoMatch() throws Exception {
         String pattern = "crate";
-        BytesRef text = new BytesRef("foobarbequebaz");
+        String text = "foobarbequebaz";
         String replacement = "crate";
         RegexMatcher regexMatcher = new RegexMatcher(pattern);
         assertEquals(text, regexMatcher.replace(text, replacement));
@@ -71,33 +69,32 @@ public class RegexMatcherTest extends CrateUnitTest {
     @Test
     public void testReplace() throws Exception {
         String pattern = "ba";
-        BytesRef text = new BytesRef("foobarbequebaz");
+        String text = "foobarbequebaz";
         String replacement = "Crate";
         RegexMatcher regexMatcher = new RegexMatcher(pattern);
-        assertEquals(new BytesRef("fooCraterbequebaz"), regexMatcher.replace(text, replacement));
+        assertEquals("fooCraterbequebaz", regexMatcher.replace(text, replacement));
 
         pattern = "(ba).*(ba)";
         replacement = "First$1Second$2";
         regexMatcher = new RegexMatcher(pattern);
-        assertEquals(new BytesRef("fooFirstbaSecondbaz"), regexMatcher.replace(text, replacement));
+        assertEquals("fooFirstbaSecondbaz", regexMatcher.replace(text, replacement));
     }
 
     @Test
     public void testReplaceGlobal() throws Exception {
         String pattern = "ba";
-        BytesRef text = new BytesRef("foobarbequebaz");
+        String text = "foobarbequebaz";
         String replacement = "Crate";
-        RegexMatcher regexMatcher = new RegexMatcher(pattern, new BytesRef("g"));
-        assertEquals(new BytesRef("fooCraterbequeCratez"), regexMatcher.replace(text, replacement));
+        RegexMatcher regexMatcher = new RegexMatcher(pattern, "g");
+        assertEquals("fooCraterbequeCratez", regexMatcher.replace(text, replacement));
     }
 
     @Test
     public void testMatchesNullGroup() throws Exception {
         String pattern = "\\w+( --?\\w+)*( \\w+)*";
-        BytesRef text = new BytesRef("gcc -Wall --std=c99 -o source source.c");
+        String text = "gcc -Wall --std=c99 -o source source.c";
         RegexMatcher regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
-        assertThat(regexMatcher.groups(),
-            arrayContaining(new BytesRef(" --std"), null));
+        assertThat(regexMatcher.groups(), arrayContaining(" --std", null));
     }
 }

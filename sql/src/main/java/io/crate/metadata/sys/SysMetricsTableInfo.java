@@ -34,10 +34,8 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Collections;
 import java.util.Map;
@@ -118,27 +116,19 @@ public class SysMetricsTableInfo extends StaticTableInfo {
             .put(Columns.P95, () -> forFunction(h -> h.histogram().getValueAtPercentile(95.0)))
             .put(Columns.P99, () -> forFunction(h -> h.histogram().getValueAtPercentile(99.0)))
             .put(Columns.NODE, () -> forFunction(ignored -> ImmutableMap.builder()
-                .put("id", new BytesRef(localNode.get().getId()))
-                .put("name", new BytesRef(localNode.get().getName()))
+                .put("id", localNode.get().getId())
+                .put("name", localNode.get().getName())
                 .build()
             ))
-            .put(Columns.NODE_ID, () -> forFunction(ignored -> new BytesRef(localNode.get().getId())))
-            .put(Columns.NODE_NAME, () -> forFunction(ignored -> new BytesRef(localNode.get().getName())))
+            .put(Columns.NODE_ID, () -> forFunction(ignored -> localNode.get().getId()))
+            .put(Columns.NODE_NAME, () -> forFunction(ignored -> localNode.get().getName()))
             .put(Columns.CLASS, () -> forFunction(h -> ImmutableMap.builder()
-                .put("type", new BytesRef(h.classification().type().name()))
-                .put("labels", h.classification().labels()
-                    .stream()
-                    .map(BytesRefs::toBytesRef)
-                    .toArray(BytesRef[]::new)
-                )
+                .put("type", h.classification().type().name())
+                .put("labels", h.classification().labels().toArray(new String[0]))
                 .build()
             ))
-            .put(Columns.CLASS_TYPE, () -> forFunction(h -> new BytesRef(h.classification().type().name())))
-            .put(Columns.CLASS_LABELS, () -> forFunction(h -> h.classification().labels()
-                .stream()
-                .map(BytesRefs::toBytesRef)
-                .toArray(BytesRef[]::new)
-            ))
+            .put(Columns.CLASS_TYPE, () -> forFunction(h -> h.classification().type().name()))
+            .put(Columns.CLASS_LABELS, () -> forFunction(h -> h.classification().labels().toArray(new String[0])))
             .build();
     }
 

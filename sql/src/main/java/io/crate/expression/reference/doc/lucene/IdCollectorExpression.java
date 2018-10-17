@@ -26,12 +26,12 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.StoredFieldVisitor;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.mapper.Uid;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-public final class IdCollectorExpression extends LuceneCollectorExpression<BytesRef> {
+public final class IdCollectorExpression extends LuceneCollectorExpression<String> {
 
     public static final String COLUMN_NAME = DocSysColumns.ID.name();
     private final IDVisitor visitor = new IDVisitor();
@@ -47,7 +47,7 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Bytes
     }
 
     @Override
-    public BytesRef value() {
+    public String value() {
         return visitor.id;
     }
 
@@ -59,10 +59,8 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Bytes
 
     private static class IDVisitor extends StoredFieldVisitor {
 
-        private static final int UTF8 = 0xff;
-
         private boolean canStop = false;
-        private BytesRef id;
+        private String id;
 
         @Override
         public Status needsField(FieldInfo fieldInfo) {
@@ -79,23 +77,14 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Bytes
         @Override
         public void binaryField(FieldInfo fieldInfo, byte[] value) {
             assert COLUMN_NAME.equals(fieldInfo.name) : "binaryField must only be called for id";
-            id = decodeId(value);
+            id = Uid.decodeId(value);
         }
 
         @Override
         public void stringField(FieldInfo fieldInfo, byte[] value) {
             assert COLUMN_NAME.equals(fieldInfo.name) : "stringField must only be called for id";
             // Indices prior to CrateDB 3.0 have id stored as string
-            id = new BytesRef(value);
-        }
-
-        static BytesRef decodeId(byte[] idBytes) {
-            final int magicChar = Byte.toUnsignedInt(idBytes[0]);
-            if (magicChar == UTF8) {
-                // handle this directly to avoid BytesRef -> String -> BytesRef round-trip
-                return new BytesRef(idBytes, 1, idBytes.length - 1);
-            }
-            return new BytesRef(Uid.decodeId(idBytes));
+            id = new String(value, StandardCharsets.UTF_8);
         }
     }
 }

@@ -25,7 +25,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
-import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -62,12 +61,7 @@ public abstract class SysObjectArrayReference implements NestableInput<Object[]>
                 @Nullable
                 @Override
                 public Object apply(@Nullable NestableInput input) {
-                    Object value = input.value();
-                    if (value != null && value instanceof BytesRef) {
-                        return ((BytesRef) value).utf8ToString();
-                    } else {
-                        return value;
-                    }
+                    return input.value();
                 }
             });
             values[i++] = map;

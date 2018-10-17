@@ -27,15 +27,14 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.search.DocValueFormat;
 
 import java.io.IOException;
 
-public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
+public class IpColumnReference extends LuceneCollectorExpression<String> {
 
     private final String columnName;
-    private BytesRef value;
+    private String value;
     private SortedSetDocValues values;
 
     public IpColumnReference(String columnName) {
@@ -43,7 +42,7 @@ public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
     }
 
     @Override
-    public BytesRef value() {
+    public String value() {
         return value;
     }
 
@@ -55,7 +54,7 @@ public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
                 throw new GroupByOnArrayUnsupportedException(columnName);
             }
             BytesRef encoded = values.lookupOrd(ord);
-            value = BytesRefs.toBytesRef(DocValueFormat.IP.format(encoded));
+            value = DocValueFormat.IP.format(encoded);
         } else {
             value = null;
         }

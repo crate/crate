@@ -21,12 +21,11 @@
 
 package io.crate.expression.scalar.regex;
 
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Scalar;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -55,13 +54,13 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateWithCompile() throws Exception {
-        BytesRef[] expected = new BytesRef[]{new BytesRef("ba")};
+        String[] expected = new String[]{"ba"};
         assertEvaluate("regexp_matches(name, '.*(ba).*')", expected, Literal.of("foobarbequebaz bar"));
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        BytesRef[] expected = new BytesRef[]{new BytesRef("ba")};
+        String[] expected = new String[]{"ba"};
         assertEvaluate("regexp_matches(name, regex_pattern)", expected,
             Literal.of("foobarbequebaz bar"),
             Literal.of(".*(ba).*"));
@@ -69,7 +68,7 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateWithFlags() throws Exception {
-        BytesRef[] expected = new BytesRef[]{new BytesRef("ba")};
+        String[] expected = new String[]{"ba"};
         assertEvaluate("regexp_matches(name, regex_pattern, 'us')", expected,
             Literal.of("foobarbequebaz bar"),
             Literal.of(".*(ba).*"));
@@ -78,13 +77,13 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeSymbol() throws Exception {
         assertNormalize("regexp_matches('foobarbequebaz bar', '.*(ba).*')",
-            isLiteral(new BytesRef[]{new BytesRef("ba")}, new ArrayType(DataTypes.STRING)));
+            isLiteral(new String[]{"ba"}, new ArrayType(DataTypes.STRING)));
     }
 
     @Test
     public void testNormalizeSymbolWithFlags() throws Exception {
         assertNormalize("regexp_matches('foobarbequebaz bar', '.*(ba).*', 'us')",
-            isLiteral(new BytesRef[]{new BytesRef("ba")}, new ArrayType(DataTypes.STRING)));
+            isLiteral(new String[]{"ba"}, new ArrayType(DataTypes.STRING)));
     }
 
     @Test

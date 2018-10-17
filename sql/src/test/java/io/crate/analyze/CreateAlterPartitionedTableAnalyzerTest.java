@@ -28,7 +28,6 @@ import io.crate.metadata.RelationName;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -278,7 +277,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
             "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.partitionName().get(), is(new PartitionName(
-            new RelationName("doc", "parted"), Collections.singletonList(new BytesRef("1395874800000")))));
+            new RelationName("doc", "parted"), Collections.singletonList("1395874800000"))));
         assertThat(analysis.table().tableParameterInfo(), instanceOf(PartitionedTableParameterInfo.class));
         PartitionedTableParameterInfo tableSettingsInfo = (PartitionedTableParameterInfo) analysis.table().tableParameterInfo();
         assertThat(tableSettingsInfo.partitionTableSettingsInfo(), instanceOf(TableParameterInfo.class));

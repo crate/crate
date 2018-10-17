@@ -37,7 +37,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -88,10 +87,10 @@ public class IndexWriterProjector implements Projector {
                                 boolean overwriteDuplicates,
                                 UUID jobId,
                                 UpsertResultContext upsertResultContext) {
-        Input<BytesRef> source;
+        Input<String> source;
         if (includes == null && excludes == null) {
             //noinspection unchecked
-            source = (Input<BytesRef>) sourceInput;
+            source = (Input<String>) sourceInput;
         } else {
             //noinspection unchecked
             source = new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
@@ -107,7 +106,7 @@ public class IndexWriterProjector implements Projector {
             false);
 
         //noinspection unchecked
-        Input<BytesRef> sourceUri = upsertResultContext.getSourceUriInput();
+        Input<String> sourceUri = upsertResultContext.getSourceUriInput();
 
         Function<String, ShardUpsertRequest.Item> itemFactory = id ->
             new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null);
@@ -143,7 +142,7 @@ public class IndexWriterProjector implements Projector {
         return false;
     }
 
-    private static class MapInput implements Input<BytesRef> {
+    private static class MapInput implements Input<String> {
 
         private final Input<Map<String, Object>> sourceInput;
         private final String[] includes;
@@ -159,7 +158,7 @@ public class IndexWriterProjector implements Projector {
         }
 
         @Override
-        public BytesRef value() {
+        public String value() {
             Map<String, Object> value = sourceInput.value();
             if (value == null) {
                 return null;
@@ -169,7 +168,7 @@ public class IndexWriterProjector implements Projector {
                 BytesReference bytes = new XContentBuilder(XContentType.JSON.xContent(),
                     new BytesStreamOutput(lastSourceSize)).map(filteredMap).bytes();
                 lastSourceSize = bytes.length();
-                return bytes.toBytesRef();
+                return bytes.utf8ToString();
             } catch (IOException ex) {
                 logger.error("could not parse xContent", ex);
             }

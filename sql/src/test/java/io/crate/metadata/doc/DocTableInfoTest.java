@@ -14,7 +14,6 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.Operation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -46,7 +45,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             new String[0],
             new IndexNameExpressionResolver(Settings.EMPTY),
             5,
-            new BytesRef("0"),
+            "0",
             ImmutableMap.of(),
             ImmutableList.of(),
             ImmutableList.of(),
@@ -100,7 +99,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             new String[0],
             new IndexNameExpressionResolver(Settings.EMPTY),
             5,
-            new BytesRef("0"),
+            "0",
             ImmutableMap.of(),
             ImmutableList.of(),
             ImmutableList.of(),

@@ -54,7 +54,6 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -116,7 +115,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         RoutedCollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
         Bucket result = collect(collectNode);
         assertThat(result.size(), is(1));
-        assertThat(((BytesRef) result.iterator().next().get(0)).utf8ToString(), Matchers.startsWith("SUITE-"));
+        assertThat(((String) result.iterator().next().get(0)), Matchers.startsWith("SUITE-"));
     }
 
     private Bucket collect(RoutedCollectPhase collectPhase) throws Exception {

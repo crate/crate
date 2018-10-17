@@ -33,12 +33,12 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 
-public class StringType extends DataType<BytesRef> implements Streamer<BytesRef> {
+public class StringType extends DataType<String> implements Streamer<String> {
 
     public static final int ID = 4;
     public static final StringType INSTANCE = new StringType();
-    public static final BytesRef T = new BytesRef("t");
-    public static final BytesRef F = new BytesRef("f");
+    public static final String T = "t";
+    public static final String F = "f";
 
     protected StringType() {
     }
@@ -59,20 +59,20 @@ public class StringType extends DataType<BytesRef> implements Streamer<BytesRef>
     }
 
     @Override
-    public Streamer<BytesRef> streamer() {
+    public Streamer<String> streamer() {
         return this;
     }
 
     @Override
-    public BytesRef value(Object value) {
+    public String value(Object value) {
         if (value == null) {
             return null;
         }
-        if (value instanceof BytesRef) {
-            return (BytesRef) value;
-        }
         if (value instanceof String) {
-            return new BytesRef((String) value);
+            return (String) value;
+        }
+        if (value instanceof BytesRef) {
+            return ((BytesRef) value).utf8ToString();
         }
         if (value instanceof Boolean) {
             if ((boolean) value) {
@@ -90,38 +90,23 @@ public class StringType extends DataType<BytesRef> implements Streamer<BytesRef>
                 String.format(Locale.ENGLISH, "Cannot cast %s to type string", Arrays.toString((Object[]) value)));
         }
         if (value instanceof TimeValue) {
-            return new BytesRef(((TimeValue) value).getStringRep());
+            return ((TimeValue) value).getStringRep();
         }
-        return new BytesRef(value.toString());
+        return value.toString();
     }
 
     @Override
-    public int compareValueTo(BytesRef val1, BytesRef val2) {
+    public int compareValueTo(String val1, String val2) {
         return Ordering.natural().nullsFirst().compare(val1, val2);
     }
 
     @Override
-    public BytesRef readValueFrom(StreamInput in) throws IOException {
-        int length = in.readVInt() - 1;
-        if (length == -1) {
-            return null;
-        }
-        return in.readBytesRef(length);
+    public String readValueFrom(StreamInput in) throws IOException {
+        return in.readOptionalString();
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, BytesRef v) throws IOException {
-        // .writeBytesRef isn't used here because it will convert null values to empty bytesRefs
-        // to distinguish between null and an empty bytesRef
-        // 1 is always added to the length so that
-        // 0 is null
-        // 1 is 0
-        // ...
-        if (v == null) {
-            out.writeVInt(0);
-        } else {
-            out.writeVInt(v.length + 1);
-            out.writeBytes(v.bytes, v.offset, v.length);
-        }
+    public void writeValueTo(StreamOutput out, String v) throws IOException {
+        out.writeOptionalString(v);
     }
 }

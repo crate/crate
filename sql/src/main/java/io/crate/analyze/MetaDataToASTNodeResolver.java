@@ -236,7 +236,7 @@ public class MetaDataToASTNodeResolver {
         private GenericProperties extractTableProperties() {
             // WITH ( key = value, ... )
             GenericProperties properties = new GenericProperties();
-            Expression numReplicas = new StringLiteral(tableInfo.numberOfReplicas().utf8ToString());
+            Expression numReplicas = new StringLiteral(tableInfo.numberOfReplicas());
             properties.add(new GenericProperty(
                     TableParameterInfo.NUMBER_OF_REPLICAS.getKey(),
                     numReplicas

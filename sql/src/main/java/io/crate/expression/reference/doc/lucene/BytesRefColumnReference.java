@@ -24,18 +24,17 @@ package io.crate.expression.reference.doc.lucene;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.exceptions.ValidationException;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.io.IOException;
 
-public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsFieldData, BytesRef> {
+public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsFieldData, String> {
 
     private final String columnName;
     private SortedBinaryDocValues values;
-    private BytesRef value;
+    private String value;
 
     public BytesRefColumnReference(String columnName, MappedFieldType mappedFieldType) {
         super(mappedFieldType);
@@ -43,7 +42,7 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
     }
 
     @Override
-    public BytesRef value() throws ValidationException {
+    public String value() throws ValidationException {
         return value;
     }
 
@@ -52,7 +51,7 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
         super.setNextDocId(docId);
         if (values.advanceExact(docId)) {
             if (values.docValueCount() == 1) {
-                value = BytesRef.deepCopyOf(values.nextValue());
+                value = values.nextValue().utf8ToString();
             } else {
                 throw new GroupByOnArrayUnsupportedException(columnName);
             }

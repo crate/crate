@@ -23,12 +23,10 @@
 package io.crate.expression.reference.sys.shard;
 
 import io.crate.metadata.IndexParts;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplanation;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.allocation.NodeAllocationResult;
 import org.elasticsearch.cluster.routing.allocation.ShardAllocationDecision;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
@@ -162,13 +160,11 @@ public class SysAllocation {
         }
 
         @Nullable
-        public BytesRef[] explanationsAsBytesRefs() {
+        public String[] explanations() {
             if (explanations == null) {
                 return null;
             }
-            return explanations.stream()
-                .map(BytesRefs::toBytesRef)
-                .toArray(BytesRef[]::new);
+            return explanations.toArray(new String[0]);
         }
     }
 }

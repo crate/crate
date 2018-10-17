@@ -28,7 +28,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -61,7 +60,7 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
     public void testNoTableInfoFromOrphanedPartition() throws Exception {
         String schemaName = randomSchema();
         PartitionName partitionName = new PartitionName(
-            new RelationName(schemaName, "test"), Collections.singletonList(new BytesRef("boo")));
+            new RelationName(schemaName, "test"), Collections.singletonList("boo"));
         IndexMetaData.Builder indexMetaDataBuilder = IndexMetaData.builder(partitionName.asIndexName())
             .settings(Settings.builder().put("index.version.created", Version.CURRENT).build())
             .numberOfReplicas(0)

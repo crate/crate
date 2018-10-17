@@ -33,7 +33,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.CreateTable;
-import org.apache.lucene.util.BytesRef;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
@@ -59,7 +58,7 @@ public class ShowCreateTablePlan implements Plan {
         Row1 row;
         try {
             CreateTable createTable = MetaDataToASTNodeResolver.resolveCreateTable(statement.tableInfo());
-            row = new Row1(new BytesRef(SqlFormatter.formatSql(createTable)));
+            row = new Row1(SqlFormatter.formatSql(createTable));
         } catch (Throwable t) {
             consumer.accept(null, t);
             return;

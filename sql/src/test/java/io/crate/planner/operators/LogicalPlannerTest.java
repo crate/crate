@@ -82,7 +82,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testQTFWithOrderBy() throws Exception {
         LogicalPlan plan = plan("select a, x from t1 order by a");
         assertThat(plan, isPlan("FetchOrEval[a, x]\n" +
-                                "OrderBy['a' ASC]\n" +
+                                "OrderBy[a ASC]\n" +
                                 "Collect[doc.t1 | [_fetchid, a] | All]\n"));
     }
 
@@ -97,7 +97,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testSimpleSelectQAFAndLimit() throws Exception {
         LogicalPlan plan = plan("select a from t1 order by a limit 10 offset 5");
         assertThat(plan, isPlan("Limit[10;5]\n" +
-                                "OrderBy['a' ASC]\n" +
+                                "OrderBy[a ASC]\n" +
                                 "Collect[doc.t1 | [a] | All]\n"));
     }
 
@@ -107,10 +107,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "   select a, x from t1 order by a limit 3) tt " +
                                 "order by x desc limit 1");
         assertThat(plan, isPlan("Limit[1;0]\n" +
-                                "OrderBy['x' DESC]\n" +
+                                "OrderBy[x DESC]\n" +
                                 "Boundary[a, x]\n" +
                                 "Limit[3;0]\n" +
-                                "OrderBy['a' ASC]\n" +
+                                "OrderBy[a ASC]\n" +
                                 "Collect[doc.t1 | [a, x] | All]\n"));
     }
 
@@ -192,7 +192,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "limit 10");
         assertThat(plan, isPlan("FetchOrEval[x, a, y]\n" +
                                 "Limit[10;0]\n" +
-                                "OrderBy['x' ASC]\n" +
+                                "OrderBy[x ASC]\n" +
                                 "HashJoin[\n" +
                                 "    Boundary[_fetchid, x]\n" +
                                 "    FetchOrEval[_fetchid, x]\n" +
@@ -216,7 +216,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan.dependencies().entrySet().size(), is(1));
         LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
         assertThat(subPlan, isPlan("RootBoundary[x]\n" +
-                                   "OrderBy['x' ASC NULLS LAST]\n" +
+                                   "OrderBy[x ASC NULLS LAST]\n" +
                                    "Collect[doc.t1 | [x] | All]\n"));
     }
 
@@ -227,7 +227,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
         assertThat(subPlan, isPlan("RootBoundary[x]\n" +
                                    "Limit[10;0]\n" +
-                                   "OrderBy['x' DESC]\n" +
+                                   "OrderBy[x DESC]\n" +
                                    "Collect[doc.t1 | [x] | All]\n"));
     }
 
@@ -237,10 +237,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan.dependencies().entrySet().size(), is(1));
         LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
         assertThat(subPlan, isPlan("RootBoundary[x]\n" +
-                                   "OrderBy['x' ASC NULLS LAST]\n" +
+                                   "OrderBy[x ASC NULLS LAST]\n" +
                                    "FetchOrEval[x]\n" +
                                    "Limit[10;0]\n" +
-                                   "OrderBy['a' DESC]\n" +
+                                   "OrderBy[a DESC]\n" +
                                    "Collect[doc.t1 | [x, a] | All]\n"));
     }
 
@@ -260,7 +260,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "    Filter[(a > '50')]\n" +
                                 "    Boundary[a, i]\n" +
                                 "    Limit[5;0]\n" +
-                                "    OrderBy['a' ASC]\n" +
+                                "    OrderBy[a ASC]\n" +
                                 "    Collect[doc.t1 | [a, i] | All]\n" +
                                 "    --- INNER ---\n" +
                                 "    Boundary[i, b]\n" +

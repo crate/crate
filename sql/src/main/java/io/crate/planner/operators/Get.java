@@ -40,7 +40,6 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
 import io.crate.planner.node.dql.Collect;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -85,7 +84,7 @@ public class Get extends ZeroInputPlan {
             if (id == null) {
                 continue;
             }
-            List<BytesRef> partitionValues = docKey.getPartitionValues(plannerContext.functions(), params, subQueryResults);
+            List<String> partitionValues = docKey.getPartitionValues(plannerContext.functions(), params, subQueryResults);
             String indexName = indexName(docTableInfo, partitionValues);
 
             String routing = docKey.getRouting(plannerContext.functions(), params, subQueryResults);
@@ -153,7 +152,7 @@ public class Get extends ZeroInputPlan {
         return visitor.visitGet(this, context);
     }
 
-    public static String indexName(DocTableInfo tableInfo, @Nullable List<BytesRef> partitionValues) {
+    public static String indexName(DocTableInfo tableInfo, @Nullable List<String> partitionValues) {
         RelationName relation = tableInfo.ident();
         if (tableInfo.isPartitioned()) {
             assert partitionValues != null : "values must not be null";

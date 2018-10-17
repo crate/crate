@@ -24,14 +24,13 @@ package io.crate.expression.scalar;
 import com.google.common.base.Preconditions;
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 import java.util.Locale;
@@ -39,7 +38,7 @@ import java.util.Locale;
 import static io.crate.metadata.functions.params.Param.ANY;
 import static io.crate.metadata.functions.params.Param.STRING;
 
-public class FormatFunction extends Scalar<BytesRef, Object> {
+public class FormatFunction extends Scalar<String, Object> {
 
     public static final String NAME = "format";
     private FunctionInfo info;
@@ -54,7 +53,7 @@ public class FormatFunction extends Scalar<BytesRef, Object> {
 
     @SafeVarargs
     @Override
-    public final BytesRef evaluate(Input<Object>... args) {
+    public final String evaluate(Input<Object>... args) {
         assert args.length > 1 : "number of args must be > 1";
         Object arg0Value = args[0].value();
         assert arg0Value != null : "1st argument must not be null";
@@ -62,14 +61,10 @@ public class FormatFunction extends Scalar<BytesRef, Object> {
         Object[] values = new Object[args.length - 1];
         for (int i = 0; i < args.length - 1; i++) {
             Object value = args[i + 1].value();
-            if (value instanceof BytesRef) {
-                values[i] = ((BytesRef) value).utf8ToString();
-            } else {
-                values[i] = value;
-            }
+            values[i] = value;
         }
 
-        return new BytesRef(String.format(Locale.ENGLISH, ((BytesRef) arg0Value).utf8ToString(), values));
+        return String.format(Locale.ENGLISH, (String) arg0Value, values);
     }
 
     @Override

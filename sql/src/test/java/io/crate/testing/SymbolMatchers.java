@@ -22,6 +22,7 @@
 
 package io.crate.testing;
 
+import io.crate.data.Input;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.Field;
@@ -29,10 +30,8 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Input;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
-import org.apache.lucene.util.BytesRef;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -72,9 +71,6 @@ public class SymbolMatchers {
     }
 
     public static Matcher<Symbol> isLiteral(Object expectedValue, @Nullable final DataType type) {
-        if (expectedValue instanceof String) {
-            expectedValue = new BytesRef(((String) expectedValue));
-        }
         if (type == null) {
             return Matchers.allOf(Matchers.instanceOf(Literal.class), hasValue(expectedValue));
         }

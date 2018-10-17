@@ -28,7 +28,6 @@ import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.settings.CrateSetting;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -114,13 +113,6 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testFlattenSettingsConvertsBytesRef() {
-        Settings.Builder builder  = Settings.builder();
-        CrateSettings.flattenSettings(builder, "dummy", new BytesRef("foo"));
-        assertThat(builder.get("dummy"), is("foo"));
-    }
-
-    @Test
     public void testDefaultValuesAreSet() {
         CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
         assertThat(
@@ -199,7 +191,7 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
             .get("gateway")
             .getChild("recover_after_time");
 
-        assertThat(((BytesRef) impl.value()).utf8ToString(), is("5m"));
+        assertThat(impl.value(), is("5m"));
     }
 
     @Test
@@ -208,6 +200,6 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
         NestableInput impl = crateSettings.referenceImplementationTree()
             .get("gateway")
             .getChild("recover_after_time");
-        assertThat(((BytesRef) impl.value()).utf8ToString(), is("0ms"));
+        assertThat(impl.value(), is("0ms"));
     }
 }

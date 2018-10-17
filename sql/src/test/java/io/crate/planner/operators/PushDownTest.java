@@ -62,11 +62,11 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(sqlExecutor.functions(),  "Boundary[name]\n" +
                                                 "Union[\n" +
                                                     "Boundary[name]\n" +
-                                                    "OrderBy['name' ASC]\n" +
+                                                    "OrderBy[name ASC]\n" +
                                                     "Collect[doc.users | [name] | All]\n" +
                                                 "---\n" +
                                                     "Boundary[text]\n" +
-                                                    "OrderBy['text' ASC]\n" +
+                                                    "OrderBy[text ASC]\n" +
                                                     "Collect[doc.users | [text] | All]\n" +
                                                 "]\n"));
     }
@@ -83,11 +83,11 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                               "Boundary[name]\n" +
                                                               "Boundary[name]\n" +
                                                               "FetchOrEval[name]\n" +
-                                                              "OrderBy['name' ASC]\n" +
+                                                              "OrderBy[name ASC]\n" +
                                                               "Collect[doc.users | [name, text] | All]\n" +
                                                           "---\n" +
                                                               "Boundary[text]\n" +
-                                                              "OrderBy['text' ASC]\n" +
+                                                              "OrderBy[text ASC]\n" +
                                                               "Collect[doc.users | [text] | All]\n" +
                                                           "]\n"));
     }
@@ -97,7 +97,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = plan("select t1.a, t2.b from t1 inner join t2 on t1.a = t2.b order by t1.a");
         assertThat(plan, isPlan(sqlExecutor.functions(),  "NestedLoopJoin[\n" +
                                                           "    Boundary[a]\n" +
-                                                          "    OrderBy['a' ASC]\n" +
+                                                          "    OrderBy[a ASC]\n" +
                                                           "    Collect[doc.t1 | [a] | All]\n" +
                                                           "    --- INNER ---\n" +
                                                           "    Boundary[b]\n" +
@@ -115,7 +115,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                           "NestedLoopJoin[\n" +
                                                           "    NestedLoopJoin[\n" +
                                                           "        Boundary[b]\n" +
-                                                          "        OrderBy['b' ASC]\n" +
+                                                          "        OrderBy[b ASC]\n" +
                                                           "        Collect[doc.t2 | [b] | All]\n" +
                                                           "        --- INNER ---\n" +
                                                           "        Boundary[a]\n" +
@@ -134,7 +134,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                          "NestedLoopJoin[\n" +
                                                          "    Boundary[_fetchid, a, x]\n" +
                                                          "    FetchOrEval[_fetchid, a, x]\n" +
-                                                         "    OrderBy['x' DESC]\n" +
+                                                         "    OrderBy[x DESC]\n" +
                                                          "    Collect[doc.t1 | [_fetchid, a, x] | All]\n" +
                                                          "    --- INNER ---\n" +
                                                          "    Boundary[_fetchid, b]\n" +
@@ -146,7 +146,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testOrderByOnJoinOrderOnRightTableNotPushedDown() {
         LogicalPlan plan = plan("select t1.a, t2.b from t1 inner join t2 on t1.a = t2.b order by t2.b");
-        assertThat(plan, isPlan(sqlExecutor.functions(),  "OrderBy['b' ASC]\n" +
+        assertThat(plan, isPlan(sqlExecutor.functions(),  "OrderBy[b ASC]\n" +
                                                           "NestedLoopJoin[\n" +
                                                           "    Boundary[a]\n" +
                                                           "    Collect[doc.t1 | [a] | All]\n" +
@@ -160,7 +160,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     public void testOrderByOnJoinOrderOnMultipleTablesNotPushedDown() {
         LogicalPlan plan = plan("select t1.a, t2.b from t1 inner join t2 on t1.a = t2.b order by t1.a || t2.b");
         assertThat(plan, isPlan(sqlExecutor.functions(),  "FetchOrEval[a, b]\n" +
-                                                          "OrderBy['concat(a, b)' ASC]\n" +
+                                                          "OrderBy[concat(a, b) ASC]\n" +
                                                           "NestedLoopJoin[\n" +
                                                           "    Boundary[a]\n" +
                                                           "    Collect[doc.t1 | [a] | All]\n" +
@@ -177,7 +177,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                 "left join t1 as t3 on t3.a = t1.a " +
                                 "order by t1.a");
         assertThat(plan, isPlan(sqlExecutor.functions(),  "FetchOrEval[a, b, a]\n" +
-                                                          "OrderBy['a' ASC]\n" +
+                                                          "OrderBy[a ASC]\n" +
                                                           "NestedLoopJoin[\n" +
                                                           "    NestedLoopJoin[\n" +
                                                           "        Boundary[b]\n" +
@@ -200,7 +200,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                    "order by t1.a",
                                                    sqlExecutor, clusterService, tableStats);
         sqlExecutor.getSessionContext().setHashJoinEnabled(false);
-        assertThat(plan, isPlan(sqlExecutor.functions(),  "OrderBy['a' ASC]\n" +
+        assertThat(plan, isPlan(sqlExecutor.functions(),  "OrderBy[a ASC]\n" +
                                                           "HashJoin[\n" +
                                                           "    Boundary[a]\n" +
                                                           "    Collect[doc.t1 | [a] | All]\n" +
@@ -227,7 +227,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                 "    FetchOrEval[_fetchid, y, b]\n" +
                 "    Boundary[_fetchid, y, b]\n" +
                 "    FetchOrEval[_fetchid, y, b]\n" +
-                "    OrderBy['lower(b)' ASC]\n" +
+                "    OrderBy[lower(b) ASC]\n" +
                 "    Collect[doc.t2 | [_fetchid, y, b] | All]\n" +
                 "    --- INNER ---\n" +
                 "    Boundary[_fetchid, x]\n" +

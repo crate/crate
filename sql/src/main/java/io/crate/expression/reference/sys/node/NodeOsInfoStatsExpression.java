@@ -22,8 +22,6 @@
 
 package io.crate.expression.reference.sys.node;
 
-import org.apache.lucene.util.BytesRef;
-
 public class NodeOsInfoStatsExpression extends NestedNodeStatsExpression {
 
     private static final String AVAILABLE_PROCESSORS = "available_processors";
@@ -39,21 +37,21 @@ public class NodeOsInfoStatsExpression extends NestedNodeStatsExpression {
                 return nodeStatsContext.osInfo().getAvailableProcessors();
             }
         });
-        childImplementations.put(OS, new SimpleNodeStatsExpression<BytesRef>() {
+        childImplementations.put(OS, new SimpleNodeStatsExpression<String>() {
             @Override
-            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+            public String innerValue(NodeStatsContext nodeStatsContext) {
                 return nodeStatsContext.osName();
             }
         });
-        childImplementations.put(ARCH, new SimpleNodeStatsExpression<BytesRef>() {
+        childImplementations.put(ARCH, new SimpleNodeStatsExpression<String>() {
             @Override
-            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+            public String innerValue(NodeStatsContext nodeStatsContext) {
                 return nodeStatsContext.osArch();
             }
         });
-        childImplementations.put(VERSION, new SimpleNodeStatsExpression<BytesRef>() {
+        childImplementations.put(VERSION, new SimpleNodeStatsExpression<String>() {
             @Override
-            public BytesRef innerValue(NodeStatsContext nodeStatsContext) {
+            public String innerValue(NodeStatsContext nodeStatsContext) {
                 return nodeStatsContext.osVersion();
             }
         });

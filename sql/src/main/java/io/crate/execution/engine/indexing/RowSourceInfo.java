@@ -22,25 +22,23 @@
 
 package io.crate.execution.engine.indexing;
 
-import org.apache.lucene.util.BytesRef;
-
 import javax.annotation.Nullable;
 
 class RowSourceInfo {
 
     static final RowSourceInfo EMPTY_INSTANCE = new RowSourceInfo();
 
-    static RowSourceInfo emptyMarkerOrNewInstance(@Nullable BytesRef sourceUri, @Nullable Long lineNumber) {
+    static RowSourceInfo emptyMarkerOrNewInstance(@Nullable String sourceUri, @Nullable Long lineNumber) {
         if (sourceUri != null && lineNumber != null) {
             return new RowSourceInfo(sourceUri, lineNumber);
         }
         return EMPTY_INSTANCE;
     }
 
-    final BytesRef sourceUri;
+    final String sourceUri;
     final long lineNumber;
 
-    private RowSourceInfo(BytesRef sourceUri, Long lineNumber) {
+    private RowSourceInfo(String sourceUri, Long lineNumber) {
         this.sourceUri = sourceUri;
         this.lineNumber = lineNumber;
     }

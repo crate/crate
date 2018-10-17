@@ -31,7 +31,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -49,7 +48,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
     public void testSetXBasedOnXAndPartitionedColumn() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addPartitionedTable("create table t (x int, p int) partitioned by (p)",
-                new PartitionName(new RelationName("doc", "t"), Collections.singletonList(new BytesRef("1"))).asIndexName())
+                new PartitionName(new RelationName("doc", "t"), Collections.singletonList("1")).asIndexName())
             .build();
 
         AnalyzedUpdateStatement update = e.analyze("update t set x = x + p");

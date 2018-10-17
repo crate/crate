@@ -59,13 +59,13 @@ public class InformationSchemaIngestionRulesTableInfo extends InformationTableIn
     public static Map<ColumnIdent, RowCollectExpressionFactory<IngestionRuleInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<IngestionRuleInfo>>builder()
             .put(Columns.RULE_NAME,
-                () -> NestableCollectExpression.objToBytesRef(IngestionRuleInfo::getName))
+                () -> NestableCollectExpression.forFunction(IngestionRuleInfo::getName))
             .put(Columns.SOURCE_IDENT,
-                () -> NestableCollectExpression.objToBytesRef(IngestionRuleInfo::getSource))
+                () -> NestableCollectExpression.forFunction(IngestionRuleInfo::getSource))
             .put(Columns.TARGET_TABLE,
-                () -> NestableCollectExpression.objToBytesRef(IngestionRuleInfo::getTarget))
+                () -> NestableCollectExpression.forFunction(IngestionRuleInfo::getTarget))
             .put(Columns.CONDITION,
-                () -> NestableCollectExpression.objToBytesRef(IngestionRuleInfo::getCondition))
+                () -> NestableCollectExpression.forFunction(IngestionRuleInfo::getCondition))
             .build();
     }
 

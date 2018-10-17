@@ -23,8 +23,6 @@ package io.crate.lucene.match;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.search.MatchQuery;
@@ -34,24 +32,23 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public final class MatchQueries {
 
 
-    private static final Map<BytesRef, MultiMatchQueryBuilder.Type> SUPPORTED_TYPES =
-        ImmutableMap.<BytesRef, MultiMatchQueryBuilder.Type>builder()
-            .put(new BytesRef("best_fields"), MultiMatchQueryBuilder.Type.BEST_FIELDS)
-            .put(new BytesRef("most_fields"), MultiMatchQueryBuilder.Type.MOST_FIELDS)
-            .put(new BytesRef("cross_fields"), MultiMatchQueryBuilder.Type.CROSS_FIELDS)
-            .put(new BytesRef("phrase"), MultiMatchQueryBuilder.Type.PHRASE)
-            .put(new BytesRef("phrase_prefix"), MultiMatchQueryBuilder.Type.PHRASE_PREFIX)
+    private static final Map<String, MultiMatchQueryBuilder.Type> SUPPORTED_TYPES =
+        ImmutableMap.<String, MultiMatchQueryBuilder.Type>builder()
+            .put("best_fields", MultiMatchQueryBuilder.Type.BEST_FIELDS)
+            .put("most_fields", MultiMatchQueryBuilder.Type.MOST_FIELDS)
+            .put("cross_fields", MultiMatchQueryBuilder.Type.CROSS_FIELDS)
+            .put("phrase", MultiMatchQueryBuilder.Type.PHRASE)
+            .put("phrase_prefix", MultiMatchQueryBuilder.Type.PHRASE_PREFIX)
             .build();
 
     public static Query singleMatch(QueryShardContext queryShardContext,
                                     String fieldName,
-                                    BytesRef queryString,
-                                    @Nullable BytesRef matchType,
+                                    String queryString,
+                                    @Nullable String matchType,
                                     @Nullable Map<String, Object> options) throws IOException {
         MultiMatchQueryBuilder.Type type = getType(matchType);
         ParsedOptions parsedOptions = OptionParser.parse(type, options);
@@ -72,11 +69,11 @@ public final class MatchQueries {
         matchQuery.setOccur(parsedOptions.operator());
 
         MatchQuery.Type matchQueryType = type.matchQueryType();
-        return matchQuery.parse(matchQueryType, fieldName, queryString.utf8ToString());
+        return matchQuery.parse(matchQueryType, fieldName, queryString);
     }
 
     public static Query multiMatch(QueryShardContext queryShardContext,
-                                   @Nullable BytesRef matchType,
+                                   @Nullable String matchType,
                                    Map<String, Float> fieldNames,
                                    String queryString,
                                    Map<String, Object> options) throws IOException {
@@ -105,22 +102,19 @@ public final class MatchQueries {
         return multiMatchQuery.parse(type, fieldNames, queryString, parsedOptions.minimumShouldMatch());
     }
 
-    private static MultiMatchQueryBuilder.Type getType(@Nullable BytesRef matchType) {
+    private static MultiMatchQueryBuilder.Type getType(@Nullable String matchType) {
         if (matchType == null) {
             return MultiMatchQueryBuilder.Type.BEST_FIELDS;
         }
         MultiMatchQueryBuilder.Type type = SUPPORTED_TYPES.get(matchType);
         if (type == null) {
-            throw illegalMatchType(BytesRefs.toString(matchType));
+            throw illegalMatchType(matchType);
         }
         return type;
     }
 
     private static IllegalArgumentException illegalMatchType(String matchType) {
-        String matchTypes = SUPPORTED_TYPES.keySet()
-            .stream()
-            .map(BytesRefs::toString)
-            .collect(Collectors.joining(", "));
+        String matchTypes = String.join(", ", SUPPORTED_TYPES.keySet());
         throw new IllegalArgumentException(String.format(
             Locale.ENGLISH,
             "Unknown matchType \"%s\". Possible matchTypes are: %s",

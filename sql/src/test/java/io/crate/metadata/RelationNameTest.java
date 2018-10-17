@@ -25,7 +25,6 @@ package io.crate.metadata;
 import com.google.common.collect.ImmutableList;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -45,10 +44,10 @@ public class RelationNameTest extends CrateUnitTest {
         assertThat(RelationName.fromIndexName("t"), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "t")));
         assertThat(RelationName.fromIndexName("s.t"), is(new RelationName("s", "t")));
 
-        PartitionName pn = new PartitionName(new RelationName("s", "t"), ImmutableList.of(new BytesRef("v1")));
+        PartitionName pn = new PartitionName(new RelationName("s", "t"), ImmutableList.of("v1"));
         assertThat(RelationName.fromIndexName(pn.asIndexName()), is(new RelationName("s", "t")));
 
-        pn = new PartitionName(new RelationName("doc", "t"), ImmutableList.of(new BytesRef("v1")));
+        pn = new PartitionName(new RelationName("doc", "t"), ImmutableList.of("v1"));
         assertThat(RelationName.fromIndexName(pn.asIndexName()), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "t")));
     }
 

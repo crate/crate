@@ -40,7 +40,6 @@ import io.crate.metadata.table.StoredTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.collect.Tuple;
 
@@ -58,10 +57,10 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     private final RelationName ident;
     private final int numberOfShards;
-    private final BytesRef numberOfReplicas;
+    private final String numberOfReplicas;
     private final String index;
     private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
-    private final BytesRef blobsPath;
+    private final String blobsPath;
     private final TableParameterInfo tableParameterInfo;
     private final Map<String, Object> tableParameters;
     private final Version versionCreated;
@@ -79,9 +78,9 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     public BlobTableInfo(RelationName ident,
                          String index,
                          int numberOfShards,
-                         BytesRef numberOfReplicas,
+                         String numberOfReplicas,
                          Map<String, Object> tableParameters,
-                         BytesRef blobsPath,
+                         String blobsPath,
                          @Nullable Version versionCreated,
                          @Nullable Version versionUpgraded,
                          boolean closed) {
@@ -141,7 +140,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public BytesRef numberOfReplicas() {
+    public String numberOfReplicas() {
         return numberOfReplicas;
     }
 
@@ -166,7 +165,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         }
     }
 
-    public BytesRef blobsPath() {
+    public String blobsPath() {
         return blobsPath;
     }
 

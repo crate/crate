@@ -65,7 +65,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -124,8 +123,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp," +
                 "   obj object" +
                 ") partitioned by (date) ",
-                new PartitionName(new RelationName("doc", "parted"), singletonList(new BytesRef("1395874800000"))).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList(new BytesRef("1395961200000"))).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
             )
             .build();
@@ -169,7 +168,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan("select name from bystring where name = 'one'");
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[name]\n" +
-            "Get[doc.bystring | name | DocKeys{'one'}"
+            "Get[doc.bystring | name | DocKeys{one}"
         ));
     }
 
@@ -231,7 +230,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         QueryThenFetch qtf = e.plan("select name from users where name = 'x' order by id limit 10");
         Merge merge = (Merge) qtf.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
-        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, string} = 'x'"));
+        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, string} = x"));
 
         TopNProjection topNProjection = (TopNProjection) collectPhase.projections().get(0);
         assertThat(topNProjection.limit(), is(10));
@@ -255,7 +254,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = e.plan("select name from users where name = 'x' order by name limit 10");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, string} = 'x'"));
+        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, string} = x"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(1));
@@ -315,9 +314,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             indices.addAll(entry.getValue().keySet());
         }
         assertThat(indices, Matchers.contains(
-            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("123"))).asIndexName()));
+            new PartitionName(new RelationName("doc", "parted"), Arrays.asList("123")).asIndexName()));
 
-        assertThat(collectPhase.where().representation(), is("Ref{doc.parted_pks.name, string} = 'x'"));
+        assertThat(collectPhase.where().representation(), is("Ref{doc.parted_pks.name, string} = x"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(3));
@@ -329,7 +328,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = (Merge) qtf.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
 
-        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, string} = 'x'"));
+        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, string} = x"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(2));
@@ -792,7 +791,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan("select unnest([1, 2]) from sys.nodes order by 1");
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[unnest([1, 2])]\n" +
-            "OrderBy['unnest([1, 2])' ASC]\n" +
+            "OrderBy[unnest([1, 2]) ASC]\n" +
             "ProjectSet[unnest([1, 2])]\n" +
             "Collect[sys.nodes | [] | All]\n"
         ));

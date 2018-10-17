@@ -65,19 +65,19 @@ public class InformationRoutinesTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<RoutineInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<RoutineInfo>>builder()
             .put(InformationRoutinesTableInfo.Columns.ROUTINE_NAME,
-                () -> NestableCollectExpression.objToBytesRef(RoutineInfo::name))
+                () -> NestableCollectExpression.forFunction(RoutineInfo::name))
             .put(InformationRoutinesTableInfo.Columns.ROUTINE_TYPE,
-                () -> NestableCollectExpression.objToBytesRef(RoutineInfo::type))
+                () -> NestableCollectExpression.forFunction(RoutineInfo::type))
             .put(InformationRoutinesTableInfo.Columns.ROUTINE_SCHEMA,
-                () -> NestableCollectExpression.objToBytesRef(RoutineInfo::schema))
+                () -> NestableCollectExpression.forFunction(RoutineInfo::schema))
             .put(InformationRoutinesTableInfo.Columns.SPECIFIC_NAME,
-                () -> NestableCollectExpression.objToBytesRef(RoutineInfo::specificName))
+                () -> NestableCollectExpression.forFunction(RoutineInfo::specificName))
             .put(InformationRoutinesTableInfo.Columns.ROUTINE_BODY,
-                () -> NestableCollectExpression.objToBytesRef(RoutineInfo::body))
+                () -> NestableCollectExpression.forFunction(RoutineInfo::body))
             .put(InformationRoutinesTableInfo.Columns.ROUTINE_DEFINITION,
-                () -> NestableCollectExpression.objToBytesRef(RoutineInfo::definition))
+                () -> NestableCollectExpression.forFunction(RoutineInfo::definition))
             .put(InformationRoutinesTableInfo.Columns.DATA_TYPE,
-                () -> NestableCollectExpression.objToBytesRef(RoutineInfo::dataType))
+                () -> NestableCollectExpression.forFunction(RoutineInfo::dataType))
             .put(InformationRoutinesTableInfo.Columns.IS_DETERMINISTIC,
                 () -> NestableCollectExpression.forFunction(RoutineInfo::isDeterministic))
             .build();

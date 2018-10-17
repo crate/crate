@@ -27,9 +27,7 @@ import io.crate.blob.v2.BlobShard;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreStats;
@@ -40,19 +38,17 @@ import java.util.function.Supplier;
 
 public class ShardRowContext {
 
-    private static final BytesRef EMPTY_BYTES_REF = new BytesRef("");
-
     private final IndexShard indexShard;
     @Nullable
     private final BlobShard blobShard;
     private final ClusterService clusterService;
     private final Supplier<Long> sizeSupplier;
     private final IndexParts indexParts;
-    private final BytesRef partitionIdent;
+    private final String partitionIdent;
     private final int id;
-    private final BytesRef path;
+    private final String path;
     @Nullable
-    private final BytesRef blobPath;
+    private final String blobPath;
     @Nullable
     private final String aliasName;
     @Nullable
@@ -86,17 +82,17 @@ public class ShardRowContext {
         this.id = shardId.getId();
         this.indexParts = new IndexParts(indexName);
         if (indexParts.isPartitioned()) {
-            partitionIdent = BytesRefs.toBytesRef(indexParts.getPartitionIdent());
+            partitionIdent = indexParts.getPartitionIdent();
             RelationName relationName = indexParts.toRelationName();
             aliasName = relationName.indexName();
             templateName = PartitionName.templateName(relationName.schema(), relationName.name());
         } else {
-            partitionIdent = EMPTY_BYTES_REF;
+            partitionIdent = "";
             aliasName = null;
             templateName = null;
         }
-        path = BytesRefs.toBytesRef(indexShard.shardPath().getDataPath().toString());
-        blobPath = blobShard == null ? null : BytesRefs.toBytesRef(blobShard.blobContainer().getBaseDirectory().toString());
+        path = indexShard.shardPath().getDataPath().toString();
+        blobPath = blobShard == null ? null : blobShard.blobContainer().getBaseDirectory().toString();
     }
 
     public IndexShard indexShard() {
@@ -120,7 +116,7 @@ public class ShardRowContext {
         return sizeSupplier.get();
     }
 
-    public BytesRef partitionIdent() {
+    public String partitionIdent() {
         return partitionIdent;
     }
 
@@ -128,12 +124,12 @@ public class ShardRowContext {
         return id;
     }
 
-    public BytesRef path() {
+    public String path() {
         return path;
     }
 
     @Nullable
-    public BytesRef blobPath() {
+    public String blobPath() {
         return blobPath;
     }
 

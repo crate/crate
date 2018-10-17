@@ -23,7 +23,6 @@ package io.crate.expression.scalar;
 
 import com.carrotsearch.hppc.CharObjectHashMap;
 import com.carrotsearch.hppc.CharObjectMap;
-import org.apache.lucene.util.BytesRef;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -396,13 +395,12 @@ public class TimestampFormatter {
         }
     }
 
-    public static BytesRef format(BytesRef formatString, DateTime timestamp) {
-        StringBuilder buffer = new StringBuilder(formatString.length);
-        String format = formatString.utf8ToString();
+    public static String format(String formatString, DateTime timestamp) {
+        int length = formatString.length();
+        StringBuilder buffer = new StringBuilder(length);
         boolean percentEscape = false;
-        int length = format.length();
         for (int i = 0; i < length; i++) {
-            char current = format.charAt(i);
+            char current = formatString.charAt(i);
 
             if (current == '%') {
                 if (!percentEscape) {
@@ -425,6 +423,6 @@ public class TimestampFormatter {
                 percentEscape = false;
             }
         }
-        return new BytesRef(buffer.toString());
+        return buffer.toString();
     }
 }

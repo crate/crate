@@ -24,7 +24,6 @@ package io.crate.types;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -42,8 +41,8 @@ public class DataTypesTest extends CrateUnitTest {
 
     @Test
     public void testConvertBooleanToString() {
-        BytesRef value = DataTypes.STRING.value(true);
-        assertEquals(new BytesRef("t"), value);
+        String value = DataTypes.STRING.value(true);
+        assertEquals("t", value);
     }
 
     @Test
@@ -70,7 +69,7 @@ public class DataTypesTest extends CrateUnitTest {
         assertEquals((Short) (short) 123, DataTypes.SHORT.value(longValue));
         assertEquals((Byte) (byte) 123, DataTypes.BYTE.value(longValue));
         assertEquals((Long) 123L, DataTypes.TIMESTAMP.value(longValue));
-        assertEquals(new BytesRef("123"), DataTypes.STRING.value(longValue));
+        assertEquals("123", DataTypes.STRING.value(longValue));
     }
 
     @Test
@@ -198,7 +197,7 @@ public class DataTypesTest extends CrateUnitTest {
         assertEquals((Float) 123.0f, DataTypes.FLOAT.value(value));
         assertEquals((Short) (short) 123, DataTypes.SHORT.value(value));
         assertEquals((Byte) (byte) 123, DataTypes.BYTE.value(value));
-        assertEquals(new BytesRef("123"), DataTypes.STRING.value(value));
+        assertEquals("123", DataTypes.STRING.value(value));
     }
 
     @Test

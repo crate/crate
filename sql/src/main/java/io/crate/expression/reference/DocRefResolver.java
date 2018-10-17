@@ -56,7 +56,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                 return forFunction(Doc::getVersion);
 
             case DocSysColumns.Names.ID:
-                return NestableCollectExpression.objToBytesRef(Doc::getId);
+                return NestableCollectExpression.forFunction(Doc::getId);
 
             case DocSysColumns.Names.RAW:
                 return forFunction(Doc::getRaw);

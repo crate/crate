@@ -23,20 +23,18 @@ package io.crate.expression.scalar.geo;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.data.Input;
+import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Input;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.SpatialRelation;
@@ -50,14 +48,14 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
     public static final String NAME = "within";
 
-    private static final Set<DataType> LEFT_TYPES = ImmutableSet.<DataType>of(
+    private static final Set<DataType> LEFT_TYPES = ImmutableSet.of(
         DataTypes.GEO_POINT,
         DataTypes.GEO_SHAPE,
         DataTypes.OBJECT,
         DataTypes.STRING
     );
 
-    private static final Set<DataType> RIGHT_TYPES = ImmutableSet.<DataType>of(
+    private static final Set<DataType> RIGHT_TYPES = ImmutableSet.of(
         DataTypes.GEO_SHAPE,
         DataTypes.OBJECT,
         DataTypes.STRING
@@ -114,8 +112,8 @@ public class WithinFunction extends Scalar<Boolean, Object> {
             List values = (List) left;
             assert values.size() == 2 : "number of values must be 2";
             shape = SpatialContext.GEO.getShapeFactory().pointXY((Double) values.get(0), (Double) values.get(1));
-        } else if (left instanceof BytesRef) {
-            shape = GeoJSONUtils.wkt2Shape(BytesRefs.toString(left));
+        } else if (left instanceof String) {
+            shape = GeoJSONUtils.wkt2Shape((String) left);
         } else {
             shape = GeoJSONUtils.map2Shape((Map<String, Object>) left);
         }
@@ -124,8 +122,8 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
     @SuppressWarnings("unchecked")
     private Shape parseRightShape(Object right) {
-        return (right instanceof BytesRef) ?
-            GeoJSONUtils.wkt2Shape(BytesRefs.toString(right)) :
+        return (right instanceof String) ?
+            GeoJSONUtils.wkt2Shape((String) right) :
             GeoJSONUtils.map2Shape((Map<String, Object>) right);
     }
 

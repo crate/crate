@@ -35,7 +35,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -276,7 +275,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         RestoreSnapshotAnalyzedStatement statement = analyze(
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date=123)");
         PartitionName partition = new PartitionName(
-            new RelationName("doc", "parted"), ImmutableList.of(new BytesRef("123")));
+            new RelationName("doc", "parted"), ImmutableList.of("123"));
         assertThat(statement.restoreTables().size(), is(1));
         assertThat(statement.restoreTables().get(0).partitionName(), is(partition));
         assertThat(statement.restoreTables().get(0).tableIdent(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted")));
@@ -287,7 +286,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         RestoreSnapshotAnalyzedStatement statement = analyze(
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE unknown_parted PARTITION (date=123)");
         PartitionName partitionName = new PartitionName(
-            new RelationName("doc", "unknown_parted"), ImmutableList.of(new BytesRef("123")));
+            new RelationName("doc", "unknown_parted"), ImmutableList.of("123"));
         assertThat(statement.restoreTables().size(), is(1));
         assertThat(statement.restoreTables().get(0).partitionName(), is(partitionName));
         assertThat(statement.restoreTables().get(0).tableIdent(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "unknown_parted")));

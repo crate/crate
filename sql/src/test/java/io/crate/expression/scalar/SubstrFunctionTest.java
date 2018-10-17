@@ -21,11 +21,9 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.ConversionException;
-import io.crate.testing.TestingHelpers;
+import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
@@ -47,9 +45,7 @@ public class SubstrFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testSubstring() throws Exception {
-        assertThat(SubstrFunction.substring(new BytesRef("cratedata"), 2, 5), is(new BytesRef("ate")));
-        assertThat(SubstrFunction.substring(TestingHelpers.bytesRef("cratedata", random()), 2, 5),
-            is(new BytesRef("ate")));
+        assertThat(SubstrFunction.substring("cratedata", 2, 5), is("ate"));
     }
 
     @Test

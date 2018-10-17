@@ -27,9 +27,9 @@ import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.metadata.ColumnIdent;
-import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.metadata.ColumnIdent;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -80,7 +80,7 @@ public class FileWriterProjector implements Projector {
             batchIterator,
             new FileWriterCountCollector(
                 executorService,
-                uri.toString(),
+                uri,
                 compressionType,
                 inputs,
                 collectExpressions,

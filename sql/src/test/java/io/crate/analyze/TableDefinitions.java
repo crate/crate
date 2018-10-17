@@ -34,11 +34,11 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
+
+import static java.util.Collections.singletonList;
 
 public final class TableDefinitions {
 
@@ -129,11 +129,9 @@ public final class TableDefinitions {
         .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
         // add 3 partitions/simulate already done inserts
         .addPartitions(
-            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395961200000"))).asIndexName(),
-            new PartitionName(new RelationName("doc", "parted"), new ArrayList<BytesRef>() {{
-                add(null);
-            }}).asIndexName())
+            new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
+            new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
+            new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName())
         .build();
     public static final RelationName TEST_EMPTY_PARTITIONED_TABLE_IDENT =
         new RelationName(Schemas.DOC_SCHEMA_NAME, "empty_parted");
@@ -151,8 +149,8 @@ public final class TableDefinitions {
         .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
         // add 3 partitions/simulate already done inserts
         .addPartitions(
-            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-            new PartitionName(new RelationName("doc", "parted"), Arrays.asList(new BytesRef("1395961200000"))).asIndexName()
+            new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
+            new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName()
         )
         .addPrimaryKey("id")
         .addPrimaryKey("date")
@@ -168,9 +166,9 @@ public final class TableDefinitions {
         .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
         // add 3 partitions/simulate already done inserts
         .addPartitions(
-            new PartitionName(new RelationName("doc", "multi_parted"), Arrays.asList(new BytesRef("1395874800000"), new BytesRef("0"))).asIndexName(),
-            new PartitionName(new RelationName("doc", "multi_parted"), Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).asIndexName(),
-            new PartitionName(new RelationName("doc", "multi_parted"), Arrays.asList(null, new BytesRef("-100"))).asIndexName())
+            new PartitionName(new RelationName("doc", "multi_parted"), Arrays.asList("1395874800000", "0")).asIndexName(),
+            new PartitionName(new RelationName("doc", "multi_parted"), Arrays.asList("1395961200000", "-100")).asIndexName(),
+            new PartitionName(new RelationName("doc", "multi_parted"), Arrays.asList(null, "-100")).asIndexName())
         .build();
     static final RelationName TEST_NESTED_PARTITIONED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "nested_parted");
     public static final DocTableInfo TEST_NESTED_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
@@ -181,9 +179,9 @@ public final class TableDefinitions {
         .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
         // add 3 partitions/simulate already done inserts
         .addPartitions(
-            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList(new BytesRef("1395874800000"), new BytesRef("Trillian"))).asIndexName(),
-            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList(new BytesRef("1395961200000"), new BytesRef("Ford"))).asIndexName(),
-            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList(null, new BytesRef("Zaphod"))).asIndexName())
+            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList("1395874800000", "Trillian")).asIndexName(),
+            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList("1395961200000", "Ford")).asIndexName(),
+            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList(null, "Zaphod")).asIndexName())
         .build();
     public static final RelationName TEST_DOC_TRANSACTIONS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "transactions");
     public static final DocTableInfo TEST_DOC_TRANSACTIONS_TABLE_INFO = new TestingTableInfo.Builder(
@@ -237,7 +235,7 @@ public final class TableDefinitions {
             ident,
             ident.indexName(),
             5,
-            new BytesRef("0"),
+            "0",
             ImmutableMap.<String, Object>of(),
             null,
             SHARD_ROUTING

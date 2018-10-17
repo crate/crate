@@ -23,7 +23,6 @@
 package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -52,7 +51,7 @@ public class MapFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("_map('foo', 10)", m);
 
         // variable args
-        m.put("bar", new BytesRef("some"));
+        m.put("bar", "some");
         assertEvaluate("_map('foo', 10, 'bar', 'some')", m);
     }
 }

@@ -21,8 +21,8 @@
 
 package io.crate.expression.reference.file;
 
-import io.crate.metadata.ColumnIdent;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
+import io.crate.metadata.ColumnIdent;
 
 public class ColumnExtractingLineExpression extends LineCollectorExpression<Object> {
 

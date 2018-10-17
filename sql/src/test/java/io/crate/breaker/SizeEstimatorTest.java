@@ -23,7 +23,6 @@ package io.crate.breaker;
 
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -31,11 +30,11 @@ import static org.hamcrest.Matchers.is;
 public class SizeEstimatorTest extends CrateUnitTest {
 
     @Test
-    public void testBytesRef() throws Exception {
+    public void testString() throws Exception {
         SizeEstimator sizeEstimator = SizeEstimatorFactory.create(DataTypes.STRING);
         assertThat(sizeEstimator.estimateSize(null), is(8L));
-        assertThat(sizeEstimator.estimateSize(new BytesRef("hello")), is(37L));
-        assertThat(sizeEstimator.estimateSizeDelta(new BytesRef("hello"), new BytesRef("hello world")), is(6L));
+        assertThat(sizeEstimator.estimateSize("hello"), is(37L));
+        assertThat(sizeEstimator.estimateSizeDelta("hello", "hello world"), is(6L));
     }
 
     @Test

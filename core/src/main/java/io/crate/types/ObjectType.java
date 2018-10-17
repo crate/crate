@@ -23,7 +23,6 @@ package io.crate.types;
 
 import io.crate.Streamer;
 import io.crate.core.collections.MapComparator;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -64,16 +63,15 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     @Override
     @SuppressWarnings("unchecked")
     public Map<String, Object> value(Object value) {
-        if (value instanceof BytesRef) {
-            return mapFromBytesRef((BytesRef) value);
+        if (value instanceof String) {
+            return mapFromJSONString((String) value);
         }
         return (Map<String, Object>) value;
     }
 
-    private static Map<String,Object> mapFromBytesRef(BytesRef value) {
+    private static Map<String,Object> mapFromJSONString(String value) {
         try {
-            XContentParser parser = JsonXContent.jsonXContent.createParser(
-                NamedXContentRegistry.EMPTY, value.bytes, value.offset, value.length);
+            XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, value);
             return parser.map();
         } catch (IOException e) {
             throw new RuntimeException(e);

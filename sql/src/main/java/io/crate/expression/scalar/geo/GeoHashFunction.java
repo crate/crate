@@ -22,16 +22,14 @@
 package io.crate.expression.scalar.geo;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.geo.GeoHashUtils;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Collections;
 import java.util.List;
@@ -41,7 +39,7 @@ public final class GeoHashFunction {
 
     private static final List<DataType> SUPPORTED_INPUT_TYPES = ImmutableList.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY);
 
-    private static void register(ScalarFunctionModule module, String name, Function<Object, BytesRef> func) {
+    private static void register(ScalarFunctionModule module, String name, Function<Object, String> func) {
         for (DataType inputType : SUPPORTED_INPUT_TYPES) {
             FunctionIdent ident = new FunctionIdent(name, Collections.singletonList(inputType));
             module.register(new UnaryScalar<>(new FunctionInfo(ident, DataTypes.STRING), func));
@@ -53,9 +51,9 @@ public final class GeoHashFunction {
     }
 
 
-    private static BytesRef getGeoHash(Object value) {
+    private static String getGeoHash(Object value) {
         Double[] geoValue = GeoPointType.INSTANCE.value(value);
-        return BytesRefs.toBytesRef(GeoHashUtils.stringEncode(geoValue[0], geoValue[1]));
+        return GeoHashUtils.stringEncode(geoValue[0], geoValue[1]);
     }
 }
 

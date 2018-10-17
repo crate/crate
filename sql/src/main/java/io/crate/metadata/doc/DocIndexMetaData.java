@@ -55,7 +55,6 @@ import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Booleans;
@@ -94,7 +93,7 @@ public class DocIndexMetaData {
     private final Functions functions;
     private final RelationName ident;
     private final int numberOfShards;
-    private final BytesRef numberOfReplicas;
+    private final String numberOfReplicas;
     private final ImmutableMap<String, Object> tableParameters;
     private final Map<String, Object> indicesMap;
     private final List<List<String>> partitionedByList;
@@ -610,7 +609,7 @@ public class DocIndexMetaData {
         return numberOfShards;
     }
 
-    public BytesRef numberOfReplicas() {
+    public String numberOfReplicas() {
         return numberOfReplicas;
     }
 

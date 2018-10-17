@@ -22,7 +22,6 @@
 
 package io.crate.types;
 
-import org.apache.lucene.util.BytesRef;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
@@ -33,7 +32,7 @@ public class StringTypeTest {
     boolean value = true;
 
     @Benchmark
-    public BytesRef booleanConversion() throws Exception {
+    public String booleanConversion() throws Exception {
         return StringType.INSTANCE.value(value);
     }
 }

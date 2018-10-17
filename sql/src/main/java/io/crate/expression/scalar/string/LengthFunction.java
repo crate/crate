@@ -23,14 +23,14 @@
 package io.crate.expression.scalar.string;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -39,7 +39,7 @@ public final class LengthFunction {
 
     private static final List<DataType> SUPPORTED_INPUT_TYPES = ImmutableList.of(DataTypes.STRING, DataTypes.UNDEFINED);
 
-    private static void register(ScalarFunctionModule module, String name, Function<BytesRef, Integer> func) {
+    private static void register(ScalarFunctionModule module, String name, Function<String, Integer> func) {
         for (DataType inputType : SUPPORTED_INPUT_TYPES) {
             FunctionIdent ident = new FunctionIdent(name, Collections.singletonList(inputType));
             module.register(new UnaryScalar<>(new FunctionInfo(ident, DataTypes.INTEGER), func));
@@ -47,8 +47,8 @@ public final class LengthFunction {
     }
 
     public static void register(ScalarFunctionModule module) {
-        register(module, "octet_length", x -> x.length);
-        register(module, "bit_length", x -> x.length * Byte.SIZE);
-        register(module, "char_length", x -> x.utf8ToString().length());
+        register(module, "octet_length", x -> x.getBytes(StandardCharsets.UTF_8).length);
+        register(module, "bit_length", x -> x.getBytes(StandardCharsets.UTF_8).length * Byte.SIZE);
+        register(module, "char_length", String::length);
     }
 }
