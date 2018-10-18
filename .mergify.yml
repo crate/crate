@@ -1,23 +1,32 @@
 ---
-rules:
-  default:
-    merge_strategy:
-      method: rebase
-      rebase_fallback: none
-    enabling_label: ready-to-merge
-    protection:
-      required_status_checks:
+pull_request_rules:
+  - actions:
+      merge:
+        method: rebase
+        rebase_fallback: null
         strict: true
-        contexts:
-          - ci/jenkins/pr_tests
-          - crate.crate
-          - Shippable
-          - 'LGTM analysis: Java'
-          - 'LGTM analysis: Python'
-      required_pull_request_reviews:
-        required_approving_review_count: 1
-        dismiss_stale_reviews: false
-      enforce_admins: true
-    automated_backport_labels:
-      v/3.0: "3.0"
-      v/3.1: "3.1"
+    conditions:
+      - label=ready-to-merge
+      - '#approved-reviews-by>=1'
+      - status-success=ci/jenkins/pr_tests
+      - status-success=crate.crate
+      - status-success=Shippable
+      - 'status-success=LGTM analysis: Java'
+      - 'status-success=LGTM analysis: Python'
+    name: default
+  - actions:
+      backport:
+        branches:
+          - '3.0'
+    conditions:
+      - label=ready-to-merge
+      - label=v/3.0
+    name: backport 3.0
+  - actions:
+      backport:
+        branches:
+          - '3.1'
+    conditions:
+      - label=ready-to-merge
+      - label=v/3.1
+    name: backport 3.1
