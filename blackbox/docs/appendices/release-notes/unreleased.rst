@@ -43,21 +43,3 @@ Changes
 
 Fixes
 =====
-
-- Store current ``created`` versions at new table partitions instead of using
-  maybe older versions stored at the partition table.
-
-- Fixed an issue which caused tables created on version < 3.0 using not anymore
-  supported table parameters to fail on ``ALTER TABLE`` statements.
-
-- ``CORS`` pre-flight requests now no longer require authentication.
-
-- Fixed an issue which caused joins over multiple relations and implicit join
-  conditions inside the ``WHERE`` clause to fail.
-
-- The ``Access-Control-Allow-Origin`` header is now correctly served by
-  resources in the ``/_blobs`` endpoint if the relevant settings are enabled.
-
-- Fixed decoding of postgres specific array literal constant: unquoted elements
-  and single element arrays were not decoded correctly and resulted in an empty
-  array.
