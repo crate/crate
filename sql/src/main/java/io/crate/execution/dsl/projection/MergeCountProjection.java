@@ -31,9 +31,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 
-public class MergeCountProjection extends Projection {
+public final class MergeCountProjection extends Projection {
 
     public static final MergeCountProjection INSTANCE = new MergeCountProjection();
 
@@ -55,7 +54,7 @@ public class MergeCountProjection extends Projection {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(this);
+        return 0;
     }
 
     @Override
