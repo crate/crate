@@ -1,0 +1,65 @@
+.. _version_3.1.2:
+
+=============
+Version 3.1.2
+=============
+
+Released on 2018/10/18.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 2.0.4 or higher
+    before you upgrade to 3.1.2.
+
+    We recommend that you upgrade to the latest 3.0 release before moving to
+    3.1.2.
+
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_3.1.1`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
+
+.. WARNING::
+
+    Tables that were created prior to upgrading to CrateDB 2.x will not
+    function with 3.1 and must be recreated before moving to 3.1.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` while running a
+    2.x release into a new table, or by `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Changelog
+=========
+
+
+Fixes
+-----
+
+- Store current ``created`` versions at new table partitions instead of using
+  potentially older versions stored at the partition table.
+
+- Fixed an issue which caused tables created on versions < 3.0 using no longer
+  supported table parameters to fail on ``ALTER TABLE`` statements.
+
+- ``CORS`` pre-flight requests now no longer require authentication.
+
+- Fixed an issue which caused joins over multiple relations and implicit join
+  conditions inside the ``WHERE`` clause to fail.
+
+- The ``Access-Control-Allow-Origin`` header is now correctly served by
+  resources in the ``/_blobs`` endpoint if the relevant settings are enabled.
+
+- Fixed decoding of postgres specific array literal constants where unquoted
+  elements and single element arrays were not decoded correctly and resulted in
+  an empty array.
