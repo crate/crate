@@ -23,6 +23,7 @@
 package io.crate.license;
 
 import io.crate.license.exception.InvalidLicenseException;
+import io.crate.settings.SharedSettings;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -43,7 +44,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static io.crate.license.LicenseExpiryNotification.EXPIRED;
 import static io.crate.license.LicenseExpiryNotification.MODERATE;
 import static io.crate.license.LicenseExpiryNotification.SEVERE;
-import static io.crate.license.LicenseKey.SELF_GENERATED;
+import static io.crate.license.LicenseKey.TRIAL;
 import static io.crate.license.LicenseKey.decodeLicense;
 import static io.crate.license.SelfGeneratedLicense.decryptLicenseContent;
 
@@ -51,6 +52,7 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
 
     private final TransportSetLicenseAction transportSetLicenseAction;
     private final ClusterService clusterService;
+    private final boolean enterpriseEnabled;
 
     private AtomicReference<DecryptedLicenseData> currentLicense = new AtomicReference<>();
 
@@ -59,6 +61,7 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
                           TransportSetLicenseAction transportSetLicenseAction,
                           ClusterService clusterService) {
         super(settings);
+        enterpriseEnabled = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
         this.transportSetLicenseAction = transportSetLicenseAction;
         this.clusterService = clusterService;
     }
@@ -77,7 +80,7 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
      */
     LicenseKey createLicenseKey(int licenseType, int version, DecryptedLicenseData decryptedLicenseData) {
         byte[] encryptedContent;
-        if (licenseType == SELF_GENERATED) {
+        if (licenseType == TRIAL) {
             encryptedContent = SelfGeneratedLicense.encryptLicenseContent(decryptedLicenseData.formatLicenseData());
         } else {
             throw new UnsupportedOperationException("Only self generated licenses are supported.");
@@ -115,7 +118,7 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
     }
 
     DecryptedLicenseData licenseData(DecodedLicense decodedLicense) throws IOException {
-        if (decodedLicense.type() == LicenseKey.SELF_GENERATED) {
+        if (decodedLicense.type() == LicenseKey.TRIAL) {
             return decryptLicenseContent(decodedLicense.encryptedContent());
         } else {
             throw new UnsupportedOperationException("Only self generated licenses are supported.");
@@ -129,20 +132,24 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
 
     @Override
     protected void doStart() {
-        clusterService.addListener(this);
+        if (enterpriseEnabled) {
+            clusterService.addListener(this);
+        }
     }
 
     private LicenseKey getLicenseMetadata(ClusterState clusterState) {
         return clusterState.getMetaData().custom(LicenseKey.WRITEABLE_TYPE);
     }
 
-    private void registerSelfGeneratedLicense(ClusterState clusterState) {
+    private void registerTrialLicense(ClusterState clusterState) {
         DiscoveryNodes nodes = clusterState.getNodes();
         if (nodes != null) {
             if (nodes.isLocalNodeElectedMaster()) {
-                DecryptedLicenseData licenseData = new DecryptedLicenseData(Long.MAX_VALUE, clusterState.getClusterName().value());
+                long trialLicenseExpirationDateMillis = System.currentTimeMillis() + TimeUnit.DAYS.toMillis(30);
+                DecryptedLicenseData licenseData = new DecryptedLicenseData(
+                    trialLicenseExpirationDateMillis, clusterState.getClusterName().value());
                 LicenseKey licenseKey = createLicenseKey(
-                    LicenseKey.SELF_GENERATED,
+                    LicenseKey.TRIAL,
                     LicenseKey.VERSION,
                     licenseData
                 );
@@ -184,7 +191,7 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
         LicenseKey newLicenseKey = getLicenseMetadata(currentState);
 
         if (previousLicenseKey == null && newLicenseKey == null) {
-            registerSelfGeneratedLicense(currentState);
+            registerTrialLicense(currentState);
             return;
         }
 
