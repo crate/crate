@@ -41,7 +41,7 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
 
     public static final String WRITEABLE_TYPE = "license";
 
-    static final int SELF_GENERATED = 0;
+    static final int TRIAL = 0;
     static final int VERSION = 1;
 
     // limit the maximum license content number of bytes (this can vary based on the algorithm used for encryption and

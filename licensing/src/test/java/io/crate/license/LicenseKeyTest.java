@@ -39,7 +39,7 @@ public class LicenseKeyTest extends CrateUnitTest {
     public void createLicenseKey() {
         LicenseKey licenseKey =
             LicenseKey.createLicenseKey(
-                LicenseKey.SELF_GENERATED,
+                LicenseKey.TRIAL,
                 LicenseKey.VERSION,
                 "testLicense".getBytes(StandardCharsets.UTF_8));
         assertThat(licenseKey, is(notNullValue()));
@@ -51,7 +51,7 @@ public class LicenseKeyTest extends CrateUnitTest {
             LicenseKey.decodeLicense(new LicenseKey("AAAAAAAAAAEAAABACYK5Ua3JBI98IJ99P/AsXCsV7UpHiBzSjkg+pFNDkpYAZUttlnqldjF5BAtRfzuJHA+2091XDmHACmF+M1J0NQ=="));
 
         assertThat(decodedLicense, is(notNullValue()));
-        assertThat(decodedLicense.type(), is(LicenseKey.SELF_GENERATED));
+        assertThat(decodedLicense.type(), is(LicenseKey.TRIAL));
         assertThat(decodedLicense.version(), is(1));
     }
 

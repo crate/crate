@@ -28,6 +28,7 @@ description = 'CrateDB License Management'
 
 dependencies {
     compile project(':es:es-core')
+    compile project(':core')
     testCompile "junit:junit:${versions.junit}"
     testCompile project(':integration-testing')
 }

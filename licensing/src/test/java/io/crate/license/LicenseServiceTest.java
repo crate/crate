@@ -48,14 +48,14 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testVerifyValidLicense() {
-        LicenseKey licenseKey = licenseService.createLicenseKey(LicenseKey.SELF_GENERATED, VERSION,
+        LicenseKey licenseKey = licenseService.createLicenseKey(LicenseKey.TRIAL, VERSION,
             new DecryptedLicenseData(Long.MAX_VALUE, "test"));
         assertThat(licenseService.verifyLicense(licenseKey), is(true));
     }
 
     @Test
     public void testVerifyExpiredLicense() {
-        LicenseKey expiredLicense = licenseService.createLicenseKey(LicenseKey.SELF_GENERATED, VERSION,
+        LicenseKey expiredLicense = licenseService.createLicenseKey(LicenseKey.TRIAL, VERSION,
             new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5), "test"));
 
         assertThat(licenseService.verifyLicense(expiredLicense), is(false));
@@ -63,7 +63,7 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetLicenseData() throws IOException {
-        LicenseKey licenseKey = licenseService.createLicenseKey(LicenseKey.SELF_GENERATED, VERSION,
+        LicenseKey licenseKey = licenseService.createLicenseKey(LicenseKey.TRIAL, VERSION,
             new DecryptedLicenseData(Long.MAX_VALUE, "test"));
         DecryptedLicenseData licenseData = licenseService.licenseData(LicenseKey.decodeLicense(licenseKey));
 
