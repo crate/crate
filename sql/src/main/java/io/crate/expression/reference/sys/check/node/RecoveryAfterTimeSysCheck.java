@@ -22,7 +22,6 @@
 
 package io.crate.expression.reference.sys.check.node;
 
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -39,8 +38,8 @@ public class RecoveryAfterTimeSysCheck extends AbstractSysNodeCheck {
                                               "must not be zero. Otherwise the \"expected nodes\" setting wouldn't have any effect.";
 
     @Inject
-    public RecoveryAfterTimeSysCheck(ClusterService clusterService, Settings settings) {
-        super(ID, DESCRIPTION, Severity.MEDIUM, clusterService);
+    public RecoveryAfterTimeSysCheck(Settings settings) {
+        super(ID, DESCRIPTION, Severity.MEDIUM);
         this.settings = settings;
     }
 

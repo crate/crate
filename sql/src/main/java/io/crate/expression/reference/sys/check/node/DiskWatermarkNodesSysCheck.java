@@ -47,7 +47,7 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
                                ClusterService clusterService,
                                FsService fsService,
                                Settings settings) {
-        super(id, description, severity, clusterService);
+        super(id, description, severity);
         this.fsService = fsService;
         this.diskThresholdSettings = new DiskThresholdSettings(settings, clusterService.getClusterSettings());
     }

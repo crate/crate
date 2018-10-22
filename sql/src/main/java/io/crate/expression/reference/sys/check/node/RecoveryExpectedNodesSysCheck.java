@@ -31,6 +31,7 @@ import org.elasticsearch.gateway.GatewayService;
 @Singleton
 public class RecoveryExpectedNodesSysCheck extends AbstractSysNodeCheck {
 
+    private final ClusterService clusterService;
     private final Settings settings;
 
     static final int ID = 1;
@@ -39,7 +40,8 @@ public class RecoveryExpectedNodesSysCheck extends AbstractSysNodeCheck {
 
     @Inject
     public RecoveryExpectedNodesSysCheck(ClusterService clusterService, Settings settings) {
-        super(ID, DESCRIPTION, Severity.HIGH, clusterService);
+        super(ID, DESCRIPTION, Severity.HIGH);
+        this.clusterService = clusterService;
         this.settings = settings;
     }
 
