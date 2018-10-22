@@ -85,3 +85,6 @@ Changes
 
 Fixes
 =====
+
+- Fixed an issue that caused missing privilege errors if table aliases were
+  used.
