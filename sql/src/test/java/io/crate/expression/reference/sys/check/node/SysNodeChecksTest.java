@@ -130,14 +130,13 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             .put(GatewayService.EXPECTED_NODES_SETTING.getKey(), 3)
             .build();
 
-        RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(clusterService, settings);
+        RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(settings);
         assertThat(recoveryAfterNodesCheck.validate(), is(true));
     }
 
     @Test
     public void testRecoveryAfterTimeCheckWithDefaultSetting() {
-        RecoveryAfterTimeSysCheck recoveryAfterNodesCheck =
-            new RecoveryAfterTimeSysCheck(clusterService, Settings.EMPTY);
+        RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(Settings.EMPTY);
 
         assertThat(recoveryAfterNodesCheck.id(), is(3));
         assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
@@ -156,7 +155,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             .put(GatewayService.EXPECTED_NODES_SETTING.getKey(), 3)
             .build();
 
-        RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(clusterService, settings);
+        RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(settings);
 
         assertThat(recoveryAfterNodesCheck.validate(), is(false));
     }
