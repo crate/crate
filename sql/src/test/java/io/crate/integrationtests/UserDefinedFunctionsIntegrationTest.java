@@ -115,9 +115,9 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     @Test
     public void testCreateOverloadedFunction() throws Exception {
         execute("create table test (id long, str string) clustered by(id) into 2 shards");
-        Object[][] rows = new Object[100][];
-        for (int i = 0; i < 100; i++) {
-            rows[i] = new Object[]{Long.valueOf(i), String.valueOf(i)};
+        Object[][] rows = new Object[10][];
+        for (int i = 0; i < 10; i++) {
+            rows[i] = new Object[]{(long) i, String.valueOf(i)};
         }
         execute("insert into test (id, str) values (?, ?)", rows);
         refresh();
