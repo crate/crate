@@ -212,6 +212,7 @@ public class SQLExecutor {
 
         private TableStats tableStats = new TableStats();
         private Settings settings = Settings.EMPTY;
+        private boolean hasValidLicense = true;
 
         private Builder(ClusterService clusterService, int numNodes, Random random) {
             this.random = random;
@@ -286,6 +287,11 @@ public class SQLExecutor {
 
         public Builder settings(Settings settings) {
             this.settings = settings;
+            return this;
+        }
+
+        public Builder setHasValidLicense(boolean hasValidLicense) {
+            this.hasValidLicense = hasValidLicense;
             return this;
         }
 
@@ -364,7 +370,8 @@ public class SQLExecutor {
                     Settings.EMPTY,
                     clusterService,
                     functions,
-                    tableStats
+                    tableStats,
+                    () -> hasValidLicense
                 ),
                 relationAnalyzer,
                 new SessionContext(0, Option.NONE, user, s -> {}, t -> {}, searchPath),

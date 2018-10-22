@@ -123,10 +123,16 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
         return null;
     }
 
-    private static boolean isLicenseExpired(@Nullable DecryptedLicenseData decryptedLicenseData) {
+    static boolean isLicenseExpired(@Nullable DecryptedLicenseData decryptedLicenseData) {
         return decryptedLicenseData != null && decryptedLicenseData.isExpired();
     }
 
+    public boolean hasValidLicense() {
+        if (enterpriseEnabled == false) {
+            return true;
+        }
+        return !isLicenseExpired(currentLicense());
+    }
 
     @Nullable
     public DecryptedLicenseData currentLicense() {
