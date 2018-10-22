@@ -578,7 +578,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
             Privileges.ensureUserHasPrivilege(
                 context.type,
                 Privilege.Clazz.TABLE,
-                tableRelation.getQualifiedName().toString(),
+                tableRelation.tableInfo().ident().fqn(),
                 context.user,
                 defaultSchema);
             return null;
@@ -589,7 +589,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
             Privileges.ensureUserHasPrivilege(
                 context.type,
                 Privilege.Clazz.TABLE,
-                relation.getQualifiedName().toString(),
+                relation.tableInfo().ident().fqn(),
                 context.user,
                 defaultSchema);
             return null;
