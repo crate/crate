@@ -411,9 +411,9 @@ corresponding to the percentile of the specified fraction::
     +----------------------------+-------------+
     | percentile(position, 0.95) | kind        |
     +----------------------------+-------------+
-    |         5.699999999999999  | Galaxy      |
-    |         4.8                | Planet      |
-    |         3.8499999999999996 | Star System |
+    |                        6.0 | Galaxy      |
+    |                        5.0 | Planet      |
+    |                        4.0 | Star System |
     +----------------------------+-------------+
     SELECT 3 rows in set (... sec)
 
@@ -421,11 +421,11 @@ When supplied an array of fractions, the function will return an array of
 values corresponding to the percentile of each fraction specified::
 
     cr> select percentile(position, [0.0013, 0.9987]) as perc from locations;
-    +--------------------------+
-    | perc                     |
-    +--------------------------+
-    | [1.0, 5.984400000000001] |
-    +--------------------------+
+    +------------+
+    | perc       |
+    +------------+
+    | [1.0, 6.0] |
+    +------------+
     SELECT 1 row in set (... sec)
 
 When a query with ``percentile`` function won't match any rows then a null
