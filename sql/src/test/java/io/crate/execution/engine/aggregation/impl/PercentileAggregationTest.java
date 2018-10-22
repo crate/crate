@@ -93,7 +93,7 @@ public class PercentileAggregationTest extends AggregationTest {
             assertTrue(result[0][0].getClass().isArray());
             assertEquals(2, ((Object[]) result[0][0]).length);
             assertEquals(4.5, ((Object[]) result[0][0])[0]);
-            assertEquals(7.2, ((Object[]) result[0][0])[1]);
+            assertEquals(7.5, ((Object[]) result[0][0])[1]);
         }
     }
 
