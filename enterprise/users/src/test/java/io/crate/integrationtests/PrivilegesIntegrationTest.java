@@ -357,14 +357,14 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testPermissionsValidOnTableAlias() {
-        executeAsSuperuser("create table s.t1 (x int)");
+        executeAsSuperuser("create table test.test (x int)");
 
-        executeAsSuperuser("grant dql on schema s to " + TEST_USERNAME);
+        executeAsSuperuser("grant dql on schema test to " + TEST_USERNAME);
         executeAsSuperuser("deny dql on schema doc to " + TEST_USERNAME);
         assertThat(response.rowCount(), is(1L));
         ensureYellow();
 
-        execute("select t.x from t1 as t", null, testUserSession("s"));
+        execute("select t.x from test.test as t", null, testUserSession("s"));
         assertThat(response.rowCount(), is(0L));
     }
 
