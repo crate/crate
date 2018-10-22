@@ -22,6 +22,7 @@
 
 package io.crate.planner;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
@@ -49,8 +50,10 @@ import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.SetLicenseAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.exceptions.ExpiredLicenseException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.expression.symbol.Symbol;
+import io.crate.license.LicenseService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -88,6 +91,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
@@ -95,18 +99,40 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private static final Logger LOGGER = Loggers.getLogger(Planner.class);
 
     private final ClusterService clusterService;
-    private final LogicalPlanner logicalPlanner;
     private final Functions functions;
+    private final LogicalPlanner logicalPlanner;
+    private final IsStatementExecutionAllowed isStatementExecutionAllowed;
 
     private List<String> awarenessAttributes;
 
     @Inject
-    public Planner(Settings settings, ClusterService clusterService, Functions functions, TableStats tableStats) {
+    public Planner(Settings settings,
+                   ClusterService clusterService,
+                   Functions functions,
+                   TableStats tableStats,
+                   LicenseService licenseService) {
         this.clusterService = clusterService;
         this.functions = functions;
         this.logicalPlanner = new LogicalPlanner(functions, tableStats);
+        this.isStatementExecutionAllowed = new IsStatementExecutionAllowed(licenseService::hasValidLicense);
+        initAwarenessAttributes(settings);
+    }
 
-        this.awarenessAttributes =
+    @VisibleForTesting
+    public Planner(Settings settings,
+                   ClusterService clusterService,
+                   Functions functions,
+                   TableStats tableStats,
+                   BooleanSupplier hasValidLicense) {
+        this.clusterService = clusterService;
+        this.functions = functions;
+        this.logicalPlanner = new LogicalPlanner(functions, tableStats);
+        this.isStatementExecutionAllowed = new IsStatementExecutionAllowed(hasValidLicense);
+        initAwarenessAttributes(settings);
+    }
+
+    private void initAwarenessAttributes(Settings settings) {
+        awarenessAttributes =
             AwarenessAllocationDecider.CLUSTER_ROUTING_ALLOCATION_AWARENESS_ATTRIBUTE_SETTING.get(settings);
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
             AwarenessAllocationDecider.CLUSTER_ROUTING_ALLOCATION_AWARENESS_ATTRIBUTE_SETTING,
@@ -132,6 +158,9 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
      * @return plan
      */
     public Plan plan(AnalyzedStatement analyzedStatement, PlannerContext plannerContext) {
+        if (isStatementExecutionAllowed.test(analyzedStatement) == false) {
+            throw new ExpiredLicenseException("Statement not allowed");
+        }
         return process(analyzedStatement, plannerContext);
     }
 
