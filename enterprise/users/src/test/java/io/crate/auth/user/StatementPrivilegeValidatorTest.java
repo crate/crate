@@ -471,5 +471,11 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
         analyze("select 1");
         assertThat(validationCallArguments.size(), is(0));
     }
+
+    @Test
+    public void testPermissionCheckIsDoneOnSchemaAndTableNotOnTableAlias() {
+        analyze("select * from doc.users as t");
+        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+    }
 }
 
