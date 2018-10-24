@@ -23,11 +23,8 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
-import io.crate.metadata.doc.DocSysColumns;
 
 public class IdFromUidCollectorExpression extends LuceneCollectorExpression<String> {
-
-    public static final String COLUMN_NAME = DocSysColumns.ID.name();
 
     private CollectorFieldsVisitor visitor;
 

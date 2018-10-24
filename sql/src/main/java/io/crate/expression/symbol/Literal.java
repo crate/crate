@@ -244,10 +244,6 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         return new Literal<>(DataTypes.STRING, value);
     }
 
-    public static Literal<String> of(BytesRef value) {
-        return new Literal<>(DataTypes.STRING, value == null ? null : value.utf8ToString());
-    }
-
     public static Literal<Boolean> of(Boolean value) {
         if (value == null) {
             return new Literal<>(DataTypes.BOOLEAN, null);
