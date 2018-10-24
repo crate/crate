@@ -38,7 +38,7 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
     private final int numBuckets;
     private final List<StreamBucket.Builder> bucketBuilders;
     private final int distributedByColumnIdx;
-    private volatile int size = 0;
+    private int size = 0;
 
     public ModuloBucketBuilder(Streamer<?>[] streamers, int numBuckets, int distributedByColumnIdx) {
         this.numBuckets = numBuckets;
@@ -51,11 +51,9 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
 
     @Override
     public void add(Row row) {
-        final StreamBucket.Builder builder = bucketBuilders.get(getBucket(row));
-        synchronized (this) {
-            builder.add(row);
-            size++;
-        }
+        StreamBucket.Builder builder = bucketBuilders.get(getBucket(row));
+        builder.add(row);
+        size++;
     }
 
     @Override
@@ -64,7 +62,7 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
     }
 
     @Override
-    public synchronized void build(StreamBucket[] buckets) {
+    public void build(StreamBucket[] buckets) {
         assert buckets.length == numBuckets : "length of the provided array must match numBuckets";
         for (int i = 0; i < numBuckets; i++) {
             StreamBucket.Builder builder = bucketBuilders.get(i);
