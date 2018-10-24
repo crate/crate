@@ -24,16 +24,15 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.types.DataTypes;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.execution.engine.collect.NestableCollectExpression.objToBytesRef;
 import static io.crate.execution.engine.collect.sources.InformationSchemaIterables.PK_SUFFIX;
 
 /**
@@ -70,19 +69,19 @@ public class InformationKeyColumnUsageTableInfo extends InformationTableInfo {
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<InformationSchemaIterables.KeyColumnUsage>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<InformationSchemaIterables.KeyColumnUsage>>builder()
             .put(Columns.CONSTRAINT_CATALOG,
-                () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getSchema))
+                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
             .put(Columns.CONSTRAINT_SCHEMA,
-                () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getSchema))
+                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
             .put(Columns.CONSTRAINT_NAME,
-                () -> objToBytesRef(k -> k.getTableName() + PK_SUFFIX))
+                () -> forFunction(k -> k.getTableName() + PK_SUFFIX))
             .put(Columns.TABLE_CATALOG,
-                () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getSchema))
+                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
             .put(Columns.TABLE_SCHEMA,
-                () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getSchema))
+                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
             .put(Columns.TABLE_NAME,
-                () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getTableName))
+                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getTableName))
             .put(Columns.COLUMN_NAME,
-                () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getPkColumnName))
+                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getPkColumnName))
             .put(Columns.ORDINAL_POSITION,
                 () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getOrdinal))
             .build();

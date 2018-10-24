@@ -22,11 +22,10 @@
 package io.crate.expression.reference.sys.cluster;
 
 import io.crate.expression.NestableInput;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
-public class ClusterMasterNodeExpression implements NestableInput<BytesRef> {
+public class ClusterMasterNodeExpression implements NestableInput<String> {
 
     public static final String NAME = "master_node";
     private final ClusterService clusterService;
@@ -37,11 +36,11 @@ public class ClusterMasterNodeExpression implements NestableInput<BytesRef> {
     }
 
     @Override
-    public BytesRef value() {
+    public String value() {
         String masterNodeId = clusterService.state().nodes().getMasterNodeId();
         if (masterNodeId == null) {
             return null;
         }
-        return new BytesRef(masterNodeId);
+        return masterNodeId;
     }
 }

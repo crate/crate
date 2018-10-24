@@ -37,7 +37,6 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.unit.TimeValue;
@@ -160,8 +159,8 @@ public class NodeStatsTest extends CrateUnitTest {
             new boolean[]{false}, new Boolean[]{true}));
 
         List<Object[]> expectedResult = Arrays.asList(
-            new Object[]{new BytesRef("nodeOne")},
-            new Object[]{new BytesRef("nodeTwo")}
+            new Object[]{"nodeOne"},
+            new Object[]{"nodeTwo"}
         );
         BatchIteratorTester tester = new BatchIteratorTester(() -> NodeStats.newInstance(
             transportNodeStatsAction,

@@ -42,7 +42,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,6 +51,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static io.crate.core.StringUtils.nullOrString;
 
 public class WhereClauseAnalyzer {
 
@@ -155,7 +156,7 @@ public class WhereClauseAnalyzer {
         if (queryPartitionMap.size() == 1) {
             Map.Entry<Symbol, List<Literal>> entry = Iterables.getOnlyElement(queryPartitionMap.entrySet());
             return new PartitionResult(
-                entry.getKey(), Lists2.map(entry.getValue(), literal -> BytesRefs.toString(literal.value())));
+                entry.getKey(), Lists2.map(entry.getValue(), literal -> nullOrString(literal.value())));
         } else if (queryPartitionMap.size() > 0) {
             return tieBreakPartitionQueries(normalizer, queryPartitionMap, transactionContext);
         } else {
@@ -205,7 +206,7 @@ public class WhereClauseAnalyzer {
             Tuple<Symbol, List<Literal>> symbolListTuple = canMatch.get(0);
             return new PartitionResult(
                 symbolListTuple.v1(),
-                Lists2.map(symbolListTuple.v2(), literal -> BytesRefs.toString(literal.value()))
+                Lists2.map(symbolListTuple.v2(), literal -> nullOrString(literal.value()))
             );
         }
         throw new UnsupportedOperationException(

@@ -25,7 +25,6 @@ package io.crate.expression.symbol.format;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.Iterator;
 import java.util.List;
@@ -80,7 +79,7 @@ class MatchPrinter {
     private static void printMethod(Symbol method, StringBuilder sb) {
         // third argument (method)
         // need to print as identifier without quotes
-        sb.append(((BytesRef) ((Literal) method).value()).utf8ToString());
+        sb.append((String) ((Literal) method).value());
     }
 
     private static void printProperties(Symbol propSymbol, StringBuilder sb) {
@@ -97,11 +96,7 @@ class MatchPrinter {
             Object value = entry.getValue();
             if (value != null) {
                 sb.append("'");
-                if (value instanceof BytesRef) {
-                    sb.append(((BytesRef) value).utf8ToString());
-                } else {
-                    sb.append(value);
-                }
+                sb.append(value);
                 sb.append("'");
             }
             if (propertiesIterator.hasNext()) {

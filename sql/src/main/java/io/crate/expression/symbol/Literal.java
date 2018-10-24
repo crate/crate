@@ -240,15 +240,12 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         return new Literal<>(DataTypes.INTEGER, value);
     }
 
-    public static Literal<BytesRef> of(String value) {
-        if (value == null) {
-            return new Literal<>(DataTypes.STRING, null);
-        }
-        return new Literal<>(DataTypes.STRING, new BytesRef(value));
+    public static Literal<String> of(String value) {
+        return new Literal<>(DataTypes.STRING, value);
     }
 
-    public static Literal<BytesRef> of(BytesRef value) {
-        return new Literal<>(DataTypes.STRING, value);
+    public static Literal<String> of(BytesRef value) {
+        return new Literal<>(DataTypes.STRING, value == null ? null : value.utf8ToString());
     }
 
     public static Literal<Boolean> of(Boolean value) {

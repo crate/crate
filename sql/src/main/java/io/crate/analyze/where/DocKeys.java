@@ -32,8 +32,6 @@ import io.crate.planner.ExplainLeaf;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -46,7 +44,7 @@ import java.util.stream.Collectors;
 public class DocKeys implements Iterable<DocKeys.DocKey> {
 
     private final int width;
-    private final Function<List<BytesRef>, String> idFunction;
+    private final Function<List<String>, String> idFunction;
     private int clusteredByIdx;
     private final boolean withVersions;
     private final List<List<Symbol>> docKeys;
@@ -80,7 +78,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             return key;
         }
 
-        public List<BytesRef> getPartitionValues(Functions functions, Row params, SubQueryResults subQueryResults) {
+        public List<String> getPartitionValues(Functions functions, Row params, SubQueryResults subQueryResults) {
             if (partitionIdx == null || partitionIdx.isEmpty()) {
                 return Collections.emptyList();
             }
@@ -92,8 +90,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
 
         public String getRouting(Functions functions, Row params, SubQueryResults subQueryResults) {
             if (clusteredByIdx >= 0) {
-                return BytesRefs.toString(
-                    SymbolEvaluator.evaluate(functions, key.get(clusteredByIdx), params, subQueryResults));
+                return SymbolEvaluator.evaluate(functions, key.get(clusteredByIdx), params, subQueryResults).toString();
             }
             return getId(functions, params, subQueryResults);
         }

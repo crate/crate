@@ -29,6 +29,11 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.ExcludedFieldProvider;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
+import io.crate.core.StringUtils;
+import io.crate.core.collections.Maps;
+import io.crate.data.Input;
+import io.crate.exceptions.ColumnValidationException;
+import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Literal;
@@ -36,11 +41,6 @@ import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.format.SymbolFormatter;
-import io.crate.core.StringUtils;
-import io.crate.core.collections.Maps;
-import io.crate.data.Input;
-import io.crate.exceptions.ColumnValidationException;
-import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
@@ -284,7 +284,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         try {
             DocTableInfo tableInfo = statement.tableInfo();
             int numPks = tableInfo.primaryKey().size();
-            Function<List<BytesRef>, String> idFunction =
+            Function<List<String>, String> idFunction =
                 Id.compileWithNullValidation(tableInfo.primaryKey(), tableInfo.clusteredBy());
             if (parameterContext.numBulkParams() > 0) {
                 for (int i = 0; i < parameterContext.numBulkParams(); i++) {
@@ -341,13 +341,13 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                            InsertFromValuesAnalyzedStatement context,
                            ReferenceToLiteralConverter refToLiteral,
                            int numPrimaryKeys,
-                           Function<List<BytesRef>, String> idFunction,
+                           Function<List<String>, String> idFunction,
                            int bulkIdx) throws IOException {
         DocTableInfo tableInfo = context.tableInfo();
         if (tableInfo.isPartitioned()) {
             context.newPartitionMap();
         }
-        BytesRef[] primaryKeyValues = new BytesRef[numPrimaryKeys];
+        String[] primaryKeyValues = new String[numPrimaryKeys];
         String routingValue = null;
         List<ColumnIdent> primaryKey = tableInfo.primaryKey();
         Object[] insertValues = new Object[node.values().size()];
@@ -460,12 +460,12 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
      * Values could be applied in an unordered way, so given the correct column index of the defined primary key
      * definition is very important here.
      */
-    private void addPrimaryKeyValue(int index, Object value, BytesRef[] primaryKeyValues) {
+    private void addPrimaryKeyValue(int index, Object value, String[] primaryKeyValues) {
         if (value == null) {
             throw new IllegalArgumentException("Primary key value must not be NULL");
         }
         assert primaryKeyValues.length > index : "Index of primary key value is greater than the array holding the values";
-        primaryKeyValues[index] = BytesRefs.toBytesRef(value);
+        primaryKeyValues[index] = value.toString();
     }
 
     private String extractRoutingValue(ColumnIdent columnIdent, Object columnValue, InsertFromValuesAnalyzedStatement context) {
@@ -479,7 +479,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         if (columnValue == null) {
             throw new IllegalArgumentException("Clustered by value must not be NULL");
         }
-        return BytesRefs.toString(columnValue);
+        return columnValue.toString();
     }
 
     private Object processPartitionedByValues(final ColumnIdent columnIdent, Object columnValue, InsertFromValuesAnalyzedStatement context) {
@@ -520,7 +520,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         private final InsertFromValuesAnalyzedStatement analyzedStatement;
         private final ReferenceToLiteralConverter refToLiteral;
         private final TransactionContext transactionContext;
-        private final BytesRef[] primaryKeyValues;
+        private final String[] primaryKeyValues;
         private final EvaluatingNormalizer normalizer;
 
         private Object[] insertValues;
@@ -532,7 +532,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                            EvaluatingNormalizer normalizer,
                                            TransactionContext transactionContext,
                                            ReferenceToLiteralConverter refToLiteral,
-                                           BytesRef[] primaryKeyValues,
+                                           String[] primaryKeyValues,
                                            Object[] insertValues,
                                            @Nullable String routingValue) {
             this.tableRelation = tableRelation;

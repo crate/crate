@@ -30,7 +30,6 @@ import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.util.BigArrays;
@@ -115,11 +114,11 @@ public class CollectSetAggregationTest extends AggregationTest {
     @Test
     public void testString() throws Exception {
         Object[][] result = executeAggregation(DataTypes.STRING,
-            new Object[][]{{new BytesRef("Youri")}, {new BytesRef("Ruben")}, {new BytesRef("Ruben")}});
+            new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}});
 
         assertThat(result[0][0], instanceOf(Set.class));
         assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains(new BytesRef("Youri")));
+        assertTrue(((Set) result[0][0]).contains("Youri"));
     }
 
     @Test
@@ -134,7 +133,7 @@ public class CollectSetAggregationTest extends AggregationTest {
     @Test
     public void testNullValue() throws Exception {
         Object[][] result = executeAggregation(DataTypes.STRING,
-            new Object[][]{{new BytesRef("Youri")}, {new BytesRef("Ruben")}, {null}});
+            new Object[][]{{"Youri"}, {"Ruben"}, {null}});
         // null values currently ignored
         assertThat(result[0][0], instanceOf(Set.class));
         assertEquals(2, ((Set) result[0][0]).size());

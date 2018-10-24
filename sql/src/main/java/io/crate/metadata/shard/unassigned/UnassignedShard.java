@@ -23,7 +23,6 @@
 package io.crate.metadata.shard.unassigned;
 
 import io.crate.metadata.IndexParts;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
 
@@ -75,11 +74,11 @@ public final class UnassignedShard {
     private final Boolean primary;
     private final int id;
     private final String partitionIdent;
-    private final BytesRef state;
+    private final String state;
     private final boolean orphanedPartition;
 
-    private static final BytesRef UNASSIGNED = new BytesRef("UNASSIGNED");
-    private static final BytesRef INITIALIZING = new BytesRef("INITIALIZING");
+    private static final String UNASSIGNED = "UNASSIGNED";
+    private static final String INITIALIZING = "INITIALIZING";
 
 
     public UnassignedShard(int shardId,
@@ -118,7 +117,7 @@ public final class UnassignedShard {
         return primary;
     }
 
-    public BytesRef state() {
+    public String state() {
         return state;
     }
 

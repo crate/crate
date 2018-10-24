@@ -36,14 +36,11 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.List;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.execution.engine.collect.NestableCollectExpression.objToBytesRef;
 import static io.crate.execution.engine.collect.NestableCollectExpression.withNullableProperty;
 
 public class SysJobsLogTableInfo extends StaticTableInfo {
@@ -67,27 +64,19 @@ public class SysJobsLogTableInfo extends StaticTableInfo {
 
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<JobContextLog>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<JobContextLog>>builder()
-            .put(SysJobsLogTableInfo.Columns.ID, () -> objToBytesRef(JobContextLog::id))
-            .put(SysJobsTableInfo.Columns.USERNAME, () -> objToBytesRef(JobContextLog::username))
-            .put(SysJobsLogTableInfo.Columns.STMT, () -> objToBytesRef(JobContextLog::statement))
+            .put(SysJobsLogTableInfo.Columns.ID, () -> forFunction(log -> log.id().toString()))
+            .put(SysJobsTableInfo.Columns.USERNAME, () -> forFunction(JobContextLog::username))
+            .put(SysJobsLogTableInfo.Columns.STMT, () -> forFunction(JobContextLog::statement))
             .put(SysJobsLogTableInfo.Columns.STARTED, () -> forFunction(JobContextLog::started))
             .put(SysJobsLogTableInfo.Columns.ENDED, () -> forFunction(JobContextLog::ended))
-            .put(SysJobsLogTableInfo.Columns.ERROR, () -> objToBytesRef(JobContextLog::errorMessage))
+            .put(SysJobsLogTableInfo.Columns.ERROR, () -> forFunction(JobContextLog::errorMessage))
             .put(Columns.CLASS, () -> withNullableProperty(JobContextLog::classification, c -> ImmutableMap.builder()
-                .put("type", new BytesRef(c.type().name()))
-                .put("labels", c.labels()
-                    .stream()
-                    .map(BytesRefs::toBytesRef)
-                    .toArray(BytesRef[]::new)
-                )
+                .put("type", c.type().name())
+                .put("labels", c.labels().toArray(new String[0]))
                 .build()
             ))
-            .put(Columns.CLASS_TYPE, () -> withNullableProperty(JobContextLog::classification, c -> new BytesRef(c.type().name())))
-            .put(Columns.CLASS_LABELS, () -> withNullableProperty(JobContextLog::classification, c -> c.labels()
-                .stream()
-                .map(BytesRefs::toBytesRef)
-                .toArray(BytesRef[]::new)
-            ))
+            .put(Columns.CLASS_TYPE, () -> withNullableProperty(JobContextLog::classification, c -> c.type().name()))
+            .put(Columns.CLASS_LABELS, () -> withNullableProperty(JobContextLog::classification, c -> c.labels().toArray(new String[0])))
             .build();
     }
 

@@ -53,9 +53,9 @@ public class SysRepositoriesTableInfo extends StaticTableInfo {
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<Repository>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<Repository>>builder()
             .put(SysRepositoriesTableInfo.Columns.NAME,
-                () -> NestableCollectExpression.objToBytesRef((Repository r) -> r.getMetadata().name()))
+                () -> NestableCollectExpression.forFunction((Repository r) -> r.getMetadata().name()))
             .put(SysRepositoriesTableInfo.Columns.TYPE,
-                () -> NestableCollectExpression.objToBytesRef((Repository r) -> r.getMetadata().type()))
+                () -> NestableCollectExpression.forFunction((Repository r) -> r.getMetadata().type()))
             .put(SysRepositoriesTableInfo.Columns.SETTINGS,
                 () -> NestableCollectExpression
                     .forFunction((Repository r) -> r.getMetadata().settings().getAsStructuredMap()))

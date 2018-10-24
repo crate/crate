@@ -57,13 +57,13 @@ public class SysHealthTableInfo extends StaticTableInfo {
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<TableHealth>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<TableHealth>>builder()
             .put(Columns.TABLE_NAME,
-                () -> NestableCollectExpression.objToBytesRef(TableHealth::getTableName))
+                () -> NestableCollectExpression.forFunction(TableHealth::getTableName))
             .put(Columns.TABLE_SCHEMA,
-                () -> NestableCollectExpression.objToBytesRef(TableHealth::getTableSchema))
+                () -> NestableCollectExpression.forFunction(TableHealth::getTableSchema))
             .put(Columns.PARTITION_IDENT,
-                () -> NestableCollectExpression.objToBytesRef(TableHealth::getPartitionIdent))
+                () -> NestableCollectExpression.forFunction(TableHealth::getPartitionIdent))
             .put(Columns.HEALTH,
-                () -> NestableCollectExpression.objToBytesRef(TableHealth::getHealth))
+                () -> NestableCollectExpression.forFunction(TableHealth::getHealth))
             .put(Columns.SEVERITY,
                 () -> NestableCollectExpression.forFunction(TableHealth::getSeverity))
             .put(Columns.MISSING_SHARDS,

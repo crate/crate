@@ -32,7 +32,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -66,7 +65,7 @@ public class RamAccountingBatchIteratorTest extends CrateUnitTest {
     @Test
     public void testNoCircuitBreaking() throws Exception {
         BatchIterator<Row> batchIterator = new RamAccountingBatchIterator<>(
-            TestingBatchIterators.ofValues(Arrays.asList(new BytesRef("a"), new BytesRef("b"), new BytesRef("c"))),
+            TestingBatchIterators.ofValues(Arrays.asList("a", "b", "c")),
             new RowAccountingWithEstimators(
                 ImmutableList.of(DataTypes.STRING),
                 new RamAccountingContext("test", NOOP_CIRCUIT_BREAKER)));
@@ -76,14 +75,13 @@ public class RamAccountingBatchIteratorTest extends CrateUnitTest {
         assertThat(
             consumer.getResult(),
             Matchers.contains(
-                new Object[] {new BytesRef("a")}, new Object[] {new BytesRef("b")}, new Object[] {new BytesRef("c")}));
+                new Object[] {"a"}, new Object[] {"b"}, new Object[] {"c"}));
     }
 
     @Test
     public void testCircuitBreaking() throws Exception {
         BatchIterator<Row> batchIterator = new RamAccountingBatchIterator<>(
-            TestingBatchIterators.ofValues(Arrays.asList(new BytesRef("aaa"), new BytesRef("bbb"), new BytesRef("ccc"),
-                                                         new BytesRef("ddd"), new BytesRef("eee"), new BytesRef("fff"))),
+            TestingBatchIterators.ofValues(Arrays.asList("aaa", "bbb", "ccc", "ddd", "eee", "fff")),
             new RowAccountingWithEstimators(
                 ImmutableList.of(DataTypes.STRING),
                 new RamAccountingContext(

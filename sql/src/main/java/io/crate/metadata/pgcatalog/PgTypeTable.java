@@ -36,7 +36,6 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Collections;
@@ -56,16 +55,16 @@ public class PgTypeTable extends StaticTableInfo {
         static final ColumnIdent TYPTYPMOD = new ColumnIdent("typtypmod");
     }
 
-    private static final BytesRef TYPTYPE = new BytesRef("b");
+    private static final String TYPTYPE = "b";
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<PGType>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PGType>>builder()
             .put(Columns.OID,
                 () -> NestableCollectExpression.forFunction(PGType::oid))
             .put(Columns.TYPNAME,
-                () -> NestableCollectExpression.objToBytesRef(PGType::typName))
+                () -> NestableCollectExpression.forFunction(PGType::typName))
             .put(Columns.TYPDELIM,
-                () -> NestableCollectExpression.objToBytesRef(PGType::typDelim))
+                () -> NestableCollectExpression.forFunction(PGType::typDelim))
             .put(Columns.TYPELEM,
                 () -> NestableCollectExpression.forFunction(PGType::typElem))
             .put(Columns.TYPTYPE,

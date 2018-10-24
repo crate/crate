@@ -24,12 +24,12 @@ package io.crate.metadata.information;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.reference.information.ColumnContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.expression.reference.information.ColumnContext;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.types.ByteType;
 import io.crate.types.DataTypes;
@@ -39,7 +39,6 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Map;
 
@@ -122,23 +121,23 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<ColumnContext>> expression() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ColumnContext>>builder()
             .put(Columns.TABLE_SCHEMA,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.info.ident().tableIdent().schema()))
+                () -> NestableCollectExpression.forFunction(r -> r.info.ident().tableIdent().schema()))
             .put(Columns.TABLE_NAME,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.info.ident().tableIdent().name()))
+                () -> NestableCollectExpression.forFunction(r -> r.info.ident().tableIdent().name()))
             .put(Columns.TABLE_CATALOG,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.info.ident().tableIdent().schema()))
+                () -> NestableCollectExpression.forFunction(r -> r.info.ident().tableIdent().schema()))
             .put(Columns.COLUMN_NAME,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.info.column().sqlFqn()))
+                () -> NestableCollectExpression.forFunction(r -> r.info.column().sqlFqn()))
             .put(Columns.ORDINAL_POSITION,
                 () -> NestableCollectExpression.forFunction(ColumnContext::getOrdinal))
             .put(Columns.DATA_TYPE,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.info.valueType().getName()))
+                () -> NestableCollectExpression.forFunction(r -> r.info.valueType().getName()))
             .put(Columns.COLUMN_DEFAULT,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.CHARACTER_MAXIMUM_LENGTH,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.CHARACTER_OCTET_LENGTH,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.NUMERIC_PRECISION,
                 () -> NestableCollectExpression.forFunction(r -> PRECISION_BY_TYPE_ID.get(r.info.valueType().id())))
             .put(Columns.NUMERIC_PRECISION_RADIX,
@@ -149,7 +148,7 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
                     return null;
                 }))
             .put(Columns.NUMERIC_SCALE,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.DATETIME_PRECISION,
                 () -> NestableCollectExpression.forFunction(r -> {
                     if (r.info.valueType() == DataTypes.TIMESTAMP) {
@@ -158,46 +157,46 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
                     return null;
                 }))
             .put(Columns.INTERVAL_TYPE,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.INTERVAL_PRECISION,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.CHARACTER_SET_CATALOG,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.CHARACTER_SET_SCHEMA,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.CHARACTER_SET_NAME,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.COLLATION_CATALOG,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.COLLATION_SCHEMA,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.COLLATION_NAME,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.DOMAIN_CATALOG,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.DOMAIN_SCHEMA,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.DOMAIN_NAME,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.USER_DEFINED_TYPE_CATALOG,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.USER_DEFINED_TYPE_SCHEMA,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.USER_DEFINED_TYPE_NAME,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.CHECK_REFERENCES,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.CHECK_ACTION,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.IS_GENERATED,
                 () -> NestableCollectExpression.forFunction(r -> r.info instanceof GeneratedReference))
             .put(Columns.IS_NULLABLE,
                 () -> NestableCollectExpression.forFunction(r ->
                     !r.tableInfo.primaryKey().contains(r.info.column()) && r.info.isNullable()))
             .put(Columns.GENERATION_EXPRESSION,
-                () -> NestableCollectExpression.objToBytesRef(r -> {
+                () -> NestableCollectExpression.forFunction(r -> {
                     if (r.info instanceof GeneratedReference) {
-                        return BytesRefs.toBytesRef(((GeneratedReference) r.info).formattedGeneratedExpression());
+                        return ((GeneratedReference) r.info).formattedGeneratedExpression();
                     }
                     return null;
                 }))

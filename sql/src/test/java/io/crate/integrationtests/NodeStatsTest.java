@@ -89,7 +89,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
                 break;
             }
         }
-        assertThat((String) threadPool.get("name"), is("generic"));
+        assertThat(threadPool.get("name"), is("generic"));
         assertThat((Integer) threadPool.get("active"), greaterThanOrEqualTo(0));
         assertThat((Long) threadPool.get("rejected"), greaterThanOrEqualTo(0L));
         assertThat((Integer) threadPool.get("largest"), greaterThanOrEqualTo(0));

@@ -23,7 +23,6 @@
 package io.crate.expression.reference.sys.shard;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.index.shard.DocsStats;
 import org.elasticsearch.index.shard.IndexShard;
@@ -43,7 +42,7 @@ public class ShardMinLuceneVersionExpressionTest extends CrateDummyClusterServic
         when(indexShard.minimumCompatibleVersion()).thenReturn(Version.LUCENE_6_6_1);
 
         ShardMinLuceneVersionExpression expr = new ShardMinLuceneVersionExpression();
-        BytesRef value = expr.value(indexShard);
-        assertThat(value.utf8ToString(), is(Version.LUCENE_7_2_1.toString()));
+        String value = expr.value(indexShard);
+        assertThat(value, is(Version.LUCENE_7_2_1.toString()));
     }
 }

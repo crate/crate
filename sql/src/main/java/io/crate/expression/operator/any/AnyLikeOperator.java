@@ -36,7 +36,6 @@ import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 import java.util.function.BiPredicate;
@@ -76,18 +75,15 @@ public final class AnyLikeOperator extends Operator<Object> {
     }
 
     private Boolean doEvaluate(Object left, Iterable<?> rightIterable) {
-        BytesRef rightBytesRef = (BytesRef) left;
-        String pattern = rightBytesRef.utf8ToString();
-
+        String pattern = (String) left;
         boolean hasNull = false;
         for (Object elem : rightIterable) {
             if (elem == null) {
                 hasNull = true;
                 continue;
             }
-            assert elem instanceof BytesRef || elem instanceof String : "elem must be BytesRef or String";
-
-            String elemValue = elem instanceof BytesRef ? ((BytesRef) elem).utf8ToString() : (String) elem;
+            assert elem instanceof String : "elem must be a String";
+            String elemValue = (String) elem;
             if (matches.test(elemValue, pattern)) {
                 return true;
             }

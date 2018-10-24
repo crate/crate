@@ -30,7 +30,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -59,8 +58,8 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest{
             .addPartitionedTable(
                 "create table parted_pk (id int primary key, date timestamp primary key) " +
                 "partitioned by (date)",
-                new PartitionName(new RelationName("doc", "parted_pk"), singletonList(new BytesRef("1395874800000"))).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pk"), singletonList(new BytesRef("1395961200000"))).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pk"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pk"), singletonList("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pk"), singletonList(null)).asIndexName()
             )
             .build();
@@ -148,6 +147,6 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest{
     public void testFilterOnPKAndVersionResultsInDocKeys() {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from bystring where name = 'foo' and _version = 2");
-        assertThat(query.docKeys().toString(), is("Optional[DocKeys{'foo', 2}]"));
+        assertThat(query.docKeys().toString(), is("Optional[DocKeys{foo, 2}]"));
     }
 }

@@ -23,23 +23,22 @@ package io.crate.expression.reference.sys.cluster;
 
 
 import io.crate.expression.NestableInput;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 
-public class ClusterNameExpression implements NestableInput<BytesRef> {
+public class ClusterNameExpression implements NestableInput<String> {
 
     public static final String NAME = "name";
-    private final BytesRef value;
+    private final String value;
 
     @Inject
     public ClusterNameExpression(Settings settings) {
-        this.value = new BytesRef(ClusterName.CLUSTER_NAME_SETTING.get(settings).value());
+        this.value = ClusterName.CLUSTER_NAME_SETTING.get(settings).value();
     }
 
     @Override
-    public BytesRef value() {
+    public String value() {
         return value;
     }
 

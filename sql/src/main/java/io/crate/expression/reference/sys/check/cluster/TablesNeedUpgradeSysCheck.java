@@ -30,7 +30,6 @@ import io.crate.expression.reference.sys.check.AbstractSysCheck;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -72,9 +71,8 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
     }
 
     @Override
-    public BytesRef description() {
-        String linkedDescriptionBuilder = DESCRIPTION + tablesNeedUpgrade + ' ' + LINK_PATTERN + ID;
-        return new BytesRef(linkedDescriptionBuilder);
+    public String description() {
+        return DESCRIPTION + tablesNeedUpgrade + ' ' + LINK_PATTERN + ID;
     }
 
     @Override
@@ -121,8 +119,8 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         @Override
         public void setNextRow(Row row) {
             // Row[0] = table_name, Row[1] = min_lucene_version
-            if (LuceneVersionChecks.isUpgradeRequired(((BytesRef) row.get(1)).utf8ToString())) {
-                tables.add(((BytesRef) row.get(0)).utf8ToString());
+            if (LuceneVersionChecks.isUpgradeRequired((String) row.get(1))) {
+                tables.add((String) row.get(0));
             }
         }
 

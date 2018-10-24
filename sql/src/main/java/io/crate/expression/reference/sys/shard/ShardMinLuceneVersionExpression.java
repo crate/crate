@@ -25,14 +25,13 @@ package io.crate.expression.reference.sys.shard;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.apache.lucene.store.AlreadyClosedException;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 
-public class ShardMinLuceneVersionExpression extends NestableCollectExpression<ShardRowContext, BytesRef> {
+public class ShardMinLuceneVersionExpression extends NestableCollectExpression<ShardRowContext, String> {
 
-    private BytesRef value;
+    private String value;
 
     @Override
     public void setNextRow(ShardRowContext shardRowContext) {
@@ -40,7 +39,7 @@ public class ShardMinLuceneVersionExpression extends NestableCollectExpression<S
     }
 
     @VisibleForTesting
-    BytesRef value(IndexShard indexShard) {
+    String value(IndexShard indexShard) {
         long numDocs;
         try {
             numDocs = indexShard.docStats().getCount();
@@ -53,18 +52,18 @@ public class ShardMinLuceneVersionExpression extends NestableCollectExpression<S
             // That would cause `TableNeedsUpgradeSysCheck` to trigger a warning
             //
             // If a new segment is created in an empty shard it will use the newer lucene version
-            return new BytesRef(Version.CURRENT.luceneVersion.toString());
+            return Version.CURRENT.luceneVersion.toString();
         }
 
         try {
-            return new BytesRef(indexShard.minimumCompatibleVersion().toString());
+            return indexShard.minimumCompatibleVersion().toString();
         } catch (AlreadyClosedException e) {
             return null;
         }
     }
 
     @Override
-    public BytesRef value() {
+    public String value() {
         return value;
     }
 }

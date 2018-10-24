@@ -22,9 +22,9 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -98,7 +98,7 @@ class ClientMessages {
 
         int paramsLength = 0;
         for (Object param : params) {
-            BytesRef value = DataTypes.STRING.value(param);
+            BytesRef value = BytesRefs.toBytesRef(param);
             buffer.writeInt(value.length);
             // the strings here are _not_ zero-padded because we specify the length upfront
             buffer.writeBytes(value.bytes, value.offset, value.length);

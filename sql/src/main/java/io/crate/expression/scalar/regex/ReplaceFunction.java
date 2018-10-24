@@ -21,29 +21,27 @@
 
 package io.crate.expression.scalar.regex;
 
+import io.crate.data.Input;
+import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Input;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class ReplaceFunction extends Scalar<BytesRef, Object> implements FunctionResolver {
+public class ReplaceFunction extends Scalar<String, Object> implements FunctionResolver {
 
     public static final String NAME = "regexp_replace";
 
@@ -88,35 +86,34 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Functio
         final Input input = (Input) arguments.get(0);
         final Input pattern = (Input) arguments.get(1);
         final Input replacement = (Input) arguments.get(2);
-        final Object inputValue = input.value();
-        final Object patternValue = pattern.value();
-        final String replacementValue = BytesRefs.toString(replacement.value());
+        final String inputValue = (String) input.value();
+        final String patternValue = (String) pattern.value();
+        final String replacementValue = (String) replacement.value();
         if (inputValue == null || patternValue == null || replacementValue == null) {
             return Literal.NULL;
         }
 
         String flags = null;
         if (size == 4) {
-            flags = BytesRefs.toString(((Input) arguments.get(3)).value());
+            flags = (String) ((Input) arguments.get(3)).value();
         }
-        return Literal.of(
-            eval(BytesRefs.toBytesRef(inputValue), BytesRefs.toString(patternValue), replacementValue, flags));
+        return Literal.of(eval(inputValue, patternValue, replacementValue, flags));
     }
 
     @Override
-    public Scalar<BytesRef, Object> compile(List<Symbol> arguments) {
+    public Scalar<String, Object> compile(List<Symbol> arguments) {
         assert arguments.size() >= 3 : "number of arguments muts be > 3";
 
         Symbol patternSymbol = arguments.get(1);
         if (patternSymbol instanceof Input) {
-            String pattern = BytesRefs.toString(((Input) patternSymbol).value());
+            String pattern = (String) ((Input) patternSymbol).value();
             if (pattern == null) {
                 return this;
             }
             if (arguments.size() == 4) {
                 Symbol flagsSymbol = arguments.get(3);
                 if (flagsSymbol instanceof Input) {
-                    String flags = BytesRefs.toString(((Input) flagsSymbol).value());
+                    String flags = (String) ((Input) flagsSymbol).value();
                     regexMatcher = new RegexMatcher(pattern, flags);
                 }
             }
@@ -125,11 +122,11 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Functio
     }
 
     @Override
-    public BytesRef evaluate(Input[] args) {
+    public String evaluate(Input[] args) {
         assert args.length == 3 || args.length == 4 : "number of args must be 3 or 4";
-        BytesRef val = BytesRefs.toBytesRef(args[0].value());
-        String pattern = BytesRefs.toString(args[1].value());
-        String replacement = BytesRefs.toString(args[2].value());
+        String val = (String) args[0].value();
+        String pattern = (String) args[1].value();
+        String replacement = (String) args[2].value();
         if (val == null || pattern == null || replacement == null) {
             return null;
         }
@@ -137,7 +134,7 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Functio
         if (regexMatcher == null) {
             String flags = null;
             if (args.length == 4) {
-                flags = BytesRefs.toString(args[3].value());
+                flags = (String) args[3].value();
             }
             matcher = new RegexMatcher(pattern, flags);
         } else {
@@ -157,7 +154,7 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Functio
         return funcParams.match(dataTypes);
     }
 
-    private static BytesRef eval(BytesRef value, String pattern, String replacement, @Nullable String flags) {
+    private static String eval(String value, String pattern, String replacement, @Nullable String flags) {
         RegexMatcher regexMatcher = new RegexMatcher(pattern, flags);
         return regexMatcher.replace(value, replacement);
     }

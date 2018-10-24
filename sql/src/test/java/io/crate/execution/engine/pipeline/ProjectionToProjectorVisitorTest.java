@@ -61,7 +61,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -236,10 +235,10 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             new Boolean[]{null});
         Projector topNProjector = visitor.create(topNProjection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
 
-        BytesRef human = new BytesRef("human");
-        BytesRef vogon = new BytesRef("vogon");
-        BytesRef male = new BytesRef("male");
-        BytesRef female = new BytesRef("female");
+        String human = "human";
+        String vogon = "vogon";
+        String male = "male";
+        String female = "female";
 
         List<Object[]> rows = new ArrayList<>();
         rows.add($(human, 34, male));

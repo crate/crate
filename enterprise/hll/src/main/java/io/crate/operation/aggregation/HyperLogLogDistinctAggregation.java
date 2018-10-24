@@ -319,7 +319,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
             @Override
             long hash(Object val) {
-                final BytesRef bytes = DataTypes.STRING.value(val);
+                final BytesRef bytes = new BytesRef(DataTypes.STRING.value(val));
                 MurmurHash3.hash128(bytes.bytes, bytes.offset, bytes.length, 0, hash);
                 return hash.h1;
             }

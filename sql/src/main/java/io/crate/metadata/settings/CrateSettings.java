@@ -36,7 +36,6 @@ import io.crate.settings.SharedSettings;
 import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.InternalClusterInfoService;
@@ -50,7 +49,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocation
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ServerLoggers;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoverySettings;
@@ -237,9 +235,6 @@ public final class CrateSettings implements ClusterStateListener {
                 flattenSettings(settingsBuilder, DOT_JOINER.join(key, setting.getKey()), setting.getValue());
             }
         } else {
-            if (value instanceof BytesRef) {
-                value = BytesRefs.toString(value);
-            }
             settingsBuilder.put(key, value.toString());
         }
     }

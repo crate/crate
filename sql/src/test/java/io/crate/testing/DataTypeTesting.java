@@ -43,7 +43,6 @@ import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -75,14 +74,14 @@ public class DataTypeTesting {
                 return () -> (T) (Boolean) random.nextBoolean();
 
             case StringType.ID:
-                return () -> (T) new BytesRef(RandomizedTest.randomAsciiLettersOfLength(random.nextInt(10)));
+                return () -> (T) RandomizedTest.randomAsciiLettersOfLength(random.nextInt(10));
 
             case IpType.ID:
                 return () -> {
                     if (random.nextBoolean()) {
-                        return (T) new BytesRef(randomIPv4Address(random));
+                        return (T) randomIPv4Address(random);
                     } else {
-                        return (T) new BytesRef(randomIPv6Address(random));
+                        return (T) randomIPv6Address(random);
                     }
                 };
 

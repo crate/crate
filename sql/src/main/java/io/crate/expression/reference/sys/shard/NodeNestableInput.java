@@ -35,9 +35,9 @@ public class NodeNestableInput extends ObjectCollectExpression<ShardRowContext> 
     }
 
     private void addChildImplementations() {
-        childImplementations.put(ID, NestableCollectExpression.<ShardRowContext>objToBytesRef(
+        childImplementations.put(ID, NestableCollectExpression.<ShardRowContext, String>forFunction(
             r -> r.clusterService().localNode().getId()));
-        childImplementations.put(NAME, NestableCollectExpression.<ShardRowContext>objToBytesRef(
+        childImplementations.put(NAME, NestableCollectExpression.<ShardRowContext, String>forFunction(
             r -> r.clusterService().localNode().getName()));
     }
 }

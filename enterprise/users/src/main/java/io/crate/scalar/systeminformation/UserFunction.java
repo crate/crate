@@ -19,24 +19,23 @@
 package io.crate.scalar.systeminformation;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.auth.user.User;
+import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.FunctionFormatSpec;
-import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.auth.user.User;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Locale;
 
-public class UserFunction extends Scalar<BytesRef, Object> implements FunctionFormatSpec {
+public class UserFunction extends Scalar<String, Object> implements FunctionFormatSpec {
 
     public static final String CURRENT_USER_FUNCTION_NAME = "current_user";
     public static final String SESSION_USER_FUNCTION_NAME = "session_user";
@@ -59,7 +58,7 @@ public class UserFunction extends Scalar<BytesRef, Object> implements FunctionFo
     }
 
     @Override
-    public BytesRef evaluate(Input<Object>... args) {
+    public String evaluate(Input<Object>... args) {
         assert args.length == 0 : "number of args must be 0";
         throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Cannot evaluate %s function", name));
     }

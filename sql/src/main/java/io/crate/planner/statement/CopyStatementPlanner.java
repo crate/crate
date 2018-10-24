@@ -42,8 +42,8 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.pipeline.TopN;
-import io.crate.expression.reference.file.SourceUriExpression;
 import io.crate.expression.reference.file.SourceLineNumberExpression;
+import io.crate.expression.reference.file.SourceUriExpression;
 import io.crate.expression.reference.file.SourceUriFailureExpression;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
@@ -66,7 +66,6 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 
@@ -167,7 +166,7 @@ public final class CopyStatementPlanner {
         DocTableInfo table = copyFrom.table();
         String partitionIdent = copyFrom.partitionIdent();
         List<String> partitionedByNames = Collections.emptyList();
-        List<BytesRef> partitionValues = Collections.emptyList();
+        List<String> partitionValues = Collections.emptyList();
         if (partitionIdent == null) {
             if (table.isPartitioned()) {
                 partitionedByNames = Lists2.map(table.partitionedBy(), ColumnIdent::fqn);
@@ -296,7 +295,7 @@ public final class CopyStatementPlanner {
     }
 
     private static void rewriteToCollectToUsePartitionValues(List<Reference> partitionedByColumns,
-                                                             List<BytesRef> partitionValues,
+                                                             List<String> partitionValues,
                                                              List<Symbol> toCollect) {
         for (int i = 0; i < partitionValues.size(); i++) {
             Reference partitionedByColumn = partitionedByColumns.get(i);

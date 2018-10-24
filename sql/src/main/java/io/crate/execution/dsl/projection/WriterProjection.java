@@ -72,7 +72,7 @@ public class WriterProjection extends Projection {
         new FunctionIdent(FormatFunction.NAME, Arrays.<DataType>asList(StringType.INSTANCE,
             StringType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE)),
         StringType.INSTANCE),
-        Arrays.<Symbol>asList(Literal.of("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF)
+        Arrays.asList(Literal.of("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF)
     );
 
     private Symbol uri;

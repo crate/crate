@@ -23,8 +23,6 @@
 package io.crate.expression.reference.sys.check;
 
 
-import org.apache.lucene.util.BytesRef;
-
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.concurrent.CompletableFuture;
 
@@ -55,7 +53,7 @@ public interface SysCheck {
     /**
      * Returns the message description relevant for the check.
      */
-    BytesRef description();
+    String description();
 
     /**
      * Returns the level of {@link Severity} for the check.

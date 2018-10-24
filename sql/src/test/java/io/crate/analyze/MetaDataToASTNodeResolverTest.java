@@ -40,7 +40,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
@@ -85,7 +84,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 new String[0],
                 new IndexNameExpressionResolver(Settings.EMPTY),
                 numberOfShards,
-                new BytesRef(numberOfReplicas),
+                numberOfReplicas,
                 tableParameters,
                 partitionedBy,
                 ImmutableList.of(),

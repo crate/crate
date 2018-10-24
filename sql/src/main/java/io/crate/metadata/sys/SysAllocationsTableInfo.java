@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.reference.sys.shard.SysAllocation;
+import io.crate.expression.reference.sys.shard.SysAllocationDecisionsExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -35,12 +37,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.expression.reference.sys.shard.SysAllocation;
-import io.crate.expression.reference.sys.shard.SysAllocationDecisionsExpression;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.HashMap;
 import java.util.List;
@@ -71,58 +69,52 @@ public class SysAllocationsTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<SysAllocation>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysAllocation>>builder()
             .put(Columns.TABLE_SCHEMA,
-                () -> NestableCollectExpression.objToBytesRef(SysAllocation::tableSchema))
+                () -> NestableCollectExpression.forFunction(SysAllocation::tableSchema))
             .put(Columns.TABLE_NAME,
-                () -> NestableCollectExpression.objToBytesRef(SysAllocation::tableName))
+                () -> NestableCollectExpression.forFunction(SysAllocation::tableName))
             .put(Columns.PARTITION_IDENT,
-                () -> NestableCollectExpression.objToBytesRef(SysAllocation::partitionIdent))
+                () -> NestableCollectExpression.forFunction(SysAllocation::partitionIdent))
             .put(Columns.SHARD_ID,
                 () -> NestableCollectExpression.forFunction(SysAllocation::shardId))
             .put(Columns.NODE_ID,
-                () -> NestableCollectExpression.objToBytesRef(SysAllocation::nodeId))
+                () -> NestableCollectExpression.forFunction(SysAllocation::nodeId))
             .put(Columns.PRIMARY,
                 () -> NestableCollectExpression.forFunction(SysAllocation::primary))
             .put(Columns.CURRENT_STATE,
-                () -> NestableCollectExpression.objToBytesRef(SysAllocation::currentState))
+                () -> NestableCollectExpression.forFunction(SysAllocation::currentState))
             .put(Columns.EXPLANATION,
-                () -> NestableCollectExpression.objToBytesRef(SysAllocation::explanation))
+                () -> NestableCollectExpression.forFunction(SysAllocation::explanation))
             .put(Columns.DECISIONS,
                 () -> new SysAllocationDecisionsExpression<Map<String, Object>>() {
 
                     @Override
                     protected Map<String, Object> valueForItem(SysAllocation.SysAllocationNodeDecision input) {
                         Map<String, Object> decision = new HashMap<>(3);
-                        decision.put(Columns.DECISIONS_NODE_ID.path().get(0),
-                            BytesRefs.toBytesRef(input.nodeId()));
-                        decision.put(Columns.DECISIONS_NODE_NAME.path().get(0),
-                            BytesRefs.toBytesRef(input.nodeName()));
-                        decision.put(Columns.DECISIONS_EXPLANATIONS.path().get(0),
-                            input.explanationsAsBytesRefs());
+                        decision.put(Columns.DECISIONS_NODE_ID.path().get(0), input.nodeId());
+                        decision.put(Columns.DECISIONS_NODE_NAME.path().get(0), input.nodeName());
+                        decision.put(Columns.DECISIONS_EXPLANATIONS.path().get(0), input.explanations());
                         return decision;
                     }
                 })
-            .put(Columns.DECISIONS_NODE_ID,
-                () -> new SysAllocationDecisionsExpression<BytesRef>() {
+            .put(Columns.DECISIONS_NODE_ID, () -> new SysAllocationDecisionsExpression<String>() {
 
                     @Override
-                    protected BytesRef valueForItem(SysAllocation.SysAllocationNodeDecision input) {
-                        return BytesRefs.toBytesRef(input.nodeId());
+                    protected String valueForItem(SysAllocation.SysAllocationNodeDecision input) {
+                        return input.nodeId();
                     }
                 })
-            .put(Columns.DECISIONS_NODE_NAME,
-                () -> new SysAllocationDecisionsExpression<BytesRef>() {
+            .put(Columns.DECISIONS_NODE_NAME, () -> new SysAllocationDecisionsExpression<String>() {
 
                     @Override
-                    protected BytesRef valueForItem(SysAllocation.SysAllocationNodeDecision input) {
-                        return BytesRefs.toBytesRef(input.nodeName());
+                    protected String valueForItem(SysAllocation.SysAllocationNodeDecision input) {
+                        return input.nodeName();
                     }
                 })
-            .put(Columns.DECISIONS_EXPLANATIONS,
-                () -> new SysAllocationDecisionsExpression<BytesRef[]>() {
+            .put(Columns.DECISIONS_EXPLANATIONS, () -> new SysAllocationDecisionsExpression<String[]>() {
 
                     @Override
-                    protected BytesRef[] valueForItem(SysAllocation.SysAllocationNodeDecision input) {
-                        return input.explanationsAsBytesRefs();
+                    protected String[] valueForItem(SysAllocation.SysAllocationNodeDecision input) {
+                        return input.explanations();
                     }
                 })
             .build();

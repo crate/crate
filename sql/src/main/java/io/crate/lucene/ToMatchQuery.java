@@ -41,7 +41,6 @@ import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -82,7 +81,7 @@ class ToMatchQuery implements FunctionToQuery {
         String fieldName = ((String) Iterables.getOnlyElement(fields.keySet()));
         MappedFieldType fieldType = context.mapperService.fullName(fieldName);
         GeoShapeFieldMapper.GeoShapeFieldType geoShapeFieldType = (GeoShapeFieldMapper.GeoShapeFieldType) fieldType;
-        String matchType = ((BytesRef) ((Input) arguments.get(2)).value()).utf8ToString();
+        String matchType = (String) ((Input) arguments.get(2)).value();
         @SuppressWarnings("unchecked")
         Shape shape = GeoJSONUtils.map2Shape((Map<String, Object>) queryTerm);
 
@@ -132,8 +131,8 @@ class ToMatchQuery implements FunctionToQuery {
     private static Query stringMatch(LuceneQueryBuilder.Context context, List<Symbol> arguments, Object queryTerm) throws IOException {
         @SuppressWarnings("unchecked")
         Map<String, Object> fields = (Map) ((Literal) arguments.get(0)).value();
-        BytesRef queryString = (BytesRef) queryTerm;
-        BytesRef matchType = (BytesRef) ((Literal) arguments.get(2)).value();
+        String queryString = (String) queryTerm;
+        String matchType = (String) ((Literal) arguments.get(2)).value();
         //noinspection unchecked
         Map<String, Object> options = (Map<String, Object>) ((Literal) arguments.get(3)).value();
 
@@ -159,7 +158,7 @@ class ToMatchQuery implements FunctionToQuery {
                 context.queryShardContext,
                 matchType,
                 (Map<String, Float>) (Map) fields,
-                queryString.utf8ToString(),
+                queryString,
                 options
             );
         }
@@ -167,8 +166,8 @@ class ToMatchQuery implements FunctionToQuery {
 
     private static Query singleMatchQuery(QueryShardContext queryShardContext,
                                           Map.Entry<String, Object> entry,
-                                          BytesRef queryString,
-                                          BytesRef matchType,
+                                          String queryString,
+                                          String matchType,
                                           Map<String, Object> options) throws IOException {
         Query query = MatchQueries.singleMatch(
             queryShardContext,

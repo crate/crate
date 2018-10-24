@@ -23,20 +23,19 @@
 package io.crate.expression.reference.sys.check.node;
 
 import io.crate.expression.reference.sys.check.SysCheck;
-import org.apache.lucene.util.BytesRef;
 
 public interface SysNodeCheck extends SysCheck {
 
     /**
      * Returns the unique id of the checked node.
      */
-    BytesRef nodeId();
+    String nodeId();
 
     boolean acknowledged();
 
     void acknowledged(boolean value);
 
-    BytesRef rowId();
+    String rowId();
 
-    void setNodeId(BytesRef nodeId);
+    void setNodeId(String nodeId);
 }

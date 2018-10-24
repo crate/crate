@@ -24,7 +24,6 @@ package io.crate.protocols.postgres.types;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -88,7 +87,7 @@ public class PGTypesTest extends CrateUnitTest {
     @Test
     public void testByteReadWrite() throws Exception {
         for (Entry entry : ImmutableList.of(
-            new Entry(DataTypes.STRING, TestingHelpers.bytesRef("foobar", random())),
+            new Entry(DataTypes.STRING, "foobar"),
             new Entry(DataTypes.LONG, 392873L),
             new Entry(DataTypes.INTEGER, 1234),
             new Entry(DataTypes.SHORT, (short) 42),
@@ -99,13 +98,13 @@ public class PGTypesTest extends CrateUnitTest {
             new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-05-08T16:34:33.123")),
             new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value(999999999999999L)),
             new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value(-999999999999999L)),
-            new Entry(DataTypes.IP, TestingHelpers.bytesRef("192.168.1.1", random())),
+            new Entry(DataTypes.IP, "192.168.1.1"),
             new Entry(DataTypes.BYTE, (byte) 20),
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[]{10, null, 20}),
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[0]),
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[]{null, null}),
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[][]{new Integer[]{10, null, 20}, new Integer[]{1, 2, 3}}),
-            new Entry(new SetType(DataTypes.STRING), new Object[]{TestingHelpers.bytesRef("test", random())}),
+            new Entry(new SetType(DataTypes.STRING), new Object[]{"test"}),
             new Entry(new SetType(DataTypes.INTEGER), new Integer[]{10, null, 20})
         )) {
 

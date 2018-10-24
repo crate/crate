@@ -67,23 +67,23 @@ public class InformationTableConstraintsTableInfo extends InformationTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<ConstraintInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ConstraintInfo>>builder()
             .put(Columns.CONSTRAINT_CATALOG,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.relationName().schema()))
+                () -> NestableCollectExpression.forFunction(r -> r.relationName().schema()))
             .put(Columns.CONSTRAINT_SCHEMA,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.relationName().schema()))
+                () -> NestableCollectExpression.forFunction(r -> r.relationName().schema()))
             .put(Columns.CONSTRAINT_NAME,
-                () -> NestableCollectExpression.objToBytesRef(ConstraintInfo::constraintName))
+                () -> NestableCollectExpression.forFunction(ConstraintInfo::constraintName))
             .put(Columns.TABLE_CATALOG,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.relationName().schema()))
+                () -> NestableCollectExpression.forFunction(r -> r.relationName().schema()))
             .put(Columns.TABLE_SCHEMA,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.relationName().schema()))
+                () -> NestableCollectExpression.forFunction(r -> r.relationName().schema()))
             .put(Columns.TABLE_NAME,
-                () -> NestableCollectExpression.objToBytesRef(r -> r.relationName().name()))
+                () -> NestableCollectExpression.forFunction(r -> r.relationName().name()))
             .put(Columns.CONSTRAINT_TYPE,
-                () -> NestableCollectExpression.objToBytesRef(ConstraintInfo::constraintType))
+                () -> NestableCollectExpression.forFunction(r -> r.constraintType().toString()))
             .put(Columns.IS_DEFERRABLE,
-                () -> NestableCollectExpression.objToBytesRef(r -> "NO"))
+                () -> NestableCollectExpression.constant("NO"))
             .put(Columns.INITIALLY_DEFERRED,
-                () -> NestableCollectExpression.objToBytesRef(r -> "NO"))
+                () -> NestableCollectExpression.constant("NO"))
             .build();
     }
 

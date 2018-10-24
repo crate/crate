@@ -28,8 +28,6 @@ import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.expression.reference.information.TableExpressions;
 import io.crate.metadata.PartitionInfo;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Map;
 
@@ -70,10 +68,10 @@ public class PartitionsVersionExpression extends ObjectCollectExpression<Partiti
         }
     }
 
-    static class PartitionCrateVersionExpression extends NestableCollectExpression<PartitionInfo, BytesRef> {
+    static class PartitionCrateVersionExpression extends NestableCollectExpression<PartitionInfo, String> {
 
         private final Version.Property property;
-        private BytesRef value;
+        private String value;
 
         PartitionCrateVersionExpression(Version.Property property) {
             this.property = property;
@@ -82,19 +80,19 @@ public class PartitionsVersionExpression extends ObjectCollectExpression<Partiti
         @Override
         public void setNextRow(PartitionInfo row) {
             Version version = TableExpressions.getVersion(row, property);
-            value = version == null ? null : BytesRefs.toBytesRef(version.number());
+            value = version == null ? null : version.number();
         }
 
         @Override
-        public BytesRef value() {
+        public String value() {
             return value;
         }
     }
 
-    static class PartitionESVersionExpression extends NestableCollectExpression<PartitionInfo, BytesRef> {
+    static class PartitionESVersionExpression extends NestableCollectExpression<PartitionInfo, String> {
 
         private final Version.Property property;
-        private BytesRef value;
+        private String value;
 
         PartitionESVersionExpression(Version.Property property) {
             this.property = property;
@@ -103,11 +101,11 @@ public class PartitionsVersionExpression extends ObjectCollectExpression<Partiti
         @Override
         public void setNextRow(PartitionInfo row) {
             Version version = TableExpressions.getVersion(row, property);
-            value = version == null ? null : BytesRefs.toBytesRef(version.esVersion.toString());
+            value = version == null ? null : version.esVersion.toString();
         }
 
         @Override
-        public BytesRef value() {
+        public String value() {
             return value;
         }
     }

@@ -86,10 +86,10 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
@@ -291,7 +291,7 @@ public class ProjectionToProjectorVisitor
         }
 
         projection = projection.normalize(normalizer, context.transactionContext);
-        String uri = BytesRefs.toString(
+        String uri = DataTypes.STRING.value(
             SymbolEvaluator.evaluate(functions, projection.uri(), Row.EMPTY, SubQueryResults.EMPTY));
         assert uri != null : "URI must not be null";
 
@@ -301,7 +301,7 @@ public class ProjectionToProjectorVisitor
         assert resolvedFileName.valueType() == StringType.INSTANCE :
             "resolvedFileName.valueType() must be " + StringType.INSTANCE;
 
-        String fileName = BytesRefs.toString(((Literal) resolvedFileName).value());
+        String fileName = (String) ((Literal) resolvedFileName).value();
         if (!uri.endsWith("/")) {
             sb.append("/");
         }

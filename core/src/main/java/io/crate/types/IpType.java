@@ -21,7 +21,6 @@
 
 package io.crate.types;
 
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.network.InetAddresses;
 
 import java.util.Locale;
@@ -37,26 +36,20 @@ public class IpType extends StringType {
     }
 
     @Override
-    public BytesRef value(Object value) {
+    public String value(Object value) {
         if (value == null) {
             return null;
         }
-        if (value instanceof BytesRef) {
-            BytesRef ip = (BytesRef) value;
-            validate(ip.utf8ToString());
-            return ip;
-        }
         if (value instanceof String) {
             validate((String) value);
-            return new BytesRef((String) value);
+            return (String) value;
         } else {
             long longIp = ((Number) value).longValue();
             if (longIp < 0) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Failed to convert long value: %s to ipv4 address)",
                     longIp));
             }
-            String strIp = longToIp(longIp);
-            return new BytesRef(strIp);
+            return longToIp(longIp);
         }
     }
 

@@ -55,7 +55,6 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Before;
@@ -91,8 +90,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp," +
                 "   city string" +
                 ") clustered by (city) partitioned by (date) ",
-                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList(new BytesRef("1395874800000"))).asIndexName(),
-                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList(new BytesRef("1395961200000"))).asIndexName()
+                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395961200000")).asIndexName()
             )
             .addPartitionedTable(
                 "create table doc.empty_parted (" +

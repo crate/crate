@@ -22,7 +22,6 @@
 
 package io.crate.execution.dml.upsert;
 
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 
@@ -37,6 +36,6 @@ public class FromRawInsertSource implements InsertSourceGen {
 
     @Override
     public BytesReference generateSource(Object[] values) throws IOException {
-        return new BytesArray((BytesRef) values[0]);
+        return new BytesArray(((String) values[0]));
     }
 }

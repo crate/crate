@@ -36,7 +36,6 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Collections;
@@ -58,7 +57,7 @@ public class PgNamespaceTable extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>>builder()
             .put(Columns.OID, () -> NestableCollectExpression.forFunction(s -> schemaOid(s.name())))
-            .put(Columns.NSPNAME, () -> NestableCollectExpression.objToBytesRef(s -> new BytesRef(s.name())))
+            .put(Columns.NSPNAME, () -> NestableCollectExpression.forFunction(SchemaInfo::name))
             .put(Columns.NSPOWNER, () -> NestableCollectExpression.constant(0))
             .put(Columns.NSPACL, () -> NestableCollectExpression.constant(null))
             .build();

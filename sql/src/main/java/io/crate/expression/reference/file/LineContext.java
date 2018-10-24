@@ -22,11 +22,10 @@
 package io.crate.expression.reference.file;
 
 import io.crate.metadata.ColumnIdent;
-import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.UnicodeUtil;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.compress.NotXContentException;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 
@@ -38,14 +37,16 @@ public class LineContext {
 
     private byte[] rawSource;
     private Map<String, Object> parsedSource;
-    private BytesRef currentUri;
+    private String currentUri;
     private String currentUriFailure;
     private long currentLineNumber = 0;
 
     @Nullable
-    BytesRef sourceAsBytesRef() {
+    String sourceAsString() {
         if (rawSource != null) {
-            return new BytesRef(rawSource);
+            char[] chars = new char[rawSource.length];
+            int len = UnicodeUtil.UTF8toUTF16(rawSource, 0, rawSource.length, chars);
+            return new String(chars, 0, len);
         }
         return null;
     }
@@ -69,11 +70,7 @@ public class LineContext {
         if (parentMap == null) {
             return null;
         }
-        Object val = ColumnIdent.get(parentMap, columnIdent);
-        if (val instanceof String) {
-            return new BytesRef((String) val);
-        }
-        return val;
+        return ColumnIdent.get(parentMap, columnIdent);
     }
 
     public void rawSource(byte[] bytes) {
@@ -86,11 +83,11 @@ public class LineContext {
      * Any existing URI processing failure must have been consumed already as it will be overwritten/reset.
      */
     public void currentUri(URI currentUri) {
-        this.currentUri = BytesRefs.toBytesRef(currentUri.toString());
+        this.currentUri = currentUri.toString();
         currentUriFailure = null;
     }
 
-    BytesRef currentUri() {
+    String currentUri() {
         return currentUri;
     }
 

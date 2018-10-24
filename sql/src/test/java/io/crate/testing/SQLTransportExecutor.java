@@ -628,7 +628,6 @@ public class SQLTransportExecutor {
             }
 
             Object[][] rowsArr = rows.toArray(new Object[0][]);
-            BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rowsArr);
             return new SQLResponse(
                 outputNames,
                 rowsArr,

@@ -22,7 +22,6 @@
 
 package io.crate.expression.reference;
 
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.get.GetResult;
 
@@ -33,7 +32,7 @@ import java.util.function.Supplier;
 public final class Doc {
 
     private final Map<String, Object> source;
-    private final Supplier<BytesRef> raw;
+    private final Supplier<String> raw;
     private final boolean exists;
     private final String index;
     private final String id;
@@ -45,7 +44,7 @@ public final class Doc {
             result.getId(),
             result.getVersion(),
             result.getSource(),
-            () -> result.sourceRef().toBytesRef(),
+            () -> result.sourceRef().utf8ToString(),
             result.isExists()
         );
     }
@@ -54,7 +53,7 @@ public final class Doc {
                String id,
                long version,
                Map<String, Object> source,
-               Supplier<BytesRef> raw,
+               Supplier<String> raw,
                boolean exists) {
         this.index = index;
         this.id = id;
@@ -72,7 +71,7 @@ public final class Doc {
         return id;
     }
 
-    public BytesRef getRaw() {
+    public String getRaw() {
         return raw.get();
     }
 
@@ -96,7 +95,7 @@ public final class Doc {
             updatedSource,
             () -> {
                 try {
-                    return XContentFactory.jsonBuilder().map(updatedSource).bytes().toBytesRef();
+                    return XContentFactory.jsonBuilder().map(updatedSource).bytes().utf8ToString();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

@@ -23,8 +23,6 @@
 package io.crate.expression.reference.sys.shard;
 
 import io.crate.expression.reference.ObjectCollectExpression;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.indices.recovery.RecoveryState;
 
 public class ShardRecoveryExpression extends ObjectCollectExpression<ShardRowContext> {
@@ -46,16 +44,16 @@ public class ShardRecoveryExpression extends ObjectCollectExpression<ShardRowCon
                 return recoveryState.getTimer().time();
             }
         });
-        childImplementations.put(STAGE, new ShardRecoveryStateExpression<BytesRef>() {
+        childImplementations.put(STAGE, new ShardRecoveryStateExpression<String>() {
             @Override
-            public BytesRef innerValue(RecoveryState recoveryState) {
-                return BytesRefs.toBytesRef(recoveryState.getStage().name());
+            public String innerValue(RecoveryState recoveryState) {
+                return recoveryState.getStage().name();
             }
         });
-        childImplementations.put(TYPE, new ShardRecoveryStateExpression<BytesRef>() {
+        childImplementations.put(TYPE, new ShardRecoveryStateExpression<String>() {
             @Override
-            public BytesRef innerValue(RecoveryState recoveryState) {
-                return BytesRefs.toBytesRef(recoveryState.getRecoverySource().getType().name());
+            public String innerValue(RecoveryState recoveryState) {
+                return recoveryState.getRecoverySource().getType().name();
             }
         });
         childImplementations.put(SIZE, new ShardRecoverySizeExpression());

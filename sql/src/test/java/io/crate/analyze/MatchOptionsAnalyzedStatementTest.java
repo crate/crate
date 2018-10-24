@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -34,8 +33,8 @@ public class MatchOptionsAnalyzedStatementTest extends CrateUnitTest {
     @Test
     public void testValidOptions() throws Exception {
         Map<String, Object> options = new HashMap<>();
-        options.put("analyzer", new BytesRef("english"));
-        options.put("operator", new BytesRef("and"));
+        options.put("analyzer", "english");
+        options.put("operator", "and");
         options.put("fuzziness", 12);
         // no exception raised
         MatchOptionsAnalysis.validate(options);
@@ -47,7 +46,7 @@ public class MatchOptionsAnalyzedStatementTest extends CrateUnitTest {
         expectedException.expectMessage("unknown match option 'analyzer_wrong'");
 
         Map<String, Object> options = new HashMap<>();
-        options.put("analyzer_wrong", new BytesRef("english"));
+        options.put("analyzer_wrong", "english");
         MatchOptionsAnalysis.validate(options);
     }
 
@@ -57,7 +56,7 @@ public class MatchOptionsAnalyzedStatementTest extends CrateUnitTest {
         expectedException.expectMessage("invalid value for option 'max_expansions': abc");
 
         Map<String, Object> options = new HashMap<>();
-        options.put("max_expansions", new BytesRef("abc"));
+        options.put("max_expansions", "abc");
         MatchOptionsAnalysis.validate(options);
     }
 
@@ -65,13 +64,13 @@ public class MatchOptionsAnalyzedStatementTest extends CrateUnitTest {
     public void testZeroTermsQueryMustBeAString() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid value for option 'zero_terms_query': 12.6");
-        MatchOptionsAnalysis.validate(ImmutableMap.<String, Object>of("zero_terms_query", 12.6));
+        MatchOptionsAnalysis.validate(ImmutableMap.of("zero_terms_query", 12.6));
     }
 
     @Test
     public void testUnknownOption() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("unknown match option 'oh'");
-        MatchOptionsAnalysis.validate(ImmutableMap.<String, Object>of("oh", 1));
+        MatchOptionsAnalysis.validate(ImmutableMap.of("oh", 1));
     }
 }

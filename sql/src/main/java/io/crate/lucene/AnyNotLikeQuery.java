@@ -30,7 +30,6 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.RegexpQuery;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.RegexpFlag;
@@ -46,7 +45,7 @@ class AnyNotLikeQuery extends AbstractAnyQuery {
 
     @Override
     protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
-        String regexString = LikeOperator.patternToRegex(BytesRefs.toString(candidate.value()), LikeOperator.DEFAULT_ESCAPE, false);
+        String regexString = LikeOperator.patternToRegex((String) candidate.value(), LikeOperator.DEFAULT_ESCAPE, false);
         regexString = regexString.substring(1, regexString.length() - 1);
         String notLike = negateWildcard(regexString);
 

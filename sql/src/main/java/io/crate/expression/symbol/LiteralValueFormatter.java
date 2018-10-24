@@ -24,8 +24,6 @@ package io.crate.expression.symbol;
 
 import io.crate.core.collections.Sorted;
 import io.crate.sql.Literals;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
@@ -51,8 +49,8 @@ public class LiteralValueFormatter {
             formatIterable(Arrays.asList((Object[]) value), builder);
         } else if (value.getClass().isArray()) {
             formatArray(value, builder);
-        } else if (value instanceof CharSequence || value instanceof Character || value instanceof BytesRef) {
-            builder.append(Literals.quoteStringLiteral(BytesRefs.toString(value)));
+        } else if (value instanceof String) {
+            builder.append(Literals.quoteStringLiteral((String) value));
         } else {
             builder.append(value.toString());
         }

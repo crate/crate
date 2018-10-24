@@ -27,8 +27,6 @@ import io.crate.lucene.match.CrateRegexCapabilities;
 import io.crate.lucene.match.CrateRegexQuery;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 
 class RegexMatchQueryCaseInsensitive implements FunctionToQuery {
@@ -42,9 +40,9 @@ class RegexMatchQueryCaseInsensitive implements FunctionToQuery {
         String fieldName = refAndLiteral.reference().column().fqn();
         Object value = refAndLiteral.literal().value();
 
-        if (value instanceof BytesRef) {
+        if (value instanceof String) {
             return new CrateRegexQuery(
-                new Term(fieldName, BytesRefs.toBytesRef(value)),
+                new Term(fieldName, (String) value),
                 CrateRegexCapabilities.FLAG_CASE_INSENSITIVE | CrateRegexCapabilities.FLAG_UNICODE_CASE);
         }
         throw new IllegalArgumentException("Can only use ~* with patterns of type string");

@@ -23,6 +23,7 @@
 package io.crate.expression.reference.sys.node;
 
 import io.crate.expression.reference.sys.ArrayTypeNestableContextCollectExpression;
+import org.apache.lucene.util.BytesRef;
 
 public abstract class NodeStatsArrayTypeExpression<I, R>
     extends ArrayTypeNestableContextCollectExpression<NodeStatsContext, I, R> {
@@ -32,8 +33,8 @@ public abstract class NodeStatsArrayTypeExpression<I, R>
         value = null;
         if (nodeStatsContext.isComplete()) {
             super.setNextRow(nodeStatsContext);
-            assert value.length == 0 || !(value[0] instanceof String) :
-                "Sys table expressions should not be of type String";
+            assert value.length == 0 || !(value[0] instanceof BytesRef) :
+                "Sys table expressions should not be of type BytesRef";
         }
     }
 }

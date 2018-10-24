@@ -22,18 +22,16 @@
 
 package io.crate.planner.statement
 
+import io.crate.execution.dsl.phases.FileUriCollectPhase
+import io.crate.execution.dsl.projection.SourceIndexWriterProjection
 import io.crate.expression.symbol.Literal
 import io.crate.metadata.doc.DocSysColumns
 import io.crate.planner.node.dql.Collect
-import io.crate.execution.dsl.phases.FileUriCollectPhase
-import io.crate.execution.dsl.projection.SourceIndexWriterProjection
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest
 import io.crate.testing.SQLExecutor
 import io.crate.testing.T3
-import org.apache.lucene.util.BytesRef
 import org.junit.Before
 import org.junit.Test
-
 
 class CopyStatementPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -59,7 +57,7 @@ class CopyStatementPlannerTest extends CrateDummyClusterServiceUnitTest {
         assert plan.collectPhase() instanceof FileUriCollectPhase
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase)plan.collectPhase()
-        assert ((Literal) collectPhase.targetUri()).value() == new BytesRef("/path/to/file.extension")
+        assert ((Literal) collectPhase.targetUri()).value() == "/path/to/file.extension"
     }
 
     @Test

@@ -21,17 +21,16 @@
 
 package io.crate.expression.operator;
 
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Input;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class LikeOperator extends Operator<BytesRef> {
+public class LikeOperator extends Operator<String> {
 
     public static final String NAME = "op_like";
 
@@ -53,30 +52,30 @@ public class LikeOperator extends Operator<BytesRef> {
     }
 
     @Override
-    public Scalar<Boolean, BytesRef> compile(List<Symbol> arguments) {
+    public Scalar<Boolean, String> compile(List<Symbol> arguments) {
         Symbol pattern = arguments.get(1);
         if (pattern instanceof Input) {
             Object value = ((Input) pattern).value();
             if (value == null) {
                 return this;
             }
-            return new CompiledLike(info, ((BytesRef) value).utf8ToString());
+            return new CompiledLike(info, (String) value);
         }
         return super.compile(arguments);
     }
 
     @Override
-    public Boolean evaluate(Input<BytesRef>... args) {
+    public Boolean evaluate(Input<String>... args) {
         assert args != null : "args must not be null";
         assert args.length == 2 : "number of args must be 2";
 
-        BytesRef expression = args[0].value();
-        BytesRef pattern = args[1].value();
+        String expression = args[0].value();
+        String pattern = args[1].value();
         if (expression == null || pattern == null) {
             return null;
         }
 
-        return matches(expression.utf8ToString(), pattern.utf8ToString());
+        return matches(expression, pattern);
     }
 
     private boolean matches(String expression, String pattern) {
@@ -139,7 +138,7 @@ public class LikeOperator extends Operator<BytesRef> {
         return regex.toString();
     }
 
-    private static class CompiledLike extends Scalar<Boolean, BytesRef> {
+    private static class CompiledLike extends Scalar<Boolean, String> {
         private final FunctionInfo info;
         private final Pattern pattern;
 
@@ -155,12 +154,12 @@ public class LikeOperator extends Operator<BytesRef> {
 
         @SafeVarargs
         @Override
-        public final Boolean evaluate(Input<BytesRef>... args) {
-            BytesRef value = args[0].value();
+        public final Boolean evaluate(Input<String>... args) {
+            String value = args[0].value();
             if (value == null) {
                 return null;
             }
-            return pattern.matcher(value.utf8ToString()).matches();
+            return pattern.matcher(value).matches();
         }
     }
 }

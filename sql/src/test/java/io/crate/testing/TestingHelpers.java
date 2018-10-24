@@ -183,8 +183,7 @@ public class TestingHelpers {
     }
 
     public static String readFile(String path) throws IOException {
-        byte[] encoded = Files.readAllBytes(Paths.get(path));
-        return new BytesRef(encoded).utf8ToString();
+        return String.join("\n", Files.readAllLines(Paths.get(path)));
     }
 
 

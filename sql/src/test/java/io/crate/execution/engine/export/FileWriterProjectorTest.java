@@ -32,7 +32,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -61,7 +60,7 @@ public class FileWriterProjectorTest extends CrateUnitTest {
 
     private Supplier<BatchIterator> sourceSupplier = () -> InMemoryBatchIterator.of(RowGenerator.fromSingleColValues(
         IntStream.range(0, 5)
-            .mapToObj(i -> new BytesRef(String.format(Locale.ENGLISH, "input line %02d", i)))
+            .mapToObj(i -> String.format(Locale.ENGLISH, "input line %02d", i))
             .collect(Collectors.toList())), SENTINEL);
 
     @Test
@@ -89,7 +88,7 @@ public class FileWriterProjectorTest extends CrateUnitTest {
                      "input line 01\n" +
                      "input line 02\n" +
                      "input line 03\n" +
-                     "input line 04\n", TestingHelpers.readFile(file.toAbsolutePath().toString()));
+                     "input line 04", TestingHelpers.readFile(file.toAbsolutePath().toString()));
     }
 
     @Test

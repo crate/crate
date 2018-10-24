@@ -32,16 +32,13 @@ import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public class SubstrFunction extends Scalar<BytesRef, Object> {
+public class SubstrFunction extends Scalar<String, Object> {
 
     public static final String NAME = "substr";
-    private static final BytesRef EMPTY_BYTES_REF = new BytesRef("");
 
     private FunctionInfo info;
 
@@ -59,9 +56,9 @@ public class SubstrFunction extends Scalar<BytesRef, Object> {
     }
 
     @Override
-    public BytesRef evaluate(Input[] args) {
+    public String evaluate(Input[] args) {
         assert args.length == 2 || args.length == 3 : "number of arguments must be 2 or 3";
-        final Object val = args[0].value();
+        String val = (String) args[0].value();
         if (val == null) {
             return null;
         }
@@ -74,30 +71,28 @@ public class SubstrFunction extends Scalar<BytesRef, Object> {
             if (len == null) {
                 return null;
             }
-            return evaluate(BytesRefs.toBytesRef(val),
-                (beginIdx).intValue(),
-                len.intValue());
+            return evaluate(val, (beginIdx).intValue(), len.intValue());
 
         }
-        return evaluate(BytesRefs.toBytesRef(val), (beginIdx).intValue());
+        return evaluate(val, (beginIdx).intValue());
     }
 
-    private static BytesRef evaluate(@Nonnull BytesRef inputStr, int beginIdx) {
+    private static String evaluate(@Nonnull String inputStr, int beginIdx) {
         final int startPos = Math.max(0, beginIdx - 1);
-        if (startPos > inputStr.length - 1) {
-            return EMPTY_BYTES_REF;
+        if (startPos > inputStr.length() - 1) {
+            return "";
         }
-        int endPos = inputStr.length;
+        int endPos = inputStr.length();
         return substring(inputStr, startPos, endPos);
     }
 
     @VisibleForTesting
-    static BytesRef evaluate(@Nonnull BytesRef inputStr, int beginIdx, int len) {
+    static String evaluate(@Nonnull String inputStr, int beginIdx, int len) {
         final int startPos = Math.max(0, beginIdx - 1);
-        if (startPos > inputStr.length - 1) {
-            return EMPTY_BYTES_REF;
+        if (startPos > inputStr.length() - 1) {
+            return "";
         }
-        int endPos = inputStr.length;
+        int endPos = inputStr.length();
         if (startPos + len < endPos) {
             endPos = startPos + len;
         }
@@ -105,49 +100,8 @@ public class SubstrFunction extends Scalar<BytesRef, Object> {
     }
 
     @VisibleForTesting
-    static BytesRef substring(BytesRef utf8, int begin, int end) {
-        int pos = utf8.offset;
-        final int limit = pos + utf8.length;
-        final byte[] bytes = utf8.bytes;
-        int posBegin = pos;
-
-        int codePointCount = 0;
-        for (; pos < limit; codePointCount++) {
-            if (codePointCount == begin) {
-                posBegin = pos;
-            }
-            if (codePointCount == end) {
-                break;
-            }
-
-            int v = bytes[pos] & 0xFF;
-            if (v <   /* 0xxx xxxx */ 0x80) {
-                pos += 1;
-                continue;
-            }
-            if (v >=  /* 110x xxxx */ 0xc0) {
-                if (v < /* 111x xxxx */ 0xe0) {
-                    pos += 2;
-                    continue;
-                }
-                if (v < /* 1111 xxxx */ 0xf0) {
-                    pos += 3;
-                    continue;
-                }
-                if (v < /* 1111 1xxx */ 0xf8) {
-                    pos += 4;
-                    continue;
-                }
-                // fallthrough, consider 5 and 6 byte sequences invalid.
-            }
-
-            // Anything not covered above is invalid UTF8.
-            throw new IllegalArgumentException("substr: invalid UTF8 string found.");
-        }
-
-        // Check if we didn't go over the limit on the last character.
-        if (pos > limit) throw new IllegalArgumentException("begin index must not be > end index");
-        return new BytesRef(bytes, posBegin, pos - posBegin);
+    static String substring(String value, int begin, int end) {
+        return value.substring(begin, end);
     }
 
     private static class Resolver extends BaseFunctionResolver {

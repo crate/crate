@@ -23,7 +23,6 @@ package io.crate.expression.reference.sys.check.cluster;
 
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
 import io.crate.settings.SharedSettings;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -57,7 +56,7 @@ public class LicenseEnterpriseChecks extends AbstractSysCheck {
     }
 
     @Override
-    public BytesRef description() {
-        return new BytesRef(DESCRIPTION);
+    public String description() {
+        return DESCRIPTION;
     }
 }

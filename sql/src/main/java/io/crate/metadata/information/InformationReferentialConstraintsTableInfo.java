@@ -23,13 +23,14 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.types.DataTypes;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 
 public class InformationReferentialConstraintsTableInfo extends InformationTableInfo {
 
@@ -64,24 +65,15 @@ public class InformationReferentialConstraintsTableInfo extends InformationTable
 
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<Void>>builder()
-            .put(Columns.CONSTRAINT_CATALOG,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
-            .put(Columns.CONSTRAINT_SCHEMA,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
-            .put(Columns.CONSTRAINT_NAME,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
-            .put(Columns.UNIQUE_CONSTRAINT_CATALOG,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
-            .put(Columns.UNIQUE_CONSTRAINT_SCHEMA,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
-            .put(Columns.UNIQUE_CONSTRAINT_NAME,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
-            .put(Columns.MATCH_OPTION,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
-            .put(Columns.UPDATE_RULE,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
-            .put(Columns.DELETE_RULE,
-                () -> NestableCollectExpression.objToBytesRef(r -> null))
+            .put(Columns.CONSTRAINT_CATALOG, () -> constant(null))
+            .put(Columns.CONSTRAINT_SCHEMA, () -> constant(null))
+            .put(Columns.CONSTRAINT_NAME, () -> constant(null))
+            .put(Columns.UNIQUE_CONSTRAINT_CATALOG, () -> constant(null))
+            .put(Columns.UNIQUE_CONSTRAINT_SCHEMA, () -> constant(null))
+            .put(Columns.UNIQUE_CONSTRAINT_NAME, () -> constant(null))
+            .put(Columns.MATCH_OPTION, () -> constant(null))
+            .put(Columns.UPDATE_RULE, () -> constant(null))
+            .put(Columns.DELETE_RULE, () -> constant(null))
             .build();
     }
 

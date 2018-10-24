@@ -36,7 +36,6 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Collections;
@@ -81,15 +80,15 @@ public class PgClassTable extends StaticTableInfo {
         static final ColumnIdent RELOPTIONS = new ColumnIdent("reloptions");
     }
 
-    private static final BytesRef KIND_TABLE = new BytesRef("r");
-    private static final BytesRef KIND_VIEW = new BytesRef("v");
+    private static final String KIND_TABLE = "r";
+    private static final String KIND_VIEW = "v";
 
-    private static final BytesRef PERSISTENCE_PERMANENT = new BytesRef("p");
+    private static final String PERSISTENCE_PERMANENT = "p";
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<RelationInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<RelationInfo>>builder()
             .put(Columns.OID, () -> NestableCollectExpression.forFunction(OidHash::relationOid))
-            .put(Columns.RELNAME, () -> NestableCollectExpression.objToBytesRef(r -> new BytesRef(r.ident().name())))
+            .put(Columns.RELNAME, () -> NestableCollectExpression.forFunction(r -> r.ident().name()))
             .put(Columns.RELNAMESPACE, () -> NestableCollectExpression.forFunction(r -> schemaOid(r.ident().schema())))
             .put(Columns.RELTYPE, () -> NestableCollectExpression.constant(0))
             .put(Columns.RELOFTYPE, () -> NestableCollectExpression.constant(0))
@@ -105,7 +104,7 @@ public class PgClassTable extends StaticTableInfo {
             .put(Columns.RELHASINDEX, () -> NestableCollectExpression.constant(false))
             .put(Columns.RELISSHARED, () -> NestableCollectExpression.constant(false))
             .put(Columns.RELPERSISTENCE, () -> NestableCollectExpression.constant(PERSISTENCE_PERMANENT))
-            .put(Columns.RELKIND, () -> NestableCollectExpression.objToBytesRef(
+            .put(Columns.RELKIND, () -> NestableCollectExpression.forFunction(
                 r -> r.relationType() == RelationType.VIEW ? KIND_VIEW : KIND_TABLE))
             .put(Columns.RELNATTS, () -> NestableCollectExpression.forFunction(r -> (short) r.columns().size()))
             .put(Columns.RELCHECKS, () -> NestableCollectExpression.constant((short) 0))

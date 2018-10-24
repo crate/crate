@@ -59,7 +59,8 @@ public class SingleRowSource implements CollectSource {
         if (!QueryClause.canMatch(collectPhase.where())) {
             return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
-        assert collectPhase.where().symbolType().isValueSymbol() : "whereClause must have been normalized to a value";
+        assert collectPhase.where().symbolType().isValueSymbol()
+            : "whereClause must have been normalized to a value, but is: " + collectPhase.where();
 
         InputFactory inputFactory = new InputFactory(functions);
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(collectPhase.toCollect());

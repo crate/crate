@@ -63,7 +63,7 @@ public class SysSummitsTableInfo extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<SummitsContext>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SummitsContext>>builder()
             .put(SysSummitsTableInfo.Columns.MOUNTAIN,
-                () -> NestableCollectExpression.objToBytesRef(SummitsContext::mountain))
+                () -> NestableCollectExpression.forFunction(SummitsContext::mountain))
             .put(SysSummitsTableInfo.Columns.HEIGHT,
                 () -> NestableCollectExpression.forFunction(SummitsContext::height))
             .put(SysSummitsTableInfo.Columns.PROMINENCE,
@@ -71,13 +71,13 @@ public class SysSummitsTableInfo extends StaticTableInfo {
             .put(SysSummitsTableInfo.Columns.COORDINATES,
                 () -> NestableCollectExpression.forFunction(SummitsContext::coordinates))
             .put(SysSummitsTableInfo.Columns.RANGE,
-                () -> NestableCollectExpression.objToBytesRef(SummitsContext::range))
+                () -> NestableCollectExpression.forFunction(SummitsContext::range))
             .put(SysSummitsTableInfo.Columns.CLASSIFICATION,
-                () -> NestableCollectExpression.objToBytesRef(SummitsContext::classification))
+                () -> NestableCollectExpression.forFunction(SummitsContext::classification))
             .put(SysSummitsTableInfo.Columns.REGION,
-                () -> NestableCollectExpression.objToBytesRef(SummitsContext::region))
+                () -> NestableCollectExpression.forFunction(SummitsContext::region))
             .put(SysSummitsTableInfo.Columns.COUNTRY,
-                () -> NestableCollectExpression.objToBytesRef(SummitsContext::country))
+                () -> NestableCollectExpression.forFunction(SummitsContext::country))
             .put(SysSummitsTableInfo.Columns.FIRST_ASCENT,
                 () -> NestableCollectExpression.forFunction(SummitsContext::firstAscent))
             .build();

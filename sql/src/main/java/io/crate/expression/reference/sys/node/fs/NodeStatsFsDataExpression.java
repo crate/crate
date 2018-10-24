@@ -24,10 +24,9 @@ package io.crate.expression.reference.sys.node.fs;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.crate.expression.reference.sys.node.NodeStatsArrayTypeExpression;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.monitor.FsInfoHelpers;
-import io.crate.expression.reference.sys.node.NodeStatsArrayTypeExpression;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.monitor.fs.FsInfo;
 
 import java.util.List;
@@ -44,8 +43,8 @@ public class NodeStatsFsDataExpression extends NodeStatsArrayTypeExpression<FsIn
     @Override
     protected Map<String, Object> valueForItem(final FsInfo.Path input) {
         return ImmutableMap.<String, Object>builder()
-            .put(NodeFsStatsExpression.DEV, BytesRefs.toBytesRef(FsInfoHelpers.Path.dev(input)))
-            .put(NodeFsStatsExpression.PATH, BytesRefs.toBytesRef(input.getPath()))
+            .put(NodeFsStatsExpression.DEV, FsInfoHelpers.Path.dev(input))
+            .put(NodeFsStatsExpression.PATH, input.getPath())
             .build();
     }
 }

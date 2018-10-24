@@ -25,7 +25,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
 import io.crate.metadata.table.StoredTable;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 
 import java.util.Map;
@@ -34,7 +33,7 @@ public class PartitionInfo implements StoredTable {
 
     private final PartitionName name;
     private final int numberOfShards;
-    private final BytesRef numberOfReplicas;
+    private final String numberOfReplicas;
     private final Version versionCreated;
     private final Version versionUpgraded;
     private final boolean closed;
@@ -43,7 +42,7 @@ public class PartitionInfo implements StoredTable {
 
     public PartitionInfo(PartitionName name,
                          int numberOfShards,
-                         BytesRef numberOfReplicas,
+                         String numberOfReplicas,
                          @Nullable Version versionCreated,
                          @Nullable Version versionUpgraded,
                          boolean closed,
@@ -67,7 +66,7 @@ public class PartitionInfo implements StoredTable {
         return numberOfShards;
     }
 
-    public BytesRef numberOfReplicas() {
+    public String numberOfReplicas() {
         return numberOfReplicas;
     }
 

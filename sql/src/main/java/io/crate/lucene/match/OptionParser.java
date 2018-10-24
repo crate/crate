@@ -117,7 +117,10 @@ public class OptionParser {
 
     @Nullable
     private static String minimumShouldMatch(@Nullable Object minimumShouldMatch) {
-        return BytesRefs.toString(minimumShouldMatch);
+        if (minimumShouldMatch == null) {
+            return null;
+        }
+        return minimumShouldMatch.toString();
     }
 
     private static BooleanClause.Occur operator(@Nullable Object operator) {
@@ -156,9 +159,12 @@ public class OptionParser {
         throw new IllegalArgumentException(String.format(Locale.ENGLISH, "value for %s must be a number", optionName));
     }
 
+    @Nullable
     private static org.apache.lucene.search.MultiTermQuery.RewriteMethod rewrite(@Nullable Object fuzzyRewrite) {
-        String rewrite = BytesRefs.toString(fuzzyRewrite);
-        return QueryParsers.parseRewriteMethod(rewrite);
+        if (fuzzyRewrite == null) {
+            return null;
+        }
+        return QueryParsers.parseRewriteMethod(fuzzyRewrite.toString());
     }
 
     @Nullable

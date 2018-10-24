@@ -38,7 +38,6 @@ import io.crate.metadata.table.StaticTableInfo;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Collections;
 import java.util.Map;
@@ -78,7 +77,7 @@ public class PgAttributeTable extends StaticTableInfo {
     public static Map<ColumnIdent, RowCollectExpressionFactory<ColumnContext>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ColumnContext>>builder()
             .put(Columns.ATTRELID, () -> NestableCollectExpression.forFunction(c -> relationOid(c.tableInfo)))
-            .put(Columns.ATTNAME, () -> NestableCollectExpression.forFunction(c -> BytesRefs.toBytesRef(c.info.column().fqn())))
+            .put(Columns.ATTNAME, () -> NestableCollectExpression.forFunction(c -> c.info.column().fqn()))
             .put(Columns.ATTTYPID, () -> NestableCollectExpression.forFunction(c -> PGTypes.get(c.info.valueType()).oid()))
             .put(Columns.ATTSTATTARGET, () -> NestableCollectExpression.constant(0))
             .put(Columns.ATTLEN, () -> NestableCollectExpression.forFunction(c -> PGTypes.get(c.info.valueType()).typeLen()))
