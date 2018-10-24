@@ -8,7 +8,6 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.predicate.NotPredicate;
-import io.crate.expression.reference.LiteralNestableInput;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -32,6 +31,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -51,7 +51,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         ReferenceIdent dummyLoadIdent = new ReferenceIdent(new RelationName("test", "dummy"), "load");
         dummyLoadInfo = new Reference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE);
 
-        referenceImplementationMap.put(dummyLoadIdent, new LiteralNestableInput<>(0.08d));
+        referenceImplementationMap.put(dummyLoadIdent, constant(0.08d));
         functions = getFunctions();
         referenceResolver = new ClusterReferenceResolver(referenceImplementationMap);
     }

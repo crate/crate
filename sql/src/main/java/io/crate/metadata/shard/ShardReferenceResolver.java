@@ -26,7 +26,6 @@ import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
-import io.crate.expression.reference.LiteralNestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
@@ -46,6 +45,8 @@ import org.elasticsearch.index.Index;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 
 public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?>> {
 
@@ -77,7 +78,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
             for (Reference partitionedInfo : info.partitionedByColumns()) {
                 builder.put(
                     partitionedInfo.ident(),
-                    new LiteralNestableInput<>(partitionedInfo.valueType().value(partitionValue.get(i)))
+                    constant(partitionedInfo.valueType().value(partitionValue.get(i)))
                 );
                 i++;
             }
