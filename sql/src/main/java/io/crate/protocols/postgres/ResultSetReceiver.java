@@ -23,9 +23,9 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.BaseResultReceiver;
+import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.types.DataType;
 import io.netty.channel.Channel;
 
@@ -61,6 +61,9 @@ class ResultSetReceiver extends BaseResultReceiver {
     public void setNextRow(Row row) {
         rowCount++;
         Messages.sendDataRow(channel, row, columnTypes, formatCodes);
+        if (rowCount % 1000 == 0) {
+            channel.flush();
+        }
     }
 
     @Override
