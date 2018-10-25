@@ -89,5 +89,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue in the postgres wire protocol that could result in nodes
+  crashing with ``OutOfMemoryError`` if clients queried very large tables
+  without specifying the fetch size.
+
 - Fixed an issue that caused missing privilege errors if table aliases were
   used.
