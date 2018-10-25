@@ -33,7 +33,6 @@ public class BroadcastingBucketBuilder implements MultiBucketBuilder {
 
     private final int numBuckets;
     private final StreamBucket.Builder bucketBuilder;
-    private volatile int size = 0;
 
     public BroadcastingBucketBuilder(Streamer<?>[] streamers, int numBuckets) {
         this.numBuckets = numBuckets;
@@ -42,25 +41,21 @@ public class BroadcastingBucketBuilder implements MultiBucketBuilder {
 
     @Override
     public void add(Row row) {
-        synchronized (this) {
-            bucketBuilder.add(row);
-            size++;
-        }
+        bucketBuilder.add(row);
     }
 
     @Override
     public int size() {
-        return size;
+        return bucketBuilder.size();
     }
 
     @Override
-    public synchronized void build(StreamBucket[] buckets) {
+    public void build(StreamBucket[] buckets) {
         assert buckets.length == numBuckets : "length of the provided array must match numBuckets";
         StreamBucket bucket = bucketBuilder.build();
         bucketBuilder.reset();
         for (int i = 0; i < numBuckets; i++) {
             buckets[i] = bucket;
         }
-        size = 0;
     }
 }
