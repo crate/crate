@@ -30,6 +30,7 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
@@ -131,7 +132,7 @@ public class DefaultTemplateService extends AbstractComponent {
                 .endObject();
             // @formatter:on
 
-            return builder.bytes().utf8ToString();
+            return Strings.toString(builder);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

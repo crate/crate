@@ -27,20 +27,25 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import io.crate.Constants;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.jobs.kill.KillAllListener;
 import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.metadata.ColumnIdent;
+import org.elasticsearch.action.bulk.MappingUpdatePerformer;
 import org.elasticsearch.action.support.ActionFilters;
+import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.CheckedSupplier;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.Mapper;
-import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -50,9 +55,8 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.UUID;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -64,8 +68,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         implements KillAllListener {
 
     private final Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
-
-    private final SchemaUpdateClient schemaUpdateClient;
+    private final MappingUpdatePerformer mappingUpdate;
 
     protected TransportShardAction(Settings settings,
                                    String actionName,
@@ -79,9 +82,11 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
                                    Supplier<Request> requestSupplier,
                                    SchemaUpdateClient schemaUpdateClient) {
         super(settings, actionName, transportService, clusterService, indicesService, threadPool, shardStateAction,
-            actionFilters, indexNameExpressionResolver, requestSupplier, requestSupplier,ThreadPool.Names.BULK);
-
-        this.schemaUpdateClient = schemaUpdateClient;
+            actionFilters, indexNameExpressionResolver, requestSupplier, requestSupplier,ThreadPool.Names.WRITE);
+        this.mappingUpdate = (update, shardId, type) -> {
+            validateMapping(update.root().iterator(), false);
+            schemaUpdateClient.blockingUpdateOnMaster(shardId.getIndex(), update);
+        };
     }
 
     @Override
@@ -170,15 +175,27 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         }
     }
 
-    protected Consumer<Mapping> getMappingUpdateConsumer(Request request) {
-        return updatedMapping -> {
-            validateMapping(updatedMapping.root().iterator(), false);
+    protected <T extends Engine.Result> T executeOnPrimaryHandlingMappingUpdate(ShardId shardId,
+                                                                                CheckedSupplier<T, IOException> execute,
+                                                                                Function<Exception, T> onMappingUpdateError) throws IOException {
+        T result = execute.get();
+        if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
             try {
-                schemaUpdateClient.blockingUpdateOnMaster(request.shardId().getIndex(), updatedMapping);
-            } catch (TimeoutException e) {
-                throw new RuntimeException("Couldn't update mapping on master", e);
+                mappingUpdate.updateMappings(result.getRequiredMappingUpdate(), shardId, Constants.DEFAULT_MAPPING_TYPE);
+            } catch (Exception e) {
+                return onMappingUpdateError.apply(e);
             }
-        };
+            result = execute.get();
+            if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
+                // double mapping update. We assume that the successful mapping update wasn't yet processed on the node
+                // and retry the entire request again.
+                throw new ReplicationOperation.RetryOnPrimaryException(shardId,
+                    "Dynamic mappings are not available on the node that holds the primary yet");
+            }
+        }
+        assert result.getFailure() instanceof ReplicationOperation.RetryOnPrimaryException == false :
+            "IndexShard shouldn't use RetryOnPrimaryException. got " + result.getFailure();
+        return result;
     }
 
     @VisibleForTesting

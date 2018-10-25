@@ -96,7 +96,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private final LogicalPlanner logicalPlanner;
     private final Functions functions;
 
-    private String[] awarenessAttributes;
+    private List<String> awarenessAttributes;
 
 
     @Inject
@@ -112,11 +112,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             this::setAwarenessAttributes);
     }
 
-    private void setAwarenessAttributes(String[] awarenessAttributes) {
+    private void setAwarenessAttributes(List<String> awarenessAttributes) {
         this.awarenessAttributes = awarenessAttributes;
     }
 
-    public String[] getAwarenessAttributes() {
+    public List<String> getAwarenessAttributes() {
         return awarenessAttributes;
     }
 

@@ -29,6 +29,7 @@ import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.unit.Fuzziness;
+import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.support.QueryParsers;
 import org.elasticsearch.index.search.MatchQuery;
@@ -164,7 +165,7 @@ public class OptionParser {
         if (fuzzyRewrite == null) {
             return null;
         }
-        return QueryParsers.parseRewriteMethod(fuzzyRewrite.toString());
+        return QueryParsers.parseRewriteMethod(fuzzyRewrite.toString(), LoggingDeprecationHandler.INSTANCE);
     }
 
     @Nullable

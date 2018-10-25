@@ -43,6 +43,6 @@ public class ShardMinLuceneVersionExpressionTest extends CrateDummyClusterServic
 
         ShardMinLuceneVersionExpression expr = new ShardMinLuceneVersionExpression();
         String value = expr.value(indexShard);
-        assertThat(value, is(Version.LUCENE_7_2_1.toString()));
+        assertThat(value, is(Version.LUCENE_7_3_1.toString()));
     }
 }

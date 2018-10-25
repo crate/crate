@@ -28,7 +28,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.logging.ServerLoggers;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
@@ -46,7 +46,7 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
     private final Logger logger;
 
     public IndexTemplateUpgrader(Settings settings) {
-        this.logger = ServerLoggers.getLogger(IndexTemplateUpgrader.class, settings);
+        this.logger = Loggers.getLogger(IndexTemplateUpgrader.class, settings);
     }
 
     @Override

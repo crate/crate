@@ -43,7 +43,7 @@ Changes
 - The ``mqtt`` endpoint has been deprecated and will be removed in a future
   version.
 
-- Upgraded to Elasticsearch 6.2.4
+- Upgraded to Elasticsearch 6.3.2
 
 - Renamed the ``delimited_payload_filter`` token filter to
   ``delimited_payload``. The old name can still be used, but is deprecated.

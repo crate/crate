@@ -26,7 +26,7 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.SslProvider;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.ServerLoggers;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.net.ssl.KeyManager;
@@ -135,7 +135,7 @@ public final class SslConfiguration {
         final char[] keyStorePassword;
 
         AbstractKeyStoreSettings(Settings settings) throws Exception {
-            logger = ServerLoggers.getLogger(this.getClass(), settings);
+            logger = Loggers.getLogger(this.getClass(), settings);
             String keyStoreType = KeyStore.getDefaultType();
             logger.debug("using SSL keystore type \"" + keyStoreType + "\"");
             keyStorePath = checkStorePath(getPathSetting().setting().get(settings));

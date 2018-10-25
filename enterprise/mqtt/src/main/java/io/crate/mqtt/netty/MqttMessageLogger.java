@@ -32,7 +32,7 @@ import io.netty.handler.codec.mqtt.MqttSubAckMessage;
 import io.netty.handler.codec.mqtt.MqttSubscribeMessage;
 import io.netty.handler.codec.mqtt.MqttUnsubscribeMessage;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.ServerLoggers;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
@@ -46,7 +46,7 @@ public class MqttMessageLogger extends ChannelDuplexHandler {
     private final Logger logger;
 
     MqttMessageLogger(Settings settings) {
-        logger = ServerLoggers.getLogger(getClass(), settings);
+        logger = Loggers.getLogger(getClass(), settings);
     }
 
     @Override

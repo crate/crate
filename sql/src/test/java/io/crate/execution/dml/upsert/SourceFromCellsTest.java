@@ -30,6 +30,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Before;
@@ -96,7 +97,8 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         HashMap<Object, Object> m = new HashMap<>();
         m.put("a", 10);
         BytesReference source = sourceFromCells.generateSource(new Object[]{m});
-        Map<String, Object> map = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, source).map();
+        Map<String, Object> map = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
         assertThat(map.get("b"), is(11));
         assertThat(Maps.getByPath(map, "obj.a"), is(10));
         assertThat(Maps.getByPath(map, "obj.c"), is(13));

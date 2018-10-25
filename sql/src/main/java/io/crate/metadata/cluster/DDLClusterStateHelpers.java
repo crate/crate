@@ -29,6 +29,7 @@ import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -64,7 +65,7 @@ class DDLClusterStateHelpers {
         try {
             return new IndexTemplateMetaData.Builder(indexTemplateMetaData)
                 .settings(settingsBuilder)
-                .putMapping(Constants.DEFAULT_MAPPING_TYPE, XContentFactory.jsonBuilder().map(mapping).string())
+                .putMapping(Constants.DEFAULT_MAPPING_TYPE, Strings.toString(XContentFactory.jsonBuilder().map(mapping)))
                 .build();
         } catch (IOException e) {
             throw new RuntimeException(e);

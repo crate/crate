@@ -25,7 +25,6 @@ package io.crate.test.integration;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.logging.ServerLoggers;
 import org.junit.runner.Description;
 import org.junit.runner.Result;
 import org.junit.runner.notification.RunListener;
@@ -84,7 +83,7 @@ public class SystemPropsTestLoggingListener extends RunListener {
         for (Map.Entry<String, String> entry : map.entrySet()) {
             Logger logger = resolveLogger(entry.getKey());
             previousValues.put(entry.getKey(), logger.getLevel().toString());
-            ServerLoggers.setLevel(logger, entry.getValue());
+            Loggers.setLevel(logger, entry.getValue());
         }
         return previousValues;
     }
@@ -112,7 +111,7 @@ public class SystemPropsTestLoggingListener extends RunListener {
         if (map != null) {
             for (Map.Entry<String, String> previousLogger : map.entrySet()) {
                 Logger logger = resolveLogger(previousLogger.getKey());
-                ServerLoggers.setLevel(logger, previousLogger.getValue());
+                Loggers.setLevel(logger, previousLogger.getValue());
             }
         }
         return null;

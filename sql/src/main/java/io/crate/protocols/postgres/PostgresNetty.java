@@ -41,7 +41,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ServerLoggers;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
@@ -102,7 +102,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                          Authentication authentication,
                          SslContextProvider sslContextProvider) {
         super(settings);
-        namedLogger = ServerLoggers.getLogger("psql", settings);
+        namedLogger = Loggers.getLogger("psql", settings);
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
         this.authentication = authentication;
