@@ -25,10 +25,6 @@ package io.crate.license;
 import org.junit.Test;
 
 import javax.crypto.Cipher;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.KeyPair;
 
 import static org.hamcrest.core.Is.is;
@@ -44,20 +40,9 @@ public class CryptoUtilsTest {
             data);
     }
 
-    private static void writeKeysToFiles(final KeyPair keyPair,
-                                 final Path publicKeyPath,
-                                 final Path privateKeyPath) {
-        try {
-            Files.write(publicKeyPath, CryptoUtils.getPublicKeyBytes(keyPair.getPublic()));
-            Files.write(privateKeyPath, CryptoUtils.getPrivateKeyBytes(keyPair.getPrivate()));
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
     @Test
     public void testGenerateRsaKeysDoNotProduceNullKeys() {
-        KeyPair keyPair = CryptoUtils.generateRsaKeyPair();
+        KeyPair keyPair = CryptoUtils.generateRSAKeyPair();
 
         assertThat(keyPair.getPrivate(), is(notNullValue()));
         assertThat(keyPair.getPublic(), is(notNullValue()));
@@ -65,13 +50,13 @@ public class CryptoUtilsTest {
 
     @Test
     public void testRsaEncryptionDecryption() {
-        KeyPair keyPair = CryptoUtils.generateRsaKeyPair();
+        KeyPair keyPair = CryptoUtils.generateRSAKeyPair();
 
         String data = "data";
         byte[] encrypt = encryptRsaUsingPrivateKey(data.getBytes(), CryptoUtils.getPrivateKeyBytes(keyPair.getPrivate()));
         assertThat(encrypt, is(notNullValue()));
 
-        byte[] decrypt = CryptoUtils.decryptRsaUsingPublicKey(encrypt, CryptoUtils.getPublicKeyBytes(keyPair.getPublic()));
+        byte[] decrypt = CryptoUtils.decryptRSAUsingPublicKey(encrypt, CryptoUtils.getPublicKeyBytes(keyPair.getPublic()));
         assertThat(decrypt, is(notNullValue()));
         assertThat(new String(decrypt), is(data));
     }
@@ -79,10 +64,10 @@ public class CryptoUtilsTest {
     @Test
     public void testAesEncryptionDecryption() {
         String data = "data";
-        byte[] encrypt = CryptoUtils.encryptAes(data.getBytes());
+        byte[] encrypt = CryptoUtils.encryptAES(data.getBytes());
         assertThat(encrypt, is(notNullValue()));
 
-        byte[] decrypt = CryptoUtils.decryptAes(encrypt);
+        byte[] decrypt = CryptoUtils.decryptAES(encrypt);
         assertThat(decrypt, is(notNullValue()));
         assertThat(new String(decrypt), is(data));
     }

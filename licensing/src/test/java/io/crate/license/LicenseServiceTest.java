@@ -149,7 +149,7 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testDoNotVerifyExpiredEnterpriseLicense() {
+    public void testVerifyExpiredEnterpriseLicense() {
         LicenseKey key = createEnterpriseLicenseKey(VERSION,
             new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5), "test"));
 

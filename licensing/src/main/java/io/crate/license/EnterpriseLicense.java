@@ -34,7 +34,7 @@ final class EnterpriseLicense {
     }
 
     static byte[] decrypt(byte[] encryptedContent) {
-        return CryptoUtils.decryptRsaUsingPublicKey(encryptedContent, publicKey());
+        return CryptoUtils.decryptRSAUsingPublicKey(encryptedContent, publicKey());
 
     }
 
