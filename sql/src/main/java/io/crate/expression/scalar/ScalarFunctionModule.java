@@ -28,7 +28,7 @@ import io.crate.expression.scalar.arithmetic.CeilFunction;
 import io.crate.expression.scalar.arithmetic.FloorFunction;
 import io.crate.expression.scalar.arithmetic.LogFunction;
 import io.crate.expression.scalar.arithmetic.MapFunction;
-import io.crate.expression.scalar.arithmetic.NegateFunction;
+import io.crate.expression.scalar.arithmetic.NegateFunctions;
 import io.crate.expression.scalar.arithmetic.RandomFunction;
 import io.crate.expression.scalar.arithmetic.RoundFunction;
 import io.crate.expression.scalar.arithmetic.SquareRootFunction;
@@ -80,7 +80,7 @@ public class ScalarFunctionModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        NegateFunction.register(this);
+        NegateFunctions.register(this);
         CollectionCountFunction.register(this);
         CollectionAverageFunction.register(this);
         FormatFunction.register(this);

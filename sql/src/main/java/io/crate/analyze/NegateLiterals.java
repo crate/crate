@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.scalar.arithmetic.NegateFunction;
+import io.crate.expression.scalar.arithmetic.NegateFunctions;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -70,6 +70,6 @@ public final class NegateLiterals extends SymbolVisitor<Void, Symbol> {
 
     @Override
     protected Symbol visitSymbol(Symbol symbol, Void context) {
-        return NegateFunction.createFunction(symbol);
+        return NegateFunctions.createFunction(symbol);
     }
 }
