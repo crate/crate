@@ -22,11 +22,8 @@
 
 package io.crate.expression.scalar.string;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataTypes;
 
 import java.util.Locale;
@@ -34,11 +31,7 @@ import java.util.Locale;
 public final class StringCaseFunction {
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new UnaryScalar<>(functionInfo("upper"), (String val) -> val.toUpperCase(Locale.ENGLISH)));
-        module.register(new UnaryScalar<>(functionInfo("lower"), (String val) -> val.toLowerCase(Locale.ENGLISH)));
-    }
-
-    private static FunctionInfo functionInfo(String name) {
-        return new FunctionInfo(new FunctionIdent(name, ImmutableList.of(DataTypes.STRING)), DataTypes.STRING);
+        module.register(new UnaryScalar<>("upper", DataTypes.STRING, DataTypes.STRING, (String val) -> val.toUpperCase(Locale.ENGLISH)));
+        module.register(new UnaryScalar<>("lower", DataTypes.STRING, DataTypes.STRING, (String val) -> val.toLowerCase(Locale.ENGLISH)));
     }
 }

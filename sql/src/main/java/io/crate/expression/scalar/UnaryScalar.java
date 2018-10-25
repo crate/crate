@@ -22,9 +22,12 @@
 
 package io.crate.expression.scalar;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
+import io.crate.types.DataType;
 
 import java.util.function.Function;
 
@@ -39,8 +42,8 @@ public class UnaryScalar<R, T> extends Scalar<R, T> {
     private final FunctionInfo info;
     private final Function<T, R> func;
 
-    public UnaryScalar(FunctionInfo info, Function<T, R> func) {
-        this.info = info;
+    public UnaryScalar(String name, DataType argType, DataType returnType, Function<T, R> func) {
+        this.info = new FunctionInfo(new FunctionIdent(name, ImmutableList.of(argType)), returnType);
         this.func = func;
     }
 
