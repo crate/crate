@@ -54,7 +54,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -212,10 +211,6 @@ public class TestingTableInfo extends DocTableInfo {
             return add(column, type, path, columnPolicy, Reference.IndexType.NOT_ANALYZED, false, true);
         }
 
-        public Builder add(String column, DataType type, List<String> path, Reference.IndexType indexType) {
-            return add(column, type, path, ColumnPolicy.DYNAMIC, indexType, false, true);
-        }
-
         public Builder add(String column, DataType type, List<String> path,
                            boolean partitionBy) {
             return add(column, type, path, ColumnPolicy.DYNAMIC,
@@ -265,16 +260,6 @@ public class TestingTableInfo extends DocTableInfo {
                 partitionedByColumns.add(ref);
                 partitionedBy.add(ref.column());
             }
-            return this;
-        }
-
-        public Builder addIndex(ColumnIdent columnIdent, Reference.IndexType indexType) {
-            IndexReference info = new IndexReference(
-                new ReferenceIdent(ident, columnIdent),
-                indexType,
-                Collections.emptyList(),
-                null);
-            indexColumns.put(columnIdent, info);
             return this;
         }
 

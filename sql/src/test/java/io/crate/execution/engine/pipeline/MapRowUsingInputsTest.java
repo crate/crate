@@ -22,37 +22,31 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.execution.engine.pipeline.RowTransformingBatchIterator;
-import io.crate.metadata.FunctionInfo;
-import io.crate.expression.InputFactory;
+import io.crate.data.Row1;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.InputFactory;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.FunctionInfo;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.TestingBatchIterators;
 import io.crate.types.DataTypes;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static org.hamcrest.core.Is.is;
 
-public class RowTransformingBatchIteratorTest extends CrateUnitTest {
+public class MapRowUsingInputsTest extends CrateUnitTest {
 
     private List<Input<?>> inputs;
     private List<CollectExpression<Row, ?>> expressions;
-
-    private List<Object[]> expectedResult = LongStream.range(0, 10)
-        .mapToObj(l -> new Object[] { l + 2L })
-        .collect(Collectors.toList());
 
     @Before
     public void createInputs() throws Exception {
@@ -68,12 +62,18 @@ public class RowTransformingBatchIteratorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testRowTransformingIterator() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
-            () -> new RowTransformingBatchIterator(TestingBatchIterators.range(0, 10),
-                inputs,
-                expressions)
-        );
-        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    public void testAdd2IsAppliedToFirstColumnOfArgumentRow() throws Exception {
+        MapRowUsingInputs mapRowUsingInputs = new MapRowUsingInputs(inputs, expressions);
+        Row result = mapRowUsingInputs.apply(new Row1(2L));
+        assertThat(result.numColumns(), is(1));
+        assertThat(result.get(0), is(4L));
+    }
+
+    @Test
+    public void testMapRowUsingInputsUsesASharedRow() {
+        MapRowUsingInputs mapRowUsingInputs = new MapRowUsingInputs(inputs, expressions);
+        Row fst = mapRowUsingInputs.apply(new Row1(2L));
+        Row snd = mapRowUsingInputs.apply(new Row1(2L));
+        assertThat(fst, Matchers.sameInstance(snd));
     }
 }
