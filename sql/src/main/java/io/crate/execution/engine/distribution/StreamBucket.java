@@ -92,6 +92,10 @@ public class StreamBucket implements Bucket, Writeable {
             out = new BytesStreamOutput(size); // next bucket is probably going to have the same size
             size = 0;
         }
+
+        public int size() {
+            return size;
+        }
     }
 
     public StreamBucket(@Nullable Streamer<?>[] streamers) {
