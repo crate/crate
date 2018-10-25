@@ -49,6 +49,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.hamcrest.BaseMatcher;
@@ -392,7 +393,8 @@ public class TestingHelpers {
 
     public static Map<String, Object> jsonMap(String json) {
         try {
-            return JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, json).map();
+            return JsonXContent.jsonXContent.createParser(
+                NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, json).map();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

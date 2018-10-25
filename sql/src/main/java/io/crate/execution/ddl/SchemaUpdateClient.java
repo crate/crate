@@ -22,6 +22,7 @@
 
 package io.crate.execution.ddl;
 
+import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -31,8 +32,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.Mapping;
-
-import java.util.concurrent.TimeoutException;
 
 @Singleton
 public class SchemaUpdateClient extends AbstractComponent {
@@ -55,12 +54,12 @@ public class SchemaUpdateClient extends AbstractComponent {
         this.dynamicMappingUpdateTimeout = dynamicMappingUpdateTimeout;
     }
 
-    public void blockingUpdateOnMaster(Index index, Mapping mappingUpdate) throws TimeoutException {
+    public void blockingUpdateOnMaster(Index index, Mapping mappingUpdate) {
         TimeValue timeout = this.dynamicMappingUpdateTimeout;
         SchemaUpdateResponse schemaUpdateResponse = schemaUpdateAction.execute(
             new SchemaUpdateRequest(index, mappingUpdate.toString())).actionGet();
         if (!schemaUpdateResponse.isAcknowledged()) {
-            throw new TimeoutException("Failed to acknowledge mapping update within [" + timeout + "]");
+            throw new ElasticsearchTimeoutException("Failed to acknowledge mapping update within [" + timeout + "]");
         }
     }
 }

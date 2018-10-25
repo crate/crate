@@ -34,7 +34,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ServerLoggers;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -62,7 +62,7 @@ public class DistributingConsumerFactory extends AbstractComponent {
         this.clusterService = clusterService;
         this.responseExecutor = threadPool.executor(RESPONSE_EXECUTOR_NAME);
         this.transportDistributedResultAction = transportDistributedResultAction;
-        distributingDownstreamLogger = ServerLoggers.getLogger(DistributingConsumer.class, settings);
+        distributingDownstreamLogger = Loggers.getLogger(DistributingConsumer.class, settings);
     }
 
     public RowConsumer create(NodeOperation nodeOperation,

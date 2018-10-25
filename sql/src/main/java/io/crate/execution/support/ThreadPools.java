@@ -113,7 +113,7 @@ public class ThreadPools {
         public void execute(@Nonnull Runnable command) {
             try {
                 delegate.execute(command);
-            } catch (RejectedExecutionException | EsRejectedExecutionException e) {
+            } catch (RejectedExecutionException e) {
                 command.run();
             }
         }

@@ -24,23 +24,25 @@ package io.crate.geo;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiLineString;
-import com.vividsolutions.jts.geom.MultiPoint;
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
 import io.crate.core.collections.ForEach;
 import io.crate.types.GeoPointType;
-import org.elasticsearch.common.geo.builders.ShapeBuilder;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryCollection;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.MultiLineString;
+import org.locationtech.jts.geom.MultiPoint;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.shape.Shape;
@@ -130,7 +132,7 @@ public class GeoJSONUtils {
      */
     public static Shape map2Shape(Map<String, Object> geoJSONMap) {
         try {
-            return geoJSONString2Shape(XContentFactory.jsonBuilder().map(geoJSONMap).string());
+            return geoJSONString2Shape(Strings.toString(XContentFactory.jsonBuilder().map(geoJSONMap)));
         } catch (Throwable e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot convert Map \"%s\" to shape", geoJSONMap), e);
@@ -139,9 +141,10 @@ public class GeoJSONUtils {
 
     private static Shape geoJSONString2Shape(String geoJSON) {
         try {
-            XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, geoJSON);
+            XContentParser parser = JsonXContent.jsonXContent.createParser(
+                NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, geoJSON);
             parser.nextToken();
-            return ShapeBuilder.parse(parser).build();
+            return ShapeParser.parse(parser).build();
         } catch (Throwable t) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot convert GeoJSON \"%s\" to shape", geoJSON), t);

@@ -30,6 +30,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
 import javax.annotation.Nullable;
@@ -76,7 +77,7 @@ public class MatchPredicate implements FunctionImplementation {
         }
         if (columnType.equals(DataTypes.STRING)) {
             try {
-                MultiMatchQueryBuilder.Type.parse(matchType);
+                MultiMatchQueryBuilder.Type.parse(matchType, LoggingDeprecationHandler.INSTANCE);
                 return matchType;
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,

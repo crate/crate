@@ -110,6 +110,7 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.routing.allocation.decider.SameShardAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.logging.Loggers;
@@ -145,6 +146,7 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_MULTI_PK;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY;
 import static io.crate.testing.DiscoveryNodes.newFakeAddress;
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
@@ -184,7 +186,7 @@ public class SQLExecutor {
     public PlannerContext getPlannerContext(ClusterState clusterState, Random random) {
         return new PlannerContext(
             clusterState,
-            new RoutingProvider(random.nextInt(), new String[0]),
+            new RoutingProvider(random.nextInt(), emptyList()),
             UUID.randomUUID(),
             functions,
             new TransactionContext(sessionContext),
@@ -414,7 +416,7 @@ public class SQLExecutor {
             ClusterState prevState = clusterService.state();
 
             XContentBuilder mappingBuilder = XContentFactory.jsonBuilder().map(analyzedStmt.mapping());
-            CompressedXContent mapping = new CompressedXContent(mappingBuilder.bytes());
+            CompressedXContent mapping = new CompressedXContent(BytesReference.bytes(mappingBuilder));
             Settings settings = analyzedStmt.tableParameter().settings().getByPrefix("index.");
             AliasMetaData.Builder alias = AliasMetaData.builder(analyzedStmt.tableIdent().indexName());
             IndexTemplateMetaData.Builder template = IndexTemplateMetaData.builder(analyzedStmt.templateName())
@@ -623,7 +625,7 @@ public class SQLExecutor {
     }
 
     private <T> T planInternal(AnalyzedStatement analyzedStatement, UUID jobId, int softLimit, int fetchSize) {
-        RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), new String[0]);
+        RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), emptyList());
         PlannerContext plannerContext = new PlannerContext(
             planner.currentClusterState(),
             routingProvider,

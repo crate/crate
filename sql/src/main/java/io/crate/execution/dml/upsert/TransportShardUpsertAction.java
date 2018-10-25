@@ -39,6 +39,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -195,10 +196,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 item.seqNo(),
                 item.version(),
                 VersionType.EXTERNAL,
-                -1,
+                IndexRequest.UNSET_AUTO_GENERATED_TIMESTAMP,
                 false,
-                sourceToParse,
-                getMappingUpdateConsumer(request)
+                sourceToParse
             );
             location = indexResult.getTranslogLocation();
         }
@@ -287,18 +287,20 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             version = currentDoc.getVersion();
         }
 
+        long finalVersion = version;
         SourceToParse sourceToParse = SourceToParse.source(
             request.index(), request.type(), item.id(), item.source(), XContentType.JSON);
-
-        Engine.IndexResult indexResult = indexShard.applyIndexOperationOnPrimary(
-            version,
-            VersionType.INTERNAL,
-            sourceToParse,
-            -1,
-            isRetry,
-            getMappingUpdateConsumer(request)
+        Engine.IndexResult indexResult = executeOnPrimaryHandlingMappingUpdate(
+            indexShard.shardId(),
+            () -> indexShard.applyIndexOperationOnPrimary(
+                finalVersion,
+                VersionType.INTERNAL,
+                sourceToParse,
+                IndexRequest.UNSET_AUTO_GENERATED_TIMESTAMP,
+                isRetry
+            ),
+            e -> new Engine.IndexResult(e, finalVersion)
         );
-
         Exception failure = indexResult.getFailure();
         if (failure != null) {
             throw failure;

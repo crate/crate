@@ -22,8 +22,8 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.common.inject.internal.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.Locale;
 
 public class ScriptException extends RuntimeException {
@@ -34,7 +34,7 @@ public class ScriptException extends RuntimeException {
      * @param cause The cause of the exception. A null value is permitted.
      * @param language Scripting engine language, such as "JavaScript"
      */
-    public ScriptException(String message, @Nullable  Throwable cause, String language) {
+    public ScriptException(String message, @Nullable Throwable cause, String language) {
         super(String.format(Locale.ENGLISH, "%s ScriptException: %s", language, message), cause);
     }
 

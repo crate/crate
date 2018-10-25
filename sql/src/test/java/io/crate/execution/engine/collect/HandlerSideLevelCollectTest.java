@@ -62,6 +62,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -73,7 +74,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     private MapSideDataCollectOperation operation;
     private Functions functions;
-    private RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);
+    private RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
 
     @Before
     public void prepare() {

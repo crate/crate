@@ -23,8 +23,8 @@
 package io.crate.expression.reference.sys.check.cluster;
 
 import org.apache.lucene.util.Version;
-import org.elasticsearch.common.inject.internal.Nullable;
 
+import javax.annotation.Nullable;
 import java.text.ParseException;
 
 final class LuceneVersionChecks {

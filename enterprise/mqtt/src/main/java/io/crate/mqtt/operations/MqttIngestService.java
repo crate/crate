@@ -52,8 +52,10 @@ import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
@@ -138,8 +140,12 @@ public class MqttIngestService implements IngestRuleListener {
     @Nullable
     private static Map<String, Object> parsePayloadToMap(ByteBuf payload) {
         try {
-            return JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY,
-                Netty4Utils.toBytesReference(payload)).map();
+            BytesReference content = Netty4Utils.toBytesReference(payload);
+            return JsonXContent.jsonXContent.createParser(
+                NamedXContentRegistry.EMPTY,
+                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                content.utf8ToString()
+            ).map();
         } catch (IOException e) {
             LOGGER.warn("Failed to parse payload to JSON: {}", e.getMessage());
         }

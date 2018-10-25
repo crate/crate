@@ -30,6 +30,7 @@ import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -127,10 +128,10 @@ public class PingTask extends TimerTask {
 
         Map<String, String> queryMap = new HashMap<>(9);
         queryMap.put("cluster_id", getClusterId());
-        queryMap.put("kernel", XContentFactory.jsonBuilder().map(getKernelData()).string());
+        queryMap.put("kernel", Strings.toString(XContentFactory.jsonBuilder().map(getKernelData())));
         queryMap.put("master", isMasterNode().toString());
         queryMap.put("enterprise", isEnterprise());
-        queryMap.put("ping_count", XContentFactory.jsonBuilder().map(getCounters()).string());
+        queryMap.put("ping_count", Strings.toString(XContentFactory.jsonBuilder().map(getCounters())));
         queryMap.put("hardware_address", getHardwareAddress());
         queryMap.put("crate_version", Version.CURRENT.number());
         queryMap.put("java_version", System.getProperty("java.version"));

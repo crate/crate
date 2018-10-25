@@ -23,6 +23,7 @@ import io.crate.analyze.user.Privilege;
 import io.crate.analyze.user.Privilege.State;
 import io.crate.analyze.user.PrivilegeIdent;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -351,5 +352,10 @@ public class UsersPrivilegesMetaData extends AbstractNamedDiffable<MetaData.Cust
     @Override
     public String getWriteableName() {
         return TYPE;
+    }
+
+    @Override
+    public Version getMinimalSupportedVersion() {
+        return Version.V_6_0_0;
     }
 }

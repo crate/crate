@@ -40,8 +40,9 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.MetaDataIndexAliasesService;
-import org.elasticsearch.common.logging.ServerLoggers;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -70,7 +71,7 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
                                            MetaDataIndexAliasesService metaDataIndexAliasesService,
                                            NamedXContentRegistry namedXContentRegistry,
                                            DDLClusterStateService ddlClusterStateService) {
-        logger = ServerLoggers.getLogger(getClass(), settings);
+        logger = Loggers.getLogger(getClass(), settings);
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.metaDataIndexAliasesService = metaDataIndexAliasesService;
         this.xContentRegistry = namedXContentRegistry;
@@ -168,7 +169,8 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
     }
 
     private Map<String, Object> parseMapping(String mappingSource) throws Exception {
-        try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(xContentRegistry, mappingSource)) {
+        try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(
+            xContentRegistry, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)) {
             return parser.map();
         } catch (IOException e) {
             throw new ElasticsearchException("failed to parse mapping", e);

@@ -61,6 +61,7 @@ dependencies {
     compileNotTransitive project(':es:es-core')
     compileNotTransitive project(':es:es-server')
     compileNotTransitive project(':es:es-plugin-classloader')
+    compileNotTransitive project(':es:es-x-content')
     compileNotTransitive project(':sql')
     compileNotTransitive project(':sql-parser')
     compileNotTransitive project(':dex')

@@ -93,7 +93,7 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ServerLoggers;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.indices.IndicesService;
@@ -146,7 +146,7 @@ public class JobSetup extends AbstractComponent {
                     ShardCollectSource shardCollectSource,
                     BigArrays bigArrays) {
         super(settings);
-        distResultRXTaskLogger = ServerLoggers.getLogger(DistResultRXTask.class, settings);
+        distResultRXTaskLogger = Loggers.getLogger(DistResultRXTask.class, settings);
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;

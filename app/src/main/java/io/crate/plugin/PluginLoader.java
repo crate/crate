@@ -32,7 +32,7 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.PathUtils;
-import org.elasticsearch.common.logging.ServerLoggers;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.PluginInfo;
@@ -80,7 +80,7 @@ public class PluginLoader {
         } else {
             pluginsPath = PathUtils.get(pluginFolder).normalize();
         }
-        logger = ServerLoggers.getLogger(getClass().getPackage().getName(), settings);
+        logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
 
         Collection<Class<? extends Plugin>> implementations = findImplementations();
 
@@ -287,6 +287,6 @@ public class PluginLoader {
         jarHellSet.addAll(JarHell.parseClassPath());
         jarHellSet.addAll(jarsToLoad);
         jarHellSet.add(url);
-        JarHell.checkJarHell(jarHellSet);
+        JarHell.checkJarHell(jarHellSet, output -> {});
     }
 }

@@ -25,8 +25,8 @@ import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.planner.PositionalOrderBy;
-import org.elasticsearch.common.inject.internal.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.function.Supplier;
 
