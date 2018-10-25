@@ -129,7 +129,14 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             expression.startCollect(collectorContext);
             expression.setScorer(scorer);
         }
-        TopFieldCollector topFieldCollector = TopFieldCollector.create(sort, batchSize, true, doDocsScores, doDocsScores);
+        TopFieldCollector topFieldCollector = TopFieldCollector.create(
+            sort,
+            batchSize,
+            true,
+            doDocsScores,
+            doDocsScores,
+            false           // trackTotalHits - we don't use the number of total hits
+        );
         return doSearch(topFieldCollector, minScore, query);
     }
 
@@ -142,7 +149,14 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             LOGGER.debug("searchMore from [{}]", lastDoc);
         }
         TopFieldCollector topFieldCollector = TopFieldCollector.create(
-            sort, batchSize, lastDoc, true, doDocsScores, doDocsScores);
+            sort,
+            batchSize,
+            lastDoc,
+            true,
+            doDocsScores,
+            doDocsScores,
+            false           // trackTotalHits - we don't use the number of total hits
+        );
         return doSearch(topFieldCollector, minScore, query(lastDoc));
     }
 
