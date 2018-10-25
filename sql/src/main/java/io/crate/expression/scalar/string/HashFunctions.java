@@ -25,8 +25,6 @@ package io.crate.expression.scalar.string;
 import io.crate.common.Hex;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.hash.MessageDigests;
@@ -34,14 +32,12 @@ import org.elasticsearch.common.hash.MessageDigests;
 import java.nio.charset.StandardCharsets;
 import java.security.DigestException;
 import java.security.MessageDigest;
-import java.util.Collections;
-import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class HashFunctions {
 
-    private static final List<DataType> SUPPORTED_INPUT_TYPE = Collections.singletonList((DataTypes.STRING));
+    private static final DataType SUPPORTED_INPUT_TYPE = DataTypes.STRING;
 
     private enum HashMethod {
         MD5(MessageDigests::md5),
@@ -73,8 +69,7 @@ public final class HashFunctions {
 
 
     private static void register(ScalarFunctionModule module, String name, Function<String, String> func) {
-        FunctionIdent ident = new FunctionIdent(name, SUPPORTED_INPUT_TYPE);
-        module.register(new UnaryScalar<>(new FunctionInfo(ident, DataTypes.STRING), func));
+        module.register(new UnaryScalar<>(name, SUPPORTED_INPUT_TYPE, DataTypes.STRING, func));
     }
 
     public static void register(ScalarFunctionModule module) {

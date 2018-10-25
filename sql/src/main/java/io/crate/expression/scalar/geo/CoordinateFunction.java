@@ -22,15 +22,12 @@
 package io.crate.expression.scalar.geo;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -40,8 +37,7 @@ public final class CoordinateFunction {
 
     private static void register(ScalarFunctionModule module, String name, Function<Object, Double> func) {
         for (DataType inputType : SUPPORTED_INPUT_TYPES) {
-            FunctionIdent ident = new FunctionIdent(name, Collections.singletonList(inputType));
-            module.register(new UnaryScalar<>(new FunctionInfo(ident, DataTypes.DOUBLE), func));
+            module.register(new UnaryScalar<>(name, inputType, DataTypes.DOUBLE, func));
         }
     }
 
