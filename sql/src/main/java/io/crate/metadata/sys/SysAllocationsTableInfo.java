@@ -81,7 +81,7 @@ public class SysAllocationsTableInfo extends StaticTableInfo {
             .put(Columns.PRIMARY,
                 () -> NestableCollectExpression.forFunction(SysAllocation::primary))
             .put(Columns.CURRENT_STATE,
-                () -> NestableCollectExpression.forFunction(SysAllocation::currentState))
+                () -> NestableCollectExpression.forFunction(s -> s.currentState().toString()))
             .put(Columns.EXPLANATION,
                 () -> NestableCollectExpression.forFunction(SysAllocation::explanation))
             .put(Columns.DECISIONS,
