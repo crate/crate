@@ -22,18 +22,25 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.symbol.Literal;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 
 
-public class NegateFunctionTest extends AbstractScalarFunctionsTest {
+public class NegateFunctionsTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNegateReference() throws Exception {
         assertNormalize("- age", isFunction("_negate"));
+    }
+
+    @Test
+    public void testNegateOnStringResultsInError() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot negate values of type string");
+        assertEvaluate("- name", null);
     }
 
     @Test
