@@ -37,11 +37,11 @@ final class TrialLicense {
             encryptedContent);
     }
 
-    static byte[] encrypt(byte[] data) {
-        return CryptoUtils.encryptAes(data);
+    private static byte[] encrypt(byte[] data) {
+        return CryptoUtils.encryptAES(data);
     }
 
     static byte[] decrypt(byte[] encryptedContent) {
-        return CryptoUtils.decryptAes(encryptedContent);
+        return CryptoUtils.decryptAES(encryptedContent);
     }
 }

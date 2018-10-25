@@ -52,7 +52,7 @@ final class CryptoUtils {
     private CryptoUtils() {
     }
 
-    static KeyPair generateRsaKeyPair() {
+    static KeyPair generateRSAKeyPair() {
         try {
             SecureRandom random = new SecureRandom();
             KeyPairGenerator keyGen = KeyPairGenerator.getInstance(RSA_CIPHER_ALGORITHM);
@@ -73,21 +73,21 @@ final class CryptoUtils {
         return encodedKeySpec.getEncoded();
     }
 
-    static byte[] encryptAes(byte[] data) {
+    static byte[] encryptAES(byte[] data) {
         return crypto(AES_CIPHER_ALGORITHM,
             Cipher.ENCRYPT_MODE,
             AES_KEY_SPEC,
             data);
     }
 
-    static byte[] decryptAes(byte[] data) {
+    static byte[] decryptAES(byte[] data) {
         return crypto(AES_CIPHER_ALGORITHM,
             Cipher.DECRYPT_MODE,
             AES_KEY_SPEC,
             data);
     }
 
-    static byte[] decryptRsaUsingPublicKey(byte[] data, byte[] publicKeyBytes) {
+    static byte[] decryptRSAUsingPublicKey(byte[] data, byte[] publicKeyBytes) {
         return crypto(RSA_CIPHER_ALGORITHM,
             Cipher.DECRYPT_MODE,
             getPublicKey(publicKeyBytes),
