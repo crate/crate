@@ -20,6 +20,10 @@
  * agreement.
  */
 
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
 apply from: "$rootDir/gradle/javaModule.gradle"
 
 archivesBaseName = 'crate-license'
@@ -31,4 +35,19 @@ dependencies {
     compile project(':core')
     testCompile "junit:junit:${versions.junit}"
     testCompile project(':integration-testing')
+}
+
+processResources {
+  String cratePublicKey = System.getProperty("crate.public.key")
+  if (cratePublicKey != null) {
+    println "Processing provided crate public key ${cratePublicKey}"
+    if (Files.exists(Paths.get(cratePublicKey)) == false) {
+        throw new IllegalArgumentException('crate.public.key at specified path [' + cratePublicKey + '] does not exist')
+      }
+      from(cratePublicKey) {
+        rename { String filename -> 'public.key' }
+      }
+  } else {
+    println "No crate public key provided"
+  }
 }
