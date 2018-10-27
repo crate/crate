@@ -20,15 +20,37 @@
  * agreement.
  */
 
-package io.crate;
+package io.crate.protocols.postgres;
 
-import org.elasticsearch.bootstrap.JarHell;
+import io.crate.data.Row1;
+import io.crate.types.DataTypes;
+import io.netty.channel.Channel;
 import org.junit.Test;
+import org.mockito.Answers;
 
-public class AppJarHellTest {
+import java.util.Collections;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+public class ResultSetReceiverTest {
 
     @Test
-    public void testInvoke() throws Exception {
-        JarHell.checkJarHell(output -> {});
+    public void testChannelIsPeriodicallyFlushedToAvoidConsumingTooMuchMemory() {
+        Channel channel = mock(Channel.class, Answers.RETURNS_DEEP_STUBS.get());
+        ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
+            "select * from t",
+            channel,
+            t -> {
+            },
+            Collections.singletonList(DataTypes.INTEGER),
+            null
+        );
+        Row1 row1 = new Row1(1);
+        for (int i = 0; i < 1500; i++) {
+            resultSetReceiver.setNextRow(row1);
+        }
+        verify(channel, times(1)).flush();
     }
 }

@@ -48,7 +48,6 @@ import org.junit.Test;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 import static org.elasticsearch.mock.orig.Mockito.verify;
 import static org.hamcrest.Matchers.instanceOf;
@@ -116,6 +115,6 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         transportShardDeleteAction.processRequestItemsOnReplica(indexShard, request);
         verify(indexShard, times(0))
             .applyDeleteOperationOnReplica(
-                anyLong(), anyLong(), anyString(), anyString(), any(VersionType.class), any(Consumer.class));
+                anyLong(), anyLong(), anyString(), anyString(), any(VersionType.class));
     }
 }

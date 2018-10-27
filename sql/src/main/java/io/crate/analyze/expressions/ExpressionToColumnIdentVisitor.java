@@ -28,8 +28,8 @@ import io.crate.sql.tree.Node;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.SubscriptExpression;
-import org.elasticsearch.common.inject.internal.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;

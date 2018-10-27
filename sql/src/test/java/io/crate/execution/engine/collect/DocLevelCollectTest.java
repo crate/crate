@@ -208,7 +208,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
         Routing routing = schemas.getTableInfo(relationName).getRouting(
             clusterService().state(),
-            new RoutingProvider(Randomness.get().nextInt(), new String[0]),
+            new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList()),
             WhereClause.MATCH_ALL,
             RoutingProvider.ShardSelection.ANY,
             SessionContext.systemSessionContext());

@@ -32,6 +32,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
@@ -107,14 +108,14 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         builder.startObject();
         defaultMapper.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
-        String rebuildMapping = builder.string();
+        String rebuildMapping = Strings.toString(builder);
         return parser.parse(type, new CompressedXContent(rebuildMapping));
     }
 
     @Test
     public void testSimpleArrayMapping() throws Exception {
         // @formatter:off
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject()
                 .startObject(TYPE)
                     .startObject("properties")
@@ -126,18 +127,16 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
                         .endObject()
                     .endObject()
                 .endObject()
-            .endObject()
-            .string();
+            .endObject());
         // @formatter:on
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
 
         assertThat(mapper.mappers().getMapper("array_field"), is(instanceOf(ArrayMapper.class)));
 
-        BytesReference bytesReference = JsonXContent.contentBuilder()
+        BytesReference bytesReference = BytesReference.bytes(JsonXContent.contentBuilder()
             .startObject()
             .array("array_field", "a", "b", "c")
-            .endObject()
-            .bytes();
+            .endObject());
         SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         assertThat(doc.dynamicMappingsUpdate() == null, is(true));
@@ -169,7 +168,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInvalidArraySimpleField() throws Exception {
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject().startObject("type").startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -177,8 +176,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .field("type", "string")
             .endObject()
             .endObject()
-            .endObject().endObject().endObject()
-            .string();
+            .endObject().endObject().endObject());
 
         expectedException.expect(MapperParsingException.class);
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
@@ -186,7 +184,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInvalidArrayNonConvertableType() throws Exception {
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject().startObject(TYPE).startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -194,18 +192,16 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .field("type", "double")
             .endObject()
             .endObject()
-            .endObject().endObject().endObject()
-            .string();
+            .endObject().endObject().endObject());
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
 
         expectedException.expect(MapperParsingException.class);
         expectedException.expectMessage("failed to parse [array_field]");
 
-        BytesReference bytesReference = XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
             .startObject()
             .array("array_field", true, false, true)
-            .endObject()
-            .bytes();
+            .endObject());
         SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         mapper.parse(sourceToParse);
     }
@@ -213,7 +209,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     @Test
     public void testObjectArrayMapping() throws Exception {
         // @formatter: off
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject()
                 .startObject(TYPE)
                     .startObject("properties")
@@ -231,12 +227,11 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
                         .endObject()
                     .endObject()
                 .endObject()
-            .endObject()
-            .string();
+            .endObject());
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
         // child object mapper
         assertThat(mapper.objectMappers().get("array_field"), is(instanceOf(ObjectArrayMapper.class)));
-        BytesReference bytesReference = XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
             .startObject()
             .startArray("array_field")
             .startObject()
@@ -249,8 +244,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .field("s", "c")
             .endObject()
             .endArray()
-            .endObject()
-            .bytes();
+            .endObject());
         SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         // @formatter: off
@@ -281,7 +275,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     @Test
     public void testObjectArrayMappingNewColumn() throws Exception {
         // @formatter: off
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject()
                 .startObject(TYPE)
                     .startObject("properties")
@@ -299,12 +293,11 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
                         .endObject()
                     .endObject()
                 .endObject()
-            .endObject()
-            .string();
+            .endObject());
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
         // child object mapper
         assertThat(mapper.objectMappers().get("array_field"), is(instanceOf(ObjectArrayMapper.class)));
-        BytesReference bytesReference = XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
             .startObject()
             .startArray("array_field")
             .startObject()
@@ -312,8 +305,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .field("new", true)
             .endObject()
             .endArray()
-            .endObject()
-            .bytes();
+            .endObject());
         SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
 
@@ -346,7 +338,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertGetArray() throws Exception {
         // @formatter:off
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject()
                 .startObject(TYPE)
                     .startObject("properties")
@@ -358,8 +350,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
                         .endObject()
                     .endObject()
                 .endObject()
-            .endObject()
-            .string();
+            .endObject());
         // @formatter:on
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
         IndexResponse response = client()
@@ -387,7 +378,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertSearchArray() throws Exception {
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject().startObject(TYPE).startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -395,8 +386,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .field("type", "double")
             .endObject()
             .endObject()
-            .endObject().endObject().endObject()
-            .string();
+            .endObject().endObject().endObject());
         mapper(INDEX, TYPE, mapping);
         IndexResponse response = client()
             .prepareIndex(INDEX, TYPE)
@@ -421,7 +411,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testEmptyArray() throws Exception {
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject().startObject(TYPE).startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -429,16 +419,14 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .field("type", "double")
             .endObject()
             .endObject()
-            .endObject().endObject().endObject()
-            .string();
+            .endObject().endObject().endObject());
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
 
         // parse source with empty array
-        BytesReference bytesReference = XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
             .startObject()
             .array("array_field")
-            .endObject()
-            .bytes();
+            .endObject());
         SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         assertThat(doc.dynamicMappingsUpdate() == null, is(true));
@@ -470,7 +458,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         expectedException.expect(MapperParsingException.class);
         expectedException.expectMessage("nested arrays are not supported");
 
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject().startObject(TYPE).startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -481,14 +469,13 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .endObject()
             .endObject()
             .endObject()
-            .endObject().endObject().endObject()
-            .string();
+            .endObject().endObject().endObject());
         mapper(INDEX, TYPE, mapping);
     }
 
     @Test
     public void testParseDynamicNestedArray() throws Exception {
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject().startObject(TYPE).startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -496,21 +483,19 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .field("type", "double")
             .endObject()
             .endObject()
-            .endObject().endObject().endObject()
-            .string();
+            .endObject().endObject().endObject());
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
 
         expectedException.expect(MapperParsingException.class);
         expectedException.expectMessage("failed to parse");
         expectedException.expectCause(CauseMatcher.cause(ElasticsearchParseException.class, "nested arrays are not supported"));
         // parse source with empty array
-        BytesReference bytesReference = XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
             .startObject()
             .startArray("new_array_field")
             .startArray().value("a").value("b").endArray()
             .endArray()
-            .endObject()
-            .bytes();
+            .endObject());
         SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         mapper.parse(sourceToParse);
 
@@ -519,7 +504,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     @Test
     public void testParseNull() throws Exception {
         // @formatter: off
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject()
                 .startObject(TYPE)
                     .startObject("properties")
@@ -531,15 +516,13 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
                         .endObject()
                     .endObject()
                 .endObject()
-            .endObject()
-            .string();
+            .endObject());
         // @formatter: on
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
-        BytesReference bytesReference = XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
             .startObject()
             .nullField("array_field")
-            .endObject()
-            .bytes();
+            .endObject());
         SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument parsedDoc = mapper.parse(sourceToParse);
         assertThat(parsedDoc.docs().size(), is(1));
@@ -549,7 +532,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     @Test
     public void testParseNullOnObjectArray() throws Exception {
         // @formatter: on
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject()
                 .startObject(TYPE)
                     .startObject("properties")
@@ -563,15 +546,13 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
                         .endObject()
                     .endObject()
                 .endObject()
-            .endObject()
-            .string();
+            .endObject());
         // @formatter: off
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
-        BytesReference bytesReference = XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
             .startObject()
             .nullField("array_field")
-            .endObject()
-            .bytes();
+            .endObject());
         SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument parsedDoc = mapper.parse(sourceToParse);
         assertThat(parsedDoc.docs().size(), is(1));
@@ -582,18 +563,16 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testParseDynamicEmptyArray() throws Exception {
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject().startObject(TYPE).startObject("properties")
-            .endObject().endObject().endObject()
-            .string();
+            .endObject().endObject().endObject());
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
 
         // parse source with empty array
-        BytesReference bytesReference = XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
             .startObject()
             .array("new_array_field")
-            .endObject()
-            .bytes();
+            .endObject());
         SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         assertThat(doc.docs().get(0).getField("new_array_field"), is(nullValue()));
@@ -602,18 +581,16 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testParseDynamicNullArray() throws Exception {
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject().startObject(TYPE).startObject("properties")
-            .endObject().endObject().endObject()
-            .string();
+            .endObject().endObject().endObject());
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
 
         // parse source with null array
-        BytesReference bytesReference = XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
             .startObject()
             .startArray("new_array_field").nullValue().endArray()
-            .endObject()
-            .bytes();
+            .endObject());
         SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         assertThat(doc.docs().get(0).getField("new_array_field"), is(nullValue()));
@@ -623,7 +600,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     @Test
     public void testCopyToFieldsOfInnerMapping() throws Exception {
         // @formatter:off
-        String mapping = XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(XContentFactory.jsonBuilder()
             .startObject().startObject(TYPE).startObject("properties")
                 .startObject("string_array")
                     .field("type", ArrayMapper.CONTENT_TYPE)
@@ -633,8 +610,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
                         .field("copy_to", "string_array_ft")
                     .endObject()
                 .endObject()
-            .endObject().endObject().endObject()
-            .string();
+            .endObject().endObject().endObject());
         // @formatter:on
 
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
@@ -643,14 +619,13 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         assertThat(arrayMapper.copyTo().copyToFields(), contains("string_array_ft"));
 
         // @formatter:on
-        BytesReference bytesReference = XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
             .startObject()
             .startArray("string_array")
             .value("foo")
             .value("bar")
             .endArray()
-            .endObject()
-            .bytes();
+            .endObject());
         SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "1", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         // @formatter:off

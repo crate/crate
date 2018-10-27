@@ -29,14 +29,14 @@ import io.crate.metadata.view.ViewsMetaDataTest;
 import io.crate.plugin.SQLPlugin;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -44,7 +44,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class CustomMetaDataTest {
 
@@ -72,9 +74,11 @@ public class CustomMetaDataTest {
 
         String xContent = xContentFromMetaData(metaData);
 
-        XContentParser parser = XContentHelper.createParser(getNamedXContentRegistry(),
-            new BytesArray(xContent.getBytes()),
-            XContentType.JSON);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            getNamedXContentRegistry(),
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            xContent
+        );
 
         MetaData restoredMetaData = MetaData.FORMAT.fromXContent(parser);
         boolean isEqual = MetaData.isGlobalStateEquals(restoredMetaData, metaData);
@@ -90,7 +94,7 @@ public class CustomMetaDataTest {
         builder.startObject();
         MetaData.FORMAT.toXContent(builder, metaData);
         builder.endObject();
-        return builder.string();
+        return Strings.toString(builder);
     }
 
 }

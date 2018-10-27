@@ -22,6 +22,7 @@
 
 package io.crate.expression.reference;
 
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.get.GetResult;
 
@@ -95,7 +96,7 @@ public final class Doc {
             updatedSource,
             () -> {
                 try {
-                    return XContentFactory.jsonBuilder().map(updatedSource).bytes().utf8ToString();
+                    return Strings.toString(XContentFactory.jsonBuilder().map(updatedSource));
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

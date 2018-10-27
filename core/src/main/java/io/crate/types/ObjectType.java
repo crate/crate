@@ -25,6 +25,7 @@ import io.crate.Streamer;
 import io.crate.core.collections.MapComparator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -71,7 +72,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     private static Map<String,Object> mapFromJSONString(String value) {
         try {
-            XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, value);
+            XContentParser parser = JsonXContent.jsonXContent.createParser(
+                NamedXContentRegistry.EMPTY,
+                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                value
+            );
             return parser.map();
         } catch (IOException e) {
             throw new RuntimeException(e);

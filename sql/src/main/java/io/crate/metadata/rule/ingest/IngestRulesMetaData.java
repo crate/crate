@@ -24,6 +24,7 @@ package io.crate.metadata.rule.ingest;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceNotFoundException;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -259,5 +260,10 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
     @Override
     public String getWriteableName() {
         return TYPE;
+    }
+
+    @Override
+    public Version getMinimalSupportedVersion() {
+        return Version.V_6_0_0;
     }
 }

@@ -35,6 +35,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -76,7 +77,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
     private IndexMetaData getIndexMetaData(String indexName,
                                            XContentBuilder builder) throws IOException {
-        Map<String, Object> mappingSource = XContentHelper.convertToMap(builder.bytes(), true, XContentType.JSON).v2();
+        Map<String, Object> mappingSource = XContentHelper.convertToMap(BytesReference.bytes(builder), true, XContentType.JSON).v2();
         mappingSource = sortProperties(mappingSource);
 
         Settings.Builder settingsBuilder = Settings.builder()

@@ -13,6 +13,7 @@ import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -52,7 +53,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testExecutionPhaseIdSequence() throws Exception {
         PlannerContext plannerContext = new PlannerContext(
             clusterService.state(),
-            new RoutingProvider(Randomness.get().nextInt(), new String[0]),
+            new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList()),
             UUID.randomUUID(),
             e.functions(),
             new TransactionContext(SessionContext.systemSessionContext()),

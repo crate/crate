@@ -342,7 +342,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testWhereInIsOptimized() throws Exception {
         Query query = convert("name in ('foo', 'bar')");
         assertThat(query, instanceOf(TermInSetQuery.class));
-        assertThat(query.toString(), is("name:bar name:foo"));
+        assertThat(query.toString(), is("name:(bar foo)"));
     }
 
     @Test

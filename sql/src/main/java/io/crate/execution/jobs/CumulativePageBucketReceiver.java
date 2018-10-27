@@ -32,7 +32,6 @@ import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.netty.util.collection.IntObjectHashMap;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
@@ -168,7 +167,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
                 try {
                     pagingIterator.merge(buckets);
                     executor.execute(this::consumeRows);
-                } catch (EsRejectedExecutionException | RejectedExecutionException e) {
+                } catch (RejectedExecutionException e) {
                     consumer.accept(null, e);
                     throwable = e;
                 }
@@ -179,7 +178,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
             if (error == null) {
                 try {
                     executor.execute(() -> currentPage.complete(buckets));
-                } catch (EsRejectedExecutionException | RejectedExecutionException e) {
+                } catch (RejectedExecutionException e) {
                     currentPage.completeExceptionally(e);
                     throwable = e;
                 }

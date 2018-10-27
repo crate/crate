@@ -22,10 +22,6 @@
 
 package io.crate.lucene;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.CoordinateArrays;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
 import io.crate.expression.symbol.Function;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.types.DataTypes;
@@ -36,6 +32,10 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.GeoPointFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.CoordinateArrays;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.shape.Shape;
@@ -85,11 +85,11 @@ class WithinQuery implements FunctionToQuery, InnerFunctionToQuery {
         if (shape instanceof ShapeCollection) {
             int i = 0;
             ShapeCollection<Shape> collection = (ShapeCollection) shape;
-            com.vividsolutions.jts.geom.Polygon[] polygons = new com.vividsolutions.jts.geom.Polygon[collection.size()];
+            org.locationtech.jts.geom.Polygon[] polygons = new org.locationtech.jts.geom.Polygon[collection.size()];
             for (Shape s : collection.getShapes()) {
                 Geometry subGeometry = JtsSpatialContext.GEO.getShapeFactory().getGeometryFrom(s);
-                if (subGeometry instanceof com.vividsolutions.jts.geom.Polygon) {
-                    polygons[i++] = (com.vividsolutions.jts.geom.Polygon) subGeometry;
+                if (subGeometry instanceof org.locationtech.jts.geom.Polygon) {
+                    polygons[i++] = (org.locationtech.jts.geom.Polygon) subGeometry;
                 } else {
                     throw new InvalidShapeException("Shape collection must contain only Polygon shapes.");
                 }

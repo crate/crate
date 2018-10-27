@@ -20,6 +20,7 @@ package io.crate.metadata;
 
 import io.crate.user.SecureHash;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -188,5 +189,10 @@ public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
     @Override
     public String getWriteableName() {
         return TYPE;
+    }
+
+    @Override
+    public Version getMinimalSupportedVersion() {
+        return Version.V_6_0_0;
     }
 }

@@ -43,7 +43,7 @@ Changes
 - The ``mqtt`` endpoint has been deprecated and will be removed in a future
   version.
 
-- Upgraded to Elasticsearch 6.2.4
+- Upgraded to Elasticsearch 6.3.2
 
 - Renamed the ``delimited_payload_filter`` token filter to
   ``delimited_payload``. The old name can still be used, but is deprecated.
@@ -88,6 +88,10 @@ Changes
 
 Fixes
 =====
+
+- Fixed an issue in the postgres wire protocol that could result in nodes
+  crashing with ``OutOfMemoryError`` if clients queried very large tables
+  without specifying the fetch size.
 
 - Fixed an issue that caused missing privilege errors if table aliases were
   used.

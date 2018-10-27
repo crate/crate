@@ -28,6 +28,7 @@ import io.crate.geo.GeoJSONUtilsTest;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
@@ -61,7 +62,11 @@ public class GeoShapeTypeTest extends CrateUnitTest {
 
     private static Map<String, Object> parse(String json) {
         try {
-            return JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, json).mapOrdered();
+            return JsonXContent.jsonXContent.createParser(
+                NamedXContentRegistry.EMPTY,
+                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                json
+            ).mapOrdered();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

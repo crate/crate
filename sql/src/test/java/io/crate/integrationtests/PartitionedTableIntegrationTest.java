@@ -48,6 +48,7 @@ import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
@@ -1755,7 +1756,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metaData.mappings().get(DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
-            .createParser(NamedXContentRegistry.EMPTY, mappingSource)
+            .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)
             .map()
             .get(DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
@@ -1783,7 +1784,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metaData.mappings().get(DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
-            .createParser(NamedXContentRegistry.EMPTY, mappingSource)
+            .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)
             .map().get(DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
         // template order must not be touched
