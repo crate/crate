@@ -127,5 +127,7 @@ Changes
 - Added support of using units inside byte-size or time bases statement
   parameters values. E.g. '1mb' for 1 MegaByte or '1s' for 1 Second.
 
+- Added string function ``replace_string``
+
 Fixes
 =====

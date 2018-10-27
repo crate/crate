@@ -41,7 +41,7 @@ import io.crate.types.DataTypes;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class ReplaceFunction extends Scalar<String, Object> implements FunctionResolver {
+public class RegexpReplaceFunction extends Scalar<String, Object> implements FunctionResolver {
 
     public static final String NAME = "regexp_replace";
 
@@ -55,16 +55,16 @@ public class ReplaceFunction extends Scalar<String, Object> implements FunctionR
     }
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new ReplaceFunction());
+        module.register(NAME, new RegexpReplaceFunction());
     }
 
     private FunctionInfo info;
     private RegexMatcher regexMatcher;
 
-    private ReplaceFunction() {
+    private RegexpReplaceFunction() {
     }
 
-    private ReplaceFunction(FunctionInfo info) {
+    private RegexpReplaceFunction(FunctionInfo info) {
         this.info = info;
     }
 
@@ -145,7 +145,7 @@ public class ReplaceFunction extends Scalar<String, Object> implements FunctionR
 
     @Override
     public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        return new ReplaceFunction(createInfo(dataTypes));
+        return new RegexpReplaceFunction(createInfo(dataTypes));
     }
 
     @Nullable

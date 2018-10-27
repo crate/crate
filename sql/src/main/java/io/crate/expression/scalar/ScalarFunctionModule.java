@@ -47,11 +47,12 @@ import io.crate.expression.scalar.geo.IntersectsFunction;
 import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.expression.scalar.postgres.PgBackendPidFunction;
 import io.crate.expression.scalar.regex.MatchesFunction;
-import io.crate.expression.scalar.regex.ReplaceFunction;
+import io.crate.expression.scalar.regex.RegexpReplaceFunction;
 import io.crate.expression.scalar.string.HashFunctions;
 import io.crate.expression.scalar.string.InitCapFunction;
 import io.crate.expression.scalar.string.LengthFunction;
 import io.crate.expression.scalar.string.StringCaseFunction;
+import io.crate.expression.scalar.string.ReplaceFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.PgGetExpr;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
@@ -87,7 +88,7 @@ public class ScalarFunctionModule extends AbstractModule {
         FormatFunction.register(this);
         SubstrFunction.register(this);
         MatchesFunction.register(this);
-        ReplaceFunction.register(this);
+        RegexpReplaceFunction.register(this);
 
         ArithmeticFunctions.register(this);
 
@@ -123,6 +124,7 @@ public class ScalarFunctionModule extends AbstractModule {
 
         LengthFunction.register(this);
         HashFunctions.register(this);
+        ReplaceFunction.register(this);
 
         Ignore3vlFunction.register(this);
 

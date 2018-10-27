@@ -30,7 +30,7 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
-public class ReplaceFunctionTest extends AbstractScalarFunctionsTest {
+public class RegexpReplaceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {
@@ -43,7 +43,7 @@ public class ReplaceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeSymbol() throws Exception {
         assertNormalize("regexp_replace('foobarbequebaz bar', '(ba)', 'Crate')", isLiteral("fooCraterbequebaz bar"));
-        assertNormalize("regexp_replace(name, '(ba)', 'Crate')", isFunction(ReplaceFunction.NAME));
+        assertNormalize("regexp_replace(name, '(ba)', 'Crate')", isFunction(RegexpReplaceFunction.NAME));
     }
 
     @Test
