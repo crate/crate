@@ -68,10 +68,6 @@ public class SqlExpressions {
         this(sources, null, null, User.CRATE_USER);
     }
 
-    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources, Object[] parameters) {
-        this(sources, null, parameters, User.CRATE_USER);
-    }
-
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver) {
         this(sources, fieldResolver, null, User.CRATE_USER);

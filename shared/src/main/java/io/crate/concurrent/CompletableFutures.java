@@ -24,12 +24,12 @@ package io.crate.concurrent;
 
 import io.crate.core.SuppressForbidden;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public final class CompletableFutures {
 
@@ -48,9 +48,13 @@ public final class CompletableFutures {
 
     public static <T> CompletableFuture<List<T>> allAsList(Collection<? extends CompletableFuture<? extends T>> futures) {
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-            .thenApply(aVoid -> futures.stream()
-                .map(CompletableFuture::join)
-                .collect(Collectors.toList()));
+            .thenApply(aVoid -> {
+                ArrayList<T> results = new ArrayList<>(futures.size());
+                for (CompletableFuture<? extends T> future : futures) {
+                    results.add(future.join());
+                }
+                return results;
+            });
     }
 
     @SuppressForbidden

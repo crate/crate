@@ -23,16 +23,16 @@
 package io.crate.execution.engine.pipeline;
 
 import io.crate.data.BatchIterator;
+import io.crate.data.BatchIterators;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.execution.engine.pipeline.RowTransformingBatchIterator;
 import io.crate.execution.engine.collect.CollectExpression;
 
 import java.util.List;
 
 /**
- * Projector which evaluates scalars or extends/cuts columns, see {@link RowTransformingBatchIterator}.
+ * Projector which evaluates scalars or extends/cuts columns, see {@link MapRowUsingInputs}.
  */
 public class InputRowProjector implements Projector {
 
@@ -47,7 +47,7 @@ public class InputRowProjector implements Projector {
 
     @Override
     public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
-        return new RowTransformingBatchIterator(batchIterator, inputs, collectExpressions);
+        return BatchIterators.map(batchIterator, new MapRowUsingInputs(inputs, collectExpressions));
     }
 
     @Override

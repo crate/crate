@@ -20,27 +20,37 @@
  * agreement.
  */
 
-package io.crate.expression.reference.doc.lucene;
+package io.crate.protocols.postgres;
 
-import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
+import io.crate.data.Row1;
+import io.crate.types.DataTypes;
+import io.netty.channel.Channel;
+import org.junit.Test;
+import org.mockito.Answers;
 
-public class IdFromUidCollectorExpression extends LuceneCollectorExpression<String> {
+import java.util.Collections;
 
-    private CollectorFieldsVisitor visitor;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
-    public IdFromUidCollectorExpression() {
-        super();
-    }
+public class ResultSetReceiverTest {
 
-    @Override
-    public void startCollect(CollectorContext context) {
-        context.visitor().required(true);
-        this.visitor = context.visitor();
-        this.visitor.addField("_uid");
-    }
-
-    @Override
-    public String value() {
-        return visitor.uid().id();
+    @Test
+    public void testChannelIsPeriodicallyFlushedToAvoidConsumingTooMuchMemory() {
+        Channel channel = mock(Channel.class, Answers.RETURNS_DEEP_STUBS.get());
+        ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
+            "select * from t",
+            channel,
+            t -> {
+            },
+            Collections.singletonList(DataTypes.INTEGER),
+            null
+        );
+        Row1 row1 = new Row1(1);
+        for (int i = 0; i < 1500; i++) {
+            resultSetReceiver.setNextRow(row1);
+        }
+        verify(channel, times(1)).flush();
     }
 }
