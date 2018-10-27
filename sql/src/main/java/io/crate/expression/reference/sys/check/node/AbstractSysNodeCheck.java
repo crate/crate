@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.Id;
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.List;
 import java.util.function.Function;
@@ -37,15 +36,13 @@ public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements S
 
 
     private static final String LINK_PATTERN = "https://cr8.is/d-node-check-";
-    protected final ClusterService clusterService;
 
     private String nodeId;
     private String rowId;
     private boolean acknowledged;
 
-    AbstractSysNodeCheck(int id, String description, Severity severity, ClusterService clusterService) {
+    AbstractSysNodeCheck(int id, String description, Severity severity) {
         super(id, description, severity, LINK_PATTERN);
-        this.clusterService = clusterService;
         acknowledged = false;
     }
 
