@@ -1377,10 +1377,9 @@ Here's an example query::
   |  1 | The setting 'discovery.zen.minimum_master_nodes' must not be ... |
   |  2 | The total number of partitions of one or more partitioned tab... |
   |  3 | The following tables need to be upgraded for compatibility wi... |
-  |  4 | CrateDB Enterprise features are active. Please request a lice... |
-  |  5 | Your CrateDB license is not close to expiry. Enjoy CrateDB!      |
+  |  4 | Your CrateDB license is not close to expiry. Enjoy CrateDB!      |
   +----+--------------------------------------------------------------...-+
-  SELECT 5 rows in set (... sec)
+  SELECT 4 rows in set (... sec)
 
 Cluster checks are also indicated in the CrateDB `admin console`_. When all
 cluster checks (and all :ref:`sys-node-checks`) pass, the *Checks* icon will be
