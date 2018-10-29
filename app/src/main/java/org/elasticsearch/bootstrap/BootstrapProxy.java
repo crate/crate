@@ -182,7 +182,8 @@ public class BootstrapProxy {
 
         try {
             // look for jar hell
-            JarHell.checkJarHell(System.out::println);
+            final Logger logger = ESLoggerFactory.getLogger(JarHell.class);
+            JarHell.checkJarHell(logger::debug);
         } catch (IOException | URISyntaxException e) {
             throw new BootstrapException(e);
         }

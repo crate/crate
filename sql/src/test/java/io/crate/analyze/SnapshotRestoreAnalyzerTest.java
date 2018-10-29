@@ -46,6 +46,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_INFO;
@@ -65,11 +66,12 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Before
     public void prepare() throws IOException {
         RepositoriesMetaData repositoriesMetaData = new RepositoriesMetaData(
-            new RepositoryMetaData(
-                "my_repo",
-                "fs",
-                Settings.builder().put("location", "/tmp/my_repo").build()
-            ));
+            Collections.singletonList(
+                new RepositoryMetaData(
+                    "my_repo",
+                    "fs",
+                    Settings.builder().put("location", "/tmp/my_repo").build()
+            )));
         ClusterState clusterState = ClusterState.builder(new ClusterName("testing"))
             .metaData(MetaData.builder()
                 .putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData))

@@ -47,7 +47,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Singleton
 public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, NodeFetchResponse> {
 
-    private static final String TRANSPORT_ACTION = "crate/sql/node/fetch";
+    private static final String TRANSPORT_ACTION = "internal:crate:sql/node/fetch";
     private static final String EXECUTOR_NAME = ThreadPool.Names.SEARCH;
 
     private final Transports transports;

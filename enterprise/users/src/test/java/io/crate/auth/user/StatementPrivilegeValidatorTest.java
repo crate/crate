@@ -51,6 +51,7 @@ import java.util.EnumSet;
 import java.util.List;
 
 import static io.crate.auth.user.User.CRATE_USER;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -68,11 +69,12 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     public void setUpSQLExecutor() throws Exception {
         validationCallArguments = new ArrayList<>();
         RepositoriesMetaData repositoriesMetaData = new RepositoriesMetaData(
-            new RepositoryMetaData(
-                "my_repo",
-                "fs",
-                Settings.builder().put("location", "/tmp/my_repo").build()
-            ));
+            singletonList(
+                new RepositoryMetaData(
+                    "my_repo",
+                    "fs",
+                    Settings.builder().put("location", "/tmp/my_repo").build()
+            )));
         ClusterState clusterState = ClusterState.builder(clusterService.state())
             .metaData(MetaData.builder(clusterService.state().metaData())
                 .putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData))

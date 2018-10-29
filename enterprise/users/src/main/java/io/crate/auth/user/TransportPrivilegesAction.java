@@ -46,7 +46,7 @@ import java.util.List;
 @Singleton
 public class TransportPrivilegesAction extends TransportMasterNodeAction<PrivilegesRequest, PrivilegesResponse> {
 
-    private static final String ACTION_NAME = "crate/sql/grant_privileges";
+    private static final String ACTION_NAME = "internal:crate:sql/privileges/grant";
 
     @Inject
     public TransportPrivilegesAction(Settings settings,

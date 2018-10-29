@@ -54,7 +54,7 @@ public class TransportDropUserDefinedFunctionAction
                                                   UserDefinedFunctionService udfService,
                                                   ActionFilters actionFilters,
                                                   IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "crate/sql/drop_udf", transportService, clusterService, threadPool,
+        super(settings, "internal:crate:sql/udf/drop", transportService, clusterService, threadPool,
             actionFilters, indexNameExpressionResolver, DropUserDefinedFunctionRequest::new);
         this.udfService = udfService;
     }

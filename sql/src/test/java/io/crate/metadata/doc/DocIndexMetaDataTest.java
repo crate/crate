@@ -956,6 +956,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                     emptyMap(),
                     emptyMap(),
                     emptyMap(),
+                    emptyMap(),
                     emptyMap()
                 )
             ),

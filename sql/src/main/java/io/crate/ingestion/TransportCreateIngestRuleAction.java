@@ -45,7 +45,7 @@ import org.elasticsearch.transport.TransportService;
 @Singleton
 public class TransportCreateIngestRuleAction extends TransportMasterNodeAction<CreateIngestRuleRequest, IngestRuleResponse> {
 
-    private static final String ACTION_NAME = "crate/sql/create_ingest_rule";
+    private static final String ACTION_NAME = "internal:crate:sql/ingest/create_rule";
 
     @Inject
     public TransportCreateIngestRuleAction(Settings settings,

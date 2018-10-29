@@ -304,11 +304,26 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     @Test
     public void testBuiltInTokenizers() throws Exception {
         List<String> tokenizers = new ArrayList<>(fulltextAnalyzerResolver.getBuiltInTokenizers());
-        Collections.sort(tokenizers);
-        assertThat(Joiner.on(", ").join(tokenizers),
-            is("PathHierarchy, classic, edgeNGram, edge_ngram, keyword, letter, lowercase, " +
-               "nGram, ngram, path_hierarchy, pattern, simple_pattern, simple_pattern_split, standard, thai, " +
-               "uax_url_email, whitespace"));
+        assertThat(tokenizers, containsInAnyOrder(
+            "PathHierarchy",
+            "char_group",
+            "classic",
+            "edgeNGram",
+            "edge_ngram",
+            "keyword",
+            "letter",
+            "lowercase",
+            "nGram",
+            "ngram",
+            "path_hierarchy",
+            "pattern",
+            "simple_pattern",
+            "simple_pattern_split",
+            "standard",
+            "thai",
+            "uax_url_email",
+            "whitespace"
+        ));
     }
 
     @Test
@@ -323,8 +338,8 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                "german_stem, hindi_normalization, hunspell, " +
                "hyphenation_decompounder, indic_normalization, keep, keep_types, " +
                "keyword_marker, " +
-               "kstem, length, limit, lowercase, min_hash, nGram, ngram, pattern_capture, " +
-               "pattern_replace, persian_normalization, porter_stem, reverse, " +
+               "kstem, length, limit, lowercase, min_hash, multiplexer, nGram, ngram, pattern_capture, " +
+               "pattern_replace, persian_normalization, porter_stem, remove_duplicates, reverse, " +
                "russian_stem, scandinavian_folding, scandinavian_normalization, serbian_normalization, " +
                "shingle, snowball, sorani_normalization, standard, stemmer, stemmer_override, " +
                "stop, synonym, trim, truncate, unique, uppercase, word_delimiter, word_delimiter_graph"));

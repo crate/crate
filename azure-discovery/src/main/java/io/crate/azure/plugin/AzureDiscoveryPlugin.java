@@ -123,7 +123,7 @@ public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
                 if (AzureConfiguration.isDiscoveryReady(settings, logger)) {
                     return new AzureUnicastHostsProvider(settings, azureComputeService(), transportService, networkService);
                 } else {
-                    return Collections::emptyList;
+                    return hostsResolver -> Collections.emptyList();
                 }
             });
     }

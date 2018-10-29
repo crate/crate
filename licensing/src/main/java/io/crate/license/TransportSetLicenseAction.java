@@ -50,7 +50,7 @@ public class TransportSetLicenseAction
                                      ThreadPool threadPool,
                                      ActionFilters actionFilters,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "crate/sql/set_license", transportService, clusterService, threadPool, actionFilters,
+        super(settings, "internal:crate:sql/set_license", transportService, clusterService, threadPool, actionFilters,
             indexNameExpressionResolver, SetLicenseRequest::new);
     }
 

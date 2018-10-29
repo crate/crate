@@ -27,7 +27,7 @@ import org.elasticsearch.client.ElasticsearchClient;
 public class StartBlobAction extends Action<StartBlobRequest, StartBlobResponse, StartBlobRequestBuilder> {
 
     public static final StartBlobAction INSTANCE = new StartBlobAction();
-    public static final String NAME = "start_blob";
+    public static final String NAME = "internal:crate:blob/start_blob";
 
     protected StartBlobAction() {
         super(NAME);

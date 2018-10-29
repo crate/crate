@@ -38,7 +38,7 @@ public class TransportKillJobsNodeAction extends TransportKillNodeAction<KillJob
                                        TasksService tasksService,
                                        ClusterService clusterService,
                                        TransportService transportService) {
-        super("crate/sql/kill_jobs", settings, tasksService, clusterService, transportService, KillJobsRequest::new);
+        super("internal:crate:sql/kill/jobs", settings, tasksService, clusterService, transportService, KillJobsRequest::new);
     }
 
     @Override

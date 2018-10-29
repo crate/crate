@@ -44,11 +44,11 @@ public class BlobHeadRequestHandler {
      */
     public static class Actions {
         // handlers called on the source node
-        public static final String GET_BLOB_HEAD = "crate/blob/shard/tmp_transfer/get_head";
-        public static final String GET_TRANSFER_INFO = "crate/blob/shard/tmp_transfer/get_info";
+        public static final String GET_BLOB_HEAD = "internal:crate:blob/shard/tmp_transfer/get_head";
+        public static final String GET_TRANSFER_INFO = "internal:crate:blob/shard/tmp_transfer/get_info";
 
         // handlers called on the target node
-        public static final String PUT_BLOB_HEAD_CHUNK = "crate/blob/shard/tmp_transfer/put_head_chunk";
+        public static final String PUT_BLOB_HEAD_CHUNK = "internal:crate:blob/shard/tmp_transfer/put_head_chunk";
     }
 
     @Inject

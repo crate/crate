@@ -26,7 +26,6 @@ import io.crate.Constants;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateTaskListener;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.settings.Settings;
@@ -58,12 +57,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
             }
         });
         clusterService.getClusterApplierService()
-            .onNewClusterState("test", () -> newState, new ClusterStateTaskListener() {
-            @Override
-            public void onFailure(String source, Exception e) {
-                processed.completeExceptionally(e);
-            }
-        });
+            .onNewClusterState("test", () -> newState, (source, e) -> processed.completeExceptionally(e));
         processed.get(5, TimeUnit.SECONDS);
     }
 

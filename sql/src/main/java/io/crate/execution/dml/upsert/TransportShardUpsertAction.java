@@ -83,7 +83,7 @@ import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnl
 @Singleton
 public class TransportShardUpsertAction extends TransportShardAction<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
-    private static final String ACTION_NAME = "indices:crate/data/write/upsert";
+    private static final String ACTION_NAME = "internal:crate:sql/data/write";
     private static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
 
     private final Schemas schemas;
@@ -299,7 +299,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 IndexRequest.UNSET_AUTO_GENERATED_TIMESTAMP,
                 isRetry
             ),
-            e -> new Engine.IndexResult(e, finalVersion)
+            e -> indexShard.getFailedIndexResult(e, finalVersion)
         );
         Exception failure = indexResult.getFailure();
         if (failure != null) {

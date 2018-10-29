@@ -253,7 +253,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         assertThat(
             uniqueValuesFromFields(doc.docs().get(0), "array_field.s"),
             containsInAnyOrder("a", "b", "c"));
-        assertThat(mapper.mappers().smartNameFieldMapper("array_field.s"), instanceOf(KeywordFieldMapper.class));
+        assertThat(mapper.mappers().getMapper("array_field.s"), instanceOf(KeywordFieldMapper.class));
         assertThat(
             mapper.mappingSource().string(),
             is("{\"default\":{" +
@@ -576,7 +576,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         assertThat(doc.docs().get(0).getField("new_array_field"), is(nullValue()));
-        assertThat(mapper.mappers().smartNameFieldMapper("new_array_field"), is(nullValue()));
+        assertThat(mapper.mappers().getMapper("new_array_field"), is(nullValue()));
     }
 
     @Test
@@ -594,7 +594,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         assertThat(doc.docs().get(0).getField("new_array_field"), is(nullValue()));
-        assertThat(mapper.mappers().smartNameFieldMapper("new_array_field"), is(nullValue()));
+        assertThat(mapper.mappers().getMapper("new_array_field"), is(nullValue()));
     }
 
     @Test
@@ -614,7 +614,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         // @formatter:on
 
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
-        FieldMapper arrayMapper = mapper.mappers().getMapper("string_array");
+        FieldMapper arrayMapper = (FieldMapper) mapper.mappers().getMapper("string_array");
         assertThat(arrayMapper, is(instanceOf(ArrayMapper.class)));
         assertThat(arrayMapper.copyTo().copyToFields(), contains("string_array_ft"));
 

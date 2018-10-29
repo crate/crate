@@ -288,7 +288,7 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
 
         execute("select name, _score from locations where match(name_description_ft, 'Alpha Centauri') using phrase_prefix");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 4.555051\n"));
+            is("Alpha Centauri| 9.110102\n"));
     }
 
     @Test

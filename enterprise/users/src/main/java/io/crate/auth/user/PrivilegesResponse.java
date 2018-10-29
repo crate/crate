@@ -50,7 +50,6 @@ public class PrivilegesResponse extends AcknowledgedResponse {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        readAcknowledged(in);
         affectedRows = in.readLong();
         unknownUserNames = in.readList(StreamInput::readString);
     }
@@ -58,7 +57,6 @@ public class PrivilegesResponse extends AcknowledgedResponse {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        writeAcknowledged(out);
         out.writeLong(affectedRows);
         out.writeStringList(unknownUserNames);
     }

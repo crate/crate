@@ -47,7 +47,7 @@ import org.elasticsearch.transport.TransportService;
 public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTransportAction<OpenCloseTableOrPartitionRequest, OpenCloseTableOrPartitionResponse> {
 
     private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
-    private static final String ACTION_NAME = "crate/sql/table_or_partition/open_close";
+    private static final String ACTION_NAME = "internal:crate:sql/table_or_partition/open_close";
 
     private final OpenTableClusterStateTaskExecutor openExecutor;
     private final CloseTableClusterStateTaskExecutor closeExecutor;

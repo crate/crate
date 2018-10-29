@@ -23,7 +23,6 @@
 package io.crate.discovery;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractComponent;
@@ -100,8 +99,9 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
         return null;
     }
 
+
     @Override
-    public List<DiscoveryNode> buildDynamicNodes() {
+    public List<TransportAddress> buildDynamicHosts(HostsResolver hostsResolver) {
         if (query == null) {
             logger.error("DNS query must not be null. Please set '{}'", DISCOVERY_SRV_QUERY);
             return Collections.emptyList();
@@ -112,9 +112,9 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
             if (records == null || records.length == 0) {
                 logger.debug("No nodes found");
             } else {
-                List<DiscoveryNode> discoNodes = parseRecords(records);
-                logger.info("Using dynamic discovery nodes {}", discoNodes);
-                return discoNodes;
+                List<TransportAddress> transportAddresses = parseRecords(records);
+                logger.info("Using dynamic nodes {}", transportAddresses);
+                return transportAddresses;
             }
         } catch (TextParseException e) {
             logger.error("Unable to parse DNS query '{}'", query);
@@ -131,8 +131,8 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
         return lookup.run();
     }
 
-    protected List<DiscoveryNode> parseRecords(Record[] records) {
-        List<DiscoveryNode> discoNodes = new ArrayList<>(records.length);
+    protected List<TransportAddress> parseRecords(Record[] records) {
+        List<TransportAddress> addresses = new ArrayList<>(records.length);
         for (Record record : records) {
             SRVRecord srv = (SRVRecord) record;
 
@@ -141,16 +141,16 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
             String address = hostname + ":" + port;
 
             try {
-                TransportAddress[] addresses = transportService.addressesFromString(address, 1);
-                for (TransportAddress transportAddress : addresses) {
-                    logger.trace("adding {}, transport_address {}", address, transportAddress);
-                    discoNodes.add(new DiscoveryNode(
-                        "#srv-" + address, transportAddress, version.minimumCompatibilityVersion()));
+                for (TransportAddress transportAddress : transportService.addressesFromString(address, 1)) {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("adding {}, transport_address {}", address, transportAddress);
+                    }
+                    addresses.add(transportAddress);
                 }
             } catch (Exception e) {
                 logger.warn("failed to add {}, address {}", e, address);
             }
         }
-        return discoNodes;
+        return addresses;
     }
 }

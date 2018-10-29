@@ -107,9 +107,11 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
+import org.elasticsearch.cluster.routing.allocation.decider.ReplicaAfterPrimaryActiveAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.SameShardAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -125,6 +127,8 @@ import org.elasticsearch.test.gateway.TestGatewayAllocator;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -149,6 +153,8 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_CREATION_DATE;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -257,7 +263,10 @@ public class SQLExecutor {
                 Settings.EMPTY,
                 new AllocationDeciders(
                     Settings.EMPTY,
-                    singletonList(new SameShardAllocationDecider(Settings.EMPTY, clusterService.getClusterSettings()))
+                    Arrays.asList(
+                        new SameShardAllocationDecider(Settings.EMPTY, clusterService.getClusterSettings()),
+                        new ReplicaAfterPrimaryActiveAllocationDecider(Settings.EMPTY)
+                    )
                 ),
                 new TestGatewayAllocator(),
                 new BalancedShardsAllocator(Settings.EMPTY),
@@ -483,13 +492,17 @@ public class SQLExecutor {
         private static IndexMetaData.Builder getIndexMetaData(String indexName,
                                                               CreateTableAnalyzedStatement analyzedStmt,
                                                               Version smallestNodeVersion) throws IOException {
+            Settings.Builder builder = Settings.builder()
+                .put(analyzedStmt.tableParameter().settings())
+                .put(SETTING_VERSION_CREATED, smallestNodeVersion)
+                .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli())
+                .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
+
+            Settings indexSettings = builder.build();
+            Integer numRoutingShards = IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(indexSettings);
             return IndexMetaData.builder(indexName)
-                .settings(
-                    Settings.builder()
-                        .put(analyzedStmt.tableParameter().settings())
-                        .put(SETTING_VERSION_CREATED, smallestNodeVersion)
-                        .build()
-                )
+                .settings(indexSettings)
+                .setRoutingNumShards(numRoutingShards)
                 .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, analyzedStmt.mapping()));
         }
 
