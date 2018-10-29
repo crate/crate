@@ -609,20 +609,20 @@ For example you can use this table to list existing tokenizers like this::
     ... from information_schema.routines
     ... where routine_type='TOKENIZER'
     ... order by routine_name asc limit 10;
-    +----------------+
-    | routine_name   |
-    +----------------+
-    | PathHierarchy  |
-    | classic        |
-    | edgeNGram      |
-    | edge_ngram     |
-    | keyword        |
-    | letter         |
-    | lowercase      |
-    | nGram          |
-    | ngram          |
-    | path_hierarchy |
-    +----------------+
+    +---------------+
+    | routine_name  |
+    +---------------+
+    | PathHierarchy |
+    | char_group    |
+    | classic       |
+    | edgeNGram     |
+    | edge_ngram    |
+    | keyword       |
+    | letter        |
+    | lowercase     |
+    | nGram         |
+    | ngram         |
+    +---------------+
     SELECT 10 rows in set (... sec)
 
 Or get an overview of how many routines and routine types are available::
@@ -636,8 +636,8 @@ Or get an overview of how many routines and routine types are available::
     +----------+--------------+
     |       45 | ANALYZER     |
     |        3 | CHAR_FILTER  |
-    |       17 | TOKENIZER    |
-    |       61 | TOKEN_FILTER |
+    |       18 | TOKENIZER    |
+    |       63 | TOKEN_FILTER |
     +----------+--------------+
     SELECT 4 rows in set (... sec)
 

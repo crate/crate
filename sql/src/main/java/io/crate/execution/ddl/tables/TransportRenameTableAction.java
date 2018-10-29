@@ -45,7 +45,7 @@ import org.elasticsearch.transport.TransportService;
 @Singleton
 public class TransportRenameTableAction extends AbstractDDLTransportAction<RenameTableRequest, RenameTableResponse> {
 
-    private static final String ACTION_NAME = "crate/table/rename";
+    private static final String ACTION_NAME = "internal:crate:sql/table/rename";
     private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
 
     private final RenameTableClusterStateExecutor executor;

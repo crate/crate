@@ -55,7 +55,7 @@ public class TransportCreateUserDefinedFunctionAction
                                                     UserDefinedFunctionService udfService,
                                                     ActionFilters actionFilters,
                                                     IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "crate/sql/create_udf", transportService, clusterService, threadPool, actionFilters,
+        super(settings, "internal:crate:sql/udf/create", transportService, clusterService, threadPool, actionFilters,
             indexNameExpressionResolver, CreateUserDefinedFunctionRequest::new);
         this.udfService = udfService;
     }

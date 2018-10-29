@@ -50,7 +50,7 @@ import java.util.function.UnaryOperator;
 @Singleton
 public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
-    private static final String ACTION_NAME = "crate/sql/job";
+    private static final String ACTION_NAME = "internal:crate:sql/job";
     private static final String EXECUTOR = ThreadPool.Names.SEARCH;
 
     private final IndicesService indicesService;

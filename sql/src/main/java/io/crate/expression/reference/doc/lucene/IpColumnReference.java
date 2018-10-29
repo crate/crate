@@ -54,7 +54,7 @@ public class IpColumnReference extends LuceneCollectorExpression<String> {
                 throw new GroupByOnArrayUnsupportedException(columnName);
             }
             BytesRef encoded = values.lookupOrd(ord);
-            value = DocValueFormat.IP.format(encoded);
+            value = (String) DocValueFormat.IP.format(encoded);
         } else {
             value = null;
         }

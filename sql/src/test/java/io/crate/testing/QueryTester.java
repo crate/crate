@@ -75,6 +75,7 @@ import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.bitset.BitsetFilterCache;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
+import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.ArrayMapper;
@@ -192,7 +193,7 @@ public final class QueryTester implements AutoCloseable {
                 queryCache,
                 bitsetFilterCache
             );
-            IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry);
+            IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, new InternalEngineFactory());
             Client client = mock(Client.class);
             NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(ClusterModule.getNamedWriteables());
             nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env);

@@ -85,7 +85,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
                                        NodeClient nodeClient,
                                        NamedXContentRegistry xContentRegistry) {
         super(settings,
-            "crate/sql/ddl/schema_update",
+            "internal:crate:sql/ddl/schema_update",
             transportService,
             clusterService,
             threadPool,

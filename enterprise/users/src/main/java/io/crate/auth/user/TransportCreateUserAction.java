@@ -50,7 +50,7 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
                               ThreadPool threadPool,
                               ActionFilters actionFilters,
                               IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "crate/sql/create_user", transportService, clusterService, threadPool, actionFilters,
+        super(settings, "internal:crate:sql/user/create", transportService, clusterService, threadPool, actionFilters,
             indexNameExpressionResolver, CreateUserRequest::new);
     }
 

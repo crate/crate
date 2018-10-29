@@ -31,6 +31,7 @@ import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.discovery.zen.UnicastHostsProvider;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -60,6 +61,7 @@ public class SrvUnicastHostsProviderTest {
 
     private TransportService transportService;
     private ThreadPool threadPool;
+    private UnicastHostsProvider.HostsResolver hostsResolver = (hosts, limitPortCounts) -> Collections.emptyList();
 
     private abstract class DummySrvUnicastHostsProvider extends SrvUnicastHostsProvider {
 
@@ -102,11 +104,18 @@ public class SrvUnicastHostsProviderTest {
         ) {
             @Override
             public TransportAddress[] addressesFromString(String address, int perAddressLimit) {
+                int portStart = address.indexOf(':');
+                int port;
+                if (portStart >= 0) {
+                    port = Integer.parseInt(address.substring(portStart + 1));
+                } else {
+                    port = 44300;
+                }
                 int num = Integer.parseInt(address.substring("crate".length(), address.indexOf(".")));
                 byte[] dummyIp = new byte[] { 0, 0, 0, 0 };
                 try {
                     return new TransportAddress[] {
-                        new TransportAddress(InetAddress.getByAddress("crate" + num + ".internal", dummyIp), 44300)
+                        new TransportAddress(InetAddress.getByAddress("crate" + num + ".internal", dummyIp), port)
                     };
                 } catch (UnknownHostException e) {
                     throw new RuntimeException(e);
@@ -159,8 +168,8 @@ public class SrvUnicastHostsProviderTest {
     public void testBuildDynamicNodesNoQuery() throws Exception {
         // no query -> empty list of discovery nodes
         SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(Settings.EMPTY, transportService);
-        List<DiscoveryNode> discoNodes = unicastHostsProvider.buildDynamicNodes();
-        assertTrue(discoNodes.isEmpty());
+        List<TransportAddress> transportAddresses = unicastHostsProvider.buildDynamicHosts(hostsResolver);
+        assertTrue(transportAddresses.isEmpty());
     }
 
     @Test
@@ -174,8 +183,8 @@ public class SrvUnicastHostsProviderTest {
                 return null;
             }
         };
-        List<DiscoveryNode> discoNodes = unicastHostsProvider.buildDynamicNodes();
-        assertTrue(discoNodes.isEmpty());
+        List<TransportAddress> addresses = unicastHostsProvider.buildDynamicHosts(hostsResolver);
+        assertTrue(addresses.isEmpty());
     }
 
     @Test
@@ -193,8 +202,8 @@ public class SrvUnicastHostsProviderTest {
                 };
             }
         };
-        List<DiscoveryNode> discoNodes = unicastHostsProvider.buildDynamicNodes();
-        assertEquals(2, discoNodes.size());
+        List<TransportAddress> addresses = unicastHostsProvider.buildDynamicHosts(hostsResolver);
+        assertEquals(2, addresses.size());
     }
 
     @Test
@@ -203,16 +212,16 @@ public class SrvUnicastHostsProviderTest {
 
         Name srvName = Name.fromConstantString("_crate._srv.crate.internal.");
         Record[] records = new Record[]{
-            new SRVRecord(srvName, DClass.IN, 3600, 1, 10, 44300, Name.fromConstantString("crate1.internal.")),
-            new SRVRecord(srvName, DClass.IN, 3600, 1, 20, 44300, Name.fromConstantString("crate2.internal.")),
-            new SRVRecord(srvName, DClass.IN, 3600, 2, 10, 44300, Name.fromConstantString("crate3.internal.")),
-            new SRVRecord(srvName, DClass.IN, 3600, 2, 20, 44300, Name.fromConstantString("crate4.internal."))
+            new SRVRecord(srvName, DClass.IN, 3600, 1, 10, 44301, Name.fromConstantString("crate1.internal.")),
+            new SRVRecord(srvName, DClass.IN, 3600, 1, 20, 44302, Name.fromConstantString("crate2.internal.")),
+            new SRVRecord(srvName, DClass.IN, 3600, 2, 10, 44303, Name.fromConstantString("crate3.internal.")),
+            new SRVRecord(srvName, DClass.IN, 3600, 2, 20, 44304, Name.fromConstantString("crate4.internal."))
         };
-        List<DiscoveryNode> discoNodes = unicastHostsProvider.parseRecords(records);
+        List<TransportAddress> addresses = unicastHostsProvider.parseRecords(records);
         // nodes need to be sorted by priority (asc), weight (desc) and name (asc) of SRV record
-        assertEquals("#srv-crate1.internal:44300", discoNodes.get(0).getId());
-        assertEquals("#srv-crate2.internal:44300", discoNodes.get(1).getId());
-        assertEquals("#srv-crate3.internal:44300", discoNodes.get(2).getId());
-        assertEquals("#srv-crate4.internal:44300", discoNodes.get(3).getId());
+        assertEquals("0.0.0.0:44301", addresses.get(0).toString());
+        assertEquals("0.0.0.0:44302", addresses.get(1).toString());
+        assertEquals("0.0.0.0:44303", addresses.get(2).toString());
+        assertEquals("0.0.0.0:44304", addresses.get(3).toString());
     }
 }

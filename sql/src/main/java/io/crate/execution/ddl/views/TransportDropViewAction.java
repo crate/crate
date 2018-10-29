@@ -56,7 +56,7 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
                                    IndexNameExpressionResolver indexNameExpressionResolver,
                                    DDLClusterStateService ddlClusterStateService) {
         super(settings,
-            "crate/sql/views/drop",
+            "internal:crate:sql/views/drop",
             transportService,
             clusterService,
             threadPool,

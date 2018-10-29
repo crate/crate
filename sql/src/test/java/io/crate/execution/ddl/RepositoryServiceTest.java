@@ -77,7 +77,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(RepositoryException.class);
 
         // add repo to cluster service so that it exists..
-        RepositoriesMetaData repos = new RepositoriesMetaData(new RepositoryMetaData("repo1", "fs", Settings.EMPTY));
+        RepositoriesMetaData repos = new RepositoriesMetaData(Collections.singletonList(new RepositoryMetaData("repo1", "fs", Settings.EMPTY)));
         ClusterState state = ClusterState.builder(new ClusterName("dummy")).metaData(
             MetaData.builder().putCustom(RepositoriesMetaData.TYPE, repos)).build();
         ClusterServiceUtils.setState(clusterService, state);

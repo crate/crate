@@ -27,7 +27,7 @@ import org.elasticsearch.client.ElasticsearchClient;
 public class DeleteBlobAction extends Action<DeleteBlobRequest, DeleteBlobResponse, DeleteBlobRequestBuilder> {
 
     public static final DeleteBlobAction INSTANCE = new DeleteBlobAction();
-    public static final String NAME = "delete_blob";
+    public static final String NAME = "internal:crate:blob/delete_blob";
 
     protected DeleteBlobAction() {
         super(NAME);

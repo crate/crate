@@ -60,7 +60,7 @@ import static io.crate.concurrent.CompletableFutures.failedFuture;
 
 public class TransportDistributedResultAction extends AbstractComponent implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
 
-    private static final String DISTRIBUTED_RESULT_ACTION = "crate/sql/node/merge/add_rows";
+    private static final String DISTRIBUTED_RESULT_ACTION = "internal:crate:sql/node/merge";
 
     private final Transports transports;
     private final TasksService tasksService;

@@ -149,7 +149,7 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
         for (Index partition : partitions) {
             String indexName = partition.getName();
             aliasActions.add(new AliasAction.Remove(indexName, oldAlias));
-            aliasActions.add(new AliasAction.Add(indexName, newAlias, null, null, null));
+            aliasActions.add(new AliasAction.Add(indexName, newAlias, null, null, null, null));
         }
         return metaDataIndexAliasesService.innerExecute(currentState, aliasActions);
     }

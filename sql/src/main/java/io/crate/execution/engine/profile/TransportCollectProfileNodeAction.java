@@ -53,7 +53,7 @@ import java.util.concurrent.CompletableFuture;
 @Singleton
 public class TransportCollectProfileNodeAction implements NodeAction<NodeCollectProfileRequest, NodeCollectProfileResponse> {
 
-    private static final String TRANSPORT_ACTION = "crate/sql/node/profile/collect";
+    private static final String TRANSPORT_ACTION = "internal:crate:sql/node/profile/collect";
     private static final String EXECUTOR = ThreadPool.Names.SEARCH;
 
     private final Transports transports;

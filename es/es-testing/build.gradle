@@ -1,6 +1,6 @@
 dependencies {
     compile project(':es:es-server')
-    compile project(':es:es-client')
+    compile "org.elasticsearch.client:elasticsearch-rest-client-sniffer:${versions.elasticsearch}"
 
     // same deps as in es/upstream/test/framework/build.gradle  except ES/ES-client (we compile the project)
     compile "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"

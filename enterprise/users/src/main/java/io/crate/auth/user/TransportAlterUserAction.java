@@ -47,7 +47,7 @@ public class TransportAlterUserAction extends TransportMasterNodeAction<AlterUse
                                        ThreadPool threadPool,
                                        ActionFilters actionFilters,
                                        IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "crate/sql/alter_user", transportService, clusterService, threadPool, actionFilters,
+        super(settings, "internal:crate:sql/user/alter", transportService, clusterService, threadPool, actionFilters,
             indexNameExpressionResolver, AlterUserRequest::new);
     }
 

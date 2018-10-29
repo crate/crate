@@ -3,7 +3,7 @@ dependencies {
     compile "org.apache.logging.log4j:log4j-api:${versions.log4j}"
 }
 
-def libDir = file('../upstream/libs/elasticsearch-core')
+def libDir = file('../upstream/libs/core')
 
 sourceSets {
     main {

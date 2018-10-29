@@ -33,8 +33,6 @@ import io.crate.azure.AzureConfiguration;
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeService.Discovery;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.NetworkAddress;
@@ -55,6 +53,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class AzureUnicastHostsProvider extends AbstractComponent implements UnicastHostsProvider {
+
 
     public static enum HostType {
         PRIVATE_IP("private_ip"),
@@ -81,7 +80,7 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
     private final NetworkService networkService;
     private final TimeValue refreshInterval;
 
-    private DiscoNodeCache cache;
+    private AddressCache cache;
 
     private final String resourceGroup;
     private final HostType hostType;
@@ -104,27 +103,27 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
     }
 
     /**
-     * We build the list of Nodes from Azure Management API
-     * List of discovery nodes is cached.
+     * We build the list of addresses from Azure Management API
+     * List of addresses is cached.
      * The cache time can be controlled using `cloud.azure.refresh_interval` setting.
      */
     @Override
-    public List<DiscoveryNode> buildDynamicNodes() {
+    public List<TransportAddress> buildDynamicHosts(HostsResolver hostsResolver) {
         if (cache == null) {
-            cache = new DiscoNodeCache(refreshInterval, Collections.<DiscoveryNode>emptyList());
+            cache = new AddressCache(refreshInterval, Collections.emptyList());
         }
         return cache.getOrRefresh();
     }
 
-    private class DiscoNodeCache extends SingleObjectCache<List<DiscoveryNode>> {
+    private class AddressCache extends SingleObjectCache<List<TransportAddress>> {
 
-        protected DiscoNodeCache(TimeValue refreshInterval, List<DiscoveryNode> initialValue) {
+        AddressCache(TimeValue refreshInterval, List<TransportAddress> initialValue) {
             super(refreshInterval, initialValue);
         }
 
         @Override
-        protected List<DiscoveryNode> refresh() {
-            ArrayList<DiscoveryNode> nodes = new ArrayList<>();
+        protected List<TransportAddress> refresh() {
+            ArrayList<TransportAddress> nodes = new ArrayList<>();
             InetAddress ipAddress;
             try {
                 ipAddress = networkService.resolvePublishHostAddresses(null);
@@ -153,11 +152,11 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                     networkNameOfCurrentHost.get(AzureConfiguration.SUBNET), discoveryMethod, hostType, logger);
                 for (String networkAddress : ipAddresses) {
                     // limit to 1 port per address
-                    TransportAddress[] addresses = transportService.addressesFromString(networkAddress, 1);
-                    for (TransportAddress address : addresses) {
-                        logger.trace("adding {}, transport_address {}", networkAddress, address);
-                        nodes.add(new DiscoveryNode(
-                            "#cloud-" + networkAddress, address, Version.CURRENT.minimumCompatibilityVersion()));
+                    for (TransportAddress transportAddress : transportService.addressesFromString(networkAddress, 1)) {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("adding {}, transport_address {}", networkAddress, transportAddress);
+                        }
+                        nodes.add(transportAddress);
                     }
                 }
             } catch (UnknownHostException e) {

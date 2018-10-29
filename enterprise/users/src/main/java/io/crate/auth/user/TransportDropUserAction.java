@@ -48,7 +48,7 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
                                    ThreadPool threadPool,
                                    ActionFilters actionFilters,
                                    IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "crate/sql/drop_user", transportService, clusterService, threadPool, actionFilters,
+        super(settings, "internal:crate:sql/user/drop", transportService, clusterService, threadPool, actionFilters,
             indexNameExpressionResolver, DropUserRequest::new);
     }
 

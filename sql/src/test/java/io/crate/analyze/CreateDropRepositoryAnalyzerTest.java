@@ -35,6 +35,8 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
+
 import static io.crate.testing.SettingMatcher.hasEntry;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.is;
@@ -46,11 +48,12 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
     @Before
     public void prepare() {
         RepositoriesMetaData repositoriesMetaData = new RepositoriesMetaData(
-            new RepositoryMetaData(
-                "my_repo",
-                "fs",
-                Settings.builder().put("location", "/tmp/my_repo").build()
-            ));
+            Collections.singletonList(
+                new RepositoryMetaData(
+                    "my_repo",
+                    "fs",
+                    Settings.builder().put("location", "/tmp/my_repo").build()
+            )));
         ClusterState clusterState = ClusterState.builder(new ClusterName("testing"))
             .metaData(MetaData.builder()
                 .putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData))

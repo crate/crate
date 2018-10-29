@@ -51,7 +51,7 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
                                      ActionFilters actionFilters,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings,
-            "crate/sql/views/create",
+            "internal:crate:sql/views/create",
             transportService,
             clusterService,
             threadPool,

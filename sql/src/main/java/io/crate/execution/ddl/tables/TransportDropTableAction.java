@@ -43,7 +43,7 @@ import org.elasticsearch.transport.TransportService;
 @Singleton
 public class TransportDropTableAction extends AbstractDDLTransportAction<DropTableRequest, DropTableResponse> {
 
-    private static final String ACTION_NAME = "crate/sql/table/drop";
+    private static final String ACTION_NAME = "internal:crate:sql/table/drop";
     // Delete index should work by default on both open and closed indices.
     private static IndicesOptions INDICES_OPTIONS = IndicesOptions.fromOptions(false, true, true, true);
 

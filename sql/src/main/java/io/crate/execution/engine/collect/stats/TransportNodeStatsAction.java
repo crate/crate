@@ -42,7 +42,7 @@ import java.util.concurrent.CompletableFuture;
 @Singleton
 public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, NodeStatsResponse> {
 
-    private static final String ACTION_NAME = "crate/sql/sys/nodes";
+    private static final String ACTION_NAME = "internal:crate:sql/sys/nodes";
     private static final String EXECUTOR = ThreadPool.Names.MANAGEMENT;
 
     private final NodeStatsContextFieldResolver nodeContextFieldsResolver;

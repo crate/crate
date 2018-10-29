@@ -56,7 +56,7 @@ import org.elasticsearch.transport.TransportService;
  */
 public class TransportCreateTableAction extends TransportMasterNodeAction<CreateTableRequest, CreateTableResponse> {
 
-    public static final String NAME = "tables:admin/create";
+    public static final String NAME = "internal:crate:sql/tables/admin/create";
 
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;

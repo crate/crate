@@ -522,6 +522,21 @@ reverse
 skip
     Controls initial tokens to skip, defaults to 0.
 
+
+Char Group Tokenizer
+--------------------
+
+``type=char_group``
+
+Breaks text into terms whenever it encounters a character that is part of a
+predefined set.
+
+.. rubric:: Parameters
+
+tokenize_on_chars
+    A list containing characters to tokenize on.
+
+
 .. _builtin-token-filter:
 
 Built-in Token Filters
@@ -1222,6 +1237,13 @@ this filter into the ``token_filter`` chain.
 -----------------
 
 A token filter that folds unicode digits to ``0-9``
+
+
+``remove_duplicates``
+---------------------
+
+A token filter that drops identical tokens at the same position.
+
 
 .. _builtin-char-filter:
 
