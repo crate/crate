@@ -27,6 +27,7 @@ import io.crate.core.collections.Maps;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.plugin.SQLPlugin;
+import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
@@ -103,5 +104,7 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
 
         assertThat(
             Maps.getByPath(values, DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.getKey()), is("FULL"));
+
+        assertSettingDeprecationsAndWarnings(new Setting<?>[] {SharedSettings.LICENSE_IDENT_SETTING.setting()});
     }
 }
