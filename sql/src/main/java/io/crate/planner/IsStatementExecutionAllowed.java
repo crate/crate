@@ -32,15 +32,17 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.UnionSelect;
+import io.crate.expression.tablefunctions.EmptyRowTableFunction;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.metadata.table.TableInfo;
 
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
 final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> {
 
-    private static final IsReadQueryOnSystemTable isReadQueryOnSystemTable = new IsReadQueryOnSystemTable();
+    private static final IsReadQueryOnSystemOrEmptyRowTable isReadQueryOnSystemTable = new IsReadQueryOnSystemOrEmptyRowTable();
     private final BooleanSupplier hasValidLicense;
 
     IsStatementExecutionAllowed(BooleanSupplier hasValidLicense) {
@@ -61,11 +63,15 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
                 && isReadQueryOnSystemTable.test((QueriedRelation) analyzedStatement));
     }
 
-    private static final class IsReadQueryOnSystemTable extends AnalyzedRelationVisitor<Void, Boolean> implements Predicate<AnalyzedRelation> {
+    private static final class IsReadQueryOnSystemOrEmptyRowTable extends AnalyzedRelationVisitor<Void, Boolean> implements Predicate<AnalyzedRelation> {
 
         private static boolean isSysSchema(String schema) {
             return SysSchemaInfo.NAME.equals(schema)
                    || InformationSchemaInfo.NAME.equals(schema);
+        }
+
+        private static boolean isEmptyRowTable(TableInfo tableInfo) {
+            return tableInfo.ident().equals(EmptyRowTableFunction.TABLE_IDENT);
         }
 
         @Override
@@ -100,7 +106,8 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
 
         @Override
         public Boolean visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
-            return isSysSchema(queriedTable.tableRelation().tableInfo().ident().schema());
+            TableInfo tableInfo = queriedTable.tableRelation().tableInfo();
+            return isSysSchema(tableInfo.ident().schema()) || isEmptyRowTable(tableInfo);
         }
     }
 }
