@@ -52,7 +52,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
     private ExtendedNodeInfo extendedNodeInfo;
     private ClusterSettings clusterSettings = new ClusterSettings(
         Settings.EMPTY,
-        Sets.newHashSet(SharedSettings.LICENSE_IDENT_SETTING.setting()));
+        Sets.newHashSet());
 
     private HttpTestServer testServer;
 
@@ -103,27 +103,6 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testLicenseIdent() throws Exception {
-        PingTask pingTask = createPingTask();
-        // If the setting is not set an empty string is sent
-        assertThat(pingTask.getLicenseIdent(), is(""));
-        pingTask = createPingTask(
-            "http://dummy",
-            Settings.builder().put(SharedSettings.LICENSE_IDENT_SETTING.getKey(), "my-license-ident").build()
-        );
-        assertThat(pingTask.getLicenseIdent(), is("my-license-ident"));
-    }
-
-    @Test
-    public void testLicenseIdentUpdate() throws Exception {
-        PingTask pingTask = createPingTask();
-        // change license ident
-        Settings newSettings = Settings.builder().put("license.ident", "new license").build();
-        clusterSettings.applySettings(newSettings);
-        assertThat(pingTask.getLicenseIdent(), is("new license"));
-    }
-
-    @Test
     public void testSuccessfulPingTaskRun() throws Exception {
         testServer = new HttpTestServer(18080, false);
         testServer.run();
@@ -167,7 +146,6 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(map.get("crate_version"), is(notNullValue()));
             assertThat(map, hasKey("java_version"));
             assertThat(map.get("java_version"), is(notNullValue()));
-            assertThat(map.get("license_ident"), is(""));
         }
     }
 
