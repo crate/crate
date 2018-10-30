@@ -59,6 +59,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
@@ -100,9 +101,10 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @After
-    public void dispose() {
+    public void dispose() throws Exception {
         if (channel != null) {
-            channel.close().awaitUninterruptibly();
+            channel.finishAndReleaseAll();
+            channel.close().awaitUninterruptibly().get(5, TimeUnit.SECONDS);
             channel = null;
         }
     }
@@ -114,7 +116,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 mock(SQLOperations.class),
                 new AlwaysOKNullAuthentication(),
                 null);
-        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
         try {
@@ -126,15 +128,23 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
         ByteBuf firstResponse = channel.readOutbound();
         byte[] responseBytes = new byte[5];
-        firstResponse.readBytes(responseBytes);
-        // EmptyQueryResponse: 'I' | int32 len
-        assertThat(responseBytes, is(new byte[]{'I', 0, 0, 0, 4}));
+        try {
+            firstResponse.readBytes(responseBytes);
+            // EmptyQueryResponse: 'I' | int32 len
+            assertThat(responseBytes, is(new byte[]{'I', 0, 0, 0, 4}));
+        } finally {
+            firstResponse.release();
+        }
 
         ByteBuf secondResponse = channel.readOutbound();
-        responseBytes = new byte[6];
-        secondResponse.readBytes(responseBytes);
-        // ReadyForQuery: 'Z' | int32 len | 'I'
-        assertThat(responseBytes, is(new byte[]{'Z', 0, 0, 0, 5, 'I'}));
+        try {
+            responseBytes = new byte[6];
+            secondResponse.readBytes(responseBytes);
+            // ReadyForQuery: 'Z' | int32 len | 'I'
+            assertThat(responseBytes, is(new byte[]{'Z', 0, 0, 0, 5, 'I'}));
+        } finally {
+            secondResponse.release();
+        }
     }
 
     @Test
@@ -147,7 +157,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 sqlOperations,
                 new AlwaysOKNullAuthentication(),
                 null);
-        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
         ClientMessages.sendStartupMessage(buffer, "doc");
@@ -155,6 +165,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ClientMessages.sendFlush(buffer);
 
         channel.writeInbound(buffer);
+        channel.releaseInbound();
 
         verify(session, times(1)).sync();
     }
@@ -166,7 +177,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 sqlOperations,
                 new AlwaysOKNullAuthentication(),
                 null);
-        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
         ClientMessages.sendStartupMessage(buffer, "doc");
@@ -176,6 +187,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ClientMessages.sendBindMessage(buffer, "P1", "S1", params);
 
         channel.writeInbound(buffer);
+        channel.releaseInbound();
 
         Session session = sessions.get(0);
         // If the query can be retrieved via portalName it means bind worked
@@ -190,7 +202,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new AlwaysOKNullAuthentication(),
                 null);
 
-        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
         {
             ByteBuf buffer = Unpooled.buffer();
 
@@ -204,9 +216,11 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                     "S1",
                     Collections.singletonList(1));
             channel.writeInbound(buffer);
+            channel.releaseInbound();
 
             // we're not interested in the startup, parse, or bind replies
             channel.flushOutbound();
+            channel.releaseOutbound();
             channel.outboundMessages().clear();
         }
         {
@@ -214,20 +228,25 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             ByteBuf buffer = Unpooled.buffer();
             ClientMessages.sendDescribeMessage(buffer, ClientMessages.DescribeType.PORTAL, "P1");
             channel.writeInbound(buffer);
+            channel.releaseInbound();
 
             // we should get back a RowDescription message
             ByteBuf response = channel.readOutbound();
-            assertThat(response.readByte(), is((byte) 'T'));
-            assertThat(response.readInt(), is(42));
-            assertThat(response.readShort(), is((short) 1));
-            assertThat(PostgresWireProtocol.readCString(response), is("($1 IN (1, 2, 3))"));
+            try {
+                assertThat(response.readByte(), is((byte) 'T'));
+                assertThat(response.readInt(), is(42));
+                assertThat(response.readShort(), is((short) 1));
+                assertThat(PostgresWireProtocol.readCString(response), is("($1 IN (1, 2, 3))"));
 
-            assertThat(response.readInt(), is(0));
-            assertThat(response.readShort(), is((short) 0));
-            assertThat(response.readInt(), is(PGTypes.get(DataTypes.BOOLEAN).oid()));
-            assertThat(response.readShort(), is((short) PGTypes.get(DataTypes.BOOLEAN).typeLen()));
-            assertThat(response.readInt(), is(PGTypes.get(DataTypes.LONG).typeMod()));
-            assertThat(response.readShort(), is((short) 0));
+                assertThat(response.readInt(), is(0));
+                assertThat(response.readShort(), is((short) 0));
+                assertThat(response.readInt(), is(PGTypes.get(DataTypes.BOOLEAN).oid()));
+                assertThat(response.readShort(), is((short) PGTypes.get(DataTypes.BOOLEAN).typeLen()));
+                assertThat(response.readInt(), is(PGTypes.get(DataTypes.LONG).typeMod()));
+                assertThat(response.readShort(), is((short) 0));
+            } finally {
+                response.release();
+            }
         }
     }
 
@@ -239,16 +258,18 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new AlwaysOKNullAuthentication(),
                 null);
 
-        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
         {
             ByteBuf buffer = Unpooled.buffer();
 
             ClientMessages.sendStartupMessage(buffer, "doc");
             ClientMessages.sendParseMessage(buffer, "S1", "select ? in (1, 2, 3)", new int[0]);
             channel.writeInbound(buffer);
+            channel.releaseInbound();
 
             // we're not interested in the startup, parse, or bind replies
             channel.flushOutbound();
+            channel.releaseOutbound();
             channel.outboundMessages().clear();
         }
         {
@@ -256,27 +277,36 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             ByteBuf buffer = Unpooled.buffer();
             ClientMessages.sendDescribeMessage(buffer, ClientMessages.DescribeType.STATEMENT, "S1");
             channel.writeInbound(buffer);
+            channel.releaseInbound();
 
             // we should get back a ParameterDescription message
             ByteBuf response = channel.readOutbound();
-            assertThat(response.readByte(), is((byte) 't'));
-            assertThat(response.readInt(), is(10));
-            assertThat(response.readShort(), is((short) 1));
-            assertThat(response.readInt(), is(PGTypes.get(DataTypes.LONG).oid()));
+            try {
+                assertThat(response.readByte(), is((byte) 't'));
+                assertThat(response.readInt(), is(10));
+                assertThat(response.readShort(), is((short) 1));
+                assertThat(response.readInt(), is(PGTypes.get(DataTypes.LONG).oid()));
+            } finally {
+                response.release();
+            }
 
             // we should get back a RowDescription message
             response = channel.readOutbound();
-            assertThat(response.readByte(), is((byte) 'T'));
-            assertThat(response.readInt(), is(42));
-            assertThat(response.readShort(), is((short) 1));
-            assertThat(PostgresWireProtocol.readCString(response), is("($1 IN (1, 2, 3))"));
+            try {
+                assertThat(response.readByte(), is((byte) 'T'));
+                assertThat(response.readInt(), is(42));
+                assertThat(response.readShort(), is((short) 1));
+                assertThat(PostgresWireProtocol.readCString(response), is("($1 IN (1, 2, 3))"));
 
-            assertThat(response.readInt(), is(0));
-            assertThat(response.readShort(), is((short) 0));
-            assertThat(response.readInt(), is(PGTypes.get(DataTypes.BOOLEAN).oid()));
-            assertThat(response.readShort(), is((short) PGTypes.get(DataTypes.BOOLEAN).typeLen()));
-            assertThat(response.readInt(), is(PGTypes.get(DataTypes.LONG).typeMod()));
-            assertThat(response.readShort(), is((short) 0));
+                assertThat(response.readInt(), is(0));
+                assertThat(response.readShort(), is((short) 0));
+                assertThat(response.readInt(), is(PGTypes.get(DataTypes.BOOLEAN).oid()));
+                assertThat(response.readShort(), is((short) PGTypes.get(DataTypes.BOOLEAN).typeLen()));
+                assertThat(response.readInt(), is(PGTypes.get(DataTypes.LONG).typeMod()));
+                assertThat(response.readShort(), is((short) 0));
+            } finally {
+                response.release();
+            }
         }
     }
 
@@ -296,8 +326,12 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
         // We should get back an 'N'...
         ByteBuf responseBuffer = channel.readOutbound();
-        byte response = responseBuffer.readByte();
-        assertEquals(response, 'N');
+        try {
+            byte response = responseBuffer.readByte();
+            assertEquals(response, 'N');
+        } finally {
+            responseBuffer.release();
+        }
 
         // ...and continue unencrypted (no ssl handler)
         for (Map.Entry<String, ChannelHandler> entry : channel.pipeline()) {
@@ -314,19 +348,28 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ByteBuf buf = Unpooled.buffer();
         ClientMessages.sendStartupMessage(buf, "doc");
         channel.writeInbound(buf);
+        channel.releaseInbound();
 
         ByteBuf respBuf;
         respBuf = channel.readOutbound();
-        assertThat((char) respBuf.readByte(), is('R')); // Auth OK
+        try {
+            assertThat((char) respBuf.readByte(), is('R')); // Auth OK
+        } finally {
+            respBuf.release();
+        }
 
         respBuf = channel.readOutbound();
-        assertThat((char) respBuf.readByte(), is('S')); // ParameterStatus
-        respBuf.readInt(); // length
-        String key = PostgresWireProtocol.readCString(respBuf);
-        String value = PostgresWireProtocol.readCString(respBuf);
+        try {
+            assertThat((char) respBuf.readByte(), is('S')); // ParameterStatus
+            respBuf.readInt(); // length
+            String key = PostgresWireProtocol.readCString(respBuf);
+            String value = PostgresWireProtocol.readCString(respBuf);
 
-        assertThat(key, is("crate_version"));
-        assertThat(value, is(Version.CURRENT.toString()));
+            assertThat(key, is("crate_version"));
+            assertThat(value, is(Version.CURRENT.toString()));
+        } finally {
+            respBuf.release();
+        }
     }
 
     @Test
@@ -361,14 +404,22 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         channel.writeInbound(buffer);
 
         respBuf = channel.readOutbound();
-        assertThat((char) respBuf.readByte(), is('R')); // AuthenticationCleartextPassword
+        try {
+            assertThat((char) respBuf.readByte(), is('R')); // AuthenticationCleartextPassword
+        } finally {
+            respBuf.release();
+        }
 
         buffer = Unpooled.buffer();
         ClientMessages.sendPasswordMessage(buffer, "pw");
         channel.writeInbound(buffer);
 
         respBuf = channel.readOutbound();
-        assertThat((char) respBuf.readByte(), is('R')); // Auth OK
+        try {
+            assertThat((char) respBuf.readByte(), is('R')); // Auth OK
+        } finally {
+            respBuf.release();
+        }
     }
 
     @Test
@@ -387,6 +438,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ClientMessages.sendStartupMessage(buffer, "doc");
         ClientMessages.sendTermination(buffer);
         channel.writeInbound(buffer);
+        channel.releaseInbound();
 
         verify(session, times(1)).close();
     }
@@ -456,12 +508,14 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ByteBuf startupMsg = Unpooled.buffer();
         ClientMessages.sendStartupMessage(startupMsg, "db");
         channel.writeInbound(startupMsg);
+        channel.releaseInbound();
     }
 
     private static void readAuthenticationOK(EmbeddedChannel channel) {
         ByteBuf response = channel.readOutbound();
         byte[] responseBytes = new byte[9];
         response.readBytes(responseBytes);
+        response.release();
         // AuthenticationOK: 'R' | int32 len | int32 code
         assertThat(responseBytes, is(new byte[]{'R', 0, 0, 0, 8, 0, 0, 0, 0}));
     }
@@ -469,14 +523,16 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     private static void skipParameterMessages(EmbeddedChannel channel) {
         int messagesToSkip = 0;
         for (Object msg : channel.outboundMessages()) {
-            byte messageType = ((ByteBuf) msg).getByte(0);
+            ByteBuf buf = (ByteBuf) msg;
+            byte messageType = buf.getByte(0);
             if (messageType != 'S') {
                 break;
             }
             messagesToSkip++;
         }
         for (int i = 0; i < messagesToSkip; i++) {
-            channel.readOutbound();
+            ByteBuf resp = channel.readOutbound();
+            resp.release();
         }
     }
 
@@ -484,6 +540,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ByteBuf response = channel.readOutbound();
         byte[] responseBytes = new byte[6];
         response.readBytes(responseBytes);
+        response.release();
         // ReadyForQuery: 'Z' | int32 len | 'I'
         assertThat(responseBytes, is(new byte[]{'Z', 0, 0, 0, 5, 'I'}));
     }
@@ -492,6 +549,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ByteBuf response = channel.readOutbound();
         byte[] responseBytes = new byte[5];
         response.readBytes(responseBytes);
+        response.release();
         // ErrorResponse: 'E' | int32 len | ...
         assertThat(responseBytes, is(new byte[]{'E', 0, 0, 0, len}));
     }

@@ -295,13 +295,14 @@ public class SQLTransportExecutor {
                 for (String setSessionStmt : setSessionStatementsList) {
                     conn.createStatement().execute(setSessionStmt);
                 }
-                PreparedStatement preparedStatement = conn.prepareStatement(stmt);
-                if (args != null) {
-                    for (int i = 0; i < args.length; i++) {
-                        preparedStatement.setObject(i + 1, toJdbcCompatObject(conn, args[i]));
+                try (PreparedStatement preparedStatement = conn.prepareStatement(stmt)) {
+                    if (args != null) {
+                        for (int i = 0; i < args.length; i++) {
+                            preparedStatement.setObject(i + 1, toJdbcCompatObject(conn, args[i]));
+                        }
                     }
+                    return executeAndConvertResult(preparedStatement);
                 }
-                return executeAndConvertResult(preparedStatement);
             }
         } catch (PSQLException e) {
             LOGGER.error("Error executing stmt={} args={}", stmt, Arrays.toString(args));

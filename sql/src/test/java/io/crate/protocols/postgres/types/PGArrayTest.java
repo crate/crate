@@ -207,6 +207,7 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
         pgArray.writeAsBinary(buffer, sourceArray);
         int length = buffer.readInt();
         Object targetArray = pgArray.readBinaryValue(buffer, length);
+        buffer.release();
         assertThat(targetArray, is(sourceArray));
         // Because of the null handling problem it returns:
         // {

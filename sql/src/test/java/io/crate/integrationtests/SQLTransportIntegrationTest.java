@@ -78,6 +78,13 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.testing.UseSemiJoins;
 import io.crate.types.DataType;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
@@ -90,6 +97,7 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.ConfigurationException;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
@@ -116,6 +124,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -132,6 +141,7 @@ import java.util.stream.Collectors;
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
 import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -153,8 +163,43 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     @Rule
     public TestName testName = new TestName();
 
+    private static final Collection<String> nettyLoggedLeaks = new ArrayList<>();
+
     static {
         GroovyTestSanitizer.isGroovySanitized();
+
+
+        // Enable Netty leak detection and monitor logger for logged leak errors
+        System.setProperty("io.netty.leakDetection.level", "paranoid");
+        String leakLoggerName = "io.netty.util.ResourceLeakDetector";
+        Logger leakLogger = LogManager.getLogger(leakLoggerName);
+        Appender leakAppender = new AbstractAppender(leakLoggerName, null,
+            PatternLayout.newBuilder().withPattern("%m").build()) {
+            @Override
+            public void append(LogEvent event) {
+                String message = event.getMessage().getFormattedMessage();
+                if (Level.ERROR.equals(event.getLevel()) && message.contains("LEAK:")) {
+                    synchronized (nettyLoggedLeaks) {
+                        nettyLoggedLeaks.add(message);
+                    }
+                }
+            }
+        };
+        leakAppender.start();
+        Loggers.addAppender(leakLogger, leakAppender);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(leakAppender::stop));
+    }
+
+    @After
+    public void checkForLeaks() throws Exception {
+        synchronized (nettyLoggedLeaks) {
+            try {
+                assertThat(nettyLoggedLeaks, empty());
+            } finally {
+                nettyLoggedLeaks.clear();
+            }
+        }
     }
 
     protected final SQLTransportExecutor sqlExecutor;

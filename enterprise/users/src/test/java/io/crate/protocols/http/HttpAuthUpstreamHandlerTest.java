@@ -69,6 +69,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
     public void testChannelClosedWhenUnauthorized() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel();
         HttpAuthUpstreamHandler.sendUnauthorized(ch, null);
+        ch.releaseInbound();
 
         HttpResponse resp = ch.readOutbound();
         assertThat(resp.status(), is(HttpResponseStatus.UNAUTHORIZED));
@@ -79,6 +80,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
     public void testSendUnauthorizedWithoutBody() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel();
         HttpAuthUpstreamHandler.sendUnauthorized(ch, null);
+        ch.releaseInbound();
 
         DefaultFullHttpResponse resp = ch.readOutbound();
         assertThat(resp.content(), is(Unpooled.EMPTY_BUFFER));
@@ -88,6 +90,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
     public void testSendUnauthorizedWithBody() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel();
         HttpAuthUpstreamHandler.sendUnauthorized(ch, "not allowed\n");
+        ch.releaseInbound();
 
         DefaultFullHttpResponse resp = ch.readOutbound();
         assertThat(resp.content().toString(StandardCharsets.UTF_8), is("not allowed\n"));
@@ -97,6 +100,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
     public void testSendUnauthorizedWithBodyNoNewline() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel();
         HttpAuthUpstreamHandler.sendUnauthorized(ch, "not allowed");
+        ch.releaseInbound();
 
         DefaultFullHttpResponse resp = ch.readOutbound();
         assertThat(resp.content().toString(StandardCharsets.UTF_8), is("not allowed\n"));
@@ -109,6 +113,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
         ch.writeInbound(request);
+        ch.releaseInbound();
 
         assertThat(handler.authorized(), is(true));
     }
@@ -123,6 +128,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         request.headers().add("X-Real-Ip", "10.1.0.100");
 
         ch.writeInbound(request);
+        ch.releaseInbound();
         assertFalse(handler.authorized());
 
         assertUnauthorized(
@@ -138,6 +144,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
 
         ch.writeInbound(request);
+        ch.releaseInbound();
 
         assertFalse(handler.authorized());
         assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"crate\"\n");
@@ -166,6 +173,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
         request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic Y3JhdGU6");
         ch.writeInbound(request);
+        ch.releaseInbound();
 
         assertTrue(handler.authorized());
     }
@@ -180,6 +188,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
 
         ch.writeInbound(request);
+        ch.releaseInbound();
 
         assertFalse(handler.authorized());
         assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"Aladdin\"\n");

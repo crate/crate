@@ -25,19 +25,56 @@ import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.test.GroovyTestSanitizer;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.layout.PatternLayout;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.mockito.MockitoAnnotations;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
+import static org.hamcrest.Matchers.empty;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 @ThreadLeakLingering(linger = 5000) // 5 sec lingering
 @Listeners({SystemPropsTestLoggingListener.class})
 public abstract class CrateUnitTest extends ESTestCase {
 
+    private static final Collection<String> nettyLoggedLeaks = new ArrayList<>();
+
     static {
         GroovyTestSanitizer.isGroovySanitized();
+
+        // Enable Netty leak detection and monitor logger for logged leak errors
+        System.setProperty("io.netty.leakDetection.level", "paranoid");
+        String leakLoggerName = "io.netty.util.ResourceLeakDetector";
+        Logger leakLogger = LogManager.getLogger(leakLoggerName);
+        Appender leakAppender = new AbstractAppender(leakLoggerName, null,
+            PatternLayout.newBuilder().withPattern("%m").build()) {
+            @Override
+            public void append(LogEvent event) {
+                String message = event.getMessage().getFormattedMessage();
+                if (Level.ERROR.equals(event.getLevel()) && message.contains("LEAK:")) {
+                    synchronized (nettyLoggedLeaks) {
+                        nettyLoggedLeaks.add(message);
+                    }
+                }
+            }
+        };
+        leakAppender.start();
+        Loggers.addAppender(leakLogger, leakAppender);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(leakAppender::stop));
     }
 
     @Rule
@@ -46,6 +83,17 @@ public abstract class CrateUnitTest extends ESTestCase {
     @Before
     public void prepareMocks() throws Exception {
         MockitoAnnotations.initMocks(this);
+    }
+
+    @After
+    public void checkForLeaks() throws Exception {
+        synchronized (nettyLoggedLeaks) {
+            try {
+                assertThat(nettyLoggedLeaks, empty());
+            } finally {
+                nettyLoggedLeaks.clear();
+            }
+        }
     }
 
     protected static boolean isRunningOnWindows() {
