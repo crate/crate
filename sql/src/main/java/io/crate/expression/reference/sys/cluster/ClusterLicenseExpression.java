@@ -25,16 +25,29 @@ package io.crate.expression.reference.sys.cluster;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseService;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
+
+import java.util.Map;
 
 public class ClusterLicenseExpression extends NestedObjectExpression {
 
     public static final String NAME = "license";
+    private final LicenseService licenseService;
 
     @Inject
     public ClusterLicenseExpression(LicenseService licenseService) {
-        childImplementations.put(DecryptedLicenseData.EXPIRATION_DATE_IN_MS, () -> licenseService.currentLicense().expirationDateInMs());
-        childImplementations.put(DecryptedLicenseData.ISSUED_TO, () -> new BytesRef(licenseService.currentLicense().issuedTo()));
+        this.licenseService = licenseService;
+    }
+
+    @Override
+    public Map<String, Object> value() {
+        DecryptedLicenseData decryptedLicenseData = licenseService.currentLicense();
+        if (decryptedLicenseData != null) {
+            childImplementations.put(DecryptedLicenseData.EXPIRATION_DATE_IN_MS, () -> decryptedLicenseData.expirationDateInMs());
+            childImplementations.put(DecryptedLicenseData.ISSUED_TO, () -> decryptedLicenseData.issuedTo());
+            return super.value();
+        } else {
+            return null;
+        }
     }
 }
