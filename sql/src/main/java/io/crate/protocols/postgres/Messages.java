@@ -321,6 +321,7 @@ public class Messages {
                         break;
 
                     default:
+                        buffer.release();
                         throw new AssertionError("Unrecognized formatCode: " + formatCode);
                 }
             }
@@ -363,6 +364,7 @@ public class Messages {
         buffer.writeByte('t');
         buffer.writeInt(messageByteSize);
         if (parameters.length > Short.MAX_VALUE) {
+            buffer.release();
             throw new IllegalArgumentException("Too many parameters. Max supported: " + Short.MAX_VALUE);
         }
         buffer.writeShort(parameters.length);
