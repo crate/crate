@@ -22,9 +22,9 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.expression.symbol.Field;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.expression.symbol.Field;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
@@ -298,8 +298,15 @@ public class Messages {
 
         for (int i = 0; i < row.numColumns(); i++) {
             DataType dataType = columnTypes.get(i);
-            PGType pgType = PGTypes.get(dataType);
-            Object value = row.get(i);
+            PGType pgType;
+            Object value;
+            try {
+                pgType = PGTypes.get(dataType);
+                value = row.get(i);
+            } catch (Exception e) {
+                buffer.release();
+                throw e;
+            }
             if (value == null) {
                 buffer.writeInt(-1);
                 length += 4;
