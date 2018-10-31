@@ -68,6 +68,5 @@ settings will override configuration file settings.
    node
    cluster
    session
-   license
    logging
    environment

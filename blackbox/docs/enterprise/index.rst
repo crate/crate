@@ -14,7 +14,7 @@ a period of 30 days that will allow users to evaluate the enterprise features.
 
 Upon the expiration of the 30 days trial period you will have to request an
 enterprise license by `contacting our sales department`_.
-Setting a new license is achieved using the :ref:`SET LICENSE <ref-set>`
+Setting a new license is achieved using the :ref:`SET LICENSE <ref-set-license>`
 statement.
 
 Alternatively, users seeking to use the community edition can do so at any
@@ -24,7 +24,7 @@ point by disabling the enterprise license using the
 .. WARNING::
 
   CrateDB will continue to run after the license expires but only the
-  :ref:`SET LICENSE <ref-set>` statement and the read only system information
+  :ref:`SET LICENSE <ref-set-license>` statement and the read only system information
   statements (against the ``sys`` and ``information_schema`` schemas) will be
   allowed.
 
