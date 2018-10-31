@@ -89,6 +89,10 @@ Changes
 Fixes
 =====
 
+- Fixed a memory leak that could occur with clients connecting via postgres
+  protocol and invoking read queries with statements containing expressions
+  that would fail (like ``1 / 0``).
+
 - Fixed an issue in the postgres wire protocol that could result in nodes
   crashing with ``OutOfMemoryError`` if clients queried very large tables
   without specifying the fetch size.
