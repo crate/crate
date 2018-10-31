@@ -169,6 +169,7 @@ public class MqttIngestService implements IngestRuleListener {
         }
 
         Map<String, Object> payload = parsePayloadToMap(msg.content());
+        msg.release();
         if (payload == null) {
             return;
         }
