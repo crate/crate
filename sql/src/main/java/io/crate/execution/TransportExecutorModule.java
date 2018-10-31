@@ -39,7 +39,6 @@ import io.crate.execution.jobs.JobSetup;
 import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
-import io.crate.license.TransportSetLicenseAction;
 import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
 import io.crate.ingestion.TransportCreateIngestRuleAction;

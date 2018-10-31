@@ -35,7 +35,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.hamcrest.Matchers.instanceOf;
 
 public class ExpiredLicensePlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -45,7 +45,7 @@ public class ExpiredLicensePlannerTest extends CrateDummyClusterServiceUnitTest 
     @Before
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService)
-            .addTable(USER_TABLE_INFO)
+            .addTable(USER_TABLE_DEFINITION)
             .addDocTable(T3.T1_INFO)
             .addDocTable(T3.T2_INFO)
             .addView(new RelationName("doc", "v1"), "select * from users")

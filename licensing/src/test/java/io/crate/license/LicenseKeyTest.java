@@ -24,8 +24,10 @@ package io.crate.license;
 
 import io.crate.license.exception.InvalidLicenseException;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -73,7 +75,9 @@ public class LicenseKeyTest extends CrateUnitTest {
         licenseKey.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
+        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(),
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // start object
         LicenseKey licenseKey2 = LicenseKey.fromXContent(parser);
         assertEquals(licenseKey, licenseKey2);
@@ -92,7 +96,9 @@ public class LicenseKeyTest extends CrateUnitTest {
             .endObject();
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
+        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(),
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // start object
         LicenseKey licenseKey2 = LicenseKey.fromXContent(parser);
         assertEquals(createLicenseKey(), licenseKey2);

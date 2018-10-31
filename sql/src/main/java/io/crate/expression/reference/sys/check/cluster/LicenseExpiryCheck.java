@@ -27,7 +27,6 @@ import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseExpiryNotification;
 import io.crate.license.LicenseService;
 import io.crate.settings.SharedSettings;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -44,19 +43,18 @@ import static io.crate.license.LicenseExpiryNotification.MODERATE;
 public class LicenseExpiryCheck implements SysCheck {
 
     private static final int ID = 4;
-    private static final BytesRef LICENSE_NOT_CLOSE_TO_EXPIRY_DESCRIPTION = new BytesRef("Your CrateDB license is not close to expiry. Enjoy CrateDB!");
+    private static final String LICENSE_NOT_CLOSE_TO_EXPIRY_DESCRIPTION = "Your CrateDB license is not close to expiry. Enjoy CrateDB!";
+    private static final String LICENSE_NA_COMMUNITY_DESCRIPTION = "CrateDB enterprise is not enabled. Enjoy the community edition!";
     private final boolean enterpriseEnabled;
 
-    private BytesRef description = LICENSE_NOT_CLOSE_TO_EXPIRY_DESCRIPTION;
+    private String description;
     private Severity severity = Severity.LOW;
     private final LicenseService licenseService;
 
     @Inject
     public LicenseExpiryCheck(Settings settings, LicenseService licenseService) {
         enterpriseEnabled = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
-        if (enterpriseEnabled == false) {
-            description = new BytesRef("CrateDB enterprise is not enabled. Enjoy the community edition!");
-        }
+        description = (enterpriseEnabled) ? LICENSE_NOT_CLOSE_TO_EXPIRY_DESCRIPTION : LICENSE_NA_COMMUNITY_DESCRIPTION;
         this.licenseService = licenseService;
     }
 
@@ -75,11 +73,9 @@ public class LicenseExpiryCheck implements SysCheck {
         LicenseExpiryNotification licenseExpiryNotification = licenseService.getLicenseExpiryNotification(currentLicense);
 
         if (licenseExpiryNotification != null) {
-            description = getLinkedDescription(
-                ID,
+            description = getLinkedDescription(ID,
                 licenseExpiryNotification.notificationMessage(currentLicense.millisToExpiration()),
-                CLUSTER_CHECK_LINK_PATTERN
-            );
+                CLUSTER_CHECK_LINK_PATTERN);
             severity = licenseExpiryNotification.equals(MODERATE) ? MEDIUM : HIGH;
             return false;
         } else {
@@ -99,7 +95,7 @@ public class LicenseExpiryCheck implements SysCheck {
     }
 
     @Override
-    public BytesRef description() {
+    public String description() {
         return description;
     }
 

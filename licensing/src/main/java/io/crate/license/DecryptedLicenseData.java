@@ -22,6 +22,8 @@
 
 package io.crate.license;
 
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -78,7 +80,7 @@ public class DecryptedLicenseData {
                 .field(EXPIRATION_DATE_IN_MS, expirationDateInMs)
                 .field(ISSUED_TO, issuedTo)
                 .endObject();
-            return contentBuilder.string().getBytes(StandardCharsets.UTF_8);
+            return Strings.toString(contentBuilder).getBytes(StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -86,7 +88,7 @@ public class DecryptedLicenseData {
 
     static DecryptedLicenseData fromFormattedLicenseData(byte[] licenseData) throws IOException {
         try (XContentParser parser = XContentFactory.xContent(XContentType.JSON)
-            .createParser(NamedXContentRegistry.EMPTY, licenseData)) {
+            .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, licenseData)) {
             XContentParser.Token token;
             long expirationDate = 0;
             String issuedTo = null;

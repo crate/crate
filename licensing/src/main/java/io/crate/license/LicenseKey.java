@@ -24,6 +24,7 @@ package io.crate.license;
 
 import io.crate.license.exception.InvalidLicenseException;
 import io.crate.license.exception.LicenseMetadataParsingException;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -207,4 +208,8 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
         return WRITEABLE_TYPE;
     }
 
+    @Override
+    public Version getMinimalSupportedVersion() {
+        return Version.V_6_0_0;
+    }
 }
