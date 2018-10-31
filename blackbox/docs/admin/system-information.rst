@@ -54,32 +54,26 @@ The result has at most 1 row::
   +--------------+
   SELECT 1 row in set (... sec)
 
-
 .. _sys-cluster-license:
 
 Cluster License
 ---------------
 
 The ``sys.cluster.license`` expression returns information about the currently
-registered cluster license.
+registered license.
 
-::
+``license``
+-----------
 
-    cr> select license from sys.cluster;
-    +-----------...---+
-    | license         |
-    +-----------...---+
-    | {...}           |
-    +-----------...---+
-    SELECT 1 row in set (... sec)
-
-    cr> select date_format(license['expirationDateInMs']) as license_expiration from sys.cluster;
-    +-----------------------------+
-    | license_expiration          |
-    +-----------------------------+
-    | ...                         |
-    +-----------------------------+
-    SELECT 1 row in set (... sec)
++------------------------------------+--------------------------------------------------------------+-------------+
+| Column Name                        | Description                                                  | Return Type |
++====================================+==============================================================+=============+
+| ``license``                        | The current CrateDB license information.                     | ``OBJECT``  |
++------------------------------------+--------------------------------------------------------------+-------------+
+| ``license['expirationDateInMs']``  | The :ref:`data-type-timestamp` on which the license expires. | ``LONG``    |
++------------------------------------+--------------------------------------------------------------+-------------+
+| ``license['issuedTo']``            | The organisation for which the license is issued.            | ``STRING``  |
++------------------------------------+--------------------------------------------------------------+-------------+
 
 .. _sys-cluster-settings:
 
