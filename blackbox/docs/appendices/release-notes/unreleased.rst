@@ -44,6 +44,8 @@ Changes
 Fixes
 =====
 
+- Fixed a memory leak in the ``MQTT`` ingest service.
+
 - Fixed a memory leak that could occur with clients connecting via postgres
   protocol and invoking read queries with statements containing expressions
   that would fail (like ``1 / 0``).
