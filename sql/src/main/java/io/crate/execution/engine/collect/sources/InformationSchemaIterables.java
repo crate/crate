@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeaturesIterable;
@@ -47,6 +46,7 @@ import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -63,9 +63,11 @@ import java.util.Objects;
 import java.util.PrimitiveIterator;
 import java.util.Set;
 import java.util.stream.IntStream;
-import java.util.stream.StreamSupport;
+import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
+import static java.util.stream.Stream.concat;
+import static java.util.stream.StreamSupport.stream;
 
 public class InformationSchemaIterables implements ClusterStateListener {
 
@@ -75,12 +77,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
         ImmutableSet.of(InformationSchemaInfo.NAME, SysSchemaInfo.NAME, BlobSchemaInfo.NAME, PgCatalogSchemaInfo.NAME);
 
     private final Schemas schemas;
-    private final FluentIterable<RelationInfo> tables;
-    private final FluentIterable<ViewInfo> views;
+    private final Iterable<RelationInfo> relations;
+    private final Iterable<ViewInfo> views;
     private final PartitionInfos partitionInfos;
-    private final FluentIterable<ColumnContext> columns;
-    private final FluentIterable<RelationInfo> primaryKeys;
-    private final FluentIterable<ConstraintInfo> constraints;
+    private final Iterable<ColumnContext> columns;
+    private final Iterable<RelationInfo> primaryKeys;
+    private final Iterable<ConstraintInfo> constraints;
     private final SqlFeaturesIterable sqlFeatures;
     private final Iterable<Void> referentialConstraints;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
@@ -95,28 +97,32 @@ public class InformationSchemaIterables implements ClusterStateListener {
                                       ClusterService clusterService) throws IOException {
         this.schemas = schemas;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
-        tables = FluentIterable.from(schemas)
-            .transformAndConcat(schema -> FluentIterable.from(schema.getTables())
-                .filter(i -> !IndexParts.isPartitioned(i.ident().indexName())));
-
-        views = FluentIterable.from(schemas)
-            .transformAndConcat(schema -> FluentIterable.from(schema.getViews())
-                .filter(i -> !IndexParts.isPartitioned(i.ident().indexName())));
-
-        partitionInfos = new PartitionInfos(clusterService);
-        columns = tables.append(views).transformAndConcat(ColumnsIterable::new);
-
-        primaryKeys = tables
+        views = () -> viewsStream(schemas).iterator();
+        relations = () -> concat(tablesStream(schemas), viewsStream(schemas)).iterator();
+        primaryKeys = () -> sequentialStream(relations)
             .filter(i -> i != null && (i.primaryKey().size() > 1 ||
-                                       (i.primaryKey().size() == 1 && !i.primaryKey().get(0).name().equals("_id"))));
-        FluentIterable<ConstraintInfo> primaryKeyConstraints = primaryKeys
-            .transform(t -> new ConstraintInfo(
+                                       (i.primaryKey().size() == 1 && !i.primaryKey().get(0).name().equals("_id"))))
+            .iterator();
+
+        columns = () -> sequentialStream(relations)
+            .flatMap(r -> sequentialStream(new ColumnsIterable(r)))
+            .iterator();
+
+        Iterable<ConstraintInfo> primaryKeyConstraints = () -> sequentialStream(primaryKeys)
+            .map(t -> new ConstraintInfo(
                 t,
                 t.ident().name() + PK_SUFFIX,
-                ConstraintInfo.Type.PRIMARY_KEY));
-        FluentIterable<ConstraintInfo> notnullConstraints = tables.transformAndConcat(NotNullConstraintIterable::new);
-        constraints = FluentIterable.concat(primaryKeyConstraints, notnullConstraints);
+                ConstraintInfo.Type.PRIMARY_KEY))
+            .iterator();
 
+        Iterable<ConstraintInfo> notnullConstraints = () -> sequentialStream(relations)
+            .flatMap(r -> sequentialStream(new NotNullConstraintIterable(r)))
+            .iterator();
+
+        constraints = () -> concat(sequentialStream(primaryKeyConstraints), sequentialStream(notnullConstraints))
+            .iterator();
+
+        partitionInfos = new PartitionInfos(clusterService);
         sqlFeatures = new SqlFeaturesIterable();
 
         referentialConstraints = emptyList();
@@ -126,12 +132,28 @@ public class InformationSchemaIterables implements ClusterStateListener {
         clusterService.addListener(this);
     }
 
+    private static Stream<ViewInfo> viewsStream(Schemas schemas) {
+        return sequentialStream(schemas)
+            .flatMap(schema -> sequentialStream(schema.getViews()))
+            .filter(i -> !IndexParts.isPartitioned(i.ident().indexName()));
+    }
+
+    private static Stream<TableInfo> tablesStream(Schemas schemas) {
+        return sequentialStream(schemas)
+            .flatMap(s -> sequentialStream(s.getTables()))
+            .filter(i -> !IndexParts.isPartitioned(i.ident().indexName()));
+    }
+
+    private static <T> Stream<T> sequentialStream(Iterable<T> iterable) {
+        return stream(iterable.spliterator(), false);
+    }
+
     public Iterable<SchemaInfo> schemas() {
         return schemas;
     }
 
     public Iterable<RelationInfo> relations() {
-        return FluentIterable.concat(tables, views);
+        return relations;
     }
 
     public Iterable<ViewInfo> views() {
@@ -163,7 +185,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     }
 
     public Iterable<KeyColumnUsage> keyColumnUsage() {
-        return primaryKeys.stream()
+        return sequentialStream(primaryKeys)
             .filter(tableInfo -> !IGNORED_SCHEMAS.contains(tableInfo.ident().schema()))
             .flatMap(tableInfo -> {
                 List<ColumnIdent> pks = tableInfo.primaryKey();
@@ -197,7 +219,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private void createMetaDataBasedIterables(MetaData metaData) {
         RoutineInfos routineInfos = new RoutineInfos(fulltextAnalyzerResolver,
             metaData.custom(UserDefinedFunctionsMetaData.TYPE));
-        routines = FluentIterable.from(routineInfos).filter(Objects::nonNull);
+        routines = () -> sequentialStream(routineInfos).filter(Objects::nonNull).iterator();
         ingestionRules = new IngestionRuleInfos(metaData.custom(IngestRulesMetaData.TYPE));
     }
 
@@ -227,7 +249,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
         NotNullConstraintIterator(RelationInfo relationInfo) {
             this.relationInfo = relationInfo;
-            nullableColumns = StreamSupport.stream(relationInfo.spliterator(), false)
+            nullableColumns = stream(relationInfo.spliterator(), false)
                 .filter(reference -> reference.column().isSystemColumn() == false &&
                                      reference.valueType() != DataTypes.NOT_SUPPORTED &&
                                      reference.isNullable() == false)
@@ -280,6 +302,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         public Iterator<ColumnContext> iterator() {
             return new ColumnsIterator(relationInfo);
         }
+
     }
 
     static class ColumnsIterator implements Iterator<ColumnContext> {
@@ -289,7 +312,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         private Short ordinal = 1;
 
         ColumnsIterator(RelationInfo tableInfo) {
-            columns = StreamSupport.stream(tableInfo.spliterator(), false)
+            columns = stream(tableInfo.spliterator(), false)
                 .filter(reference -> !reference.column().isSystemColumn()
                                      && reference.valueType() != DataTypes.NOT_SUPPORTED).iterator();
             this.tableInfo = tableInfo;
