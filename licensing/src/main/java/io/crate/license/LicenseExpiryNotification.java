@@ -30,22 +30,22 @@ public enum LicenseExpiryNotification {
     MODERATE {
         @Override
         public String notificationMessage(long millisToExpiration) {
-            return String.format(Locale.ENGLISH, DAYS_NOTIFICATION_TEMPLATE,
-                MILLISECONDS.toDays(millisToExpiration));
+            return String.format(Locale.ENGLISH, LICENSE_NOTIFICATION_TEMPLATE,
+                MILLISECONDS.toDays(millisToExpiration), "days");
         }
     },
     SEVERE {
         @Override
         public String notificationMessage(long millisToExpiration) {
             if (millisToExpiration > 3_600_000) {
-                return String.format(Locale.ENGLISH, HOURS_NOTIFICATION_TEMPLATE,
-                    MILLISECONDS.toHours(millisToExpiration));
+                return String.format(Locale.ENGLISH, LICENSE_NOTIFICATION_TEMPLATE,
+                    MILLISECONDS.toHours(millisToExpiration), "hours");
             } else if (millisToExpiration > 60_000) {
-                return String.format(Locale.ENGLISH, MINUTES_NOTIFICATION_TEMPLATE,
-                    MILLISECONDS.toMinutes(millisToExpiration));
+                return String.format(Locale.ENGLISH, LICENSE_NOTIFICATION_TEMPLATE,
+                    MILLISECONDS.toMinutes(millisToExpiration), "minutes");
             } else {
-                return String.format(Locale.ENGLISH, SECONDS_NOTIFICATION_LICENSE,
-                    MILLISECONDS.toSeconds(millisToExpiration));
+                return String.format(Locale.ENGLISH, LICENSE_NOTIFICATION_TEMPLATE,
+                    MILLISECONDS.toSeconds(millisToExpiration), "seconds");
             }
         }
     },
@@ -56,11 +56,8 @@ public enum LicenseExpiryNotification {
         }
     };
 
-    private static final String LICENSE_EXPIRED_MESSAGE = "Your CrateDB license is expired. Please request another license.";
-    private static final String DAYS_NOTIFICATION_TEMPLATE = "Your CrateDB license will expire in %d days. Please request another license.";
-    private static final String SECONDS_NOTIFICATION_LICENSE = "Your CrateDB license will expire in %d seconds. Please request another license.";
-    private static final String MINUTES_NOTIFICATION_TEMPLATE = "Your CrateDB license will expire in %d minutes. Please request another license.";
-    private static final String HOURS_NOTIFICATION_TEMPLATE = "Your CrateDB license will expire in %d hours. Please request another license.";
+    private static final String LICENSE_EXPIRED_MESSAGE = "Your CrateDB license has expired. For more information please visit: https://crate.io/license-update/?license=expired";
+    private static final String LICENSE_NOTIFICATION_TEMPLATE = "Your CrateDB license will expire in %d %s. For more information please visit: https://crate.io/license-update";
 
     public abstract String notificationMessage(long millisToExpiration);
 }

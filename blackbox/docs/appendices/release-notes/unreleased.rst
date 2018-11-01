@@ -40,6 +40,10 @@ Breaking Changes
 Changes
 =======
 
+- Added licensing support: auto-generated trial licenses, enterprise licenses,
+  license registration and verification using the `set license` statement,
+  user notification and react upon license expiry
+
 - The ``mqtt`` endpoint has been deprecated and will be removed in a future
   version.
 
