@@ -75,7 +75,7 @@ public class LicenseExpiryCheck implements SysCheck {
         if (licenseExpiryNotification != null) {
             description = getLinkedDescription(ID,
                 licenseExpiryNotification.notificationMessage(currentLicense.millisToExpiration()),
-                CLUSTER_CHECK_LINK_PATTERN);
+                "For more information on Cluster Checks please visit: " + CLUSTER_CHECK_LINK_PATTERN);
             severity = licenseExpiryNotification.equals(MODERATE) ? MEDIUM : HIGH;
             return false;
         } else {

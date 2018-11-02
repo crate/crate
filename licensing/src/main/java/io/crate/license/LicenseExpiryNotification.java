@@ -56,8 +56,8 @@ public enum LicenseExpiryNotification {
         }
     };
 
-    private static final String LICENSE_EXPIRED_MESSAGE = "Your CrateDB license has expired. For more information please visit: https://crate.io/license-update/?license=expired";
-    private static final String LICENSE_NOTIFICATION_TEMPLATE = "Your CrateDB license will expire in %d %s. For more information please visit: https://crate.io/license-update";
+    private static final String LICENSE_EXPIRED_MESSAGE = "Your CrateDB license has expired. For more information on Licensing please visit: https://crate.io/license-update/?license=expired";
+    private static final String LICENSE_NOTIFICATION_TEMPLATE = "Your CrateDB license will expire in %d %s. For more information on Licensing please visit: https://crate.io/license-update";
 
     public abstract String notificationMessage(long millisToExpiration);
 }
