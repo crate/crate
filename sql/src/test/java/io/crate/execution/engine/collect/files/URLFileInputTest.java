@@ -20,24 +20,27 @@
  * agreement.
  */
 
-package io.crate.execution.engine.collect.files
+package io.crate.execution.engine.collect.files;
 
-import io.crate.test.integration.CrateUnitTest
-import org.junit.Test
+import io.crate.test.integration.CrateUnitTest;
+import org.junit.Test;
 
-import java.nio.file.Path
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Path;
 
-class URLFileInputTest extends CrateUnitTest {
+public class URLFileInputTest extends CrateUnitTest {
 
     @Test
-    void testGetStream() {
+    public void testGetStream() throws IOException {
         Path tempDir = createTempDir();
-        File file = new File(tempDir.toFile(), "doesnt_exist")
+        File file = new File(tempDir.toFile(), "doesnt_exist");
         URLFileInput input = new URLFileInput(file.toURI());
 
         String expectedMessage = "doesnt_exist (No such file or directory)";
         if (isRunningOnWindows()) {
-            expectedMessage = "doesnt_exist (The system cannot find the file specified)"
+            expectedMessage = "doesnt_exist (The system cannot find the file specified)";
         }
 
         expectedException.expect(FileNotFoundException.class);
