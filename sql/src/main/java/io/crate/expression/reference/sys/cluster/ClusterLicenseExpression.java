@@ -22,6 +22,7 @@
 
 package io.crate.expression.reference.sys.cluster;
 
+import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseService;
@@ -40,11 +41,25 @@ public class ClusterLicenseExpression extends NestedObjectExpression {
     }
 
     @Override
+    public NestableInput getChild(String name) {
+        DecryptedLicenseData decryptedLicenseData = licenseService.currentLicense();
+        if (decryptedLicenseData != null) {
+            fillChildImplementations(decryptedLicenseData);
+        }
+
+        return super.getChild(name);
+    }
+
+    private void fillChildImplementations(DecryptedLicenseData decryptedLicenseData) {
+        childImplementations.put(DecryptedLicenseData.EXPIRATION_DATE_IN_MS, () -> decryptedLicenseData.expirationDateInMs());
+        childImplementations.put(DecryptedLicenseData.ISSUED_TO, () -> decryptedLicenseData.issuedTo());
+    }
+
+    @Override
     public Map<String, Object> value() {
         DecryptedLicenseData decryptedLicenseData = licenseService.currentLicense();
         if (decryptedLicenseData != null) {
-            childImplementations.put(DecryptedLicenseData.EXPIRATION_DATE_IN_MS, () -> decryptedLicenseData.expirationDateInMs());
-            childImplementations.put(DecryptedLicenseData.ISSUED_TO, () -> decryptedLicenseData.issuedTo());
+            fillChildImplementations(decryptedLicenseData);
             return super.value();
         } else {
             return null;
