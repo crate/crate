@@ -1,5 +1,4 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
-apply plugin: 'groovy'
 
 archivesBaseName = 'crate-sql'
 

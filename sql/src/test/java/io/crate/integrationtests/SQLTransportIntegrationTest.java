@@ -67,7 +67,6 @@ import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
-import io.crate.test.GroovyTestSanitizer;
 import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
@@ -153,10 +152,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     @Rule
     public TestName testName = new TestName();
-
-    static {
-        GroovyTestSanitizer.isGroovySanitized();
-    }
 
     protected final SQLTransportExecutor sqlExecutor;
 
