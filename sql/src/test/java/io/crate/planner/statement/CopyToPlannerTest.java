@@ -77,20 +77,19 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private <T> T plan(String stmt) {
-         CopyStatementPlanner.CopyTo plan = e.plan(stmt);
-         return (T) CopyStatementPlanner.planCopyToExecution(
-             plan.copyTo,
-             e.getPlannerContext(clusterService.state()),
-             plan.logicalPlanner,
-             plan.subqueryPlanner,
-             new ProjectionBuilder(e.functions()),
-             Row.EMPTY
-         );
+        CopyStatementPlanner.CopyTo plan = e.plan(stmt);
+        return (T) CopyStatementPlanner.planCopyToExecution(
+            plan.copyTo,
+            e.getPlannerContext(clusterService.state()),
+            plan.logicalPlanner,
+            plan.subqueryPlanner,
+            new ProjectionBuilder(e.functions()),
+            Row.EMPTY
+        );
     }
 
-
     @Test
-    public void testCopyToWithColumnsReferenceRewrite() throws Exception {
+    public void testCopyToWithColumnsReferenceRewrite() {
         Merge plan = plan("copy users (name) to directory '/tmp'");
         Collect innerPlan = (Collect) plan.subPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
@@ -101,7 +100,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testCopyToWithPartitionedGeneratedColumn() throws Exception {
+    public void testCopyToWithPartitionedGeneratedColumn() {
         // test that generated partition column is NOT exported
         Merge plan = plan("copy parted_generated to directory '/tmp'");
         Collect innerPlan = (Collect) plan.subPlan();
@@ -111,7 +110,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testCopyToWithPartitionInWhereClauseRoutesToPartitionIndexOnly() throws Exception {
+    public void testCopyToWithPartitionInWhereClauseRoutesToPartitionIndexOnly() {
         Merge merge = plan(
             "copy parted where date = 1395874800000 to directory '/tmp/foo'");
         Collect collect = (Collect) merge.subPlan();
@@ -121,13 +120,13 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             ((RoutedCollectPhase) collect.collectPhase()).routing().locations().values().stream()
                 .flatMap(shardsByIndices -> shardsByIndices.keySet().stream())
-            .collect(Collectors.toSet()),
+                .collect(Collectors.toSet()),
             contains(expectedIndex)
         );
     }
 
     @Test
-    public void testCopyToWithInvalidPartitionInWhereClause() throws Exception {
+    public void testCopyToWithInvalidPartitionInWhereClause() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Given partition ident does not match partition evaluated from where clause");
         plan("copy parted partition (date=1395874800000) where date = 1395961200000 to directory '/tmp/foo'");
