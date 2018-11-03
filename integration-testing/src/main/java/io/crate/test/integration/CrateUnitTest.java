@@ -24,7 +24,6 @@ package io.crate.test.integration;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import io.crate.test.GroovyTestSanitizer;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Rule;
@@ -35,10 +34,6 @@ import org.mockito.MockitoAnnotations;
 @ThreadLeakLingering(linger = 5000) // 5 sec lingering
 @Listeners({SystemPropsTestLoggingListener.class})
 public abstract class CrateUnitTest extends ESTestCase {
-
-    static {
-        GroovyTestSanitizer.isGroovySanitized();
-    }
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
