@@ -36,8 +36,10 @@ import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.dql.Collect;
@@ -56,6 +58,7 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
@@ -68,14 +71,25 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService, 2, Randomness.get())
-            .addDocTable(TableDefinitions.PARTED_PKS_TI)
+            .addPartitionedTable(
+                "create table parted_pks (" +
+                "   id int," +
+                "   name string," +
+                "   date timestamp," +
+                "   obj object," +
+                "   primary key (id, date)" +
+                ") partitioned by (date) clustered by (id) ",
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList(null)).asIndexName()
+            )
             .addTable("create table users (id long primary key, name string, date timestamp) clustered into 4 shards")
             .addTable("create table source (id int primary key, name string)")
             .build();
     }
 
     @Test
-    public void testInsertPlan() throws Exception {
+    public void testInsertPlan() {
         LegacyUpsertById legacyUpsertById = e.plan("insert into users (id, name) values (42, 'Deep Thought')");
 
         assertThat(legacyUpsertById.insertColumns().length, is(2));
@@ -96,8 +110,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertPlanMultipleValues() throws Exception {
-        LegacyUpsertById legacyUpsertById = e.plan("insert into users (id, name) values (42, 'Deep Thought'), (99, 'Marvin')");
+    public void testInsertPlanMultipleValues() {
+        LegacyUpsertById legacyUpsertById =
+            e.plan("insert into users (id, name) values (42, 'Deep Thought'), (99, 'Marvin')");
 
         assertThat(legacyUpsertById.insertColumns().length, is(2));
         Reference idRef = legacyUpsertById.insertColumns()[0];
@@ -126,7 +141,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
 
     @Test
-    public void testInsertFromSubQueryNonDistributedGroupBy() throws Exception {
+    public void testInsertFromSubQueryNonDistributedGroupBy() {
         Collect nonDistributedGroupBy = e.plan(
             "insert into users (id, name) (select count(*), name from sys.nodes group by name)");
         assertThat("nodeIds size must 1 one if there is no mergePhase", nonDistributedGroupBy.nodeIds().size(), is(1));
@@ -137,7 +152,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromSubQueryNonDistributedGroupByWithCast() throws Exception {
+    public void testInsertFromSubQueryNonDistributedGroupByWithCast() {
         Collect nonDistributedGroupBy = e.plan(
             "insert into users (id, name) (select name, count(*) from sys.nodes group by name)");
         assertThat("nodeIds size must 1 one if there is no mergePhase", nonDistributedGroupBy.nodeIds().size(), is(1));
@@ -148,7 +163,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromSubQueryDistributedGroupByWithLimit() throws Exception {
+    public void testInsertFromSubQueryDistributedGroupByWithLimit() {
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage("Using limit, offset or order by is not supported on insert using a sub-query");
 
@@ -156,7 +171,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromSubQueryDistributedGroupByWithoutLimit() throws Exception {
+    public void testInsertFromSubQueryDistributedGroupByWithoutLimit() {
         Merge planNode = e.plan(
             "insert into users (id, name) (select name, count(*) from users group by name)");
         Merge groupBy = (Merge) planNode.subPlan();
@@ -185,7 +200,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromSubQueryDistributedGroupByPartitioned() throws Exception {
+    public void testInsertFromSubQueryDistributedGroupByPartitioned() {
         Merge planNode = e.plan(
             "insert into parted_pks (id, date) (select id, date from users group by id, date)");
         Merge groupBy = (Merge) planNode.subPlan();
@@ -218,7 +233,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromSubQueryGlobalAggregate() throws Exception {
+    public void testInsertFromSubQueryGlobalAggregate() {
         Merge globalAggregate = e.plan(
             "insert into users (name, id) (select arbitrary(name), count(*) from users)");
         MergePhase mergePhase = globalAggregate.mergePhase();
@@ -244,7 +259,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromSubQueryESGet() throws Exception {
+    public void testInsertFromSubQueryESGet() {
         Merge merge = e.plan(
             "insert into users (date, id, name) (select date, id, name from users where id=1)");
         Collect queryAndFetch = (Collect) merge.subPlan();
@@ -264,7 +279,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromSubQueryJoin() throws Exception {
+    public void testInsertFromSubQueryJoin() {
         Join join = e.plan(
             "insert into users (id, name) (select u1.id, u2.name from users u1 CROSS JOIN users u2)");
         assertThat(join.joinPhase().projections(), contains(
@@ -284,7 +299,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromSubQueryWithLimit() throws Exception {
+    public void testInsertFromSubQueryWithLimit() {
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage("Using limit, offset or order by is not supported on insert using a sub-query");
 
@@ -292,7 +307,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromSubQueryWithOffset() throws Exception {
+    public void testInsertFromSubQueryWithOffset() {
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage("Using limit, offset or order by is not supported on insert using a sub-query");
 
@@ -300,7 +315,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromSubQueryWithOrderBy() throws Exception {
+    public void testInsertFromSubQueryWithOrderBy() {
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage("Using limit, offset or order by is not supported on insert using a sub-query");
 
@@ -308,7 +323,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromSubQueryWithoutLimit() throws Exception {
+    public void testInsertFromSubQueryWithoutLimit() {
         Merge planNode = e.plan(
             "insert into users (id, name) (select id, name from users)");
         Collect collect = (Collect) planNode.subPlan();
@@ -323,7 +338,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromSubQueryReduceOnCollectorGroupBy() throws Exception {
+    public void testInsertFromSubQueryReduceOnCollectorGroupBy() {
         Merge merge = e.plan(
             "insert into users (id, name) (select id, arbitrary(name) from users group by id)");
         Collect collect = (Collect) merge.subPlan();
@@ -342,7 +357,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromSubQueryReduceOnCollectorGroupByWithCast() throws Exception {
+    public void testInsertFromSubQueryReduceOnCollectorGroupByWithCast() {
         Merge merge = e.plan(
             "insert into users (id, name) (select id, count(*) from users group by id)");
         Collect nonDistributedGroupBy = (Collect) merge.subPlan();
@@ -363,7 +378,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
+    public void testInsertFromValuesWithOnDuplicateKey() {
         LegacyUpsertById node = e.plan("insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
 
         assertThat(node.updateColumns(), is(new String[]{"name"}));
@@ -389,7 +404,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testInsertFromQueryWithPartitionedColumn() throws Exception {
+    public void testInsertFromQueryWithPartitionedColumn() {
         Merge planNode = e.plan(
             "insert into users (id, date) (select id, date from parted_pks)");
         Collect queryAndFetch = (Collect) planNode.subPlan();
@@ -402,7 +417,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testGroupByHavingInsertInto() throws Exception {
+    public void testGroupByHavingInsertInto() {
         Merge planNode = e.plan(
             "insert into users (id, name) (select name, count(*) from users group by name having count(*) > 3)");
         Merge groupByNode = (Merge) planNode.subPlan();
@@ -430,7 +445,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testProjectionWithCastsIsAddedIfSourceTypeDoNotMatchTargetTypes() throws Exception {
+    public void testProjectionWithCastsIsAddedIfSourceTypeDoNotMatchTargetTypes() {
         Merge plan = e.plan("insert into users (id, name) (select id, name from source)");
         List<Projection> projections = ((Collect) plan.subPlan()).collectPhase().projections();
         assertThat(projections,
