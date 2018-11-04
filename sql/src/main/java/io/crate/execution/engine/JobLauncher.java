@@ -22,8 +22,6 @@
 
 package io.crate.execution.engine;
 
-import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.RowConsumer;
@@ -50,7 +48,6 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.profile.query.QueryProfiler;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -156,14 +153,9 @@ public final class JobLauncher {
     }
 
     public List<CompletableFuture<Long>> executeBulk() {
-        FluentIterable<NodeOperation> nodeOperations = FluentIterable.from(nodeOperationTrees)
-            .transformAndConcat(new Function<NodeOperationTree, Iterable<? extends NodeOperation>>() {
-                @Nullable
-                @Override
-                public Iterable<? extends NodeOperation> apply(NodeOperationTree input) {
-                    return input.nodeOperations();
-                }
-            });
+        Iterable<NodeOperation> nodeOperations = nodeOperationTrees.stream()
+            .flatMap(opTree -> opTree.nodeOperations().stream())
+            ::iterator;
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperations);
 
         List<ExecutionPhase> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
