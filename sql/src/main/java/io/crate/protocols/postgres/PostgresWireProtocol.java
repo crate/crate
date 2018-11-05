@@ -241,7 +241,7 @@ class PostgresWireProtocol {
 
     private Properties readStartupMessage(ByteBuf buffer) {
         Properties properties = new Properties();
-        ByteBuf byteBuf = buffer.readBytes(msgLength);
+        ByteBuf byteBuf = buffer.readSlice(msgLength);
         while (true) {
             String key = readCString(byteBuf);
             if (key == null) {
@@ -253,7 +253,6 @@ class PostgresWireProtocol {
                 properties.setProperty(key, value);
             }
         }
-        byteBuf.release();
         return properties;
     }
 
