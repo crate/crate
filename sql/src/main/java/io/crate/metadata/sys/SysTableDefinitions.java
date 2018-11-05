@@ -22,7 +22,6 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.user.Privilege;
 import io.crate.execution.engine.collect.files.SummitsIterable;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -31,7 +30,6 @@ import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.expression.reference.sys.check.SysChecker;
 import io.crate.expression.reference.sys.check.node.SysNodeChecks;
 import io.crate.expression.reference.sys.shard.SysAllocations;
-import io.crate.expression.reference.sys.snapshot.SysSnapshot;
 import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -41,8 +39,6 @@ import org.elasticsearch.repositories.RepositoriesService;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
@@ -91,7 +87,7 @@ public class SysTableDefinitions {
             SysRepositoriesTableInfo.expressions()
         ));
         tableDefinitions.put(SysSnapshotsTableInfo.IDENT, new StaticTableDefinition<>(
-            snapshotSupplier(sysSnapshots),
+            () -> completedFuture(sysSnapshots.currentSnapshots()),
             SysSnapshotsTableInfo.expressions()
         ));
 
@@ -125,18 +121,5 @@ public class SysTableDefinitions {
     public <R> void registerTableDefinition(RelationName relationName, StaticTableDefinition<R> definition) {
         StaticTableDefinition<?> existingDefinition = tableDefinitions.putIfAbsent(relationName, definition);
         assert existingDefinition == null : "A static table definition is already registered for ident=" + relationName.toString();
-    }
-
-    @VisibleForTesting
-    public static Supplier<CompletableFuture<? extends Iterable<SysSnapshot>>> snapshotSupplier(SysSnapshots sysSnapshots) {
-        return () -> {
-            CompletableFuture<Iterable<SysSnapshot>> f = new CompletableFuture<>();
-            try {
-                f.complete(sysSnapshots.snapshotsGetter());
-            } catch (Exception e) {
-                f.completeExceptionally(e);
-            }
-            return f;
-        };
     }
 }
