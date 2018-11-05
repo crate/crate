@@ -21,66 +21,39 @@
 
 package io.crate.expression.reference.sys.snapshot;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.repositories.Repository;
-import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
-import org.elasticsearch.snapshots.SnapshotsService;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.stream.Stream;
 
 @Singleton
 public class SysSnapshots {
 
-    private final SnapshotsService snapshotsService;
     private final RepositoriesService repositoriesService;
 
     @Inject
-    public SysSnapshots(SnapshotsService snapshotsService,
-                        RepositoriesService repositoriesService) {
-        this.snapshotsService = snapshotsService;
+    public SysSnapshots(RepositoriesService repositoriesService) {
         this.repositoriesService = repositoriesService;
     }
 
-    public Iterable<SysSnapshot> snapshotsGetter() {
-        List<SysSnapshot> sysSnapshots = new ArrayList<>();
-        for (Repository repository : repositoriesService.getRepositoriesList()) {
-            final String repositoryName = repository.getMetadata().name();
-
-
-            List<SnapshotId> compatibleSnapshotIds = new ArrayList<>(
-                repositoriesService.repository(repositoryName).getRepositoryData().getSnapshotIds());
-            Set<SnapshotId> incompatibleSnapshotIds = new HashSet<>(
-                repositoriesService.repository(repositoryName).getRepositoryData().getIncompatibleSnapshotIds());
-            List<SnapshotInfo> snapshots = new ArrayList<>(
-                snapshotsService.snapshots(repositoryName, compatibleSnapshotIds, incompatibleSnapshotIds, true));
-            sysSnapshots.addAll(Lists.transform(snapshots, new Function<SnapshotInfo, SysSnapshot>() {
-                @Nullable
-                @Override
-                public SysSnapshot apply(@Nullable SnapshotInfo snapshot) {
-                    if (snapshot == null) {
-                        return null;
-                    }
+    public Iterable<SysSnapshot> currentSnapshots() {
+        Stream<SysSnapshot> stream = repositoriesService.getRepositoriesList().stream()
+            .flatMap(repository -> repository.getRepositoryData().getSnapshotIds().stream()
+                .map(snapshotId -> {
+                    SnapshotInfo snapshotInfo = repository.getSnapshotInfo(snapshotId);
                     return new SysSnapshot(
-                        snapshot.snapshotId().getName(),
-                        repositoryName,
-                        snapshot.indices(),
-                        snapshot.startTime(),
-                        snapshot.endTime(),
-                        snapshot.version().toString(),
-                        snapshot.state().name()
+                        snapshotId.getName(),
+                        repository.getMetadata().name(),
+                        snapshotInfo.indices(),
+                        snapshotInfo.startTime(),
+                        snapshotInfo.endTime(),
+                        snapshotInfo.version().toString(),
+                        snapshotInfo.state().name()
                     );
-                }
-            }));
-        }
-        return sysSnapshots;
+                })
+            );
+        return stream::iterator;
     }
 }
