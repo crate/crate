@@ -27,6 +27,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 
@@ -56,16 +57,19 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         execute("create table locations (id integer primary key, name string) " +
                 "clustered into 2 shards " +
                 "with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
-        client().admin().cluster().prepareHealth("locations").setWaitForYellowStatus().execute().actionGet();
 
-        execute("select state, \"primary\", recovery from sys.shards where table_name = 'locations' order by state, \"primary\"");
-        assertEquals(6L, response.rowCount());
-        for (int i = 4; i < response.rowCount(); i++) {
-            Object[] row = response.rows()[i];
-            assertEquals("UNASSIGNED", row[0]);
-            assertEquals(false, row[1]);
-            assertEquals(null, row[2]);
-        }
+        assertBusy(() -> {
+            execute("select state, \"primary\", recovery['stage'] from sys.shards where table_name = 'locations' order by state, \"primary\"");
+            assertThat(
+                printedTable(response.rows()),
+                is("STARTED| false| DONE\n" +
+                   "STARTED| false| DONE\n" +
+                   "STARTED| true| DONE\n" +
+                   "STARTED| true| DONE\n" +
+                   "UNASSIGNED| false| NULL\n" +
+                   "UNASSIGNED| false| NULL\n")
+            );
+        });
     }
 
     @Test
