@@ -40,6 +40,8 @@ Breaking Changes
 Changes
 =======
 
+- Added support for ``initcap(string)`` scalar expression.
+
 - Improved the compatibility with postgres clients that use the ``text`` type
   for parameter encoding.
 
