@@ -22,18 +22,21 @@
 
 package io.crate.execution.engine;
 
-import io.crate.execution.jobs.JobSetup;
-import io.crate.execution.jobs.transport.TransportJobAction;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
-import io.crate.execution.jobs.TasksService;
 import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.execution.jobs.JobSetup;
+import io.crate.execution.jobs.TasksService;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.execution.support.ThreadPools;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 
 @Singleton
 public final class PhasesTaskFactory {
@@ -44,9 +47,11 @@ public final class PhasesTaskFactory {
     private final IndicesService indicesService;
     private final TransportJobAction jobAction;
     private final TransportKillJobsNodeAction killJobsNodeAction;
+    private final Executor searchExecutor;
 
     @Inject
     public PhasesTaskFactory(ClusterService clusterService,
+                             ThreadPool threadPool,
                              JobSetup jobSetup,
                              TasksService tasksService,
                              IndicesService indicesService,
@@ -58,6 +63,7 @@ public final class PhasesTaskFactory {
         this.indicesService = indicesService;
         this.jobAction = jobAction;
         this.killJobsNodeAction = killJobsNodeAction;
+        this.searchExecutor = ThreadPools.fallbackOnRejection(threadPool.executor(ThreadPool.Names.SAME));
     }
 
     public JobLauncher create(UUID jobId, List<NodeOperationTree> nodeOperationTreeList) {
@@ -74,7 +80,8 @@ public final class PhasesTaskFactory {
             jobAction,
             killJobsNodeAction,
             nodeOperationTreeList,
-            enableProfiling
+            enableProfiling,
+            searchExecutor
         );
     }
 }

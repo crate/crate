@@ -56,6 +56,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
@@ -106,6 +107,7 @@ public final class JobLauncher {
     private final TasksService tasksService;
     private final IndicesService indicesService;
     private final boolean enableProfiling;
+    private final Executor executor;
 
     private boolean hasDirectResponse;
 
@@ -117,7 +119,8 @@ public final class JobLauncher {
                 TransportJobAction transportJobAction,
                 TransportKillJobsNodeAction transportKillJobsNodeAction,
                 List<NodeOperationTree> nodeOperationTrees,
-                boolean enableProfiling) {
+                boolean enableProfiling,
+                Executor executor) {
         this.jobId = jobId;
         this.clusterService = clusterService;
         this.jobSetup = jobSetup;
@@ -127,6 +130,7 @@ public final class JobLauncher {
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
         this.nodeOperationTrees = nodeOperationTrees;
         this.enableProfiling = enableProfiling;
+        this.executor = executor;
 
         for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
             for (NodeOperation nodeOperation : nodeOperationTree.nodeOperations()) {
@@ -271,8 +275,13 @@ public final class JobLauncher {
         ListIterator<RowConsumer> consumerIt = handlerReceivers.listIterator();
 
         for (ExecutionPhase handlerPhase : handlerPhases) {
-            InterceptingRowConsumer interceptingBatchConsumer =
-                new InterceptingRowConsumer(jobId, consumerIt.next(), initializationTracker, transportKillJobsNodeAction);
+            InterceptingRowConsumer interceptingBatchConsumer = new InterceptingRowConsumer(
+                jobId,
+                consumerIt.next(),
+                initializationTracker,
+                executor,
+                transportKillJobsNodeAction
+            );
             handlerPhaseAndReceiver.add(new Tuple<>(handlerPhase, interceptingBatchConsumer));
         }
         return handlerPhaseAndReceiver;
