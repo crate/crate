@@ -11,7 +11,7 @@ jobs:
         inputs:
           workingDirectory: ''
           gradleWrapperFile: 'gradlew'
-          gradleOptions: '-Xmx2048m'
+          gradleOptions: '-Xmx512m'
           javaHomeOption: 'JDKVersion'
           jdkVersionOption: '1.10'
           jdkArchitectureOption: 'x64'
@@ -30,7 +30,7 @@ jobs:
         inputs:
           workingDirectory: ''
           gradleWrapperFile: 'gradlew'
-          gradleOptions: '-Xmx2048m'
+          gradleOptions: '-Xmx512m'
           javaHomeOption: 'JDKVersion'
           jdkVersionOption: '1.8'
           jdkArchitectureOption: 'x64'
@@ -49,7 +49,7 @@ jobs:
         inputs:
           workingDirectory: ''
           gradleWrapperFile: 'gradlew'
-          gradleOptions: '-Xmx2048m'
+          gradleOptions: '-Xmx512m'
           javaHomeOption: 'JDKVersion'
           jdkVersionOption: '1.10'
           jdkArchitectureOption: 'x64'
