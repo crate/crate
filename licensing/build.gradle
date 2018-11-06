@@ -24,7 +24,13 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
+// Allows us to run ./gradlew :licensing:shadowJar
+// java -jar licensing/build/libs/crate-license-all.jar --key ...
+
+apply plugin: 'application'
+mainClassName = 'io.crate.license.LicenseTool'
 apply from: "$rootDir/gradle/javaModule.gradle"
+
 
 archivesBaseName = 'crate-license'
 group = 'io.crate'
