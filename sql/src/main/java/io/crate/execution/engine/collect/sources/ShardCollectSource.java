@@ -176,7 +176,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         this.remoteCollectorFactory = remoteCollectorFactory;
         ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         this.availableThreads = numIdleThreads(executor, EsExecutors.numberOfProcessors(settings));
-        this.executor = ThreadPools.fallbackOnRejection(executor);
+        this.executor = ThreadPools.withDirectExecutionFallback(executor);
         this.inputFactory = new InputFactory(functions);
         this.shardCollectorProviderFactory = new ShardCollectorProviderFactory(
             clusterService,
