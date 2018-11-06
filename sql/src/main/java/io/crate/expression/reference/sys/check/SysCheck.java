@@ -47,6 +47,12 @@ public interface SysCheck {
 
     /**
      * Returns the unique id of the check.
+     *
+     * We have a unique link per check (https://cr8.is/d-cluster-check-ID) which points to some documentation for users,
+     * so that they can get an idea on what to do about a warning or error.
+     *
+     * Currently we can't change the links to point something else, which is why new checks must use a new ID and not re-use old IDs
+     * (sometimes we delete sys checks when they're no longer appropriate)
      */
     int id();
 

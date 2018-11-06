@@ -51,7 +51,7 @@ public class LicenseExpiryCheckTest extends CrateUnitTest {
 
     @Test
     public void testSysCheckMetadata() {
-        assertThat(expirationCheck.id(), is(4));
+        assertThat(expirationCheck.id(), is(6));
     }
 
     @Test
