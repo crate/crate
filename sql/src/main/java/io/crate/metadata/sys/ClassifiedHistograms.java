@@ -57,7 +57,10 @@ public class ClassifiedHistograms implements Iterable<ClassifiedHistograms.Class
     }
 
     public void recordValue(Classification classification, long duration) {
-        getOrCreate(classification).recordValue(Math.min(duration, HIGHEST_TRACKABLE_VALUE));
+        // We use start and end time to calculate the duration (since we track them anyway)
+        // If the system time is adjusted this can lead to negative durations
+        // so we protect here against it.
+        getOrCreate(classification).recordValue(Math.min(Math.max(0, duration), HIGHEST_TRACKABLE_VALUE));
     }
 
     private ConcurrentHistogram getOrCreate(Classification classification) {
