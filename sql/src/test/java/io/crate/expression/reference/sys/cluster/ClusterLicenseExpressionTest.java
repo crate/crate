@@ -55,6 +55,13 @@ public class ClusterLicenseExpressionTest extends CrateUnitTest {
     }
 
     @Test
+    public void testChildValueReturnsNullForMissingLicense() {
+        when(licenseService.currentLicense()).thenReturn(null);
+        assertThat(licenseExpression.getChild(EXPIRATION_DATE_IN_MS).value(), is(nullValue()));
+        assertThat(licenseExpression.getChild(ISSUED_TO).value(), is(nullValue()));
+    }
+
+    @Test
     public void testExpressionValueReturnsLicenseFields() {
         when(licenseService.currentLicense()).thenReturn(new DecryptedLicenseData(3L, "test"));
 
