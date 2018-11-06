@@ -215,10 +215,10 @@ class ThreadPoolsBeanTest(unittest.TestCase):
             'io.crate.monitoring:type=ThreadPools', 'Search')
         self.assertEqual(stdout, '{ \n'
                                  '  active = 0;\n'
-                                 '  completed = 2;\n'
-                                 '  largestPoolSize = 2;\n'
+                                 '  completed = 4;\n'
+                                 '  largestPoolSize = 4;\n'
                                  '  name = search;\n'
-                                 '  poolSize = 2;\n'
+                                 '  poolSize = 4;\n'
                                  '  queueSize = 0;\n'
                                  '  rejected = 0;\n'
                                  ' }\n')
