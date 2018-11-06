@@ -63,7 +63,7 @@ public final class PhasesTaskFactory {
         this.indicesService = indicesService;
         this.jobAction = jobAction;
         this.killJobsNodeAction = killJobsNodeAction;
-        this.searchExecutor = ThreadPools.fallbackOnRejection(threadPool.executor(ThreadPool.Names.SAME));
+        this.searchExecutor = ThreadPools.withDirectExecutionFallback(threadPool.executor(ThreadPool.Names.SEARCH));
     }
 
     public JobLauncher create(UUID jobId, List<NodeOperationTree> nodeOperationTreeList) {

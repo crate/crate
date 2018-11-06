@@ -50,7 +50,7 @@ public class ThreadPools {
         );
     }
 
-    public static Executor fallbackOnRejection(Executor executor) {
+    public static Executor withDirectExecutionFallback(Executor executor) {
         return new DirectFallbackExecutor(executor);
     }
 
