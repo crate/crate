@@ -191,4 +191,17 @@ public class AsyncOperationBatchIterator<T> implements BatchIterator<T> {
     public void kill(@Nonnull Throwable throwable) {
         killed = throwable;
     }
+
+    @Override
+    public String toString() {
+        return "AsyncOperationBatchIterator{" +
+               "source=" + source +
+               ", batchSize=" + batchSize +
+               ", batchAccumulator=" + batchAccumulator +
+               ", idxWithinBatch=" + idxWithinBatch +
+               ", sourceExhausted=" + sourceExhausted +
+               ", closed=" + closed +
+               ", killed=" + killed +
+               '}';
+    }
 }

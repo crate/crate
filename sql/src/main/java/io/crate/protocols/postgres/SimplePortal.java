@@ -70,7 +70,7 @@ public class SimplePortal extends AbstractPortal {
     @Nullable
     private FormatCodes.FormatCode[] resultFormatCodes;
     private List<? extends DataType> outputTypes;
-    private ResultReceiver resultReceiver;
+    private ResultReceiver<?> resultReceiver;
     private RowConsumerToResultReceiver consumer = null;
     private int maxRows = 0;
     private int defaultLimit;
@@ -177,6 +177,14 @@ public class SimplePortal extends AbstractPortal {
     @Override
     public CompletableFuture<?> sync(Planner planner, JobsLogs jobsLogs) {
         assert analyzedStatement != null : "analyzedStatement must not be null";
+
+        if (consumer != null && consumer.suspended()) {
+            LOGGER.trace("Resuming existing consumer {}", consumer);
+            consumer.replaceResultReceiver(resultReceiver, maxRows);
+            consumer.resume();
+            return resultReceiver.completionFuture();
+        }
+
         UUID jobId = UUID.randomUUID();
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         ClusterState clusterState = planner.currentClusterState();
@@ -213,25 +221,26 @@ public class SimplePortal extends AbstractPortal {
         }
 
         jobsLogs.logExecutionStart(jobId, query, sessionContext.user(), StatementClassifier.classify(plan));
-        JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
-        CompletableFuture<?> completableFuture = resultReceiver.completionFuture()
-            .whenComplete(jobsLogsUpdateListener);
-
-        if (!resumeIfSuspended()) {
-            consumer = new RowConsumerToResultReceiver(resultReceiver, maxRows);
-            plan.execute(
-                dependencyCarrier,
-                plannerContext,
-                consumer,
-                rowParams,
-                SubQueryResults.EMPTY
-            );
-        }
+        consumer = new RowConsumerToResultReceiver(
+            resultReceiver,
+            maxRows,
+            new JobsLogsUpdateListener(jobId, jobsLogs)
+        );
+        plan.execute(
+            dependencyCarrier,
+            plannerContext,
+            consumer,
+            rowParams,
+            SubQueryResults.EMPTY
+        );
         synced = true;
-        return completableFuture;
+        return resultReceiver.completionFuture();
     }
 
     private void retryQuery(Planner planner, UUID jobId) {
+        if (consumer == null) {
+            return; // portal was closed
+        }
         Analysis analysis = portalContext
             .getAnalyzer()
             .boundAnalyze(statement, transactionContext, new ParameterContext(rowParams, Collections.emptyList()));
@@ -259,21 +268,7 @@ public class SimplePortal extends AbstractPortal {
     public void close() {
         if (consumer != null) {
             consumer.closeAndFinishIfSuspended();
-        }
-    }
-
-    private boolean resumeIfSuspended() {
-        LOGGER.trace("method=resumeIfSuspended");
-        if (consumer == null) {
-            return false;
-        }
-        if (consumer.suspended()) {
-            consumer.replaceResultReceiver(resultReceiver, maxRows);
-            LOGGER.trace("Resuming {}", consumer);
-            consumer.resume();
-            return true;
-        } else {
-            return false;
+            consumer = null;
         }
     }
 
