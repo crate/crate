@@ -43,26 +43,28 @@ public class ClusterLicenseExpression extends NestedObjectExpression {
     @Override
     public NestableInput getChild(String name) {
         DecryptedLicenseData decryptedLicenseData = licenseService.currentLicense();
-        if (decryptedLicenseData != null) {
-            fillChildImplementations(decryptedLicenseData);
-        }
-
+        fillChildImplementations(decryptedLicenseData);
         return super.getChild(name);
     }
 
     private void fillChildImplementations(DecryptedLicenseData decryptedLicenseData) {
-        childImplementations.put(DecryptedLicenseData.EXPIRATION_DATE_IN_MS, () -> decryptedLicenseData.expirationDateInMs());
-        childImplementations.put(DecryptedLicenseData.ISSUED_TO, () -> decryptedLicenseData.issuedTo());
+        if (decryptedLicenseData != null) {
+            childImplementations.put(DecryptedLicenseData.EXPIRATION_DATE_IN_MS, () -> decryptedLicenseData.expirationDateInMs());
+            childImplementations.put(DecryptedLicenseData.ISSUED_TO, () -> decryptedLicenseData.issuedTo());
+        } else {
+            childImplementations.put(DecryptedLicenseData.EXPIRATION_DATE_IN_MS, () -> null);
+            childImplementations.put(DecryptedLicenseData.ISSUED_TO, () -> null);
+        }
     }
 
     @Override
     public Map<String, Object> value() {
         DecryptedLicenseData decryptedLicenseData = licenseService.currentLicense();
-        if (decryptedLicenseData != null) {
-            fillChildImplementations(decryptedLicenseData);
-            return super.value();
-        } else {
+        if (decryptedLicenseData == null) {
             return null;
         }
+
+        fillChildImplementations(decryptedLicenseData);
+        return super.value();
     }
 }
