@@ -47,7 +47,7 @@ public class RowConsumerToResultReceiverTest {
             .collect(Collectors.toList());
 
         BatchSimulatingIterator batchSimulatingIterator =
-            new BatchSimulatingIterator(TestingBatchIterators.range(0, 10),
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10),
                 2,
                 5,
                 null);
@@ -61,7 +61,7 @@ public class RowConsumerToResultReceiverTest {
             }
         };
         RowConsumerToResultReceiver batchConsumer =
-            new RowConsumerToResultReceiver(resultReceiver, 0);
+            new RowConsumerToResultReceiver(resultReceiver, 0, t -> {});
 
         batchConsumer.accept(batchSimulatingIterator, null);
         resultReceiver.completionFuture().get(10, TimeUnit.SECONDS);
@@ -73,7 +73,7 @@ public class RowConsumerToResultReceiverTest {
     @Test
     public void testExceptionOnAllLoadedCallIsForwardedToResultReceiver() throws Exception {
         BaseResultReceiver resultReceiver = new BaseResultReceiver();
-        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0);
+        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0, t -> {});
 
         consumer.accept(FailingBatchIterator.failOnAllLoaded(), null);
         assertThat(resultReceiver.completionFuture().isCompletedExceptionally(), is(true));

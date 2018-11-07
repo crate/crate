@@ -107,7 +107,7 @@ public class ExplainPlan implements Plan {
             if (plan.dependencies().isEmpty()) {
                 UUID jobId = plannerContext.jobId();
                 BaseResultReceiver resultReceiver = new BaseResultReceiver();
-                RowConsumer noopRowConsumer = new RowConsumerToResultReceiver(resultReceiver, 0);
+                RowConsumer noopRowConsumer = new RowConsumerToResultReceiver(resultReceiver, 0, t -> {});
 
                 Timer timer = context.createTimer(Phase.Execute.name());
                 timer.start();

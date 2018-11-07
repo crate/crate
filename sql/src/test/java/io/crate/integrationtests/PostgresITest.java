@@ -23,6 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.shade.org.postgresql.PGProperty;
 import io.crate.shade.org.postgresql.jdbc.PreferQueryMode;
@@ -51,6 +52,7 @@ import java.util.Properties;
 import java.util.UUID;
 
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
+import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
@@ -378,7 +380,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateNewStatementAfterUnfinishedResultSet() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties);
-             Statement statement = conn.createStatement()) {
+            Statement statement = conn.createStatement()) {
             conn.setAutoCommit(false);
             statement.setFetchSize(2);
             try (ResultSet resultSet = statement.executeQuery("select mountain from sys.summits")) {
@@ -709,6 +711,36 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             resultSet.next();
             assertThat(resultSet.getInt(1), is(42));
             assertThat(resultSet.isLast(), is(true));
+        }
+    }
+
+    @Test
+    public void testRepeatedFetchDoesNotLeakSysJobsLog() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW))) {
+            conn.prepareStatement("create table t (x int, ts timestamp) " +
+                                  "clustered into 1 shards with (number_of_replicas = 0)").execute();
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x, ts) values (?, ?)");
+            for (int i = 0; i < 20; i++) {
+                preparedStatement.setInt(1, i);
+                preparedStatement.setLong(2, 1541548800000L);
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+            conn.prepareStatement("refresh table t").execute();
+
+            conn.setAutoCommit(false);
+            PreparedStatement stmt = conn.prepareStatement("SELECT x FROM t WHERE ts > ? ORDER BY ts ASC LIMIT 5");
+            for (int i = 0; i < 5; i++) {
+                stmt.setInt(1, i);
+                stmt.setFetchSize(5);
+                ResultSet resultSet = stmt.executeQuery();
+                while (resultSet.next()) {
+                    resultSet.getInt(1);
+                }
+            }
+        }
+        for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
+            assertBusy(() -> assertThat(jobsLogService.get().activeJobs(), emptyIterable()));
         }
     }
 

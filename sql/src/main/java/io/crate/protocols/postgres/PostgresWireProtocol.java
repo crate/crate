@@ -265,11 +265,9 @@ class PostgresWireProtocol {
 
         @Override
         public void accept(Object result, Throwable t) {
-            if (t != null) {
-                if (!(t.getCause() instanceof ClientInterrupted)) {
-                    Messages.sendReadyForQuery(channel);
-                }
-            } else {
+            boolean clientInterrupted = t instanceof ClientInterrupted
+                                        || (t != null && t.getCause() instanceof ClientInterrupted);
+            if (!clientInterrupted) {
                 Messages.sendReadyForQuery(channel);
             }
         }

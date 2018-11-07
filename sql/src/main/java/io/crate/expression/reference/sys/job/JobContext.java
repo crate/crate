@@ -64,4 +64,15 @@ public class JobContext {
     public Classification classification() {
         return classification;
     }
+
+    @Override
+    public String toString() {
+        return "JobContext{" +
+               "id=" + id +
+               ", username='" + username + '\'' +
+               ", stmt='" + stmt + '\'' +
+               ", started=" + started +
+               ", classification=" + classification +
+               '}';
+    }
 }
