@@ -137,4 +137,13 @@ public class RetryOnFailureResultReceiver implements ResultReceiver {
     public CompletableFuture<?> completionFuture() {
         return delegate.completionFuture();
     }
+
+    @Override
+    public String toString() {
+        return "RetryOnFailureResultReceiver{" +
+               "delegate=" + delegate +
+               ", jobId=" + jobId +
+               ", attempt=" + attempt +
+               '}';
+    }
 }

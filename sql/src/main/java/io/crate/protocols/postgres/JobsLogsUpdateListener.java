@@ -25,10 +25,11 @@ package io.crate.protocols.postgres;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 
+import javax.annotation.Nullable;
 import java.util.UUID;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
-public class JobsLogsUpdateListener implements BiConsumer<Object, Throwable> {
+public class JobsLogsUpdateListener implements Consumer<Throwable> {
 
     private final UUID jobId;
     private final JobsLogs jobsLogs;
@@ -39,11 +40,11 @@ public class JobsLogsUpdateListener implements BiConsumer<Object, Throwable> {
     }
 
     @Override
-    public void accept(Object o, Throwable t) {
-        if (t == null) {
+    public void accept(@Nullable Throwable throwable) {
+        if (throwable == null) {
             jobsLogs.logExecutionEnd(jobId, null);
         } else {
-            jobsLogs.logExecutionEnd(jobId, SQLExceptions.messageOf(t));
+            jobsLogs.logExecutionEnd(jobId, SQLExceptions.messageOf(throwable));
         }
     }
 }

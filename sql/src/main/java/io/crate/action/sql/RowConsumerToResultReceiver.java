@@ -22,23 +22,26 @@
 
 package io.crate.action.sql;
 
-import io.crate.data.RowConsumer;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 
 import javax.annotation.Nullable;
+import java.util.function.Consumer;
 
 public class RowConsumerToResultReceiver implements RowConsumer {
 
     private ResultReceiver resultReceiver;
     private int maxRows;
+    private final Consumer<Throwable> onCompletion;
     private long rowCount = 0;
     private BatchIterator<Row> activeIt;
 
-    public RowConsumerToResultReceiver(ResultReceiver resultReceiver, int maxRows) {
+    public RowConsumerToResultReceiver(ResultReceiver resultReceiver, int maxRows, Consumer<Throwable> onCompletion) {
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
+        this.onCompletion = onCompletion;
     }
 
     @Override
@@ -49,6 +52,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
             if (iterator != null) {
                 iterator.close();
             }
+            onCompletion.accept(failure);
             resultReceiver.fail(failure);
         }
     }
@@ -69,10 +73,12 @@ public class RowConsumerToResultReceiver implements RowConsumer {
             allLoaded = iterator.allLoaded();
         } catch (Throwable t) {
             iterator.close();
+            onCompletion.accept(t);
             resultReceiver.fail(t);
             return;
         }
         if (allLoaded) {
+            onCompletion.accept(null);
             iterator.close();
             resultReceiver.allFinished(false);
         } else {
@@ -80,8 +86,10 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                 if (f == null) {
                     consumeIt(iterator);
                 } else {
+                    Throwable t = SQLExceptions.unwrap(f);
                     iterator.close();
-                    resultReceiver.fail(SQLExceptions.unwrap(f));
+                    onCompletion.accept(t);
+                    resultReceiver.fail(t);
                 }
             });
         }
@@ -94,6 +102,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     public void closeAndFinishIfSuspended() {
         if (activeIt != null) {
             activeIt.close();
+            onCompletion.accept(null);
             resultReceiver.allFinished(true);
         }
     }
@@ -112,5 +121,15 @@ public class RowConsumerToResultReceiver implements RowConsumer {
         BatchIterator<Row> iterator = this.activeIt;
         this.activeIt = null;
         consumeIt(iterator);
+    }
+
+    @Override
+    public String toString() {
+        return "RowConsumerToResultReceiver{" +
+               "resultReceiver=" + resultReceiver +
+               ", maxRows=" + maxRows +
+               ", rowCount=" + rowCount +
+               ", activeIt=" + activeIt +
+               '}';
     }
 }
