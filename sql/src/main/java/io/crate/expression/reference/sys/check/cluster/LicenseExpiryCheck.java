@@ -42,7 +42,7 @@ import static io.crate.license.LicenseExpiryNotification.MODERATE;
 @Singleton
 public class LicenseExpiryCheck implements SysCheck {
 
-    private static final int ID = 4;
+    private static final int ID = 6;
     private static final String LICENSE_NOT_CLOSE_TO_EXPIRY_DESCRIPTION = "Your CrateDB license is not close to expiry. Enjoy CrateDB!";
     private static final String LICENSE_NA_COMMUNITY_DESCRIPTION = "CrateDB enterprise is not enabled. Enjoy the community edition!";
     private final boolean enterpriseEnabled;

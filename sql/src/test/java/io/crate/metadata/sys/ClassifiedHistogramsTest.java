@@ -24,9 +24,13 @@ package io.crate.metadata.sys;
 
 import io.crate.planner.Plan;
 import io.crate.planner.operators.StatementClassifier;
+import org.HdrHistogram.Histogram;
 import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 
 public class ClassifiedHistogramsTest {
 
@@ -35,5 +39,15 @@ public class ClassifiedHistogramsTest {
         ClassifiedHistograms histograms = new ClassifiedHistograms();
         histograms.recordValue(
             new StatementClassifier.Classification(Plan.StatementType.SELECT), TimeUnit.MINUTES.toMillis(30));
+    }
+
+    @Test
+    public void testRecordValueWithNegativeDurationDoesNotThrowException() {
+        ClassifiedHistograms histograms = new ClassifiedHistograms();
+        histograms.recordValue(
+            new StatementClassifier.Classification(Plan.StatementType.SELECT), -2);
+        Histogram histogram = histograms.iterator().next().histogram();
+        assertThat(histogram.getTotalCount(), is(1L));
+        assertThat(histogram.getMinValue(), is(0L));
     }
 }
