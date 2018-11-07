@@ -25,6 +25,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
+import io.crate.license.DecryptedLicenseData;
+import io.crate.license.LicenseService;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.Logger;
@@ -32,7 +34,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -45,7 +46,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -64,6 +64,7 @@ public class PingTask extends TimerTask {
     private final ExtendedNodeInfo extendedNodeInfo;
     private final String pingUrl;
     private final Settings settings;
+    private final LicenseService licenseService;
 
     private AtomicLong successCounter = new AtomicLong(0);
     private AtomicLong failCounter = new AtomicLong(0);
@@ -71,12 +72,13 @@ public class PingTask extends TimerTask {
     public PingTask(ClusterService clusterService,
                     ExtendedNodeInfo extendedNodeInfo,
                     String pingUrl,
-                    ClusterSettings clusterSettings,
-                    Settings settings) {
+                    Settings settings,
+                    LicenseService licenseService) {
         this.clusterService = clusterService;
         this.pingUrl = pingUrl;
         this.settings = settings;
         this.extendedNodeInfo = extendedNodeInfo;
+        this.licenseService = licenseService;
     }
 
     private Map<String, String> getKernelData() {
@@ -110,11 +112,13 @@ public class PingTask extends TimerTask {
         return macAddress.equals("") ? null : macAddress;
     }
 
-    private URL buildPingUrl() throws URISyntaxException, IOException, NoSuchAlgorithmException {
+    private URL buildPingUrl() throws URISyntaxException, IOException {
 
         final URI uri = new URI(this.pingUrl);
 
-        Map<String, String> queryMap = new HashMap<>(9);
+        // specifying the initialCapacity based on “expected number of elements / load_factor”
+        // in this case, the "expected number of elements" = 10 while default load factor = .75
+        Map<String, String> queryMap = new HashMap<>(14);
         queryMap.put("cluster_id", getClusterId());
         queryMap.put("kernel", Strings.toString(XContentFactory.jsonBuilder().map(getKernelData())));
         queryMap.put("master", isMasterNode().toString());
@@ -123,6 +127,12 @@ public class PingTask extends TimerTask {
         queryMap.put("hardware_address", getHardwareAddress());
         queryMap.put("crate_version", Version.CURRENT.number());
         queryMap.put("java_version", System.getProperty("java.version"));
+
+        DecryptedLicenseData license = licenseService.currentLicense();
+        if (license != null) {
+            queryMap.put("license_expiry_date", String.valueOf(license.expiryDateInMs()));
+            queryMap.put("license_issued_to", license.issuedTo());
+        }
 
         if (logger.isDebugEnabled()) {
             logger.debug("Sending data: {}", queryMap);
