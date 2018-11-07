@@ -37,7 +37,6 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -53,6 +52,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -63,7 +63,7 @@ import static io.crate.data.SentinelRow.SENTINEL;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-public class GroupingBytesRefCollectorBenchmark {
+public class GroupingStringCollectorBenchmark {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
@@ -79,10 +79,8 @@ public class GroupingBytesRefCollectorBenchmark {
 
         groupByMinCollector = createGroupByMinBytesRefCollector(functions);
 
-        List<BytesRef> keys = new ArrayList<>(Locale.getISOCountries().length);
-        for (String s : Locale.getISOCountries()) {
-            keys.add(new BytesRef(s));
-        }
+        List<String> keys = new ArrayList<>(Locale.getISOCountries().length);
+        keys.addAll(Arrays.asList(Locale.getISOCountries()));
 
         rows = new ArrayList<>(20_000_000);
         for (int i = 0; i < 20_000_000; i++) {
@@ -112,7 +110,7 @@ public class GroupingBytesRefCollectorBenchmark {
     }
 
     @Benchmark
-    public void measureGroupByMinBytesRef(Blackhole blackhole) throws Exception {
+    public void measureGroupByMinString(Blackhole blackhole) throws Exception {
         rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL);
         blackhole.consume(BatchIterators.collect(rowsIterator, groupByMinCollector).get());
     }
