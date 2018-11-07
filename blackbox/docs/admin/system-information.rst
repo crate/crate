@@ -1471,69 +1471,7 @@ should pass.
    with future versions of CrateDB. For this reason, you should create a new
    snapshot for each of your tables. (See :ref:`snapshot-restore`.)
 
-Tables Need to Be Recreated
-...........................
-
-.. WARNING::
-
-   Do not attempt to upgrade your cluster if this cluster check is failing.
-   Follow the instructions below to get this cluster check passing.
-
-This check warns you if there are tables that need to be recreated for
-compatibility with future versions of CrateDB.
-
-For tables that need recreating, use :ref:`ref-show-create-table` to get the
-SQL statement needed to restore the table, like so::
-
-  SHOW CREATE TABLE table_ident;
-
-Here, ``table_ident`` is the name of the table you want to recreate.
-
-Copy the output of this command, replace the ``table_ident`` with
-``table_ident_new``, and execute it to create a new table identical to the one
-you want to recreate.
-
-Make sure you stop inserting data to the original ``table_ident`` by
-executing::
-
-  ALTER TABLE table_ident SET ("blocks.read_only" = true);
-
-Copy the data from the original table to the new one by executing::
-
-  INSERT INTO table_ident_new (col1, col2, ...)
-     (SELECT col1, col2, ... FROM table_ident);
-
-Make sure that you include all columns and that the columns appear in the same
-order in both lists.
-
-Execute refresh on the new table like so::
-
-  REFRESH TABLE table_ident_new;
-
-Make sure table the new table and the old table have the same data.
-
-Drop the original table by executing::
-
-  ALTER TABLE table_ident SET ("blocks.read_only" = false);
-
-::
-
-  DROP TABLE table_ident;
-
-Rename the new table back to its original name::
-
-  ALTER TABLE table_ident_new RENAME TO table_ident;
-
-When all tables that needed recreating have been recreated by following this
-procedure, this cluster check should disappear.
-
-.. NOTE::
-
-   Snapshots of your tables created prior to them being recreated will not work
-   with future versions of CrateDB. For this reason, you should create a new
-   snapshot for each of your tables. (See :ref:`snapshot-restore`.)
-
-License exipry check
+License expiry check
 ....................
 
 This check warns you when your license is close to expiration. It will yield a
@@ -1887,6 +1825,60 @@ For example, if the user ``john`` has any privilege on the ``doc.books`` table
 but no privilege at all on ``doc.locations``, when ``john`` issues a
 ``SELECT * FROM sys.shards`` statement, the shards information related to the
 ``doc.locations`` table will not be returned.
+
+Before Upgrading
+================
+
+In certain cases, for compatibility with future versions of CrateDB,
+you need to perform some actions before upgrading to a new CrateDB version.
+
+Tables Need to Be Recreated
+---------------------------
+
+The following should be performed if there are tables
+that need to be recreated for compatibility with future versions of CrateDB.
+
+For tables that need recreating, use :ref:`ref-show-create-table` to get the
+SQL statement needed to restore the table, like so::
+
+  SHOW CREATE TABLE table_ident;
+
+Here, ``table_ident`` is the name of the table you want to recreate.
+
+Copy the output of this command, replace the ``table_ident`` with
+``table_ident_new``, and execute it to create a new table identical to the one
+you want to recreate.
+
+Make sure you stop inserting data to the original ``table_ident`` by
+executing::
+
+  ALTER TABLE table_ident SET ("blocks.read_only" = true);
+
+Copy the data from the original table to the new one by executing::
+
+  INSERT INTO table_ident_new (col1, col2, ...)
+     (SELECT col1, col2, ... FROM table_ident);
+
+Make sure that you include all columns and that the columns appear in the same
+order in both lists.
+
+Execute refresh on the new table like so::
+
+  REFRESH TABLE table_ident_new;
+
+Make sure table the new table and the old table have the same data.
+
+Drop the original table by executing::
+
+  ALTER TABLE table_ident SET ("blocks.read_only" = false);
+
+::
+
+  DROP TABLE table_ident;
+
+Rename the new table back to its original name::
+
+  ALTER TABLE table_ident_new RENAME TO table_ident;
 
 
 .. _configuration: ../configuration.html
