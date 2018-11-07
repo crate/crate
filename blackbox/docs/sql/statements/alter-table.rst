@@ -104,6 +104,10 @@ Using ``RESET`` will reset the parameter to its default value.
 :parameter:
   The name of the parameter that is set to a new value or its default.
 
+The supported parameters are listed in the :ref:`CREATE TABLE WITH CLAUSE
+<with_clause>` documentation. 
+
+
 ``ADD COLUMN``
 --------------
 
