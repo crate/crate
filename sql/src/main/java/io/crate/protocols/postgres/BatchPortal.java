@@ -175,11 +175,9 @@ class BatchPortal extends AbstractPortal {
             jobsLogs.logExecutionStart(jobId, stmt, sessionContext.user(), classification);
             JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
 
-            resultReceiver.completionFuture()
-                .whenComplete(jobsLogsUpdateListener)
-                .whenComplete(completionCallback);
+            resultReceiver.completionFuture().whenComplete(completionCallback);
 
-            RowConsumer consumer = new RowConsumerToResultReceiver(resultReceiver, 0);
+            RowConsumer consumer = new RowConsumerToResultReceiver(resultReceiver, 0, jobsLogsUpdateListener);
             plan.execute(
                 portalContext.getExecutor(),
                 plannerContext,

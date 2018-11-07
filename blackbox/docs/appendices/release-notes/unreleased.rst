@@ -102,6 +102,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused zombie entries in ``sys.jobs`` if the
+  ``fetchSize`` functionality of postgres wire protocol based clients is used.
+
 - Fixed a memory leak in the ``MQTT`` ingest service.
 
 - Fixed a memory leak that could occur with clients connecting via postgres

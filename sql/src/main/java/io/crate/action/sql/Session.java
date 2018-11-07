@@ -184,10 +184,10 @@ public class Session implements AutoCloseable {
             jobsLogs.logPreExecutionFailure(jobId, statement, SQLExceptions.messageOf(t), sessionContext.user());
             throw t;
         }
+
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
         jobsLogs.logExecutionStart(jobId, statement, sessionContext.user(), classification);
-        resultReceiver.completionFuture().whenComplete(new JobsLogsUpdateListener(jobId, jobsLogs));
-
+        JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
         if (!analyzedStatement.isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver(
                 executor.clusterService(),
@@ -202,13 +202,13 @@ public class Session implements AutoCloseable {
                     newJobId,
                     analyzedStatement,
                     routingProvider,
-                    new RowConsumerToResultReceiver(retryResultReceiver, 0),
+                    new RowConsumerToResultReceiver(retryResultReceiver, 0, jobsLogsUpdateListener),
                     params,
                     txnCtx
                 )
             );
         }
-        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0);
+        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0, jobsLogsUpdateListener);
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
     }
 
