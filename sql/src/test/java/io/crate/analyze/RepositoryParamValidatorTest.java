@@ -80,6 +80,18 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
     }
 
     @Test
+    public void testHdfsSecurityPrincipal() throws Exception {
+        GenericProperties genericProperties = new GenericProperties();
+        genericProperties.add(new GenericProperty("uri", new StringLiteral("hdfs://ha-name:8020")));
+        genericProperties.add(new GenericProperty("security.principal", new StringLiteral("myuserid@REALM.DOMAIN")));
+        genericProperties.add(new GenericProperty("path", new StringLiteral("/user/name/data")));
+        genericProperties.add(new GenericProperty("conf.foobar", new StringLiteral("bar")));
+        Settings settings = validator.convertAndValidate("hdfs", genericProperties, ParameterContext.EMPTY);
+        assertThat(settings.get("security.principal"), is("myuserid@REALM.DOMAIN"));
+        assertThat(settings.get("uri"), is("hdfs://ha-name:8020"));
+    }
+
+    @Test
     public void testS3ConfigParams() throws Exception {
         GenericProperties genericProperties = new GenericProperties();
         genericProperties.add(new GenericProperty("access_key", new StringLiteral("foobar")));
