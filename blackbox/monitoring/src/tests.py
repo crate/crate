@@ -52,13 +52,10 @@ ch.setLevel(logging.ERROR)
 log.addHandler(ch)
 
 
-class JmxTermClient(object):
+class JmxClient:
 
     JAVA_HOME = os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-8-openjdk/')
-    JMX_TERM_VERSION = '1.0-alpha-4'
-    JMX_TERM_SOURCE = "https://sourceforge.net/projects/cyclops-group/files/" \
-                      "jmxterm/{version}/jmxterm-{version}-uber.jar" \
-                      .format(version=JMX_TERM_VERSION)
+    SJK_JAR_URL = "https://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=org.gridkit.jvmtool&a=sjk&v=LATEST"
 
     CACHE_DIR = os.environ.get(
         'XDG_CACHE_HOME',
@@ -70,34 +67,41 @@ class JmxTermClient(object):
         self.jmx_path = self._get_jmx()
 
     def _get_jmx(self):
-        jar_name = 'jmxterm-{}-uber.jar'.format(JmxTermClient.JMX_TERM_VERSION)
-        jmx_path = os.path.join(JmxTermClient.CACHE_DIR, 'jmx')
+        jar_name = 'sjk.jar'
+        jmx_path = os.path.join(JmxClient.CACHE_DIR, 'jmx')
         jar_path = os.path.join(jmx_path, jar_name)
         if not os.path.exists(jar_path):
             os.makedirs(jmx_path, exist_ok=True)
-            urlretrieve(JmxTermClient.JMX_TERM_SOURCE, jar_path)
+            urlretrieve(JmxClient.SJK_JAR_URL, jar_path)
         return jar_path
 
     def query_jmx(self, bean, attribute):
         p = Popen(
             [
-                'java', '-jar', self.jmx_path,
-                '-l', 'localhost:{}'.format(self.jmx_port),
-                '-v', 'silent', '-n'
+                'java',
+                '-jar', self.jmx_path,
+                'mx',
+                '-s', f'localhost:{self.jmx_port}',
+                '-mg',
+                '-b', bean,
+                '-f', attribute
             ],
             stdin=PIPE, stdout=PIPE, stderr=PIPE,
-            env={'JAVA_HOME': JmxTermClient.JAVA_HOME},
+            env={'JAVA_HOME': JmxClient.JAVA_HOME},
             universal_newlines=True
         )
-
-        query = 'get -s -b {} {}'.format(bean, attribute)
-        return p.communicate(query)
+        stdout, stderr = p.communicate()
+        restart_msg = 'Restarting java with unlocked package access\n'
+        if stderr.startswith(restart_msg):
+            stderr = stderr[len(restart_msg):]
+        # Bean name is printed in the first line. Remove it
+        return (stdout[len(bean) + 1:], stderr)
 
 
 class MonitoringIntegrationTest(unittest.TestCase):
 
     def test_mbean_select_frq_attribute(self):
-        jmx_client = JmxTermClient(JMX_PORT)
+        jmx_client = JmxClient(JMX_PORT)
         conn = connect('localhost:{}'.format(CRATE_HTTP_PORT))
         c = conn.cursor()
 
@@ -124,26 +128,22 @@ class MonitoringIntegrationTest(unittest.TestCase):
 class MonitoringSettingIntegrationTest(unittest.TestCase):
 
     def test_enterprise_setting_disabled(self):
-        jmx_client = JmxTermClient(JMX_PORT_ENTERPRISE_DISABLED)
-        value, exception = jmx_client.query_jmx(
+        jmx_client = JmxClient(JMX_PORT_ENTERPRISE_DISABLED)
+        stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=QueryStats',
             'SelectQueryFrequency'
         )
 
-        if exception:
-            raise AssertionError("Unable to get attribute QueryStats.SelectQueryFrequency: " + str(exception))
-
-        try:
-            float(value)
-            raise AssertionError('''The JMX monitoring is enabled.''')
-        except Exception:
-            pass
+        self.assertEqual(
+            stderr,
+            'MBean not found: io.crate.monitoring:type=QueryStats\n')
+        self.assertEqual(stdout, '')
 
 
 class MonitoringNodeStatusIntegrationTest(unittest.TestCase):
 
     def test_mbean_select_ready(self):
-        jmx_client = JmxTermClient(JMX_PORT)
+        jmx_client = JmxClient(JMX_PORT)
         value, exception = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeStatus',
             'Ready'
@@ -161,7 +161,7 @@ class MonitoringNodeStatusIntegrationTest(unittest.TestCase):
 class MonitoringNodeInfoIntegrationTest(unittest.TestCase):
 
     def test_mbean_node_name(self):
-        jmx_client = JmxTermClient(JMX_PORT)
+        jmx_client = JmxClient(JMX_PORT)
         nodeName, exception = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo',
             'NodeName'
@@ -176,7 +176,7 @@ class MonitoringNodeInfoIntegrationTest(unittest.TestCase):
                                  "Expected: 'crate-enterprise', Got: {}".format(nodeName))
 
     def test_mbean_node_id(self):
-        jmx_client = JmxTermClient(JMX_PORT)
+        jmx_client = JmxClient(JMX_PORT)
         nodeId, exception = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo',
             'NodeId'
@@ -190,7 +190,7 @@ class MonitoringNodeInfoIntegrationTest(unittest.TestCase):
             raise AssertionError("The mbean attribute NodeId returned and empty string")
 
     def test_mbean_cluster_state_version(self):
-        jmx_client = JmxTermClient(JMX_PORT)
+        jmx_client = JmxClient(JMX_PORT)
         stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo', 'ClusterStateVersion')
         self.assertGreater(int(stdout), 0)
@@ -200,7 +200,7 @@ class MonitoringNodeInfoIntegrationTest(unittest.TestCase):
 class ConnectionsBeanTest(unittest.TestCase):
 
     def test_number_of_open_connections(self):
-        jmx_client = JmxTermClient(JMX_PORT)
+        jmx_client = JmxClient(JMX_PORT)
         stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=Connections', 'HttpOpen')
         self.assertGreater(int(stdout), 0)
@@ -210,25 +210,28 @@ class ConnectionsBeanTest(unittest.TestCase):
 class ThreadPoolsBeanTest(unittest.TestCase):
 
     def test_search_pool(self):
-        jmx_client = JmxTermClient(JMX_PORT)
+        jmx_client = JmxClient(JMX_PORT)
         stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=ThreadPools', 'Search')
-        self.assertEqual(stdout, '{ \n'
-                                 '  active = 0;\n'
-                                 '  completed = 4;\n'
-                                 '  largestPoolSize = 4;\n'
-                                 '  name = search;\n'
-                                 '  poolSize = 4;\n'
-                                 '  queueSize = 0;\n'
-                                 '  rejected = 0;\n'
-                                 ' }\n')
+        self.assertEqual(
+            '\n'.join((line.strip() for line in stdout.split('\n'))),
+            '''\
+active:          0
+completed:       4
+largestPoolSize: 4
+name:            search
+poolSize:        4
+queueSize:       0
+rejected:        0
+
+''')
         self.assertEqual(stderr, '')
 
 
 class CircuitBreakersBeanTest(unittest.TestCase):
 
     def test_parent_breaker(self):
-        jmx_client = JmxTermClient(JMX_PORT)
+        jmx_client = JmxClient(JMX_PORT)
         stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=CircuitBreakers', 'Parent')
         self.assert_valid_circuit_breaker_jmx_output('parent', stdout)
@@ -240,13 +243,13 @@ class CircuitBreakersBeanTest(unittest.TestCase):
         self.assertEqual(stderr, '')
 
     def assert_valid_circuit_breaker_jmx_output(self, cb_name, output):
-        limit = re.search('limit = ([0-9]+);', output)
+        limit = re.search(r'limit:\s+([0-9]+)', output)
         self.assertGreater(int(limit.group(1)), 0)
 
-        self.assertRegex(output, f'name = {cb_name};')
-        self.assertRegex(output, 'overhead = (\\d+\\.?\\d+);')
-        self.assertRegex(output, 'trippedCount = (\\d+);')
-        self.assertRegex(output, 'used = (\\d+);')
+        self.assertRegex(output, rf'name:\s+{cb_name}')
+        self.assertRegex(output, r'overhead:\s+(\d+\.?\d+)')
+        self.assertRegex(output, r'trippedCount:\s+(\d+)')
+        self.assertRegex(output, r'used:\s+(\d+)')
 
 
 def test_suite():
@@ -256,8 +259,7 @@ def test_suite():
         port=CRATE_HTTP_PORT,
         transport_port=GLOBAL_PORT_POOL.get(),
         env={
-            "CRATE_JAVA_OPTS":
-                JMX_OPTS.format(JMX_PORT)
+            "CRATE_JAVA_OPTS": JMX_OPTS.format(JMX_PORT)
         },
         settings={
             'license.enterprise': True
