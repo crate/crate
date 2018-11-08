@@ -257,7 +257,6 @@ ignored::
  - api-asn1-api-1.0.0-M20.jar
  - api-util-1.0.0-M20.jar
  - avro-1.7.4.jar
- - commons-collections-3.2.1.jar
  - commons-compress-1.4.1.jar
  - commons-configuration-1.6.jar
  - commons-digester-1.8.jar
@@ -275,7 +274,7 @@ ignored::
  - hadoop-common-2.8.1.jar
  - hadoop-hdfs-2.8.1.jar
  - hadoop-hdfs-client-2.8.1.jar
- - htrace-core-3.1.0-incubating.jar
+ - htrace-core4-4.0.1-incubating.jar
  - jackson-core-asl-1.9.13.jar
  - jackson-mapper-asl-1.9.13.jar
  - jline-0.9.94.jar
@@ -297,5 +296,47 @@ ignored::
    documentation, the latest stable `Hadoop (YARN)`_ version is **2.8.1**.
    Required libraries may differ for other versions.
 
+   Crate's packaged es-repository-hdfs plugin depends on a different version of
+   commons-collections, htrace, and xml-apis than Hadoop depends, and the presence
+   of both versions will result in Jar Hell. The es-repository-hdfs plugin's
+   dependencies should take precedence when encountered, but the above list
+   works for Hadoop v2.8.1.
+
 .. _Hadoop: https://hadoop.apache.org/
 .. _Hadoop (YARN): https://hadoop.apache.org/docs/r2.8.0/hadoop-yarn/hadoop-yarn-site/YARN.html
+
+Working with a Secured HA HDFS
+..............................
+
+For users with Kerberos-secured HA NameNode configurations, configuring the plugin
+is easy.
+
+First, the ``core-site.xml`` and ``hdfs-site.xml`` files for the HDFS cluster
+need to be placed in an empty JAR and added to the ``$CRATE_HOME/plugins/es-repository-hdfs``
+directory. Because Crate plugins are loaded as collections of JARs, plain xml files
+simply won't be loaded and the HDFS client won't be able to find the configuration files.
+These files should include any relevant keys and values for communicating with the NameNode;
+this includes any HA config, authentication method, etc.
+
+.. Note::
+
+   Make sure the ``load_defaults`` parameter to ``CREATE REPOSITORY`` is ``true``
+   (it is by default) as this will load the values as described here.
+..
+
+Next, if ``kerberos`` is the authentication method, the hdfs plugin will need a keytab to
+authenticate with. This needs to be placed in a separate config directory for the plugin,
+``$CRATE_HOME/config/repository-hdfs``, and must be named ``krb5.keytab``.
+
+Lastly, the ``security.principal`` parameter passed in the ``CREATE REPOSITORY`` statement
+must be a fully-qualified kerberos identity: a service principal name (SPN)
+or a user principal name (UPN) will work.
+
+.. NOTE::
+
+   Only one kerberos identity is supported per Crate cluster.
+
+..
+
+If all this has been configured correctly, the HDFS repository plugin should be able
+to communicate with an optionally-HA, secured HDFS cluster.

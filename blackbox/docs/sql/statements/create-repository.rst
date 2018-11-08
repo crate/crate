@@ -144,10 +144,10 @@ A repository that stores its snapshot inside an HDFS file-system.
 
   HDFS uri of the form ``hdfs:// <host>:<port>/``.
 
-**user**
+**security.principal**
   | *Type:*    ``string``
 
-  The HDFS user as string.
+  A qualified kerberos principal used to authenticate against HDFS.
 
 **path**
   | *Type:*    ``string``
@@ -159,11 +159,6 @@ A repository that stores its snapshot inside an HDFS file-system.
   | *Default:* ``true``
 
   Whether to load the default Hadoop Configuration.
-
-**conf_location**
-  | *Type:*    ``string``
-
-  Comma separated string of files to Hadoop XML configuration files to load.
 
 **conf.<key>**
   | *Type:*    various
