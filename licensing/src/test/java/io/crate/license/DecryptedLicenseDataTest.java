@@ -56,7 +56,7 @@ public class DecryptedLicenseDataTest {
         byte[] data = licenseData.formatLicenseData();
         DecryptedLicenseData licenseDataFromByteArray = DecryptedLicenseData.fromFormattedLicenseData(data);
 
-        assertThat(licenseDataFromByteArray.expirationDateInMs(), Matchers.is(ExpiryDate));
+        assertThat(licenseDataFromByteArray.expiryDateInMs(), Matchers.is(ExpiryDate));
         assertThat(licenseDataFromByteArray.issuedTo(), Matchers.is("crate"));
     }
 }

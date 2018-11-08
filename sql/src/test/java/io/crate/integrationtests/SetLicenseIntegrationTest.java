@@ -29,7 +29,7 @@ import static org.hamcrest.core.Is.is;
 
 public class SetLicenseIntegrationTest extends SQLTransportIntegrationTest {
 
-    private static final String LICENSE_KEY = "AAAAAAAAAAEAAABACYK5Ua3JBI98IJ99P/AsXCsV7UpHiBzSjkg+pFNDkpYAZUttlnqldjF5BAtRfzuJHA+2091XDmHACmF+M1J0NQ==";
+    private static final String LICENSE_KEY = "AAAAAAAAAAEAAABAFs4j1KCBd7oXN4ep073eHrdvIO8mbMadmNLFbvxK4F3kj9Cfc2HEYzmCWtLVoQ6I7ocn4g10q90QiFm/w2hm6g==";
 
     @Test
     public void testLicenseIsAvailableInClusterStateAfterSetLicense() {
