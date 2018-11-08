@@ -57,6 +57,7 @@ public class PgIndexTable extends StaticTableInfo {
         static final ColumnIdent INDCHECKXMIN = new ColumnIdent("indcheckxmin");
         static final ColumnIdent INDISREADY = new ColumnIdent("indisready");
         static final ColumnIdent INDISLIVE = new ColumnIdent("indislive");
+        static final ColumnIdent INDISREPLIDENT = new ColumnIdent("indisreplident");
         static final ColumnIdent INDKEY = new ColumnIdent("indkey");
         static final ColumnIdent INDCOLLATION = new ColumnIdent("indcollation");
         static final ColumnIdent INDCLASS = new ColumnIdent("indclass");
@@ -79,6 +80,7 @@ public class PgIndexTable extends StaticTableInfo {
             .put(Columns.INDCHECKXMIN, () -> NestableCollectExpression.constant(false))
             .put(Columns.INDISREADY, () -> NestableCollectExpression.constant(true))
             .put(Columns.INDISLIVE, () -> NestableCollectExpression.constant(true))
+            .put(Columns.INDISREPLIDENT, () -> NestableCollectExpression.constant(false))
             .put(Columns.INDKEY, () -> NestableCollectExpression.constant((short) 0))
             .put(Columns.INDCOLLATION, () -> NestableCollectExpression.constant(null))
             .put(Columns.INDCLASS, () -> NestableCollectExpression.constant(null))
@@ -102,6 +104,7 @@ public class PgIndexTable extends StaticTableInfo {
                 .register(Columns.INDCHECKXMIN.name(), DataTypes.BOOLEAN, null)
                 .register(Columns.INDISREADY.name(), DataTypes.BOOLEAN, null)
                 .register(Columns.INDISLIVE.name(), DataTypes.BOOLEAN, null)
+                .register(Columns.INDISREPLIDENT.name(), DataTypes.BOOLEAN, null)
                 .register(Columns.INDKEY.name(), DataTypes.SHORT_ARRAY, null)
                 .register(Columns.INDCOLLATION.name(), DataTypes.INTEGER_ARRAY, null)
                 .register(Columns.INDCLASS.name(), DataTypes.INTEGER_ARRAY, null)
