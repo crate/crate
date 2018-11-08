@@ -3,10 +3,13 @@
 language: java
 
 jdk:
-  - oraclejdk10
+  - openjdk11
 
 git:
   submodules: true
+
+runtime:
+  nodePool: shippable_shared_aarch64
 
 env:
   global:
