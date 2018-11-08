@@ -34,7 +34,6 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.module.HyperLogLogModule;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -63,18 +62,17 @@ public class HyperLogLogDistinctAggregationBenchmark {
 
     private final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
-    private final List<Row> rows = IntStream.range(0, 10_000).mapToObj(i -> new Row1(new BytesRef(i))).collect(Collectors.toList());
+    private final List<Row> rows = IntStream.range(0, 10_000).mapToObj(i -> new Row1(String.valueOf(i))).collect(Collectors.toList());
     private final HyperLogLogDistinctAggregation.Murmur3Hash murmur3Hash =
         HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.STRING);
 
     private HyperLogLogPlusPlus hyperLogLogPlusPlus;
     private AggregateCollector collector;
-    private AggregateCollector collectorNoDeepCopy;
 
     @Setup
     public void setUp() throws Exception {
         hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION, BigArrays.NON_RECYCLING_INSTANCE, 1);
-        InputCollectExpression inExpr0 = new BytesRefDeepCopyCollectExpression(0);
+        InputCollectExpression inExpr0 = new InputCollectExpression(0);
         Functions functions = new ModulesBuilder()
             .add(new HyperLogLogModule())
             .createInjector().getInstance(Functions.class);
@@ -88,17 +86,6 @@ public class HyperLogLogDistinctAggregationBenchmark {
             Version.CURRENT,
             BigArrays.NON_RECYCLING_INSTANCE,
             new Input[] { inExpr0 }
-        );
-
-        InputCollectExpression inExpr1 = new InputCollectExpression(0);
-        collectorNoDeepCopy = new AggregateCollector(
-            Collections.singletonList(inExpr1),
-            RAM_ACCOUNTING_CONTEXT,
-            AggregateMode.ITER_FINAL,
-            new AggregationFunction[] { hllAggregation },
-            Version.CURRENT,
-            BigArrays.NON_RECYCLING_INSTANCE,
-            new Input[] { inExpr1 }
         );
     }
 
@@ -119,28 +106,5 @@ public class HyperLogLogDistinctAggregationBenchmark {
             accumulator.accept(state, rows.get(i));
         }
         return finisher.apply(state);
-    }
-
-    @Benchmark
-    public Iterable<Row> benchmarkHLLAggregationNoDeepCopy() throws Exception {
-        Object[] state = collectorNoDeepCopy.supplier().get();
-        BiConsumer<Object[], Row> accumulator = collectorNoDeepCopy.accumulator();
-        Function<Object[], Iterable<Row>> finisher = collectorNoDeepCopy.finisher();
-        for (int i = 0; i < rows.size(); i++) {
-            accumulator.accept(state, rows.get(i));
-        }
-        return finisher.apply(state);
-    }
-
-    static class BytesRefDeepCopyCollectExpression extends InputCollectExpression {
-
-        BytesRefDeepCopyCollectExpression(int position) {
-            super(position);
-        }
-
-        @Override
-        public Object value() {
-            return BytesRef.deepCopyOf((BytesRef) super.value());
-        }
     }
 }

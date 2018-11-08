@@ -33,6 +33,9 @@ import java.util.Map;
 public class ClusterLicenseExpression extends NestedObjectExpression {
 
     public static final String NAME = "license";
+    public static final String EXPIRY_DATE = "expiryDate";
+    public static final String ISSUED_TO = "issuedTo";
+
     private final LicenseService licenseService;
 
     @Inject
@@ -49,11 +52,11 @@ public class ClusterLicenseExpression extends NestedObjectExpression {
 
     private void fillChildImplementations(DecryptedLicenseData decryptedLicenseData) {
         if (decryptedLicenseData != null) {
-            childImplementations.put(DecryptedLicenseData.EXPIRATION_DATE_IN_MS, () -> decryptedLicenseData.expirationDateInMs());
-            childImplementations.put(DecryptedLicenseData.ISSUED_TO, () -> decryptedLicenseData.issuedTo());
+            childImplementations.put(EXPIRY_DATE, () -> decryptedLicenseData.expiryDateInMs());
+            childImplementations.put(ISSUED_TO, () -> decryptedLicenseData.issuedTo());
         } else {
-            childImplementations.put(DecryptedLicenseData.EXPIRATION_DATE_IN_MS, () -> null);
-            childImplementations.put(DecryptedLicenseData.ISSUED_TO, () -> null);
+            childImplementations.put(EXPIRY_DATE, () -> null);
+            childImplementations.put(ISSUED_TO, () -> null);
         }
     }
 
