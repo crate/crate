@@ -131,6 +131,7 @@ For improved compatibility, the ``pg_catalog`` schema is implemented containing
 following tables:
 
  - `pg_type`_
+ - `pg_database <pgsql_pg_database_>`__
  - `pg_class <pgsql_pg_class_>`__
  - `pg_namespace <pgsql_pg_namespace_>`__
  - `pg_attribute <pgsql_pg_attribute_>`__
@@ -360,3 +361,4 @@ either because of the table is empty or by a not matching where clause.
 .. _pgsql_pg_attribute: https://www.postgresql.org/docs/10/static/catalog-pg-attribute.html
 .. _pgsql_pg_index: https://www.postgresql.org/docs/10/static/catalog-pg-index.html
 .. _pgsql_pg_constraint: https://www.postgresql.org/docs/10/static/catalog-pg-constraint.html
+.. _pgsql_pg_database: https://www.postgresql.org/docs/10/static/catalog-pg-database.html

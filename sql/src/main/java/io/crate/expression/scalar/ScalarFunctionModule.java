@@ -144,6 +144,7 @@ public class ScalarFunctionModule extends AbstractModule {
         PgGetExpr.register(this);
 
         PgBackendPidFunction.register(this);
+        register(new CurrentDatabaseFunction());
 
         // bind all registered functions and resolver
         // by doing it here instead of the register functions, plugins can also use the
@@ -162,4 +163,5 @@ public class ScalarFunctionModule extends AbstractModule {
         functions = null;
         resolver = null;
     }
+
 }

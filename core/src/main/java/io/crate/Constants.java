@@ -23,6 +23,8 @@ package io.crate;
 
 public class Constants {
 
+    public static final String DB_NAME = "crate";
+
     // Mapping Type that contains table definitions
     public static final String DEFAULT_MAPPING_TYPE = "default";
 

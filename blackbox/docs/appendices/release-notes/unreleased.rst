@@ -40,10 +40,12 @@ Breaking Changes
 Changes
 =======
 
+- Added the ``pg_catalog.pg_database`` table.
+
 - Added support for ``SHOW parameter_name | ALL`` to retrieve one or all session
   setting value(s).
 
-- Added support for ``initcap(string)`` scalar expression.
+- Added support for ``initcap(string)`` and ``current_database`` scalar expressions.
 
 - Improved the compatibility with postgres clients that use the ``text`` type
   for parameter encoding.

@@ -1856,6 +1856,20 @@ Example::
     SELECT 1 row in set (... sec)
 
 
+``current_database()``
+----------------------
+
+The ``current_database`` function returns the name of the current database,
+which in CrateDB will always be ``crate``::
+
+    cr> select current_database();
+    +--------------------+
+    | current_database() |
+    +--------------------+
+    | crate              |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
 
 Special Functions
 =================
