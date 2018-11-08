@@ -54,6 +54,8 @@ Changes
 
 - Upgraded to Elasticsearch 6.4.2
 
+- Deprecated the ``http.enabled`` setting.
+
 - Added a ``remove_duplicates`` token filter.
 
 - Added a ``char_group`` tokenizer.
