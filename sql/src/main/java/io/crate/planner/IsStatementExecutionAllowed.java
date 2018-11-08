@@ -42,7 +42,7 @@ import java.util.function.Predicate;
 
 final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> {
 
-    private static final IsReadQueryOnSystemOrEmptyRowTable isReadQueryOnSystemTable = new IsReadQueryOnSystemOrEmptyRowTable();
+    private static final IsReadQueryOnSystemOrEmptyRowTable IS_READ_QUERY_ON_SYSTEM_TABLE = new IsReadQueryOnSystemOrEmptyRowTable();
     private final BooleanSupplier hasValidLicense;
 
     IsStatementExecutionAllowed(BooleanSupplier hasValidLicense) {
@@ -60,7 +60,7 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
         }
 
         return (analyzedStatement instanceof QueriedRelation
-                && isReadQueryOnSystemTable.test((QueriedRelation) analyzedStatement));
+                && IS_READ_QUERY_ON_SYSTEM_TABLE.test((QueriedRelation) analyzedStatement));
     }
 
     private static final class IsReadQueryOnSystemOrEmptyRowTable extends AnalyzedRelationVisitor<Void, Boolean> implements Predicate<AnalyzedRelation> {
@@ -86,12 +86,12 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
 
         @Override
         public Boolean visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Void context) {
-            Boolean isAllowed = true;
             for (AnalyzedRelation relation : multiSourceSelect.sources().values()) {
-                isAllowed &= process(relation, context);
-                if (!isAllowed) break;
+                if (process(relation, context) == false) {
+                    return false;
+                }
             }
-            return isAllowed;
+            return true;
         }
 
         @Override
