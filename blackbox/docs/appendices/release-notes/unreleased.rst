@@ -106,6 +106,11 @@ Changes
 Fixes
 =====
 
+- Changed the ``user`` hdfs repository parameter to ``security.principal`` as that is
+  the parameter used by the underlying repository-hdfs plugin.
+
+- Removed the ``conf_location`` hdfs repository parameter as it is not used anymore.
+
 - Fixed an issue that caused zombie entries in ``sys.jobs`` if the
   ``fetchSize`` functionality of postgres wire protocol based clients is used.
 
