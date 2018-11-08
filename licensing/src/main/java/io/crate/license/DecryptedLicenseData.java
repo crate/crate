@@ -36,23 +36,23 @@ import java.util.Objects;
 
 public class DecryptedLicenseData {
 
-    public static final String EXPIRATION_DATE_IN_MS = "expirationDateInMs";
+    public static final String EXPIRY_DATE_IN_MS = "expiryDateInMs";
     public static final String ISSUED_TO = "issuedTo";
 
-    private final long expirationDateInMs;
+    private final long expiryDateInMs;
     private final String issuedTo;
 
-    public DecryptedLicenseData(long expirationDateInMs, String issuedTo) {
-        this.expirationDateInMs = expirationDateInMs;
+    public DecryptedLicenseData(long expiryDateInMs, String issuedTo) {
+        this.expiryDateInMs = expiryDateInMs;
         this.issuedTo = issuedTo;
     }
 
-    public long expirationDateInMs() {
-        return expirationDateInMs;
+    public long expiryDateInMs() {
+        return expiryDateInMs;
     }
 
     public long millisToExpiration() {
-        return expirationDateInMs - System.currentTimeMillis();
+        return expiryDateInMs - System.currentTimeMillis();
     }
 
     public String issuedTo() {
@@ -68,7 +68,7 @@ public class DecryptedLicenseData {
      *
      * <pre>
      *      {
-     *          "expirationDateInMs": "XXX",
+     *          "expiryDateInMs": "XXX",
      *          "issuedTo": "YYY"
      *      }
      * </pre>
@@ -77,7 +77,7 @@ public class DecryptedLicenseData {
         try {
             XContentBuilder contentBuilder = XContentFactory.contentBuilder(XContentType.JSON);
             contentBuilder.startObject()
-                .field(EXPIRATION_DATE_IN_MS, expirationDateInMs)
+                .field(EXPIRY_DATE_IN_MS, expiryDateInMs)
                 .field(ISSUED_TO, issuedTo)
                 .endObject();
             return Strings.toString(contentBuilder).getBytes(StandardCharsets.UTF_8);
@@ -90,20 +90,20 @@ public class DecryptedLicenseData {
         try (XContentParser parser = XContentFactory.xContent(XContentType.JSON)
             .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, licenseData)) {
             XContentParser.Token token;
-            long expirationDate = 0;
+            long expiryDate = 0;
             String issuedTo = null;
             while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
                 if (token == XContentParser.Token.FIELD_NAME) {
                     String currentFieldName = parser.currentName();
                     parser.nextToken();
-                    if (currentFieldName.equals(EXPIRATION_DATE_IN_MS)) {
-                        expirationDate = parser.longValue();
+                    if (currentFieldName.equals(EXPIRY_DATE_IN_MS)) {
+                        expiryDate = parser.longValue();
                     } else if (currentFieldName.equals(ISSUED_TO)) {
                         issuedTo = parser.text();
                     }
                 }
             }
-            return new DecryptedLicenseData(expirationDate, issuedTo);
+            return new DecryptedLicenseData(expiryDate, issuedTo);
         }
     }
 
@@ -112,12 +112,12 @@ public class DecryptedLicenseData {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DecryptedLicenseData that = (DecryptedLicenseData) o;
-        return expirationDateInMs == that.expirationDateInMs &&
+        return expiryDateInMs == that.expiryDateInMs &&
                Objects.equals(issuedTo, that.issuedTo);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(expirationDateInMs, issuedTo);
+        return Objects.hash(expiryDateInMs, issuedTo);
     }
 }
