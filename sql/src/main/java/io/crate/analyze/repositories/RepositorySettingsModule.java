@@ -60,10 +60,9 @@ public class RepositorySettingsModule extends AbstractModule {
         Collections.<String, SettingsApplier>emptyMap(),
         ImmutableMap.<String, SettingsApplier>builder()
             .put("uri", new SettingsAppliers.StringSettingsApplier(new StringSetting("uri")))
-            .put("user", new SettingsAppliers.StringSettingsApplier(new StringSetting("user")))
+            .put("security.principal", new SettingsAppliers.StringSettingsApplier(new StringSetting("security.principal")))
             .put("path", new SettingsAppliers.StringSettingsApplier(new StringSetting("path")))
             .put("load_defaults", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("load_defaults", true)))
-            .put("conf_location", new SettingsAppliers.StringSettingsApplier(new StringSetting("conf_location")))
             .put("concurrent_streams", new SettingsAppliers.IntSettingsApplier(new IntSetting("concurrent_streams", 5)))
             .put("compress", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("compress", true)))
             .put("chunk_size", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("chunk_size", null)))
