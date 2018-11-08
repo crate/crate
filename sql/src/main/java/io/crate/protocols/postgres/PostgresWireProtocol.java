@@ -423,7 +423,7 @@ class PostgresWireProtocol {
 
     private void sendParamsAndRdyForQuery(Channel channel) {
         Messages.sendParameterStatus(channel, "crate_version", Version.CURRENT.toString());
-        Messages.sendParameterStatus(channel, "server_version", "9.5.0");
+        Messages.sendParameterStatus(channel, "server_version", "10.5");
         Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
         Messages.sendParameterStatus(channel, "client_encoding", "UTF8");
         Messages.sendParameterStatus(channel, "datestyle", "ISO");

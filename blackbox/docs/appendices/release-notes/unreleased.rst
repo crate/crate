@@ -40,6 +40,8 @@ Breaking Changes
 Changes
 =======
 
+- Changed PostgreSQL wire interface to emulate version ``10.5``.
+
 -  Added support for CrateDB license management
    enabling users to trial the enterprise features,
    set a production enterprise license or continue
