@@ -41,7 +41,7 @@ which is why clients should generally enable ``autocommit``.
 Server Compatibility and Implementation Status
 ==============================================
 
-CrateDB emulates PostgreSQL server version ``9.5``.
+CrateDB emulates PostgreSQL server version ``10.5``.
 
 Start-Up
 --------
