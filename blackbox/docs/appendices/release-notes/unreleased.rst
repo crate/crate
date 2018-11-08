@@ -40,6 +40,16 @@ Breaking Changes
 Changes
 =======
 
+-  Upgraded the Admin UI to 1.11.1 which includes the following changes:
+
+   Changed the license information (ident) to be taken from the
+   `sys.cluster.licence` attribute instead of the `license.ident` setting
+   which is `@deprecated`.
+
+   Addition of French language files and menu options.
+
+   Various Admin UI improvements.
+
 - Changed PostgreSQL wire interface to emulate version ``10.5``.
 
 -  Added support for CrateDB license management
