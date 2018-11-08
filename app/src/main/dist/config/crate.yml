@@ -401,10 +401,6 @@ auth:
 # Set a custom allowed content length:
 #http.max_content_length: 100mb
 
-# Disable HTTP completely:
-#http.enabled: false
-
-
 ################################### Gateway ##################################
 
 # The gateway persists cluster meta data on disk every time the meta data
