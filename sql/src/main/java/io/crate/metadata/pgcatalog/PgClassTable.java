@@ -61,7 +61,6 @@ public class PgClassTable extends StaticTableInfo {
         static final ColumnIdent RELTUPLES = new ColumnIdent("reltuples");
         static final ColumnIdent RELALLVISIBLE = new ColumnIdent("relallvisible");
         static final ColumnIdent RELTOASTRELID = new ColumnIdent("reltoastrelid");
-        static final ColumnIdent RELTOASTIDXID = new ColumnIdent("reltoastidxid");
         static final ColumnIdent RELHASINDEX = new ColumnIdent("relhasindex");
         static final ColumnIdent RELISSHARED = new ColumnIdent("relisshared");
         static final ColumnIdent RELPERSISTENCE = new ColumnIdent("relpersistence");
@@ -73,11 +72,16 @@ public class PgClassTable extends StaticTableInfo {
         static final ColumnIdent RELHASRULES = new ColumnIdent("relhasrules");
         static final ColumnIdent RELHASTRIGGERS = new ColumnIdent("relhastriggers");
         static final ColumnIdent RELHASSUBCLASS = new ColumnIdent("relhassubclass");
+        static final ColumnIdent RELROWSECURITY = new ColumnIdent("relrowsecurity");
+        static final ColumnIdent RELFORCEROWSECURITY = new ColumnIdent("relforcerowsecurity");
         static final ColumnIdent RELISPOPULATED = new ColumnIdent("relispopulated");
+        static final ColumnIdent RELREPLIDENT = new ColumnIdent("relreplident");
+        static final ColumnIdent RELISPARTITION = new ColumnIdent("relispartition");
         static final ColumnIdent RELFROZENXID = new ColumnIdent("relfrozenxid");
         static final ColumnIdent RELMINMXID = new ColumnIdent("relminmxid");
         static final ColumnIdent RELACL = new ColumnIdent("relacl");
         static final ColumnIdent RELOPTIONS = new ColumnIdent("reloptions");
+        static final ColumnIdent RELPARTBOUND = new ColumnIdent("relpartbound");
     }
 
     private static final String KIND_TABLE = "r";
@@ -100,7 +104,6 @@ public class PgClassTable extends StaticTableInfo {
             .put(Columns.RELTUPLES, () -> NestableCollectExpression.constant(0.0f))
             .put(Columns.RELALLVISIBLE, () -> NestableCollectExpression.constant(0))
             .put(Columns.RELTOASTRELID, () -> NestableCollectExpression.constant(0))
-            .put(Columns.RELTOASTIDXID, () -> NestableCollectExpression.constant(0))
             .put(Columns.RELHASINDEX, () -> NestableCollectExpression.constant(false))
             .put(Columns.RELISSHARED, () -> NestableCollectExpression.constant(false))
             .put(Columns.RELPERSISTENCE, () -> NestableCollectExpression.constant(PERSISTENCE_PERMANENT))
@@ -113,11 +116,16 @@ public class PgClassTable extends StaticTableInfo {
             .put(Columns.RELHASRULES, () -> NestableCollectExpression.constant(false))
             .put(Columns.RELHASTRIGGERS, () -> NestableCollectExpression.constant(false))
             .put(Columns.RELHASSUBCLASS, () -> NestableCollectExpression.constant(false))
+            .put(Columns.RELROWSECURITY, () -> NestableCollectExpression.constant(false))
+            .put(Columns.RELFORCEROWSECURITY, () -> NestableCollectExpression.constant(false))
             .put(Columns.RELISPOPULATED, () -> NestableCollectExpression.constant(true))
+            .put(Columns.RELREPLIDENT, () -> NestableCollectExpression.constant("p"))
+            .put(Columns.RELISPARTITION, () -> NestableCollectExpression.constant(false))
             .put(Columns.RELFROZENXID, () -> NestableCollectExpression.constant(0))
             .put(Columns.RELMINMXID, () -> NestableCollectExpression.constant(0))
             .put(Columns.RELACL, () -> NestableCollectExpression.constant(null))
             .put(Columns.RELOPTIONS, () -> NestableCollectExpression.constant(null))
+            .put(Columns.RELPARTBOUND, () -> NestableCollectExpression.constant(null))
             .build();
     }
 
@@ -136,8 +144,7 @@ public class PgClassTable extends StaticTableInfo {
                 .register(Columns.RELTUPLES.name(), DataTypes.FLOAT, null)
                 .register(Columns.RELALLVISIBLE.name(), DataTypes.INTEGER, null)
                 .register(Columns.RELTOASTRELID.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELTOASTIDXID.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELHASSUBCLASS.name(), DataTypes.BOOLEAN, null)
+                .register(Columns.RELHASINDEX.name(), DataTypes.BOOLEAN, null)
                 .register(Columns.RELISSHARED.name(), DataTypes.BOOLEAN, null)
                 .register(Columns.RELPERSISTENCE.name(), DataTypes.STRING, null)
                 .register(Columns.RELKIND.name(), DataTypes.STRING, null)
@@ -147,12 +154,17 @@ public class PgClassTable extends StaticTableInfo {
                 .register(Columns.RELHASPKEY.name(), DataTypes.BOOLEAN, null)
                 .register(Columns.RELHASRULES.name(), DataTypes.BOOLEAN, null)
                 .register(Columns.RELHASTRIGGERS.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.RELHASINDEX.name(), DataTypes.BOOLEAN, null)
+                .register(Columns.RELHASSUBCLASS.name(), DataTypes.BOOLEAN, null)
+                .register(Columns.RELROWSECURITY.name(), DataTypes.BOOLEAN, null)
+                .register(Columns.RELFORCEROWSECURITY.name(), DataTypes.BOOLEAN, null)
                 .register(Columns.RELISPOPULATED.name(), DataTypes.BOOLEAN, null)
+                .register(Columns.RELREPLIDENT.name(), DataTypes.STRING, null)
+                .register(Columns.RELISPARTITION.name(), DataTypes.BOOLEAN, null)
                 .register(Columns.RELFROZENXID.name(), DataTypes.INTEGER, null)
                 .register(Columns.RELMINMXID.name(), DataTypes.INTEGER, null)
                 .register(Columns.RELACL.name(), DataTypes.OBJECT_ARRAY, null)
-                .register(Columns.RELOPTIONS.name(), DataTypes.STRING_ARRAY, null),
+                .register(Columns.RELOPTIONS.name(), DataTypes.STRING_ARRAY, null)
+                .register(Columns.RELPARTBOUND.name(), DataTypes.OBJECT, null),
             Collections.emptyList());
     }
 

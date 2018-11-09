@@ -64,6 +64,7 @@ public class PgAttributeTable extends StaticTableInfo {
         static final ColumnIdent ATTALIGN = new ColumnIdent("attalign");
         static final ColumnIdent ATTNOTNULL = new ColumnIdent("attnotnull");
         static final ColumnIdent ATTHASDEF = new ColumnIdent("atthasdef");
+        static final ColumnIdent ATTIDENTITY = new ColumnIdent("attidentity");
         static final ColumnIdent ATTISDROPPED = new ColumnIdent("attisdropped");
         static final ColumnIdent ATTISLOCAL = new ColumnIdent("attislocal");
         static final ColumnIdent ATTINHCOUNT = new ColumnIdent("attinhcount");
@@ -90,6 +91,7 @@ public class PgAttributeTable extends StaticTableInfo {
             .put(Columns.ATTALIGN, () -> NestableCollectExpression.constant(null))
             .put(Columns.ATTNOTNULL, () -> NestableCollectExpression.forFunction(c -> !c.info.isNullable()))
             .put(Columns.ATTHASDEF, () -> NestableCollectExpression.constant(false)) // don't support default values
+            .put(Columns.ATTIDENTITY, () -> NestableCollectExpression.constant(""))
             .put(Columns.ATTISDROPPED, () -> NestableCollectExpression.constant(false)) // don't support dropping columns
             .put(Columns.ATTISLOCAL, () -> NestableCollectExpression.constant(true))
             .put(Columns.ATTINHCOUNT, () -> NestableCollectExpression.constant(0))
@@ -116,6 +118,7 @@ public class PgAttributeTable extends StaticTableInfo {
                 .register(Columns.ATTALIGN.name(), DataTypes.STRING, null)
                 .register(Columns.ATTNOTNULL.name(), DataTypes.BOOLEAN, null)
                 .register(Columns.ATTHASDEF.name(), DataTypes.BOOLEAN, null)
+                .register(Columns.ATTIDENTITY.name(), DataTypes.STRING, null)
                 .register(Columns.ATTISDROPPED.name(), DataTypes.BOOLEAN, null)
                 .register(Columns.ATTISLOCAL.name(), DataTypes.BOOLEAN, null)
                 .register(Columns.ATTINHCOUNT.name(), DataTypes.INTEGER, null)

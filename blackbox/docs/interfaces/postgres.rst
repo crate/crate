@@ -41,7 +41,7 @@ which is why clients should generally enable ``autocommit``.
 Server Compatibility and Implementation Status
 ==============================================
 
-CrateDB emulates PostgreSQL server version ``9.5``.
+CrateDB emulates PostgreSQL server version ``10.5``.
 
 Start-Up
 --------
@@ -353,10 +353,10 @@ either because of the table is empty or by a not matching where clause.
 .. _PostgreSQL JDBC connection failover: https://jdbc.postgresql.org/documentation/head/connect.html#connection-failover
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
 .. _Value Expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html
-.. _pgsql_pg_type: https://www.postgresql.org/docs/9.6/static/catalog-pg-type.html
-.. _pgsql_pg_class: https://www.postgresql.org/docs/9.6/static/catalog-pg-class.html
-.. _pgsql_pg_namespace: https://www.postgresql.org/docs/9.6/static/catalog-pg-namespace.html
-.. _pgsql_pg_attrdef: https://www.postgresql.org/docs/9.6/static/catalog-pg-attrdef.html
-.. _pgsql_pg_attribute: https://www.postgresql.org/docs/9.6/static/catalog-pg-attribute.html
-.. _pgsql_pg_index: https://www.postgresql.org/docs/9.6/static/catalog-pg-index.html
-.. _pgsql_pg_constraint: https://www.postgresql.org/docs/9.6/static/catalog-pg-constraint.html
+.. _pgsql_pg_type: https://www.postgresql.org/docs/10/static/catalog-pg-type.html
+.. _pgsql_pg_class: https://www.postgresql.org/docs/10/static/catalog-pg-class.html
+.. _pgsql_pg_namespace: https://www.postgresql.org/docs/10/static/catalog-pg-namespace.html
+.. _pgsql_pg_attrdef: https://www.postgresql.org/docs/10/static/catalog-pg-attrdef.html
+.. _pgsql_pg_attribute: https://www.postgresql.org/docs/10/static/catalog-pg-attribute.html
+.. _pgsql_pg_index: https://www.postgresql.org/docs/10/static/catalog-pg-index.html
+.. _pgsql_pg_constraint: https://www.postgresql.org/docs/10/static/catalog-pg-constraint.html
