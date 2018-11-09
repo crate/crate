@@ -30,8 +30,8 @@ import org.junit.Test;
 
 import java.util.Map;
 
-import static io.crate.license.DecryptedLicenseData.EXPIRATION_DATE_IN_MS;
-import static io.crate.license.DecryptedLicenseData.ISSUED_TO;
+import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.EXPIRY_DATE;
+import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.ISSUED_TO;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.mockito.Mockito.mock;
@@ -57,7 +57,7 @@ public class ClusterLicenseExpressionTest extends CrateUnitTest {
     @Test
     public void testChildValueReturnsNullForMissingLicense() {
         when(licenseService.currentLicense()).thenReturn(null);
-        assertThat(licenseExpression.getChild(EXPIRATION_DATE_IN_MS).value(), is(nullValue()));
+        assertThat(licenseExpression.getChild(EXPIRY_DATE).value(), is(nullValue()));
         assertThat(licenseExpression.getChild(ISSUED_TO).value(), is(nullValue()));
     }
 
@@ -67,7 +67,7 @@ public class ClusterLicenseExpressionTest extends CrateUnitTest {
 
         Map<String, Object> expressionValues = licenseExpression.value();
         assertThat(expressionValues.size(), is(2));
-        assertThat(expressionValues.get(EXPIRATION_DATE_IN_MS), is(3L));
+        assertThat(expressionValues.get(EXPIRY_DATE), is(3L));
         assertThat(expressionValues.get(ISSUED_TO), is("test"));
     }
 
@@ -76,7 +76,7 @@ public class ClusterLicenseExpressionTest extends CrateUnitTest {
         when(licenseService.currentLicense())
             .thenReturn(new DecryptedLicenseData(3L, "test"));
 
-        assertThat(licenseExpression.getChild(EXPIRATION_DATE_IN_MS).value(), is(3L));
+        assertThat(licenseExpression.getChild(EXPIRY_DATE).value(), is(3L));
         assertThat(licenseExpression.getChild(ISSUED_TO).value(), is("test"));
     }
 
@@ -89,10 +89,10 @@ public class ClusterLicenseExpressionTest extends CrateUnitTest {
 
         Map<String, Object> expressionValues = licenseExpression.value();
         assertThat(expressionValues.size(), is(2));
-        assertThat(expressionValues.get(EXPIRATION_DATE_IN_MS), is(3L));
+        assertThat(expressionValues.get(EXPIRY_DATE), is(3L));
         assertThat(expressionValues.get(ISSUED_TO), is("test"));
 
-        assertThat(licenseExpression.getChild(EXPIRATION_DATE_IN_MS).value(), is(4L));
+        assertThat(licenseExpression.getChild(EXPIRY_DATE).value(), is(4L));
         assertThat(licenseExpression.getChild(ISSUED_TO).value(), is("test2"));
     }
 }

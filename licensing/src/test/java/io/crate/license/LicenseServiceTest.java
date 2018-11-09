@@ -76,7 +76,7 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
         LicenseKey key = TrialLicense.createLicenseKey(VERSION, new DecryptedLicenseData(Long.MAX_VALUE, "test"));
         DecryptedLicenseData licenseData = LicenseService.licenseData(LicenseKey.decodeLicense(key));
 
-        assertThat(licenseData.expirationDateInMs(), Matchers.is(Long.MAX_VALUE));
+        assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
         assertThat(licenseData.issuedTo(), Matchers.is("test"));
     }
 
@@ -85,7 +85,7 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
         LicenseKey key = createEnterpriseLicenseKey(VERSION, new DecryptedLicenseData(Long.MAX_VALUE, "test"));
         DecryptedLicenseData licenseData = LicenseService.licenseData(LicenseKey.decodeLicense(key));
 
-        assertThat(licenseData.expirationDateInMs(), Matchers.is(Long.MAX_VALUE));
+        assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
         assertThat(licenseData.issuedTo(), Matchers.is("test"));
     }
 
