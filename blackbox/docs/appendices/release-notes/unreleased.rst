@@ -116,6 +116,9 @@ Changes
 Fixes
 =====
 
+- Fixed a race condition that could allow the creation of partitions with a
+  different schema than other partitions within the same partitioned table.
+
 - Changed the ``user`` hdfs repository parameter to ``security.principal`` as that is
   the parameter used by the underlying repository-hdfs plugin.
 
