@@ -202,6 +202,63 @@
    limitations under the License.
 
 
+===============================================================================
+
+For the `blackbox/docs` directory:
+
+The source files for the documentation are licensed under the Apache License
+Version 2.0. These source files are used by the project maintainers to build
+online documentation for end-users:
+
+  <https://crate.io/docs/crate/reference/en/latest/>
+
+If you want to make contributions to the documentation, it may be necessary for
+you to build the documentation yourself by following the instructions in the
+`DEVELOP.rst` file. If you do this, a number of third-party software components
+are necessary.
+
+We do not ship the source code for these optional third-party software
+components or their dependencies, so we cannot make any guarantees about the
+licensing status of these components.
+
+However, for convenience, the documentation build system explicitly references
+the following software components (grouped by license):
+
+PSF License:
+
+ - Python 3 <https://docs.python.org/3/license.html>
+
+MIT License:
+
+ - pip <https://pypi.org/project/pip/>
+ - setuptools <https://pypi.org/project/setuptools/>
+ - sphinx-autobuild <https://pypi.org/project/sphinx-autobuild/>
+ - tqdm <https://pypi.org/project/tqdm/>
+
+BSD License:
+
+ - alabaster <https://pypi.org/project/alabaster/>
+ - sphinx <https://pypi.org/project/Sphinx/>
+
+Apache License 2.0:
+
+ - sphinx-csv-filter <https://pypi.org/project/sphinx-csv-filter/>
+ - crash <https://pypi.org/project/crash/>
+ - crate <https://pypi.org/project/crate/>
+ - crate-docs-theme <https://pypi.org/project/crate-docs-theme/>
+
+Zope Public License:
+
+ - zope.testrunner <https://pypi.org/project/zope.testrunner/>
+
+GNU Lesser General Public License:
+
+ - psycopg2-binary <https://pypi.org/project/psycopg2-binary/>
+
+Please note that each of these components may specify its own dependencies and
+those dependencies may be licensed differently.
+
+
 ================================================================================
 
 For the `enterprise` directory:
