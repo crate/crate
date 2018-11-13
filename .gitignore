@@ -49,6 +49,5 @@ _out/
 out/
 
 # Misc
-blackbox/sqllogic.log
 sandbox/crate/data/
 sql-parser/src/main/java/io/crate/sql/parser/antlr/
