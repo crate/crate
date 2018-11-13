@@ -57,10 +57,6 @@ task gtest(type: Exec) {
     commandLine "$projectDir/bin/test-docs", '-vvvxt', 'process_test'
 }
 
-task logicTest(type: Exec) {
-    commandLine "$projectDir/bin/test-sqllogic"
-}
-
 task buildDocs(type: Exec, dependsOn: bootstrap) {
     commandLine "$projectDir/bin/sphinx"
 }
@@ -71,7 +67,6 @@ hdfsTest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold,
 monitoringTest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
 itest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
 gtest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
-logicTest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
 
 task cleanDocs {
     doLast {

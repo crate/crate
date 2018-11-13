@@ -1,4 +1,0 @@
-#!/bin/bash
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-BLACKBOX="$DIR/.."
-PYTHONPATH=$BLACKBOX/sqllogictest/src:$BLACKBOX/shared/src $BLACKBOX/.venv/bin/python $BLACKBOX/sqllogictest/src/tests.py "$@"
