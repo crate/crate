@@ -21,24 +21,25 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Objects;
-
 import java.util.List;
+import java.util.Optional;
 
-public class FunctionCall
-    extends Expression {
+public class FunctionCall extends Expression {
+
     private final QualifiedName name;
     private final boolean distinct;
     private final List<Expression> arguments;
+    private final Optional<Window> window;
 
     public FunctionCall(QualifiedName name, List<Expression> arguments) {
-        this(name, false, arguments);
+        this(name, false, arguments, Optional.empty());
     }
 
-    public FunctionCall(QualifiedName name, boolean distinct, List<Expression> arguments) {
+    public FunctionCall(QualifiedName name, boolean distinct, List<Expression> arguments, Optional<Window> window) {
         this.name = name;
         this.distinct = distinct;
         this.arguments = arguments;
+        this.window = window;
     }
 
     public QualifiedName getName() {
@@ -53,27 +54,34 @@ public class FunctionCall
         return arguments;
     }
 
+    public Optional<Window> getWindow() {
+        return window;
+    }
+
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitFunctionCall(this, context);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        FunctionCall o = (FunctionCall) obj;
-        return Objects.equal(name, o.name) &&
-               Objects.equal(distinct, o.distinct) &&
-               Objects.equal(arguments, o.arguments);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        FunctionCall that = (FunctionCall) o;
+
+        if (distinct != that.distinct) return false;
+        if (!name.equals(that.name)) return false;
+        if (!arguments.equals(that.arguments)) return false;
+        return window.equals(that.window);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(name, distinct, arguments);
+        int result = name.hashCode();
+        result = 31 * result + (distinct ? 1 : 0);
+        result = 31 * result + arguments.hashCode();
+        result = 31 * result + window.hashCode();
+        return result;
     }
 }
