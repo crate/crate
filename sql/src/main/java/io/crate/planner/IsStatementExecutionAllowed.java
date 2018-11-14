@@ -26,6 +26,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
+import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.SetLicenseAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -58,7 +59,17 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
         if (analyzedStatement instanceof SetLicenseAnalyzedStatement) {
             return true;
         }
+        if (analyzedStatement instanceof SetAnalyzedStatement) {
+            switch (((SetAnalyzedStatement) analyzedStatement).scope()) {
+                case SESSION_TRANSACTION_MODE:
+                case SESSION:
+                case LOCAL:
+                    return true;
 
+                default:
+                    return false;
+            }
+        }
         return (analyzedStatement instanceof QueriedRelation
                 && IS_READ_QUERY_ON_SYSTEM_TABLE.test((QueriedRelation) analyzedStatement));
     }
