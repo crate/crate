@@ -588,4 +588,16 @@ public abstract class AstVisitor<R, C> {
     public R visitSwapTable(SwapTable swapTable, C context) {
         return visitStatement(swapTable, context);
     }
+
+    public R visitFrameBound(FrameBound frameBound, C context) {
+        return visitNode(frameBound, context);
+    }
+
+    public R visitWindow(Window window, C context) {
+        return visitNode(window, context);
+    }
+
+    public R visitWindowFrame(WindowFrame windowFrame, C context) {
+        return visitNode(windowFrame, context);
+    }
 }
