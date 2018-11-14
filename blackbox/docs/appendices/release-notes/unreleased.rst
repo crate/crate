@@ -40,6 +40,16 @@ Breaking Changes
 Changes
 =======
 
+-  Upgraded the Admin UI to 1.11.1 which includes the following changes:
+
+   Changed the license information (ident) to be taken from the
+   `sys.cluster.licence` attribute instead of the `license.ident` setting
+   which is `@deprecated`.
+
+   Addition of French language files and menu options.
+
+   Various Admin UI improvements.
+
 - Changed PostgreSQL wire interface to emulate version ``10.5``.
 
 -  Added support for CrateDB license management
@@ -105,6 +115,9 @@ Changes
 
 Fixes
 =====
+
+- Fixed a race condition that could allow the creation of partitions with a
+  different schema than other partitions within the same partitioned table.
 
 - Changed the ``user`` hdfs repository parameter to ``security.principal`` as that is
   the parameter used by the underlying repository-hdfs plugin.

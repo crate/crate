@@ -21,6 +21,7 @@
 
 package io.crate.udc.service;
 
+import io.crate.license.LicenseService;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
@@ -29,7 +30,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -57,18 +57,18 @@ public class UDCService extends AbstractLifecycleComponent {
 
     private final ClusterService clusterService;
     private final ExtendedNodeInfo extendedNodeInfo;
-    private final ClusterSettings clusterSettings;
+    private final LicenseService licenseService;
 
     @Inject
     public UDCService(Settings settings,
                       ExtendedNodeInfo extendedNodeInfo,
                       ClusterService clusterService,
-                      ClusterSettings clusterSettings) {
+                      LicenseService licenseService) {
         super(settings);
         this.extendedNodeInfo = extendedNodeInfo;
         this.clusterService = clusterService;
+        this.licenseService = licenseService;
         this.timer = new Timer("crate-udc");
-        this.clusterSettings = clusterSettings;
     }
 
     @Override
@@ -80,7 +80,7 @@ public class UDCService extends AbstractLifecycleComponent {
         if (logger.isDebugEnabled()) {
             logger.debug("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
         }
-        PingTask pingTask = new PingTask(clusterService, extendedNodeInfo, url, clusterSettings, settings);
+        PingTask pingTask = new PingTask(clusterService, extendedNodeInfo, url, settings, licenseService);
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());
     }
 

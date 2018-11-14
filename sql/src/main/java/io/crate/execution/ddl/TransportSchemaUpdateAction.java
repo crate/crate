@@ -23,6 +23,7 @@
 package io.crate.execution.ddl;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import io.crate.execution.support.ActionListeners;
@@ -112,12 +113,13 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         // ideally we'd handle the index mapping update together with the template update in a single clusterStateUpdateTask
         // but the index mapping-update logic is difficult to re-use
         if (IndexParts.isPartitioned(request.index().getName())) {
-            updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource())
-                .thenCompose(r -> updateTemplate(
-                    state.getMetaData().getTemplates(),
-                    request.index().getName(),
-                    request.mappingSource(),
-                    request.masterNodeTimeout()))
+            updateTemplate(
+                state.getMetaData().getTemplates(),
+                request.index().getName(),
+                request.mappingSource(),
+                request.masterNodeTimeout()
+            ).thenCompose(r -> updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource()))
+                .thenApply(r -> new SchemaUpdateResponse(r.isAcknowledged()))
                 .whenComplete(ActionListeners.asBiConsumer(listener));
         } else {
             updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource())
@@ -137,7 +139,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
             .source(mappingSource, XContentType.JSON)
             .timeout(timeout)
             .masterNodeTimeout(timeout);
-        nodeClient.executeLocally(PutMappingAction.INSTANCE, putMappingRequest, putMappingListener);
+        nodeClient.execute(PutMappingAction.INSTANCE, putMappingRequest, putMappingListener);
         return putMappingListener;
     }
 
@@ -188,10 +190,11 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         return !XContentHelper.update(currentMapping, newMapping, true);
     }
 
-    private static ClusterState updateTemplate(NamedXContentRegistry xContentRegistry,
-                                               ClusterState currentState,
-                                               String templateName,
-                                               Map<String, Object> newMapping) throws Exception {
+    @VisibleForTesting
+    static ClusterState updateTemplate(NamedXContentRegistry xContentRegistry,
+                                       ClusterState currentState,
+                                       String templateName,
+                                       Map<String, Object> newMapping) throws Exception {
         IndexTemplateMetaData template = currentState.metaData().templates().get(templateName);
         if (template == null) {
             throw new ResourceNotFoundException("Template \"" + templateName + "\" for partitioned table is missing");
@@ -200,18 +203,37 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         IndexTemplateMetaData.Builder templateBuilder = new IndexTemplateMetaData.Builder(template);
         for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
             Map<String, Object> source = parseMapping(xContentRegistry, cursor.value.toString());
-            XContentHelper.update(source, newMapping, true);
+            mergeIntoSource(source, newMapping);
             try (XContentBuilder xContentBuilder = JsonXContent.contentBuilder()) {
                 templateBuilder.putMapping(cursor.key, Strings.toString(xContentBuilder.map(source)));
             }
         }
-
         MetaData.Builder builder = MetaData.builder(currentState.metaData()).put(templateBuilder);
         return ClusterState.builder(currentState).metaData(builder).build();
     }
 
+    private static void mergeIntoSource(Map<String, Object> source, Map<String, Object> mappingUpdate) {
+        for (Map.Entry<String, Object> updateEntry : mappingUpdate.entrySet()) {
+            String key = updateEntry.getKey();
+            Object updateValue = updateEntry.getValue();
+            if (source.containsKey(key)) {
+                Object sourceValue = source.get(key);
+                if (sourceValue instanceof Map && updateValue instanceof Map) {
+                    //noinspection unchecked
+                    mergeIntoSource((Map) sourceValue, (Map) updateValue);
+                } else {
+                    if (!sourceValue.equals(updateValue)) {
+                        throw new IllegalArgumentException("Can't overwrite " + key + "=" + sourceValue + " with " + updateValue);
+                    }
+                }
+            } else {
+                source.put(key, updateValue);
+            }
+        }
+    }
+
     @Override
     protected ClusterBlockException checkBlock(SchemaUpdateRequest request, ClusterState state) {
-        return state.blocks().indexBlockedException(ClusterBlockLevel.METADATA_WRITE, "");
+        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }
