@@ -70,9 +70,9 @@ registered license.
 +============================+==============================================================+===============+
 | ``license``                | The current CrateDB license information.                     | ``OBJECT``    |
 +----------------------------+--------------------------------------------------------------+---------------+
-| ``license['expiryDate']``  | The :ref:`data-type-timestamp` on which the license expires. | ``TIMESTAMP`` |
+| ``license['expiry_date']`` | The :ref:`data-type-timestamp` on which the license expires. | ``TIMESTAMP`` |
 +----------------------------+--------------------------------------------------------------+---------------+
-| ``license['issuedTo']``    | The organisation for which the license is issued.            | ``STRING``    |
+| ``license['issued_to']``   | The organisation for which the license is issued.            | ``STRING``    |
 +----------------------------+--------------------------------------------------------------+---------------+
 
 .. _sys-cluster-settings:
