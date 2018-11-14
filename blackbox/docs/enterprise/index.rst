@@ -4,31 +4,17 @@
 Enterprise Features
 ===================
 
-CrateDB provides an `Enterprise Edition`_. The source code remains open, but if
-you want to use one of the enterprise features in production you need to
-purchase a `enterprise license`_.
+.. rubric:: Table of Contents
 
-The `Enterprise Edition`_ is enabled by default, the
-:ref:`license.enterprise <conf-node-enterprise-license>` config being true, for
-a period of 30 days that will allow users to evaluate the enterprise features.
+.. contents::
+   :local:
 
-Upon the expiration of the 30 days trial period you will have to request an
-enterprise license by `contacting our sales department`_.
-Setting a new license is achieved using the :ref:`SET LICENSE <ref-set-license>`
-statement.
+Feature List
+============
 
-Alternatively, users seeking to use the community edition can do so at any
-point by disabling the enterprise license using the
-:ref:`license.enterprise <conf-node-enterprise-license>` config.
-
-.. WARNING::
-
-  CrateDB will continue to run after the license expires but only the
-  :ref:`SET LICENSE <ref-set-license>` statement and the read only system information
-  statements (against the ``sys`` and ``information_schema`` schemas) will be
-  allowed.
-
-Current features:
+When you first download CrateDB, the :ref:`license.enterprise
+<conf-node-enterprise-license>` setting is set to ``true`` and the following
+enterprise features are enabled:
 
 - :ref:`administration_user_management`: manage multiple database users
 - :ref:`administration-privileges`: configure user privileges
@@ -45,12 +31,35 @@ Current features:
 - `The CrateDB admin UI`_: `shards browser`_, `monitoring overview`_,
   `privileges browser`_
 
-.. _enterprise edition: https://crate.io/enterprise-edition/
-.. _enterprise license: https://crate.io/enterprise-edition/
-.. _MQTT: http://mqtt.org/
+Trial
+=====
+
+You may evaluate CrateDB during a 30-day trial period, after which you must
+`request an enterprise license`_ and configure CrateDB using the :ref:`SET
+LICENSE <ref-set-license>` statement.
+
+.. NOTE::
+
+    When the trial period ends, CrateDB functionality will be limited to
+    executing the following statements:
+
+    - :ref:`SET LICENSE <ref-set-license>`
+
+    - :ref:`SELECT <sql_reference_select>` (:ref:`information_schema
+      <information_schema>` and :ref:`sys <system-information>` schemas only)
+
+If you wish to continue using CrateDB without an enterprise license after the
+trial period ends you must set :ref:`license.enterprise
+<conf-node-enterprise-license>` to ``false``. This activates the `community
+edition`_ of CrateDB and restores all functionality except for the enterprise
+features.
+
+.. _community Edition: https://crate.io/products/cratedb-editions/
+.. _enterprise license: https://crate.io/products/cratedb-editions/
 .. _HyperLogLog++: https://research.google.com/pubs/pub40671.html
-.. _shards browser: https://crate.io/docs/clients/admin-ui/en/latest/shards.html#shards
 .. _monitoring overview: https://crate.io/docs/clients/admin-ui/en/latest/monitoring.html
+.. _MQTT: http://mqtt.org/
 .. _privileges browser: https://crate.io/docs/clients/admin-ui/en/latest/privileges.html
+.. _request an enterprise license: https://crate.io/pricing/#contactsales
+.. _shards browser: https://crate.io/docs/clients/admin-ui/en/latest/shards.html#shards
 .. _The CrateDB admin UI: https://crate.io/docs/clients/admin-ui/en/latest/index.html
-.. _contacting our sales department: https://crate.io/pricing/#contactsales
