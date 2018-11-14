@@ -87,7 +87,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -165,7 +164,7 @@ public final class SqlFormatter {
             if (!node.getOrderBy().isEmpty()) {
                 append(indent,
                     "ORDER BY " + node.getOrderBy().stream()
-                        .map(orderByFormatterFunction)
+                        .map(SqlFormatter::formatSortItem)
                         .collect(COMMA_JOINER)
                 ).append('\n');
             }
@@ -229,7 +228,7 @@ public final class SqlFormatter {
             if (!node.getOrderBy().isEmpty()) {
                 append(indent,
                     "ORDER BY " + node.getOrderBy().stream()
-                        .map(orderByFormatterFunction)
+                        .map(SqlFormatter::formatSortItem)
                         .collect(COMMA_JOINER)
                 ).append('\n');
             }
@@ -805,24 +804,21 @@ public final class SqlFormatter {
         }
     }
 
-    static Function<SortItem, String> orderByFormatterFunction = input -> {
-        StringBuilder builder = new StringBuilder();
-
-        builder.append(formatStandaloneExpression(input.getSortKey()));
-
-        switch (input.getOrdering()) {
+    static String formatSortItem(SortItem sortItem) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(formatStandaloneExpression(sortItem.getSortKey()));
+        switch (sortItem.getOrdering()) {
             case ASCENDING:
-                builder.append(" ASC");
+                sb.append(" ASC");
                 break;
             case DESCENDING:
-                builder.append(" DESC");
+                sb.append(" DESC");
                 break;
             default:
-                throw new UnsupportedOperationException("unknown ordering: " + input.getOrdering());
+                throw new UnsupportedOperationException("unknown ordering: " + sortItem.getOrdering());
         }
-
-        return builder.toString();
-    };
+        return sb.toString();
+    }
 
     private static void appendAliasColumns(StringBuilder builder, List<String> columns) {
         if (!columns.isEmpty()) {
