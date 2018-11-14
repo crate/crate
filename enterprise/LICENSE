@@ -6,14 +6,16 @@ All rights reserved
 Licensed to Crate.IO GmbH (referred to in this notice as "Crate") under one or
 more contributor license agreements.
 
-This directory contains proprietary enterprise modules. These modules (which in
-turn provide enterprise features) are not licensed under any Open Source
+This directory contains proprietary enterprise modules.  These modules (which
+in turn provide Enterprise Features) are not licensed under any Open Source
 license.
 
-To enable or use any of the enterprise features, Crate must have given you
-permission to enable and use the Enterprise Edition of CrateDB and you must
-have a valid Enterprise or Subscription Agreement with Crate. If you enable or
-use features that are part of the Enterprise Edition, you represent and warrant
-that you have a valid Enterprise or Subscription Agreement with Crate. Your use
-of features of the Enterprise Edition is governed by the terms and conditions
-of your Enterprise or Subscription Agreement with Crate.
+Unauthorized copying of these files, via any medium is strictly prohibited.
+
+To use any of these files, Crate.io must have given you permission to enable
+and use such Enterprise Features and you must have a valid Enterprise or
+Subscription Agreement with Crate.io.  If you enable or use the Enterprise
+Features, you represent and warrant that you have a valid Enterprise or
+Subscription Agreement with Crate.io.  Your use of the Enterprise Features if
+governed by the terms and conditions of your Enterprise or Subscription
+Agreement with Crate.io.

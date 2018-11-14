@@ -39,10 +39,6 @@
 #    - host1:4300
 #    - host2:4300
 
-# Enterprise features: CrateDB ships by default with all enterprise features
-# enabled. Get in touch with us to get a license: https://crate.io/enterprise/
-#license.enterprise: true
-
 
 ################################# Full Settings ##############################
 
@@ -57,17 +53,20 @@
 
 ############################# Enterprise Features ############################
 
-# Setting this to `false` disables the Enterprise Edition of CrateDB.
+# CrateDB ships by default with all Enterprise Features enabled. See
+# <https://crate.io/docs/crate/reference/en/latest/enterprise/index.html> for
+# more information.
+
+# Setting this to `false` disables the Enterprise Features.
 #license.enterprise: true
 
-# To enable or use any of the enterprise features, Crate.io must have given
-# you permission to enable and use the Enterprise Edition of CrateDB (see
-# https://crate.io/enterprise/) and you must have a valid Enterprise or
-# Subscription Agreement with Crate.io. If you enable or use features that are
-# part of the Enterprise Edition, you represent and warrant that you have a
-# valid Enterprise or Subscription Agreement with Crate.io. Your use of
-# features of the Enterprise Edition is governed by the terms and conditions
-# of your Enterprise or Subscription Agreement with Crate.io.
+# To use any of these features, Crate.io must have given you permission to
+# enable and use such Enterprise Features and you must have a valid Enterprise
+# or Subscription Agreement with Crate.io.  If you enable or use the Enterprise
+# Features, you represent and warrant that you have a valid Enterprise or
+# Subscription Agreement with Crate.io.  Your use of the Enterprise Features if
+# governed by the terms and conditions of your Enterprise or Subscription
+# Agreement with Crate.io.
 
 #/////////////////////////// JMX Monitoring Plugin ///////////////////////////
 

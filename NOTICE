@@ -10,18 +10,19 @@ Different parts of CrateDB are available under different licences.
 Unless otherwise indicated, the CrateDB source code is licensed under the
 Apache License, Version 2.0.
 
-Crate bundles proprietary enterprise modules with CrateDB. These modules (which
-in turn provide enterprise features) are not licensed under any version of the
-Apache License. These modules are indicated in the LICENSE file along with
+Crate bundles proprietary enterprise modules with CrateDB.  These modules
+(which in turn provide Enterprise Features) are not licensed under any Open
+Source license.  These modules are indicated in the LICENSE file along with
 information about their licensing.
 
-Third-party components bundled with the CrateDB source code are indicated in the
-LICENSE file along with their respective licenses. Any additional mandatory
-notices pertaining to those dependencies will be reproduced in this file.
+Third-party components bundled with the CrateDB source code are indicated in
+the LICENSE file along with their respective licenses.  Any additional
+mandatory notices pertaining to those dependencies will be reproduced in this
+file.
 
 Crate provides pre-built releases for convenience, also known as convenience
-releases. Building CrateDB from source pulls in a number of additional
-third-party dependencies. Hence, convenience releases will contain a mix of
+releases.  Building CrateDB from source pulls in a number of additional
+third-party dependencies.  Hence, convenience releases will contain a mix of
 CrateDB source code and third-party build-time dependencies not listed in the
 LICENSE file or in this file.
 
