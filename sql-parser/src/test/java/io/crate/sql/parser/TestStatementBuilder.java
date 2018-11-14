@@ -98,6 +98,39 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testEmptyOverClauseAfterFunction() {
+        printStatement("SELECT avg(x) OVER () FROM t");
+    }
+
+    @Test
+    public void testOverClauseWithOrderBy() {
+        printStatement("SELECT avg(x) OVER (ORDER BY x) FROM t");
+        printStatement("SELECT avg(x) OVER (ORDER BY x DESC) FROM t");
+        printStatement("SELECT avg(x) OVER (ORDER BY x DESC NULLS FIRST) FROM t");
+    }
+
+    @Test
+    public void testOverClauseWithPartition() {
+        printStatement("SELECT avg(x) OVER (PARTITION BY p) FROM t");
+        printStatement("SELECT avg(x) OVER (PARTITION BY p1, p2, p3) FROM t");
+    }
+
+    @Test
+    public void testOverClauseWithPartitionAndOrderBy() {
+        printStatement("SELECT avg(x) OVER (PARTITION BY p ORDER BY x ASC) FROM t");
+        printStatement("SELECT avg(x) OVER (PARTITION BY p1, p2, p3 ORDER BY x, y) FROM t");
+    }
+
+    @Test
+    public void testOverClauseWithFrameClause() {
+        printStatement("SELECT avg(x) OVER (ROWS BETWEEN 5 PRECEDING AND 10 FOLLOWING) FROM t");
+        printStatement("SELECT avg(x) OVER (RANGE BETWEEN 5 PRECEDING AND 10 FOLLOWING) FROM t");
+        printStatement("SELECT avg(x) OVER (ROWS UNBOUND PRECEDING) FROM t");
+        printStatement("SELECT avg(x) OVER (ROWS BETWEEN UNBOUND PRECEDING AND CURRENT ROW) FROM t");
+        printStatement("SELECT avg(x) OVER (ROWS BETWEEN 10 PRECEDING AND UNBOUND FOLLOWING) FROM t");
+    }
+
+    @Test
     public void testCommit() {
         printStatement("COMMIT");
     }

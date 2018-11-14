@@ -44,6 +44,7 @@ import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.ExistsPredicate;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Extract;
+import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.IfExpression;
@@ -66,6 +67,7 @@ import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.SimpleCaseExpression;
+import io.crate.sql.tree.SortItem;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.SubscriptExpression;
@@ -73,6 +75,8 @@ import io.crate.sql.tree.TimeLiteral;
 import io.crate.sql.tree.TimestampLiteral;
 import io.crate.sql.tree.TryCast;
 import io.crate.sql.tree.WhenClause;
+import io.crate.sql.tree.Window;
+import io.crate.sql.tree.WindowFrame;
 
 import java.util.List;
 import java.util.Locale;
@@ -309,7 +313,68 @@ public final class ExpressionFormatter {
                 builder.append('(').append(arguments).append(')');
             }
 
+            if (node.getWindow().isPresent()) {
+                builder.append(" OVER ").append(visitWindow(node.getWindow().get(), context));
+            }
             return builder.toString();
+        }
+
+        @Override
+        public String visitWindow(Window node, Void context) {
+            StringBuilder sb = new StringBuilder("(");
+            if (!node.getPartitions().isEmpty()) {
+                sb.append("PARTITION BY ");
+                sb.append(joinExpressions(node.getPartitions()));
+            }
+            if (!node.getOrderBy().isEmpty()) {
+                sb.append(formatOrderBy(node.getOrderBy()));
+            }
+            if (node.getWindowFrame().isPresent()) {
+                sb.append(process(node.getWindowFrame().get(), context));
+            }
+            sb.append(')');
+            return sb.toString();
+        }
+
+        private static String formatOrderBy(List<SortItem> orderBy) {
+            return "ORDER BY " + orderBy.stream()
+                .map(SqlFormatter::formatSortItem)
+                .collect(Collectors.joining(", "));
+        }
+
+        @Override
+        public String visitWindowFrame(WindowFrame node, Void context) {
+            StringBuilder builder = new StringBuilder();
+
+            builder.append(node.getType().toString()).append(' ');
+
+            if (node.getEnd().isPresent()) {
+                builder.append("BETWEEN ")
+                    .append(process(node.getStart(), context))
+                    .append(" AND ")
+                    .append(process(node.getEnd().get(), context));
+            } else {
+                builder.append(process(node.getStart(), context));
+            }
+            return builder.toString();
+        }
+
+        @Override
+        public String visitFrameBound(FrameBound node, Void context) {
+            switch (node.getType()) {
+                case UNBOUNDED_PRECEDING:
+                    return "UNBOUNDED PRECEDING";
+                case PRECEDING:
+                    return process(node.getValue(), context) + " PRECEDING";
+                case CURRENT_ROW:
+                    return "CURRENT ROW";
+                case FOLLOWING:
+                    return process(node.getValue(), context) + " FOLLOWING";
+                case UNBOUNDED_FOLLOWING:
+                    return "UNBOUNDED FOLLOWING";
+                default:
+                    throw new IllegalArgumentException("unhandled type: " + node.getType());
+            }
         }
 
         @Override
