@@ -584,4 +584,16 @@ public abstract class AstVisitor<R, C> {
     public R visitDropView(DropView dropView, C context) {
         return visitStatement(dropView, context);
     }
+
+    public R visitFrameBound(FrameBound frameBound, C context) {
+        return visitNode(frameBound, context);
+    }
+
+    public R visitWindow(Window window, C context) {
+        return visitNode(window, context);
+    }
+
+    public R visitWindowFrame(WindowFrame windowFrame, C context) {
+        return visitNode(windowFrame, context);
+    }
 }
