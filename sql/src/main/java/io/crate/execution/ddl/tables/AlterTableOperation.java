@@ -79,9 +79,9 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -458,7 +458,7 @@ public class AlterTableOperation {
     }
 
     public static Map<String, Object> parseMapping(String mappingSource) throws IOException {
-        try (XContentParser parser = XContentFactory.xContent(mappingSource)
+        try (XContentParser parser = JsonXContent.jsonXContent
             .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)) {
             return parser.map();
         } catch (IOException e) {

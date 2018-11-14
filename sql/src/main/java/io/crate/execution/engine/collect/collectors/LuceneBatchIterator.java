@@ -195,7 +195,7 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
         for (LuceneCollectorExpression expression : expressions) {
             expression.startCollect(collectorContext);
         }
-        return indexSearcher.createNormalizedWeight(query, doScores);
+        return indexSearcher.createWeight(indexSearcher.rewrite(query), doScores, 1f);
     }
 
     @Override
