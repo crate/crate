@@ -114,7 +114,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
         if (request.getCreateIndexRequest() != null) {
             CreateIndexRequest createIndexRequest = request.getCreateIndexRequest();
             ActionListener<CreateIndexResponse> wrappedListener = ActionListener.wrap(
-                response -> listener.onResponse(new CreateTableResponse(response.isShardsAcked())),
+                response -> listener.onResponse(new CreateTableResponse(response.isShardsAcknowledged())),
                 listener::onFailure
             );
             transportCreateIndexAction.masterOperation(createIndexRequest, state, wrappedListener);

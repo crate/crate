@@ -88,7 +88,7 @@ public class GeoJSONUtilsTest {
             },
             GEOMETRY_FACTORY
         ), JtsSpatialContext.GEO, true, true),
-        new JtsGeometry(GEOMETRY_FACTORY.createMultiPoint(new Coordinate[]{
+        new JtsGeometry(GEOMETRY_FACTORY.createMultiPointFromCoords(new Coordinate[]{
             new Coordinate(0.0, 0.0),
             new Coordinate(1.0, 1.0)
         }), JtsSpatialContext.GEO, true, true),
