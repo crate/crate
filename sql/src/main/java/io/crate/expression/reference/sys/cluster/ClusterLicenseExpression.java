@@ -33,8 +33,8 @@ import java.util.Map;
 public class ClusterLicenseExpression extends NestedObjectExpression {
 
     public static final String NAME = "license";
-    public static final String EXPIRY_DATE = "expiryDate";
-    public static final String ISSUED_TO = "issuedTo";
+    public static final String EXPIRY_DATE = "expiry_date";
+    public static final String ISSUED_TO = "issued_to";
 
     private final LicenseService licenseService;
 

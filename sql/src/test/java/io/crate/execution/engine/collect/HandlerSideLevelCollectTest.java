@@ -170,8 +170,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         String expected =
             "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| id| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 1| sys| cluster| sys| NULL| NULL| NULL\n" +
             "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| license| object| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 2| sys| cluster| sys| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| license['expiryDate']| timestamp| 3| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| NULL| sys| cluster| sys| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| license['issuedTo']| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| NULL| sys| cluster| sys| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| license['expiry_date']| timestamp| 3| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| NULL| sys| cluster| sys| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| license['issued_to']| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| NULL| sys| cluster| sys| NULL| NULL| NULL\n" +
             "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| master_node| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 3| sys| cluster| sys| NULL| NULL| NULL\n" +
             "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 4| sys| cluster| sys| NULL| NULL| NULL";
 
