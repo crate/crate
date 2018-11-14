@@ -27,6 +27,7 @@ import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.statement.SetLicensePlan;
+import io.crate.planner.statement.SetSessionPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -221,5 +222,12 @@ public class ExpiredLicensePlannerTest extends CrateDummyClusterServiceUnitTest 
     public void testSetLicenseIsAllowed() {
         Plan plan = e.plan("set license 'XXX'");
         assertThat(plan, instanceOf(SetLicensePlan.class));
+    }
+
+    @Test
+    public void testSetSessionStatementIsAllowedIfLicenseIsExpired() {
+        // postgres clients send set session statements initially on connecting, we want to allow them to.
+        Plan plan = e.plan("set session whatever = 'x'");
+        assertThat(plan, instanceOf(SetSessionPlan.class));
     }
 }
