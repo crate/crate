@@ -209,6 +209,9 @@ public class ExpressionAnalyzer {
     }
 
     protected Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
+        if (node.getWindow().isPresent()) {
+            throw new UnsupportedOperationException("Window functions are not supported");
+        }
         List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
         for (Expression expression : node.getArguments()) {
             Symbol argSymbol = expression.accept(innerAnalyzer, context);
