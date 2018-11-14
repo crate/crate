@@ -40,7 +40,7 @@ Breaking Changes
 Changes
 =======
 
--  Upgraded the Admin UI to 1.11.1 which includes the following changes:
+-  Upgraded the Admin UI to 1.11.2 which includes the following changes:
 
    Changed the license information (ident) to be taken from the
    `sys.cluster.licence` attribute instead of the `license.ident` setting
