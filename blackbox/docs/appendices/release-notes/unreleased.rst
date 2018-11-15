@@ -44,6 +44,16 @@ Changes
 Fixes
 =====
 
+- Updated the Admin UI to 1.10.4 which includes the following fixes:
+
+    Fixed an issue that caused the cluster and node checks to not be refreshed
+    when clicking on the ``refresh`` icon.
+
+    Fixed an issue that caused the Twitter importer to redirect to ``/``
+    instead of ``/help``.
+
+    Fixed the navigation component to allow opening URLs in new tabs.
+
 - Fixed a race condition that could allow the creation of partitions with a
   different schema than other partitions within the same partitioned table.
 
