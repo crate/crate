@@ -224,7 +224,7 @@ Several restrictions apply to columns that can be used here:
 .. _with_clause:
 
 ``WITH``
---------
+========
 
 The optional WITH clause can specify parameters for tables.
 
@@ -240,7 +240,7 @@ Available parameters are:
 .. _number_of_replicas:
 
 ``number_of_replicas``
-......................
+----------------------
 
 Specifies the number or range of replicas each shard of a table should have for
 normal operation, the default is to have ``0-1`` replica.
@@ -264,7 +264,7 @@ For further details and examples see :ref:`replication`.
 .. _sql_ref_refresh_interval:
 
 ``refresh_interval``
-....................
+--------------------
 
 Specifies the refresh interval of a shard in milliseconds. The default is set
 to 1000 milliseconds.
@@ -285,7 +285,7 @@ For further details see :ref:`refresh_data` or :ref:`sql_ref_refresh`.
 .. _sql_ref_write_wait_for_active_shards:
 
 ``write.wait_for_active_shards``
-................................
+--------------------------------
 
 Specifies the number of shard copies that need to be active for the write
 operation to proceed. If less shards are active the operation will wait for 30s
@@ -303,7 +303,7 @@ The number of shard copies is defined like this::
 .. _table-settings-blocks.read_only:
 
 ``blocks.read_only``
-....................
+--------------------
 
 Allows to have a read only table.
 
@@ -314,7 +314,7 @@ Allows to have a read only table.
 .. _table-settings-blocks.read_only_allow_delete:
 
 ``blocks.read_only_allow_delete``
-.................................
+---------------------------------
 
 Allows to have a read only table that additionally can be deleted.
 
@@ -328,7 +328,7 @@ Allows to have a read only table that additionally can be deleted.
   the ``blocks.read_only_allow_delete`` table setting to ``false``.
 
 ``blocks.read``
-...............
+---------------
 
 ``disable``/``enable`` all the read operations
 
@@ -337,7 +337,7 @@ Allows to have a read only table that additionally can be deleted.
   set ``false``.
 
 ``blocks.write``
-................
+----------------
 
 ``disable``/``enable`` all the write operations
 
@@ -346,7 +346,7 @@ Allows to have a read only table that additionally can be deleted.
   modifications, otherwise set ``false``.
 
 ``blocks.metadata``
-...................
+-------------------
 
 ``disable``/``enable`` the table settings modifications.
 
@@ -355,7 +355,7 @@ Allows to have a read only table that additionally can be deleted.
   to ``false`` — table settings modifications are enabled.
 
 ``mapping.total_fields.limit``
-................................
+------------------------------
 
 Sets the maximum number of columns that is allowed for a table. Default is ``1000``.
 
@@ -364,7 +364,7 @@ Sets the maximum number of columns that is allowed for a table. Default is ``100
   both the user facing mapping (columns) and internal fields.
 
 ``translog.flush_threshold_size``
-.................................
+---------------------------------
 
 Sets size of transaction log prior to flushing.
 
@@ -372,7 +372,7 @@ Sets size of transaction log prior to flushing.
   Size (bytes) of translog.
 
 ``translog.disable_flush``
-..........................
+--------------------------
 
 ``enable``/``disable`` flushing.
 
@@ -384,7 +384,7 @@ Sets size of transaction log prior to flushing.
    It is recommended to use ``disable_flush`` only for short periods of time.
 
 ``translog.interval``
-.....................
+---------------------
 
 Sets frequency of flush necessity check.
 
@@ -394,7 +394,7 @@ Sets frequency of flush necessity check.
 .. _translog_sync_interval:
 
 ``translog.sync_interval``
-..........................
+--------------------------
 
 How often the translog is fsynced to disk. Defaults to 5s.
 When setting this interval, please keep in mind that changes logged
@@ -408,7 +408,7 @@ failure. This setting only takes effect if :ref:`translog.durability
 .. _translog_durability:
 
 ``translog.durability``
-.......................
+-----------------------
 
 If set to ``ASYNC`` the translog gets flushed to disk in the background
 every :ref:`translog.sync_interval <translog_sync_interval>`. If set to
@@ -418,7 +418,7 @@ every :ref:`translog.sync_interval <translog_sync_interval>`. If set to
   ``REQUEST`` (default), ``ASYNC``
 
 ``allocation.total_shards_per_node``
-....................................
+------------------------------------
 
 Controls the total number of shards (replicas and primaries) allowed to be
 allocated on a single node. Defaults to unbounded (-1).
@@ -427,7 +427,7 @@ allocated on a single node. Defaults to unbounded (-1).
   Number of shards per node.
 
 ``allocation.enable``
-.....................
+---------------------
 
 Controls shard allocation for a specific table. Can be set to:
 
@@ -446,7 +446,7 @@ Controls shard allocation for a specific table. Can be set to:
 .. _allocation_max_retries:
 
 ``allocation.max_retries``
-..........................
+--------------------------
 
 Defines the number of attempts to allocate a shard before giving up and leaving
 the shard unallocated.
@@ -455,7 +455,7 @@ the shard unallocated.
   Number of retries to allocate a shard. Defaults to 5.
 
 ``warming.enable``
-..................
+------------------
 
 ``disable``/``enable`` table warming.
 
@@ -468,7 +468,7 @@ Enabled by default.
   `true`` to enable warming up, otherwise ``false``
 
 ``unassigned.node_left.delayed_timeout``
-........................................
+----------------------------------------
 
 Delay the allocation of replica shards which have become unassigned because a
 node has left. It defaults to ``1m`` to give a node time to restart
@@ -480,7 +480,7 @@ allocation if needed.
 .. _sql_ref_column_policy:
 
 ``column_policy``
-.................
+-----------------
 
 Specifies the column policy of the table. The default column policy is
 ``dynamic``.
@@ -502,13 +502,13 @@ The column policy is defined like this::
 For futher details and examples see :ref:`column_policy` or :ref:`config`.
 
 ``max_ngram_diff``
-..................
+------------------
 
 Specifies the maximum difference between max_ngram and min_ngram when using
 the NGramTokenizer or the NGramTokenFilter. The default is 1.
 
 ``max_shingle_diff``
-....................
+--------------------
 
 Specifies the maximum difference between min_shingle_size and max_shingle_size
 when using the ShingleTokenFilter. The default is 3.
