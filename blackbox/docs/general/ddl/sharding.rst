@@ -19,7 +19,7 @@ maximum possible distribution.
 
 .. TIP::
 
-   Unpartitioned tables function as a single partition, so unpartitioned tables
+   Non-partitioned tables function as a single partition, so non-partitioned tables
    are still split into the configured number of shards.
 
 Shards are transparent at the table-level. You do not need to know about or
@@ -46,8 +46,9 @@ is applied, (see :ref:`ref_clustered_clause`).
 
 .. NOTE::
 
-   The number of shards can only be set on table creation, it cannot be changed
-   later on.
+   The number of shards can be changed later on but it involves having the table
+   in a ``READ-ONLY`` state until the operation is completed
+   (see :ref:`alter_change_number_of_shard`).
 
 .. CAUTION::
 

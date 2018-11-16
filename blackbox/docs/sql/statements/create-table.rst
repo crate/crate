@@ -338,6 +338,8 @@ Allows to have a read only table that additionally can be deleted.
   Set to ``true`` to disable all read operations for a table, otherwise
   set ``false``.
 
+.. _table-settings-blocks.write:
+
 ``blocks.write``
 ----------------
 

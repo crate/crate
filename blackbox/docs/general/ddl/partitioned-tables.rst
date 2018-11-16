@@ -365,16 +365,19 @@ future.
 
 Altering schema information (such as the column policy or adding columns) can
 only be done on the table (not on single partitions) and will take effect on
-both existing and future partitions of the table.
+both existing and new partitions of the table.
 
 ::
 
     cr> ALTER TABLE parted_table ADD COLUMN new_col string
     ALTER OK, -1 rows affected (... sec)
 
-Unlike regular tables, it is possible to change the number of shards of a
-partitioned table. However, the shard configuration will only be applied on
-**future** partitions.
+
+Changing the Number of Shards
+-----------------------------
+
+It is possible at any time to change the number of shards of a partitioned
+table.
 
 ::
 
@@ -383,9 +386,9 @@ partitioned table. However, the shard configuration will only be applied on
 
 .. NOTE::
 
-   This will not change the number of shards of existing partitions, but the
-   new number of shards will be taken into account when new partitions are
-   created.
+  This will **not** change the number of shards of existing partitions,
+  but the new number of shards will be taken into account when **new**
+  partitions are created.
 
 ::
 
@@ -423,6 +426,41 @@ partitioned table. However, the shard configuration will only be applied on
     +--------------------------+------------------------+------------------+
     SELECT 1 row in set (... sec)
 
+Altering a Single Partition
+...........................
+
+We also provide the option to change the number of shards that are already
+allocated for an existing partition. This option operates on a partition basis,
+thus a specific partition needs to be specified
+::
+
+    cr> ALTER TABLE parted_table PARTITION (day=1396915200000) SET ("blocks.write" = true)
+    ALTER OK, -1 rows affected (... sec)
+
+    cr> ALTER TABLE parted_table PARTITION (day=1396915200000) SET (number_of_shards = 5)
+    ALTER OK, 0 rows affected (... sec)
+
+    cr> ALTER TABLE parted_table PARTITION (day=1396915200000) SET ("blocks.write" = false)
+    ALTER OK, -1 rows affected (... sec)
+
+::
+
+    cr> SELECT partition_ident, "values", number_of_shards
+    ... FROM information_schema.table_partitions
+    ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
+    ... ORDER BY partition_ident;
+    +--------------------------+------------------------+------------------+
+    | partition_ident          | values                 | number_of_shards |
+    +--------------------------+------------------------+------------------+
+    | 04732cpp6osj2d9i60o30c1g | {"day": 1396915200000} |                5 |
+    +--------------------------+------------------------+------------------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+   The same prerequisites and restrictions as with normal
+   tables apply. See :ref:`alter_change_number_of_shard`.
+
 Alter Partitions
 ----------------
 
@@ -445,7 +483,7 @@ Alter Table ``ONLY``
 
 Sometimes one wants to alter a partitioned table, but the changes should only
 affect new partitions and not existing ones. This can be done by using the
-``ONLY`` keywword.
+``ONLY`` keyword.
 
 ::
 
