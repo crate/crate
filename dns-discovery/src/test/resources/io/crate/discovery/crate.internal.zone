@@ -1,6 +1,0 @@
-crate.internal.               600   IN   SOA   localhost localhost ( 2007120710 1d 2h 4w 1h )
-crate.internal.               400   IN   NS    localhost
-crate.internal.               600   IN   A     127.0.0.1
-_test._srv.crate.internal.    600   IN   SRV   1 10 44300 127.0.0.1.
-_test._srv.crate.internal.    600   IN   SRV   1 10 44301 127.0.0.1.
-_test._srv.crate.internal.    600   IN   SRV   1 10 44302 127.0.0.1.

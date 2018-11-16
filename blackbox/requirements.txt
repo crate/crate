@@ -21,3 +21,6 @@ sphinx-autobuild==0.6.0
 alabaster>=0.7,<0.8,!=0.7.5
 setuptools<41
 sphinx==1.7.4
+
+# used for dns-discovery tests
+dnslib

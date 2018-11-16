@@ -22,8 +22,19 @@
 
 package io.crate.discovery;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.common.Nullable;
+import com.google.common.annotations.VisibleForTesting;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.handler.codec.dns.DefaultDnsQuestion;
+import io.netty.handler.codec.dns.DefaultDnsRawRecord;
+import io.netty.handler.codec.dns.DefaultDnsRecordDecoder;
+import io.netty.handler.codec.dns.DnsRecord;
+import io.netty.handler.codec.dns.DnsRecordType;
+import io.netty.resolver.dns.DnsNameResolver;
+import io.netty.resolver.dns.DnsNameResolverBuilder;
+import io.netty.resolver.dns.SingletonDnsServerAddressStreamProvider;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -31,47 +42,56 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.discovery.zen.UnicastHostsProvider;
 import org.elasticsearch.transport.TransportService;
-import org.xbill.DNS.Lookup;
-import org.xbill.DNS.Record;
-import org.xbill.DNS.Resolver;
-import org.xbill.DNS.SRVRecord;
-import org.xbill.DNS.SimpleResolver;
-import org.xbill.DNS.TextParseException;
-import org.xbill.DNS.Type;
 
-import java.net.UnknownHostException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 @Singleton
-public class SrvUnicastHostsProvider extends AbstractComponent implements UnicastHostsProvider {
+public class SrvUnicastHostsProvider extends AbstractComponent implements UnicastHostsProvider, AutoCloseable {
 
     public static final Setting<String> DISCOVERY_SRV_QUERY = Setting.simpleString(
         "discovery.srv.query", Setting.Property.NodeScope);
     public static final Setting<String> DISCOVERY_SRV_RESOLVER = Setting.simpleString(
         "discovery.srv.resolver", Setting.Property.NodeScope);
+    private static final Setting<TimeValue> DISCOVERY_SRV_RESOLVE_TIMEOUT =
+        Setting.positiveTimeSetting("discovery.srv.resolve_timeout", TimeValue.timeValueSeconds(5), Setting.Property.NodeScope);
 
     private final TransportService transportService;
-    private final Version version;
     private final String query;
-    protected final Resolver resolver;
+    private final TimeValue resolveTimeout;
+    private final DnsNameResolver resolver;
+    private final EventLoopGroup eventLoopGroup;
 
     @Inject
     public SrvUnicastHostsProvider(Settings settings, TransportService transportService) {
         super(settings);
         this.transportService = transportService;
-        this.version = Version.CURRENT;
         this.query = DISCOVERY_SRV_QUERY.get(settings);
-        this.resolver = resolver(settings);
+        this.resolveTimeout = DISCOVERY_SRV_RESOLVE_TIMEOUT.get(settings);
+
+        eventLoopGroup = new NioEventLoopGroup(1, daemonThreadFactory(settings, "netty-dns-resolver"));
+        resolver = buildResolver(settings);
     }
 
-    @Nullable
-    private Resolver resolver(Settings settings) {
-        String hostname = null;
-        int port = -1;
+    @VisibleForTesting
+    EventLoopGroup eventLoopGroup() {
+        return eventLoopGroup;
+    }
+
+    @VisibleForTesting
+    InetSocketAddress parseResolverAddress(Settings settings) {
+        String hostname;
+        int port = 53;
         String resolverAddress = DISCOVERY_SRV_RESOLVER.get(settings);
         if (!Strings.isNullOrEmpty(resolverAddress)) {
             String[] parts = resolverAddress.split(":");
@@ -84,19 +104,30 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
                         logger.warn("Resolver port '{}' is not an integer. Using default port 53", parts[1]);
                     }
                 }
-
+                try {
+                    return new InetSocketAddress(hostname, port);
+                } catch (IllegalArgumentException e) {
+                    logger.warn("Resolver port '{}' is out of range. Using default port 53", parts[1]);
+                    return new InetSocketAddress(hostname, 53);
+                }
             }
-        }
-        try {
-            Resolver resolver = new SimpleResolver(hostname);
-            if (port > 0) {
-                resolver.setPort(port);
-            }
-            return resolver;
-        } catch (UnknownHostException e) {
-            logger.warn("Could not create resolver. Using default resolver.", e);
         }
         return null;
+    }
+
+    private DnsNameResolver buildResolver(Settings settings) {
+        DnsNameResolverBuilder resolverBuilder = new DnsNameResolverBuilder(eventLoopGroup.next());
+        resolverBuilder.channelType(NioDatagramChannel.class);
+
+        InetSocketAddress resolverAddress = parseResolverAddress(settings);
+        if (resolverAddress != null) {
+            try {
+                resolverBuilder.nameServerProvider(new SingletonDnsServerAddressStreamProvider(resolverAddress));
+            } catch (IllegalArgumentException e) {
+                logger.warn("Could not create custom dns resolver. Using default resolver.", e);
+            }
+        }
+        return resolverBuilder.build();
     }
 
 
@@ -107,50 +138,57 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
             return Collections.emptyList();
         }
         try {
-            Record[] records = lookupRecords();
+            List<DnsRecord> records = lookupRecords();
             logger.trace("Building dynamic unicast discovery nodes...");
-            if (records == null || records.length == 0) {
+            if (records == null || records.size() == 0) {
                 logger.debug("No nodes found");
             } else {
                 List<TransportAddress> transportAddresses = parseRecords(records);
                 logger.info("Using dynamic nodes {}", transportAddresses);
                 return transportAddresses;
             }
-        } catch (TextParseException e) {
-            logger.error("Unable to parse DNS query '{}'", query);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
             logger.error("DNS lookup exception:", e);
         }
         return Collections.emptyList();
     }
 
-    protected Record[] lookupRecords() throws TextParseException {
-        Lookup lookup = new Lookup(query, Type.SRV);
-        if (this.resolver != null) {
-            lookup.setResolver(this.resolver);
-        }
-        return lookup.run();
+    private List<DnsRecord> lookupRecords() throws InterruptedException, ExecutionException, TimeoutException {
+        return resolver.resolveAll(new DefaultDnsQuestion(query, DnsRecordType.SRV), Collections.emptyList())
+            .get(resolveTimeout.getMillis(), TimeUnit.MILLISECONDS);
     }
 
-    protected List<TransportAddress> parseRecords(Record[] records) {
-        List<TransportAddress> addresses = new ArrayList<>(records.length);
-        for (Record record : records) {
-            SRVRecord srv = (SRVRecord) record;
-
-            String hostname = srv.getTarget().toString().replaceFirst("\\.$", "");
-            int port = srv.getPort();
-            String address = hostname + ":" + port;
-
-            try {
-                for (TransportAddress transportAddress : transportService.addressesFromString(address, 1)) {
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("adding {}, transport_address {}", address, transportAddress);
+    @VisibleForTesting
+    List<TransportAddress> parseRecords(List<DnsRecord> records) {
+        List<TransportAddress> addresses = new ArrayList<>(records.size());
+        for (DnsRecord record : records) {
+            if (record instanceof DefaultDnsRawRecord) {
+                DefaultDnsRawRecord rawRecord = (DefaultDnsRawRecord) record;
+                ByteBuf content = rawRecord.content();
+                // first is "priority", we don't use it
+                content.readUnsignedShort();
+                // second is "weight", we don't use it
+                content.readUnsignedShort();
+                int port = content.readUnsignedShort();
+                String hostname = DefaultDnsRecordDecoder.decodeName(content).replaceFirst("\\.$", "");
+                String address = hostname + ":" + port;
+                try {
+                    for (TransportAddress transportAddress : transportService.addressesFromString(address, 1)) {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("adding {}, transport_address {}", address, transportAddress);
+                        }
+                        addresses.add(transportAddress);
                     }
-                    addresses.add(transportAddress);
+                } catch (Exception e) {
+                    logger.warn("failed to add " + address, e);
                 }
-            } catch (Exception e) {
-                logger.warn("failed to add {}, address {}", e, address);
             }
         }
         return addresses;
+    }
+
+    @Override
+    public void close() {
+        resolver.close();
     }
 }

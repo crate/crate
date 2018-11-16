@@ -57,6 +57,10 @@ task gtest(type: Exec) {
     commandLine "$projectDir/bin/test-docs", '-vvvxt', 'process_test'
 }
 
+task dnsDiscoveryTest(type: Exec) {
+    commandLine "$projectDir/bin/test-dns-discovery"
+}
+
 task buildDocs(type: Exec, dependsOn: bootstrap) {
     commandLine "$projectDir/bin/sphinx"
 }
@@ -67,6 +71,7 @@ hdfsTest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold,
 monitoringTest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
 itest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
 gtest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
+dnsDiscoveryTest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
 
 task cleanDocs {
     doLast {
