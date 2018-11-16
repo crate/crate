@@ -756,9 +756,19 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         while (true) {
             String schemaName = RandomStrings.randomAsciiLettersOfLengthBetween(random, 1, 20).toLowerCase();
             if (!Schemas.READ_ONLY_SCHEMAS.contains(schemaName) &&
-                !Identifiers.isKeyWord(schemaName)) {
+                !Identifiers.isKeyWord(schemaName) &&
+                !containsExtendedAsciiChars(schemaName)) {
                 return schemaName;
             }
         }
+    }
+
+    private boolean containsExtendedAsciiChars(String value) {
+        for (char c : value.toCharArray()) {
+            if ((short) c > 127) {
+                return true;
+            }
+        }
+        return false;
     }
 }
