@@ -46,6 +46,9 @@ Breaking Changes
 Changes
 =======
 
+- Added support for shrinking an existing table or table partition using the
+  ``ALTER TABLE SET`` statement.
+
 - Improved resiliency of the ``ALTER TABLE RENAME`` operation by making it an
   atomic operation.
 
