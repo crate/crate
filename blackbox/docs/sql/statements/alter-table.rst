@@ -105,7 +105,9 @@ Using ``RESET`` will reset the parameter to its default value.
   The name of the parameter that is set to a new value or its default.
 
 The supported parameters are listed in the :ref:`CREATE TABLE WITH CLAUSE
-<with_clause>` documentation. 
+<with_clause>` documentation. In addition to those, for dynamically
+changing the number of allocated shards, the parameter ``number_of_shards``
+can be used. For more more info on that, see :ref:`alter_change_number_of_shard`.
 
 
 ``ADD COLUMN``

@@ -32,6 +32,43 @@ In order to set a parameter to its default value use ``reset``::
     cr> alter table my_table reset (number_of_replicas);
     ALTER OK, -1 rows affected (... sec)
 
+.. _alter_change_number_of_shard:
+
+Changing the Number of Shards
+-----------------------------
+
+It is possible to change the number of primary shards of a table::
+
+    cr> alter table my_table set ("blocks.write" = true);
+    ALTER OK, -1 rows affected (... sec)
+
+    cr> alter table my_table set (number_of_shards = 2);
+    ALTER OK, 0 rows affected (... sec)
+
+    cr> alter table my_table set ("blocks.write" = false);
+    ALTER OK, -1 rows affected (... sec)
+
+.. Warning::
+
+    In order to change the number of primary shards,
+    any write activity on the table needs to blocked first
+    (see :ref:`table-settings-blocks.write` parameter),
+    otherwise the operation will fail.
+    In addition, this parameter will have to be explicitly restored
+    to it's original value after the operation.
+
+.. Note::
+
+    We only support table shrinking, meaning that
+    the requested number of shards must be less than the
+    current number of the primary shards. Moreover, the requested number
+    of primary shards must be a factor of the current number of
+    primary shards. For example, a table with 8 primary shards
+    can be shrunk into 4, 2 or 1 primary shards. If the number of shards
+    of a table is a prime number, it can only be shrunk into a single
+    primary shard.
+
+
 Read :ref:`Alter Partitioned Tables <partitioned_tables_alter>` to see how to
 alter parameters of partitioned tables.
 
