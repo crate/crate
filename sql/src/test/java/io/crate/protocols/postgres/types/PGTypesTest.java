@@ -74,6 +74,12 @@ public class PGTypesTest extends CrateUnitTest {
             instanceOf(io.crate.types.ArrayType.class));
     }
 
+    @Test
+    public void testTextOidIsMappedToString() {
+        assertThat(PGTypes.fromOID(25), is(DataTypes.STRING));
+        assertThat(PGTypes.fromOID(1009), is(new ArrayType(DataTypes.STRING)));
+    }
+
     private static class Entry {
         final DataType type;
         final Object value;

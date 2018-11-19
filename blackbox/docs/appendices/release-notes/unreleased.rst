@@ -40,6 +40,9 @@ Breaking Changes
 Changes
 =======
 
+- Improved the compatibility with postgres clients that use the ``text`` type
+  for parameter encoding.
+
 -  Upgraded the Admin UI to 1.11.2 which includes the following changes:
 
    Changed the license information (ident) to be taken from the
