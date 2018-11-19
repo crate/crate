@@ -1297,7 +1297,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitOver(SqlBaseParser.OverContext ctx) {
         List<SortItem> orderBy;
-        if (ctx.ORDER() == null) {
+        if (ctx.ORDER() != null) {
             orderBy = visitCollection(ctx.sortItem(), SortItem.class);
         } else {
             orderBy = emptyList();
