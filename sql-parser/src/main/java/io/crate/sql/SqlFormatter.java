@@ -817,6 +817,17 @@ public final class SqlFormatter {
             default:
                 throw new UnsupportedOperationException("unknown ordering: " + sortItem.getOrdering());
         }
+
+        switch (sortItem.getNullOrdering()) {
+            case FIRST:
+                sb.append(" NULLS FIRST");
+                break;
+            case LAST:
+                sb.append(" NULLS LAST");
+                break;
+            default:
+                break;
+        }
         return sb.toString();
     }
 
