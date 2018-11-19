@@ -175,17 +175,16 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
     }
 
     private static byte[] decryptLicenseContent(LicenseType type, byte[] encryptedContent) {
-        byte[] decryptedContent = null;
         switch (type) {
             case TRIAL:
-                decryptedContent = TrialLicense.decrypt(encryptedContent);
-                break;
+                return TrialLicense.decrypt(encryptedContent);
+
             case ENTERPRISE:
-                decryptedContent = EnterpriseLicense.decrypt(encryptedContent);
-                break;
+                return EnterpriseLicense.decrypt(encryptedContent);
+
             default:
+                throw new AssertionError("Invalid license type: " + type);
         }
-        return decryptedContent;
     }
 
     @Override
