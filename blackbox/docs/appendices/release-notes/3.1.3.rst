@@ -1,0 +1,81 @@
+.. _version_3.1.3:
+
+=============
+Version 3.1.3
+=============
+
+Released on 2018/11/19.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 2.0.4 or higher
+    before you upgrade to 3.1.3.
+
+    We recommend that you upgrade to the latest 3.0 release before moving to
+    3.1.3.
+
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_3.1.1`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
+
+.. WARNING::
+
+    Tables that were created prior to upgrading to CrateDB 2.x will not
+    function with 3.1 and must be recreated before moving to 3.1.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` while running a
+    2.x release into a new table, or by `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Changelog
+=========
+
+
+Fixes
+-----
+
+- Updated the Admin UI to 1.10.4 which includes the following fixes:
+
+  - Fixed an issue that caused the cluster and node checks to not be refreshed
+    when clicking on the ``refresh`` icon.
+
+  - Fixed an issue that caused the Twitter importer to redirect to ``/``
+    instead of ``/help``.
+
+  - Fixed the navigation component to allow opening URLs in new tabs.
+
+- Fixed a race condition that could allow the creation of partitions with a
+  different schema than other partitions within the same partitioned table.
+
+- Changed the ``user`` hdfs repository parameter to ``security.principal``, as that is
+  the parameter used by the underlying repository-hdfs plugin.
+
+- Removed the ``conf_location`` hdfs repository parameter as it is no longer used.
+
+- Fixed an issue that caused zombie entries in ``sys.jobs`` if the
+  ``fetchSize`` functionality of postgres wire protocol based clients is used.
+
+- Fixed a memory leak in the ``MQTT`` ingest service.
+
+- Fixed a memory leak that could occur with clients connecting via postgres
+  protocol and invoking read queries with statements containing expressions
+  that would fail (such as ``1 / 0``).
+
+- Fixed an issue in the postgres wire protocol that could result in nodes
+  crashing with ``OutOfMemoryError`` if clients queried very large tables
+  without specifying the fetch size.
+
+- Fixed an issue that caused missing privilege errors if table aliases were
+  used.
