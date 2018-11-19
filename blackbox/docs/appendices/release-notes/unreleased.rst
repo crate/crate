@@ -43,37 +43,3 @@ Changes
 
 Fixes
 =====
-
-- Updated the Admin UI to 1.10.4 which includes the following fixes:
-
-    Fixed an issue that caused the cluster and node checks to not be refreshed
-    when clicking on the ``refresh`` icon.
-
-    Fixed an issue that caused the Twitter importer to redirect to ``/``
-    instead of ``/help``.
-
-    Fixed the navigation component to allow opening URLs in new tabs.
-
-- Fixed a race condition that could allow the creation of partitions with a
-  different schema than other partitions within the same partitioned table.
-
-- Changed the ``user`` hdfs repository parameter to ``security.principal`` as that is
-  the parameter used by the underlying repository-hdfs plugin.
-
-- Removed the ``conf_location`` hdfs repository parameter as it is not used anymore.
-
-- Fixed an issue that caused zombie entries in ``sys.jobs`` if the
-  ``fetchSize`` functionality of postgres wire protocol based clients is used.
-
-- Fixed a memory leak in the ``MQTT`` ingest service.
-
-- Fixed a memory leak that could occur with clients connecting via postgres
-  protocol and invoking read queries with statements containing expressions
-  that would fail (like ``1 / 0``).
-
-- Fixed an issue in the postgres wire protocol that could result in nodes
-  crashing with ``OutOfMemoryError`` if clients queried very large tables
-  without specifying the fetch size.
-
-- Fixed an issue that caused missing privilege errors if table aliases were
-  used.
