@@ -45,6 +45,8 @@ final class EnterpriseLicense {
             return out.toByteArray();
         } catch (IOException ex) {
             throw new IllegalStateException(ex);
+        } catch (NullPointerException e) {
+            throw new IllegalStateException("The CrateDB distribution is missing its public key", e);
         }
     }
 }
