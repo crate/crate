@@ -66,6 +66,13 @@ public class LicenseKeyTest extends CrateUnitTest {
     }
 
     @Test
+    public void testDecodeErrorOnFirstReadIntResultsInMeaningfulError() {
+        LicenseKey licenseKey = new LicenseKey("foo");
+        expectedException.expectMessage("The provided license key has an invalid format");
+        LicenseKey.decodeLicense(licenseKey);
+    }
+
+    @Test
     public void testLicenceKeyToXContent() throws IOException {
         LicenseKey licenseKey = createLicenseKey();
         XContentBuilder builder = XContentFactory.jsonBuilder();
