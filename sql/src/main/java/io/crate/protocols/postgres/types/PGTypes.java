@@ -81,6 +81,8 @@ public class PGTypes {
 
     private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
     private static final Set<PGType> TYPES;
+    private static final int TEXT_OID = 25;
+    private static final int TEXT_ARRAY_OID = 1009;
 
     static {
         for (Map.Entry<DataType, PGType> e : CRATE_TO_PG_TYPES.entrySet()) {
@@ -91,9 +93,10 @@ public class PGTypes {
             }
         }
         PG_TYPES_TO_CRATE_TYPE.put(0, DataTypes.UNDEFINED);
+        PG_TYPES_TO_CRATE_TYPE.put(TEXT_OID, DataTypes.STRING);
+        PG_TYPES_TO_CRATE_TYPE.put(TEXT_ARRAY_OID, new ArrayType(DataTypes.STRING));
         TYPES = new HashSet<>(CRATE_TO_PG_TYPES.values()); // some pgTypes are used multiple times, de-dup them
     }
-
 
     public static Iterable<PGType> pgTypes() {
         return TYPES;
