@@ -27,4 +27,8 @@ public class InvalidLicenseException extends LicenseException {
     public InvalidLicenseException(String message) {
         super(message);
     }
+
+    public InvalidLicenseException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

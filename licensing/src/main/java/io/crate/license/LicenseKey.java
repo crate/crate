@@ -90,16 +90,25 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
 
     public static DecodedLicense decodeLicense(LicenseKey licenseKey) {
         byte[] keyBytes = Base64.getDecoder().decode(licenseKey.licenseKey());
-        ByteBuffer byteBuffer = ByteBuffer.wrap(keyBytes);
-        LicenseType licenseType = LicenseType.of(byteBuffer.getInt());
-        int version = byteBuffer.getInt();
-        int contentLength = byteBuffer.getInt();
+        LicenseType licenseType;
+        ByteBuffer byteBuffer;
+        int version;
+        int contentLength;
+        try {
+            byteBuffer = ByteBuffer.wrap(keyBytes);
+            licenseType = LicenseType.of(byteBuffer.getInt());
+            version = byteBuffer.getInt();
+            contentLength = byteBuffer.getInt();
+        } catch (InvalidLicenseException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new InvalidLicenseException("The provided license key has an invalid format", e);
+        }
         if (contentLength > MAX_LICENSE_CONTENT_LENGTH) {
             throw new InvalidLicenseException("The provided license key exceeds the maximum length of " + MAX_LICENSE_CONTENT_LENGTH);
         }
         byte[] contentBytes = new byte[contentLength];
         byteBuffer.get(contentBytes);
-
         return new DecodedLicense(licenseType, version, contentBytes);
     }
 
