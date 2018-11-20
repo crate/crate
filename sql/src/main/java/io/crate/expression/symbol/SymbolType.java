@@ -40,6 +40,7 @@ public enum SymbolType {
         throw new UnsupportedOperationException("Field is not streamable");
     }),
     FUNCTION(Function::new),
+    WINDOW_FUNCTION(WindowFunction::new),
     LITERAL(Literal::new),
     INPUT_COLUMN(InputColumn::new),
     DYNAMIC_REFERENCE(DynamicReference::new),

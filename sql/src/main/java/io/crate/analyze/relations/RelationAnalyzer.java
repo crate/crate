@@ -51,6 +51,7 @@ import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -381,8 +382,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (int i = 0; i < outputSymbols.size(); i++) {
             Symbol output = outputSymbols.get(i);
             if (groupBy == null || !groupBy.contains(output)) {
-                if (output.symbolType().isValueSymbol()) {
-                    // values are allowed even if not present in group by
+                SymbolType symbolType = output.symbolType();
+                if (symbolType.isValueSymbol() || symbolType.equals(SymbolType.WINDOW_FUNCTION)) {
+                    // values and window functions are allowed even if not present in group by
                     continue;
                 }
 
@@ -417,17 +419,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                           ExpressionAnalysisContext expressionAnalysisContext,
                                           boolean hasAggregatesOrGrouping,
                                           boolean isDistinct) {
-        int size = orderBy.size();
-        if (size == 0) {
-            return null;
-        }
-        List<Symbol> symbols = new ArrayList<>(size);
-        boolean[] reverseFlags = new boolean[size];
-        Boolean[] nullsFirst = new Boolean[size];
-
-        for (int i = 0; i < size; i++) {
-            SortItem sortItem = orderBy.get(i);
-            Expression sortKey = sortItem.getSortKey();
+        return OrderyByAnalyzer.analyzeSortItems(orderBy, sortKey -> {
             Symbol symbol = symbolFromSelectOutputReferenceOrExpression(
                 sortKey, selectAnalysis, "ORDER BY", expressionAnalyzer, expressionAnalysisContext);
 
@@ -435,23 +427,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             if (hasAggregatesOrGrouping) {
                 OrderByWithAggregationValidator.validate(symbol, selectAnalysis.outputSymbols(), isDistinct);
             }
-
-            symbols.add(symbol);
-            switch (sortItem.getNullOrdering()) {
-                case FIRST:
-                    nullsFirst[i] = true;
-                    break;
-                case LAST:
-                    nullsFirst[i] = false;
-                    break;
-                case UNDEFINED:
-                    nullsFirst[i] = null;
-                    break;
-                default:
-            }
-            reverseFlags[i] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
-        }
-        return new OrderBy(symbols, reverseFlags, nullsFirst);
+            return symbol;
+        });
     }
 
     private List<Symbol> analyzeGroupBy(SelectAnalysis selectAnalysis,

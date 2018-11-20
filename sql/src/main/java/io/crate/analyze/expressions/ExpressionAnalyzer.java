@@ -29,10 +29,15 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
 import io.crate.analyze.DataTypeAnalyzer;
+import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.NegateLiterals;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.SubscriptContext;
 import io.crate.analyze.SubscriptValidator;
+import io.crate.analyze.WindowDefinition;
+import io.crate.analyze.WindowFrameDefinition;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.analyze.relations.OrderyByAnalyzer;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
@@ -62,6 +67,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.WindowFunction;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -88,6 +94,7 @@ import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Extract;
+import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.IfExpression;
 import io.crate.sql.tree.InListExpression;
@@ -114,6 +121,8 @@ import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.TryCast;
 import io.crate.sql.tree.WhenClause;
+import io.crate.sql.tree.Window;
+import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -209,9 +218,6 @@ public class ExpressionAnalyzer {
     }
 
     protected Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
-        if (node.getWindow().isPresent()) {
-            throw new UnsupportedOperationException("Window functions are not supported");
-        }
         List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
         for (Expression expression : node.getArguments()) {
             Symbol argSymbol = expression.accept(innerAnalyzer, context);
@@ -231,6 +237,10 @@ public class ExpressionAnalyzer {
             name = parts.get(1);
         }
 
+        WindowDefinition windowDefinition = null;
+        if (node.getWindow().isPresent()) {
+            windowDefinition = getWindowDefinition(node.getWindow().get(), context);
+        }
         if (node.isDistinct()) {
             if (arguments.size() > 1) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
@@ -245,14 +255,47 @@ public class ExpressionAnalyzer {
             String nodeName = "collection_" + name;
             List<Symbol> outerArguments = ImmutableList.of(collectSetFunction);
             try {
-                return allocateBuiltinOrUdfFunction(schema, nodeName, outerArguments, context);
+                return allocateBuiltinOrUdfFunction(schema, nodeName, outerArguments, windowDefinition, context);
             } catch (UnsupportedOperationException ex) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
             }
         } else {
-            return allocateBuiltinOrUdfFunction(schema, name, arguments, context);
+            return allocateBuiltinOrUdfFunction(schema, name, arguments, windowDefinition, context);
         }
+    }
+
+    private WindowDefinition getWindowDefinition(Window window, ExpressionAnalysisContext context) {
+        List<Symbol> partitionSymbols = new ArrayList<>(window.getPartitions().size());
+        for (Expression partition : window.getPartitions()) {
+            partitionSymbols.add(convert(partition, context));
+        }
+
+        OrderBy orderBy = OrderyByAnalyzer.analyzeSortItems(window.getOrderBy(), sortKey -> convert(sortKey, context));
+
+        WindowFrameDefinition windowFrameDefinition = null;
+        if (window.getWindowFrame().isPresent()) {
+            WindowFrame windowFrame = window.getWindowFrame().get();
+            FrameBound start = windowFrame.getStart();
+            FrameBoundDefinition startBound = convertToAnalyzedFrameBound(context, start);
+
+            FrameBoundDefinition endBound = null;
+            if (windowFrame.getEnd().isPresent()) {
+                endBound = convertToAnalyzedFrameBound(context, windowFrame.getEnd().get());
+            }
+
+            windowFrameDefinition = new WindowFrameDefinition(windowFrame.getType(), startBound, endBound);
+        }
+
+        return new WindowDefinition(partitionSymbols, orderBy, windowFrameDefinition);
+    }
+
+    private FrameBoundDefinition convertToAnalyzedFrameBound(ExpressionAnalysisContext context, FrameBound frameBound) {
+        Symbol startBoundValue = null;
+        if (frameBound.getValue() != null) {
+            startBoundValue = convert(frameBound.getValue(), context);
+        }
+        return new FrameBoundDefinition(frameBound.getType(), startBoundValue);
     }
 
     public ExpressionAnalyzer copyForOperation(Operation operation) {
@@ -881,14 +924,14 @@ public class ExpressionAnalyzer {
             }
             return new SelectSymbol(relation, dataType, resultType);
         }
-
     }
 
     private Symbol allocateBuiltinOrUdfFunction(String schema,
                                                 String functionName,
                                                 List<Symbol> arguments,
+                                                WindowDefinition windowDefinition,
                                                 ExpressionAnalysisContext context) {
-        return allocateBuiltinOrUdfFunction(schema, functionName, arguments, context, functions, transactionContext);
+        return allocateBuiltinOrUdfFunction(schema, functionName, arguments, context, functions, windowDefinition, transactionContext);
     }
 
     private Symbol allocateFunction(String functionName,
@@ -902,7 +945,7 @@ public class ExpressionAnalyzer {
                                    ExpressionAnalysisContext context,
                                    Functions functions,
                                    TransactionContext transactionContext) {
-        return allocateBuiltinOrUdfFunction(null, functionName, arguments, context, functions, transactionContext);
+        return allocateBuiltinOrUdfFunction(null, functionName, arguments, context, functions, null, transactionContext);
     }
 
     /**
@@ -914,6 +957,7 @@ public class ExpressionAnalyzer {
      * @param arguments The arguments to provide to the {@link Function}.
      * @param context Context holding the state for the current translation.
      * @param functions The {@link Functions} to normalize constant expressions.
+     * @param windowDefinition The definition of the window the allocated function will be executed against.
      * @param transactionContext {@link TransactionContext} for this transaction.
      * @return The supplied {@link Function} or a {@link Literal} in case of constant folding.
      */
@@ -922,6 +966,7 @@ public class ExpressionAnalyzer {
                                                        List<Symbol> arguments,
                                                        ExpressionAnalysisContext context,
                                                        Functions functions,
+                                                       @Nullable WindowDefinition windowDefinition,
                                                        TransactionContext transactionContext) {
         FunctionImplementation funcImpl = functions.get(
             schema,
@@ -934,7 +979,12 @@ public class ExpressionAnalyzer {
             context.indicateAggregates();
         }
         List<Symbol> castArguments = cast(arguments, functionInfo.ident().argumentTypes());
-        Function newFunction = new Function(functionInfo, castArguments);
+        Function newFunction;
+        if (windowDefinition == null) {
+            newFunction = new Function(functionInfo, castArguments);
+        } else {
+            newFunction = new WindowFunction(functionInfo, castArguments, windowDefinition);
+        }
         if (functionInfo.isDeterministic() && Symbols.allLiterals(newFunction)) {
             return funcImpl.normalizeSymbol(newFunction, transactionContext);
         }
