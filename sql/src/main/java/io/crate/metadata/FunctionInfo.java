@@ -148,7 +148,8 @@ public final class FunctionInfo implements Comparable<FunctionInfo>, Writeable {
     public enum Type {
         SCALAR,
         AGGREGATE,
-        TABLE
+        TABLE,
+        WINDOW
     }
 
     public enum Feature {
