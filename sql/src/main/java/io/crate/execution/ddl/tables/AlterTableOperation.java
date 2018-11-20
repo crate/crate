@@ -33,8 +33,8 @@ import io.crate.analyze.AddColumnAnalyzedStatement;
 import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
 import io.crate.analyze.AlterTableRenameAnalyzedStatement;
-import io.crate.analyze.PartitionedTableParameterInfo;
 import io.crate.analyze.TableParameter;
+import io.crate.analyze.TableParameterInfo;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
@@ -209,9 +209,8 @@ public class AlterTableOperation {
 
                 if (!analysis.excludePartitions()) {
                     // create new filtered partition table settings
-                    PartitionedTableParameterInfo tableSettingsInfo =
-                        (PartitionedTableParameterInfo) table.tableParameterInfo();
-                    List<String> supportedSettings = tableSettingsInfo.partitionTableSettingsInfo().supportedSettings()
+                    TableParameterInfo partitionParameterInfo = TableParameterInfo.PARTITION_PARAMETER_INFO;
+                    List<String> supportedSettings = partitionParameterInfo.supportedSettings()
                         .values().stream().map(Setting::getKey).collect(Collectors.toList());
                     // auto_expand_replicas must be explicitly added as it is hidden under NumberOfReplicasSetting
                     supportedSettings.add(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS);

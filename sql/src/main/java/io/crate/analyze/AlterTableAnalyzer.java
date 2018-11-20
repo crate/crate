@@ -87,14 +87,13 @@ public class AlterTableAnalyzer {
     private static TableParameterInfo getTableParameterInfo(Table table,
                                                             DocTableInfo tableInfo,
                                                             @Nullable PartitionName partitionName) {
-        TableParameterInfo tableParameterInfo = tableInfo.tableParameterInfo();
         if (partitionName == null) {
-            return tableParameterInfo;
+            return (tableInfo.isPartitioned())
+                ? TableParameterInfo.PARTITIONED_TABLE_PARAMETER_INFO
+                : TableParameterInfo.TABLE_PARAMETER_INFO;
         }
-        assert tableParameterInfo instanceof PartitionedTableParameterInfo :
-            "tableParameterInfo must be " + PartitionedTableParameterInfo.class.getSimpleName();
         assert !table.excludePartitions() : "Alter table ONLY not supported when using a partition";
-        return ((PartitionedTableParameterInfo) tableParameterInfo).partitionTableSettingsInfo();
+        return TableParameterInfo.PARTITION_PARAMETER_INFO;
     }
 
     private static TableParameter getTableParameter(AlterTable node, Row parameters, TableParameterInfo tableParameterInfo) {

@@ -278,9 +278,6 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.partitionName().get(), is(new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000"))));
-        assertThat(analysis.table().tableParameterInfo(), instanceOf(PartitionedTableParameterInfo.class));
-        PartitionedTableParameterInfo tableSettingsInfo = (PartitionedTableParameterInfo) analysis.table().tableParameterInfo();
-        assertThat(tableSettingsInfo.partitionTableSettingsInfo(), instanceOf(TableParameterInfo.class));
         assertEquals("0-all", analysis.tableParameter().settings().get(AutoExpandReplicas.SETTING.getKey()));
     }
 
@@ -310,7 +307,6 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
             "alter table parted set (number_of_shards=10)");
         assertThat(analysis.partitionName().isPresent(), is(false));
         assertThat(analysis.table().isPartitioned(), is(true));
-        assertThat(analysis.table().tableParameterInfo(), instanceOf(PartitionedTableParameterInfo.class));
         assertEquals("10", analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()));
     }
 
