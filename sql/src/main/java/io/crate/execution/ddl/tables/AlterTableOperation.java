@@ -209,9 +209,12 @@ public class AlterTableOperation {
 
                 if (!analysis.excludePartitions()) {
                     // create new filtered partition table settings
-                    TableParameterInfo partitionParameterInfo = TableParameterInfo.PARTITION_PARAMETER_INFO;
-                    List<String> supportedSettings = partitionParameterInfo.supportedSettings()
-                        .values().stream().map(Setting::getKey).collect(Collectors.toList());
+                    List<String> supportedSettings = TableParameterInfo.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
+                        .supportedSettings()
+                        .values()
+                        .stream()
+                        .map(Setting::getKey)
+                        .collect(Collectors.toList());
                     // auto_expand_replicas must be explicitly added as it is hidden under NumberOfReplicasSetting
                     supportedSettings.add(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS);
                     TableParameter parameterWithFilteredSettings = new TableParameter(

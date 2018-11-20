@@ -117,7 +117,7 @@ public class TableParameterInfo {
             .add(NUMBER_OF_REPLICAS)
             .build();
 
-    private static final ImmutableMap<String, Setting> SUPPORTED_SETTINGS_FOR_PARTITIONED_TABLES
+    private static final ImmutableMap<String, Setting> SUPPORTED_SETTINGS_INCL_SHARDS
         = ImmutableMap.<String, Setting>builder()
             .putAll(SUPPORTED_SETTINGS_DEFAULT)
             .put(stripIndexPrefix(NUMBER_OF_SHARDS.getKey()), NUMBER_OF_SHARDS)
@@ -143,12 +143,14 @@ public class TableParameterInfo {
 
     private static final ImmutableMap<String, Setting> EMPTY_MAP = ImmutableMap.of();
 
-    static final TableParameterInfo TABLE_PARAMETER_INFO
+    static final TableParameterInfo TABLE_CREATE_PARAMETER_INFO
         = new TableParameterInfo(SUPPORTED_SETTINGS_DEFAULT, SUPPORTED_MAPPINGS_DEFAULT);
-    public static final TableParameterInfo PARTITIONED_TABLE_PARAMETER_INFO
-        = new TableParameterInfo(SUPPORTED_SETTINGS_FOR_PARTITIONED_TABLES, SUPPORTED_MAPPINGS_DEFAULT);
-    public static final TableParameterInfo PARTITION_PARAMETER_INFO
+    static final TableParameterInfo TABLE_ALTER_PARAMETER_INFO
+        = new TableParameterInfo(SUPPORTED_SETTINGS_INCL_SHARDS, SUPPORTED_MAPPINGS_DEFAULT);
+    public static final TableParameterInfo PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
         = new TableParameterInfo(SUPPORTED_SETTINGS_DEFAULT, EMPTY_MAP);
+    static final TableParameterInfo PARTITION_PARAMETER_INFO
+        = new TableParameterInfo(SUPPORTED_SETTINGS_INCL_SHARDS, EMPTY_MAP);
     static final TableParameterInfo BLOB_TABLE_CREATE_PARAMETER_INFO
         = new TableParameterInfo(SUPPORTED_SETTINGS_FOR_BLOB_CREATION, EMPTY_MAP);
     public static final TableParameterInfo BLOB_TABLE_ALTER_PARAMETER_INFO
