@@ -114,7 +114,7 @@ public class OrderBy implements Writeable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(orderBySymbols, reverseFlags, nullsFirst);
+        return Objects.hash(orderBySymbols) + Arrays.deepHashCode(new Object[]{reverseFlags, nullsFirst});
     }
 
     @Override
