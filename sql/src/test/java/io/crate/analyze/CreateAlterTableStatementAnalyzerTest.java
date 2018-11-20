@@ -182,6 +182,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.REFRESH_INTERVAL.getKey()), is("5s"));
     }
 
+    @Test
+    public void testCreateTableWithNumberOfShardsOnWithClauseIsInvalid() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid property \"number_of_shards\" passed to [ALTER | CREATE] TABLE statement");
+        e.analyze("CREATE TABLE foo (id int primary key, content string) " +
+                    "with (number_of_shards=8)");
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testCreateTableWithRefreshIntervalWrongNumberFormat() {
         e.analyze("CREATE TABLE foo (id int primary key, content string) " +
@@ -210,7 +218,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "SET (\"mapping.total_fields.limit\" = '5000')");
         assertEquals("5000", analysisSet.tableParameter().settings().get(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT.getKey()));
 
-        // Check if reseting total_fields results in default value
+        // Check if resetting total_fields results in default value
         AlterTableAnalyzedStatement analysisReset = e.analyze(
             "ALTER TABLE users " +
             "RESET (\"mapping.total_fields.limit\")");
@@ -855,6 +863,22 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testRoutingAllocationValidation() {
         expectedException.expect(IllegalArgumentException.class);
         e.analyze("alter table users set (\"routing.allocation.enable\"=\"foo\")");
+    }
+
+    @Test
+    public void testAlterTableSetShards() {
+        AlterTableAnalyzedStatement analysis =
+            e.analyze("alter table users set (\"number_of_shards\"=1)");
+        assertThat(analysis.table().ident().name(), is("users"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()), is("1"));
+    }
+
+    @Test
+    public void testAlterTableResetShards() {
+        AlterTableAnalyzedStatement analysis =
+            e.analyze("alter table users reset (\"number_of_shards\")");
+        assertThat(analysis.table().ident().name(), is("users"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()), is("5"));
     }
 
     @Test

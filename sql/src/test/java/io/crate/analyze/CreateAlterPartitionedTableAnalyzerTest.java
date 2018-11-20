@@ -49,7 +49,6 @@ import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
@@ -311,10 +310,21 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     }
 
     @Test
-    public void testAlterTablePartitionWithNumberOfShardsIsInvalid() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid property \"number_of_shards\" passed to [ALTER | CREATE] TABLE statement");
-        e.analyze("alter table parted partition (date=1395874800000) set (number_of_shards=1)");
+    public void testAlterTablePartitionWithNumberOfShards() {
+        AlterTableAnalyzedStatement analysis = e.analyze(
+            "alter table parted partition (date=1395874800000) set (number_of_shards=1)");
+        assertThat(analysis.partitionName().isPresent(), is(true));
+        assertThat(analysis.table().isPartitioned(), is(true));
+        assertEquals("1", analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()));
+    }
+
+    @Test
+    public void testAlterTablePartitionResetShards() {
+        AlterTableAnalyzedStatement analysis = e.analyze(
+            "alter table parted partition (date=1395874800000) reset (number_of_shards)");
+        assertThat(analysis.partitionName().isPresent(), is(true));
+        assertThat(analysis.table().isPartitioned(), is(true));
+        assertEquals("5", analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()));
     }
 
     @Test
