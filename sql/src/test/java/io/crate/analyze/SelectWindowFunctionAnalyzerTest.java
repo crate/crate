@@ -22,10 +22,22 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.WindowFunction;
+import io.crate.sql.tree.FrameBound;
+import io.crate.sql.tree.WindowFrame;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.SymbolMatchers;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.List;
+
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
 
 public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -39,8 +51,92 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
     }
 
     @Test
-    public void testOverClauseIsNotSupported() {
-        expectedException.expect(UnsupportedOperationException.class);
-        e.analyze("select avg(x) OVER () from t");
+    public void testEmptyOverClause() {
+        QueriedTable analysis = e.analyze("select avg(x) OVER () from t");
+
+        List<Symbol> outputSymbols = analysis.querySpec().outputs();
+        assertThat(outputSymbols.size(), is(1));
+        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
+        assertThat(windowFunction.arguments().size(), is(1));
+        WindowDefinition windowDefinition = windowFunction.windowDefinition();
+        assertThat(windowDefinition.partitions().isEmpty(), is(true));
+        assertThat(windowDefinition.orderBy(), is(nullValue()));
+        assertThat(windowDefinition.windowFrameDefinition(), is(nullValue()));
+    }
+
+    @Test
+    public void testOverWithPartitionByClause() {
+        QueriedTable analysis = e.analyze("select avg(x) OVER (PARTITION BY x) from t");
+
+        List<Symbol> outputSymbols = analysis.querySpec().outputs();
+        assertThat(outputSymbols.size(), is(1));
+        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
+        assertThat(windowFunction.arguments().size(), is(1));
+        WindowDefinition windowDefinition = windowFunction.windowDefinition();
+        assertThat(windowDefinition.partitions().size(), is(1));
+    }
+
+    @Test
+    public void testInvalidPartitionByField() {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column zzz unknown");
+        e.analyze("select avg(x) OVER (PARTITION BY zzz) from t");
+    }
+
+    @Test
+    public void testInvalidOrderByField() {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column zzz unknown");
+        e.analyze("select avg(x) OVER (ORDER BY zzz) from t");
+    }
+
+    @Test
+    public void testOverWithOrderByClause() {
+        QueriedTable analysis = e.analyze("select avg(x) OVER (ORDER BY x) from t");
+
+        List<Symbol> outputSymbols = analysis.querySpec().outputs();
+        assertThat(outputSymbols.size(), is(1));
+        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
+        assertThat(windowFunction.arguments().size(), is(1));
+        WindowDefinition windowDefinition = windowFunction.windowDefinition();
+        assertThat(windowDefinition.orderBy().orderBySymbols().size(), is(1));
+    }
+
+    @Test
+    public void testOverWithPartitionAndOrderByClauses() {
+        QueriedTable analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x) from t");
+
+        List<Symbol> outputSymbols = analysis.querySpec().outputs();
+        assertThat(outputSymbols.size(), is(1));
+        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
+        assertThat(windowFunction.arguments().size(), is(1));
+        WindowDefinition windowDefinition = windowFunction.windowDefinition();
+        assertThat(windowDefinition.partitions().size(), is(1));
+        assertThat(windowDefinition.orderBy().orderBySymbols().size(), is(1));
+    }
+
+    @Test
+    public void testOverWithFrameDefinition() {
+        QueriedTable analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x " +
+                                          "RANGE BETWEEN 5 PRECEDING AND 6 FOLLOWING) from t");
+
+        List<Symbol> outputSymbols = analysis.querySpec().outputs();
+        assertThat(outputSymbols.size(), is(1));
+        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
+        assertThat(windowFunction.arguments().size(), is(1));
+        WindowFrameDefinition frameDefinition = windowFunction.windowDefinition().windowFrameDefinition();
+        assertThat(frameDefinition.type(), is(WindowFrame.Type.RANGE));
+        validateRangeFrameDefinition(frameDefinition.start(), FrameBound.Type.PRECEDING, 5L);
+        validateRangeFrameDefinition(frameDefinition.end(),FrameBound.Type.FOLLOWING, 6L);
+    }
+
+    private void validateRangeFrameDefinition(FrameBoundDefinition boundDefinition, FrameBound.Type type, long boundValue) {
+        assertThat(boundDefinition.type(), is(type));
+        assertThat(boundDefinition.value(), SymbolMatchers.isLiteral(boundValue));
     }
 }
