@@ -24,7 +24,6 @@ package io.crate.metadata.blob;
 import com.google.common.collect.ImmutableList;
 import io.crate.Version;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AlterBlobTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
@@ -90,7 +89,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
         this.blobsPath = blobsPath;
-        this.tableParameterInfo = new AlterBlobTableParameterInfo();
+        this.tableParameterInfo = TableParameterInfo.BLOB_TABLE_ALTER_PARAMETER_INFO;
         this.tableParameters = tableParameters;
         this.versionCreated = versionCreated;
         this.versionUpgraded = versionUpgraded;
