@@ -689,6 +689,32 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
 
     @Test
+    public void testAlterShardsOfSpecificPartitionOfPartitionedTable() throws Exception {
+        execute("create table quotes (id integer, quote string, date timestamp) " +
+                "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
+
+        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
+            new Object[]{
+                1, "Don't panic", 1395874800000L,
+                2, "Now panic", 1395961200000L}
+        );
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Can't update non dynamic settings [[index.number_of_shards]] for open indices");
+        execute("alter table quotes partition (date=1395874800000) set (number_of_shards=1)");
+    }
+
+    @Test
+    public void testAlterShardsOfNonPartitionedTable() throws Exception {
+        execute("create table quotes (id integer, quote string, date timestamp) " +
+                "clustered into 3 shards with (number_of_replicas='0-all')");
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Can't update non dynamic settings [[index.number_of_shards]] for open indices");
+        execute("alter table quotes set (number_of_shards=1)");
+    }
+
+    @Test
     public void testCreateTableWithCustomSchema() throws Exception {
         execute("create table a.t (name string) with (number_of_replicas=0)");
         ensureYellow();
