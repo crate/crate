@@ -96,6 +96,16 @@ public class Symbols {
         }
     }
 
+    public static void nullableToStream(@Nullable Symbol symbol, StreamOutput out) throws IOException {
+        if (symbol == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeVInt(symbol.symbolType().ordinal());
+            symbol.writeTo(out);
+        }
+    }
+
     public static void toStream(Symbol symbol, StreamOutput out) throws IOException {
         out.writeVInt(symbol.symbolType().ordinal());
         symbol.writeTo(out);
@@ -103,6 +113,15 @@ public class Symbols {
 
     public static List<Symbol> listFromStream(StreamInput in) throws IOException {
         return in.readList(Symbols::fromStream);
+    }
+
+    @Nullable
+    public static Symbol nullableFromStream(StreamInput in) throws IOException {
+        boolean valuePresent = in.readBoolean();
+        if (!valuePresent) {
+            return null;
+        }
+        return fromStream(in);
     }
 
     public static Symbol fromStream(StreamInput in) throws IOException {

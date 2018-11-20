@@ -52,6 +52,10 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(symbol, context);
     }
 
+    public R visitWindowFunction(WindowFunction symbol, C context) {
+        return visitSymbol(symbol, context);
+    }
+
     public R visitLiteral(Literal symbol, C context) {
         return visitSymbol(symbol, context);
     }

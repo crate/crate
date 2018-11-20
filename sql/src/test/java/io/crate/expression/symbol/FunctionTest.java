@@ -31,6 +31,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
@@ -38,20 +39,13 @@ import java.util.Set;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class FunctionTest extends CrateUnitTest {
 
     @Test
     public void testSerialization() throws Exception {
-        Function fn = new Function(
-            new FunctionInfo(
-                new FunctionIdent(
-                    randomAsciiLettersOfLength(10),
-                    ImmutableList.of(DataTypes.BOOLEAN)
-                ),
-                TestingHelpers.randomPrimitiveType(), FunctionInfo.Type.SCALAR, randomFeatures()),
-            Collections.singletonList(TestingHelpers.createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN))
-        );
+        Function fn = getFunction();
 
         BytesStreamOutput output = new BytesStreamOutput();
         Symbols.toStream(fn, output);
@@ -63,6 +57,18 @@ public class FunctionTest extends CrateUnitTest {
         assertThat(fn.hashCode(), is(fn2.hashCode()));
     }
 
+    private Function getFunction() {
+        return new Function(
+            new FunctionInfo(
+                new FunctionIdent(
+                    randomAsciiLettersOfLength(10),
+                    ImmutableList.of(DataTypes.BOOLEAN)
+                ),
+                TestingHelpers.randomPrimitiveType(), FunctionInfo.Type.SCALAR, randomFeatures()),
+            Collections.singletonList(TestingHelpers.createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN))
+        );
+    }
+
     private Set<FunctionInfo.Feature> randomFeatures() {
         Set<FunctionInfo.Feature> features = EnumSet.noneOf(FunctionInfo.Feature.class);
         for (FunctionInfo.Feature feature : FunctionInfo.Feature.values()) {
@@ -71,5 +77,29 @@ public class FunctionTest extends CrateUnitTest {
             }
         }
         return features;
+    }
+
+    @Test
+    public void testNullableSerializationOfNull() throws IOException {
+        BytesStreamOutput output = new BytesStreamOutput();
+        Symbols.nullableToStream(null, output);
+
+        StreamInput input = output.bytes().streamInput();
+        Symbol symbol = Symbols.nullableFromStream(input);
+
+        assertThat(symbol, is(nullValue()));
+    }
+
+    @Test
+    public void testNullableSerializationOfFunction() throws IOException {
+        Function function = getFunction();
+        BytesStreamOutput output = new BytesStreamOutput();
+        Symbols.nullableToStream(function, output);
+
+        StreamInput input = output.bytes().streamInput();
+        Function deserialisedFunction = (Function) Symbols.nullableFromStream(input);
+
+        assertThat(function, is(equalTo(deserialisedFunction)));
+        assertThat(function.hashCode(), is(deserialisedFunction.hashCode()));
     }
 }

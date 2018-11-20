@@ -41,6 +41,7 @@ import io.crate.expression.symbol.LiteralValueFormatter;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -160,6 +161,11 @@ public final class SymbolPrinter {
                 printGenericFunction(function, context);
             }
             return null;
+        }
+
+        @Override
+        public Void visitWindowFunction(WindowFunction symbol, SymbolPrinterContext context) {
+            return visitFunction(symbol, context);
         }
 
         private void printGenericFunction(Function function, SymbolPrinterContext context) {
