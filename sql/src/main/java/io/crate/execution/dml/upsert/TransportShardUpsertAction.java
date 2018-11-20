@@ -301,16 +301,22 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             ),
             e -> indexShard.getFailedIndexResult(e, finalVersion)
         );
-        Exception failure = indexResult.getFailure();
-        if (failure != null) {
-            throw failure;
+        switch (indexResult.getResultType()) {
+            case SUCCESS:
+                // update the seqNo and version on request for the replicas
+                item.seqNo(indexResult.getSeqNo());
+                item.version(indexResult.getVersion());
+                return indexResult.getTranslogLocation();
+
+            case FAILURE:
+                Exception failure = indexResult.getFailure();
+                assert failure != null : "Failure must not be null if resultType is FAILURE";
+                throw failure;
+                
+            case MAPPING_UPDATE_REQUIRED:
+            default:
+                throw new AssertionError("IndexResult must either succeed or fail. Required mapping updates must have been handled.");
         }
-
-        // update the seqNo and version on request for the replicas
-        item.seqNo(indexResult.getSeqNo());
-        item.version(indexResult.getVersion());
-
-        return indexResult.getTranslogLocation();
     }
 
     private static GetResult getDocument(IndexShard indexShard,
