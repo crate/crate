@@ -91,7 +91,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         // if it is it will get overwritten afterwards.
         TablePropertiesAnalyzer.analyze(
             statement.tableParameter(),
-            new TableParameterInfo(),
+            TableParameterInfo.TABLE_PARAMETER_INFO,
             createTable.properties(),
             parameters,
             true

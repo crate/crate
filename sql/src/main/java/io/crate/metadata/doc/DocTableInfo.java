@@ -25,8 +25,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.PartitionedTableParameterInfo;
-import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.DynamicReference;
@@ -129,7 +127,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final String numberOfReplicas;
     private final ImmutableMap<String, Object> tableParameters;
     private final TableColumn docColumn;
-    private final TableParameterInfo tableParameterInfo;
     private final Set<Operation> supportedOperations;
 
     private final List<PartitionName> partitions;
@@ -195,11 +192,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.versionUpgraded = versionUpgraded;
         this.closed = closed;
         this.supportedOperations = supportedOperations;
-        if (isPartitioned) {
-            tableParameterInfo = PartitionedTableParameterInfo.INSTANCE;
-        } else {
-            tableParameterInfo = TableParameterInfo.INSTANCE;
-        }
         // scale the fetchrouting timeout by n# of partitions
         this.docColumn = new TableColumn(DocSysColumns.DOC, references);
     }
@@ -371,10 +363,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public boolean isClosed() {
         return closed;
-    }
-
-    public TableParameterInfo tableParameterInfo() {
-        return tableParameterInfo;
     }
 
     public ImmutableMap<String, Object> parameters() {
