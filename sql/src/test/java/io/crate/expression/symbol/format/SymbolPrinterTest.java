@@ -129,6 +129,12 @@ public class SymbolPrinterTest extends CrateUnitTest {
     }
 
     @Test
+    public void testWindowFunction() throws Exception {
+        Symbol f = sqlExpressions.asSymbol("avg(idx) over (partition by idx order by foo)");
+        assertPrint(f, "avg(doc.formatter.idx)");
+    }
+
+    @Test
     public void testFormatAggregation() throws Exception {
         FunctionInfo functionInfo = new FunctionInfo(
             new FunctionIdent("agg", Collections.singletonList(DataTypes.INTEGER)),
