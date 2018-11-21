@@ -68,7 +68,7 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
             final List<Reference> collectedColumns = new ArrayList<>(relation.fields().size());
             relation.fields()
                 .forEach(field -> collectedColumns.add(
-                    new Reference(new ReferenceIdent(ident, field.outputName()), RowGranularity.DOC, field.valueType())));
+                    new Reference(new ReferenceIdent(ident, field.path().outputName()), RowGranularity.DOC, field.valueType())));
             columns = collectedColumns;
         } catch (ResourceUnknownException e) {
             // Return ViewInfo with no columns in case the statement could not be analyzed,

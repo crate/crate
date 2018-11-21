@@ -103,6 +103,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.google.common.collect.Lists.transform;
+
 @Singleton
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
@@ -427,8 +429,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             GroupBySymbolValidator.validateForDistinctRewrite(symbol);
         }
 
-        relation = new QueriedSelectRelation(relation, relation.fields(), newQuerySpec);
-        return relation;
+        return new QueriedSelectRelation(
+            relation,
+            transform(relation.fields(), Field::path),
+            newQuerySpec
+        );
     }
 
     @Nullable
