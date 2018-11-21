@@ -135,12 +135,13 @@ public final class SQLPrinter {
                 Field field = ((Field) symbol);
                 if (field.relation() instanceof UnionSelect) {
                     // do not fully qualify field names in union select
-                    return Identifiers.quoteIfNeeded(field.outputName());
+                    return Identifiers.quoteIfNeeded(field.path().outputName());
                 } else if (field.relation() instanceof AnalyzedView) {
                     // use the name of the view instead of the underlying relation
-                    return ((AnalyzedView) field.relation()).name() + "." + Identifiers.quoteIfNeeded(field.outputName());
+                    return ((AnalyzedView) field.relation()).name() + "." + Identifiers.quoteIfNeeded(field.path().outputName());
                 } else {
-                    return quoteQualifiedName(field.relation().getQualifiedName()) + "." + Identifiers.quoteIfNeeded(field.outputName());
+                    return quoteQualifiedName(field.relation().getQualifiedName())
+                           + "." + Identifiers.quoteIfNeeded(field.path().outputName());
                 }
             }
             if (symbol instanceof Reference && "".equals(((Reference) symbol).ident().tableIdent().schema())) {
@@ -222,26 +223,26 @@ public final class SQLPrinter {
         private void addOutput(StringBuilder sb, Field field, Symbol output) {
             if (output instanceof Reference) {
                 Reference ref = (Reference) output;
-                if (ref.column().sqlFqn().equals(field.outputName())) {
+                if (ref.column().sqlFqn().equals(field.path().outputName())) {
                     sb.append(printSymbol(ref));
                 } else {
                     sb.append(printSymbol(ref));
                     sb.append(" AS ");
-                    sb.append(field.outputName());
+                    sb.append(field.path().outputName());
                 }
             } else if (output instanceof Function || output instanceof Literal) {
                 String name = printSymbol(output);
                 sb.append(name);
-                if (!name.equals(field.outputName())) {
+                if (!name.equals(field.path().outputName())) {
                     sb.append(" AS ");
-                    sb.append(Identifiers.quoteIfNeeded(field.outputName()));
+                    sb.append(Identifiers.quoteIfNeeded(field.path().outputName()));
                 }
             } else if (output instanceof Field) {
                 String name = printSymbol(output);
                 sb.append(name);
-                if (!field.outputName().equals(((Field) output).outputName())) {
+                if (!field.path().outputName().equals(((Field) output).path().outputName())) {
                     sb.append(" AS ");
-                    sb.append(Identifiers.quoteIfNeeded(field.outputName()));
+                    sb.append(Identifiers.quoteIfNeeded(field.path().outputName()));
                 }
             } else {
                 sb.append(printSymbol(output));
@@ -360,7 +361,7 @@ public final class SQLPrinter {
                 int outputIndex = outputs.indexOf(symbol);
                 if (outputIndex != -1) {
                     // If the Literal is aliased, then we have to use that alias
-                    return Identifiers.quoteIfNeeded(fields.get(outputIndex).outputName());
+                    return Identifiers.quoteIfNeeded(fields.get(outputIndex).path().outputName());
                 } else {
                     // Literals have to be quoted (otherwise it would be a positional group by / order by).
                     return Identifiers.quoteIfNeeded(printSymbol(symbol));

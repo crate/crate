@@ -36,6 +36,7 @@ import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.predicate.NotPredicate;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FuncReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -60,6 +61,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import static com.google.common.collect.Lists.transform;
 import static io.crate.analyze.expressions.ExpressionAnalyzer.cast;
 import static io.crate.expression.operator.Operators.LOGICAL_OPERATORS;
 import static io.crate.expression.scalar.cast.CastFunctionResolver.isCastFunction;
@@ -140,7 +142,7 @@ final class SemiJoins {
         // because planner logic expects QueriedRelation in the sources
         MultiSourceSelect mss = new MultiSourceSelect(
             sources,
-            rel.fields(),
+            transform(rel.fields(), Field::path),
             newTopQS,
             semiJoinPairs
         );

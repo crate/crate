@@ -56,7 +56,7 @@ import java.util.Objects;
  *  Since the relation of a Field can be a virtual table,
  *  a Field can also represent the computation of a scalar or aggregation
  */
-public class Field extends Symbol implements Path {
+public class Field extends Symbol {
 
     private final AnalyzedRelation relation;
     private final Path path;
@@ -140,10 +140,5 @@ public class Field extends Symbol implements Path {
         int idx = relation.fields().indexOf(this);
         assert idx >= 0 : "idx must be >= 0";
         return idx;
-    }
-
-    @Override
-    public String outputName() {
-        return path.outputName();
     }
 }
