@@ -24,8 +24,8 @@ package io.crate.analyze.relations;
 
 import io.crate.analyze.Fields;
 import io.crate.analyze.QuerySpec;
-import io.crate.expression.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.symbol.Field;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
@@ -38,8 +38,8 @@ public class UnionSelect implements QueriedRelation {
 
     private final QuerySpec querySpec = new QuerySpec();
     private final Fields fields;
-    private QueriedRelation left;
-    private QueriedRelation right;
+    private final QueriedRelation left;
+    private final QueriedRelation right;
     private QualifiedName name;
 
     public UnionSelect(QueriedRelation left, QueriedRelation right) {
@@ -61,14 +61,6 @@ public class UnionSelect implements QueriedRelation {
 
     public QueriedRelation right() {
         return right;
-    }
-
-    public void left(QueriedRelation left) {
-        this.left = left;
-    }
-
-    public void right(QueriedRelation right) {
-        this.right = right;
     }
 
     @Override
