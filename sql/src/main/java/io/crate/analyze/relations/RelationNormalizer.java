@@ -139,9 +139,13 @@ public final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitUnionSelect(UnionSelect unionSelect, TransactionContext context) {
-            unionSelect.left((QueriedRelation) process(unionSelect.left(), context));
-            unionSelect.right((QueriedRelation) process(unionSelect.right(), context));
-            return unionSelect;
+            QueriedRelation left = (QueriedRelation) process(unionSelect.left(), context);
+            QueriedRelation right = (QueriedRelation) process(unionSelect.right(), context);
+            if (left == unionSelect.left() && right == unionSelect.right()) {
+                return unionSelect;
+            } else {
+                return new UnionSelect(left, right);
+            }
         }
     }
 }
