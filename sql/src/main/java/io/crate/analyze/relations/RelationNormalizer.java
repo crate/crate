@@ -123,8 +123,18 @@ public final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitOrderedLimitedRelation(OrderedLimitedRelation relation, TransactionContext context) {
-            process(relation.childRelation(), context);
-            return relation;
+            QueriedRelation childRelation = relation.childRelation();
+            QueriedRelation normalizedChild = (QueriedRelation) process(childRelation, context);
+            if (normalizedChild == childRelation) {
+                return relation;
+            } else {
+                return relation.map(normalizedChild, FieldReplacer.bind(f -> {
+                    if (f.relation().equals(childRelation)) {
+                        return normalizedChild.getField(f.path(), Operation.READ);
+                    }
+                    return f;
+                }));
+            }
         }
 
         @Override
