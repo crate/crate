@@ -22,8 +22,9 @@
 
 package io.crate.expression.symbol;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -83,7 +84,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         if (arg1 == newArg1 && arg2 == newArg2) {
             return func;
         }
-        return new Function(func.info(), Arrays.asList(newArg1, newArg2));
+        return new Function(func.info(), ImmutableList.of(newArg1, newArg2));
     }
 
     private Function oneArg(Function func, C context) {
@@ -94,8 +95,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         if (arg == newArg) {
             return func;
         }
-        // Currently function arguments need to be mutable; once this is no longer the case use Collections.singletonList here
-        return new Function(func.info(), Arrays.asList(newArg));
+        return new Function(func.info(), ImmutableList.of(newArg));
     }
 
     @Override
