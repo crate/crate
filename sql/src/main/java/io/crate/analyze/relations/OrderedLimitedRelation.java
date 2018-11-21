@@ -26,9 +26,9 @@ import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
@@ -37,6 +37,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 
 /**
@@ -154,5 +155,17 @@ public class OrderedLimitedRelation implements QueriedRelation {
     @Override
     public boolean isWriteOperation() {
         return false;
+    }
+
+    public OrderedLimitedRelation map(QueriedRelation newChild, Function<? super Symbol,? extends Symbol> mapper) {
+        OrderBy orderBy = orderBy();
+        Symbol limit = limit();
+        Symbol offset = offset();
+        return new OrderedLimitedRelation(
+            newChild,
+            orderBy == null ? null : orderBy.copyAndReplace(mapper),
+            limit == null ? null : mapper.apply(limit),
+            offset == null ? null : mapper.apply(offset)
+        );
     }
 }
