@@ -37,24 +37,30 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.hamcrest.core.AnyOf;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
 
 public class SrvUnicastHostsProviderTest extends CrateUnitTest {
 
     private ThreadPool threadPool;
     private SrvUnicastHostsProvider srvUnicastHostsProvider;
+    private AnyOf<String> isLocalHost;
 
     @Before
-    public void mockTransportService() {
+    public void mockTransportService() throws Exception {
+        String localHostName = InetAddress.getLocalHost().getCanonicalHostName();
+        isLocalHost = anyOf(is(localHostName), is("localhost"));
         threadPool = new TestThreadPool("dummy", Settings.EMPTY);
         TransportService transportService = MockTransportService.createNewService(
             Settings.EMPTY, Version.CURRENT, threadPool, null);
@@ -76,7 +82,7 @@ public class SrvUnicastHostsProviderTest extends CrateUnitTest {
             .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER.getKey(), "127.0.0.1")
             .build();
         InetSocketAddress address = srvUnicastHostsProvider.parseResolverAddress(settings);
-        assertThat(address.getHostName(), is("localhost"));
+        assertThat(address.getHostName(), isLocalHost);
         assertThat(address.getPort(), is(53));
     }
 
@@ -86,7 +92,7 @@ public class SrvUnicastHostsProviderTest extends CrateUnitTest {
             .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER.getKey(), "127.0.0.1:1234")
             .build();
         InetSocketAddress address = srvUnicastHostsProvider.parseResolverAddress(settings);
-        assertThat(address.getHostName(), is("localhost"));
+        assertThat(address.getHostName(), isLocalHost);
         assertThat(address.getPort(), is(1234));
     }
 
@@ -96,7 +102,7 @@ public class SrvUnicastHostsProviderTest extends CrateUnitTest {
             .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER.getKey(), "127.0.0.1:1234567")
             .build();
         InetSocketAddress address = srvUnicastHostsProvider.parseResolverAddress(settings);
-        assertThat(address.getHostName(), is("localhost"));
+        assertThat(address.getHostName(), isLocalHost);
         assertThat(address.getPort(), is(53));
     }
 
@@ -106,7 +112,7 @@ public class SrvUnicastHostsProviderTest extends CrateUnitTest {
             .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER.getKey(), "127.0.0.1:foo")
             .build();
         InetSocketAddress address = srvUnicastHostsProvider.parseResolverAddress(settings);
-        assertThat(address.getHostName(), is("localhost"));
+        assertThat(address.getHostName(), isLocalHost);
         assertThat(address.getPort(), is(53));
     }
 
