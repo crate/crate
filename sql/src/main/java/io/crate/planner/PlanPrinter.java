@@ -43,6 +43,7 @@ import io.crate.planner.node.dql.join.Join;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -119,7 +120,7 @@ public final class PlanPrinter {
             ImmutableMap.Builder<String, Object> builder = upstreamPhase(phase, createSubMap(phase));
             builder.put("toCollect", ExplainLeaf.printList(phase.toCollect()));
             builder = dqlPlanNode(phase, builder);
-            builder.put("routing", phase.routing().locations());
+            builder.put("routing", ExplainLeaf.printList(Collections.singleton(phase.routing())));
             builder.put("where", phase.where().representation());
             return createMap(phase, builder);
         }
@@ -134,7 +135,7 @@ public final class PlanPrinter {
         @Override
         public ImmutableMap.Builder<String, Object> visitCountPhase(CountPhase phase, Void context) {
             ImmutableMap.Builder<String, Object> builder = upstreamPhase(phase, visitExecutionPhase(phase, context));
-            builder.put("routing", phase.routing().locations());
+            builder.put("routing", ExplainLeaf.printList(Collections.singleton(phase.routing())));
             builder.put("where", phase.where().representation());
             return builder;
         }

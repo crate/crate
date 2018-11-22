@@ -120,3 +120,6 @@ Changes
 
 Fixes
 =====
+
+- Fixed an issue which caused an ``EXPLAIN`` statement to raise an exception
+  when used via the Postgresql protocol on versions >= 3.1.3.
