@@ -21,6 +21,8 @@
 
 package io.crate.planner;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.collect.ImmutableMap;
 import io.crate.execution.dsl.phases.AbstractProjectionsPhase;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -43,6 +45,7 @@ import io.crate.planner.node.dql.join.Join;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -119,7 +122,7 @@ public final class PlanPrinter {
             ImmutableMap.Builder<String, Object> builder = upstreamPhase(phase, createSubMap(phase));
             builder.put("toCollect", ExplainLeaf.printList(phase.toCollect()));
             builder = dqlPlanNode(phase, builder);
-            builder.put("routing", phase.routing().locations());
+            builder.put("routing", xContentSafeRoutingLocations(phase.routing().locations()));
             builder.put("where", phase.where().representation());
             return createMap(phase, builder);
         }
@@ -134,7 +137,7 @@ public final class PlanPrinter {
         @Override
         public ImmutableMap.Builder<String, Object> visitCountPhase(CountPhase phase, Void context) {
             ImmutableMap.Builder<String, Object> builder = upstreamPhase(phase, visitExecutionPhase(phase, context));
-            builder.put("routing", phase.routing().locations());
+            builder.put("routing", xContentSafeRoutingLocations(phase.routing().locations()));
             builder.put("where", phase.where().representation());
             return builder;
         }
@@ -243,5 +246,26 @@ public final class PlanPrinter {
                 .put("countPhase", phaseMap(countPlan.countPhase()))
                 .put("mergePhase", phaseMap(countPlan.mergePhase()));
         }
+    }
+
+    /**
+     * Converts the shardId's of each node->table from a {@link IntIndexedContainer} to a list of Integers as custom
+     * classes are not supported by the {@link org.elasticsearch.common.xcontent.XContentBuilder}.
+     */
+    private static Map<String, Map<String, List<Integer>>> xContentSafeRoutingLocations(
+        Map<String, Map<String, IntIndexedContainer>> locations) {
+        HashMap<String, Map<String, List<Integer>>> safeLocations = new HashMap<>(locations.size(), 1f);
+        for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : locations.entrySet()) {
+            HashMap<String, List<Integer>> tableShards = new HashMap<>(nodeEntry.getValue().size(), 1f);
+            for (Map.Entry<String, IntIndexedContainer> tableEntry : nodeEntry.getValue().entrySet()) {
+                ArrayList<Integer> shardList = new ArrayList<>(tableEntry.getValue().size());
+                for (IntCursor cursor : tableEntry.getValue()) {
+                    shardList.add(cursor.value);
+                }
+                tableShards.put(tableEntry.getKey(), shardList);
+            }
+            safeLocations.put(nodeEntry.getKey(), tableShards);
+        }
+        return safeLocations;
     }
 }
