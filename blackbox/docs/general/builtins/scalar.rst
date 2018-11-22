@@ -224,6 +224,24 @@ Returns: ``string``
     +----------------------+
     SELECT 1 row in set (... sec)
 
+``initcap('string')``
+---------------------
+
+Converts the first letter of each word to upper case and the rest to lower case
+(*capitalize letters*).
+
+Returns: ``string``
+
+::
+
+   cr> select initcap('heLlo WORLD');
+    +------------------------+
+    | initcap('heLlo WORLD') |
+    +------------------------+
+    | Hello World            |
+    +------------------------+
+    SELECT 1 row in set (... sec)
+
 .. _sha1:
 
 ``sha1('string')``
