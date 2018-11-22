@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.ColumnUnknownException;
@@ -55,6 +56,7 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -128,11 +130,17 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     private QueriedRelation analyze(String statement) {
-        return sqlExecutor.analyze(statement);
+        return sqlExecutor.normalize(
+            sqlExecutor.analyze(statement),
+            new TransactionContext(SessionContext.systemSessionContext())
+        );
     }
 
     private QueriedRelation analyze(String statement, Object[] arguments) {
-        return (QueriedRelation) sqlExecutor.analyze(statement, arguments);
+        return sqlExecutor.normalize(
+                sqlExecutor.analyze(statement, arguments),
+                new TransactionContext(SessionContext.systemSessionContext())
+            );
     }
 
     @Test

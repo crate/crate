@@ -381,7 +381,8 @@ public final class CopyStatementPlanner {
             statement.outputNames(),
             outputFormat);
 
-        LogicalPlan logicalPlan = logicalPlanner.plan(statement.subQueryRelation(), context, subqueryPlanner, FetchMode.NEVER_CLEAR);
+        LogicalPlan logicalPlan = logicalPlanner.normalizeAndPlan(
+            statement.subQueryRelation(), context, subqueryPlanner, FetchMode.NEVER_CLEAR);
         if (logicalPlan == null) {
             return null;
         }

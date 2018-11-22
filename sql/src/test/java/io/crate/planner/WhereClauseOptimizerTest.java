@@ -66,7 +66,7 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest{
     }
 
     private WhereClauseOptimizer.DetailedQuery optimize(String statement) {
-        QueriedTable queriedTable = e.analyze(statement);
+        QueriedTable queriedTable = e.normalize(statement);
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             e.functions(),
             RowGranularity.CLUSTER,

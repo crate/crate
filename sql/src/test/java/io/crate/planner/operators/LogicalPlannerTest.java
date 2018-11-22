@@ -301,12 +301,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                    SQLExecutor sqlExecutor,
                                    ClusterService clusterService,
                                    TableStats tableStats) {
-        QueriedRelation relation = sqlExecutor.analyze(statement);
         PlannerContext context = sqlExecutor.getPlannerContext(clusterService.state());
+        QueriedRelation relation = sqlExecutor.analyze(statement);
         LogicalPlanner logicalPlanner = new LogicalPlanner(getFunctions(), tableStats);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
 
-        return logicalPlanner.plan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR);
+        return logicalPlanner.normalizeAndPlan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR);
     }
 
     public static Matcher<LogicalPlan> isPlan(Functions functions, String expectedPlan) {

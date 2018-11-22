@@ -61,13 +61,13 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t1 (x int, y int, z as x + y)")
             .addTable("create table t2 (obj object as (a int, c as obj['a'] + 3), b as obj['a'] + 1)")
             .build();
-        QueriedRelation relation = e.analyze("select x, y, z from t1");
+        QueriedRelation relation = e.normalize("select x, y, z from t1");
         t1 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
         x = (Reference) relation.outputs().get(0);
         y = (Reference) relation.outputs().get(1);
         z = (Reference) relation.outputs().get(2);
 
-        relation = e.analyze("select obj, b from t2");
+        relation = e.normalize("select obj, b from t2");
         t2 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
         obj = (Reference) relation.outputs().get(0);
         b = (Reference) relation.outputs().get(1);

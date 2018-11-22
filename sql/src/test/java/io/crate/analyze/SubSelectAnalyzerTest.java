@@ -22,9 +22,11 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -53,7 +55,9 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private <T extends QueriedRelation> T analyze(String stmt) {
-        return (T) executor.analyze(stmt);
+        return (T) executor.normalize(
+            executor.analyze(stmt),
+            new TransactionContext(SessionContext.systemSessionContext()));
     }
 
     @Test

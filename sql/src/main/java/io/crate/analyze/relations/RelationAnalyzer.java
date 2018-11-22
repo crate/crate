@@ -111,7 +111,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     private final Functions functions;
     private final Schemas schemas;
-    private final RelationNormalizer relationNormalizer;
     private final SymbolPrinter symbolPrinter;
 
     private static final List<Relation> EMPTY_ROW_TABLE_RELATION = ImmutableList.of(
@@ -120,15 +119,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Inject
     public RelationAnalyzer(Functions functions, Schemas schemas) {
-        relationNormalizer = new RelationNormalizer(functions);
         this.functions = functions;
         this.symbolPrinter = new SymbolPrinter(functions);
         this.schemas = schemas;
     }
 
     public AnalyzedRelation analyze(Node node, StatementAnalysisContext statementContext) {
-        AnalyzedRelation relation = process(node, statementContext);
-        return relationNormalizer.normalize(relation, statementContext.transactionContext());
+        return process(node, statementContext);
     }
 
     public AnalyzedRelation analyzeUnbound(Query query,
