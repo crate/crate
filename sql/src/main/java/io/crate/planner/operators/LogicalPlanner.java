@@ -33,6 +33,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
@@ -88,11 +89,13 @@ public class LogicalPlanner {
     private final SelectStatementPlanner selectStatementPlanner;
     private final Visitor statementVisitor = new Visitor();
     private final Functions functions;
+    private final RelationNormalizer relationNormalizer;
 
     public LogicalPlanner(Functions functions, TableStats tableStats) {
         this.optimizingRewriter = new OptimizingRewriter(functions);
         this.tableStats = tableStats;
         this.functions = functions;
+        this.relationNormalizer = new RelationNormalizer(functions);
         selectStatementPlanner = new SelectStatementPlanner(this);
     }
 
@@ -108,7 +111,9 @@ public class LogicalPlanner {
             softLimit = plannerContext.softLimit();
             fetchSize = plannerContext.fetchSize();
         }
-        QueriedRelation relation = selectSymbol.relation();
+        QueriedRelation relation = (QueriedRelation) relationNormalizer.normalize(
+            selectSymbol.relation(), plannerContext.transactionContext());
+
         PlannerContext subSelectPlannerContext = PlannerContext.forSubPlan(plannerContext, softLimit, fetchSize);
         subSelectPlannerContext.applySoftLimit(relation.querySpec());
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, subSelectPlannerContext));
@@ -143,13 +148,16 @@ public class LogicalPlanner {
         return planBuilder;
     }
 
-    public LogicalPlan plan(QueriedRelation queriedRelation,
-                            PlannerContext plannerContext,
-                            SubqueryPlanner subqueryPlanner,
-                            FetchMode fetchMode) {
-        TransactionContext transactionContext = plannerContext.transactionContext();
-        QueriedRelation relation = optimizingRewriter.optimize(queriedRelation, transactionContext);
 
+    public LogicalPlan normalizeAndPlan(QueriedRelation queriedRelation,
+                                        PlannerContext plannerContext,
+                                        SubqueryPlanner subqueryPlanner,
+                                        FetchMode fetchMode) {
+        TransactionContext transactionContext = plannerContext.transactionContext();
+        QueriedRelation relation = optimizingRewriter.optimize(
+            (QueriedRelation) relationNormalizer.normalize(queriedRelation, transactionContext),
+            transactionContext
+        );
         LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true, functions, transactionContext)
             .build(tableStats, new HashSet<>(relation.outputs()));
 
@@ -378,7 +386,8 @@ public class LogicalPlanner {
         @Override
         protected LogicalPlan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement statement, PlannerContext context) {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
-            return InsertFromSubQueryPlanner.plan(statement, context, LogicalPlanner.this, subqueryPlanner);
+            return InsertFromSubQueryPlanner.plan(
+                relationNormalizer, statement, context, LogicalPlanner.this, subqueryPlanner);
         }
     }
 }

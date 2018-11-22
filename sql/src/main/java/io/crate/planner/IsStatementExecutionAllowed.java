@@ -30,8 +30,12 @@ import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.SetLicenseAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.AnalyzedView;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.expression.tablefunctions.EmptyRowTableFunction;
 import io.crate.metadata.information.InformationSchemaInfo;
@@ -119,6 +123,26 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
         public Boolean visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
             TableInfo tableInfo = queriedTable.tableRelation().tableInfo();
             return isSysSchema(tableInfo.ident().schema()) || isEmptyRowTable(tableInfo);
+        }
+
+        @Override
+        public Boolean visitTableRelation(TableRelation tableRelation, Void context) {
+            return true;
+        }
+
+        @Override
+        public Boolean visitDocTableRelation(DocTableRelation relation, Void context) {
+            return false;
+        }
+
+        @Override
+        public Boolean visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, Void context) {
+            return true;
+        }
+
+        @Override
+        public Boolean visitView(AnalyzedView analyzedView, Void context) {
+            return process(analyzedView.relation(), context);
         }
     }
 }

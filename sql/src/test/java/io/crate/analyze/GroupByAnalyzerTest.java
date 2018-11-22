@@ -22,12 +22,14 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;
@@ -66,7 +68,10 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private <T extends AnalyzedStatement> T analyze(String statement) {
-        return sqlExecutor.analyze(statement);
+        //noinspection unchecked
+        return (T) sqlExecutor.normalize(
+            sqlExecutor.analyze(statement),
+            new TransactionContext(SessionContext.systemSessionContext()));
     }
 
     @Test
