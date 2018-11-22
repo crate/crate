@@ -32,11 +32,13 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -101,6 +103,33 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             }
             assertNotNull(map);
             assertThat(map.size(), greaterThan(0));
+        }
+    }
+
+    @Test
+    public void testPrinterToXContent() {
+        for (String statement : EXPLAIN_TEST_STATEMENTS) {
+            LogicalPlan plan = e.logicalPlan(statement);
+            Map<String, Object> map = null;
+            try {
+                map = ExplainLogicalPlan.explainMap(
+                    plan,
+                    e.getPlannerContext(clusterService.state()),
+                    new ProjectionBuilder(getFunctions()));
+            } catch (Exception e) {
+                fail("statement not printable: " + statement);
+            }
+
+            String json = null;
+            try {
+                XContentBuilder xContentBuilder = JsonXContent.contentBuilder();
+                xContentBuilder.value(map);
+                json = BytesReference.bytes(xContentBuilder).utf8ToString();
+            } catch (Exception e) {
+                fail("printed plan cannot be converted to xContent: " + statement);
+            }
+
+            assertNotNull(json);
         }
     }
 

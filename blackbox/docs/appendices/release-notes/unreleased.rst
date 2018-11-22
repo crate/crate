@@ -120,3 +120,6 @@ Changes
 
 Fixes
 =====
+
+- Fixed an issue which caused ``EXPLAIN`` statements to use a wrong ``routing``
+  entries representation on versions >= 3.1.3.
