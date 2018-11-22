@@ -113,11 +113,13 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    Functions functions,
                    TableStats tableStats,
                    LicenseService licenseService) {
-        this.clusterService = clusterService;
-        this.functions = functions;
-        this.logicalPlanner = new LogicalPlanner(functions, tableStats);
-        this.isStatementExecutionAllowed = new IsStatementExecutionAllowed(licenseService::hasValidLicense);
-        initAwarenessAttributes(settings);
+        this(
+            settings,
+            clusterService,
+            functions,
+            tableStats,
+            licenseService::hasValidLicense
+        );
     }
 
     @VisibleForTesting

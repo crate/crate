@@ -40,6 +40,7 @@ import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.StatementAnalysisContext;
@@ -169,6 +170,7 @@ public class SQLExecutor {
     private final Functions functions;
     public final Analyzer analyzer;
     public final Planner planner;
+    private final RelationNormalizer relationNormalizer;
     private final RelationAnalyzer relAnalyzer;
     private final SessionContext sessionContext;
     private final TransactionContext transactionContext;
@@ -193,6 +195,18 @@ public class SQLExecutor {
             new TransactionContext(sessionContext),
             -1,
             -1
+        );
+    }
+
+    public <T extends AnalyzedRelation> T normalize(QueriedRelation relation, TransactionContext txnCtx) {
+        //noinspection unchecked
+        return (T) relationNormalizer.normalize(relation, txnCtx);
+    }
+
+    public <T extends QueriedRelation> T normalize(String statement) {
+        return normalize(
+            analyze(statement),
+            new TransactionContext(SessionContext.systemSessionContext())
         );
     }
 
@@ -551,6 +565,7 @@ public class SQLExecutor {
                         Schemas schemas,
                         Random random) {
         this.functions = functions;
+        this.relationNormalizer = new RelationNormalizer(functions);
         this.analyzer = analyzer;
         this.planner = planner;
         this.relAnalyzer = relAnalyzer;

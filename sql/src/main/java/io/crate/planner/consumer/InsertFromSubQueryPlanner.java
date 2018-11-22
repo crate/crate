@@ -30,6 +30,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -60,7 +61,8 @@ public final class InsertFromSubQueryPlanner {
     private InsertFromSubQueryPlanner() {
     }
 
-    public static LogicalPlan plan(InsertFromSubQueryAnalyzedStatement statement,
+    public static LogicalPlan plan(RelationNormalizer relationNormalizer,
+                                   InsertFromSubQueryAnalyzedStatement statement,
                                    PlannerContext plannerContext,
                                    LogicalPlanner logicalPlanner,
                                    SubqueryPlanner subqueryPlanner) {
@@ -80,7 +82,8 @@ public final class InsertFromSubQueryPlanner {
             statement.tableInfo().isPartitioned()
         );
 
-        QueriedRelation subRelation = statement.subQueryRelation();
+        QueriedRelation subRelation = (QueriedRelation) relationNormalizer.normalize(
+            statement.subQueryRelation(), plannerContext.transactionContext());
 
         // We'd have to enable paging & add a mergePhase to the sub-plan which applies the ordering/limit before
         // the indexWriterProjection can be added
@@ -89,7 +92,8 @@ public final class InsertFromSubQueryPlanner {
                                                   "supported on insert using a sub-query");
         }
         SOURCE_LOOKUP_CONVERTER.process(subRelation, null);
-        LogicalPlan plannedSubQuery = logicalPlanner.plan(subRelation, plannerContext, subqueryPlanner, FetchMode.NEVER_CLEAR);
+        LogicalPlan plannedSubQuery = logicalPlanner.normalizeAndPlan(
+            subRelation, plannerContext, subqueryPlanner, FetchMode.NEVER_CLEAR);
 
         EvalProjection castOutputs = createCastProjection(statement.columns(), plannedSubQuery.outputs());
         List<Projection> projections = castOutputs == null

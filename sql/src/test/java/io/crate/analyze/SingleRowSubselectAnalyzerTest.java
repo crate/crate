@@ -90,7 +90,7 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testMatchPredicateWithSingleRowSubselect() throws Exception {
-        QueriedRelation relation = e.analyze(
+        QueriedRelation relation = e.normalize(
             "select * from users where match(shape 1.2, (select shape from users limit 1))");
         assertThat(relation.where().query(),
             isSQL("MATCH((shape 1.2), SelectSymbol{geo_shape_array}) USING intersects"));

@@ -65,7 +65,8 @@ public class SelectStatementPlanner {
         }
 
         private LogicalPlan invokeLogicalPlanner(QueriedRelation relation, Context context) {
-            LogicalPlan logicalPlan = logicalPlanner.plan(relation, context.plannerContext, context.subqueryPlanner, FetchMode.MAYBE_CLEAR);
+            LogicalPlan logicalPlan = logicalPlanner.normalizeAndPlan(
+                relation, context.plannerContext, context.subqueryPlanner, FetchMode.MAYBE_CLEAR);
             if (logicalPlan == null) {
                 throw new UnsupportedOperationException("Cannot create plan for: " + relation);
             }
