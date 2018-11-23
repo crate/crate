@@ -83,6 +83,7 @@ import io.crate.sql.tree.SetStatement;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
 import io.crate.sql.tree.ShowSchemas;
+import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
@@ -277,6 +278,7 @@ public class Analyzer {
             return createTableStatementAnalyzer.analyze(node, analysis.parameterContext(), analysis.transactionContext());
         }
 
+        @Override
         public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis analysis) {
             ShowCreateTableAnalyzedStatement showCreateTableStatement =
                 showCreateTableAnalyzer.analyze(node.table(), analysis.sessionContext());
@@ -284,6 +286,7 @@ public class Analyzer {
             return showCreateTableStatement;
         }
 
+        @Override
         public AnalyzedStatement visitShowSchemas(ShowSchemas node, Analysis analysis) {
             return showStatementAnalyzer.analyze(node, analysis);
         }
@@ -293,6 +296,7 @@ public class Analyzer {
             return showStatementAnalyzer.analyzeShowTransaction(context);
         }
 
+        @Override
         public AnalyzedStatement visitShowTables(ShowTables node, Analysis analysis) {
             return showStatementAnalyzer.analyze(node, analysis);
         }
@@ -300,6 +304,11 @@ public class Analyzer {
         @Override
         protected AnalyzedStatement visitShowColumns(ShowColumns node, Analysis context) {
             return showStatementAnalyzer.analyze(node, context);
+        }
+
+        @Override
+        public AnalyzedStatement visitShowSessionParameter(ShowSessionParameter node, Analysis context) {
+            return new ShowSessionParameterAnalyzedStatement(node.parameter().toString());
         }
 
         @Override

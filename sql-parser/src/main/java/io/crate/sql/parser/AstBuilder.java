@@ -150,6 +150,7 @@ import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SetStatement;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
+import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowSchemas;
 import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.ShowTransaction;
@@ -390,6 +391,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitShowTransaction(SqlBaseParser.ShowTransactionContext context) {
         return new ShowTransaction();
+    }
+
+    @Override
+    public Node visitShowSessionParameter(SqlBaseParser.ShowSessionParameterContext ctx) {
+        return new ShowSessionParameter(getQualifiedName(ctx.qname()));
     }
 
     @Override

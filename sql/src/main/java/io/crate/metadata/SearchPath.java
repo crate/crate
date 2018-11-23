@@ -24,7 +24,9 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Spliterator;
@@ -34,7 +36,7 @@ import java.util.function.Consumer;
  * As writing fully qualified table names is usually tedious. This class models a list of schemas the system will use in
  * order to determine which table is meant by the user.
  */
-public final class SearchPath implements Iterable<String> {
+public final class SearchPath implements Collection<String> {
 
     private static final SearchPath PG_CATALOG_AND_DOC_PATH = new SearchPath();
     public static final String PG_CATALOG_SCHEMA = "pg_catalog";
@@ -94,4 +96,62 @@ public final class SearchPath implements Iterable<String> {
         return searchPath.spliterator();
     }
 
+    @Override
+    public int size() {
+        return searchPath.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return searchPath.isEmpty();
+    }
+
+    @Override
+    public boolean contains(Object o) {
+        return searchPath.contains(o);
+    }
+
+    @Override
+    public Object[] toArray() {
+        return searchPath.toArray();
+    }
+
+    @Override
+    public <T> T[] toArray(@Nonnull T[] a) {
+        return searchPath.toArray(a);
+    }
+
+    @Override
+    public boolean add(String s) {
+        return false;
+    }
+
+    @Override
+    public boolean remove(Object o) {
+        return false;
+    }
+
+    @Override
+    public boolean containsAll(@Nonnull Collection<?> c) {
+        return searchPath.containsAll(c);
+    }
+
+    @Override
+    public boolean addAll(@Nonnull Collection<? extends String> c) {
+        return false;
+    }
+
+    @Override
+    public boolean removeAll(@Nonnull Collection<?> c) {
+        return false;
+    }
+
+    @Override
+    public boolean retainAll(@Nonnull Collection<?> c) {
+        return false;
+    }
+
+    @Override
+    public void clear() {
+    }
 }

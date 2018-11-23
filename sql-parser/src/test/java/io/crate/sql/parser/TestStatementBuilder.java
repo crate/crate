@@ -175,6 +175,11 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testShowParameterStmtBuilder() {
+        printStatement("show search_path");
+    }
+
+    @Test
     public void testUpdateStmtBuilder() {
         printStatement("update foo set \"column['looks_like_nested']\"=1");
         printStatement("update foo set foo.a='b'");

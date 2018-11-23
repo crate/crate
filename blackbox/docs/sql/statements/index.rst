@@ -47,4 +47,5 @@ SQL Statements
     show-create-table
     show-schemas
     show-tables
+    show
     update

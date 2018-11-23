@@ -35,6 +35,7 @@ import io.crate.sql.tree.Query;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
 import io.crate.sql.tree.ShowSchemas;
+import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
@@ -156,6 +157,11 @@ class UnboundAnalyzer {
         @Override
         public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis context) {
             return showCreateTableAnalyzer.analyze(node.table(), context.sessionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitShowSessionParameter(ShowSessionParameter node, Analysis context) {
+            return new ShowSessionParameterAnalyzedStatement(node.parameter().toString());
         }
 
         @Override
