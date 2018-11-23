@@ -38,39 +38,38 @@ import static org.junit.Assert.fail;
 
 public class SessionSettingRegistryTest {
 
+    private SessionContext sessionContext = SessionContext.systemSessionContext();
+
     @Test
     public void testSemiJoinSessionSetting() {
-        SessionContext sessionContext = SessionContext.systemSessionContext();
-        SessionSettingApplier applier = SessionSettingRegistry.getApplier(SessionSettingRegistry.SEMI_JOIN_KEY);
-        assertBooleanNonEmptySetting(sessionContext, sessionContext::getSemiJoinsRewriteEnabled, applier, false);
+        SessionSetting<?> setting = SessionSettingRegistry.SETTINGS.get(SessionSettingRegistry.SEMI_JOIN_KEY);
+        assertBooleanNonEmptySetting(sessionContext::getSemiJoinsRewriteEnabled, setting, false);
     }
 
     @Test
     public void testHashJoinSessionSetting() {
-        SessionContext sessionContext = SessionContext.systemSessionContext();
-        SessionSettingApplier applier = SessionSettingRegistry.getApplier(SessionSettingRegistry.HASH_JOIN_KEY);
-        assertBooleanNonEmptySetting(sessionContext, sessionContext::isHashJoinEnabled, applier, true);
+        SessionSetting<?> setting = SessionSettingRegistry.SETTINGS.get(SessionSettingRegistry.HASH_JOIN_KEY);
+        assertBooleanNonEmptySetting(sessionContext::isHashJoinEnabled, setting, true);
     }
 
-    private void assertBooleanNonEmptySetting(SessionContext sessionContext,
-                                              Supplier<Boolean> contextBooleanSupplier,
-                                              SessionSettingApplier applier,
+    private void assertBooleanNonEmptySetting(Supplier<Boolean> contextBooleanSupplier,
+                                              SessionSetting<?> sessionSetting,
                                               boolean defaultValue) {
         assertThat(contextBooleanSupplier.get(), is(defaultValue));
-        applier.apply(Row.EMPTY, generateInput("true"), sessionContext);
+        sessionSetting.apply(Row.EMPTY, generateInput("true"), sessionContext);
         assertThat(contextBooleanSupplier.get(), is(true));
-        applier.apply(Row.EMPTY, generateInput("false"), sessionContext);
+        sessionSetting.apply(Row.EMPTY, generateInput("false"), sessionContext);
         assertThat(contextBooleanSupplier.get(), is(false));
-        applier.apply(Row.EMPTY, generateInput("TrUe"), sessionContext);
+        sessionSetting.apply(Row.EMPTY, generateInput("TrUe"), sessionContext);
         assertThat(contextBooleanSupplier.get(), is(true));
         try {
-            applier.apply(Row.EMPTY, generateInput(""), sessionContext);
+            sessionSetting.apply(Row.EMPTY, generateInput(""), sessionContext);
             fail("Should have failed to apply setting.");
         } catch (IllegalArgumentException e) {
             assertThat(contextBooleanSupplier.get(), is(true));
         }
         try {
-            applier.apply(Row.EMPTY, generateInput("invalid", "input"), sessionContext);
+            sessionSetting.apply(Row.EMPTY, generateInput("invalid", "input"), sessionContext);
             fail("Should have failed to apply setting.");
         } catch (IllegalArgumentException e) {
             assertThat(contextBooleanSupplier.get(), is(true));

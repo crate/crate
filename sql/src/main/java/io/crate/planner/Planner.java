@@ -307,7 +307,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                 LOGGER.warn("'SET SESSION CHARACTERISTICS AS TRANSACTION' STATEMENT WILL BE IGNORED");
                 return NoopPlan.INSTANCE;
             case SESSION:
-                return new SetSessionPlan(setStatement.settings(), context.transactionContext().sessionContext());
+                return new SetSessionPlan(setStatement.settings());
             case GLOBAL:
             default:
                 if (setStatement.isPersistent()) {
