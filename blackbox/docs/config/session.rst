@@ -28,7 +28,7 @@ session. Currently, there is only one of these settings.
 
         SET search_path TO myschema, doc;
 
-  To retrieve the current set value, :ref:`ref-show` can be used:
+  The current search path value could be retrieved using :ref:`ref-show`:
 
     .. code-block:: sql
 

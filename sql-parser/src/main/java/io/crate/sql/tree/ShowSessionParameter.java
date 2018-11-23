@@ -22,16 +22,19 @@
 
 package io.crate.sql.tree;
 
+import javax.annotation.Nullable;
 import java.util.Objects;
 
 public class ShowSessionParameter extends Statement {
 
+    @Nullable
     private final QualifiedName parameter;
 
-    public ShowSessionParameter(QualifiedName parameter) {
+    public ShowSessionParameter(@Nullable QualifiedName parameter) {
         this.parameter = parameter;
     }
 
+    @Nullable
     public QualifiedName parameter() {
         return parameter;
     }
@@ -56,8 +59,10 @@ public class ShowSessionParameter extends Statement {
 
     @Override
     public String toString() {
-        return "ShowSessionParameter{" +
-               "parameter=" + parameter +
-               "}";
+        String allOrParameter = "ALL=true";
+        if (parameter != null) {
+            allOrParameter = "parameter=" + parameter;
+        }
+        return "ShowSessionParameter{" + allOrParameter + "}";
     }
 }

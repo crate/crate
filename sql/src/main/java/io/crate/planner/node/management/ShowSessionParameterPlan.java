@@ -22,20 +22,25 @@
 
 package io.crate.planner.node.management;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ShowSessionParameterAnalyzedStatement;
+import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.data.RowN;
 import io.crate.metadata.settings.session.SessionSetting;
-import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.types.DataType;
+
+import java.util.ArrayList;
+import java.util.Map;
 
 import static io.crate.data.SentinelRow.SENTINEL;
+import static io.crate.metadata.settings.session.SessionSettingRegistry.SETTINGS;
 
 public class ShowSessionParameterPlan implements Plan {
 
@@ -56,17 +61,35 @@ public class ShowSessionParameterPlan implements Plan {
                         RowConsumer consumer,
                         Row params,
                         SubQueryResults subQueryResults) {
-        String parameterName = statement.parameterName();
-        Row1 row;
+        SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
+        BatchIterator<Row> batchIterator;
         try {
-            SessionSetting sessionSetting = SessionSettingRegistry.SETTINGS.get(parameterName);
-            DataType parameterType = sessionSetting.dataType();
-            Object parameterValue = sessionSetting.getValue(plannerContext.transactionContext().sessionContext());
-            row = new Row1(parameterType.value(parameterValue));
+            if (statement.showAll()) {
+                batchIterator = iteratorForAllParameters(sessionContext);
+            } else {
+                batchIterator = iteratorForSingleParameter(statement.parameterName(), sessionContext);
+            }
         } catch (Throwable t) {
             consumer.accept(null, t);
             return;
         }
-        consumer.accept(InMemoryBatchIterator.of(row, SENTINEL), null);
+        consumer.accept(batchIterator, null);
+    }
+
+    private BatchIterator<Row> iteratorForSingleParameter(String parameterName, SessionContext sessionContext) {
+        SessionSetting sessionSetting = SETTINGS.get(parameterName);
+        String parameterValue = sessionSetting.getValue(sessionContext);
+        return InMemoryBatchIterator.of(new Row1(parameterValue), SENTINEL);
+    }
+
+    private BatchIterator<Row> iteratorForAllParameters(SessionContext sessionContext) {
+        ArrayList<Row> rows = new ArrayList<>(SETTINGS.size());
+        for (Map.Entry<String, SessionSetting<?>> entry : SETTINGS.entrySet()) {
+            Object[] values = new Object[2];
+            values[0] = entry.getKey();
+            values[1] = entry.getValue().getValue(sessionContext);
+            rows.add(new RowN(values));
+        }
+        return InMemoryBatchIterator.of(rows, SENTINEL);
     }
 }

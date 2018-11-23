@@ -22,33 +22,52 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
+import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
 public class ShowSessionParameterAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
 
     private final List<Field> fields;
+    @Nullable
     private final String parameterName;
 
-    public ShowSessionParameterAnalyzedStatement(String parameterName) {
-        DataType dataType = SessionSettingRegistry.SETTINGS.get(parameterName).dataType();
-        this.fields = Collections.singletonList(
-            new Field(this, new OutputName("SHOW " + parameterName), dataType));
-        this.parameterName = parameterName;
+    ShowSessionParameterAnalyzedStatement(@Nullable QualifiedName parameter) {
+        if (parameter == null) {
+            parameterName = null;
+            fields = ImmutableList.of(
+                new Field(this, new OutputName("setting"), DataTypes.STRING),
+                new Field(this, new OutputName("value"), DataTypes.STRING));
+        } else {
+            parameterName = parameter.toString();
+            SessionSetting<?> sessionSetting = SessionSettingRegistry.SETTINGS.get(parameterName);
+            if (sessionSetting == null) {
+                throw new IllegalArgumentException("Unknown session setting name '" + parameterName + "'.");
+            }
+            fields = Collections.singletonList(
+                new Field(this, new OutputName("SHOW " + parameterName), DataTypes.STRING));
+        }
     }
 
+    public boolean showAll() {
+        return parameterName == null;
+    }
+
+    @Nullable
     public String parameterName() {
         return parameterName;
     }
@@ -65,7 +84,7 @@ public class ShowSessionParameterAnalyzedStatement implements AnalyzedStatement,
 
     @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getField() is not supported on ShowSessionParameterAnalyzedStatement");
+        throw new UnsupportedOperationException("method not supported");
     }
 
     @Override

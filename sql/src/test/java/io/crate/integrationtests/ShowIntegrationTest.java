@@ -371,7 +371,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testShowSearchPath() {
         execute("show search_path");
-        assertThat(printedTable(response.rows()), is("[pg_catalog, doc]\n"));
+        assertThat(printedTable(response.rows()), is("pg_catalog, doc\n"));
     }
 
     @UseHashJoins(1)
@@ -386,5 +386,22 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     public void testShowEnableSemiJoin() {
         execute("show enable_semijoin");
         assertThat(printedTable(response.rows()), is("true\n"));
+    }
+
+    @Test
+    public void testShowUnknownSetting() {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Unknown session setting name 'foo'.");
+        execute("show foo");
+    }
+
+    @UseHashJoins(1)
+    @UseSemiJoins(0)
+    @Test
+    public void testShowAll() {
+        execute("show all");
+        assertThat(printedTable(response.rows()), is("search_path| pg_catalog, doc\n" +
+                                                     "enable_semijoin| false\n" +
+                                                     "enable_hashjoin| true\n"));
     }
 }

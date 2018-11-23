@@ -395,7 +395,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitShowSessionParameter(SqlBaseParser.ShowSessionParameterContext ctx) {
-        return new ShowSessionParameter(getQualifiedName(ctx.qname()));
+        if (ctx.ALL() != null) {
+            return new ShowSessionParameter(null);
+        } else {
+            return new ShowSessionParameter(getQualifiedName(ctx.qname()));
+        }
     }
 
     @Override

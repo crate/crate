@@ -23,44 +23,41 @@
 package io.crate.metadata.settings.session;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.types.DataType;
 import io.crate.action.sql.SessionContext;
 import io.crate.types.DataTypes;
 
+import java.util.Iterator;
 import java.util.Map;
 
 import static io.crate.metadata.SearchPath.createSearchPathFrom;
 
 public class SessionSettingRegistry {
 
-    public static final String SEARCH_PATH_KEY = "search_path";
-    public static final String SEMI_JOIN_KEY = "enable_semijoin";
+    private static final String SEARCH_PATH_KEY = "search_path";
+    static final String SEMI_JOIN_KEY = "enable_semijoin";
     public static final String HASH_JOIN_KEY = "enable_hashjoin";
 
     public static final Map<String, SessionSetting<?>> SETTINGS = ImmutableMap.<String, SessionSetting<?>>builder()
             .put(SEARCH_PATH_KEY,
                 new SessionSetting<>(
-                    DataTypes.STRING_ARRAY,
                     objects -> {}, // everything allowed, empty list (resulting by ``SET .. TO DEFAULT`` results in defaults
                     objects -> createSearchPathFrom(objectsToStringArray(objects)),
                     SessionContext::setSearchPath,
-                    SessionContext::searchPath
-                    ))
+                    s -> iterableToString(s.searchPath())
+                ))
             .put(SEMI_JOIN_KEY,
                 new SessionSetting<>(
-                    DataTypes.BOOLEAN,
                     objects -> {
                         if (objects.length != 1) {
-                            throw new IllegalArgumentException(HASH_JOIN_KEY + " should have only one argument.");
+                            throw new IllegalArgumentException(SEMI_JOIN_KEY + " should have only one argument.");
                         }
                     },
                     objects -> DataTypes.BOOLEAN.value(objects[0]),
                     SessionContext::setSemiJoinsRewriteEnabled,
-                    SessionContext::getSemiJoinsRewriteEnabled
+                    s -> Boolean.toString(s.getSemiJoinsRewriteEnabled())
                 ))
             .put(HASH_JOIN_KEY,
                 new SessionSetting<>(
-                    DataTypes.BOOLEAN,
                     objects -> {
                         if (objects.length != 1) {
                             throw new IllegalArgumentException(HASH_JOIN_KEY + " should have only one argument.");
@@ -68,7 +65,7 @@ public class SessionSettingRegistry {
                     },
                     objects -> DataTypes.BOOLEAN.value(objects[0]),
                     SessionContext::setHashJoinEnabled,
-                    SessionContext::isHashJoinEnabled
+                    s -> Boolean.toString(s.isHashJoinEnabled())
                 ))
             .build();
 
@@ -78,5 +75,17 @@ public class SessionSettingRegistry {
             strings[i] = DataTypes.STRING.value(objects[i]);
         }
         return strings;
+    }
+
+    private static String iterableToString(Iterable<String> iterable) {
+        Iterator<String> it = iterable.iterator();
+        StringBuilder sb = new StringBuilder();
+        while (it.hasNext()) {
+            sb.append(it.next());
+            if (it.hasNext()) {
+                sb.append(", ");
+            }
+        }
+        return sb.toString();
     }
 }

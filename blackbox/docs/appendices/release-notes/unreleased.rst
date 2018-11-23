@@ -40,8 +40,8 @@ Breaking Changes
 Changes
 =======
 
-- Added support for ``SHOW parameter_name`` to retrieve current session
-  parameter values.
+- Added support for ``SHOW parameter_name | ALL`` to retrieve one or all session
+  setting value(s).
 
 - Added support for ``initcap(string)`` scalar expression.
 

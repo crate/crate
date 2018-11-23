@@ -177,6 +177,7 @@ public class TestStatementBuilder {
     @Test
     public void testShowParameterStmtBuilder() {
         printStatement("show search_path");
+        printStatement("show all");
     }
 
     @Test
