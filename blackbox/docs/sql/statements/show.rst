@@ -5,8 +5,9 @@
 ``SHOW (session settings)``
 ===========================
 
-The ``SHOW`` statement can display the value of one session setting
-variable. Some of these can also be configured via :ref:`SET SESSION <ref-set>`.
+The ``SHOW`` statement can display the value of either one or all session
+setting variables. Some of these can also be configured via
+:ref:`SET SESSION <ref-set>`.
 
 .. note:
 
@@ -23,7 +24,7 @@ Synopsis
 
 ::
 
-    SHOW parameter_name
+    SHOW { parameter_name | ALL }
 
 
 Parameters
@@ -32,3 +33,6 @@ Parameters
 :parameter_name:
   The name of the session setting which should be printed. See :ref:`conf-session`
   for available session settings.
+
+:ALL:
+  Show the values of all settings.

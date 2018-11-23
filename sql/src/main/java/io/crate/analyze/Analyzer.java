@@ -308,7 +308,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitShowSessionParameter(ShowSessionParameter node, Analysis context) {
-            return new ShowSessionParameterAnalyzedStatement(node.parameter().toString());
+            return new ShowSessionParameterAnalyzedStatement(node.parameter());
         }
 
         @Override

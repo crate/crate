@@ -23,10 +23,9 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Spliterator;
@@ -36,10 +35,9 @@ import java.util.function.Consumer;
  * As writing fully qualified table names is usually tedious. This class models a list of schemas the system will use in
  * order to determine which table is meant by the user.
  */
-public final class SearchPath implements Collection<String> {
+public final class SearchPath implements Iterable<String> {
 
     private static final SearchPath PG_CATALOG_AND_DOC_PATH = new SearchPath();
-    public static final String PG_CATALOG_SCHEMA = "pg_catalog";
     private final boolean pgCatalogIsSetExplicitly;
     private final List<String> searchPath;
 
@@ -57,17 +55,17 @@ public final class SearchPath implements Collection<String> {
 
     private SearchPath() {
         pgCatalogIsSetExplicitly = false;
-        searchPath = ImmutableList.of(PG_CATALOG_SCHEMA, Schemas.DOC_SCHEMA_NAME);
+        searchPath = ImmutableList.of(PgCatalogSchemaInfo.NAME, Schemas.DOC_SCHEMA_NAME);
     }
 
     private SearchPath(ImmutableList<String> schemas) {
         assert schemas.size() > 0 : "Expecting at least one schema in the search path";
-        pgCatalogIsSetExplicitly = schemas.contains(PG_CATALOG_SCHEMA);
+        pgCatalogIsSetExplicitly = schemas.contains(PgCatalogSchemaInfo.NAME);
         if (pgCatalogIsSetExplicitly) {
             this.searchPath = schemas;
         } else {
             ArrayList<String> completeSearchPath = new ArrayList<>(1 + schemas.size());
-            completeSearchPath.add(PG_CATALOG_SCHEMA);
+            completeSearchPath.add(PgCatalogSchemaInfo.NAME);
             completeSearchPath.addAll(schemas);
             this.searchPath = ImmutableList.copyOf(completeSearchPath);
         }
@@ -94,64 +92,5 @@ public final class SearchPath implements Collection<String> {
     @Override
     public Spliterator<String> spliterator() {
         return searchPath.spliterator();
-    }
-
-    @Override
-    public int size() {
-        return searchPath.size();
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return searchPath.isEmpty();
-    }
-
-    @Override
-    public boolean contains(Object o) {
-        return searchPath.contains(o);
-    }
-
-    @Override
-    public Object[] toArray() {
-        return searchPath.toArray();
-    }
-
-    @Override
-    public <T> T[] toArray(@Nonnull T[] a) {
-        return searchPath.toArray(a);
-    }
-
-    @Override
-    public boolean add(String s) {
-        return false;
-    }
-
-    @Override
-    public boolean remove(Object o) {
-        return false;
-    }
-
-    @Override
-    public boolean containsAll(@Nonnull Collection<?> c) {
-        return searchPath.containsAll(c);
-    }
-
-    @Override
-    public boolean addAll(@Nonnull Collection<? extends String> c) {
-        return false;
-    }
-
-    @Override
-    public boolean removeAll(@Nonnull Collection<?> c) {
-        return false;
-    }
-
-    @Override
-    public boolean retainAll(@Nonnull Collection<?> c) {
-        return false;
-    }
-
-    @Override
-    public void clear() {
     }
 }

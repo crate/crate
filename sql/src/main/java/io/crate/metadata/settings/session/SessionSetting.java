@@ -26,7 +26,6 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.data.Row;
 import io.crate.sql.tree.Expression;
-import io.crate.types.DataType;
 
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -35,26 +34,19 @@ import java.util.function.Function;
 
 public class SessionSetting<T> {
 
-    private final DataType dataType;
     private final Consumer<Object[]> validator;
     private final Function<Object[], T> converter;
     private final BiConsumer<SessionContext, T> setter;
-    private final Function<SessionContext, T> getter;
+    private final Function<SessionContext, String> getter;
 
-    SessionSetting(DataType dataType,
-                   Consumer<Object[]> validator,
+    SessionSetting(Consumer<Object[]> validator,
                    Function<Object[], T> converter,
                    BiConsumer<SessionContext, T> setter,
-                   Function<SessionContext, T> getter) {
-        this.dataType = dataType;
+                   Function<SessionContext, String> getter) {
         this.validator = validator;
         this.converter = converter;
         this.setter = setter;
         this.getter = getter;
-    }
-
-    public DataType dataType() {
-        return dataType;
     }
 
     public void apply(Row parameters, List<Expression> expressions, SessionContext sessionContext) {
@@ -68,7 +60,7 @@ public class SessionSetting<T> {
         setter.accept(sessionContext, converted);
     }
 
-    public T getValue(SessionContext sessionContext) {
+    public String getValue(SessionContext sessionContext) {
         return getter.apply(sessionContext);
     }
 }

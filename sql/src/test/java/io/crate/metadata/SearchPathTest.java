@@ -22,11 +22,11 @@
 
 package io.crate.metadata;
 
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import org.junit.Test;
 
 import java.util.Iterator;
 
-import static io.crate.metadata.SearchPath.PG_CATALOG_SCHEMA;
 import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -51,22 +51,22 @@ public class SearchPathTest {
     @Test
     public void testPgCatalogIsFirstInTheSearchPathIfNotExplicitlySet() {
         SearchPath searchPath = SearchPath.createSearchPathFrom("firstSchema", "secondSchema");
-        assertThat(searchPath.iterator().next(), is(SearchPath.PG_CATALOG_SCHEMA));
+        assertThat(searchPath.iterator().next(), is(PgCatalogSchemaInfo.NAME));
     }
 
     @Test
     public void testPgCatalogKeepsPositionInSearchPathWhenExplicitlySet() {
-        SearchPath searchPath = SearchPath.createSearchPathFrom("firstSchema", "secondSchema", PG_CATALOG_SCHEMA);
+        SearchPath searchPath = SearchPath.createSearchPathFrom("firstSchema", "secondSchema", PgCatalogSchemaInfo.NAME);
         Iterator<String> pathIterator = searchPath.iterator();
         pathIterator.next();
         pathIterator.next();
         String thirdInPath = pathIterator.next();
-        assertThat(thirdInPath, is(SearchPath.PG_CATALOG_SCHEMA));
+        assertThat(thirdInPath, is(PgCatalogSchemaInfo.NAME));
     }
 
     @Test
     public void testPgCatalogISCurrentSchemaIfSetFirstInPath() {
-        SearchPath searchPath = SearchPath.createSearchPathFrom(PG_CATALOG_SCHEMA, "secondSchema");
-        assertThat(searchPath.currentSchema(), is(SearchPath.PG_CATALOG_SCHEMA));
+        SearchPath searchPath = SearchPath.createSearchPathFrom(PgCatalogSchemaInfo.NAME, "secondSchema");
+        assertThat(searchPath.currentSchema(), is(PgCatalogSchemaInfo.NAME));
     }
 }

@@ -35,6 +35,7 @@ import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Field;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.shade.org.postgresql.util.PGobject;
@@ -158,7 +159,7 @@ public class SQLTransportExecutor {
                             // explicitly setting the pg catalog schema will make it the current schema so attempts to
                             // create un-fully-qualified relations will fail. we filter it out and will implicitly
                             // remain the first in the search path.
-                            .filter(s -> !s.equals(SearchPath.PG_CATALOG_SCHEMA))
+                            .filter(s -> !s.equals(PgCatalogSchemaInfo.NAME))
                             .collect(Collectors.joining(", "))
         );
 
