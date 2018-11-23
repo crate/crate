@@ -45,6 +45,7 @@ statement
     | SHOW SCHEMAS (LIKE pattern=stringLiteral | where)?                             #showSchemas
     | SHOW COLUMNS (FROM | IN) tableName=qname ((FROM | IN) schema=qname)?
         (LIKE pattern=stringLiteral | where)?                                        #showColumns
+    | SHOW qname                                                                     #showSessionParameter
     | ALTER TABLE alterTableDefinition ADD COLUMN? addColumnDefinition               #addColumn
     | ALTER TABLE alterTableDefinition
         (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterTableProperties

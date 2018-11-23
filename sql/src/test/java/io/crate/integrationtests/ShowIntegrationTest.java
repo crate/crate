@@ -22,12 +22,14 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedSchema;
+import io.crate.testing.UseSemiJoins;
 import org.junit.Test;
 
 import java.util.Locale;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
 @UseRandomizedSchema(random = false)
@@ -264,7 +266,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table my_s1.my_table (id long) clustered into 1 shards with (number_of_replicas='0')");
         execute("create table my_s2.my_table (id long) clustered into 1 shards with (number_of_replicas='0')");
         execute("show schemas like 'my_%'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("my_s1\n" +
+        assertThat(printedTable(response.rows()), is("my_s1\n" +
                                                                     "my_s2\n"));
     }
 
@@ -288,7 +290,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
         );
 
         execute("show columns from my_table1");
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("column11| integer\n" +
                "column12| integer\n" +
                "column13| long\n" +
@@ -297,24 +299,24 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                "column31| integer\n"));
 
         execute("show columns in my_table1 like '%2'");
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("column12| integer\n" +
                "column22| string\n"));
 
         execute("show columns from my_table1 where column_name = 'column12'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("column12| integer\n"));
+        assertThat(printedTable(response.rows()), is("column12| integer\n"));
 
         execute("show columns in my_table1 from my_s1 where data_type = 'long'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("col22| long\n"));
+        assertThat(printedTable(response.rows()), is("col22| long\n"));
 
         execute("show columns in my_table1 from my_s1 like 'col1%'");
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("col11| timestamp\n" +
                "col12| integer\n" +
                "col13| integer\n"));
 
         execute("show columns from my_table1 in my_s1 like '%1'");
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("col11| timestamp\n" +
                "col31| integer\n"));
 
@@ -328,42 +330,61 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table foo (id long, name string)");
 
         execute("show tables");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("foo\n" +
+        assertThat(printedTable(response.rows()), is("foo\n" +
                                                                     "test\n"));
 
         execute(String.format(Locale.ENGLISH, "show tables from %s", schemaName));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+        assertThat(printedTable(response.rows()), is("test\n"));
 
         execute(String.format(Locale.ENGLISH, "show tables in %s", schemaName));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+        assertThat(printedTable(response.rows()), is("test\n"));
 
         execute(String.format(Locale.ENGLISH, "show tables from %s like 'hello'", schemaName));
         assertEquals(0, response.rowCount());
 
         execute(String.format(Locale.ENGLISH, "show tables from %s like '%%'", schemaName));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+        assertThat(printedTable(response.rows()), is("test\n"));
 
         execute("show tables like '%es%'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+        assertThat(printedTable(response.rows()), is("test\n"));
 
         execute("show tables like '%'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("foo\n" +
+        assertThat(printedTable(response.rows()), is("foo\n" +
                                                                     "test\n"));
 
         execute(String.format(Locale.ENGLISH, "show tables where table_name = '%s'", tableName));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+        assertThat(printedTable(response.rows()), is("test\n"));
 
         execute("show tables where table_name like '%es%'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+        assertThat(printedTable(response.rows()), is("test\n"));
 
         execute(String.format(Locale.ENGLISH, "show tables from %s where table_name like '%%es%%'", schemaName));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+        assertThat(printedTable(response.rows()), is("test\n"));
 
         execute(String.format(Locale.ENGLISH, "show tables in %s where table_name like '%%es%%'", schemaName));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
+        assertThat(printedTable(response.rows()), is("test\n"));
 
         execute(String.format(Locale.ENGLISH, "show tables from %s where table_name = 'hello'", schemaName));
         assertEquals(0, response.rowCount());
     }
 
+    @Test
+    public void testShowSearchPath() {
+        execute("show search_path");
+        assertThat(printedTable(response.rows()), is("[pg_catalog, doc]\n"));
+    }
+
+    @UseHashJoins(1)
+    @Test
+    public void testShowEnableHashJoin() {
+        execute("show enable_hashjoin");
+        assertThat(printedTable(response.rows()), is("true\n"));
+    }
+
+    @UseSemiJoins(1)
+    @Test
+    public void testShowEnableSemiJoin() {
+        execute("show enable_semijoin");
+        assertThat(printedTable(response.rows()), is("true\n"));
+    }
 }

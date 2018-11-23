@@ -28,6 +28,12 @@ session. Currently, there is only one of these settings.
 
         SET search_path TO myschema, doc;
 
+  To retrieve the current set value, :ref:`ref-show` can be used:
+
+    .. code-block:: sql
+
+        SHOW search_path;
+
   This setting mirrors the PostgreSQL `search_path`_ setting.
 
   Some clients, which generally connect to CrateDB using the
@@ -38,4 +44,4 @@ session. Currently, there is only one of these settings.
   it in the ``search_path`` *before* the configured schemas, unless it is
   explicitly declared in the ``search_path`` on any position.
 
-.. _search_path: https://www.postgresql.org/docs/8.1/static/ddl-schemas.html#DDL-SCHEMAS-PATH
+.. _search_path: https://www.postgresql.org/docs/10/static/ddl-schemas.html#DDL-SCHEMAS-PATH

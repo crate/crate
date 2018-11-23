@@ -49,6 +49,7 @@ import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.SetLicenseAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
+import io.crate.analyze.ShowSessionParameterAnalyzedStatement;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.ExpiredLicenseException;
 import io.crate.exceptions.UnhandledServerException;
@@ -67,6 +68,7 @@ import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
+import io.crate.planner.node.management.ShowSessionParameterPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.statement.CopyStatementPlanner;
 import io.crate.planner.statement.DeletePlanner;
@@ -226,6 +228,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement statement, PlannerContext context) {
         return new ShowCreateTablePlan(statement);
+    }
+
+    @Override
+    public Plan visitShowSessionParameterAnalyzedStatement(ShowSessionParameterAnalyzedStatement analysis, PlannerContext context) {
+        return new ShowSessionParameterPlan(analysis);
     }
 
     @Override

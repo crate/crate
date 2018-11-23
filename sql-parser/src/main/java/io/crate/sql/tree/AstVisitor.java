@@ -561,6 +561,10 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(showTransaction, context);
     }
 
+    public R visitShowSessionParameter(ShowSessionParameter node, C context) {
+        return visitStatement(node, context);
+    }
+
     public R visitCreateUser(CreateUser node, C context) {
         return visitStatement(node, context);
     }

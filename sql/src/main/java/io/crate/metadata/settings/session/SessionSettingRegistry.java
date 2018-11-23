@@ -27,6 +27,8 @@ import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.sql.tree.Expression;
 import io.crate.types.BooleanType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import java.util.Map;
 
@@ -75,5 +77,18 @@ public class SessionSettingRegistry {
 
     public static SessionSettingApplier getApplier(String setting) {
         return SESSION_SETTINGS.get(setting);
+    }
+
+    public static DataType dataTypeOfParameter(String parameterName) {
+        switch (parameterName) {
+            case SEARCH_PATH_KEY:
+                return DataTypes.STRING_ARRAY;
+            case SEMI_JOIN_KEY:
+                return DataTypes.BOOLEAN;
+            case HASH_JOIN_KEY:
+                return DataTypes.BOOLEAN;
+            default:
+                throw new IllegalArgumentException("Cannot resolve data type of parameter '" + parameterName + "'");
+        }
     }
 }

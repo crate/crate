@@ -40,6 +40,9 @@ Breaking Changes
 Changes
 =======
 
+- Added support for ``SHOW parameter_name`` to retrieve current session
+  parameter values.
+
 - Added support for ``initcap(string)`` scalar expression.
 
 - Improved the compatibility with postgres clients that use the ``text`` type
