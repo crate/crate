@@ -83,6 +83,10 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
         return searchPath;
     }
 
+    public void setSearchPath(SearchPath searchPath) {
+        this.searchPath = searchPath;
+    }
+
     public void setSearchPath(String... schemas) {
         this.searchPath = createSearchPathFrom(schemas);
     }

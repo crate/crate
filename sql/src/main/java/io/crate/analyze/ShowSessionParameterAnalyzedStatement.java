@@ -28,14 +28,14 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.types.DataType;
 
 import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
-
-import static io.crate.metadata.settings.session.SessionSettingRegistry.dataTypeOfParameter;
 
 public class ShowSessionParameterAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
 
@@ -43,8 +43,9 @@ public class ShowSessionParameterAnalyzedStatement implements AnalyzedStatement,
     private final String parameterName;
 
     public ShowSessionParameterAnalyzedStatement(String parameterName) {
+        DataType dataType = SessionSettingRegistry.SETTINGS.get(parameterName).dataType();
         this.fields = Collections.singletonList(
-            new Field(this, new OutputName("SHOW " + parameterName), dataTypeOfParameter(parameterName)));
+            new Field(this, new OutputName("SHOW " + parameterName), dataType));
         this.parameterName = parameterName;
     }
 

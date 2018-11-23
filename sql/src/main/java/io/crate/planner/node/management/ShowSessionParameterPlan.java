@@ -22,12 +22,13 @@
 
 package io.crate.planner.node.management;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ShowSessionParameterAnalyzedStatement;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.metadata.settings.session.SessionSetting;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -35,10 +36,6 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataType;
 
 import static io.crate.data.SentinelRow.SENTINEL;
-import static io.crate.metadata.settings.session.SessionSettingRegistry.HASH_JOIN_KEY;
-import static io.crate.metadata.settings.session.SessionSettingRegistry.SEARCH_PATH_KEY;
-import static io.crate.metadata.settings.session.SessionSettingRegistry.SEMI_JOIN_KEY;
-import static io.crate.metadata.settings.session.SessionSettingRegistry.dataTypeOfParameter;
 
 public class ShowSessionParameterPlan implements Plan {
 
@@ -62,27 +59,14 @@ public class ShowSessionParameterPlan implements Plan {
         String parameterName = statement.parameterName();
         Row1 row;
         try {
-            DataType parameterType = dataTypeOfParameter(parameterName);
-            Object parameterValue = resolveParameterValue(
-                parameterName, plannerContext.transactionContext().sessionContext());
+            SessionSetting sessionSetting = SessionSettingRegistry.SETTINGS.get(parameterName);
+            DataType parameterType = sessionSetting.dataType();
+            Object parameterValue = sessionSetting.getValue(plannerContext.transactionContext().sessionContext());
             row = new Row1(parameterType.value(parameterValue));
         } catch (Throwable t) {
             consumer.accept(null, t);
             return;
         }
         consumer.accept(InMemoryBatchIterator.of(row, SENTINEL), null);
-    }
-
-    private Object resolveParameterValue(String parameterName, SessionContext sessionContext) {
-        switch (parameterName) {
-            case SEARCH_PATH_KEY:
-                return sessionContext.searchPath();
-            case SEMI_JOIN_KEY:
-                return sessionContext.getSemiJoinsRewriteEnabled();
-            case HASH_JOIN_KEY:
-                return sessionContext.isHashJoinEnabled();
-            default:
-                throw new IllegalArgumentException("Session parameter '" + parameterName + "' not supported");
-        }
     }
 }
