@@ -183,9 +183,6 @@ public class TableHealthService extends AbstractComponent {
                                  boolean primary,
                                  long shardCount,
                                  @Nullable String relocatingNode) {
-        if (primary) {
-            shardsInfo.primaries += shardCount;
-        }
         if (isActiveShard(routingState) && primary) {
             shardsInfo.activePrimaries += shardCount;
         } else if (routingState.equalsIgnoreCase("UNASSIGNED")) {
@@ -273,7 +270,6 @@ public class TableHealthService extends AbstractComponent {
     @VisibleForTesting
     static class ShardsInfo {
         long activePrimaries = 0;
-        long primaries = 0;
         long unassigned = 0;
         long replicating = 0;
     }
