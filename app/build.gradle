@@ -287,32 +287,6 @@ uploadArchives {
     }
 }
 
-distTar {
-    dependsOn ':core:getVersion'
-    compression = Compression.GZIP
-    baseName = 'crate'
-    extension = 'tar.gz'
-    doFirst {
-        version = project(':core').getVersion.version
-        chooseReleaseNotes.execute()
-    }
-}
-
-distZip {
-    dependsOn ':core:getVersion'
-    baseName = 'crate'
-    doFirst {
-        version = project(':core').getVersion.version
-        chooseReleaseNotes.execute()
-    }
-}
-
-installDist {
-    doFirst {
-        chooseReleaseNotes.execute()
-    }
-}
-
 ext {
     downloadDir = new File(buildDir, 'downloads')
     adminui_version = '1.11.2'
@@ -346,6 +320,24 @@ task chooseReleaseNotes(dependsOn: [':core:getVersion']) {
         }
     }
 }
+
+distTar {
+    dependsOn ':core:getVersion'
+    compression = Compression.GZIP
+    baseName = 'crate'
+    extension = 'tar.gz'
+}
+distTar.dependsOn(chooseReleaseNotes)
+
+distZip {
+    dependsOn ':core:getVersion'
+    baseName = 'crate'
+}
+distZip.dependsOn(chooseReleaseNotes)
+
+
+installDist.dependsOn(chooseReleaseNotes)
+
 
 distributions {
     main {
