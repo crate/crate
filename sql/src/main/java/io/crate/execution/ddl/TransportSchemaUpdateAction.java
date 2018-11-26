@@ -33,8 +33,8 @@ import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.action.support.ActionFilters;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
@@ -128,10 +128,10 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         }
     }
 
-    private CompletableFuture<PutMappingResponse> updateMapping(Index index,
-                                                                TimeValue timeout,
-                                                                String mappingSource) {
-        FutureActionListener<PutMappingResponse, PutMappingResponse> putMappingListener = FutureActionListener.newInstance();
+    private CompletableFuture<AcknowledgedResponse> updateMapping(Index index,
+                                                                  TimeValue timeout,
+                                                                  String mappingSource) {
+        FutureActionListener<AcknowledgedResponse, AcknowledgedResponse> putMappingListener = FutureActionListener.newInstance();
         PutMappingRequest putMappingRequest = new PutMappingRequest()
             .indices(new String[0])
             .setConcreteIndex(index)

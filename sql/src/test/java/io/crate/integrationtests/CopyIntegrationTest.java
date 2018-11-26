@@ -733,7 +733,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         // one of the first files will have a duplicate key error
         assertThat(result, containsString("| 1| 1| {A document with the same primary key exists already={count=1, line_numbers=["));
         // file `data3.json` has a invalid timestamp error
-        assertThat(result, containsString("data3.json| 1| 2| {failed to parse [ts]={count=2, line_numbers=["));
+        assertThat(result, containsString("data3.json| 1| 2| {failed to parse field [ts] of type [date]={count=2, line_numbers=["));
         // file `data4.json` has an invalid json item entry
         assertThat(result, containsString("data4.json| 1| 1| {JSON parser error: "));
     }

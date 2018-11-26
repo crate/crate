@@ -35,10 +35,10 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.metadata.AliasOrIndex;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -154,9 +154,9 @@ public class TableCreator {
 
         if (metaData.hasAlias(fqn) && isPartition(metaData, fqn)) {
             logger.debug("Deleting orphaned partitions with alias: {}", fqn);
-            transportDeleteIndexAction.execute(new DeleteIndexRequest(fqn), new ActionListener<DeleteIndexResponse>() {
+            transportDeleteIndexAction.execute(new DeleteIndexRequest(fqn), new ActionListener<AcknowledgedResponse>() {
                 @Override
-                public void onResponse(DeleteIndexResponse response) {
+                public void onResponse(AcknowledgedResponse response) {
                     if (!response.isAcknowledged()) {
                         warnNotAcknowledged("deleting orphaned alias");
                     }
@@ -195,9 +195,9 @@ public class TableCreator {
             if (logger.isDebugEnabled()) {
                 logger.debug("Deleting orphaned partitions: {}", Joiner.on(", ").join(orphans));
             }
-            transportDeleteIndexAction.execute(new DeleteIndexRequest(orphans), new ActionListener<DeleteIndexResponse>() {
+            transportDeleteIndexAction.execute(new DeleteIndexRequest(orphans), new ActionListener<AcknowledgedResponse>() {
                 @Override
-                public void onResponse(DeleteIndexResponse response) {
+                public void onResponse(AcknowledgedResponse response) {
                     if (!response.isAcknowledged()) {
                         warnNotAcknowledged("deleting orphans");
                     }

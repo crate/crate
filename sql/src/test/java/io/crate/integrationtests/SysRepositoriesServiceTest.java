@@ -25,8 +25,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
-import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryResponse;
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryResponse;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
@@ -76,7 +75,7 @@ public class SysRepositoriesServiceTest extends SQLTransportIntegrationTest {
     }
 
     private void createRepository(String name) {
-        PutRepositoryResponse putRepositoryResponse = client().admin().cluster().preparePutRepository(name)
+        AcknowledgedResponse putRepositoryResponse = client().admin().cluster().preparePutRepository(name)
             .setType("fs")
             .setSettings(Settings.builder()
                 .put("location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath())
@@ -88,7 +87,7 @@ public class SysRepositoriesServiceTest extends SQLTransportIntegrationTest {
     }
 
     private void deleteRepository(String name) {
-        DeleteRepositoryResponse deleteRepositoryResponse = client().admin().cluster().prepareDeleteRepository(name).get();
+        AcknowledgedResponse deleteRepositoryResponse = client().admin().cluster().prepareDeleteRepository(name).get();
         assertThat(deleteRepositoryResponse.isAcknowledged(), equalTo(true));
     }
 

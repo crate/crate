@@ -193,10 +193,10 @@ public final class QueryTester implements AutoCloseable {
                 queryCache,
                 bitsetFilterCache
             );
-            IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, new InternalEngineFactory());
+            IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, new InternalEngineFactory(), Collections.emptyMap());
             Client client = mock(Client.class);
             NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(ClusterModule.getNamedWriteables());
-            nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env);
+            nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env, nodeId -> {});
             luceneReferenceResolver = new LuceneReferenceResolver(
                 mapperService::fullName,
                 idxSettings

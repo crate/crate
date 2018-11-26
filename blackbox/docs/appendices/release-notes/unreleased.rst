@@ -72,7 +72,11 @@ Changes
 - The ``mqtt`` endpoint has been deprecated and will be removed in a future
   version.
 
-- Upgraded to Elasticsearch 6.4.2
+- Upgraded to Elasticsearch 6.5.1
+
+- The default logging configuration changed. If you've customized your logging
+  configuration you should replace the ``%marker`` entry in
+  ``log4j2.properties`` with ``[%node_name] %marker``
 
 - Deprecated the ``http.enabled`` setting.
 

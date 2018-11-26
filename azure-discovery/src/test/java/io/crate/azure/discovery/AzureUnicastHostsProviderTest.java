@@ -40,9 +40,8 @@ import com.microsoft.azure.management.network.models.Subnet;
 import com.microsoft.azure.management.network.models.VirtualNetwork;
 import com.microsoft.azure.management.network.models.VirtualNetworkGetResponse;
 import com.microsoft.windowsazure.exception.ServiceException;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.CollectionUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,7 +64,7 @@ public class AzureUnicastHostsProviderTest {
 
     @Before
     public void setUp() throws IOException, ServiceException {
-        logger = Loggers.getLogger(this.getClass(), Settings.EMPTY);
+        logger = LogManager.getLogger(this.getClass());
 
         ResourceId resourceId = new ResourceId();
         resourceId.setId("/subscriptions/xx/resourceGroups/my_resourcegroup/providers/Microsoft.Network/networkInterfaces/nic_dummy/ipConfigurations/Nic-IP-config");

@@ -36,7 +36,7 @@ import java.io.IOException;
 public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
 
     public Mapper create(String name, ObjectMapper parentMapper, ParseContext context) {
-        Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings(), context.path());
+        Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
         try {
             Mapper.Builder<?, ?> innerBuilder = detectInnerMapper(context, name, context.parser());
             if (innerBuilder == null) {
@@ -45,7 +45,7 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
             Mapper innerMapper = innerBuilder.build(builderContext);
             if (innerMapper instanceof ObjectMapper) {
                 ObjectMapper objectMapper = (ObjectMapper) innerMapper;
-                return new ObjectArrayMapper(name, objectMapper, context.indexSettings());
+                return new ObjectArrayMapper(name, objectMapper, context.indexSettings().getSettings());
             }
             MappedFieldType mappedFieldType = new ArrayFieldType(((FieldMapper.Builder) innerBuilder).fieldType());
             mappedFieldType.setName(name);
@@ -53,7 +53,7 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
                 name,
                 mappedFieldType,
                 mappedFieldType.clone(),
-                context.indexSettings(),
+                context.indexSettings().getSettings(),
                 FieldMapper.MultiFields.empty(),
                 innerMapper);
         } catch (IOException e) {

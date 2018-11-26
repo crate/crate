@@ -35,7 +35,7 @@ import io.crate.udc.plugin.UDCPlugin;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.monitor.jvm.JvmInfo;
@@ -45,7 +45,6 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
 import org.elasticsearch.transport.Netty4Plugin;
 
-import java.util.Arrays;
 import java.util.Collection;
 
 public class CrateNode extends Node {
@@ -65,24 +64,18 @@ public class CrateNode extends Node {
         Netty4Plugin.class);
 
     protected CrateNode(Environment environment) {
-        super(environment, CLASSPATH_PLUGINS);
+        super(environment, CLASSPATH_PLUGINS, true);
     }
 
     @Override
-    protected void startUpLogging(Logger logger,
-                                  Settings tmpSettings,
-                                  String nodeName,
-                                  String nodeId,
-                                  boolean hadPredefinedNodeName) {
-        if (hadPredefinedNodeName == false) {
-            logger.info("node name [{}] derived from node ID [{}]; set [{}] to override", nodeName, nodeId, NODE_NAME_SETTING.getKey());
-        } else {
-            logger.info("node name [{}], node ID [{}]", nodeName, nodeId);
-        }
+    protected void registerDerivedNodeNameWithLogger(String nodeName) {
+        LogConfigurator.setNodeName(nodeName);
+    }
 
-        final JvmInfo jvmInfo = JvmInfo.jvmInfo();
+    @Override
+    protected void logVersion(Logger logger, JvmInfo jvmInfo) {
         logger.info(
-            "CrateDB version[{}], pid[{}], build[{}/{}], OS[{}/{}/{}], JVM[{}/{}/{}/{}]",
+            "version[{}], pid[{}], build[{}/{}], OS[{}/{}/{}], JVM[{}/{}/{}/{}]",
             Version.CURRENT,
             jvmInfo.pid(),
             Build.CURRENT.hashShort(),
@@ -94,12 +87,5 @@ public class CrateNode extends Node {
             Constants.JVM_NAME,
             Constants.JAVA_VERSION,
             Constants.JVM_VERSION);
-        logger.info("JVM arguments {}", Arrays.toString(jvmInfo.getInputArguments()));
-
-        if (logger.isDebugEnabled()) {
-            Environment environment = getEnvironment();
-            logger.debug("using config [{}], data [{}], logs [{}], plugins [{}]",
-                environment.configFile(), Arrays.toString(environment.dataFiles()), environment.logsFile(), environment.pluginsFile());
-        }
     }
 }

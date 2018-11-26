@@ -27,14 +27,13 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.CancellableThreads;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
@@ -67,7 +66,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class BlobRecoveryHandler extends RecoverySourceHandler {
 
-    private static final Logger logger = Loggers.getLogger(BlobRecoveryHandler.class);
+    private static final Logger logger = LogManager.getLogger(BlobRecoveryHandler.class);
     private final StartRecoveryRequest request;
     private final TransportService transportService;
     private final BlobShard blobShard;
@@ -80,11 +79,10 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                                RecoveryTargetHandler recoveryTarget,
                                StartRecoveryRequest request,
                                int fileChunkSizeInBytes,
-                               Settings nodeSettings,
                                final TransportService transportService,
                                BlobTransferTarget blobTransferTarget,
                                BlobIndicesService blobIndicesService) {
-        super(shard, recoveryTarget, request, fileChunkSizeInBytes, nodeSettings);
+        super(shard, recoveryTarget, request, fileChunkSizeInBytes);
         assert BlobIndex.isBlobIndex(shard.shardId().getIndexName()) : "Shard must belong to a blob index";
         this.blobShard = blobIndicesService.blobShardSafe(request.shardId());
         this.request = request;

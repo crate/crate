@@ -30,11 +30,10 @@ import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryResponse;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryResponse;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -85,9 +84,9 @@ public class RepositoryService {
         final String repoName = analyzedStatement.repositoryName();
         deleteRepositoryAction.execute(
             new DeleteRepositoryRequest(repoName),
-            new ActionListener<DeleteRepositoryResponse>() {
+            new ActionListener<AcknowledgedResponse>() {
                 @Override
-                public void onResponse(DeleteRepositoryResponse deleteRepositoryResponse) {
+                public void onResponse(AcknowledgedResponse deleteRepositoryResponse) {
                     if (!deleteRepositoryResponse.isAcknowledged()) {
                         LOGGER.info("delete repository '{}' not acknowledged", repoName);
                     }
@@ -110,9 +109,9 @@ public class RepositoryService {
         PutRepositoryRequest request = new PutRepositoryRequest(repoName);
         request.type(statement.repositoryType());
         request.settings(statement.settings());
-        putRepositoryAction.execute(request, new ActionListener<PutRepositoryResponse>() {
+        putRepositoryAction.execute(request, new ActionListener<AcknowledgedResponse>() {
             @Override
-            public void onResponse(PutRepositoryResponse putRepositoryResponse) {
+            public void onResponse(AcknowledgedResponse putRepositoryResponse) {
                 result.complete(1L);
             }
 

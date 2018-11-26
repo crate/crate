@@ -181,11 +181,12 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
     }
 
     @Override
-    public Mapper parse(ParseContext context) throws IOException {
+    public void parse(ParseContext context) throws IOException {
         XContentParser parser = context.parser();
         XContentParser.Token token = parser.currentToken();
         if (token == XContentParser.Token.VALUE_NULL) {
-            return parseInner(context);
+            parseInner(context);
+            return;
         }
         if (token == XContentParser.Token.START_ARRAY) {
             token = parser.nextToken();
@@ -193,26 +194,21 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         Mapper newInnerMapper = innerMapper;
         while (token != XContentParser.Token.END_ARRAY) {
             // we only get here for non-empty arrays
-            Mapper update = parseInner(context);
-            if (update != null) {
-                newInnerMapper = newInnerMapper.merge(update, true);
-            }
+            parseInner(context);
             token = parser.nextToken();
         }
         if (newInnerMapper == innerMapper) {
-            return null;
+            return;
         }
         innerMapper = newInnerMapper;
-        return this;
     }
 
-    private Mapper parseInner(ParseContext context) throws IOException {
+    private void parseInner(ParseContext context) throws IOException {
         assert innerMapper instanceof FieldMapper : "InnerMapper must be a FieldMapper";
-        Mapper update = ((FieldMapper) innerMapper).parse(context);
+        ((FieldMapper) innerMapper).parse(context);
         if (copyTo() != null) {
             DocumentParser.parseCopyFields(context, copyTo().copyToFields());
         }
-        return update;
     }
 
     @Override

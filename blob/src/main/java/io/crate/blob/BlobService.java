@@ -109,7 +109,6 @@ public class BlobService extends AbstractLifecycleComponent {
                     recoveryTarget,
                     request,
                     fileChunkSizeInBytes,
-                    settings,
                     transportService,
                     blobTransferTarget,
                     blobIndicesService

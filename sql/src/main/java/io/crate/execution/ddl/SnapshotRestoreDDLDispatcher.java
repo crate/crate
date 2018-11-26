@@ -38,13 +38,13 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.get.TransportGetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
@@ -81,9 +81,9 @@ public class SnapshotRestoreDDLDispatcher {
 
         transportActionProvider.transportDeleteSnapshotAction().execute(
             new DeleteSnapshotRequest(repositoryName, snapshotName),
-            new ActionListener<DeleteSnapshotResponse>() {
+            new ActionListener<AcknowledgedResponse>() {
                 @Override
-                public void onResponse(DeleteSnapshotResponse response) {
+                public void onResponse(AcknowledgedResponse response) {
                     if (!response.isAcknowledged()) {
                         LOGGER.info("delete snapshot '{}.{}' not acknowledged", repositoryName, snapshotName);
                     }

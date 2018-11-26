@@ -99,7 +99,7 @@ public class SharedShardContext {
         }
 
         private RefCountSearcher(Engine.Searcher searcher, IndexSearcher indexSearcher) {
-            super(searcher.source(), indexSearcher);
+            super(searcher.source(), indexSearcher, () -> {});
             this.searcher = searcher;
         }
 

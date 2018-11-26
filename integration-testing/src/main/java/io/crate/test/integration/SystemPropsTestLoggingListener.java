@@ -22,8 +22,8 @@
 
 package io.crate.test.integration;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.logging.Loggers;
 import org.junit.runner.Description;
 import org.junit.runner.Result;
@@ -68,9 +68,9 @@ public class SystemPropsTestLoggingListener extends RunListener {
 
     private static Logger resolveLogger(String loggerName) {
         if (loggerName.equalsIgnoreCase("_root")) {
-            return ESLoggerFactory.getRootLogger();
+            return LogManager.getRootLogger();
         }
-        return Loggers.getLogger(loggerName);
+        return LogManager.getLogger(loggerName);
     }
 
 

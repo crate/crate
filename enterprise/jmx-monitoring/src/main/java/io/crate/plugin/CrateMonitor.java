@@ -29,11 +29,10 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.postgres.PostgresNetty;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -54,7 +53,6 @@ public class CrateMonitor {
 
     @Inject
     public CrateMonitor(JobsLogs jobsLogs,
-                        Settings settings,
                         PostgresNetty postgresNetty,
                         @Nullable HttpServerTransport httpServerTransport,
                         TransportService transportService,
@@ -62,7 +60,7 @@ public class CrateMonitor {
                         ClusterService clusterService,
                         ThreadPool threadPool,
                         CrateCircuitBreakerService breakerService) {
-        logger = Loggers.getLogger(CrateMonitor.class, settings);
+        logger = LogManager.getLogger(CrateMonitor.class);
         registerMBean(QueryStats.NAME, new QueryStats(jobsLogs));
         registerMBean(NodeStatus.NAME, new NodeStatus(sqlOperations::isEnabled));
         registerMBean(NodeInfo.NAME, new NodeInfo(clusterService::localNode, () -> clusterService.state().version()));

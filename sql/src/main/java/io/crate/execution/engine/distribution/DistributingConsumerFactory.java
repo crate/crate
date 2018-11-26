@@ -29,12 +29,12 @@ import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.StreamerVisitor;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -62,7 +62,7 @@ public class DistributingConsumerFactory extends AbstractComponent {
         this.clusterService = clusterService;
         this.responseExecutor = threadPool.executor(RESPONSE_EXECUTOR_NAME);
         this.transportDistributedResultAction = transportDistributedResultAction;
-        distributingDownstreamLogger = Loggers.getLogger(DistributingConsumer.class, settings);
+        distributingDownstreamLogger = LogManager.getLogger(DistributingConsumer.class);
     }
 
     public RowConsumer create(NodeOperation nodeOperation,

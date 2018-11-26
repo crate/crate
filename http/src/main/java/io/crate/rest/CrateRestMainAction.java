@@ -25,6 +25,7 @@ package io.crate.rest;
 import com.google.common.collect.ImmutableList;
 import io.crate.Build;
 import io.crate.Version;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -35,7 +36,6 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.DeprecationLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -101,7 +101,7 @@ public class CrateRestMainAction implements RestHandler {
         this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
         this.siteDirectory = siteDirectory;
         Boolean esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
-        Logger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
+        Logger logger = LogManager.getLogger(getClass().getPackage().getName());
         if (esApiEnabled) {
             logger.warn("Unofficial Elasticsearch HTTP REST API is enabled");
             DeprecationLogger deprecationLogger = new DeprecationLogger(logger);

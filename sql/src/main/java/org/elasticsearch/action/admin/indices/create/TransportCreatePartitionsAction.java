@@ -214,13 +214,12 @@ public class TransportCreatePartitionsAction
                 return currentState;
             }
 
-            Map<String, IndexMetaData.Custom> customs = new HashMap<>();
             Map<String, Map<String, Object>> mappings = new HashMap<>();
             Map<String, AliasMetaData> templatesAliases = new HashMap<>();
             List<String> templateNames = new ArrayList<>();
 
             List<IndexTemplateMetaData> templates = findTemplates(request, currentState);
-            applyTemplates(customs, mappings, templatesAliases, templateNames, templates);
+            applyTemplates(mappings, templatesAliases, templateNames, templates);
             File mappingsDir = new File(environment.configFile().toFile(), "mappings");
             if (mappingsDir.isDirectory()) {
                 addMappingFromMappingsFile(mappings, mappingsDir, request);
@@ -284,9 +283,6 @@ public class TransportCreatePartitionsAction
                 }
                 for (AliasMetaData aliasMetaData : templatesAliases.values()) {
                     indexMetaDataBuilder.putAlias(aliasMetaData);
-                }
-                for (Map.Entry<String, IndexMetaData.Custom> customEntry : customs.entrySet()) {
-                    indexMetaDataBuilder.putCustom(customEntry.getKey(), customEntry.getValue());
                 }
                 indexMetaDataBuilder.state(IndexMetaData.State.OPEN);
 
@@ -438,8 +434,7 @@ public class TransportCreatePartitionsAction
         }
     }
 
-    private void applyTemplates(Map<String, IndexMetaData.Custom> customs,
-                                Map<String, Map<String, Object>> mappings,
+    private void applyTemplates(Map<String, Map<String, Object>> mappings,
                                 Map<String, AliasMetaData> templatesAliases,
                                 List<String> templateNames,
                                 List<IndexTemplateMetaData> templates) throws Exception {
@@ -451,18 +446,6 @@ public class TransportCreatePartitionsAction
                     XContentHelper.mergeDefaults(mappings.get(cursor.key), parseMapping(cursor.value.string()));
                 } else {
                     mappings.put(cursor.key, parseMapping(cursor.value.string()));
-                }
-            }
-            // handle custom
-            for (ObjectObjectCursor<String, IndexMetaData.Custom> cursor : template.customs()) {
-                String type = cursor.key;
-                IndexMetaData.Custom custom = cursor.value;
-                IndexMetaData.Custom existing = customs.get(type);
-                if (existing == null) {
-                    customs.put(type, custom);
-                } else {
-                    IndexMetaData.Custom merged = existing.mergeWith(custom);
-                    customs.put(type, merged);
                 }
             }
             //handle aliases

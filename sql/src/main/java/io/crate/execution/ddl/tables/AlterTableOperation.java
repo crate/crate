@@ -44,27 +44,25 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
-import org.elasticsearch.action.admin.indices.close.CloseIndexResponse;
 import org.elasticsearch.action.admin.indices.close.TransportCloseIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
 import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
 import org.elasticsearch.action.admin.indices.open.OpenIndexResponse;
 import org.elasticsearch.action.admin.indices.open.TransportOpenIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -73,7 +71,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -125,8 +122,7 @@ public class AlterTableOperation {
                                TransportRenameTableAction transportRenameTableAction,
                                TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
                                SQLOperations sqlOperations,
-                               IndexScopedSettings indexScopedSettings,
-                               Settings settings) {
+                               IndexScopedSettings indexScopedSettings) {
 
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
@@ -138,7 +134,7 @@ public class AlterTableOperation {
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
         this.indexScopedSettings = indexScopedSettings;
         this.sqlOperations = sqlOperations;
-        logger = Loggers.getLogger(getClass(), settings);
+        logger = LogManager.getLogger(getClass());
     }
 
     public CompletableFuture<Long> executeAlterTableAddColumn(final AddColumnAnalyzedStatement analysis) {
@@ -188,7 +184,7 @@ public class AlterTableOperation {
     }
 
     private CompletableFuture<Long> closeTable(String... indices) {
-        FutureActionListener<CloseIndexResponse, Long> listener = new FutureActionListener<>(r -> -1L);
+        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         CloseIndexRequest request = new CloseIndexRequest(indices);
         transportCloseIndexAction.execute(request, listener);
         return listener;
@@ -370,7 +366,7 @@ public class AlterTableOperation {
 
         PutIndexTemplateRequest request = preparePutIndexTemplateRequest(indexScopedSettings, indexTemplateMetaData,
             newMappings, mappingsToRemove, newSettings, relationName, templateName, logger);
-        FutureActionListener<PutIndexTemplateResponse, Long> listener = new FutureActionListener<>(r -> -1L);
+        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         transportPutIndexTemplateAction.execute(request, listener);
         return listener;
     }
@@ -451,7 +447,7 @@ public class AlterTableOperation {
             return CompletableFutures.failedFuture(e);
         }
 
-        FutureActionListener<PutMappingResponse, Long> listener = new FutureActionListener<>(r -> 0L);
+        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 0L);
         transportPutMappingAction.execute(preparePutMappingRequest(mapping, newMapping, indices), listener);
         return listener;
     }
@@ -507,7 +503,7 @@ public class AlterTableOperation {
         UpdateSettingsRequest request = new UpdateSettingsRequest(markArchivedSettings(newSettings), indices);
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
-        FutureActionListener<UpdateSettingsResponse, Long> listener = new FutureActionListener<>(r -> 0L);
+        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 0L);
         transportUpdateSettingsAction.execute(request, listener);
         return listener;
     }

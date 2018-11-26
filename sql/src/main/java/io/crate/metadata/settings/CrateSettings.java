@@ -35,6 +35,7 @@ import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
 import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -48,7 +49,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.FilterAllocationDeci
 import org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoverySettings;
@@ -252,7 +252,7 @@ public final class CrateSettings implements ClusterStateListener {
 
     @Inject
     public CrateSettings(ClusterService clusterService, Settings settings) {
-        logger = Loggers.getLogger(this.getClass(), settings);
+        logger = LogManager.getLogger(this.getClass());
         Settings.Builder defaultsBuilder = Settings.builder();
         for (CrateSetting builtInSetting : BUILT_IN_SETTINGS) {
             defaultsBuilder.put(builtInSetting.getKey(), builtInSetting.setting().getDefaultRaw(settings));

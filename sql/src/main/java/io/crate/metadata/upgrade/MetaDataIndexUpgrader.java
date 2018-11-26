@@ -25,11 +25,10 @@ package io.crate.metadata.upgrade;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.MapperParsingException;
 
 import java.io.IOException;
@@ -43,8 +42,8 @@ public class MetaDataIndexUpgrader implements UnaryOperator<IndexMetaData> {
 
     private final Logger logger;
 
-    public MetaDataIndexUpgrader(Settings settings) {
-        this.logger = Loggers.getLogger(MetaDataIndexUpgrader.class, settings);
+    public MetaDataIndexUpgrader() {
+        this.logger = LogManager.getLogger(MetaDataIndexUpgrader.class);
     }
 
     @Override

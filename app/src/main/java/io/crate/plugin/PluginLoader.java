@@ -25,6 +25,7 @@ package io.crate.plugin;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.crate.Plugin;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.xbean.finder.ResourceFinder;
 import org.elasticsearch.bootstrap.JarHell;
@@ -32,7 +33,6 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.PathUtils;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.PluginInfo;
@@ -80,7 +80,7 @@ public class PluginLoader {
         } else {
             pluginsPath = PathUtils.get(pluginFolder).normalize();
         }
-        logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
+        logger = LogManager.getLogger(getClass().getPackage().getName());
 
         Collection<Class<? extends Plugin>> implementations = findImplementations();
 

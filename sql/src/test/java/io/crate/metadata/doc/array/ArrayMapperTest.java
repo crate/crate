@@ -196,7 +196,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
 
         expectedException.expect(MapperParsingException.class);
-        expectedException.expectMessage("failed to parse [array_field]");
+        expectedException.expectMessage("failed to parse field [array_field] of type [double]");
 
         BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
             .startObject()

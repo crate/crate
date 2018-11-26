@@ -28,11 +28,10 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -69,7 +68,7 @@ public class BlobAdminClient {
      * @param indexSettings updated index settings
      */
     public CompletableFuture<Long> alterBlobTable(String tableName, Settings indexSettings) {
-        FutureActionListener<UpdateSettingsResponse, Long> listener = new FutureActionListener<>(r -> 1L);
+        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 1L);
         updateSettingsAction.execute(new UpdateSettingsRequest(indexSettings, fullIndexName(tableName)), listener);
         return listener;
     }
@@ -87,7 +86,7 @@ public class BlobAdminClient {
     }
 
     public CompletableFuture<Long> dropBlobTable(final String tableName) {
-        FutureActionListener<DeleteIndexResponse, Long> listener = new FutureActionListener<>(r -> 1L);
+        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 1L);
         deleteIndexAction.execute(new DeleteIndexRequest(fullIndexName(tableName)), listener);
         return listener;
     }

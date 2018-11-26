@@ -24,11 +24,11 @@ package io.crate.metadata.upgrade;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.metadata.DefaultTemplateService;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
@@ -45,8 +45,8 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
 
     private final Logger logger;
 
-    public IndexTemplateUpgrader(Settings settings) {
-        this.logger = Loggers.getLogger(IndexTemplateUpgrader.class, settings);
+    public IndexTemplateUpgrader() {
+        this.logger = LogManager.getLogger(IndexTemplateUpgrader.class);
     }
 
     @Override

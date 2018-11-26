@@ -302,11 +302,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @Override
     public UnaryOperator<IndexMetaData> getIndexMetaDataUpgrader() {
-        return new MetaDataIndexUpgrader(settings);
+        return new MetaDataIndexUpgrader();
     }
 
     @Override
     public UnaryOperator<Map<String, IndexTemplateMetaData>> getIndexTemplateMetaDataUpgrader() {
-        return new IndexTemplateUpgrader(settings);
+        return new IndexTemplateUpgrader();
     }
 }

@@ -25,7 +25,6 @@ package io.crate.execution.engine.collect;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -57,7 +56,7 @@ public class GroupByOptimizedIteratorTest {
         IndexSearcher indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
 
         assertThat(
-            GroupByOptimizedIterator.hasHighCardinalityRatio(() -> new Engine.Searcher("dummy", indexSearcher), "x"),
+            GroupByOptimizedIterator.hasHighCardinalityRatio(() -> new Engine.Searcher("dummy", indexSearcher, () -> {}), "x"),
             is(true)
         );
     }
@@ -77,7 +76,7 @@ public class GroupByOptimizedIteratorTest {
         IndexSearcher indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
 
         assertThat(
-            GroupByOptimizedIterator.hasHighCardinalityRatio(() -> new Engine.Searcher("dummy", indexSearcher), "x"),
+            GroupByOptimizedIterator.hasHighCardinalityRatio(() -> new Engine.Searcher("dummy", indexSearcher, () -> {}), "x"),
             is(false)
         );
     }

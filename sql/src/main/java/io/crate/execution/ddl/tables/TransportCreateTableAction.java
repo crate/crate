@@ -30,9 +30,9 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.ActionFilters;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -120,7 +120,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
             transportCreateIndexAction.masterOperation(createIndexRequest, state, wrappedListener);
         } else if (request.getPutIndexTemplateRequest() != null) {
             PutIndexTemplateRequest putIndexTemplateRequest = request.getPutIndexTemplateRequest();
-            ActionListener<PutIndexTemplateResponse> wrappedListener = ActionListener.wrap(
+            ActionListener<AcknowledgedResponse> wrappedListener = ActionListener.wrap(
                 response -> listener.onResponse(new CreateTableResponse(response.isAcknowledged())),
                 listener::onFailure
             );

@@ -37,11 +37,11 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
@@ -102,7 +102,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                          Authentication authentication,
                          SslContextProvider sslContextProvider) {
         super(settings);
-        namedLogger = Loggers.getLogger("psql", settings);
+        namedLogger = LogManager.getLogger("psql");
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
         this.authentication = authentication;

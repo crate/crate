@@ -29,13 +29,12 @@ import io.crate.data.Row;
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
@@ -62,12 +61,10 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
     private Session session;
 
     @Inject
-    public TablesNeedUpgradeSysCheck(Provider<SQLOperations> sqlOperationsProvider,
-                                     Settings settings) {
+    public TablesNeedUpgradeSysCheck(Provider<SQLOperations> sqlOperationsProvider) {
         super(ID, DESCRIPTION, Severity.MEDIUM);
         this.sqlOperationsProvider = sqlOperationsProvider;
-
-        this.logger = Loggers.getLogger(TablesNeedUpgradeSysCheck.class, settings);
+        this.logger = LogManager.getLogger(TablesNeedUpgradeSysCheck.class);
     }
 
     @Override

@@ -44,7 +44,7 @@ public class IndexTemplateUpgraderTest {
 
     @Test
     public void testDefaultTemplateIsUpgraded() throws IOException {
-        IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader(Settings.EMPTY);
+        IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader();
 
         HashMap<String, IndexTemplateMetaData> templates = new HashMap<>();
         IndexTemplateMetaData oldTemplate = IndexTemplateMetaData.builder(TEMPLATE_NAME)
@@ -58,7 +58,7 @@ public class IndexTemplateUpgraderTest {
 
     @Test
     public void testArchivedSettingsAreRemovedOnPartitionedTableTemplates() {
-        IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader(Settings.EMPTY);
+        IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader();
 
         Settings settings = Settings.builder()
             .put(ARCHIVED_SETTINGS_PREFIX + "some.setting", true)   // archived, must be filtered out

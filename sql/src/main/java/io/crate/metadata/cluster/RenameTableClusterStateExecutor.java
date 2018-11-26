@@ -28,6 +28,7 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocIndexMetaData;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -40,8 +41,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.MetaDataIndexAliasesService;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -66,12 +65,11 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
     private final NamedXContentRegistry xContentRegistry;
     private final DDLClusterStateService ddlClusterStateService;
 
-    public RenameTableClusterStateExecutor(Settings settings,
-                                           IndexNameExpressionResolver indexNameExpressionResolver,
+    public RenameTableClusterStateExecutor(IndexNameExpressionResolver indexNameExpressionResolver,
                                            MetaDataIndexAliasesService metaDataIndexAliasesService,
                                            NamedXContentRegistry namedXContentRegistry,
                                            DDLClusterStateService ddlClusterStateService) {
-        logger = Loggers.getLogger(getClass(), settings);
+        logger = LogManager.getLogger(getClass());
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.metaDataIndexAliasesService = metaDataIndexAliasesService;
         this.xContentRegistry = namedXContentRegistry;

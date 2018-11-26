@@ -63,8 +63,11 @@ public class TransportRenameTableAction extends AbstractDDLTransportAction<Renam
         super(settings, ACTION_NAME, transportService, clusterService, threadPool, actionFilters,
             indexNameExpressionResolver, RenameTableRequest::new, RenameTableResponse::new, RenameTableResponse::new,
             "rename-table");
-        executor = new RenameTableClusterStateExecutor(settings, indexNameExpressionResolver,
-            metaDataIndexAliasesService, namedXContentRegistry, ddlClusterStateService);
+        executor = new RenameTableClusterStateExecutor(
+            indexNameExpressionResolver,
+            metaDataIndexAliasesService,
+            namedXContentRegistry,
+            ddlClusterStateService);
     }
 
     @Override

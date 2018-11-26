@@ -86,6 +86,7 @@ import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -93,7 +94,6 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.indices.IndicesService;
@@ -146,7 +146,7 @@ public class JobSetup extends AbstractComponent {
                     ShardCollectSource shardCollectSource,
                     BigArrays bigArrays) {
         super(settings);
-        distResultRXTaskLogger = Loggers.getLogger(DistResultRXTask.class, settings);
+        distResultRXTaskLogger = LogManager.getLogger(DistResultRXTask.class);
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
