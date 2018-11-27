@@ -150,8 +150,17 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "FROM information_schema.views " +
                 "WHERE table_name LIKE 't1%' " +
                 "ORDER BY 1, 2");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("t1_view1| SELECT doc.t1.id, doc.t1.name FROM doc.t1 WHERE (doc.t1.name = 'foo')\n" +
-                                                                    "t1_view2| SELECT doc.t1.id FROM doc.t1 WHERE (doc.t1.name = 'foo')\n"));
+        Object[][] rows = response.rows();
+        assertThat(rows[0][0], is("t1_view1"));
+        assertThat(rows[0][1],
+            is("SELECT *\n" +
+               "FROM \"t1\"\n" +
+               "WHERE \"name\" = 'foo'\n"));
+        assertThat(rows[1][0], is("t1_view2"));
+        assertThat(rows[1][1],
+            is("SELECT \"id\"\n" +
+               "FROM \"t1\"\n" +
+               "WHERE \"name\" = 'foo'\n"));
 
         // SELECT information_schema.columns
         execute("SELECT table_name, column_name " +
@@ -173,8 +182,16 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "FROM information_schema.views " +
                 "WHERE table_name LIKE 't1%' " +
                 "ORDER BY 1, 2");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("t1_view1| SELECT doc.t1.id, doc.t1.name FROM doc.t1 WHERE (doc.t1.name = 'foo')\n" +
-                                                                    "t1_view2| SELECT doc.t1.id FROM doc.t1 WHERE (doc.t1.name = 'foo')\n"));
+        assertThat(rows[0][0], is("t1_view1"));
+        assertThat(rows[0][1],
+            is("SELECT *\n" +
+               "FROM \"t1\"\n" +
+               "WHERE \"name\" = 'foo'\n"));
+        assertThat(rows[1][0], is("t1_view2"));
+        assertThat(rows[1][1],
+            is("SELECT \"id\"\n" +
+               "FROM \"t1\"\n" +
+               "WHERE \"name\" = 'foo'\n"));
 
         execute("SELECT table_name, column_name " +
                 "FROM information_schema.columns " +
