@@ -29,6 +29,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.Query;
@@ -56,7 +57,7 @@ public final class CreateViewAnalyzer {
         // format->analyze round-trip works.
         String formattedQuery;
         try {
-            formattedQuery = sqlPrinter.format(query);
+            formattedQuery = SqlFormatter.formatSql(createView.query());
             relationAnalyzer.analyzeUnbound((Query) SqlParser.createStatement(formattedQuery), txnCtx, ParamTypeHints.EMPTY);
         } catch (Exception e) {
             throw new UnsupportedOperationException("Query cannot be used in a VIEW: " + createView.query());
