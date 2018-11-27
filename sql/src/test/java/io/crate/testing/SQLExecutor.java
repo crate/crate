@@ -34,7 +34,6 @@ import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
-import io.crate.analyze.SQLPrinter;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -56,7 +55,6 @@ import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
@@ -157,8 +155,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_CREATION_
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -177,7 +173,6 @@ public class SQLExecutor {
     private final SessionContext sessionContext;
     private final TransactionContext transactionContext;
     private final Random random;
-    private final SQLPrinter sqlPrinter;
     private final Schemas schemas;
 
     /**
@@ -563,7 +558,6 @@ public class SQLExecutor {
         this.transactionContext = new TransactionContext(sessionContext);
         this.schemas = schemas;
         this.random = random;
-        this.sqlPrinter = new SQLPrinter(new SymbolPrinter(functions));
     }
 
     public Functions functions() {
@@ -578,15 +572,7 @@ public class SQLExecutor {
     }
 
     private <T extends AnalyzedStatement> T analyze(String stmt, ParameterContext parameterContext) {
-        T analyzedStatement = analyzeInternal(stmt, parameterContext);
-        if (sqlPrinter.canPrint(analyzedStatement)) {
-            // check if the statement can be printed and analyzed again
-            String generatedSql = sqlPrinter.format(analyzedStatement);
-            AnalyzedStatement analyzedAgain = analyzeInternal(generatedSql, parameterContext);
-            String generatedSql2 = sqlPrinter.format(analyzedAgain);
-            assertThat(generatedSql2, is(generatedSql));
-        }
-        return analyzedStatement;
+        return analyzeInternal(stmt, parameterContext);
     }
 
     public <T extends AnalyzedStatement> T analyze(String statement) {
@@ -630,17 +616,6 @@ public class SQLExecutor {
 
     public <T> T plan(String statement, UUID jobId, int softLimit, int fetchSize) {
         AnalyzedStatement analyzedStatement = analyze(statement, ParameterContext.EMPTY);
-        T referencePlan = planInternal(analyzedStatement, jobId, softLimit, fetchSize);
-        if (sqlPrinter.canPrint(analyzedStatement)) {
-            // check if the statement can be printed and planned again
-            String printedStatement = sqlPrinter.format(analyzedStatement);
-            assertThat(planInternal(printedStatement, jobId, softLimit, fetchSize), is(referencePlan));
-        }
-        return referencePlan;
-    }
-
-    private <T> T planInternal(String statement, UUID jobId, int softLimit, int fetchSize) {
-        AnalyzedStatement analyzedStatement = analyzeInternal(statement, ParameterContext.EMPTY);
         return planInternal(analyzedStatement, jobId, softLimit, fetchSize);
     }
 

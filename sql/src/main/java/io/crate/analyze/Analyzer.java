@@ -167,7 +167,7 @@ public class Analyzer {
             functions,
             numberOfShards
         );
-        this.createViewAnalyzer = new CreateViewAnalyzer(functions, relationAnalyzer);
+        this.createViewAnalyzer = new CreateViewAnalyzer(relationAnalyzer);
         this.showCreateTableAnalyzer = new ShowCreateTableAnalyzer(schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this);

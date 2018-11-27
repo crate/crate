@@ -23,7 +23,6 @@
 package io.crate.expression.symbol.format;
 
 import io.crate.analyze.QueriedTable;
-import io.crate.analyze.SQLPrinter;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationPrinter;
 import io.crate.analyze.relations.TableFunctionRelation;
@@ -77,14 +76,12 @@ public final class SymbolPrinter {
         UNQUALIFIED,
         QUALIFIED;
 
-        SymbolPrinterContext createNewContext(@Nullable SQLPrinter.Visitor sqlPrinterVisitor) {
-            return new SymbolPrinterContext(this, sqlPrinterVisitor);
+        SymbolPrinterContext createNewContext() {
+            return new SymbolPrinterContext(this);
         }
     }
 
     private final SymbolPrintVisitor symbolPrintVisitor;
-    @Nullable
-    private SQLPrinter.Visitor sqlPrinterVisitor;
 
     @Inject
     public SymbolPrinter(@Nullable Functions functions) {
@@ -103,13 +100,9 @@ public final class SymbolPrinter {
      * format a symbol with the given style
      */
     private String print(Symbol symbol, Style style) {
-        SymbolPrinterContext context = style.createNewContext(sqlPrinterVisitor);
+        SymbolPrinterContext context = style.createNewContext();
         symbolPrintVisitor.process(symbol, context);
         return context.formatted();
-    }
-
-    public void registerSqlPrinterVisitor(SQLPrinter.Visitor sqlPrinter) {
-        this.sqlPrinterVisitor = sqlPrinter;
     }
 
     static final class SymbolPrintVisitor extends SymbolVisitor<SymbolPrinterContext, Void> {
@@ -129,12 +122,6 @@ public final class SymbolPrinter {
 
         @Override
         public Void visitSelectSymbol(SelectSymbol selectSymbol, SymbolPrinterContext context) {
-            if (context.sqlPrinterExists()) {
-                context.builder.append("(");
-                context.processWithSqlPrinter(selectSymbol.relation());
-                context.builder.append(")");
-                return null;
-            }
             return super.visitSelectSymbol(selectSymbol, context);
         }
 
