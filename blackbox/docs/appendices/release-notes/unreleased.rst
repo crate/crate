@@ -37,6 +37,12 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- The ``*`` of ``SELECT *`` statements in the query clause of view definitions
+  is no longer expanded at view creation time but lazy whenever a view is
+  evaluated. That means columns added to a table after the views initial
+  creation will show up in queries on the view. It is generally recommended to
+  avoid using ``*`` in views but always specify columns explicitly.
+
 Changes
 =======
 
