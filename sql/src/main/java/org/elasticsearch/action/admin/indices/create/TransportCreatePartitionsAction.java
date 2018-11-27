@@ -36,6 +36,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.ActiveShardCount;
+import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -120,7 +121,7 @@ public class TransportCreatePartitionsAction
     private final AllocationService allocationService;
     private final NamedXContentRegistry xContentRegistry;
     private final Environment environment;
-    private final BulkActiveShardsObserver activeShardsObserver;
+    private final ActiveShardsObserver activeShardsObserver;
     private final ClusterStateTaskExecutor<CreatePartitionsRequest> executor = (currentState, tasks) -> {
         ClusterStateTaskExecutor.ClusterTasksResult.Builder<CreatePartitionsRequest> builder = ClusterStateTaskExecutor.ClusterTasksResult.builder();
         for (CreatePartitionsRequest request : tasks) {
@@ -152,7 +153,7 @@ public class TransportCreatePartitionsAction
         this.indicesService = indicesService;
         this.allocationService = allocationService;
         this.xContentRegistry = xContentRegistry;
-        this.activeShardsObserver = new BulkActiveShardsObserver(settings, clusterService, threadPool);
+        this.activeShardsObserver = new ActiveShardsObserver(settings, clusterService, threadPool);
     }
 
     @Override
@@ -177,7 +178,7 @@ public class TransportCreatePartitionsAction
 
         createIndices(request, ActionListener.wrap(response -> {
             if (response.isAcknowledged()) {
-                activeShardsObserver.waitForActiveShards(request.indices(), ActiveShardCount.DEFAULT, request.ackTimeout(),
+                activeShardsObserver.waitForActiveShards(request.indices().toArray(new String[0]), ActiveShardCount.DEFAULT, request.ackTimeout(),
                     shardsAcked -> {
                         if (!shardsAcked && logger.isInfoEnabled()) {
                             String partitionTemplateName = PartitionName.templateName(request.indices().iterator().next());
