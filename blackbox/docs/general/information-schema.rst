@@ -219,11 +219,16 @@ options of all available views.
     cr> SELECT table_schema, table_name, view_definition
     ... FROM information_schema.views
     ... ORDER BY table_schema ASC, table_name ASC;
-    +--------------+------------+--------...----------------------------------------------------------+
-    | table_schema | table_name | view_definition                                                     |
-    +--------------+------------+--------...----------------------------------------------------------+
-    | doc          | galaxies   | SELECT ... FROM doc.locations WHERE (doc.locations.kind = 'Galaxy') |
-    +--------------+------------+--------...----------------------------------------------------------+
+    +--------------+------------+-------------------------+
+    | table_schema | table_name | view_definition         |
+    +--------------+------------+-------------------------+
+    | doc          | galaxies   | SELECT                  |
+    |              |            |   "id"                  |
+    |              |            | , "name"                |
+    |              |            | , "description"         |
+    |              |            | FROM "locations"        |
+    |              |            | WHERE "kind" = 'Galaxy' |
+    +--------------+------------+-------------------------+
     SELECT 1 row in set (... sec)
 
 .. rubric:: Schema

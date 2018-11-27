@@ -47,6 +47,14 @@ operations.
 
     :ref:`ref-drop-view`
 
+.. NOTE::
+
+  If a ``*`` is used to select the columns within the views query definition,
+  this ``*`` will be resolved at query time like the rest of the query
+  definition. This means if columns are added to the table after the view had
+  been created, these columns will show up in subsequent queries on the view.
+  It is generally recommended to avoid using ``*`` in view definitions.
+
 
 Privileges (Enterprise only)
 ============================
