@@ -24,8 +24,6 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.expression.symbol.format.SymbolPrinter;
-import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -37,10 +35,8 @@ import io.crate.sql.tree.Query;
 public final class CreateViewAnalyzer {
 
     private final RelationAnalyzer relationAnalyzer;
-    private final SQLPrinter sqlPrinter;
 
-    CreateViewAnalyzer(Functions functions, RelationAnalyzer relationAnalyzer) {
-        this.sqlPrinter = new SQLPrinter(new SymbolPrinter(functions));
+    CreateViewAnalyzer(RelationAnalyzer relationAnalyzer) {
         this.relationAnalyzer = relationAnalyzer;
     }
 
