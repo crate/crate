@@ -444,6 +444,11 @@ An example import from a file URI::
     cr> delete from quotes;
     DELETE OK, 3 rows affected (... sec)
 
+.. NOTE::
+
+    If you are using Microsoft Windows, you must include the drive letter in
+    the file URI. Consult the `Windows documentation`_ for more information.
+
 If all files inside a directory should be imported a ``*`` wildcard has to be
 used::
 
@@ -563,5 +568,6 @@ exported::
 
 For further details see :ref:`copy_to`.
 
-.. _PCRE: http://www.pcre.org/
 .. _`crate-python`: https://pypi.python.org/pypi/crate/
+.. _PCRE: http://www.pcre.org/
+.. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats

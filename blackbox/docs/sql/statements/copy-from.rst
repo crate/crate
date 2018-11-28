@@ -90,6 +90,11 @@ URI
 A string literal or array of string literals containing URIs. Each URI must be
 formatted according to the `URI Scheme`_.
 
+.. NOTE::
+
+    If you are using Microsoft Windows, you must include the drive letter in
+    the file URI. Consult the `Windows documentation`_ for more information.
+
 In case the URI scheme is missing the value is assumed to be a file path and
 will be converted to a ``file://`` URI implicitly.
 
@@ -340,7 +345,8 @@ inserted records.
 .. _`AWS Java Documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
 .. _`RFC2396`: http://www.ietf.org/rfc/rfc2396.txt
 .. _`URI Scheme`: https://en.wikipedia.org/wiki/URI_scheme
-.. _GeoJSON: http://geojson.org/
-.. _WKT: http://en.wikipedia.org/wiki/Well-known_text
-.. _URL: http://docs.oracle.com/javase/8/docs/api/java/net/URL.html
 .. _`URL encoded`: https://en.wikipedia.org/wiki/Percent-encoding
+.. _GeoJSON: http://geojson.org/
+.. _URL: http://docs.oracle.com/javase/8/docs/api/java/net/URL.html
+.. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
+.. _WKT: http://en.wikipedia.org/wiki/Well-known_text
