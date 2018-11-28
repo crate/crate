@@ -24,5 +24,6 @@ package io.crate.expression.scalar;
 
 @FunctionalInterface
 public interface ThreeParametersFunction<T, U, V, R> {
-    public R apply(T t, U u, V v);
+
+    R apply(T t, U u, V v);
 }

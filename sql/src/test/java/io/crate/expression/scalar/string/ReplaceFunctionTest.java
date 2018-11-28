@@ -22,8 +22,8 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -33,25 +33,32 @@ public class ReplaceFunctionTest extends AbstractScalarFunctionsTest {
     
     @Test
     public void testNormalizeReplaceFunc() throws Exception {
-        assertNormalize("replace_string('Crate', 'C', 'D')", isLiteral("Drate"));
+        assertNormalize("replace('Crate', 'C', 'D')", isLiteral("Drate"));
 
     }
 
     @Test
     public void testEvaluateReplaceFunc() throws Exception {
-        assertEvaluate("replace_string(name, 'Crate', 'ba')", "foobarbequebaz bar",
+        assertEvaluate("replace(name, 'Crate', 'ba')", "foobarbequebaz bar",
             Literal.of(DataTypes.STRING, "fooCraterbequebaz bar"));
     }
 
     @Test
     public void testEvaluateReplaceFuncWhenEmptyString() throws Exception {
-        assertEvaluate("replace_string(name, 'Crate', 'ba')", "",
+        assertEvaluate("replace(name, 'Crate', 'ba')", "",
             Literal.of(DataTypes.STRING, ""));
     }
 
     @Test
     public void testEvaluateReplaceFuncWhenEmptyReplacement() throws Exception {
-        assertEvaluate("replace_string(name, 'Crate', '')", "barfoo",
+        assertEvaluate("replace(name, 'Crate', '')", "barfoo",
             Literal.of(DataTypes.STRING, "barCratefoo"));
+    }
+
+    @Test
+    public void testReplaceWithNullArgumentResultsInNull() {
+        assertEvaluate("replace('foo', null, 'x')", null);
+        assertEvaluate("replace(null, 'y', 'x')", null);
+        assertEvaluate("replace('foo', 'y', null)", null);
     }
 }

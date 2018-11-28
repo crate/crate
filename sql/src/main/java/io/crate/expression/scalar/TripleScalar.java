@@ -32,7 +32,7 @@ import io.crate.metadata.Scalar;
  * <br />
  * null values will result in null as output
  */
-public class TripleScalar<R, T> extends Scalar<R, T> {
+public final class TripleScalar<R, T> extends Scalar<R, T> {
 
     private final FunctionInfo info;
     private final ThreeParametersFunction<T, T, T, R> func;

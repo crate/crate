@@ -40,6 +40,9 @@ Breaking Changes
 Changes
 =======
 
+
+- Added the ``replace`` scalar function.
+
 - Added the ``pg_catalog.pg_database`` table.
 
 - Added support for ``SHOW parameter_name | ALL`` to retrieve one or all session
@@ -126,8 +129,6 @@ Changes
 
 - Added support of using units inside byte-size or time bases statement
   parameters values. E.g. '1mb' for 1 MegaByte or '1s' for 1 Second.
-
-- Added string function ``replace_string``
 
 Fixes
 =====
