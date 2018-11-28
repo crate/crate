@@ -34,6 +34,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.WindowFunction;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.TransactionContext;
@@ -150,9 +151,19 @@ public class EvaluatingNormalizer {
 
         @Override
         public Symbol visitFunction(Function function, TransactionContext context) {
+            return normalizeFunction(function, context);
+        }
+
+        private Symbol normalizeFunction(Function function, TransactionContext context) {
             function = processAndMaybeCopy(function, context);
             FunctionImplementation implementation = functions.getQualified(function.info().ident());
             return implementation.normalizeSymbol(function, context);
+        }
+
+        @Override
+        public Symbol visitWindowFunction(WindowFunction function, TransactionContext context) {
+            Function normalizedFunction = (Function) normalizeFunction(function, context);
+            return new WindowFunction(normalizedFunction.info(), normalizedFunction.arguments(), function.windowDefinition());
         }
     }
 

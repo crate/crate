@@ -48,6 +48,11 @@ public class SymbolVisitors {
         }
 
         @Override
+        public Boolean visitWindowFunction(WindowFunction symbol, Predicate<? super Symbol> context) {
+            return visitFunction(symbol, context);
+        }
+
+        @Override
         public Boolean visitFetchReference(FetchReference fetchReference, Predicate<? super Symbol> symbolPredicate) {
             return symbolPredicate.test(fetchReference)
                    || fetchReference.fetchId().accept(this, symbolPredicate)
