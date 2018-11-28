@@ -26,8 +26,10 @@ import io.crate.Constants;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -37,8 +39,11 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.Map;
 
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_BLOCKS_WRITE;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_CREATION_DATE;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -46,6 +51,14 @@ import static org.hamcrest.Matchers.is;
 
 public class AlterTableOperationTest extends CrateUnitTest {
 
+
+    private static Settings baseIndexSettings() {
+        return Settings.builder()
+            .put(SETTING_VERSION_CREATED, Version.CURRENT)
+            .put(SETTING_NUMBER_OF_SHARDS, 5)
+            .put(SETTING_NUMBER_OF_REPLICAS, 1)
+            .build();
+    }
 
     @Test
     public void testPrepareAlterTableMappingRequest() throws Exception {
@@ -94,5 +107,61 @@ public class AlterTableOperationTest extends CrateUnitTest {
             .put(SETTING_NUMBER_OF_SHARDS, 4);
         Settings preparedSettings = AlterTableOperation.markArchivedSettings(builder.build());
         assertThat(preparedSettings.keySet(), containsInAnyOrder(SETTING_NUMBER_OF_SHARDS, ARCHIVED_SETTINGS_PREFIX + "*"));
+    }
+
+    @Test
+    public void testValidateReadOnlyForResizeOperation() {
+        Settings settings = Settings.builder()
+            .put(baseIndexSettings())
+            .put(SETTING_BLOCKS_WRITE, false)      // allow writes
+            .build();
+        IndexMetaData indexMetaData = IndexMetaData.builder("t1")
+            .settings(settings)
+            .build();
+
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage("Table/Partition needs to be at a read-only state");
+        AlterTableOperation.validateReadOnlyIndexForResize(indexMetaData);
+    }
+
+    @Test
+    public void testEqualNumberOfShardsRequestedIsNotPermitted() {
+        IndexMetaData indexMetaData = IndexMetaData.builder("t1")
+            .settings(baseIndexSettings())
+            .build();
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Table/partition is already allocated <5> shards");
+        AlterTableOperation.validateNumberOfShardsForResize(indexMetaData, 5);
+    }
+
+    @Test
+    public void testGreaterNumberOfShardsRequestedIsNotSupported() {
+        IndexMetaData indexMetaData = IndexMetaData.builder("t1")
+            .settings(baseIndexSettings())
+            .build();
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Increasing the number of shards is not supported");
+        AlterTableOperation.validateNumberOfShardsForResize(indexMetaData, 10);
+    }
+
+    @Test
+    public void testNumberOfShardsRequestedNotAFactorOfCurrentIsNotSupported() {
+        IndexMetaData indexMetaData = IndexMetaData.builder("t1")
+            .settings(baseIndexSettings())
+            .build();
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Requested number of shards: <3> needs to be a factor of the current one: <5>");
+        AlterTableOperation.validateNumberOfShardsForResize(indexMetaData, 3);
+    }
+
+    @Test
+    public void testNullNumberOfShardsRequestedIsNotPermitted() {
+        Settings settings = Settings.EMPTY;
+        expectedException.expect(NullPointerException.class);
+        expectedException.expectMessage("Invalid setting 'number_of_shards' provided in input");
+        AlterTableOperation.getValidNumberOfShards(settings);
     }
 }
