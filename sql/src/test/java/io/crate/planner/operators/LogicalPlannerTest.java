@@ -25,6 +25,7 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -69,6 +70,29 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private LogicalPlan plan(String statement) {
         return plan(statement, sqlExecutor, clusterService, tableStats);
+    }
+
+    @Test
+    public void testAvgWindowFunction() {
+        LogicalPlan plan = plan("select avg(x) OVER() from t1");
+        assertThat(plan, isPlan("WindowAgg[avg(x)]\n" +
+                                "Collect[doc.t1 | [x] | All]\n"));
+    }
+
+    @Test
+    public void testPartitionedWindowPlansAreNotSupported() {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("Custom window definitions are currently not supported. " +
+                                        "Only empty OVER() windows are supported.");
+        plan("select avg(x) OVER(PARTITION BY a) from t1");
+    }
+
+    @Test
+    public void testOrderedWindowPlansAreNotSupported() {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("Custom window definitions are currently not supported. " +
+                                        "Only empty OVER() windows are supported.");
+        plan("select avg(x) OVER(ORDER BY a) from t1");
     }
 
     @Test
@@ -505,6 +529,13 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 }
                 sb.append("]\n");
                 plan = projectSet.source;
+            }
+            if (plan instanceof WindowAgg) {
+                WindowAgg windowAgg = (WindowAgg) plan;
+                startLine("WindowAgg[");
+                addSymbolsList(windowAgg.windowFunctions());
+                sb.append("]\n");
+                plan = windowAgg.source;
             }
             return printPlan(plan);
         }

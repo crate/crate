@@ -205,20 +205,24 @@ public class LogicalPlanner {
                 Order.create(
                     Distinct.create(
                         ProjectSet.create(
-                            Filter.create(
-                                groupByOrAggregate(
-                                    collectAndFilter(
-                                        relation,
-                                        splitPoints.toCollect(),
-                                        relation.where(),
-                                        subqueryPlanner,
-                                        fetchMode,
-                                        functions,
-                                        txnCtx
+                            WindowAgg.create(
+                                Filter.create(
+                                    groupByOrAggregate(
+                                        collectAndFilter(
+                                            relation,
+                                            splitPoints.toCollect(),
+                                            relation.where(),
+                                            subqueryPlanner,
+                                            fetchMode,
+                                            functions,
+                                            txnCtx
+                                        ),
+                                        relation.groupBy(),
+                                        splitPoints.aggregates()
                                     ),
-                                    relation.groupBy(),
-                                    splitPoints.aggregates()),
-                                relation.having()
+                                    relation.having()
+                                ),
+                                splitPoints.windowFunctions()
                             ),
                             splitPoints.tableFunctions()
                         ),
