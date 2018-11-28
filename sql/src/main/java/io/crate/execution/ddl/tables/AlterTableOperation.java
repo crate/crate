@@ -38,6 +38,11 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
+import io.crate.execution.ddl.index.BulkRenameIndexRequest;
+import io.crate.execution.ddl.index.BulkRenameIndexRequest.RenameIndexAction;
+import io.crate.execution.ddl.index.TransportRenameIndexNameAction;
+import io.crate.execution.support.ChainableAction;
+import io.crate.execution.support.ChainableActions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -45,20 +50,34 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.indices.alias.Alias;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
+import org.elasticsearch.action.admin.indices.shrink.ResizeResponse;
+import org.elasticsearch.action.admin.indices.shrink.ResizeType;
+import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.action.support.ActiveShardCount;
+import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -70,6 +89,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -79,16 +99,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_BLOCKS_WRITE_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_PREFIX;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
 @Singleton
 public class AlterTableOperation {
+
+    private static final String SHRINK_PREFIX = "." + "shrinked" + ".";
+    private static final String BACKUP_PREFIX = "." + "backup" + ".";
 
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
@@ -96,7 +123,12 @@ public class AlterTableOperation {
     private final TransportUpdateSettingsAction transportUpdateSettingsAction;
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
+    private final TransportResizeAction transportResizeAction;
+    private final TransportClusterHealthAction transportClusterHealthAction;
+    private final TransportDeleteIndexAction transportDeleteIndexAction;
+    private final TransportRenameIndexNameAction transportRenameIndexNameAction;
     private final IndexScopedSettings indexScopedSettings;
+    private final ActiveShardsObserver activeShardsObserver;
     private final Logger logger;
     private final SQLOperations sqlOperations;
     private Session session;
@@ -108,17 +140,28 @@ public class AlterTableOperation {
                                TransportUpdateSettingsAction transportUpdateSettingsAction,
                                TransportRenameTableAction transportRenameTableAction,
                                TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
+                               TransportResizeAction transportResizeAction,
+                               TransportClusterHealthAction transportClusterHealthAction,
+                               TransportDeleteIndexAction transportDeleteIndexAction,
+                               TransportRenameIndexNameAction transportRenameIndexNameAction,
                                SQLOperations sqlOperations,
-                               IndexScopedSettings indexScopedSettings) {
+                               IndexScopedSettings indexScopedSettings,
+                               Settings settings,
+                               ThreadPool threadPool) {
 
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.transportPutMappingAction = transportPutMappingAction;
         this.transportUpdateSettingsAction = transportUpdateSettingsAction;
         this.transportRenameTableAction = transportRenameTableAction;
+        this.transportResizeAction = transportResizeAction;
+        this.transportClusterHealthAction = transportClusterHealthAction;
+        this.transportDeleteIndexAction = transportDeleteIndexAction;
+        this.transportRenameIndexNameAction = transportRenameIndexNameAction;
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
         this.indexScopedSettings = indexScopedSettings;
         this.sqlOperations = sqlOperations;
+        this.activeShardsObserver = new ActiveShardsObserver(settings, clusterService, threadPool);
         logger = LogManager.getLogger(getClass());
     }
 
@@ -161,6 +204,22 @@ public class AlterTableOperation {
     }
 
     public CompletableFuture<Long> executeAlterTable(AlterTableAnalyzedStatement analysis) {
+        final Settings settings = analysis.tableParameter().settings();
+        final DocTableInfo table = analysis.table();
+        final boolean includesNumberOfShardsSetting = settings.hasValue(SETTING_NUMBER_OF_SHARDS);
+        final boolean isResizeOperationRequired = includesNumberOfShardsSetting &&
+                                                  (!table.isPartitioned() || analysis.partitionName().isPresent());
+
+        if (isResizeOperationRequired) {
+            if (settings.size() > 1) {
+                throw new IllegalArgumentException("Setting [number_of_shards] cannot be combined with other settings");
+            }
+            return executeAlterTableChangeNumberOfShards(analysis);
+        }
+        return executeAlterTableSetOrReset(analysis);
+    }
+
+    private CompletableFuture<Long> executeAlterTableSetOrReset(AlterTableAnalyzedStatement analysis) {
         DocTableInfo table = analysis.table();
         List<CompletableFuture<Long>> results = new ArrayList<>(3);
         if (table.isPartitioned()) {
@@ -200,6 +259,220 @@ public class AlterTableOperation {
         final CompletableFuture<Long> result = new CompletableFuture<>();
         applyMultiFutureCallback(result, results);
         return result;
+    }
+
+    private CompletableFuture<Long> executeAlterTableChangeNumberOfShards(AlterTableAnalyzedStatement analysis) {
+        final DocTableInfo table = analysis.table();
+        final boolean isPartitioned = table.isPartitioned();
+        String sourceIndexName, sourceIndexAlias;
+        if (isPartitioned) {
+            Optional<PartitionName> partitionName = analysis.partitionName();
+            assert partitionName.isPresent() : "Resizing operations for partitioned tables " +
+                                               "are only supported at partition level";
+            sourceIndexName = partitionName.get().asIndexName();
+            sourceIndexAlias = table.ident().indexNameOrAlias();
+        } else {
+            sourceIndexName = table.ident().indexNameOrAlias();
+            sourceIndexAlias = null;
+        }
+
+        ClusterState currentState = clusterService.state();
+
+        final Integer targetNumberOfShards = getValidNumberOfShards(analysis.tableParameter().settings());
+        validateForResizeRequest(currentState, sourceIndexName, targetNumberOfShards);
+
+        // pickup node
+        DiscoveryNode resizeNode = getNodeForResize(currentState);
+
+        List<ChainableAction<Long>> actions = new ArrayList<>(7);
+        // change allocation
+        actions.add(new ChainableAction<>(
+            () -> initAllocationToNode(resizeNode.getName(), sourceIndexName),
+            () -> CompletableFuture.completedFuture(-1L)
+        ));
+
+        // ensure index allocation
+        actions.add(new ChainableAction<>(
+            () -> ensureIndexAllocation(sourceIndexName),
+            () -> CompletableFuture.completedFuture(-1L)
+        ));
+
+        // shrink index
+        String targetIndexName = SHRINK_PREFIX + sourceIndexName;
+        actions.add(new ChainableAction<>(
+            () -> shrinkIndex(sourceIndexName, sourceIndexAlias, targetIndexName, targetNumberOfShards),
+            () -> CompletableFuture.completedFuture(-1L)
+        ));
+
+        // index rename
+        final String backupIndexName = BACKUP_PREFIX + sourceIndexName;
+
+        List<RenameIndexAction> renameIndexActionList = new ArrayList<>(2);
+        renameIndexActionList.add(new RenameIndexAction(sourceIndexName, backupIndexName));
+        renameIndexActionList.add(new RenameIndexAction(targetIndexName, sourceIndexName));
+
+        actions.add(new ChainableAction<>(
+            () -> renameIndicesBulk(renameIndexActionList),
+            () -> CompletableFuture.completedFuture(-1L)
+        ));
+
+        // delete backup index
+        actions.add(new ChainableAction<>(
+            () -> deleteIndex(backupIndexName),
+            () -> CompletableFuture.completedFuture(-1L)
+        ));
+
+        // revert index allocation
+        actions.add(new ChainableAction<>(
+            () -> initRevertAllocation(sourceIndexName),
+            () -> CompletableFuture.completedFuture(-1L)
+        ));
+
+        // ensure index allocation
+        actions.add(new ChainableAction<>(
+            () -> ensureIndexAllocation(sourceIndexName),
+            () -> CompletableFuture.completedFuture(-1L)
+        ));
+        return ChainableActions.run(actions);
+    }
+
+    private static void validateForResizeRequest(ClusterState clusterState, String indexName, int targetNumberOfShards) {
+        final IndexMetaData indexMetaData = clusterState.metaData().index(indexName);
+        validateNumberOfShardsForResize(indexMetaData, targetNumberOfShards);
+        validateReadOnlyIndexForResize(indexMetaData);
+    }
+
+    @VisibleForTesting
+    static Integer getValidNumberOfShards(final Settings settings) {
+        final Integer numberOfShards = settings.getAsInt(SETTING_NUMBER_OF_SHARDS, null);
+        Objects.requireNonNull(numberOfShards, "Invalid setting 'number_of_shards' provided in input");
+        return numberOfShards;
+    }
+
+    @VisibleForTesting
+    static void validateNumberOfShardsForResize(IndexMetaData indexMetaData, int targetNumberOfShards) {
+        final int currentNumberOfShards = indexMetaData.getNumberOfShards();
+        if (currentNumberOfShards == targetNumberOfShards) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH,
+                    "Table/partition is already allocated <%d> shards",
+                    currentNumberOfShards));
+        }
+        if (targetNumberOfShards > currentNumberOfShards) {
+            throw new IllegalArgumentException("Increasing the number of shards is not supported");
+        }
+        if (currentNumberOfShards % targetNumberOfShards != 0) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH,
+                    "Requested number of shards: <%d> needs to be a factor of the current one: <%d>",
+                    targetNumberOfShards,
+                    currentNumberOfShards));
+        }
+    }
+
+    @VisibleForTesting
+    static void validateReadOnlyIndexForResize(IndexMetaData indexMetaData) {
+        final Boolean readOnly = indexMetaData
+            .getSettings()
+            .getAsBoolean(INDEX_BLOCKS_WRITE_SETTING.getKey(), Boolean.FALSE);
+        if (!readOnly) {
+            throw new IllegalStateException("Table/Partition needs to be at a read-only state." +
+                                               " Use 'ALTER table ... set (\"blocks.write\"=true)' and retry");
+        }
+    }
+
+    private static DiscoveryNode getNodeForResize(ClusterState state) {
+        assert !state.nodes().getDataNodes().isEmpty() : "No Data nodes available " +
+                                                         "for index resize operation";
+        return state.nodes().getDataNodes().valuesIt().next();
+    }
+
+    private CompletableFuture<Long> initAllocationToNode(String nodeName, String... indices) {
+        Settings settings = Settings.builder()
+            .put(INDEX_ROUTING_REQUIRE_GROUP_PREFIX + "._name", nodeName)
+            .build();
+
+        return updateSettings(settings, indices);
+    }
+
+    private CompletableFuture<Long> ensureIndexAllocation(String... indices) {
+        FutureActionListener<ClusterHealthResponse, Long> listener = new FutureActionListener<>(r -> 0L);
+        ClusterHealthRequest request = new ClusterHealthRequest(indices)
+            .waitForNoRelocatingShards(true)
+            .waitForActiveShards(ActiveShardCount.DEFAULT);
+        transportClusterHealthAction.execute(request, listener);
+        return listener;
+    }
+
+    private CompletableFuture<Long> initRevertAllocation(String... indices) {
+        Settings settings = Settings.builder()
+            .putNull(INDEX_ROUTING_REQUIRE_GROUP_PREFIX + "._name")
+            .build();
+        return updateSettings(settings, indices);
+    }
+
+    private CompletableFuture<Long> shrinkIndex(String sourceIndexName,
+                                                @Nullable String sourceIndexAlias,
+                                                String targetIndexName,
+                                                int targetNumberOfShards) {
+        Settings targetIndexSettings = Settings.builder()
+            .put(SETTING_NUMBER_OF_SHARDS, targetNumberOfShards)
+            .build();
+
+        ResizeRequest request = new ResizeRequest(targetIndexName, sourceIndexName);
+        request.getTargetIndexRequest().settings(targetIndexSettings);
+        if (sourceIndexAlias != null) {
+            request.getTargetIndexRequest().alias(new Alias(sourceIndexAlias));
+        }
+        request.setResizeType(ResizeType.SHRINK);
+        request.setCopySettings(Boolean.TRUE);
+        request.setWaitForActiveShards(ActiveShardCount.ONE);
+
+        FutureActionListener<ResizeResponse, Long> listener
+            = new FutureActionListener<>(response -> {
+                if (response.isAcknowledged()) {
+                    activeShardsObserver.waitForActiveShards(request.getTargetIndexRequest().indices(),
+                        ActiveShardCount.ONE,
+                        request.ackTimeout(),
+                        shardsAcked -> {
+                            if (!shardsAcked) {
+                                throw new RuntimeException("Shrinking operation was successful but the operation " +
+                                                           "timed out while waiting for enough shards to be started.");
+                            }
+                        },
+                        e -> {
+                            throw new IllegalStateException(e);
+                        });
+                } else {
+                    throw new RuntimeException("Publishing new cluster state during Shrink operation (shrink phase) " +
+                                               "has timed out.");
+                }
+                return 0L;
+            });
+
+        transportResizeAction.execute(request, listener);
+        return listener;
+    }
+
+    private CompletableFuture<Long> deleteIndex(String indexName) {
+        DeleteIndexRequest request = new DeleteIndexRequest(indexName);
+
+        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 0L);
+        transportDeleteIndexAction.execute(request, listener);
+        return listener;
+    }
+
+    private CompletableFuture<Long> renameIndicesBulk(final List<RenameIndexAction> renameIndexActions) {
+        BulkRenameIndexRequest request = new BulkRenameIndexRequest(renameIndexActions);
+        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(response -> {
+            if (!response.isAcknowledged()) {
+                throw new RuntimeException("Publishing new cluster state during Shrink operation (rename phase) " +
+                                           "has timed out");
+            }
+            return 0L;
+        });
+        transportRenameIndexNameAction.execute(request, listener);
+        return listener;
     }
 
     public CompletableFuture<Long> executeAlterTableRenameTable(AlterTableRenameAnalyzedStatement statement) {
@@ -372,7 +645,10 @@ public class AlterTableOperation {
     }
 
     private CompletableFuture<Long> updateSettings(TableParameter concreteTableParameter, String... indices) {
-        Settings newSettings = concreteTableParameter.settings();
+        return updateSettings(concreteTableParameter.settings(), indices);
+    }
+
+    private CompletableFuture<Long> updateSettings(Settings newSettings, String... indices) {
         if (newSettings.isEmpty() || indices.length == 0) {
             return CompletableFuture.completedFuture(null);
         }
