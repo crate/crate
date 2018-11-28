@@ -51,6 +51,7 @@ import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjectio
 import io.crate.execution.dsl.projection.SysUpdateProjection;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.UpdateProjection;
+import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationPipe;
@@ -564,6 +565,11 @@ public class ProjectionToProjectorVisitor
             ctx.expressions()
         );
         return new FlatMapProjector(tableFunctionApplier);
+    }
+
+    @Override
+    public Projector visitWindowAgg(WindowAggProjection windowAgg, Context context) {
+        return visitProjection(windowAgg, context);
     }
 
     @Override

@@ -38,6 +38,14 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
     }
 
     @Override
+    public R visitWindowFunction(WindowFunction symbol, C context) {
+        for (Symbol arg : symbol.arguments()) {
+            process(arg, context);
+        }
+        return null;
+    }
+
+    @Override
     public R visitFetchReference(FetchReference fetchReference, C context) {
         process(fetchReference.fetchId(), context);
         process(fetchReference.ref(), context);
