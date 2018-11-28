@@ -28,6 +28,7 @@ import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionInfo;
 
 import java.util.ArrayList;
@@ -44,6 +45,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         private final ArrayList<Function> aggregates = new ArrayList<>();
         private final ArrayList<Function> tableFunctions = new ArrayList<>();
         private final ArrayList<Symbol> standalone = new ArrayList<>();
+        private final ArrayList<WindowFunction> windowFunctions = new ArrayList<>();
         private boolean insideAggregate = false;
 
         boolean foundAggregateOrTableFunction = false;
@@ -60,6 +62,12 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         void allocateAggregate(Function aggregate) {
             if (aggregates.contains(aggregate) == false) {
                 aggregates.add(aggregate);
+            }
+        }
+
+        void allocateWindowFunction(WindowFunction windowFunction) {
+            if (windowFunctions.contains(windowFunction) == false) {
+                windowFunctions.add(windowFunction);
             }
         }
     }
@@ -92,11 +100,15 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         for (Function aggregate : context.aggregates) {
             toCollect.addAll(aggregate.arguments());
         }
+        for (WindowFunction windowFunction : context.windowFunctions) {
+            toCollect.addAll(windowFunction.arguments());
+        }
+
         toCollect.addAll(relation.groupBy());
         if (context.aggregates.isEmpty() && relation.groupBy().isEmpty()) {
             toCollect.addAll(context.standalone);
         }
-        return new SplitPoints(new ArrayList<>(toCollect), context.aggregates, context.tableFunctions);
+        return new SplitPoints(new ArrayList<>(toCollect), context.aggregates, context.tableFunctions, context.windowFunctions);
     }
 
     @Override
@@ -125,6 +137,13 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
             default:
                 throw new UnsupportedOperationException("Invalid function type: " + type);
         }
+    }
+
+    @Override
+    public Void visitWindowFunction(WindowFunction windowFunction, Context context) {
+        context.foundAggregateOrTableFunction = true;
+        context.allocateWindowFunction(windowFunction);
+        return super.visitFunction(windowFunction, context);
     }
 
     @Override

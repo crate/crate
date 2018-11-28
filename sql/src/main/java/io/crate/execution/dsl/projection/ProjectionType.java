@@ -42,7 +42,8 @@ public enum ProjectionType {
     FETCH(null),
     TOPN_ORDERED(OrderedTopNProjection::new),
     EVAL(EvalProjection::new),
-    PROJECT_SET(ProjectSetProjection::new);
+    PROJECT_SET(ProjectSetProjection::new),
+    WINDOW_AGGREGATION(WindowAggProjection::new);
 
     private final Projection.ProjectionFactory factory;
 
