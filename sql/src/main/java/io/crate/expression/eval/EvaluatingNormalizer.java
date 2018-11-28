@@ -23,7 +23,10 @@
 package io.crate.expression.eval;
 
 import io.crate.analyze.relations.FieldResolver;
+import io.crate.data.Input;
 import io.crate.expression.NestableInput;
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.scalar.arithmetic.MapFunction;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.FunctionCopyVisitor;
@@ -31,15 +34,13 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.WindowFunction;
 import io.crate.expression.symbol.format.SymbolFormatter;
-import io.crate.data.Input;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.scalar.arithmetic.MapFunction;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -150,9 +151,19 @@ public class EvaluatingNormalizer {
 
         @Override
         public Symbol visitFunction(Function function, TransactionContext context) {
+            return normalizeFunction(function, context);
+        }
+
+        private Symbol normalizeFunction(Function function, TransactionContext context) {
             function = processAndMaybeCopy(function, context);
             FunctionImplementation implementation = functions.getQualified(function.info().ident());
             return implementation.normalizeSymbol(function, context);
+        }
+
+        @Override
+        public Symbol visitWindowFunction(WindowFunction function, TransactionContext context) {
+            Function normalizedFunction = (Function) normalizeFunction(function, context);
+            return new WindowFunction(normalizedFunction.info(), normalizedFunction.arguments(), function.windowDefinition());
         }
     }
 
