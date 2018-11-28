@@ -696,55 +696,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testAlterShardsTable() throws Exception {
-        execute("create table quotes (id integer, quote string, date timestamp) " +
-                "clustered into 3 shards");
-        ensureYellow();
-
-        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
-            new Object[]{
-                1, "Don't panic", 1395874800000L,
-                2, "Now panic", 1395961200000L}
-        );
-
-        execute("refresh table quotes");
-
-        execute("alter table quotes set (\"blocks.write\"=?)", $(true));
-        execute("alter table quotes set (number_of_shards=?)", $(1));
-        execute("alter table quotes set (\"blocks.write\"=?)", $(false));
-
-        execute("select number_of_shards from information_schema.tables where table_name = 'quotes'");
-        assertThat(response.rows()[0][0], is(1));
-        execute("select id from quotes");
-        assertThat(response.rowCount(), is(2L));
-    }
-
-    @Test
-    public void testAlterShardsTableEnsureLeftoverIndicesAreRemoved() throws Exception {
-        execute("create table quotes (id integer, quote string, date timestamp) " +
-                "clustered into 3 shards");
-        ensureYellow();
-
-        final String targetIndexName = ".shrinked.quotes";
-        final String backupIndexName = ".backup.quotes";
-
-        createIndex(targetIndexName, backupIndexName);
-
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
-        assertThat(clusterService.state().metaData().hasIndex(targetIndexName), is(true));
-        assertThat(clusterService.state().metaData().hasIndex(backupIndexName), is(true));
-
-        execute("alter table quotes set (\"blocks.write\"=?)", $(true));
-        execute("alter table quotes set (number_of_shards=?)", $(1));
-
-        execute("select number_of_shards from information_schema.tables where table_name = 'quotes'");
-        assertThat(response.rows()[0][0], is(1));
-
-        assertThat(clusterService.state().metaData().hasIndex(targetIndexName), is(false));
-        assertThat(clusterService.state().metaData().hasIndex(backupIndexName), is(false));
-    }
-
-    @Test
     public void testAlterShardsPartitionCombinedWithOtherSettingsIsInvalid() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
@@ -759,35 +710,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("Setting [number_of_shards] cannot be combined with other settings");
         execute("alter table quotes partition (date=1395874800000) " +
                 "set (number_of_shards=1, number_of_replicas='1-all')");
-    }
-
-    @Test
-    public void testAlterShardsPartition() throws Exception {
-        execute("create table quotes (id integer, quote string, date timestamp) " +
-                "partitioned by(date) clustered into 3 shards");
-        ensureYellow();
-
-        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
-            new Object[]{
-                1, "Don't panic", 1395874800000L,
-                2, "Now panic", 1395961200000L}
-        );
-
-        execute("refresh table quotes");
-
-        execute("alter table quotes partition (date=1395874800000) set (\"blocks.write\"=?)",
-            $(true));
-        execute("alter table quotes partition (date=1395874800000) set (number_of_shards=?)",
-            $(1));
-        execute("alter table quotes partition (date=1395874800000) set (\"blocks.write\"=?)",
-            $(false));
-
-        execute("select number_of_shards from information_schema.table_partitions " +
-                "where table_name = 'quotes' " +
-                "and values = '{\"date\": 1395874800000}'");
-        assertThat(response.rows()[0][0], is(1));
-        execute("select id from quotes");
-        assertThat(response.rowCount(), is(2L));
     }
 
     @Test
