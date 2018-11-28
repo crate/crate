@@ -24,20 +24,17 @@ package io.crate.expression.scalar.string;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.scalar.ThreeParametersFunction;
 import io.crate.expression.scalar.TripleScalar;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.Strings;
 
 
 public final class ReplaceFunction {
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new TripleScalar<>(
-            functionInfo("replace"),
-            (ThreeParametersFunction<String, String, String, String>) String::replace)
-        );
+        module.register(new TripleScalar<>(functionInfo("replace"), Strings::replace));
     }
 
     private static FunctionInfo functionInfo(String name) {
