@@ -78,6 +78,7 @@ public final class RelationNormalizer {
                 return relation;
             }
             return new QueriedSelectRelation(
+                relation.isDistinct(),
                 normalizedSubRelation,
                 transform(relation.fields(), Field::path),
                 relation.querySpec().copyAndReplace(FieldReplacer.bind(f -> {
@@ -106,6 +107,7 @@ public final class RelationNormalizer {
                 functions, RowGranularity.CLUSTER, null, tableRelation);
 
             QueriedTable<? extends AbstractTableRelation<?>> table = new QueriedTable<>(
+                queriedTable.isDistinct(),
                 tableRelation,
                 transform(queriedTable.fields(), Field::path),
                 queriedTable.querySpec().copyAndReplace(s -> evalNormalizer.normalize(s, tnxCtx))

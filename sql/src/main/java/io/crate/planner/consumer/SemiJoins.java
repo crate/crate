@@ -141,6 +141,7 @@ final class SemiJoins {
         // normalize is done to rewrite  SELECT * from t1, t2 to SELECT * from (select ... t1) t1, (select ... t2) t2
         // because planner logic expects QueriedRelation in the sources
         MultiSourceSelect mss = new MultiSourceSelect(
+            rel.isDistinct(),
             sources,
             transform(rel.fields(), Field::path),
             newTopQS,

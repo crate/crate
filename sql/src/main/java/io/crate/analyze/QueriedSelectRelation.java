@@ -41,9 +41,14 @@ public class QueriedSelectRelation implements QueriedRelation {
 
     private final Fields fields;
     private final QuerySpec querySpec;
+    private final boolean isDistinct;
     private final QueriedRelation subRelation;
 
-    public QueriedSelectRelation(QueriedRelation subRelation, Collection<? extends Path> outputNames, QuerySpec querySpec) {
+    public QueriedSelectRelation(boolean isDistinct,
+                                 QueriedRelation subRelation,
+                                 Collection<? extends Path> outputNames,
+                                 QuerySpec querySpec) {
+        this.isDistinct = isDistinct;
         this.subRelation = subRelation;
         this.querySpec = querySpec;
         this.fields = new Fields(outputNames.size());
@@ -60,6 +65,11 @@ public class QueriedSelectRelation implements QueriedRelation {
     @Override
     public QuerySpec querySpec() {
         return querySpec;
+    }
+
+    @Override
+    public boolean isDistinct() {
+        return isDistinct;
     }
 
     @Override
