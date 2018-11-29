@@ -92,7 +92,6 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.util.set.Sets;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -102,8 +101,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-
-import static com.google.common.collect.Lists.transform;
 
 @Singleton
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -316,20 +313,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             ensureNonAggregatesInGroupBy(symbolPrinter, selectAnalysis.outputSymbols(), groupBy);
         }
 
-        boolean distinctProcessed = false;
         boolean isDistinct = node.getSelect().isDistinct();
-        if (isDistinct) {
-            List<Symbol> newGroupBy = rewriteGlobalDistinct(selectAnalysis.outputSymbols());
-            if (groupBy.isEmpty() || Sets.newHashSet(newGroupBy).equals(Sets.newHashSet(groupBy))) {
-                distinctProcessed = true;
-            }
-            if (groupBy.isEmpty()) {
-                groupBy = newGroupBy;
-            }
-        }
-        if (groupBy != null && groupBy.isEmpty()) {
-            groupBy = null;
-        }
         Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
         WhereClause whereClause = new WhereClause(querySymbol);
         QuerySpec querySpec = new QuerySpec()
@@ -338,7 +322,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 node.getOrderBy(),
                 expressionAnalyzer,
                 expressionAnalysisContext,
-                expressionAnalysisContext.hasAggregates() || groupBy != null,
+                expressionAnalysisContext.hasAggregates() || ((groupBy != null && !groupBy.isEmpty())),
                 isDistinct))
             .having(analyzeHaving(
                 node.getHaving(),
@@ -355,85 +339,32 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         QueriedRelation relation;
         if (context.sources().size() == 1) {
             AnalyzedRelation source = Iterables.getOnlyElement(context.sources().values());
-
             if (source instanceof QueriedRelation) {
-                relation = new QueriedSelectRelation((QueriedRelation) source, selectAnalysis.outputNames(), querySpec);
+                relation = new QueriedSelectRelation(
+                    isDistinct,
+                    (QueriedRelation) source,
+                    selectAnalysis.outputNames(),
+                    querySpec
+                );
             } else {
-                relation = new QueriedTable<>((AbstractTableRelation<?>) source, selectAnalysis.outputNames(), querySpec);
+                relation = new QueriedTable<>(
+                    isDistinct,
+                    (AbstractTableRelation<?>) source,
+                    selectAnalysis.outputNames(),
+                    querySpec
+                );
             }
         } else {
             relation = new MultiSourceSelect(
+                isDistinct,
                 context.sources(),
                 selectAnalysis.outputNames(),
                 querySpec,
                 context.joinPairs()
             );
         }
-
-        relation = processDistinct(distinctProcessed, isDistinct, querySpec, relation);
         statementContext.endRelation();
         return relation;
-    }
-
-
-    /**
-     * If DISTINCT is not processed "wrap" the relation with an external QueriedSelectRelation
-     * which transforms the distinct select symbols into GROUP BY symbols.
-     */
-    private static QueriedRelation processDistinct(boolean distinctProcessed,
-                                                   boolean isDistinct,
-                                                   QuerySpec querySpec,
-                                                   QueriedRelation relation) {
-        if (!isDistinct || distinctProcessed) {
-            return relation;
-        }
-
-        // This relation will become the inner relation of the generated relation, so it needs a new name
-        relation.setQualifiedName(QualifiedName.of(relation.getQualifiedName().toString()));
-
-        // Rewrite ORDER BY so it can be applied to the "wrapper" QueriedSelectRelation
-        // Since ORDER BY symbols must be subset of the select SYMBOLS we use the index
-        // of the ORDER BY symbol in the list of select symbols and we use this index to
-        // rewrite the symbol as the corresponding field of the relation
-        OrderBy newOrderBy = null;
-        OrderBy oldOrderBy = relation.orderBy();
-        if (oldOrderBy != null) {
-            List<Symbol> orderBySymbols = new ArrayList<>();
-            for (Symbol symbol : oldOrderBy.orderBySymbols()) {
-                int idx = querySpec.outputs().indexOf(symbol);
-                orderBySymbols.add(relation.fields().get(idx));
-
-            }
-            newOrderBy = new OrderBy(orderBySymbols, oldOrderBy.reverseFlags(), oldOrderBy.nullsFirst());
-            relation.querySpec().orderBy(null);
-        }
-
-        // LIMIT & OFFSET from the inner query must be applied after
-        // the outer GROUP BY which implements the DISTINCT
-        Symbol limit = querySpec.limit();
-        querySpec.limit(null);
-        Symbol offset = querySpec.offset();
-        querySpec.offset(null);
-
-        List<Symbol> newQspecSymbols = new ArrayList<>(relation.fields());
-        QuerySpec newQuerySpec = new QuerySpec()
-            .outputs(newQspecSymbols)
-            .groupBy(newQspecSymbols)
-            .orderBy(newOrderBy)
-            .limit(limit)
-            .offset(offset);
-
-        // At the time of writing, validation here is not needed as no aggregation function supports/returns
-        // complex types but that could change in future. Also we cannot test it for that reasons.
-        for (Symbol symbol : newQspecSymbols) {
-            GroupBySymbolValidator.validateForDistinctRewrite(symbol);
-        }
-
-        return new QueriedSelectRelation(
-            relation,
-            transform(relation.fields(), Field::path),
-            newQuerySpec
-        );
     }
 
     @Nullable
@@ -445,17 +376,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             return ExpressionAnalyzer.cast(symbol, DataTypes.LONG);
         }
         return null;
-    }
-
-    private static List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
-        List<Symbol> groupBy = new ArrayList<>(outputSymbols.size());
-        for (Symbol symbol : outputSymbols) {
-            if (Aggregations.containsAggregation(symbol) == false) {
-                GroupBySymbolValidator.validateForDistinctRewrite(symbol);
-                groupBy.add(symbol);
-            }
-        }
-        return groupBy;
     }
 
     private static void ensureNonAggregatesInGroupBy(SymbolPrinter symbolPrinter,

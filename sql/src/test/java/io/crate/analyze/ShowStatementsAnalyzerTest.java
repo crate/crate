@@ -51,19 +51,18 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
     public void testVisitShowTablesSchema() throws Exception {
         QueriedRelation relation = analyze("show tables in QNAME");
 
+        assertThat(relation.isDistinct(), is(true));
         assertThat(relation.querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
             "WHERE ((information_schema.tables.table_type = 'BASE TABLE') AND (information_schema.tables.table_schema = 'qname')) " +
-            "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
 
         relation = analyze("show tables");
-
+        assertThat(relation.isDistinct(), is(true));
         assertThat(relation.querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
             "WHERE ((information_schema.tables.table_type = 'BASE TABLE') " +
             "AND (NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) " +
-            "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
     }
 
@@ -71,21 +70,20 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
     public void testVisitShowTablesLike() throws Exception {
         QueriedRelation relation = analyze("show tables in QNAME like 'likePattern'");
 
+        assertThat(relation.isDistinct(), is(true));
         assertThat(relation.querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
             "WHERE (((information_schema.tables.table_type = 'BASE TABLE') AND (information_schema.tables.table_schema = 'qname')) " +
             "AND (information_schema.tables.table_name LIKE 'likePattern')) " +
-            "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
 
         relation = analyze("show tables like '%'");
-
+        assertThat(relation.isDistinct(), is(true));
         assertThat(relation.querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
             "WHERE (((information_schema.tables.table_type = 'BASE TABLE') AND " +
             "(NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) " +
             "AND (information_schema.tables.table_name LIKE '%')) " +
-            "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
     }
 
@@ -93,22 +91,20 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
     public void testVisitShowTablesWhere() throws Exception {
         QueriedRelation relation =
             analyze("show tables in QNAME where table_name = 'foo' or table_name like '%bar%'");
-
+        assertThat(relation.isDistinct(), is(true));
         assertThat(relation.querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
             "WHERE (((information_schema.tables.table_type = 'BASE TABLE') AND (information_schema.tables.table_schema = 'qname')) " +
             "AND ((information_schema.tables.table_name = 'foo') OR (information_schema.tables.table_name LIKE '%bar%'))) " +
-            "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
 
         relation = analyze("show tables where table_name like '%'");
-
+        assertThat(relation.isDistinct(), is(true));
         assertThat(relation.querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
             "WHERE (((information_schema.tables.table_type = 'BASE TABLE') " +
             "AND (NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) " +
             "AND (information_schema.tables.table_name LIKE '%')) " +
-            "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
     }
 

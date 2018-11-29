@@ -140,4 +140,6 @@ public interface QueriedRelation extends AnalyzedRelation, AnalyzedStatement {
     default boolean isUnboundPlanningSupported() {
         return true;
     }
+
+    boolean isDistinct();
 }

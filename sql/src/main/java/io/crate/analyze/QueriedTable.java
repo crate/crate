@@ -38,11 +38,16 @@ import java.util.List;
 
 public final class QueriedTable<TR extends AbstractTableRelation> implements QueriedRelation {
 
+    private final boolean isDistinct;
     private final TR tableRelation;
     private final QuerySpec querySpec;
     private final Fields fields;
 
-    public QueriedTable(TR tableRelation, Collection<? extends Path> outputNames, QuerySpec querySpec) {
+    public QueriedTable(boolean isDistinct,
+                        TR tableRelation,
+                        Collection<? extends Path> outputNames,
+                        QuerySpec querySpec) {
+        this.isDistinct = isDistinct;
         this.tableRelation = tableRelation;
         this.querySpec = querySpec;
         this.fields = new Fields(outputNames.size());
@@ -52,12 +57,17 @@ public final class QueriedTable<TR extends AbstractTableRelation> implements Que
         }
     }
 
-    public QueriedTable(TR tableRelation, QuerySpec querySpec) {
-        this(tableRelation, Relations.namesFromOutputs(querySpec.outputs()), querySpec);
+    public QueriedTable(boolean isDistinct, TR tableRelation, QuerySpec querySpec) {
+        this(isDistinct, tableRelation, Relations.namesFromOutputs(querySpec.outputs()), querySpec);
     }
 
     public QuerySpec querySpec() {
         return querySpec;
+    }
+
+    @Override
+    public boolean isDistinct() {
+        return isDistinct;
     }
 
     public TR tableRelation() {

@@ -194,23 +194,27 @@ public class LogicalPlanner {
         return FetchOrEval.create(
             Limit.create(
                 Order.create(
-                    ProjectSet.create(
-                        Filter.create(
-                            groupByOrAggregate(
-                                collectAndFilter(
-                                    relation,
-                                    splitPoints.toCollect(),
-                                    relation.where(),
-                                    subqueryPlanner,
-                                    fetchMode,
-                                    functions,
-                                    txnCtx
-                                ),
-                                relation.groupBy(),
-                                splitPoints.aggregates()),
-                            relation.having()
+                    Distinct.create(
+                        ProjectSet.create(
+                            Filter.create(
+                                groupByOrAggregate(
+                                    collectAndFilter(
+                                        relation,
+                                        splitPoints.toCollect(),
+                                        relation.where(),
+                                        subqueryPlanner,
+                                        fetchMode,
+                                        functions,
+                                        txnCtx
+                                    ),
+                                    relation.groupBy(),
+                                    splitPoints.aggregates()),
+                                relation.having()
+                            ),
+                            splitPoints.tableFunctions()
                         ),
-                        splitPoints.tableFunctions()
+                        relation.isDistinct(),
+                        relation.outputs()
                     ),
                     relation.orderBy()
                 ),
