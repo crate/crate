@@ -30,6 +30,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.List;
 
+import static io.crate.metadata.FunctionInfo.Type.AGGREGATE;
+import static io.crate.metadata.FunctionInfo.Type.WINDOW;
+
 public class WindowFunction extends Function {
 
     private final WindowDefinition windowDefinition;
@@ -41,6 +44,7 @@ public class WindowFunction extends Function {
 
     public WindowFunction(FunctionInfo info, List<Symbol> arguments, WindowDefinition windowDefinition) {
         super(info, arguments);
+        assert info.type() == WINDOW || info.type() == AGGREGATE : "only window and aggregate functions are allowed to be modelled over a window";
         this.windowDefinition = windowDefinition;
     }
 

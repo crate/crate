@@ -93,6 +93,13 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
     }
 
     @Test
+    public void testOnlyAggregatesAndWindowFunctionsAreAllowedWithOver() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("OVER clause was specified, but abs is neither a window nor an aggregate function.");
+        e.analyze("select abs(x) OVER() from t");
+    }
+
+    @Test
     public void testOverWithOrderByClause() {
         QueriedTable analysis = e.analyze("select avg(x) OVER (ORDER BY x) from t");
 
