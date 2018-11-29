@@ -68,10 +68,17 @@ class Relations {
                 functions, RowGranularity.CLUSTER, null, tableRelation);
 
             newRelation = new QueriedTable<>(
-                tableRelation, querySpec.copyAndReplace(s -> evalNormalizer.normalize(s, transactionContext)));
+                false,
+                tableRelation,
+                querySpec.copyAndReplace(s -> evalNormalizer.normalize(s, transactionContext)));
         } else {
+            QueriedRelation queriedRelation = (QueriedRelation) relation;
             newRelation = new QueriedSelectRelation(
-                ((QueriedRelation) relation), namesFromOutputs(querySpec.outputs()), querySpec);
+                queriedRelation.isDistinct(),
+                queriedRelation,
+                namesFromOutputs(querySpec.outputs()),
+                querySpec
+            );
             newRelation = (QueriedRelation) normalizer.normalize(newRelation, transactionContext);
         }
         if (newRelation.where().hasQuery() && newRelation.getQualifiedName().equals(relation.getQualifiedName())) {

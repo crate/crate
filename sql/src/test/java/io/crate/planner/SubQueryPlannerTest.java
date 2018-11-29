@@ -293,8 +293,8 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(leftPlan.collectPhase().projections().get(1), instanceOf(GroupProjection.class));
         assertThat(leftPlan.collectPhase().projections().get(1).requiredGranularity(), is(RowGranularity.NODE));
         Collect rightPlan = (Collect) nl.right();
-        assertThat(rightPlan.collectPhase().projections().size(), is(2));
         assertThat(rightPlan.collectPhase().projections(), contains(
+            instanceOf(GroupProjection.class),
             instanceOf(GroupProjection.class),
             instanceOf(GroupProjection.class)
         ));

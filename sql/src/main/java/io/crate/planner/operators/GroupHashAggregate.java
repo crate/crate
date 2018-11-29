@@ -67,7 +67,7 @@ public class GroupHashAggregate extends OneInputPlan {
         };
     }
 
-    private GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates) {
+    GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates) {
         super(source, Lists2.concat(groupKeys, aggregates));
         GroupByConsumer.validateGroupBySymbols(groupKeys);
         this.groupKeys = groupKeys;

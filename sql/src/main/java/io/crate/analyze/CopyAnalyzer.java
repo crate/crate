@@ -250,7 +250,7 @@ class CopyAnalyzer {
                 expressionAnalysisContext,
                 analysis.transactionContext())
             );
-        QueriedTable<DocTableRelation> subRelation = new QueriedTable<>(tableRelation, querySpec);
+        QueriedTable<DocTableRelation> subRelation = new QueriedTable<>(false, tableRelation, querySpec);
         return new CopyToAnalyzedStatement(
             subRelation, settings, uri, compressionType, outputFormat, outputNames, columnsDefined, overwrites);
     }
