@@ -983,6 +983,12 @@ public class ExpressionAnalyzer {
         if (windowDefinition == null) {
             newFunction = new Function(functionInfo, castArguments);
         } else {
+            if (functionInfo.type() != FunctionInfo.Type.WINDOW && functionInfo.type() != FunctionInfo.Type.AGGREGATE) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "OVER clause was specified, but %s is neither a window nor an aggregate function.",
+                    functionName));
+            }
             newFunction = new WindowFunction(functionInfo, castArguments, windowDefinition);
         }
         if (functionInfo.isDeterministic() && Symbols.allLiterals(newFunction)) {
