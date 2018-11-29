@@ -671,8 +671,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByUnknownGroupByColumn() throws Exception {
         this.setup.groupBySetup();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'details_ignored['lol']': invalid data type 'undefined'");
+        expectedException.expectMessage("Cannot GROUP BY type: undefined");
         execute("select max(birthdate) from characters group by details_ignored['lol']");
     }
 

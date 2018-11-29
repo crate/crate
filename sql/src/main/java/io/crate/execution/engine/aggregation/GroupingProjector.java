@@ -31,6 +31,7 @@ import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Symbol;
+import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -55,7 +56,7 @@ public class GroupingProjector implements Projector {
                              Version indexVersionCreated,
                              BigArrays bigArrays) {
         assert keys.size() == keyInputs.size() : "number of key types must match with number of key inputs";
-        assert allTypesKnown(typeView(keys)) : "must have a known type for each key input";
+        ensureAllTypesSupported(keys);
 
 
         AggregationFunction[] functions = new AggregationFunction[aggregations.length];
@@ -110,8 +111,13 @@ public class GroupingProjector implements Projector {
         }
     }
 
-    private static boolean allTypesKnown(List<? extends DataType> keyTypes) {
-        return keyTypes.stream().noneMatch(input -> input.equals(DataTypes.UNDEFINED));
+    private static void ensureAllTypesSupported(Iterable<? extends Symbol> keys) {
+        for (Symbol key : keys) {
+            DataType type = key.valueType();
+            if (type instanceof CollectionType || type.equals(DataTypes.UNDEFINED)) {
+                throw new UnsupportedOperationException("Cannot GROUP BY type: " + type);
+            }
+        }
     }
 
     @Override

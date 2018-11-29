@@ -312,13 +312,6 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testGroupByValidationWhenRewritingDistinct() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use DISTINCT on 'friends': invalid data type 'object_array'");
-        analyze("select distinct(friends) from users");
-    }
-
-    @Test
     public void testGroupByOnLiteral() throws Exception {
         QueriedRelation relation = analyze(
             "select [1,2,3], count(*) from users u group by 1");
@@ -360,13 +353,6 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot use NULL in GROUP BY clause");
         analyze("select max(id) from users u group by NULL");
-    }
-
-    @Test
-    public void testPositionalArgumentGroupByArrayType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'friends': invalid data type 'object_array'");
-        analyze("SELECT sum(id), friends FROM users GROUP BY 2");
     }
 
     @Test
@@ -461,26 +447,5 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column _docid unknown");
         analyze("select count(*) from users group by _docid");
-    }
-
-    @Test
-    public void testGroupByGeoShape() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'shape': invalid data type 'geo_shape'");
-        analyze("select count(*) from users group by shape");
-    }
-
-    @Test
-    public void testGroupByCastedArray() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'to_double_array(loc)': invalid data type 'double_array'");
-        analyze("select count(*) from locations group by cast(loc as array(double))");
-    }
-
-    @Test
-    public void testGroupByCastedArrayByIndex() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'to_double_array(loc)': invalid data type 'double_array'");
-        analyze("select cast(loc as array(double)) from locations group by 1");
     }
 }
