@@ -197,8 +197,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     BoundTransportAddress boundTransportAddress = postgresNetty.boundAddress();
                     if (boundTransportAddress != null) {
                         InetSocketAddress address = boundTransportAddress.publishAddress().address();
-                        return String.format(Locale.ENGLISH, "jdbc:crate://%s:%d/?ssl=%s",
-                            address.getHostName(), address.getPort(), useSSL);
+                        return String.format(Locale.ENGLISH, "jdbc:crate://%s:%d/?ssl=%s&sslmode=%s",
+                            address.getHostName(), address.getPort(), useSSL, useSSL ? "require" : "disable");
                     }
                     return null;
                 }

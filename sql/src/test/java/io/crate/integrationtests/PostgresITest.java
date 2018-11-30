@@ -557,11 +557,11 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.setAutoCommit(true);
             Statement statement = conn.createStatement();
-            assertThat(statement.executeUpdate("create table t (x string, ts timestamp) with (number_of_replicas = 0)"), is(0));
+            assertThat(statement.executeUpdate("create table t (x string, ts timestamp) with (number_of_replicas = 0)"), is(1));
             ensureYellow();
 
             assertThat(statement.executeUpdate("insert into t (x, ts) values ('Marvin', '2016-05-14'), ('Trillian', '2016-06-28')"), is(2));
-            assertThat(statement.executeUpdate("refresh table t"), is(0));
+            assertThat(statement.executeUpdate("refresh table t"), is(1));
 
             statement.executeQuery("select x, ts from t order by x");
             ResultSet resultSet = statement.getResultSet();
