@@ -271,7 +271,7 @@ Computes the MD5 checksum of the given string.
 See :ref:`sha1 <sha1>` for an example.
 
 ``replace(text, from, to)``
-===========================
+---------------------------
 
 Replaces all occurrences of ``from`` in ``text`` with ``to``.
 
