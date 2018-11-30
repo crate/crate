@@ -137,6 +137,7 @@ public class AuthenticationWithSSLIntegrationTest extends SQLTransportIntegratio
             System.setProperty("javax.net.ssl.trustStorePassword", "keystorePassword");
             properties.setProperty("user", "localhost");
             properties.setProperty("ssl", "true");
+            properties.setProperty("sslfactory", "io.crate.shade.org.postgresql.ssl.DefaultJavaSSLFactory");
             try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
             }
         } finally {
