@@ -38,9 +38,9 @@ import io.crate.planner.PlannerContext;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -83,7 +83,7 @@ public class WindowAgg extends OneInputPlan {
         this.outputs = new ArrayList<>(windowFunctions);
     }
 
-    public List<WindowFunction> windowFunctions() {
+    List<WindowFunction> windowFunctions() {
         return windowFunctions;
     }
 
@@ -113,29 +113,31 @@ public class WindowAgg extends OneInputPlan {
         );
 
         sourcePlan = Merge.ensureOnHandler(sourcePlan, plannerContext);
-        sourcePlan.addProjection(new WindowAggProjection(groupFunctionsByWindow(source.outputs(), windowFunctions)));
+
+        InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
+        for (Map.Entry<WindowDefinition, LinkedHashMap<WindowFunction, List<Symbol>>> entry : groupFunctionsByWindow(sourceSymbols, windowFunctions).entrySet()) {
+            sourcePlan.addProjection(new WindowAggProjection(entry.getKey(), entry.getValue()));
+        }
         return sourcePlan;
     }
 
-    private static Map<WindowDefinition, List<Symbol>> groupFunctionsByWindow(List<Symbol> inputs,
-                                                                              List<WindowFunction> windowFunctions) {
-        InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputs);
-        Map<WindowDefinition, List<Symbol>> groupedFunctions = new HashMap<>();
+    private static Map<WindowDefinition, LinkedHashMap<WindowFunction, List<Symbol>>> groupFunctionsByWindow(InputColumns.SourceSymbols sourceSymbols,
+                                                                                                             List<WindowFunction> windowFunctions) {
+        Map<WindowDefinition, LinkedHashMap<WindowFunction, List<Symbol>>> groupedFunctions = new HashMap<>();
 
         for (WindowFunction windowFunction : windowFunctions) {
             WindowDefinition windowDefinition = windowFunction.windowDefinition();
 
-            Symbol windowFunctionSymbol = InputColumns.create(windowFunction, sourceSymbols);
-            List<Symbol> functions = groupedFunctions.get(windowDefinition);
-            if (functions == null) {
-                ArrayList<Symbol> functionsForWindow = new ArrayList<>();
-                functionsForWindow.add(windowFunctionSymbol);
-                groupedFunctions.put(windowDefinition, functionsForWindow);
-            } else {
-                functions.add(windowFunctionSymbol);
+            WindowFunction windowFunctionSymbol = (WindowFunction) InputColumns.create(windowFunction, sourceSymbols);
+            List<Symbol> inputs = InputColumns.create(windowFunction.arguments(), sourceSymbols);
+            LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = groupedFunctions.get(windowDefinition);
+            if (functionsWithInputs == null) {
+                functionsWithInputs = new LinkedHashMap<>();
+                groupedFunctions.put(windowDefinition, functionsWithInputs);
             }
+            functionsWithInputs.put(windowFunctionSymbol, inputs);
         }
-        return Collections.unmodifiableMap(groupedFunctions);
+        return groupedFunctions;
     }
 
     @Override
