@@ -40,7 +40,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -62,20 +62,20 @@ public class WindowAggProjectionSerialisationTest {
         WindowFunction firstWindowFunction = new WindowFunction(sumFunctionImpl.info(), Arrays.asList(Literal.of(1L)), partitionByOneWindowDef);
         WindowFunction secondWindowFunction = new WindowFunction(sumFunctionImpl.info(), Arrays.asList(Literal.of(2L)), partitionByTwoWindowDef);
 
-        HashMap<WindowDefinition, List<Symbol>> functionsByWindows = new HashMap<>(2, 1f);
-        functionsByWindows.put(partitionByOneWindowDef, Arrays.asList(firstWindowFunction));
-        functionsByWindows.put(partitionByTwoWindowDef, Arrays.asList(secondWindowFunction));
+        LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = new LinkedHashMap<>(2, 1f);
+        functionsWithInputs.put(firstWindowFunction, Arrays.asList(Literal.of(1L)));
+        functionsWithInputs.put(secondWindowFunction, Arrays.asList(Literal.of(2L)));
 
-        WindowAggProjection windowAggProjection = new WindowAggProjection(functionsByWindows);
+        WindowAggProjection windowAggProjection = new WindowAggProjection(partitionByOneWindowDef, functionsWithInputs);
         BytesStreamOutput output = new BytesStreamOutput();
         windowAggProjection.writeTo(output);
 
         StreamInput input = output.bytes().streamInput();
         WindowAggProjection fromInput = new WindowAggProjection(input);
 
-        Map<WindowDefinition, List<Symbol>> deserialisedFunctionsByWindow = fromInput.functionsByWindow();
+        Map<WindowFunction, List<Symbol>> deserialisedFunctionsByWindow = fromInput.functionsWithInputs();
 
-        assertThat(deserialisedFunctionsByWindow, equalTo(functionsByWindows));
+        assertThat(deserialisedFunctionsByWindow, equalTo(functionsWithInputs));
     }
 
     private FunctionImplementation getSumFunction() {

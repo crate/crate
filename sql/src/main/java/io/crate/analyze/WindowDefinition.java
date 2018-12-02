@@ -26,11 +26,11 @@ package io.crate.analyze;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExplainLeaf;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
@@ -64,10 +64,12 @@ public class WindowDefinition implements Writeable {
         return partitions;
     }
 
+    @Nullable
     public OrderBy orderBy() {
         return orderBy;
     }
 
+    @Nullable
     public WindowFrameDefinition windowFrameDefinition() {
         return windowFrameDefinition;
     }

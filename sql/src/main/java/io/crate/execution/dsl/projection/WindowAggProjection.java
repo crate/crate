@@ -26,37 +26,62 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WindowDefinition;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.WindowFunction;
 import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class WindowAggProjection extends Projection {
 
-    private final Map<WindowDefinition, List<Symbol>> functionsByWindow;
+    private final WindowDefinition windowDefinition;
+    private LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs;
+    private ArrayList<Symbol> outputs;
 
-    public WindowAggProjection(Map<WindowDefinition, List<Symbol>> functionsByWindow) {
-        this.functionsByWindow = functionsByWindow;
+    public WindowAggProjection(WindowDefinition windowDefinition, LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs) {
+        this.windowDefinition = windowDefinition;
+        this.functionsWithInputs = functionsWithInputs;
+        outputs = new ArrayList<>(functionsWithInputs.keySet());
     }
 
     public WindowAggProjection(StreamInput in) throws IOException {
-        int size = in.readVInt();
-        functionsByWindow = new HashMap<>(size, 1f);
-        for (int i = 0; i < size; i++) {
-            WindowDefinition windowDefinition = new WindowDefinition(in);
-            functionsByWindow.put(windowDefinition, Symbols.listFromStream(in));
+        windowDefinition = new WindowDefinition(in);
+        int functionsCount = in.readVInt();
+        functionsWithInputs = new LinkedHashMap<>(functionsCount, 1f);
+        for (int i = 0; i < functionsCount; i++) {
+            WindowFunction function = (WindowFunction) Symbols.fromStream(in);
+            List<Symbol> inputs = Symbols.listFromStream(in);
+            functionsWithInputs.put(function, inputs);
         }
+        outputs = new ArrayList<>(functionsWithInputs.keySet());
     }
 
-    public Map<WindowDefinition, List<Symbol>> functionsByWindow() {
-        return functionsByWindow;
+    public WindowDefinition windowDefinition() {
+        return windowDefinition;
+    }
+
+    public LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs() {
+        return functionsWithInputs;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        WindowAggProjection that = (WindowAggProjection) o;
+        return Objects.equals(windowDefinition, that.windowDefinition) &&
+               Objects.equals(functionsWithInputs, that.functionsWithInputs);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), windowDefinition, functionsWithInputs);
     }
 
     @Override
@@ -71,42 +96,25 @@ public class WindowAggProjection extends Projection {
 
     @Override
     public List<? extends Symbol> outputs() {
-        return functionsByWindow.values().stream()
-            .flatMap(Collection::stream)
-            .collect(Collectors.toList());
+        return outputs;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(functionsByWindow.size());
-        for (Map.Entry<WindowDefinition, List<Symbol>> entry : functionsByWindow.entrySet()) {
-            entry.getKey().writeTo(out);
-            Symbols.toStream(entry.getValue(), out);
+        windowDefinition.writeTo(out);
+        out.writeVInt(functionsWithInputs.size());
+        for (Map.Entry<WindowFunction, List<Symbol>> functionWithInputs : functionsWithInputs.entrySet()) {
+            Symbols.toStream(functionWithInputs.getKey(), out);
+            Symbols.toStream(functionWithInputs.getValue(), out);
         }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        WindowAggProjection that = (WindowAggProjection) o;
-        return Objects.equals(functionsByWindow, that.functionsByWindow);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), functionsByWindow);
     }
 
     @Override
     public Map<String, Object> mapRepresentation() {
         return ImmutableMap.of(
             "type", "WindowAggregation",
-            "windowFunctions", ExplainLeaf.printList(
-                functionsByWindow.values().stream()
-                    .flatMap(Collection::stream)
-                    .collect(Collectors.toList())
-            )
+            "windowFunctions",
+            ExplainLeaf.printList(new ArrayList<>(functionsWithInputs.keySet()))
         );
     }
 }
