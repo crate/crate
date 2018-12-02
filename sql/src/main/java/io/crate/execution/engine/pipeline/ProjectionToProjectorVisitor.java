@@ -53,6 +53,7 @@ import io.crate.execution.dsl.projection.UpdateProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.aggregation.AggregationContext;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -71,6 +72,8 @@ import io.crate.execution.engine.indexing.UpsertResultContext;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingTopNProjector;
+import io.crate.execution.engine.window.WindowFunctionContext;
+import io.crate.execution.engine.window.WindowProjector;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
@@ -79,7 +82,9 @@ import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -536,7 +541,8 @@ public class ProjectionToProjectorVisitor
 
         for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
             Reference ref = e.getKey();
-            assert relationName == null || relationName.equals(ref.ident().tableIdent()) : "mixed table assignments found";
+            assert
+                relationName == null || relationName.equals(ref.ident().tableIdent()) : "mixed table assignments found";
             relationName = ref.ident().tableIdent();
             if (readCtx == null) {
                 StaticTableDefinition<?> tableDefinition = staticTableDefinitionGetter.apply(relationName);
@@ -575,7 +581,19 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitWindowAgg(WindowAggProjection windowAgg, Context context) {
-        return visitProjection(windowAgg, context);
+        Map<WindowFunction, List<Symbol>> functionsWithInputs = windowAgg.functionsWithInputs();
+
+        ArrayList<WindowFunctionContext> functionContexts = new ArrayList<>(functionsWithInputs.size());
+        for (Map.Entry<WindowFunction, List<Symbol>> functionAndInputsEntry : functionsWithInputs.entrySet()) {
+            InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
+            ctx.add(functionAndInputsEntry.getValue());
+
+            FunctionImplementation impl = this.functions.getQualified((functionAndInputsEntry.getKey()).info().ident());
+            assert impl instanceof AggregationFunction : "We currently only support aggregation functions as window functions";
+            functionContexts.add(new WindowFunctionContext(ctx.topLevelInputs(), (AggregationFunction) impl, ctx.expressions()));
+        }
+
+        return new WindowProjector(windowAgg.windowDefinition(), functionContexts, context.ramAccountingContext, indexVersionCreated, bigArrays);
     }
 
     @Override
