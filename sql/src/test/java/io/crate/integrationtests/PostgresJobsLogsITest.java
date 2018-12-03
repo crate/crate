@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
@@ -70,6 +71,20 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
     public void resetStats() throws Exception {
         try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
             conn.createStatement().execute("reset global stats.enabled");
+        }
+    }
+
+    @Test
+    public void testFailingStatementIsRemovedFromSysJobs() throws Exception {
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
+            try {
+                conn.createStatement().execute("set global 'foo.logger' = 'TRACE'");
+            } catch (PSQLException e) {
+                // this is expected
+            }
+            ResultSet result = conn.createStatement().executeQuery("select count(*) from sys.jobs");
+            assertThat(result.next(), is(true));
+            assertThat(result.getLong(1), is(1L));
         }
     }
 
