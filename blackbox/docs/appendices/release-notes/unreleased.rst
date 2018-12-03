@@ -132,3 +132,6 @@ Changes
 
 Fixes
 =====
+
+- Fixed an issue that could cause some type of statements to remain listed
+  within ``sys.jobs`` if their execution stopped with a failure.
