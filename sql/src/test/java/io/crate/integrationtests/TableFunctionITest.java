@@ -128,4 +128,12 @@ public class TableFunctionITest extends SQLTransportIntegrationTest {
                                                      "3| 2\n" +
                                                      "3| 3\n"));
     }
+
+    @Test
+    public void testDistinctIsAppliedAfterTableFunctions() {
+        execute("select distinct generate_series(1, 2), col1 from unnest([1, 1]) order by 1 asc");
+        assertThat(printedTable(response.rows()),
+            is("1| 1\n" +
+               "2| 1\n"));
+    }
 }

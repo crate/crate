@@ -157,6 +157,11 @@ public class OrderedLimitedRelation implements QueriedRelation {
         return false;
     }
 
+    @Override
+    public boolean isDistinct() {
+        return false;
+    }
+
     public OrderedLimitedRelation map(QueriedRelation newChild, Function<? super Symbol,? extends Symbol> mapper) {
         OrderBy orderBy = orderBy();
         Symbol limit = limit();
