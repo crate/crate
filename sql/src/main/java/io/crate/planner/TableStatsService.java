@@ -40,7 +40,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -116,7 +116,7 @@ public class TableStatsService extends AbstractComponent implements Runnable {
 
     static class TableStatsResultReceiver extends BaseResultReceiver {
 
-        private static final Logger LOGGER = Loggers.getLogger(TableStatsResultReceiver.class);
+        private static final Logger LOGGER = LogManager.getLogger(TableStatsResultReceiver.class);
 
         private final Consumer<ObjectObjectMap<RelationName, TableStats.Stats>> tableStatsConsumer;
         private ObjectObjectMap<RelationName, TableStats.Stats> newStats = new ObjectObjectHashMap<>();

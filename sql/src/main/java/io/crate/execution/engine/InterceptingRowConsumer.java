@@ -30,7 +30,7 @@ import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 class InterceptingRowConsumer implements RowConsumer {
 
-    private static final Logger LOGGER = Loggers.getLogger(InterceptingRowConsumer.class);
+    private static final Logger LOGGER = LogManager.getLogger(InterceptingRowConsumer.class);
 
     private final AtomicInteger consumerInvokedAndJobInitialized = new AtomicInteger(2);
     private final UUID jobId;

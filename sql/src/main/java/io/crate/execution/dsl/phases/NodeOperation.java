@@ -27,7 +27,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,7 +37,7 @@ import java.util.List;
 
 public class NodeOperation implements Streamable {
 
-    private static final Logger LOGGER = Loggers.getLogger(NodeOperation.class);
+    private static final Logger LOGGER = LogManager.getLogger(NodeOperation.class);
 
     public static final int NO_DOWNSTREAM = Integer.MAX_VALUE;
 

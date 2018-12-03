@@ -50,7 +50,7 @@ import io.crate.types.DataType;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -60,7 +60,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class SimplePortal extends AbstractPortal {
 
-    private static final Logger LOGGER = Loggers.getLogger(SimplePortal.class);
+    private static final Logger LOGGER = LogManager.getLogger(SimplePortal.class);
 
     private List<Object> params;
     private String query;

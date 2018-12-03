@@ -37,7 +37,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
@@ -48,7 +48,7 @@ import java.util.Map;
 
 public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
 
-    private static final Logger LOGGER = Loggers.getLogger(InternalBlobTableInfoFactory.class);
+    private static final Logger LOGGER = LogManager.getLogger(InternalBlobTableInfoFactory.class);
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Environment environment;
     private final Path globalBlobPath;

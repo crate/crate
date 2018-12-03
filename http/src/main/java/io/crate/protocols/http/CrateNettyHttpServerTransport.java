@@ -27,7 +27,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.io.PathUtils;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
@@ -109,7 +109,7 @@ public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
 
     private static class CrateDispatcher implements HttpServerTransport.Dispatcher {
 
-        private static final Logger LOG = Loggers.getLogger(CrateDispatcher.class);
+        private static final Logger LOG = LogManager.getLogger(CrateDispatcher.class);
 
         private final Path sitePath;
         private final Dispatcher fallbackDispatcher;

@@ -29,7 +29,7 @@ import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
 import java.io.Closeable;
@@ -63,7 +63,7 @@ public class DigestBlob implements Closeable {
     private MessageDigest md;
     private long chunks;
     private CountDownLatch headCatchedUpLatch;
-    private static final Logger logger = Loggers.getLogger(DigestBlob.class);
+    private static final Logger logger = LogManager.getLogger(DigestBlob.class);
 
     public DigestBlob(BlobContainer container, String digest, UUID transferId) {
         this.digest = digest;

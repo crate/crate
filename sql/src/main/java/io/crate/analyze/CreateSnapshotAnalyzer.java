@@ -37,7 +37,7 @@ import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
@@ -54,7 +54,7 @@ import static io.crate.analyze.SnapshotSettings.SETTINGS;
 
 class CreateSnapshotAnalyzer {
 
-    private static final Logger LOGGER = Loggers.getLogger(CreateSnapshotAnalyzer.class);
+    private static final Logger LOGGER = LogManager.getLogger(CreateSnapshotAnalyzer.class);
     private final RepositoryService repositoryService;
     private final Schemas schemas;
 

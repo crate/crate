@@ -39,7 +39,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.index.Index;
 
 import java.util.Collections;
@@ -50,7 +50,7 @@ import static io.crate.execution.engine.collect.NestableCollectExpression.consta
 
 public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?>> {
 
-    private static final Logger LOGGER = Loggers.getLogger(ShardReferenceResolver.class);
+    private static final Logger LOGGER = LogManager.getLogger(ShardReferenceResolver.class);
     private static final StaticTableReferenceResolver<ShardRowContext> SHARD_REFERENCE_RESOLVER_DELEGATE =
         new StaticTableReferenceResolver<>(SysShardsTableInfo.expressions());
     private static final ReferenceResolver<NestableInput<?>> EMPTY_RESOLVER =

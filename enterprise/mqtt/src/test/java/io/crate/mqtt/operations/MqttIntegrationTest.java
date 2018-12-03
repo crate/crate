@@ -23,7 +23,7 @@ import io.crate.mqtt.netty.Client;
 import io.crate.mqtt.netty.Netty4MqttServerTransport;
 import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -35,7 +35,7 @@ import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_PORT_SETTING;
 
 public abstract class MqttIntegrationTest extends SQLTransportIntegrationTest {
 
-    private static final Logger LOGGER = Loggers.getLogger(MqttIntegrationTest.class);
+    private static final Logger LOGGER = LogManager.getLogger(MqttIntegrationTest.class);
     private static final String PORT_RANGE = "11883-11983";
     private int port;
 

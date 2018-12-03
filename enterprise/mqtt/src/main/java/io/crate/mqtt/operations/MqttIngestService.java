@@ -54,7 +54,7 @@ import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -82,7 +82,7 @@ import java.util.function.Predicate;
  */
 public class MqttIngestService implements IngestRuleListener {
 
-    private static final Logger LOGGER = Loggers.getLogger(MqttIngestService.class);
+    private static final Logger LOGGER = LogManager.getLogger(MqttIngestService.class);
     public static final String SOURCE_IDENT = "mqtt";
     private static final Map<QualifiedName, Integer> MQTT_FIELDS_ORDER = ImmutableMap.of(new QualifiedName("client_id"), 0,
         new QualifiedName("packet_id"), 1,

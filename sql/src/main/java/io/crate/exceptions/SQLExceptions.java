@@ -31,7 +31,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.EngineException;
@@ -56,7 +56,7 @@ import java.util.function.Predicate;
 
 public class SQLExceptions {
 
-    private static final Logger LOGGER = Loggers.getLogger(SQLExceptions.class);
+    private static final Logger LOGGER = LogManager.getLogger(SQLExceptions.class);
 
     private static final Predicate<Throwable> EXCEPTIONS_TO_UNWRAP = throwable ->
         throwable instanceof TransportException ||

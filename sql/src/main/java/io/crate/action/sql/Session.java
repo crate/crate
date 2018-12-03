@@ -57,7 +57,7 @@ import io.crate.types.DataType;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -105,7 +105,7 @@ import java.util.function.Function;
 public class Session implements AutoCloseable {
 
     // Logger name should be SQLOperations here
-    private static final Logger LOGGER = Loggers.getLogger(SQLOperations.class);
+    private static final Logger LOGGER = LogManager.getLogger(SQLOperations.class);
 
     // Parser can't handle empty statement but postgres requires support for it.
     // This rewrite is done so that bind/describe calls on an empty statement will work as well

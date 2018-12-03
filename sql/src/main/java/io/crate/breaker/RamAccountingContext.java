@@ -25,7 +25,7 @@ import io.crate.execution.dsl.phases.ExecutionPhase;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.concurrent.atomic.AtomicLong;
@@ -45,7 +45,7 @@ public class RamAccountingContext implements RamAccounting {
     private volatile boolean closed = false;
     private volatile boolean tripped = false;
 
-    private static final Logger logger = Loggers.getLogger(RamAccountingContext.class);
+    private static final Logger logger = LogManager.getLogger(RamAccountingContext.class);
 
     public static RamAccountingContext forExecutionPhase(CircuitBreaker breaker, ExecutionPhase executionPhase) {
         String ramAccountingContextId = executionPhase.name() + ": " + executionPhase.phaseId();

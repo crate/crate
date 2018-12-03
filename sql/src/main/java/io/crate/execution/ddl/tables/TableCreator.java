@@ -29,6 +29,7 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.ActionListener;
@@ -45,7 +46,6 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Collections;
@@ -58,7 +58,7 @@ public class TableCreator {
 
     private static final Long SUCCESS_RESULT = 1L;
 
-    protected static final Logger logger = Loggers.getLogger(TableCreator.class);
+    protected static final Logger logger = LogManager.getLogger(TableCreator.class);
 
     private final ClusterService clusterService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;

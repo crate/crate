@@ -34,7 +34,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -45,7 +45,7 @@ import java.util.stream.StreamSupport;
 public class PartitionInfos implements Iterable<PartitionInfo> {
 
     private final ClusterService clusterService;
-    private static final Logger LOGGER = Loggers.getLogger(PartitionInfos.class);
+    private static final Logger LOGGER = LogManager.getLogger(PartitionInfos.class);
 
     public PartitionInfos(ClusterService clusterService) {
         this.clusterService = clusterService;

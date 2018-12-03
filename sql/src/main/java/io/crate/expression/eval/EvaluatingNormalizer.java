@@ -41,7 +41,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.scalar.arithmetic.MapFunction;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -61,7 +61,7 @@ import java.util.Map;
  */
 public class EvaluatingNormalizer {
 
-    private static final Logger logger = Loggers.getLogger(EvaluatingNormalizer.class);
+    private static final Logger logger = LogManager.getLogger(EvaluatingNormalizer.class);
     private final Functions functions;
     private final RowGranularity granularity;
     private final ReferenceResolver<? extends Input<?>> referenceResolver;

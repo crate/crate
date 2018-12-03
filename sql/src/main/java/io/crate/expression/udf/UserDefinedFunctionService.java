@@ -38,7 +38,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.unit.TimeValue;
 
 import javax.script.ScriptException;
@@ -53,7 +53,7 @@ import java.util.stream.Stream;
 @Singleton
 public class UserDefinedFunctionService {
 
-    private static final Logger LOGGER = Loggers.getLogger(UserDefinedFunctionService.class);
+    private static final Logger LOGGER = LogManager.getLogger(UserDefinedFunctionService.class);
 
     private final ClusterService clusterService;
     private final Functions functions;

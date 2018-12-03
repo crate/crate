@@ -27,7 +27,7 @@ import io.netty.handler.codec.mqtt.MqttConnectMessage;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.Locale;
 
@@ -35,7 +35,7 @@ import java.util.Locale;
 @Sharable
 public class MqttNettyHandler extends ChannelInboundHandlerAdapter {
 
-    private final Logger LOGGER = Loggers.getLogger(MqttNettyHandler.class);
+    private final Logger LOGGER = LogManager.getLogger(MqttNettyHandler.class);
     private final MqttProcessor processor;
 
     MqttNettyHandler(MqttProcessor processor) {
