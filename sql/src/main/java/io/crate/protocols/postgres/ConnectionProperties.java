@@ -24,7 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.auth.Protocol;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -34,7 +34,7 @@ import java.security.cert.Certificate;
 
 public class ConnectionProperties {
 
-    private static final Logger LOGGER = Loggers.getLogger(ConnectionProperties.class);
+    private static final Logger LOGGER = LogManager.getLogger(ConnectionProperties.class);
 
     private final InetAddress address;
     private final Protocol protocol;

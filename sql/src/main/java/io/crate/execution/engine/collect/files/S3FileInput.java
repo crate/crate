@@ -27,7 +27,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import io.crate.external.S3ClientHelper;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,7 +39,7 @@ import java.util.function.Predicate;
 public class S3FileInput implements FileInput {
 
     private AmazonS3 client; // to prevent early GC during getObjectContent() in getStream()
-    private static final Logger logger = Loggers.getLogger(S3FileInput.class);
+    private static final Logger logger = LogManager.getLogger(S3FileInput.class);
 
     final S3ClientHelper clientBuilder;
 

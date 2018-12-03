@@ -32,7 +32,7 @@ import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputRow;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -61,7 +61,7 @@ import static io.crate.exceptions.Exceptions.rethrowUnchecked;
 
 public class FileReadingIterator implements BatchIterator<Row> {
 
-    private static final Logger LOGGER = Loggers.getLogger(FileReadingIterator.class);
+    private static final Logger LOGGER = LogManager.getLogger(FileReadingIterator.class);
     private static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
     private final Map<String, FileInputFactory> fileInputFactories;
     private final Boolean shared;

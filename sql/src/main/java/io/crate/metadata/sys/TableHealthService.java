@@ -41,7 +41,7 @@ import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.RestStatus;
 
@@ -194,7 +194,7 @@ public class TableHealthService extends AbstractComponent {
 
     private static class HealthResultReceiver implements ResultReceiver {
 
-        private static final Logger LOGGER = Loggers.getLogger(TableHealthService.HealthResultReceiver.class);
+        private static final Logger LOGGER = LogManager.getLogger(TableHealthService.HealthResultReceiver.class);
 
         private final CompletableFuture<Map<TablePartitionIdent, ShardsInfo>> result;
         private final Map<TablePartitionIdent, ShardsInfo> tables = new HashMap<>();

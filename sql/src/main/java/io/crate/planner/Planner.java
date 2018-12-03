@@ -77,13 +77,13 @@ import io.crate.planner.statement.SetSessionPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
 import io.crate.sql.tree.Expression;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
@@ -98,7 +98,7 @@ import java.util.function.BooleanSupplier;
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
-    private static final Logger LOGGER = Loggers.getLogger(Planner.class);
+    private static final Logger LOGGER = LogManager.getLogger(Planner.class);
 
     private final ClusterService clusterService;
     private final Functions functions;

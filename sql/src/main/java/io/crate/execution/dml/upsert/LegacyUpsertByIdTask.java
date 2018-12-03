@@ -46,7 +46,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentMissingException;
@@ -72,7 +72,7 @@ import static io.crate.data.SentinelRow.SENTINEL;
 
 public class LegacyUpsertByIdTask {
 
-    private static final Logger LOGGER = Loggers.getLogger(UpdateById.class);
+    private static final Logger LOGGER = LogManager.getLogger(UpdateById.class);
     private static final BackoffPolicy BACK_OFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
 
     private final ClusterService clusterService;

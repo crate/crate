@@ -32,7 +32,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -56,7 +56,7 @@ import java.util.function.Function;
  */
 public class ShardStateAwareRemoteCollector {
 
-    private static final Logger LOGGER = Loggers.getLogger(ShardStateAwareRemoteCollector.class);
+    private static final Logger LOGGER = LogManager.getLogger(ShardStateAwareRemoteCollector.class);
     private static final TimeValue STATE_OBSERVER_WAIT_FOR_CHANGE_TIMEOUT = new TimeValue(60000);
 
     private final String localNodeId;

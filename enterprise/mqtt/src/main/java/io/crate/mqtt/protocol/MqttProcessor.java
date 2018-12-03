@@ -30,7 +30,7 @@ import io.netty.handler.codec.mqtt.MqttQoS;
 import io.netty.handler.codec.mqtt.MqttVersion;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.Locale;
 import java.util.UUID;
@@ -41,7 +41,7 @@ import java.util.function.BiConsumer;
  */
 public class MqttProcessor {
 
-    private static final Logger LOGGER = Loggers.getLogger(MqttProcessor.class);
+    private static final Logger LOGGER = LogManager.getLogger(MqttProcessor.class);
 
     private final MqttIngestService ingestService;
 

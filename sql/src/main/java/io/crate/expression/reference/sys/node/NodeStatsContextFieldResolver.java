@@ -36,7 +36,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
@@ -65,7 +65,7 @@ import static io.crate.expression.reference.sys.node.Ports.portFromAddress;
 @Singleton
 public class NodeStatsContextFieldResolver {
 
-    private static final Logger LOGGER = Loggers.getLogger(NodeStatsContextFieldResolver.class);
+    private static final Logger LOGGER = LogManager.getLogger(NodeStatsContextFieldResolver.class);
     private final Supplier<DiscoveryNode> localNode;
     private final Supplier<TransportAddress> boundHttpAddress;
     private final Supplier<HttpStats> httpStatsSupplier;

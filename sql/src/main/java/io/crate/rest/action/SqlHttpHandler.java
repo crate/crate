@@ -55,7 +55,7 @@ import io.netty.handler.codec.http.QueryStringDecoder;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -84,7 +84,7 @@ import static java.util.Collections.singletonList;
 
 public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedRequest> {
 
-    private static final Logger LOGGER = Loggers.getLogger(SqlHttpHandler.class);
+    private static final Logger LOGGER = LogManager.getLogger(SqlHttpHandler.class);
     private static final String REQUEST_HEADER_USER = "User";
     private static final String REQUEST_HEADER_SCHEMA = "Default-Schema";
     private static final int DEFAULT_SOFT_LIMIT = 10_000;

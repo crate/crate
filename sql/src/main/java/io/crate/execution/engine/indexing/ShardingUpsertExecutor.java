@@ -43,7 +43,7 @@ import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAc
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -73,7 +73,7 @@ public class ShardingUpsertExecutor
         Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING);
 
     private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
-    private static final Logger LOGGER = Loggers.getLogger(ShardingUpsertExecutor.class);
+    private static final Logger LOGGER = LogManager.getLogger(ShardingUpsertExecutor.class);
 
     private final GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper;
     private final NodeJobsCounter nodeJobsCounter;

@@ -31,7 +31,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.node.ddl.DropTablePlan;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import static io.crate.data.SentinelRow.SENTINEL;
@@ -41,7 +41,7 @@ public class DropTableTask {
     private static final Row ROW_ZERO = new Row1(0L);
     private static final Row ROW_ONE = new Row1(1L);
 
-    private static final Logger LOGGER = Loggers.getLogger(DropTableTask.class);
+    private static final Logger LOGGER = LogManager.getLogger(DropTableTask.class);
 
     private final DocTableInfo tableInfo;
     private final TransportDropTableAction transportDropTableAction;

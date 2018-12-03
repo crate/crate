@@ -23,9 +23,9 @@
 package io.crate.execution.engine.collect.stats;
 
 import io.crate.expression.ExpressionsInput;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.Message;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import java.util.Iterator;
@@ -37,7 +37,7 @@ public final class FilteredLogSink<T> implements LogSink<T> {
      * This logger name is documented in the docs for the {@link JobsLogService#STATS_JOBS_LOG_PERSIST_FILTER} setting.
      * Take care when changing the name.
      */
-    private static final Logger STATEMENT_LOGGER = Loggers.getLogger("StatementLog");
+    private static final Logger STATEMENT_LOGGER = LogManager.getLogger("StatementLog");
     private final ExpressionsInput<T, Boolean> memoryFilter;
     private final ExpressionsInput<T, Boolean> persistFilter;
     private final Function<T, Message> createLogMessage;

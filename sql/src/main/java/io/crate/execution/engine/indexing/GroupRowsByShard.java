@@ -31,7 +31,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import javax.annotation.Nullable;
@@ -47,7 +47,7 @@ import java.util.function.Supplier;
 public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
     implements BiConsumer<ShardedRequests<TReq, TItem>, Row> {
 
-    private static final Logger LOGGER = Loggers.getLogger(GroupRowsByShard.class);
+    private static final Logger LOGGER = LogManager.getLogger(GroupRowsByShard.class);
 
     private final RowShardResolver rowShardResolver;
     private final List<? extends CollectExpression<Row, ?>> expressions;

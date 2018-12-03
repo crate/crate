@@ -26,7 +26,7 @@ import io.crate.analyze.NumberOfReplicas;
 import io.crate.execution.dml.ShardRequest;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.function.Predicate;
@@ -39,7 +39,7 @@ public class BulkShardCreationLimiter<TReq extends ShardRequest<TReq, TItem>, TI
      * <p>wait_for_active_shards</p> timeout of 30sec. Value was wisely chosen after some brave testing.
      */
     static final int MAX_NEW_SHARDS_PER_NODE = 10;
-    private static final Logger LOGGER = Loggers.getLogger(BulkShardCreationLimiter.class);
+    private static final Logger LOGGER = LogManager.getLogger(BulkShardCreationLimiter.class);
 
     private final int numDataNodes;
     private final int numberOfAllShards;

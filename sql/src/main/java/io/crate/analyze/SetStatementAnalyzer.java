@@ -36,7 +36,7 @@ import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.SetStatement;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,7 +48,7 @@ import java.util.Set;
 
 class SetStatementAnalyzer {
 
-    private static final Logger logger = Loggers.getLogger(SetStatementAnalyzer.class);
+    private static final Logger logger = LogManager.getLogger(SetStatementAnalyzer.class);
 
     public static AnalyzedStatement analyze(SetStatement node) {
 

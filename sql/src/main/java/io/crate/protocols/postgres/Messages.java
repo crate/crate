@@ -33,7 +33,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
@@ -57,7 +57,7 @@ import java.util.SortedSet;
  */
 public class Messages {
 
-    private static final Logger LOGGER = Loggers.getLogger(Messages.class);
+    private static final Logger LOGGER = LogManager.getLogger(Messages.class);
 
     private static final byte[] SEVERITY_FATAL = "FATAL".getBytes(StandardCharsets.UTF_8);
     private static final byte[] SEVERITY_ERROR = "ERROR".getBytes(StandardCharsets.UTF_8);

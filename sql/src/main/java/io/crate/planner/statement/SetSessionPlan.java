@@ -34,7 +34,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Expression;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.List;
 import java.util.Map;
@@ -43,7 +43,7 @@ import static io.crate.data.SentinelRow.SENTINEL;
 
 public class SetSessionPlan implements Plan {
 
-    private static final Logger LOGGER = Loggers.getLogger(SetSessionPlan.class);
+    private static final Logger LOGGER = LogManager.getLogger(SetSessionPlan.class);
 
     private final Map<String, List<Expression>> settings;
 

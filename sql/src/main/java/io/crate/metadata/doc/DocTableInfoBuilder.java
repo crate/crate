@@ -36,7 +36,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 
@@ -57,7 +57,7 @@ class DocTableInfoBuilder {
     private final MetaData metaData;
     private String[] concreteIndices;
     private String[] concreteOpenIndices;
-    private static final Logger logger = Loggers.getLogger(DocTableInfoBuilder.class);
+    private static final Logger logger = LogManager.getLogger(DocTableInfoBuilder.class);
 
     DocTableInfoBuilder(Functions functions,
                         RelationName ident,

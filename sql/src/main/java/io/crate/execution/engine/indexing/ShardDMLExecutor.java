@@ -38,7 +38,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -56,7 +56,7 @@ import static io.crate.execution.jobs.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERAT
 public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
     implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<? extends Row>>> {
 
-    private static final Logger LOGGER = Loggers.getLogger(ShardDMLExecutor.class);
+    private static final Logger LOGGER = LogManager.getLogger(ShardDMLExecutor.class);
 
     private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
     public static final int DEFAULT_BULK_SIZE = 10_000;

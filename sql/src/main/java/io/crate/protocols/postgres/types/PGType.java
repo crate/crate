@@ -24,7 +24,7 @@ package io.crate.protocols.postgres.types;
 
 import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
@@ -32,7 +32,7 @@ import java.nio.charset.StandardCharsets;
 public abstract class PGType {
 
     static final int INT32_BYTE_SIZE = Integer.SIZE / 8;
-    private static final Logger LOGGER = Loggers.getLogger(PGType.class);
+    private static final Logger LOGGER = LogManager.getLogger(PGType.class);
 
     private final int oid;
     private final int typeLen;
