@@ -30,7 +30,7 @@ import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.util.Throwables;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -45,7 +45,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class Client implements AutoCloseable {
 
-    private static final Logger LOGGER = Loggers.getLogger(Client.class);
+    private static final Logger LOGGER = LogManager.getLogger(Client.class);
 
     private final String host;
     private final int port;

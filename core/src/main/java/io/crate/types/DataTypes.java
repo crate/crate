@@ -32,7 +32,7 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -45,7 +45,7 @@ import java.util.function.Supplier;
 
 public final class DataTypes {
 
-    private static final Logger logger = Loggers.getLogger(DataTypes.class);
+    private static final Logger logger = LogManager.getLogger(DataTypes.class);
 
     /**
      * If you add types here make sure to update the SizeEstimatorFactory in the SQL module.

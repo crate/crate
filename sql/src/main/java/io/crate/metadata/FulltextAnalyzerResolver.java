@@ -29,7 +29,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -68,7 +68,7 @@ public class FulltextAnalyzerResolver {
     // used for saving the creation statement
     public static final String SQL_STATEMENT_KEY = "_sql_stmt";
 
-    private static final Logger logger = Loggers.getLogger(FulltextAnalyzerResolver.class);
+    private static final Logger logger = LogManager.getLogger(FulltextAnalyzerResolver.class);
 
 
     public enum CustomType {

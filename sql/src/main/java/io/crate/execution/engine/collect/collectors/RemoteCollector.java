@@ -42,7 +42,7 @@ import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -51,7 +51,7 @@ import java.util.concurrent.Executor;
 
 public class RemoteCollector {
 
-    private static final Logger LOGGER = Loggers.getLogger(RemoteCollector.class);
+    private static final Logger LOGGER = LogManager.getLogger(RemoteCollector.class);
     private static final int RECEIVER_PHASE_ID = 1;
 
     private final UUID jobId;

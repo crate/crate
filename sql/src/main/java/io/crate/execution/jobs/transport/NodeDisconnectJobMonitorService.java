@@ -31,7 +31,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportConnectionListener;
 import org.elasticsearch.transport.TransportService;
@@ -51,7 +51,7 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
     private final TransportService transportService;
 
     private final TransportKillJobsNodeAction killJobsNodeAction;
-    private static final Logger LOGGER = Loggers.getLogger(NodeDisconnectJobMonitorService.class);
+    private static final Logger LOGGER = LogManager.getLogger(NodeDisconnectJobMonitorService.class);
 
     @Inject
     public NodeDisconnectJobMonitorService(Settings settings,

@@ -23,7 +23,7 @@
 package io.crate.blob.v2;
 
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -37,7 +37,7 @@ public class BlobIndexTest {
     @Test
     public void testRetrieveBlobRootDirDoesNotThrowNPE() throws Exception {
         Path root = Paths.get("/");
-        Logger logger = Loggers.getLogger(BlobIndexTest.class);
+        Logger logger = LogManager.getLogger(BlobIndexTest.class);
 
         assertThat(BlobIndex.retrieveBlobRootDir(root, "dummy", logger), Matchers.nullValue());
     }

@@ -77,7 +77,7 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -105,7 +105,7 @@ import static io.crate.metadata.DocReferences.inverseSourceLookup;
 @Singleton
 public class LuceneQueryBuilder {
 
-    private static final Logger LOGGER = Loggers.getLogger(LuceneQueryBuilder.class);
+    private static final Logger LOGGER = LogManager.getLogger(LuceneQueryBuilder.class);
     private static final Visitor VISITOR = new Visitor();
     private final Functions functions;
     private final EvaluatingNormalizer normalizer;

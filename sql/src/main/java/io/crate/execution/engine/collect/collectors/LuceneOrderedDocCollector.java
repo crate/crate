@@ -38,7 +38,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TopFieldCollector;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -51,7 +51,7 @@ import java.util.function.Function;
 
 public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
-    private static final Logger LOGGER = Loggers.getLogger(LuceneOrderedDocCollector.class);
+    private static final Logger LOGGER = LogManager.getLogger(LuceneOrderedDocCollector.class);
 
     private final Query query;
     private final Float minScore;

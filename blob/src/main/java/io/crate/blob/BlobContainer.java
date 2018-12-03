@@ -24,7 +24,7 @@ package io.crate.blob;
 import io.crate.blob.exceptions.DigestNotFoundException;
 import io.crate.common.Hex;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -43,7 +43,7 @@ import java.util.concurrent.Semaphore;
 
 public class BlobContainer {
 
-    private static final Logger logger = Loggers.getLogger(BlobContainer.class);
+    private static final Logger logger = LogManager.getLogger(BlobContainer.class);
     private static final String[] SUB_DIRS = new String[256];
 
     public static final byte[] PREFIXES = new byte[256];

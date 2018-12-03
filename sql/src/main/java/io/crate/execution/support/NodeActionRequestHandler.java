@@ -24,7 +24,7 @@ package io.crate.execution.support;
 
 import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
@@ -36,7 +36,7 @@ public final class NodeActionRequestHandler<TRequest extends TransportRequest, T
     implements TransportRequestHandler<TRequest> {
 
     private final NodeAction<TRequest, TResponse> nodeAction;
-    private static final Logger LOGGER = Loggers.getLogger(NodeActionRequestHandler.class);
+    private static final Logger LOGGER = LogManager.getLogger(NodeActionRequestHandler.class);
 
     public NodeActionRequestHandler(NodeAction<TRequest, TResponse> nodeAction) {
         this.nodeAction = nodeAction;

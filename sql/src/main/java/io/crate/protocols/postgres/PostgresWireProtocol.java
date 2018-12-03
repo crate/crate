@@ -45,7 +45,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLSession;
@@ -177,7 +177,7 @@ import static io.crate.protocols.postgres.PostgresWireProtocol.State.STARTUP_HEA
 
 class PostgresWireProtocol {
 
-    private static final Logger LOGGER = Loggers.getLogger(PostgresWireProtocol.class);
+    private static final Logger LOGGER = LogManager.getLogger(PostgresWireProtocol.class);
     private static final String PASSWORD_AUTH_NAME = "password";
 
     final MessageDecoder decoder;

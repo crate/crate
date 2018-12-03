@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -108,7 +108,7 @@ public class SysInfo {
         return version;
     }
 
-    private static final Logger LOGGER = Loggers.getLogger(SysInfo.class);
+    private static final Logger LOGGER = LogManager.getLogger(SysInfo.class);
 
 
     private static final SysInfo INSTANCE = new SysInfo.Builder()

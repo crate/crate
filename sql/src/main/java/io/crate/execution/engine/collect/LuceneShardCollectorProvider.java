@@ -46,7 +46,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
@@ -64,7 +64,7 @@ import java.util.function.Supplier;
 
 public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
-    private static final Logger LOGGER = Loggers.getLogger(LuceneShardCollectorProvider.class);
+    private static final Logger LOGGER = LogManager.getLogger(LuceneShardCollectorProvider.class);
 
     private final Supplier<String> localNodeId;
     private final LuceneQueryBuilder luceneQueryBuilder;

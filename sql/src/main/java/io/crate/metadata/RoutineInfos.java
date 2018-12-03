@@ -25,7 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -37,7 +37,7 @@ import static java.util.Collections.emptyIterator;
 
 public class RoutineInfos implements Iterable<RoutineInfo> {
 
-    private static final Logger logger = Loggers.getLogger(RoutineInfos.class);
+    private static final Logger logger = LogManager.getLogger(RoutineInfos.class);
     private final UserDefinedFunctionsMetaData functionsMetaData;
     private FulltextAnalyzerResolver ftResolver;
 
