@@ -23,9 +23,9 @@
 package io.crate.metadata.sys;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
+import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
@@ -35,17 +35,14 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.RestStatus;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -97,8 +94,10 @@ public class TableHealthService extends AbstractComponent {
         }
         try {
             CompletableFuture<Map<TablePartitionIdent, ShardsInfo>> future = new CompletableFuture<>();
-            HealthResultReceiver resultReceiver = new HealthResultReceiver(future);
-            session().quickExec(STMT, stmt -> PARSED_STMT, resultReceiver, Row.EMPTY);
+            HashMap<TablePartitionIdent, ShardsInfo> tables = new HashMap<>();
+            CollectingRowConsumer<Map<TablePartitionIdent, ShardsInfo>, Map<TablePartitionIdent, ShardsInfo>> rowConsumer =
+                CollectingRowConsumer.of(TableHealthService::generateHealthResult, tables);
+            session().quickExec(STMT, stmt -> PARSED_STMT, rowConsumer, Row.EMPTY);
             return future.thenApply(this::buildTablesHealth);
         } catch (Throwable t) {
             logger.error("error retrieving tables health information", t);
@@ -192,50 +191,18 @@ public class TableHealthService extends AbstractComponent {
         }
     }
 
-    private static class HealthResultReceiver implements ResultReceiver {
+    private static Map<TablePartitionIdent, ShardsInfo> generateHealthResult(Row row, Map<TablePartitionIdent, ShardsInfo> tables) {
+        TablePartitionIdent ident = new TablePartitionIdent(
+            (String) row.get(0), (String) row.get(1), (String) row.get(2));
+        ShardsInfo shardsInfo = tables.getOrDefault(ident, new ShardsInfo());
+        String routingState = (String) row.get(3);
+        boolean primary = (boolean) row.get(4);
+        String relocatingNode = (String) row.get(5);
+        long cnt = (long) row.get(6);
 
-        private static final Logger LOGGER = Loggers.getLogger(TableHealthService.HealthResultReceiver.class);
-
-        private final CompletableFuture<Map<TablePartitionIdent, ShardsInfo>> result;
-        private final Map<TablePartitionIdent, ShardsInfo> tables = new HashMap<>();
-
-        HealthResultReceiver(CompletableFuture<Map<TablePartitionIdent, ShardsInfo>> result) {
-            this.result = result;
-        }
-
-        @Override
-        public void setNextRow(Row row) {
-            TablePartitionIdent ident = new TablePartitionIdent(
-                (String) row.get(0), (String) row.get(1), (String) row.get(2));
-            ShardsInfo shardsInfo = tables.getOrDefault(ident, new ShardsInfo());
-            String routingState = (String) row.get(3);
-            boolean primary = (boolean) row.get(4);
-            String relocatingNode = (String) row.get(5);
-            long cnt = (long) row.get(6);
-
-            collectShardInfo(shardsInfo, routingState, primary, cnt, relocatingNode);
-            tables.put(ident, shardsInfo);
-        }
-
-        @Override
-        public void allFinished(boolean interrupted) {
-            result.complete(tables);
-        }
-
-        @Override
-        public void fail(@Nonnull Throwable t) {
-            LOGGER.error("error retrieving tables health", t);
-            result.completeExceptionally(t);
-        }
-
-        @Override
-        public void batchFinished() {
-        }
-
-        @Override
-        public CompletableFuture<?> completionFuture() {
-            return result;
-        }
+        collectShardInfo(shardsInfo, routingState, primary, cnt, relocatingNode);
+        tables.put(ident, shardsInfo);
+        return tables;
     }
 
     @VisibleForTesting

@@ -22,13 +22,13 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParameterContext;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
 import io.crate.data.Rows;
 import io.crate.exceptions.SQLExceptions;
@@ -58,7 +58,7 @@ class BulkPortal extends AbstractPortal {
     private static final Runnable NO_OP_ACTION = () -> { };
 
     private final List<List<Object>> bulkArgs = new ArrayList<>();
-    private final List<ResultReceiver> resultReceivers = new ArrayList<>();
+    private final List<RowConsumer> rowConsumers = new ArrayList<>();
     private String query;
     private Statement statement;
     @Nullable
@@ -72,7 +72,7 @@ class BulkPortal extends AbstractPortal {
                Statement statement,
                List<? extends DataType> outputTypes,
                @Nullable List<Field> fields,
-               ResultReceiver resultReceiver,
+               RowConsumer rowConsumer,
                int maxRows,
                List<Object> params,
                SessionContext sessionContext,
@@ -82,7 +82,7 @@ class BulkPortal extends AbstractPortal {
         this.statement = statement;
         this.outputTypes = outputTypes;
         this.fields = fields;
-        this.resultReceivers.add(resultReceiver);
+        this.rowConsumers.add(rowConsumer);
         this.maxRows = maxRows;
         this.bulkArgs.add(params);
     }
@@ -132,8 +132,8 @@ class BulkPortal extends AbstractPortal {
     }
 
     @Override
-    public void execute(ResultReceiver resultReceiver, int maxRows) {
-        this.resultReceivers.add(resultReceiver);
+    public void execute(RowConsumer rowConsumer, int maxRows) {
+        this.rowConsumers.add(rowConsumer);
         this.maxRows = maxRows;
     }
 
@@ -187,9 +187,9 @@ class BulkPortal extends AbstractPortal {
         );
         CompletableFuture<Void> allFutures = CompletableFuture.allOf(rowCounts.toArray(new CompletableFuture[0]));
 
-        ArrayList<CompletableFuture> resultReceiversCompletionFutures = new ArrayList<>(resultReceivers.size());
-        for (ResultReceiver resultReceiver : resultReceivers) {
-            resultReceiversCompletionFutures.add(resultReceiver.completionFuture());
+        ArrayList<CompletableFuture> resultReceiversCompletionFutures = new ArrayList<>(rowConsumers.size());
+        for (RowConsumer rowConsumer : rowConsumers) {
+            // TODO: resultReceiversCompletionFutures.add(resultReceiver.completionFuture());
         }
         CompletableFuture<Void> allResultReceivers =
             CompletableFuture.allOf(resultReceiversCompletionFutures.toArray(new CompletableFuture[0]));
@@ -202,23 +202,26 @@ class BulkPortal extends AbstractPortal {
     }
 
     private void emitResults(UUID jobId, JobsLogs jobsLogs, List<CompletableFuture<Long>> completedResultFutures) {
-        assert completedResultFutures.size() == resultReceivers.size()
+        assert completedResultFutures.size() == rowConsumers.size()
             : "number of result must match number of rowReceivers, results: " +
-              "" + completedResultFutures.size() + "; receivers: " + resultReceivers.size();
+              "" + completedResultFutures.size() + "; receivers: " + rowConsumers.size();
 
         Long[] cells = new Long[1];
         RowN row = new RowN(cells);
         for (int i = 0; i < completedResultFutures.size(); i++) {
             CompletableFuture<Long> completedResultFuture = completedResultFutures.get(i);
-            ResultReceiver resultReceiver = resultReceivers.get(i);
+            RowConsumer rowConsumer = rowConsumers.get(i);
             try {
                 Long rowCount = completedResultFuture.join();
                 cells[0] = rowCount == null ? Row1.ERROR : rowCount;
             } catch (Throwable t) {
                 cells[0] = Row1.ERROR;
             }
-            resultReceiver.setNextRow(row);
-            resultReceiver.allFinished(false);
+            // TODO:
+            /*
+            rowConsumer.setNextRow(row);
+            rowConsumer.allFinished(false);
+            */
         }
         jobsLogs.logExecutionEnd(jobId, null);
     }

@@ -24,7 +24,6 @@ package io.crate.protocols.postgres;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.Version;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.auth.Authentication;

@@ -26,29 +26,27 @@ package io.crate.planner;
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.carrotsearch.hppc.ObjectObjectMap;
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
+import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
 import io.crate.metadata.RelationName;
 import io.crate.settings.CrateSetting;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataTypes;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nonnull;
 import java.util.function.Consumer;
+
+import static io.crate.core.StringUtils.nullOrString;
 
 /**
  * Periodically refresh {@link TableStats} based on {@link #refreshInterval}.
@@ -66,8 +64,8 @@ public class TableStatsService extends AbstractComponent implements Runnable {
 
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
-    private final TableStatsResultReceiver resultReceiver;
     private final Session session;
+    private final Consumer<ObjectObjectMap<RelationName, TableStats.Stats>> updateTableStats;
 
     @VisibleForTesting
     ThreadPool.Cancellable refreshScheduledTask;
@@ -83,7 +81,7 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         super(settings);
         this.threadPool = threadPool;
         this.clusterService = clusterService;
-        resultReceiver = new TableStatsResultReceiver(tableStats::updateTableStats);
+        this.updateTableStats = tableStats::updateTableStats;
         refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.setting().get(settings);
         refreshScheduledTask = scheduleRefresh(refreshInterval);
         session = sqlOperations.newSystemSession();
@@ -108,41 +106,19 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         }
 
         try {
-            session.quickExec(STMT, stmt -> PARSED_STMT, resultReceiver, Row.EMPTY);
+            CollectingRowConsumer<ObjectObjectMap<RelationName, TableStats.Stats>, ObjectObjectMap<RelationName, TableStats.Stats>> rowConsumer =
+                CollectingRowConsumer.of(TableStatsService::gatherStats, new ObjectObjectHashMap<>());
+            rowConsumer.resultFuture().thenAccept(updateTableStats);
+            session.quickExec(STMT, stmt -> PARSED_STMT, rowConsumer, Row.EMPTY);
         } catch (Throwable t) {
             logger.error("error retrieving table stats", t);
         }
     }
 
-    static class TableStatsResultReceiver extends BaseResultReceiver {
-
-        private static final Logger LOGGER = Loggers.getLogger(TableStatsResultReceiver.class);
-
-        private final Consumer<ObjectObjectMap<RelationName, TableStats.Stats>> tableStatsConsumer;
-        private ObjectObjectMap<RelationName, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
-
-        TableStatsResultReceiver(Consumer<ObjectObjectMap<RelationName, TableStats.Stats>> tableStatsConsumer) {
-            this.tableStatsConsumer = tableStatsConsumer;
-        }
-
-        @Override
-        public void setNextRow(Row row) {
-            RelationName relationName = new RelationName(BytesRefs.toString(row.get(2)), BytesRefs.toString(row.get(3)));
-            newStats.put(relationName, new TableStats.Stats((long) row.get(0), (long) row.get(1)));
-        }
-
-        @Override
-        public void allFinished(boolean interrupted) {
-            tableStatsConsumer.accept(newStats);
-            newStats = new ObjectObjectHashMap<>();
-            super.allFinished(interrupted);
-        }
-
-        @Override
-        public void fail(@Nonnull Throwable t) {
-            LOGGER.error("error retrieving table stats", t);
-            super.fail(t);
-        }
+    private static ObjectObjectMap<RelationName, TableStats.Stats> gatherStats(Row row, ObjectObjectMap<RelationName, TableStats.Stats> stats) {
+        RelationName relationName = new RelationName(nullOrString(row.get(2)), nullOrString(row.get(3)));
+        stats.put(relationName, new TableStats.Stats((long) row.get(0), (long) row.get(1)));
+        return stats;
     }
 
     private ThreadPool.Cancellable scheduleRefresh(TimeValue newRefreshInterval) {

@@ -22,8 +22,6 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
@@ -32,6 +30,7 @@ import io.crate.analyze.ParameterContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
@@ -70,8 +69,7 @@ public class SimplePortal extends AbstractPortal {
     @Nullable
     private FormatCodes.FormatCode[] resultFormatCodes;
     private List<? extends DataType> outputTypes;
-    private ResultReceiver<?> resultReceiver;
-    private RowConsumerToResultReceiver consumer = null;
+    private RowConsumer rowConsumer;
     private int maxRows = 0;
     private int defaultLimit;
     private Row rowParams;
@@ -119,22 +117,25 @@ public class SimplePortal extends AbstractPortal {
             if (portalContext.isReadOnly()) { // Cannot have a bulk operation in read only mode
                 throw new ReadOnlyException();
             }
-            assert consumer == null : "Existing portal must not have a consumer";
             BulkPortal portal = new BulkPortal(
                 name,
                 this.query,
                 this.statement,
                 outputTypes,
                 fields(),
-                resultReceiver, maxRows, this.params, sessionContext, portalContext);
+                rowConsumer,
+                maxRows,
+                this.params,
+                sessionContext,
+                portalContext
+            );
             return portal.bind(statementName, query, statement, null, params, resultFormatCodes);
         } else if (this.statement != null && this.analyzedStatement != null) {
-            assert consumer == null : "Existing portal must not have a consumer";
             if (portalContext.isReadOnly()) { // Cannot have a batch operation in read only mode
                 throw new ReadOnlyException();
             }
             BatchPortal portal = new BatchPortal(
-                name, this.query, this.analyzedStatement, outputTypes, resultReceiver, this.params, sessionContext, portalContext);
+                name, this.query, this.analyzedStatement, outputTypes, rowConsumer, this.params, sessionContext, portalContext);
             return portal.bind(statementName, query, statement, analyzedStatement, params, resultFormatCodes);
         }
 
@@ -168,9 +169,9 @@ public class SimplePortal extends AbstractPortal {
     }
 
     @Override
-    public void execute(ResultReceiver resultReceiver, int maxRows) {
+    public void execute(RowConsumer rowConsumer, int maxRows) {
         validateReadOnly(analyzedStatement);
-        this.resultReceiver = resultReceiver;
+        this.rowConsumer = rowConsumer;
         this.maxRows = maxRows;
     }
 
@@ -178,12 +179,7 @@ public class SimplePortal extends AbstractPortal {
     public CompletableFuture<?> sync(Planner planner, JobsLogs jobsLogs) {
         assert analyzedStatement != null : "analyzedStatement must not be null";
 
-        if (consumer != null && consumer.suspended()) {
-            LOGGER.trace("Resuming existing consumer {}", consumer);
-            consumer.replaceResultReceiver(resultReceiver, maxRows);
-            consumer.resume();
-            return resultReceiver.completionFuture();
-        }
+        // TODO: suspend handling
 
         UUID jobId = UUID.randomUUID();
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
@@ -207,44 +203,37 @@ public class SimplePortal extends AbstractPortal {
 
         DependencyCarrier dependencyCarrier = portalContext.getExecutor();
         if (!analyzedStatement.isWriteOperation()) {
-            resultReceiver = new RetryOnFailureRowConsumer(
+            rowConsumer = new RetryOnFailureRowConsumer(
                 dependencyCarrier.clusterService(),
                 clusterState,
                 dependencyCarrier.threadPool().getThreadContext(),
                 // not using planner.currentClusterState().metaData()::hasIndex to make sure the *current*
                 // clusterState at the time of the index check is used
                 indexName -> clusterState.metaData().hasIndex(indexName),
-                resultReceiver,
+                rowConsumer,
                 jobId,
                 (newJobId, resultReceiver) -> retryQuery(planner, newJobId)
             );
         }
 
         jobsLogs.logExecutionStart(jobId, query, sessionContext.user(), StatementClassifier.classify(plan));
-        consumer = new RowConsumerToResultReceiver(
-            resultReceiver,
-            maxRows,
-            new JobsLogsUpdateListener(jobId, jobsLogs)
-        );
+        JobsLogsUpdateListener removeSysJobsEntry = new JobsLogsUpdateListener(jobId, jobsLogs);
         try {
             plan.execute(
                 dependencyCarrier,
                 plannerContext,
-                consumer,
+                rowConsumer,
                 rowParams,
                 SubQueryResults.EMPTY
             );
         } catch (Exception e) {
-            consumer.accept(null, e);
+            rowConsumer.accept(null, e);
         }
         synced = true;
-        return resultReceiver.completionFuture();
+        return null; // TODO: resultReceiver.completionFuture();
     }
 
     private void retryQuery(Planner planner, UUID jobId) {
-        if (consumer == null) {
-            return; // portal was closed
-        }
         Analysis analysis = portalContext
             .getAnalyzer()
             .boundAnalyze(statement, transactionContext, new ParameterContext(rowParams, Collections.emptyList()));
@@ -262,7 +251,7 @@ public class SimplePortal extends AbstractPortal {
         plan.execute(
             portalContext.getExecutor(),
             plannerContext,
-            consumer,
+            rowConsumer,
             rowParams,
             SubQueryResults.EMPTY
         );
@@ -270,10 +259,7 @@ public class SimplePortal extends AbstractPortal {
 
     @Override
     public void close() {
-        if (consumer != null) {
-            consumer.closeAndFinishIfSuspended();
-            consumer = null;
-        }
+        // TODO:
     }
 
     private void validateReadOnly(AnalyzedStatement analyzedStatement) {

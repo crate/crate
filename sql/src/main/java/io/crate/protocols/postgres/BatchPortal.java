@@ -22,8 +22,6 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
@@ -63,7 +61,7 @@ class BatchPortal extends AbstractPortal {
     private final List<AnalyzedStatement> analyzedStatements = new ArrayList<>();
     private final List<FormatCodes.FormatCode[]> resultFormatCodes = new ArrayList<>();
     private final List<List<? extends DataType>> outputTypes = new ArrayList<>();
-    private final List<ResultReceiver> resultReceivers = new ArrayList<>();
+    private final List<RowConsumer> rowConsumers = new ArrayList<>();
 
     private TransactionContext transactionContext;
 
@@ -71,7 +69,7 @@ class BatchPortal extends AbstractPortal {
                 String query,
                 AnalyzedStatement analyzedStatement,
                 List<? extends DataType> outputTypes,
-                ResultReceiver resultReceiver,
+                RowConsumer rowConsumer,
                 List<Object> params,
                 SessionContext sessionContext,
                 PortalContext portalContext) {
@@ -79,7 +77,7 @@ class BatchPortal extends AbstractPortal {
         queries.add(query);
         this.analyzedStatements.add(analyzedStatement);
         this.outputTypes.add(outputTypes);
-        resultReceivers.add(resultReceiver);
+        rowConsumers.add(rowConsumer);
         batchParams.add(params);
     }
 
@@ -142,9 +140,9 @@ class BatchPortal extends AbstractPortal {
     }
 
     @Override
-    public void execute(ResultReceiver resultReceiver, int maxRows) {
+    public void execute(RowConsumer rowConsumer, int maxRows) {
         validate(analyzedStatements.get(analyzedStatements.size() - 1));
-        resultReceivers.add(resultReceiver);
+        rowConsumers.add(rowConsumer);
     }
 
     @Override
@@ -170,18 +168,19 @@ class BatchPortal extends AbstractPortal {
                 jobsLogs.logPreExecutionFailure(jobId, stmt, SQLExceptions.messageOf(t), sessionContext.user());
                 throw t;
             }
-            ResultReceiver<?> resultReceiver = resultReceivers.get(i);
+            RowConsumer rowConsumer = rowConsumers.get(i);
             StatementClassifier.Classification classification = StatementClassifier.classify(plan);
             jobsLogs.logExecutionStart(jobId, stmt, sessionContext.user(), classification);
             JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
 
-            resultReceiver.completionFuture().whenComplete(completionCallback);
+            //rowConsumer.completionFuture().whenComplete(completionCallback);
 
-            RowConsumer consumer = new RowConsumerToResultReceiver(resultReceiver, 0, jobsLogsUpdateListener);
+            // TODO:
+            //RowConsumer consumer = new RowConsumerToResultReceiver(resultReceiver, 0, jobsLogsUpdateListener);
             plan.execute(
                 portalContext.getExecutor(),
                 plannerContext,
-                consumer,
+                rowConsumer,
                 new RowN(batchParams.get(i).toArray()),
                 SubQueryResults.EMPTY
             );

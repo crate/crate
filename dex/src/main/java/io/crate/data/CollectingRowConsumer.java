@@ -43,6 +43,10 @@ public class CollectingRowConsumer<S, R> implements RowConsumer {
         finisher = collector.finisher();
     }
 
+    public static <S> CollectingRowConsumer<S, S> of(BiFunction<Row, S, S> step, S initialState) {
+        return new CollectingRowConsumer<>(step, initialState, x -> x);
+    }
+
     public CollectingRowConsumer(BiFunction<Row, S, S> step, S initialState, Function<S, R> finisher) {
         this.step = step;
         this.initialState = initialState;
