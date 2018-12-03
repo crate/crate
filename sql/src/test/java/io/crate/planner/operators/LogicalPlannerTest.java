@@ -363,6 +363,15 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 sb.append("]\n");
                 plan = boundary.source;
             }
+            if (plan instanceof GroupHashAggregate) {
+                GroupHashAggregate groupHashAggregate = (GroupHashAggregate) plan;
+                startLine("GroupBy[");
+                addSymbolsList(groupHashAggregate.groupKeys);
+                sb.append(" | ");
+                addSymbolsList(groupHashAggregate.aggregates);
+                sb.append("]\n");
+                plan = groupHashAggregate.source;
+            }
             if (plan instanceof MultiPhase) {
                 MultiPhase multiPhase = (MultiPhase) plan;
                 startLine("MultiPhase[\n");

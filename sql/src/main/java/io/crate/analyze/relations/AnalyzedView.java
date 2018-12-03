@@ -73,6 +73,11 @@ public final class AnalyzedView implements QueriedRelation {
     }
 
     @Override
+    public boolean isDistinct() {
+        return false;
+    }
+
+    @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitView(this, context);
     }

@@ -97,6 +97,11 @@ public class UnionSelect implements QueriedRelation {
     }
 
     @Override
+    public boolean isDistinct() {
+        return false;
+    }
+
+    @Override
     public String toString() {
         return "US{" + left.getQualifiedName().toString() + ',' + right.getQualifiedName().toString() + '}';
     }

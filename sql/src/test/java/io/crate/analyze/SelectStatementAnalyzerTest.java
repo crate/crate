@@ -352,14 +352,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testSelectDistinctOrderByWithColumnMissingFromSelect() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("ORDER BY expression 'id' must appear in the select clause " +
-                                        "when SELECT DISTINCT is used");
-        analyze("select distinct name from users order by id");
-    }
-
-    @Test
     public void testValidCombinationsOrderByWithAggregation() throws Exception {
         analyze("select name, count(id) from users group by name order by 1");
         analyze("select name, count(id) from users group by name order by 2");
@@ -543,7 +535,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testSelectDistinctWithFunction() {
         QueriedRelation relation = analyze("select distinct id + 1 from users");
-        assertThat(relation.querySpec().groupBy(), isSQL("add(doc.users.id, 1)"));
+        assertThat(relation.isDistinct(), is(true));
         assertThat(relation.querySpec().outputs(), isSQL("add(doc.users.id, 1)"));
     }
 
@@ -565,25 +557,17 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testSelectDistinctWrongOrderBy() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("ORDER BY expression 'add(id, 10)' must appear in the " +
-                                        "select clause when SELECT DISTINCT is used");
-        analyze("select distinct id from users order by id + 10");
-    }
-
-    @Test
     public void testDistinctOnLiteral() {
         QueriedRelation relation = analyze("select distinct [1,2,3] from users");
+        assertThat(relation.isDistinct(), is(true));
         assertThat(relation.querySpec().outputs(), isSQL("[1, 2, 3]"));
-        assertThat(relation.querySpec().groupBy(), isSQL("[1, 2, 3]"));
     }
 
     @Test
     public void testDistinctOnNullLiteral() {
         QueriedRelation relation = analyze("select distinct null from users");
+        assertThat(relation.isDistinct(), is(true));
         assertThat(relation.querySpec().outputs(), isSQL("NULL"));
-        assertThat(relation.querySpec().groupBy(), isSQL("NULL"));
     }
 
     @Test
@@ -597,29 +581,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedRelation distinctRelation = analyze("select distinct name, count(id) from users group by name");
         QueriedRelation groupByRelation = analyze("select name, count(id) from users group by name");
         assertEquals(groupByRelation.querySpec().groupBy(), distinctRelation.querySpec().groupBy());
-    }
-
-    @Test
-    public void testSelectGlobalDistinctRewrite() {
-        QueriedRelation distinctRelation = analyze("select distinct name from users");
-        QueriedRelation groupByRelation = analyze("select name from users group by name");
-        assertEquals(groupByRelation.querySpec().groupBy(), distinctRelation.querySpec().groupBy());
-    }
-
-    @Test
-    public void testSelectGlobalDistinctRewriteAllColumns() {
-        QueriedRelation distinctRelation = analyze("select distinct * from transactions");
-        QueriedRelation groupByRelation =
-            analyze(
-                "select id, sender, recipient, amount, timestamp " +
-                "from transactions " +
-                "group by id, sender, recipient, amount, timestamp");
-        assertEquals(
-            groupByRelation.querySpec().groupBy().size(),
-            distinctRelation.querySpec().groupBy().size());
-        for (Symbol s : distinctRelation.querySpec().groupBy()) {
-            assertThat(distinctRelation.querySpec().groupBy().contains(s), is(true));
-        }
     }
 
     @Test
