@@ -24,9 +24,8 @@ package io.crate.expression.reference.sys.check.cluster;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
-import io.crate.data.BatchIterator;
+import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
-import io.crate.data.RowConsumer;
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -37,11 +36,11 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
+
+import static io.crate.concurrent.CompletableFutures.failedFuture;
 
 @Singleton
 public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
@@ -76,13 +75,15 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     @Override
     public CompletableFuture<?> computeResult() {
-        final CompletableFuture<Collection<String>> result = new CompletableFuture<>();
+        CollectingRowConsumer<Collection<String>, Collection<String>> rowConsumer;
         try {
-            session().quickExec(STMT, stmt -> PARSED_STMT, new SycCheckResultReceiver(result), Row.EMPTY);
+            rowConsumer = new CollectingRowConsumer<>(
+                TablesNeedUpgradeSysCheck::consumeTableWithRequiredUpgrade, new HashSet<>(), x -> x);
+            session().quickExec(STMT, stmt -> PARSED_STMT, rowConsumer, Row.EMPTY);
         } catch (Throwable t) {
-            result.completeExceptionally(t);
+            return failedFuture(t);
         }
-        return result.handle((tableNames, throwable) -> {
+        return rowConsumer.resultFuture().handle((tableNames, throwable) -> {
             if (throwable == null) {
                 tablesNeedUpgrade = tableNames;
             } else {
@@ -105,46 +106,12 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         return tablesNeedUpgrade == null || tablesNeedUpgrade.isEmpty();
     }
 
-    private class SycCheckResultReceiver implements RowConsumer {
-
-        private final CompletableFuture<Collection<String>> result;
-        private final Collection<String> tables;
-
-        private SycCheckResultReceiver(CompletableFuture<Collection<String>> result) {
-            this.result = result;
-            this.tables = new HashSet<>();
+    private static Collection<String> consumeTableWithRequiredUpgrade(Row row, Collection<String> tables) {
+        String tableName = (String) row.get(0);
+        String minLuceneVersion = (String) row.get(1);
+        if (LuceneVersionChecks.isUpgradeRequired(minLuceneVersion)) {
+            tables.add(tableName);
         }
-
-        @Override
-        public void setNextRow(Row row) {
-            // Row[0] = table_name, Row[1] = min_lucene_version
-            if (LuceneVersionChecks.isUpgradeRequired((String) row.get(1))) {
-                tables.add((String) row.get(0));
-            }
-        }
-
-        @Override
-        public void batchFinished() {
-        }
-
-        @Override
-        public void allFinished(boolean interrupted) {
-            result.complete(tables);
-        }
-
-        @Override
-        public void fail(@Nonnull Throwable t) {
-            result.completeExceptionally(t);
-        }
-
-        @Override
-        public CompletableFuture<Collection<String>> completionFuture() {
-            return result;
-        }
-
-        @Override
-        public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
-
-        }
+        return tables;
     }
 }

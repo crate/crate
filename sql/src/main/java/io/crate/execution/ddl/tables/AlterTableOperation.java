@@ -26,7 +26,6 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.analyze.AddColumnAnalyzedStatement;

@@ -24,8 +24,6 @@ package io.crate.planner.node.management;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -106,8 +104,6 @@ public class ExplainPlan implements Plan {
              */
             if (plan.dependencies().isEmpty()) {
                 UUID jobId = plannerContext.jobId();
-                BaseResultReceiver resultReceiver = new BaseResultReceiver();
-                RowConsumer noopRowConsumer = new RowConsumerToResultReceiver(resultReceiver, 0, t -> {});
 
                 Timer timer = context.createTimer(Phase.Execute.name());
                 timer.start();
@@ -115,10 +111,11 @@ public class ExplainPlan implements Plan {
                 NodeOperationTree operationTree = LogicalPlanner.getNodeOperationTree(
                     plan, executor, plannerContext, params, subQueryResults);
 
-                resultReceiver.completionFuture()
-                    .whenComplete(createResultConsumer(executor, consumer, jobId, timer, operationTree));
+                // TODO:
+                // resultReceiver.completionFuture()
+                //     .whenComplete(createResultConsumer(executor, consumer, jobId, timer, operationTree));
 
-                LogicalPlanner.executeNodeOpTree(executor, jobId, noopRowConsumer, true, operationTree);
+                LogicalPlanner.executeNodeOpTree(executor, jobId, consumer, true, operationTree);
             } else {
                 consumer.accept(null,
                     new UnsupportedOperationException("EXPLAIN ANALYZE does not support profiling multi-phase plans, " +

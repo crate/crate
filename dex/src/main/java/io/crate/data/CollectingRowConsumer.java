@@ -24,15 +24,29 @@ package io.crate.data;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collector;
 
 public class CollectingRowConsumer<S, R> implements RowConsumer {
 
-    private final Collector<Row, S, R> collector;
     private final CompletableFuture<R> resultFuture = new CompletableFuture<>();
+    private final BiFunction<Row, S, S> step;
+    private final S initialState;
+    private final Function<S, R> finisher;
 
     public CollectingRowConsumer(Collector<Row, S, R> collector) {
-        this.collector = collector;
+        BiConsumer<S, Row> accumulator = collector.accumulator();
+        step = (row, state) -> { accumulator.accept(state, row); return state; };
+        initialState = collector.supplier().get();
+        finisher = collector.finisher();
+    }
+
+    public CollectingRowConsumer(BiFunction<Row, S, S> step, S initialState, Function<S, R> finisher) {
+        this.step = step;
+        this.initialState = initialState;
+        this.finisher = finisher;
     }
 
     public CompletableFuture<R> resultFuture() {
@@ -43,8 +57,15 @@ public class CollectingRowConsumer<S, R> implements RowConsumer {
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         if (failure == null) {
             BatchIterators
-                .collect(iterator, collector.supplier().get(), collector, resultFuture)
-                .whenComplete((r, f) -> iterator.close());
+                .fold(iterator, step, initialState)
+                .whenComplete((r, f) -> {
+                    iterator.close();
+                    if (f == null) {
+                        resultFuture.complete(finisher.apply(r));
+                    } else {
+                        resultFuture.completeExceptionally(f);
+                    }
+                });
         } else {
             if (iterator != null) {
                 iterator.close();
