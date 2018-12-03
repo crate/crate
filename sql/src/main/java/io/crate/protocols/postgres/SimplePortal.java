@@ -207,7 +207,7 @@ public class SimplePortal extends AbstractPortal {
 
         DependencyCarrier dependencyCarrier = portalContext.getExecutor();
         if (!analyzedStatement.isWriteOperation()) {
-            resultReceiver = new RetryOnFailureResultReceiver(
+            resultReceiver = new RetryOnFailureRowConsumer(
                 dependencyCarrier.clusterService(),
                 clusterState,
                 dependencyCarrier.threadPool().getThreadContext(),

@@ -22,10 +22,11 @@
 
 package io.crate.expression.reference.sys.check.cluster;
 
-import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
+import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -37,6 +38,7 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
@@ -103,7 +105,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         return tablesNeedUpgrade == null || tablesNeedUpgrade.isEmpty();
     }
 
-    private class SycCheckResultReceiver implements ResultReceiver {
+    private class SycCheckResultReceiver implements RowConsumer {
 
         private final CompletableFuture<Collection<String>> result;
         private final Collection<String> tables;
@@ -138,6 +140,11 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         @Override
         public CompletableFuture<Collection<String>> completionFuture() {
             return result;
+        }
+
+        @Override
+        public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
+
         }
     }
 }

@@ -22,8 +22,8 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.ResultReceiver;
 import io.crate.analyze.AnalyzedStatement;
+import io.crate.data.RowConsumer;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Field;
 import io.crate.planner.Planner;
@@ -63,7 +63,7 @@ public interface Portal {
 
     List<Field> describe();
 
-    void execute(ResultReceiver resultReceiver, int maxRows);
+    void execute(RowConsumer rowConsumer, int maxRows);
 
     /**
      * @return Future which will be completed when the results have been received.

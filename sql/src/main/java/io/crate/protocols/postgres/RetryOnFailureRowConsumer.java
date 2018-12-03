@@ -23,8 +23,9 @@
 package io.crate.protocols.postgres;
 
 import io.crate.Constants;
-import io.crate.action.sql.ResultReceiver;
+import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
@@ -38,31 +39,31 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
-public class RetryOnFailureResultReceiver implements ResultReceiver {
+public class RetryOnFailureRowConsumer implements RowConsumer {
 
-    private static final Logger LOGGER = Loggers.getLogger(RetryOnFailureResultReceiver.class);
+    private static final Logger LOGGER = Loggers.getLogger(RetryOnFailureRowConsumer.class);
 
     private final ClusterService clusterService;
     private final ClusterState initialState;
     private final ThreadContext threadContext;
     private final Predicate<String> hasIndex;
-    private final ResultReceiver delegate;
+    private final RowConsumer delegate;
     private final UUID jobId;
-    private final BiConsumer<UUID, ResultReceiver> retryAction;
+    private final BiConsumer<UUID, RowConsumer> retryAction;
     private int attempt = 1;
 
-    public RetryOnFailureResultReceiver(ClusterService clusterService,
-                                        ClusterState initialState,
-                                        ThreadContext threadContext,
-                                        Predicate<String> hasIndex,
-                                        ResultReceiver delegate,
-                                        UUID jobId,
-                                        BiConsumer<UUID, ResultReceiver> retryAction) {
+    public RetryOnFailureRowConsumer(ClusterService clusterService,
+                                     ClusterState initialState,
+                                     ThreadContext threadContext,
+                                     Predicate<String> hasIndex,
+                                     RowConsumer delegate,
+                                     UUID jobId,
+                                     BiConsumer<UUID, RowConsumer> retryAction) {
         this.clusterService = clusterService;
         this.initialState = initialState;
         this.threadContext = threadContext;
@@ -73,28 +74,21 @@ public class RetryOnFailureResultReceiver implements ResultReceiver {
     }
 
     @Override
-    public void setNextRow(Row row) {
-        delegate.setNextRow(row);
+    public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
+        if (failure != null) {
+            maybeRetry(failure);
+        } else {
+            delegate.accept(iterator, failure);
+        }
     }
 
-    @Override
-    public void batchFinished() {
-        delegate.batchFinished();
-    }
-
-    @Override
-    public void allFinished(boolean interrupted) {
-        delegate.allFinished(interrupted);
-    }
-
-    @Override
-    public void fail(@Nonnull Throwable wrappedError) {
+    private void maybeRetry(@Nonnull Throwable wrappedError) {
         final Throwable error = SQLExceptions.unwrap(wrappedError);
         if (attempt <= Constants.MAX_SHARD_MISSING_RETRIES &&
             (SQLExceptions.isShardFailure(error) || error instanceof ConnectTransportException || indexWasTemporaryUnavailable(error))) {
 
             if (clusterService.state().blocks().hasGlobalBlock(RestStatus.SERVICE_UNAVAILABLE)) {
-                delegate.fail(error);
+                delegate.accept(null, error);
             } else {
                 ClusterStateObserver clusterStateObserver =
                     new ClusterStateObserver(initialState, clusterService, null, LOGGER, threadContext);
@@ -107,17 +101,17 @@ public class RetryOnFailureResultReceiver implements ResultReceiver {
 
                     @Override
                     public void onClusterServiceClose() {
-                        delegate.fail(error);
+                        delegate.accept(null, error);
                     }
 
                     @Override
                     public void onTimeout(TimeValue timeout) {
-                        delegate.fail(error);
+                        delegate.accept(null, error);
                     }
                 });
             }
         } else {
-            delegate.fail(error);
+            delegate.accept(null, error);
         }
     }
 
@@ -134,13 +128,8 @@ public class RetryOnFailureResultReceiver implements ResultReceiver {
     }
 
     @Override
-    public CompletableFuture<?> completionFuture() {
-        return delegate.completionFuture();
-    }
-
-    @Override
     public String toString() {
-        return "RetryOnFailureResultReceiver{" +
+        return "RetryOnFailureRowConsumer{" +
                "delegate=" + delegate +
                ", jobId=" + jobId +
                ", attempt=" + attempt +

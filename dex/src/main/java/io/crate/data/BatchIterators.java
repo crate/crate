@@ -24,12 +24,36 @@ package io.crate.data;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
+import static io.crate.concurrent.CompletableFutures.failedFuture;
+
 public class BatchIterators {
+
+    public static <T, S> CompletableFuture<S> fold(BatchIterator<T> it, BiFunction<S, T, S> step, S initialState) {
+        S state = initialState;
+        boolean allLoaded;
+        try {
+            while (it.moveNext()) {
+                state = step.apply(state, it.currentElement());
+            }
+            allLoaded = it.allLoaded();
+        } catch (Throwable t) {
+            return failedFuture(t);
+        }
+        if (allLoaded) {
+            return CompletableFuture.completedFuture(state);
+        } else {
+            final S stateSoFar = state;
+            return it.loadNextBatch()
+                .thenCompose(r -> fold(it, step, stateSoFar))
+                .toCompletableFuture();
+        }
+    }
 
     /**
      * Use {@code collector} to consume all elements from {@code it}
@@ -51,38 +75,25 @@ public class BatchIterators {
      * This does *not* automatically close the BatchIterator when the end is reached.
      *
      * @param <T> element type
-     * @param <A> state type
+     * @param <S> state type
      * @param <R> result type
      * @return future containing the result, this is the future that has been provided as argument.
      */
-    public static <T, A, R> CompletableFuture<R> collect(BatchIterator<T> it,
-                                                         A state,
-                                                         Collector<T, A, R> collector,
+    public static <T, S, R> CompletableFuture<R> collect(BatchIterator<T> it,
+                                                         S state,
+                                                         Collector<T, S, R> collector,
                                                          CompletableFuture<R> resultFuture) {
-        BiConsumer<A, T> accumulator = collector.accumulator();
-        boolean allLoaded;
-        try {
-            while (it.moveNext()) {
-                accumulator.accept(state, it.currentElement());
-            }
-            allLoaded = it.allLoaded();
-        } catch (Throwable t) {
-            resultFuture.completeExceptionally(t);
-            return resultFuture;
-        }
 
-        if (allLoaded) {
-            resultFuture.complete(collector.finisher().apply(state));
-        } else {
-            it.loadNextBatch().whenComplete((r, t) -> {
+        BiConsumer<S, T> accumulator = collector.accumulator();
+        return fold(it, (s, t) -> { accumulator.accept(s, t); return s; }, state)
+            .thenApply(s -> collector.finisher().apply(s))
+            .whenComplete((r, t) -> {
                 if (t == null) {
-                    collect(it, state, collector, resultFuture);
+                    resultFuture.complete(r);
                 } else {
                     resultFuture.completeExceptionally(t);
                 }
             });
-        }
-        return resultFuture;
     }
 
     /**

@@ -23,7 +23,6 @@
 package io.crate.rest.action;
 
 import io.crate.action.sql.Option;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;

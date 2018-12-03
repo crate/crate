@@ -38,14 +38,14 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 
 
-public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUnitTest {
+public class RetryOnFailureRowConsumerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRetryOnNodeConnectionError() throws Exception {
         AtomicInteger numRetries = new AtomicInteger(0);
         BaseResultReceiver baseResultReceiver = new BaseResultReceiver();
         ClusterState initialState = clusterService.state();
-        RetryOnFailureResultReceiver retryOnFailureResultReceiver = new RetryOnFailureResultReceiver(
+        RetryOnFailureRowConsumer retryOnFailureRowConsumer = new RetryOnFailureRowConsumer(
             clusterService,
             initialState,
             THREAD_POOL.getThreadContext(),
@@ -58,7 +58,7 @@ public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUn
         clusterService.submitStateUpdateTask("dummy", new DummyUpdate());
         assertBusy(() -> assertThat(initialState, Matchers.not(sameInstance(clusterService.state()))));
 
-        retryOnFailureResultReceiver.fail(new ConnectTransportException(null, "node not connected"));
+        retryOnFailureRowConsumer.fail(new ConnectTransportException(null, "node not connected"));
 
         assertThat(numRetries.get(), is(1));
     }
@@ -69,7 +69,7 @@ public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUn
         BaseResultReceiver resultReceiver = new BaseResultReceiver();
 
         ClusterState initialState = clusterService.state();
-        RetryOnFailureResultReceiver retryOnFailureResultReceiver = new RetryOnFailureResultReceiver(
+        RetryOnFailureRowConsumer retryOnFailureRowConsumer = new RetryOnFailureRowConsumer(
             clusterService,
             initialState,
             THREAD_POOL.getThreadContext(),
@@ -82,7 +82,7 @@ public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUn
         clusterService.submitStateUpdateTask("dummy", new DummyUpdate());
         assertBusy(() -> assertThat(initialState, Matchers.not(sameInstance(clusterService.state()))));
 
-        retryOnFailureResultReceiver.fail(new IndexNotFoundException("t1"));
+        retryOnFailureRowConsumer.fail(new IndexNotFoundException("t1"));
 
         assertThat(numRetries.get(), is(1));
     }

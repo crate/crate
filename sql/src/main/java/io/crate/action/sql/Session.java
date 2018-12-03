@@ -49,7 +49,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
-import io.crate.protocols.postgres.RetryOnFailureResultReceiver;
+import io.crate.protocols.postgres.RetryOnFailureRowConsumer;
 import io.crate.protocols.postgres.SimplePortal;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -144,10 +144,10 @@ public class Session implements AutoCloseable {
     }
 
     /**
-     * See {@link #quickExec(String, Function, ResultReceiver, Row)}
+     * See {@link #quickExec(String, Function, RowConsumer, Row)}
      */
-    public void quickExec(String statement, ResultReceiver resultReceiver, Row params) {
-        quickExec(statement, SqlParser::createStatement, resultReceiver, params);
+    public void quickExec(String statement, RowConsumer rowConsumer, Row params) {
+        quickExec(statement, SqlParser::createStatement, rowConsumer, params);
     }
 
     /**
@@ -157,9 +157,9 @@ public class Session implements AutoCloseable {
      * This only works for statements that support unbound analyze
      *
      * @param parse A function to parse the statement; This can be used to cache the parsed statement.
-     *              Use {@link #quickExec(String, ResultReceiver, Row)} to use the regular parser
+     *              Use {@link #quickExec(String, RowConsumer, Row)} to use the regular parser
      */
-    public void quickExec(String statement, Function<String, Statement> parse, ResultReceiver resultReceiver, Row params) {
+    public void quickExec(String statement, Function<String, Statement> parse, RowConsumer rowConsumer, Row params) {
         TransactionContext txnCtx = new TransactionContext(sessionContext);
         Statement parsedStmt = parse.apply(statement);
         AnalyzedStatement analyzedStatement = analyzer.unboundAnalyze(parsedStmt, sessionContext, ParamTypeHints.EMPTY);
@@ -189,7 +189,7 @@ public class Session implements AutoCloseable {
         jobsLogs.logExecutionStart(jobId, statement, sessionContext.user(), classification);
         JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
         if (!analyzedStatement.isWriteOperation()) {
-            resultReceiver = new RetryOnFailureResultReceiver(
+            resultReceiver = new RetryOnFailureRowConsumer(
                 executor.clusterService(),
                 clusterState,
                 executor.threadPool().getThreadContext(),
@@ -365,13 +365,13 @@ public class Session implements AutoCloseable {
         }
     }
 
-    public void execute(String portalName, int maxRows, ResultReceiver resultReceiver) {
+    public void execute(String portalName, int maxRows, RowConsumer rowConsumer) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
         }
 
         Portal portal = getSafePortal(portalName);
-        portal.execute(resultReceiver, maxRows);
+        portal.execute(rowConsumer, maxRows);
 
         AnalyzedStatement analyzedStatement = portal.getLastAnalyzedStatement();
         if (analyzedStatement instanceof AnalyzedBegin) {
