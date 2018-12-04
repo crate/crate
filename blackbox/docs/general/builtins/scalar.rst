@@ -462,6 +462,9 @@ The following fields are supported:
 .. _`available time zones`: http://www.joda.org/joda-time/timezones.html
 .. _`Joda-Time`: http://www.joda.org/joda-time/
 
+
+.. _current_timestamp:
+
 ``CURRENT_TIMESTAMP``
 ---------------------
 
