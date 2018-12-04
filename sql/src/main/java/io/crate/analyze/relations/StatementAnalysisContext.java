@@ -23,7 +23,7 @@ package io.crate.analyze.relations;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ParameterExpression;
 
@@ -34,20 +34,20 @@ import java.util.function.Function;
 public class StatementAnalysisContext {
 
     private final Operation currentOperation;
-    private final TransactionContext transactionContext;
+    private final CoordinatorTxnCtx coordinatorTxnCtx;
     private final Function<ParameterExpression, Symbol> convertParamFunction;
     private final List<RelationAnalysisContext> lastRelationContextQueue = new ArrayList<>();
 
     public StatementAnalysisContext(Function<ParameterExpression, Symbol> convertParamFunction,
                                     Operation currentOperation,
-                                    TransactionContext transactionContext) {
+                                    CoordinatorTxnCtx coordinatorTxnCtx) {
         this.convertParamFunction = convertParamFunction;
         this.currentOperation = currentOperation;
-        this.transactionContext = transactionContext;
+        this.coordinatorTxnCtx = coordinatorTxnCtx;
     }
 
-    public TransactionContext transactionContext() {
-        return transactionContext;
+    public CoordinatorTxnCtx transactionContext() {
+        return coordinatorTxnCtx;
     }
 
     Operation currentOperation() {
@@ -84,7 +84,7 @@ public class StatementAnalysisContext {
     }
 
     public SessionContext sessionContext() {
-        return transactionContext.sessionContext();
+        return coordinatorTxnCtx.sessionContext();
     }
 
     public Function<ParameterExpression,Symbol> convertParamFunction() {

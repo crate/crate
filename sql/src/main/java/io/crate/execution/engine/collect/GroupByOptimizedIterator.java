@@ -146,11 +146,11 @@ final class GroupByOptimizedIterator {
             );
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);
 
-            InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx();
+            InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
             docCtx.add(collectPhase.toCollect().stream().filter(s -> !s.equals(keyRef))::iterator);
             IndexOrdinalsFieldData keyIndexFieldData = queryShardContext.getForField(keyFieldType);
 
-            InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations = inputFactory.ctxForAggregations();
+            InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations = inputFactory.ctxForAggregations(collectTask.txnCtx());
             ctxForAggregations.add(groupProjection.values());
 
             List<AggregationContext> aggregations = ctxForAggregations.aggregations();
@@ -168,6 +168,7 @@ final class GroupByOptimizedIterator {
 
             LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
                 collectPhase.where(),
+                collectTask.txnCtx(),
                 indexShard.mapperService(),
                 queryShardContext,
                 sharedShardContext.indexService().cache()

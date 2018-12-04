@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
@@ -36,6 +37,7 @@ import static org.hamcrest.core.Is.is;
 
 public class DocKeysTest extends CrateUnitTest {
 
+
     @Test
     public void testClusteredIsFirstInId() throws Exception {
         // if a the table is clustered and has a pk, the clustering value is put in front in the id computation
@@ -44,8 +46,9 @@ public class DocKeysTest extends CrateUnitTest {
         );
         DocKeys docKeys = new DocKeys(pks, false, 1, null);
         DocKeys.DocKey key = docKeys.getOnlyKey();
-        assertThat(key.getRouting(getFunctions(), Row.EMPTY, SubQueryResults.EMPTY), is("Ford"));
-        assertThat(key.getId(getFunctions(), Row.EMPTY, SubQueryResults.EMPTY), is("AgRGb3JkATE="));
+        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+        assertThat(key.getRouting(txnCtx, getFunctions(), Row.EMPTY, SubQueryResults.EMPTY), is("Ford"));
+        assertThat(key.getId(txnCtx, getFunctions(), Row.EMPTY, SubQueryResults.EMPTY), is("AgRGb3JkATE="));
     }
 
 }

@@ -27,8 +27,8 @@ import io.crate.analyze.relations.FieldProvider;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolFormatter;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
-import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.Insert;
@@ -90,12 +90,12 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
     }
 
     ValuesAwareExpressionAnalyzer(Functions functions,
-                                  TransactionContext transactionContext,
+                                  CoordinatorTxnCtx coordinatorTxnCtx,
                                   Function<ParameterExpression, Symbol> convertParamFunction,
                                   FieldProvider fieldProvider,
                                   ValuesResolver valuesResolver,
                                   Insert.DuplicateKeyContext.Type duplicateKeyType) {
-        super(functions, transactionContext, convertParamFunction, fieldProvider, null);
+        super(functions, coordinatorTxnCtx, convertParamFunction, fieldProvider, null);
         this.valuesResolver = valuesResolver;
         this.duplicateKeyType = duplicateKeyType;
     }

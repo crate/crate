@@ -31,10 +31,10 @@ import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
@@ -107,6 +107,6 @@ public abstract class AggregationTest extends CrateUnitTest {
             (AggregationFunction) functions.get(null, functionName, arguments, SearchPath.pathWithPGCatalogAndDoc());
         return function.normalizeSymbol(
             new Function(function.info(), arguments),
-            new TransactionContext(SessionContext.systemSessionContext()));
+            new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
     }
 }

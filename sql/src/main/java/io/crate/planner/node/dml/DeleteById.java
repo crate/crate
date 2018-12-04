@@ -66,6 +66,7 @@ public class DeleteById implements Plan {
         DeleteByIdTask task = new DeleteByIdTask(
             plannerContext.jobId(),
             executor.clusterService(),
+            plannerContext.transactionContext(),
             executor.functions(),
             executor.transportActionProvider().transportShardDeleteAction(),
             this
@@ -81,6 +82,7 @@ public class DeleteById implements Plan {
         DeleteByIdTask task = new DeleteByIdTask(
             plannerContext.jobId(),
             executor.clusterService(),
+            plannerContext.transactionContext(),
             executor.functions(),
             executor.transportActionProvider().transportShardDeleteAction(),
             this

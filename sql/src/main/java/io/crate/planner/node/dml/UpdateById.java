@@ -75,6 +75,7 @@ public final class UpdateById implements Plan {
                         SubQueryResults subQueryResults) {
         UpdateByIdTask task = new UpdateByIdTask(
             plannerCtx.jobId(),
+            plannerCtx.transactionContext(),
             executor.clusterService(),
             executor.functions(),
             executor.transportActionProvider().transportShardUpsertAction(),
@@ -90,6 +91,7 @@ public final class UpdateById implements Plan {
                                                      SubQueryResults subQueryResults) {
         UpdateByIdTask task = new UpdateByIdTask(
             plannerContext.jobId(),
+            plannerContext.transactionContext(),
             executor.clusterService(),
             executor.functions(),
             executor.transportActionProvider().transportShardUpsertAction(),

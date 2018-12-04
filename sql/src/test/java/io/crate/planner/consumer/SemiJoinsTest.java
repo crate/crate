@@ -29,7 +29,7 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.sql.tree.QualifiedName;
@@ -104,7 +104,7 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
     public void testSemiJoinRewriteOfWhereClause() throws Exception {
         QueriedRelation rel = executor.analyze("select * from t1 where a in (select 'foo') and x = 10");
         MultiSourceSelect semiJoin = (MultiSourceSelect) semiJoins.tryRewrite(
-            rel, new TransactionContext(SessionContext.systemSessionContext()));
+            rel, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
         assertThat(semiJoin.querySpec().where(), isSQL("true"));
         assertThat(((QueriedRelation) semiJoin.sources().get(QualifiedName.of(T1.toString()))).querySpec(),
@@ -120,7 +120,7 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
     public void testAntiJoinRewriteOfWhereClause() throws Exception {
         QueriedRelation rel = executor.analyze("select * from t1 where a not in (select 'foo') and x = 10");
         MultiSourceSelect antiJoin = (MultiSourceSelect) semiJoins.tryRewrite(
-            rel, new TransactionContext(SessionContext.systemSessionContext()));
+            rel, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
         assertThat(antiJoin.querySpec().where(), isSQL("true"));
         assertThat(((QueriedRelation) antiJoin.sources().get(QualifiedName.of(T1.toString()))).querySpec(),
@@ -135,7 +135,7 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testQueryWithOrIsNotRewritten() throws Exception {
         QueriedRelation relation = executor.analyze("select * from t1 where a in (select 'foo') or a = '10'");
-        QueriedRelation semiJoin = semiJoins.tryRewrite(relation, new TransactionContext(SessionContext.systemSessionContext()));
+        QueriedRelation semiJoin = semiJoins.tryRewrite(relation, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
         assertThat(semiJoin, nullValue());
     }
@@ -162,7 +162,7 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
                                                         "where " +
                                                         "   x in (select * from unnest([1, 2])) " +
                                                         "   and x not in (select 1)");
-        QueriedRelation semiJoins = this.semiJoins.tryRewrite(relation, new TransactionContext(SessionContext.systemSessionContext()));
+        QueriedRelation semiJoins = this.semiJoins.tryRewrite(relation, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
         assertThat(semiJoins, instanceOf(MultiSourceSelect.class));
         MultiSourceSelect mss = (MultiSourceSelect) semiJoins;

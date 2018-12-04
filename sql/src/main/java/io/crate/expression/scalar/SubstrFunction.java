@@ -27,6 +27,7 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
@@ -56,7 +57,7 @@ public class SubstrFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public String evaluate(Input[] args) {
+    public String evaluate(TransactionContext txnCtx, Input[] args) {
         assert args.length == 2 || args.length == 3 : "number of arguments must be 2 or 3";
         String val = (String) args[0].value();
         if (val == null) {

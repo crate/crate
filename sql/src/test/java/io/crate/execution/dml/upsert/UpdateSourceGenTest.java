@@ -26,6 +26,8 @@ import io.crate.Constants;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Assignments;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -44,6 +46,8 @@ import static org.hamcrest.Matchers.is;
 
 public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
 
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+
     @Test
     public void testSetXBasedOnXAndPartitionedColumn() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
@@ -56,6 +60,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen updateSourceGen = new UpdateSourceGen(
             e.functions(),
+            txnCtx,
             table,
             assignments.targetNames()
         );
@@ -90,6 +95,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen updateSourceGen = new UpdateSourceGen(
             e.functions(),
+            txnCtx,
             table,
             assignments.targetNames()
         );
@@ -124,6 +130,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen updateSourceGen = new UpdateSourceGen(
             e.functions(),
+            txnCtx,
             table,
             assignments.targetNames()
         );
@@ -141,5 +148,30 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             new Object[0]
         );
         assertThat(updatedSource.utf8ToString(), is("{\"obj\":{\"y\":5},\"x\":4}"));
+    }
+
+
+    @Test
+    public void testGeneratedColumnUsingFunctionDependingOnActiveTransaction() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (x int, gen as current_schema)")
+            .build();
+        AnalyzedUpdateStatement update = e.analyze("update t set x = 1");
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        DocTableInfo table = (DocTableInfo) update.table().tableInfo();
+        UpdateSourceGen sourceGen = new UpdateSourceGen(
+            e.functions(),
+            TransactionContext.of("dummyUser", "dummySchema"),
+            table,
+            assignments.targetNames()
+        );
+
+        BytesReference source = sourceGen.generateSource(
+            new Doc(table.concreteIndices()[0], "1", 1, emptyMap(), () -> "{}", true),
+            assignments.sources(),
+            new Object[0]
+        );
+
+        assertThat(source.utf8ToString(), is("{\"gen\":\"dummySchema\",\"x\":1}"));
     }
 }

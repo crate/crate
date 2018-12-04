@@ -32,12 +32,12 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.partitioned.PartitionExpression;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.PartitionReferenceResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
@@ -64,7 +64,7 @@ public class WhereClauseAnalyzer {
                                              SubQueryResults subQueryResults,
                                              AbstractTableRelation tableRelation,
                                              Functions functions,
-                                             TransactionContext transactionContext) {
+                                             CoordinatorTxnCtx coordinatorTxnCtx) {
         if (where.hasQuery()) {
             Function<Symbol, Symbol> bind = new SubQueryAndParamBinder(params, subQueryResults);
             Symbol query = bind.apply(where.query());
@@ -75,7 +75,7 @@ public class WhereClauseAnalyzer {
                     if (table.partitions().isEmpty()) {
                         return WhereClause.NO_MATCH;
                     }
-                    PartitionResult partitionResult = resolvePartitions(query, table, functions, transactionContext);
+                    PartitionResult partitionResult = resolvePartitions(query, table, functions, coordinatorTxnCtx);
                     if (!where.partitions().isEmpty()
                         && !partitionResult.partitions.isEmpty()
                         && !partitionResult.partitions.equals(where.partitions())) {
@@ -119,7 +119,7 @@ public class WhereClauseAnalyzer {
     public static PartitionResult resolvePartitions(Symbol query,
                                                     DocTableInfo tableInfo,
                                                     Functions functions,
-                                                    TransactionContext transactionContext) {
+                                                    CoordinatorTxnCtx coordinatorTxnCtx) {
         assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
         assert !tableInfo.partitions().isEmpty() : "table must have at least one partition";
 
@@ -135,7 +135,7 @@ public class WhereClauseAnalyzer {
             for (PartitionExpression partitionExpression : partitionReferenceResolver.expressions()) {
                 partitionExpression.setNextRow(partitionName);
             }
-            normalized = normalizer.normalize(query, transactionContext);
+            normalized = normalizer.normalize(query, coordinatorTxnCtx);
             assert normalized != null : "normalizing a query must not return null";
 
             if (normalized.equals(query)) {
@@ -158,7 +158,7 @@ public class WhereClauseAnalyzer {
             return new PartitionResult(
                 entry.getKey(), Lists2.map(entry.getValue(), literal -> nullOrString(literal.value())));
         } else if (queryPartitionMap.size() > 0) {
-            return tieBreakPartitionQueries(normalizer, queryPartitionMap, transactionContext);
+            return tieBreakPartitionQueries(normalizer, queryPartitionMap, coordinatorTxnCtx);
         } else {
             return new PartitionResult(Literal.BOOLEAN_FALSE, Collections.emptyList());
         }
@@ -166,7 +166,7 @@ public class WhereClauseAnalyzer {
 
     private static PartitionResult tieBreakPartitionQueries(EvaluatingNormalizer normalizer,
                                                             Map<Symbol, List<Literal>> queryPartitionMap,
-                                                            TransactionContext transactionContext) throws UnsupportedOperationException {
+                                                            CoordinatorTxnCtx coordinatorTxnCtx) throws UnsupportedOperationException {
         /*
          * Got multiple normalized queries which all could match.
          * This might be the case if one partition resolved to null
@@ -193,7 +193,7 @@ public class WhereClauseAnalyzer {
         for (Map.Entry<Symbol, List<Literal>> entry : queryPartitionMap.entrySet()) {
             Symbol query = entry.getKey();
             List<Literal> partitions = entry.getValue();
-            Symbol normalized = normalizer.normalize(ScalarsAndRefsToTrue.rewrite(query), transactionContext);
+            Symbol normalized = normalizer.normalize(ScalarsAndRefsToTrue.rewrite(query), coordinatorTxnCtx);
             assert normalized instanceof Literal :
                 "after normalization and replacing all reference occurrences with true there must only be a literal left";
 

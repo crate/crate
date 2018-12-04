@@ -42,13 +42,13 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceToLiteralConverter;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
@@ -111,7 +111,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     }
 
 
-    public AnalyzedInsertStatement analyze(InsertFromValues insert, ParamTypeHints typeHints, TransactionContext txnCtx) {
+    public AnalyzedInsertStatement analyze(InsertFromValues insert, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
         if (insert.valuesLists().isEmpty()) {
             throw new IllegalArgumentException("VALUES clause must not be empty");
         }
@@ -271,7 +271,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                EvaluatingNormalizer normalizer,
                                ExpressionAnalyzer expressionAnalyzer,
                                ExpressionAnalysisContext expressionAnalysisContext,
-                               TransactionContext transactionContext,
+                               CoordinatorTxnCtx coordinatorTxnCtx,
                                ValuesResolver valuesResolver,
                                ExpressionAnalyzer valuesAwareExpressionAnalyzer,
                                ValuesList node,
@@ -294,7 +294,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                         normalizer,
                         expressionAnalyzer,
                         expressionAnalysisContext,
-                        transactionContext,
+                        coordinatorTxnCtx,
                         valuesResolver,
                         valuesAwareExpressionAnalyzer,
                         node,
@@ -312,7 +312,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                     normalizer,
                     expressionAnalyzer,
                     expressionAnalysisContext,
-                    transactionContext,
+                    coordinatorTxnCtx,
                     valuesResolver,
                     valuesAwareExpressionAnalyzer,
                     node,
@@ -333,7 +333,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                            EvaluatingNormalizer normalizer,
                            ExpressionAnalyzer expressionAnalyzer,
                            ExpressionAnalysisContext expressionAnalysisContext,
-                           TransactionContext transactionContext,
+                           CoordinatorTxnCtx coordinatorTxnCtx,
                            ValuesResolver valuesResolver,
                            ExpressionAnalyzer valuesAwareExpressionAnalyzer,
                            ValuesList node,
@@ -358,7 +358,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             Expression expression = node.values().get(i);
             Symbol valuesSymbol = normalizer.normalize(
                 expressionAnalyzer.convert(expression, expressionAnalysisContext),
-                transactionContext);
+                coordinatorTxnCtx);
 
             // implicit type conversion
             Object value;
@@ -419,7 +419,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
                 Symbol valueSymbol = normalizer.normalize(
                     valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
-                    transactionContext);
+                    coordinatorTxnCtx);
                 Symbol assignmentExpression = ValueNormalizer.normalizeInputForReference(valueSymbol, columnName,
                     tableRelation.tableInfo());
                 onDupKeyAssignments[i] = assignmentExpression;
@@ -438,7 +438,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             tableRelation,
             context,
             normalizer,
-            transactionContext,
+            coordinatorTxnCtx,
             refToLiteral,
             primaryKeyValues,
             insertValues,
@@ -519,7 +519,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         private final DocTableRelation tableRelation;
         private final InsertFromValuesAnalyzedStatement analyzedStatement;
         private final ReferenceToLiteralConverter refToLiteral;
-        private final TransactionContext transactionContext;
+        private final CoordinatorTxnCtx coordinatorTxnCtx;
         private final String[] primaryKeyValues;
         private final EvaluatingNormalizer normalizer;
 
@@ -530,14 +530,14 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         private GeneratedExpressionContext(DocTableRelation tableRelation,
                                            InsertFromValuesAnalyzedStatement analyzedStatement,
                                            EvaluatingNormalizer normalizer,
-                                           TransactionContext transactionContext,
+                                           CoordinatorTxnCtx coordinatorTxnCtx,
                                            ReferenceToLiteralConverter refToLiteral,
                                            String[] primaryKeyValues,
                                            Object[] insertValues,
                                            @Nullable String routingValue) {
             this.tableRelation = tableRelation;
             this.analyzedStatement = analyzedStatement;
-            this.transactionContext = transactionContext;
+            this.coordinatorTxnCtx = coordinatorTxnCtx;
             this.primaryKeyValues = primaryKeyValues;
             this.insertValues = insertValues;
             this.routingValue = routingValue;
@@ -551,7 +551,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         List<ColumnIdent> primaryKey = context.analyzedStatement.tableInfo().primaryKey();
         for (GeneratedReference reference : context.tableRelation.tableInfo().generatedColumns()) {
             Symbol valueSymbol = RefReplacer.replaceRefs(reference.generatedExpression(), context.refToLiteral);
-            valueSymbol = context.normalizer.normalize(valueSymbol, context.transactionContext);
+            valueSymbol = context.normalizer.normalize(valueSymbol, context.coordinatorTxnCtx);
             if (valueSymbol.symbolType() == SymbolType.LITERAL) {
                 Object value = ((Input) valueSymbol).value();
                 if (primaryKey.contains(reference.column())) {

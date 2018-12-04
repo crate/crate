@@ -23,19 +23,18 @@ package io.crate.expression.scalar.timestamp;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.math.LongMath;
+import io.crate.data.Input;
+import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.FunctionFormatSpec;
-import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.joda.time.DateTimeUtils;
 
 import java.math.RoundingMode;
 import java.util.Collections;
@@ -58,8 +57,8 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
 
 
     @Override
-    public Long evaluate(Input<Integer>... args) {
-        long millis = DateTimeUtils.currentTimeMillis();
+    public Long evaluate(TransactionContext txnCtx, Input<Integer>... args) {
+        long millis = txnCtx.currentTimeMillis();
         Integer precision = 3;
         if (args.length == 1) {
             precision = args[0].value();
@@ -97,9 +96,9 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function, TransactionContext transactionContext) {
+    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {
         // use evaluatedFunctions map to make sure multiple occurrences of current_timestamp within a query result in the same result
-        return eval(function, transactionContext.currentTimeMillis());
+        return eval(function, txnCtx.currentTimeMillis());
     }
 
     private Symbol eval(Function function, long currentTimeMillis) {

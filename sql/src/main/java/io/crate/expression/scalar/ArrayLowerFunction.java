@@ -24,6 +24,7 @@ package io.crate.expression.scalar;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 
 class ArrayLowerFunction extends Scalar<Integer, Object[]> {
@@ -45,7 +46,7 @@ class ArrayLowerFunction extends Scalar<Integer, Object[]> {
     }
 
     @Override
-    public Integer evaluate(Input[] args) {
+    public Integer evaluate(TransactionContext txnCtx, Input[] args) {
         Object[] array = (Object[]) args[0].value();
         Object dimension1Indexed = args[1].value();
         if (array == null || array.length == 0 || dimension1Indexed == null) {

@@ -28,6 +28,7 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
@@ -69,7 +70,7 @@ class ArrayUniqueFunction extends Scalar<Object[], Object> {
     }
 
     @Override
-    public Object[] evaluate(Input[] args) {
+    public Object[] evaluate(TransactionContext txnCtx, Input[] args) {
         Set<Object> uniqueSet = new LinkedHashSet<>();
         for (Input array : args) {
             assert array != null : "inputs must never be null";

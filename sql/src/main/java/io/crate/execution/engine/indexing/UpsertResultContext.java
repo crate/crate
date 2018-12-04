@@ -27,6 +27,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjection;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
+import io.crate.metadata.TransactionContext;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
 import java.util.Collections;
@@ -52,10 +53,11 @@ public class UpsertResultContext {
         };
     }
 
-    public static UpsertResultContext forReturnSummary(SourceIndexWriterReturnSummaryProjection projection,
+    public static UpsertResultContext forReturnSummary(TransactionContext txnCtx,
+                                                       SourceIndexWriterReturnSummaryProjection projection,
                                                        DiscoveryNode discoveryNode,
                                                        InputFactory inputFactory) {
-        InputFactory.Context<CollectExpression<Row, ?>> ctxSourceInfo = inputFactory.ctxForInputColumns();
+        InputFactory.Context<CollectExpression<Row, ?>> ctxSourceInfo = inputFactory.ctxForInputColumns(txnCtx);
         //noinspection unchecked
         Input<String> sourceUriInput = (Input<String>) ctxSourceInfo.add(projection.sourceUri());
         //noinspection unchecked

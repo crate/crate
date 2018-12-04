@@ -38,6 +38,7 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -271,6 +272,7 @@ public final class QueryTester implements AutoCloseable {
         void indexValue(String column, Object value) throws IOException {
             DocumentMapper mapper = mapperService.documentMapperWithAutoCreate("default").getDocumentMapper();
             InsertSourceGen sourceGen = InsertSourceGen.of(
+                CoordinatorTxnCtx.systemTransactionContext(),
                 sqlExecutor.functions(),
                 table,
                 GeneratedColumns.Validation.NONE,
@@ -290,7 +292,8 @@ public final class QueryTester implements AutoCloseable {
 
         private LuceneBatchIterator getIterator(ColumnIdent column, Query query) {
             InputFactory inputFactory = new InputFactory(sqlExecutor.functions());
-            InputFactory.Context<LuceneCollectorExpression<?>> ctx = inputFactory.ctxForRefs(luceneReferenceResolver);
+            InputFactory.Context<LuceneCollectorExpression<?>> ctx = inputFactory.ctxForRefs(
+                CoordinatorTxnCtx.systemTransactionContext(), luceneReferenceResolver);
             Input<?> input = ctx.add(requireNonNull(table.getReference(column),
                 "column must exist in created table: " + column));
             IndexSearcher indexSearcher;
@@ -313,6 +316,7 @@ public final class QueryTester implements AutoCloseable {
 
         public QueryTester build() throws IOException {
             writer.commit();
+            CoordinatorTxnCtx systemTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
             return new QueryTester(
                 this::getIterator,
                 (expr, params) -> {
@@ -328,7 +332,7 @@ public final class QueryTester implements AutoCloseable {
                         return sqlExpressions.normalize(sqlExpressions.asSymbol(expr));
                     }
                 },
-                symbol -> queryBuilder.convert(symbol, mapperService, queryShardContext.get(), indexCache).query(),
+                symbol -> queryBuilder.convert(symbol, systemTxnCtx, mapperService, queryShardContext.get(), indexCache).query(),
                 () -> {
                     indexService.close("stopping", true);
                     writer.close();

@@ -56,7 +56,7 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -132,14 +132,14 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     private QueriedRelation analyze(String statement) {
         return sqlExecutor.normalize(
             sqlExecutor.analyze(statement),
-            new TransactionContext(SessionContext.systemSessionContext())
+            new CoordinatorTxnCtx(SessionContext.systemSessionContext())
         );
     }
 
     private QueriedRelation analyze(String statement, Object[] arguments) {
         return sqlExecutor.normalize(
                 sqlExecutor.analyze(statement, arguments),
-                new TransactionContext(SessionContext.systemSessionContext())
+                new CoordinatorTxnCtx(SessionContext.systemSessionContext())
             );
     }
 

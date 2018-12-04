@@ -62,14 +62,16 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -77,7 +79,6 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -117,13 +118,14 @@ public class LuceneQueryBuilder {
     }
 
     public Context convert(Symbol query,
+                           TransactionContext txnCtx,
                            MapperService mapperService,
                            QueryShardContext queryShardContext,
                            IndexCache indexCache) throws UnsupportedFeatureException {
-        Context ctx = new Context(functions, mapperService, indexCache, queryShardContext);
-        TransactionContext transactionContext = TransactionContext.systemTransactionContext();
+        Context ctx = new Context(txnCtx, functions, mapperService, indexCache, queryShardContext);
+        CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         ctx.query = VISITOR.process(
-            eliminateNullsIfPossible(inverseSourceLookup(query), s -> normalizer.normalize(s, transactionContext)),
+            eliminateNullsIfPossible(inverseSourceLookup(query), s -> normalizer.normalize(s, coordinatorTxnCtx)),
             ctx
         );
         if (LOGGER.isTraceEnabled()) {
@@ -155,12 +157,15 @@ public class LuceneQueryBuilder {
         final DocInputFactory docInputFactory;
         final MapperService mapperService;
         final IndexCache indexCache;
+        private final TransactionContext txnCtx;
         final QueryShardContext queryShardContext;
 
-        Context(Functions functions,
+        Context(TransactionContext txnCtx,
+                Functions functions,
                 MapperService mapperService,
                 IndexCache indexCache,
                 QueryShardContext queryShardContext) {
+            this.txnCtx = txnCtx;
             this.queryShardContext = queryShardContext;
             FieldTypeLookup typeLookup = mapperService::fullName;
             this.docInputFactory = new DocInputFactory(
@@ -555,7 +560,7 @@ public class LuceneQueryBuilder {
             r -> r.columnPolicy() == ColumnPolicy.IGNORED
                  || r.valueType() == DataTypes.GEO_POINT);
 
-        final InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = context.docInputFactory.getCtx();
+        final InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = context.docInputFactory.getCtx(context.txnCtx);
         @SuppressWarnings("unchecked")
         final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
         @SuppressWarnings("unchecked")

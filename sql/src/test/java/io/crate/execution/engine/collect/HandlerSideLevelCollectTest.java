@@ -37,7 +37,9 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -75,6 +77,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     private MapSideDataCollectOperation operation;
     private Functions functions;
     private RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void prepare() {
@@ -95,8 +98,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
             toCollect,
             ImmutableList.<Projection>of(),
             whereClause.queryOrFallback(),
-            DistributionInfo.DEFAULT_BROADCAST,
-            null
+            DistributionInfo.DEFAULT_BROADCAST
         );
     }
 
@@ -121,7 +123,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     private Bucket collect(RoutedCollectPhase collectPhase) throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        BatchIterator<Row> bi = operation.createIterator(collectPhase, consumer.requiresScroll(), mock(CollectTask.class));
+        BatchIterator<Row> bi = operation.createIterator(txnCtx, collectPhase, consumer.requiresScroll(), mock(CollectTask.class));
         consumer.accept(bi, null);
         return new CollectionBucket(consumer.getResult());
     }

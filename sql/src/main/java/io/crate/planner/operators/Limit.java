@@ -77,9 +77,21 @@ class Limit extends OneInputPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         int limit = firstNonNull(
-            DataTypes.INTEGER.value(evaluate(plannerContext.functions(), this.limit, params, subQueryResults)), NO_LIMIT);
+            DataTypes.INTEGER.value(evaluate(
+                plannerContext.transactionContext(),
+                plannerContext.functions(),
+                this.limit,
+                params,
+                subQueryResults)),
+            NO_LIMIT);
         int offset = firstNonNull(
-            DataTypes.INTEGER.value(evaluate(plannerContext.functions(), this.offset, params, subQueryResults)), 0);
+            DataTypes.INTEGER.value(evaluate(
+                plannerContext.transactionContext(),
+                plannerContext.functions(),
+                this.offset,
+                params,
+                subQueryResults)),
+            0);
 
         ExecutionPlan executionPlan = source.build(
             plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);

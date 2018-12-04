@@ -33,6 +33,7 @@ import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.jobs.AbstractTask;
 import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.RowGranularity;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -43,6 +44,7 @@ import java.util.Locale;
 public class CollectTask extends AbstractTask {
 
     private final CollectPhase collectPhase;
+    private final TransactionContext txnCtx;
     private final MapSideDataCollectOperation collectOperation;
     private final RamAccountingContext queryPhaseRamAccountingContext;
     private final ListenableRowConsumer consumer;
@@ -55,12 +57,14 @@ public class CollectTask extends AbstractTask {
     private BatchIterator<Row> batchIterator = null;
 
     public CollectTask(final CollectPhase collectPhase,
+                       TransactionContext txnCtx,
                        MapSideDataCollectOperation collectOperation,
                        RamAccountingContext queryPhaseRamAccountingContext,
                        RowConsumer consumer,
                        SharedShardContexts sharedShardContexts) {
         super(collectPhase.phaseId());
         this.collectPhase = collectPhase;
+        this.txnCtx = txnCtx;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
         this.sharedShardContexts = sharedShardContexts;
@@ -130,12 +134,16 @@ public class CollectTask extends AbstractTask {
 
     @Override
     public void innerPrepare() throws Exception {
-        batchIterator = collectOperation.createIterator(collectPhase, consumer.requiresScroll(), this);
+        batchIterator = collectOperation.createIterator(txnCtx, collectPhase, consumer.requiresScroll(), this);
     }
 
     @Override
     protected void innerStart() {
         collectOperation.launch(() -> consumer.accept(batchIterator, null), threadPoolName);
+    }
+
+    public TransactionContext txnCtx() {
+        return txnCtx;
     }
 
     public RamAccountingContext queryPhaseRamAccountingContext() {

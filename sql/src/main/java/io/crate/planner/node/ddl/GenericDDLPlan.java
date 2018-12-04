@@ -50,7 +50,7 @@ public class GenericDDLPlan implements Plan {
                         RowConsumer consumer,
                         Row params,
                         SubQueryResults subQueryResults) {
-        executor.ddlAction().apply(statement, params)
+        executor.ddlAction().apply(statement, params, plannerContext.transactionContext())
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

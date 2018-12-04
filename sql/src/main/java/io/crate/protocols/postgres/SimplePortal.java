@@ -38,7 +38,7 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Field;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -75,7 +75,7 @@ public class SimplePortal extends AbstractPortal {
     private int maxRows = 0;
     private int defaultLimit;
     private Row rowParams;
-    private TransactionContext transactionContext;
+    private CoordinatorTxnCtx coordinatorTxnCtx;
 
     public SimplePortal(String name,
                         Analyzer analyzer,
@@ -143,13 +143,13 @@ public class SimplePortal extends AbstractPortal {
         this.params = params;
         this.rowParams = new RowN(params.toArray());
         this.resultFormatCodes = resultFormatCodes;
-        if (transactionContext == null) {
-            transactionContext = new TransactionContext(sessionContext);
+        if (coordinatorTxnCtx == null) {
+            coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
         }
         if (analyzedStatement == null || analyzedStatement.isUnboundPlanningSupported() == false) {
             Analysis analysis = portalContext.getAnalyzer().boundAnalyze(
                 statement,
-                transactionContext,
+                coordinatorTxnCtx,
                 new ParameterContext(rowParams, Collections.emptyList()));
             analyzedStatement = analysis.analyzedStatement();
         }
@@ -193,7 +193,7 @@ public class SimplePortal extends AbstractPortal {
             routingProvider,
             jobId,
             planner.functions(),
-            transactionContext,
+            coordinatorTxnCtx,
             defaultLimit,
             maxRows
         );
@@ -247,14 +247,14 @@ public class SimplePortal extends AbstractPortal {
         }
         Analysis analysis = portalContext
             .getAnalyzer()
-            .boundAnalyze(statement, transactionContext, new ParameterContext(rowParams, Collections.emptyList()));
+            .boundAnalyze(statement, coordinatorTxnCtx, new ParameterContext(rowParams, Collections.emptyList()));
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         PlannerContext plannerContext = new PlannerContext(
             planner.currentClusterState(),
             routingProvider,
             jobId,
             planner.functions(),
-            transactionContext,
+            coordinatorTxnCtx,
             defaultLimit,
             maxRows
         );

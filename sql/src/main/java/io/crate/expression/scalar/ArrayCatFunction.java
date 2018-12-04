@@ -24,11 +24,12 @@ package io.crate.expression.scalar;
 import com.google.common.base.Preconditions;
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -65,7 +66,7 @@ class ArrayCatFunction extends Scalar<Object[], Object> {
     }
 
     @Override
-    public Object[] evaluate(Input[] args) {
+    public Object[] evaluate(TransactionContext txnCtx, Input[] args) {
         DataType innerType = ((ArrayType) this.info().returnType()).innerType();
         List<Object> resultList = new ArrayList<>();
 

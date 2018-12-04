@@ -26,6 +26,7 @@ import io.crate.data.Input;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 
@@ -60,12 +61,13 @@ public final class GeneratedColumns<T> {
     }
 
     public GeneratedColumns(InputFactory inputFactory,
+                            TransactionContext txnCtx,
                             Validation validation,
                             ReferenceResolver<CollectExpression<T, ?>> refResolver,
                             Collection<Reference> presentColumns,
                             List<GeneratedReference> allGeneratedColumns) {
         toValidate = validation == Validation.NONE ? Collections.emptyMap() : new HashMap<>();
-        InputFactory.Context<CollectExpression<T, ?>> ctx = inputFactory.ctxForRefs(refResolver);
+        InputFactory.Context<CollectExpression<T, ?>> ctx = inputFactory.ctxForRefs(txnCtx, refResolver);
         toInject = new HashMap<>();
         for (GeneratedReference generatedCol : allGeneratedColumns) {
             if (presentColumns.contains(generatedCol)) {

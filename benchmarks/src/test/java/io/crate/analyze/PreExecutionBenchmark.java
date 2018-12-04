@@ -24,7 +24,7 @@ package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -79,7 +79,7 @@ public class PreExecutionBenchmark {
             .build();
         selectStatement = SqlParser.createStatement("select name from users");
         selectAnalysis =
-            e.analyzer.boundAnalyze(selectStatement, new TransactionContext(SessionContext.systemSessionContext()), ParameterContext.EMPTY);
+            e.analyzer.boundAnalyze(selectStatement, new CoordinatorTxnCtx(SessionContext.systemSessionContext()), ParameterContext.EMPTY);
         plannerContext = e.getPlannerContext(clusterService.state(), new Random(dummySeed));
     }
 
@@ -106,7 +106,7 @@ public class PreExecutionBenchmark {
 
     @Benchmark
     public Analysis measureAnalyzeSimpleSelect() {
-        return e.analyzer.boundAnalyze(selectStatement, new TransactionContext(SessionContext.systemSessionContext()), ParameterContext.EMPTY);
+        return e.analyzer.boundAnalyze(selectStatement, new CoordinatorTxnCtx(SessionContext.systemSessionContext()), ParameterContext.EMPTY);
     }
 
     @Benchmark

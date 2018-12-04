@@ -31,9 +31,9 @@ import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 
 import static com.google.common.collect.Lists.transform;
@@ -51,11 +51,11 @@ public final class RelationNormalizer {
         visitor =  new NormalizerVisitor(functions);
     }
 
-    public AnalyzedRelation normalize(AnalyzedRelation relation, TransactionContext transactionContext) {
-        return visitor.process(relation, transactionContext);
+    public AnalyzedRelation normalize(AnalyzedRelation relation, CoordinatorTxnCtx coordinatorTxnCtx) {
+        return visitor.process(relation, coordinatorTxnCtx);
     }
 
-    private class NormalizerVisitor extends AnalyzedRelationVisitor<TransactionContext, AnalyzedRelation> {
+    private class NormalizerVisitor extends AnalyzedRelationVisitor<CoordinatorTxnCtx, AnalyzedRelation> {
 
         private final Functions functions;
         private final EvaluatingNormalizer normalizer;
@@ -66,12 +66,12 @@ public final class RelationNormalizer {
         }
 
         @Override
-        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, TransactionContext context) {
+        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, CoordinatorTxnCtx context) {
             return relation;
         }
 
         @Override
-        public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, TransactionContext context) {
+        public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, CoordinatorTxnCtx context) {
             QueriedRelation subRelation = relation.subRelation();
             QueriedRelation normalizedSubRelation = (QueriedRelation) process(relation.subRelation(), context);
             if (subRelation == normalizedSubRelation) {
@@ -91,7 +91,7 @@ public final class RelationNormalizer {
         }
 
         @Override
-        public AnalyzedRelation visitView(AnalyzedView view, TransactionContext context) {
+        public AnalyzedRelation visitView(AnalyzedView view, CoordinatorTxnCtx context) {
             AnalyzedRelation newSubRelation = process(view.relation(), context);
             if (newSubRelation == view.relation()) {
                 return view;
@@ -101,7 +101,7 @@ public final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable<?> queriedTable,
-                                                  TransactionContext tnxCtx) {
+                                                  CoordinatorTxnCtx tnxCtx) {
             AbstractTableRelation<?> tableRelation = queriedTable.tableRelation();
             EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
                 functions, RowGranularity.CLUSTER, null, tableRelation);
@@ -117,7 +117,7 @@ public final class RelationNormalizer {
         }
 
         @Override
-        public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, TransactionContext context) {
+        public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, CoordinatorTxnCtx context) {
             QuerySpec querySpec = mss.querySpec().copyAndReplace(s -> normalizer.normalize(s, context));
 
             // must create a new MultiSourceSelect because paths and query spec changed
@@ -127,7 +127,7 @@ public final class RelationNormalizer {
         }
 
         @Override
-        public AnalyzedRelation visitOrderedLimitedRelation(OrderedLimitedRelation relation, TransactionContext context) {
+        public AnalyzedRelation visitOrderedLimitedRelation(OrderedLimitedRelation relation, CoordinatorTxnCtx context) {
             QueriedRelation childRelation = relation.childRelation();
             QueriedRelation normalizedChild = (QueriedRelation) process(childRelation, context);
             if (normalizedChild == childRelation) {
@@ -143,7 +143,7 @@ public final class RelationNormalizer {
         }
 
         @Override
-        public AnalyzedRelation visitUnionSelect(UnionSelect unionSelect, TransactionContext context) {
+        public AnalyzedRelation visitUnionSelect(UnionSelect unionSelect, CoordinatorTxnCtx context) {
             QueriedRelation left = (QueriedRelation) process(unionSelect.left(), context);
             QueriedRelation right = (QueriedRelation) process(unionSelect.right(), context);
             if (left == unionSelect.left() && right == unionSelect.right()) {

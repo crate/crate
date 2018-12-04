@@ -35,7 +35,7 @@ public class JobRequestTest {
 
     @Test
     public void testJobRequestStreaming() throws Exception {
-        JobRequest r1 = new JobRequest(UUID.randomUUID(), "n1", Collections.emptyList(), true);
+        JobRequest r1 = new JobRequest(UUID.randomUUID(), "dummyUser", "dummySchema", "n1", Collections.emptyList(), true);
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);

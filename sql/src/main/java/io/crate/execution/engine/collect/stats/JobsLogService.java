@@ -43,9 +43,9 @@ import io.crate.expression.reference.sys.job.ContextLog;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysJobsLogTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.settings.CrateSetting;
@@ -124,7 +124,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     private final StaticTableReferenceResolver<JobContextLog> refResolver;
     private final ExpressionAnalyzer expressionAnalyzer;
     private final EvaluatingNormalizer normalizer;
-    private final TransactionContext transactionContext;
+    private final CoordinatorTxnCtx systemTransactionCtx;
 
     private JobsLogs jobsLogs;
 
@@ -158,10 +158,10 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         this.inputFactory = new InputFactory(functions);
         this.refResolver = new StaticTableReferenceResolver<>(SysJobsLogTableInfo.expressions());
         TableRelation sysJobsLogRelation = new TableRelation(SysJobsLogTableInfo.INSTANCE);
-        transactionContext = TransactionContext.systemTransactionContext();
+        systemTransactionCtx = CoordinatorTxnCtx.systemTransactionContext();
         this.expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            transactionContext,
+            systemTransactionCtx,
             ParamTypeHints.EMPTY,
             new NameFieldProvider(sysJobsLogRelation),
             null,
@@ -205,7 +205,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         try {
             return normalizer.normalize(
                 expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext()),
-                transactionContext
+                systemTransactionCtx
             );
         } catch (Throwable t) {
             throw new IllegalArgumentException("Invalid filter expression: " + expression + ": " + t.getMessage(), t);
@@ -218,7 +218,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             throw new IllegalArgumentException(
                 "Filter expression for " + settingName + " must result in a boolean, not: " + filter.valueType());
         }
-        InputFactory.Context<NestableCollectExpression<JobContextLog, ?>> ctx = inputFactory.ctxForRefs(refResolver);
+        InputFactory.Context<NestableCollectExpression<JobContextLog, ?>> ctx = inputFactory.ctxForRefs(systemTransactionCtx, refResolver);
         @SuppressWarnings("unchecked")
         Input<Boolean> filterInput = (Input<Boolean>) ctx.add(filter);
         return new ExpressionsInput<>(filterInput, ctx.expressions());

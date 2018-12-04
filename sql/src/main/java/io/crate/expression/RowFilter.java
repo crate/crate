@@ -22,10 +22,11 @@
 
 package io.crate.expression;
 
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -36,15 +37,15 @@ public class RowFilter implements Predicate<Row> {
     private final Input<Boolean> filterCondition;
     private final List<CollectExpression<Row, ?>> expressions;
 
-    public static Predicate<Row> create(InputFactory inputFactory, @Nullable Symbol filterSymbol) {
+    public static Predicate<Row> create(TransactionContext txnCtx, InputFactory inputFactory, @Nullable Symbol filterSymbol) {
         if (filterSymbol == null) {
             return i -> true;
         }
-        return new RowFilter(inputFactory, filterSymbol);
+        return new RowFilter(txnCtx, inputFactory, filterSymbol);
     }
 
-    private RowFilter(InputFactory inputFactory, Symbol filterSymbol) {
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
+    private RowFilter(TransactionContext txnCtx, InputFactory inputFactory, Symbol filterSymbol) {
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
         //noinspection unchecked
         filterCondition = (Input) ctx.add(filterSymbol);
         expressions = ctx.expressions();

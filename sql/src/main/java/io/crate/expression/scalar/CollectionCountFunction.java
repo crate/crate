@@ -23,12 +23,13 @@ package io.crate.expression.scalar;
 
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -52,7 +53,7 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
     }
 
     @Override
-    public Long evaluate(Input<Collection<DataType>>... args) {
+    public Long evaluate(TransactionContext txnCtx, Input<Collection<DataType>>... args) {
         // TODO: eliminate Integer.MAX_VALUE limitation of Set.size()
         Collection<DataType> arg0Value = args[0].value();
         if (arg0Value == null) {

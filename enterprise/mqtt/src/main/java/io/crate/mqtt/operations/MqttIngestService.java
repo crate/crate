@@ -39,10 +39,11 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.ingestion.IngestRuleListener;
 import io.crate.ingestion.IngestionService;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.rule.ingest.IngestRule;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.parser.SqlParser;
@@ -51,10 +52,10 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -100,6 +101,7 @@ public class MqttIngestService implements IngestRuleListener {
     private final AtomicReference<Set<Tuple<Predicate<Row>, IngestRule>>> predicateAndIngestRulesReference =
         new AtomicReference<>(new HashSet<>());
     private final ExpressionAnalysisContext expressionAnalysisContext;
+    private final TransactionContext txnCtx;
     private boolean isInitialized;
 
     public MqttIngestService(Functions functions,
@@ -115,9 +117,10 @@ public class MqttIngestService implements IngestRuleListener {
                 return new InputColumn(MQTT_FIELDS_ORDER.get(qualifiedName));
             }
         };
+        this.txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         this.expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            TransactionContext.systemTransactionContext(),
+            CoordinatorTxnCtx.systemTransactionContext(),
             null,
             mqttSourceFieldsProvider,
             null);
@@ -250,7 +253,7 @@ public class MqttIngestService implements IngestRuleListener {
             if (rule.getCondition().trim().isEmpty() == false) {
                 Symbol conditionSymbol = expressionAnalyzer.convert(SqlParser.createExpression(rule.getCondition()),
                     expressionAnalysisContext);
-                Predicate<Row> conditionPredicate = RowFilter.create(inputFactory, conditionSymbol);
+                Predicate<Row> conditionPredicate = RowFilter.create(txnCtx, inputFactory, conditionSymbol);
                 newRules.add(new Tuple<>(conditionPredicate, rule));
             } else {
                 newRules.add(new Tuple<>(ALWAYS_TRUE, rule));

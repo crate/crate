@@ -182,6 +182,7 @@ public class LegacyUpsertById implements Plan {
                         Row params,
                         SubQueryResults subQueryResults) {
         LegacyUpsertByIdTask task = new LegacyUpsertByIdTask(
+            plannerCtx.transactionContext(),
             plannerCtx.jobId(),
             this,
             executor.clusterService(),
@@ -199,6 +200,7 @@ public class LegacyUpsertById implements Plan {
                                                      List<Row> bulkParams,
                                                      SubQueryResults subQueryResults) {
         LegacyUpsertByIdTask task = new LegacyUpsertByIdTask(
+            plannerContext.transactionContext(),
             plannerContext.jobId(),
             this,
             executor.clusterService(),

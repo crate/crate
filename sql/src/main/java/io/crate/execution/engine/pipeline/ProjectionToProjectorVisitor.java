@@ -23,7 +23,6 @@
 package io.crate.execution.engine.pipeline;
 
 import com.google.common.collect.Iterables;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Bucket;
@@ -80,11 +79,11 @@ import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
@@ -200,7 +199,7 @@ public class ProjectionToProjectorVisitor
          *                    /
          * orderByIndices: [1]
          */
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
         ctx.add(projection.outputs());
         ctx.add(projection.orderBy());
 
@@ -238,13 +237,13 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitEvalProjection(EvalProjection projection, Context context) {
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(projection.outputs());
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx, projection.outputs());
         return new InputRowProjector(ctx.topLevelInputs(), ctx.expressions());
     }
 
     @Override
     public Projector visitGroupProjection(GroupProjection projection, Context context) {
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForAggregations();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForAggregations(context.txnCtx);
 
         ctx.add(projection.keys());
         ctx.add(projection.values());
@@ -269,7 +268,7 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitAggregationProjection(AggregationProjection projection, Context context) {
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForAggregations();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForAggregations(context.txnCtx);
         ctx.add(projection.aggregations());
         return new AggregationPipe(
             ctx.expressions(),
@@ -282,7 +281,7 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitWriterProjection(WriterProjection projection, Context context) {
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
 
         List<Input<?>> inputs = null;
         if (!projection.inputs().isEmpty()) {
@@ -290,13 +289,13 @@ public class ProjectionToProjectorVisitor
             inputs = ctx.topLevelInputs();
         }
 
-        projection = projection.normalize(normalizer, context.transactionContext);
+        projection = projection.normalize(normalizer, context.txnCtx);
         String uri = DataTypes.STRING.value(
-            SymbolEvaluator.evaluate(functions, projection.uri(), Row.EMPTY, SubQueryResults.EMPTY));
+            SymbolEvaluator.evaluate(context.txnCtx, functions, projection.uri(), Row.EMPTY, SubQueryResults.EMPTY));
         assert uri != null : "URI must not be null";
 
         StringBuilder sb = new StringBuilder(uri);
-        Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME, context.transactionContext);
+        Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME, context.txnCtx);
         assert resolvedFileName instanceof Literal : "resolvedFileName must be a Literal, but is: " + resolvedFileName;
         assert resolvedFileName.valueType() == StringType.INSTANCE :
             "resolvedFileName.valueType() must be " + StringType.INSTANCE;
@@ -312,7 +311,7 @@ public class ProjectionToProjectorVisitor
         uri = sb.toString();
 
         Map<ColumnIdent, Object> overwrites =
-            symbolMapToObject(projection.overwrites(), ctx, context.transactionContext);
+            symbolMapToObject(projection.overwrites(), ctx, context.txnCtx);
 
         return new FileWriterProjector(
             threadPool.generic(),
@@ -328,14 +327,14 @@ public class ProjectionToProjectorVisitor
 
     private Map<ColumnIdent, Object> symbolMapToObject(Map<ColumnIdent, Symbol> symbolMap,
                                                        InputFactory.Context symbolContext,
-                                                       TransactionContext transactionContext) {
+                                                       TransactionContext txnCtx) {
         Map<ColumnIdent, Object> objectMap = new HashMap<>(symbolMap.size());
         for (Map.Entry<ColumnIdent, Symbol> entry : symbolMap.entrySet()) {
             Symbol symbol = entry.getValue();
             assert symbol != null : "symbol must not be null";
             objectMap.put(
                 entry.getKey(),
-                symbolContext.add(normalizer.normalize(symbol, transactionContext)).value()
+                symbolContext.add(normalizer.normalize(symbol, txnCtx)).value()
             );
         }
         return objectMap;
@@ -343,7 +342,7 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitSourceIndexWriterProjection(SourceIndexWriterProjection projection, Context context) {
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
         List<Input<?>> partitionedByInputs = new ArrayList<>(projection.partitionedBySymbols().size());
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
             partitionedByInputs.add(ctx.add(partitionedBySymbol));
@@ -357,6 +356,7 @@ public class ProjectionToProjectorVisitor
         UpsertResultContext upsertResultContext;
         if (projection instanceof SourceIndexWriterReturnSummaryProjection) {
             upsertResultContext = UpsertResultContext.forReturnSummary(
+                context.txnCtx,
                 (SourceIndexWriterReturnSummaryProjection) projection,
                 clusterService.localNode(),
                 inputFactory);
@@ -369,6 +369,7 @@ public class ProjectionToProjectorVisitor
             nodeJobsCounter,
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
+            context.txnCtx,
             functions,
             clusterService.state().metaData().settings(),
             tableSettings,
@@ -394,7 +395,7 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitColumnIndexWriterProjection(ColumnIndexWriterProjection projection, Context context) {
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
         List<Input<?>> partitionedByInputs = new ArrayList<>(projection.partitionedBySymbols().size());
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
             partitionedByInputs.add(ctx.add(partitionedBySymbol));
@@ -410,6 +411,7 @@ public class ProjectionToProjectorVisitor
             nodeJobsCounter,
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
+            context.txnCtx,
             functions,
             clusterService.state().metaData().settings(),
             tableSettings,
@@ -432,7 +434,7 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitFilterProjection(FilterProjection projection, Context context) {
-        Predicate<Row> rowFilter = RowFilter.create(inputFactory, projection.query());
+        Predicate<Row> rowFilter = RowFilter.create(context.txnCtx, inputFactory, projection.query());
         return new FilterProjector(rowFilter);
     }
 
@@ -440,6 +442,8 @@ public class ProjectionToProjectorVisitor
     public Projector visitUpdateProjection(final UpdateProjection projection, Context context) {
         checkShardLevel("Update projection can only be executed on a shard");
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
+            context.txnCtx.userName(),
+            context.txnCtx.currentSchema(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
@@ -451,7 +455,7 @@ public class ProjectionToProjectorVisitor
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
-            resolveUidCollectExpression(projection.uidSymbol()),
+            resolveUidCollectExpression(context.txnCtx, projection.uidSymbol()),
             clusterService,
             nodeJobsCounter,
             () -> builder.newRequest(shardId),
@@ -471,7 +475,7 @@ public class ProjectionToProjectorVisitor
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
-            resolveUidCollectExpression(projection.uidSymbol()),
+            resolveUidCollectExpression(context.txnCtx, projection.uidSymbol()),
             clusterService,
             nodeJobsCounter,
             () -> new ShardDeleteRequest(shardId, context.jobId).timeout(reqTimeout),
@@ -487,8 +491,8 @@ public class ProjectionToProjectorVisitor
         }
     }
 
-    private CollectExpression<Row, ?> resolveUidCollectExpression(Symbol uidSymbol) {
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
+    private CollectExpression<Row, ?> resolveUidCollectExpression(TransactionContext txnCtx, Symbol uidSymbol) {
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
         ctx.add(uidSymbol);
         return Iterables.getOnlyElement(ctx.expressions());
     }
@@ -502,6 +506,7 @@ public class ProjectionToProjectorVisitor
             projection.indicesToIdents()
         );
         return new FetchProjector(
+            context.txnCtx,
             new TransportFetchOperation(
                 transportActionProvider.transportFetchNodeAction(),
                 projectorContext.nodeIdsToStreamers(),
@@ -533,7 +538,7 @@ public class ProjectionToProjectorVisitor
             relationName = ref.ident().tableIdent();
             if (readCtx == null) {
                 StaticTableDefinition<?> tableDefinition = staticTableDefinitionGetter.apply(relationName);
-                readCtx = inputFactory.ctxForRefs(tableDefinition.getReferenceResolver());
+                readCtx = inputFactory.ctxForRefs(context.txnCtx, tableDefinition.getReferenceResolver());
             }
             assignmentCols.add(ref.column());
             Input<?> sourceInput = readCtx.add(e.getValue());
@@ -550,7 +555,7 @@ public class ProjectionToProjectorVisitor
     @Override
     public Projector visitProjectSet(ProjectSetProjection projectSet, Context context) {
         ArrayList<Input<Bucket>> tableFunctions = new ArrayList<>(projectSet.tableFunctions().size());
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
 
         for (int i = 0; i < projectSet.tableFunctions().size(); i++) {
             Symbol tableFunction = projectSet.tableFunctions().get(i);
@@ -567,8 +572,11 @@ public class ProjectionToProjectorVisitor
     }
 
     @Override
-    public Projector create(Projection projection, RamAccountingContext ramAccountingContext, UUID jobId) {
-        return process(projection, new Context(ramAccountingContext, jobId));
+    public Projector create(Projection projection,
+                            TransactionContext txnCtx,
+                            RamAccountingContext ramAccountingContext,
+                            UUID jobId) {
+        return process(projection, new Context(txnCtx, ramAccountingContext, jobId));
     }
 
     @Override
@@ -580,9 +588,10 @@ public class ProjectionToProjectorVisitor
 
         private final RamAccountingContext ramAccountingContext;
         private final UUID jobId;
-        private final TransactionContext transactionContext = new TransactionContext(SessionContext.systemSessionContext());
+        private final TransactionContext txnCtx;
 
-        public Context(RamAccountingContext ramAccountingContext, UUID jobId) {
+        public Context(TransactionContext txnCtx, RamAccountingContext ramAccountingContext, UUID jobId) {
+            this.txnCtx = txnCtx;
             this.ramAccountingContext = ramAccountingContext;
             this.jobId = jobId;
         }

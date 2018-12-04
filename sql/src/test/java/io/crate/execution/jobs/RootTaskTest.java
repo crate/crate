@@ -29,6 +29,7 @@ import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.profile.ProfilingContext;
@@ -128,6 +129,7 @@ public class RootTaskTest extends CrateUnitTest {
 
         CollectTask collectChildTask = new CollectTask(
             collectPhase,
+            CoordinatorTxnCtx.systemTransactionContext(),
             mock(MapSideDataCollectOperation.class),
             mock(RamAccountingContext.class),
             new TestingRowConsumer(),

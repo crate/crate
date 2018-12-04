@@ -22,15 +22,16 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.symbol.FuncArg;
 import io.crate.data.Input;
-import io.crate.metadata.functions.params.FuncParams;
+import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.symbol.FuncArg;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 
@@ -71,7 +72,7 @@ public class ArrayFunction extends Scalar<Object, Object> {
 
     @SafeVarargs
     @Override
-    public final Object evaluate(Input<Object>... args) {
+    public final Object evaluate(TransactionContext txnCtx, Input<Object>... args) {
         Object[] values = new Object[args.length];
         for (int i = 0; i < values.length; i++) {
             values[i] = args[i].value();

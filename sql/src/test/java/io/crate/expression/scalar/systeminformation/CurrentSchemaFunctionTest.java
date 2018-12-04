@@ -25,9 +25,11 @@ package io.crate.expression.scalar.systeminformation;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.testing.SqlExpressions;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
@@ -51,12 +53,10 @@ public class CurrentSchemaFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testEvaluateCurrentSchemaNotSupported() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot evaluate CURRENT_SCHEMA function.");
+    public void testEvaluateCurrentSchema() throws Exception {
         Function function = (Function) sqlExpressions.asSymbol("current_schema()");
         FunctionIdent ident = function.info().ident();
         Scalar impl = (Scalar) functions.getQualified(ident);
-        impl.evaluate();
+        assertThat(impl.evaluate(TransactionContext.of("dummyUser", "dummySchema")), Matchers.is("dummySchema"));
     }
 }

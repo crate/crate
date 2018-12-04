@@ -81,6 +81,7 @@ import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionType;
@@ -172,11 +173,15 @@ public class JobSetup extends AbstractComponent {
         );
     }
 
-    public List<CompletableFuture<StreamBucket>> prepareOnRemote(Collection<? extends NodeOperation> nodeOperations,
+    public List<CompletableFuture<StreamBucket>> prepareOnRemote(String userName,
+                                                                 String currentSchema,
+                                                                 Collection<? extends NodeOperation> nodeOperations,
                                                                  RootTask.Builder contextBuilder,
                                                                  SharedShardContexts sharedShardContexts) {
         Context context = new Context(
             clusterService.localNode().getId(),
+            userName,
+            currentSchema,
             contextBuilder,
             logger,
             distributingConsumerFactory,
@@ -193,12 +198,16 @@ public class JobSetup extends AbstractComponent {
         return context.directResponseFutures;
     }
 
-    public List<CompletableFuture<StreamBucket>> prepareOnHandler(Collection<? extends NodeOperation> nodeOperations,
+    public List<CompletableFuture<StreamBucket>> prepareOnHandler(String userName,
+                                                                  String currentSchema,
+                                                                  Collection<? extends NodeOperation> nodeOperations,
                                                                   RootTask.Builder taskBuilder,
                                                                   List<Tuple<ExecutionPhase, RowConsumer>> handlerPhases,
                                                                   SharedShardContexts sharedShardContexts) {
         Context context = new Context(
             clusterService.localNode().getId(),
+            userName,
+            currentSchema,
             taskBuilder,
             logger,
             distributingConsumerFactory,
@@ -429,8 +438,11 @@ public class JobSetup extends AbstractComponent {
         private final RootTask.Builder taskBuilder;
         private final Logger logger;
         private final List<ExecutionPhase> leafs = new ArrayList<>();
+        private TransactionContext transactionContext;
 
         Context(String localNodeId,
+                String userName,
+                String currentSchema,
                 RootTask.Builder taskBuilder,
                 Logger logger,
                 DistributingConsumerFactory distributingConsumerFactory,
@@ -441,6 +453,7 @@ public class JobSetup extends AbstractComponent {
             this.opCtx = new NodeOperationCtx(localNodeId, nodeOperations);
             this.distributingConsumerFactory = distributingConsumerFactory;
             this.sharedShardContexts = sharedShardContexts;
+            this.transactionContext = TransactionContext.of(userName, currentSchema);
         }
 
         public UUID jobId() {
@@ -492,7 +505,8 @@ public class JobSetup extends AbstractComponent {
         }
 
         /**
-         * The rowReceiver for handlerPhases got passed into {@link #prepareOnHandler(Collection, RootTask.Builder, List, SharedShardContexts)}
+         * The rowReceiver for handlerPhases got passed into
+         * {@link #prepareOnHandler(String, String, Collection, RootTask.Builder, List, SharedShardContexts)}
          * and is registered there.
          * <p>
          * Retrieve it
@@ -534,6 +548,10 @@ public class JobSetup extends AbstractComponent {
             handlerConsumersByPhaseId.put(phase.phaseId(), consumer);
             leafs.add(phase);
         }
+
+        public TransactionContext txnCtx() {
+            return transactionContext;
+        }
     }
 
     private class InnerPreparer extends ExecutionPhaseVisitor<Context, Boolean> {
@@ -550,6 +568,7 @@ public class JobSetup extends AbstractComponent {
             RowConsumer consumer = context.getRowConsumer(phase, 0);
             context.registerSubContext(new CountTask(
                 phase,
+                context.transactionContext,
                 countOperation,
                 consumer,
                 indexShardMap
@@ -567,6 +586,7 @@ public class JobSetup extends AbstractComponent {
                 context.getRowConsumer(pkLookupPhase, 0),
                 nodeProjections,
                 pkLookupPhase.jobId(),
+                context.txnCtx(),
                 ramAccountingContext,
                 projectorFactory
             );
@@ -575,6 +595,7 @@ public class JobSetup extends AbstractComponent {
                 pkLookupPhase.phaseId(),
                 pkLookupPhase.name(),
                 ramAccountingContext,
+                context.transactionContext,
                 inputFactory,
                 pkLookupOperation,
                 pkLookupPhase.partitionedByColumns(),
@@ -601,6 +622,7 @@ public class JobSetup extends AbstractComponent {
                     consumer,
                     phase.projections(),
                     phase.jobId(),
+                    context.txnCtx(),
                     ramAccountingContext,
                     projectorFactory
                 );
@@ -617,15 +639,15 @@ public class JobSetup extends AbstractComponent {
                 if (firstProjection instanceof GroupProjection) {
                     GroupProjection groupProjection = (GroupProjection) firstProjection;
 
-                    GroupingProjector groupingProjector =
-                        (GroupingProjector) projectorFactory.create(groupProjection, ramAccountingContext, phase.jobId());
+                    GroupingProjector groupingProjector = (GroupingProjector) projectorFactory.create(
+                        groupProjection, context.txnCtx(), ramAccountingContext, phase.jobId());
                     collector = groupingProjector.getCollector();
                     projections = projections.subList(1, projections.size());
                 } else if (firstProjection instanceof AggregationProjection) {
                     AggregationProjection aggregationProjection = (AggregationProjection) firstProjection;
 
-                    AggregationPipe aggregationPipe =
-                        (AggregationPipe) projectorFactory.create(aggregationProjection, ramAccountingContext, phase.jobId());
+                    AggregationPipe aggregationPipe = (AggregationPipe) projectorFactory.create(
+                        aggregationProjection, context.txnCtx(), ramAccountingContext, phase.jobId());
 
                     collector = aggregationPipe.getCollector();
                     projections = projections.subList(1, projections.size());
@@ -636,6 +658,7 @@ public class JobSetup extends AbstractComponent {
                 consumer,
                 projections,
                 phase.jobId(),
+                context.txnCtx(),
                 ramAccountingContext,
                 projectorFactory
             );
@@ -689,6 +712,7 @@ public class JobSetup extends AbstractComponent {
 
             context.registerSubContext(new CollectTask(
                 phase,
+                context.txnCtx(),
                 collectOperation,
                 ramAccountingContext,
                 consumer,
@@ -703,6 +727,7 @@ public class JobSetup extends AbstractComponent {
             RowConsumer consumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
             context.registerSubContext(new CollectTask(
                 phase,
+                context.txnCtx(),
                 collectOperation,
                 ramAccountingContext,
                 consumer,
@@ -745,8 +770,8 @@ public class JobSetup extends AbstractComponent {
             RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
 
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
-                lastConsumer, phase.projections(), phase.jobId(), ramAccountingContext, projectorFactory);
-            Predicate<Row> joinCondition = RowFilter.create(inputFactory, phase.joinCondition());
+                lastConsumer, phase.projections(), phase.jobId(), context.txnCtx(), ramAccountingContext, projectorFactory);
+            Predicate<Row> joinCondition = RowFilter.create(context.transactionContext, inputFactory, phase.joinCondition());
 
             NestedLoopOperation joinOperation = new NestedLoopOperation(
                 phase.numLeftOutputs(),
@@ -799,8 +824,8 @@ public class JobSetup extends AbstractComponent {
             RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
 
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
-                lastConsumer, phase.projections(), phase.jobId(), ramAccountingContext, projectorFactory);
-            Predicate<Row> joinCondition = RowFilter.create(inputFactory, phase.joinCondition());
+                lastConsumer, phase.projections(), phase.jobId(), context.txnCtx(), ramAccountingContext, projectorFactory);
+            Predicate<Row> joinCondition = RowFilter.create(context.transactionContext, inputFactory, phase.joinCondition());
 
             HashJoinOperation joinOperation = new HashJoinOperation(
                 phase.numLeftOutputs(),
@@ -814,6 +839,7 @@ public class JobSetup extends AbstractComponent {
                 //    7 bytes per key for the IntHashObjectHashMap  (should be 4 but the map pre-allocates more)
                 //    7 bytes perv value (pointer from the map to the list) (should be 4 but the map pre-allocates more)
                 new RowAccountingWithEstimators(phase.leftOutputTypes(), ramAccountingContext, 110),
+                context.transactionContext,
                 inputFactory,
                 breaker(),
                 phase.estimatedRowSizeForLeft(),
@@ -866,6 +892,7 @@ public class JobSetup extends AbstractComponent {
                     rowConsumer,
                     mergePhase.projections(),
                     mergePhase.jobId(),
+                    ctx.txnCtx(),
                     ramAccountingContext,
                     projectorFactory
                 );

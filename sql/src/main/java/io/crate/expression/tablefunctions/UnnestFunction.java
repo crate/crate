@@ -33,6 +33,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -78,13 +79,15 @@ public class UnnestFunction {
         }
 
         /**
+         *
+         * @param txnCtx
          * @param arguments collection of array-literals
          *                  e.g. [ [1, 2], [Marvin, Trillian] ]
          * @return Bucket containing the unnested rows.
          * [ [1, Marvin], [2, Trillian] ]
          */
         @Override
-        public Bucket evaluate(Input[] arguments) {
+        public Bucket evaluate(TransactionContext txnCtx, Input[] arguments) {
             final List<Object[]> values = extractValues(arguments);
             final int numCols = arguments.length;
             final int numRows = maxLength(values);

@@ -34,10 +34,10 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.expression.operator.any.AnyOperators;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.operators.SubQueryResults;
@@ -65,7 +65,7 @@ import static org.hamcrest.Matchers.is;
 @SuppressWarnings("unchecked")
 public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private final TransactionContext transactionContext = new TransactionContext(SessionContext.systemSessionContext());
+    private final CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
     private SQLExecutor e;
 
     @Before
@@ -144,7 +144,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     private WhereClause analyzeSelect(String stmt, Object... args) {
         QueriedRelation rel = e.normalize(
             e.analyze(stmt, args),
-            new TransactionContext(SessionContext.systemSessionContext())
+            new CoordinatorTxnCtx(SessionContext.systemSessionContext())
         );
         if (rel instanceof QueriedTable && ((QueriedTable) rel).tableRelation() instanceof DocTableRelation) {
             DocTableRelation docTableRelation = (DocTableRelation) ((QueriedTable) rel).tableRelation();
@@ -152,14 +152,14 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 new EvaluatingNormalizer(getFunctions(), RowGranularity.CLUSTER, null, docTableRelation),
                 rel.where().queryOrFallback(),
                 docTableRelation.tableInfo(),
-                transactionContext
+                coordinatorTxnCtx
             );
             return detailedQuery.toBoundWhereClause(
                 docTableRelation.tableInfo(),
                 getFunctions(),
                 Row.EMPTY,
                 SubQueryResults.EMPTY,
-                transactionContext
+                coordinatorTxnCtx
             );
         }
         return rel.where();

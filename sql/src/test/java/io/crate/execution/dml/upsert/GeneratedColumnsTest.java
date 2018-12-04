@@ -29,6 +29,7 @@ import io.crate.data.Input;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -54,6 +55,7 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = query.tableRelation().tableInfo();
         GeneratedColumns<Doc> generatedColumns = new GeneratedColumns<>(
             new InputFactory(e.functions()),
+            CoordinatorTxnCtx.systemTransactionContext(),
             GeneratedColumns.Validation.NONE,
             new DocRefResolver(Collections.emptyList()),
             Collections.emptyList(),

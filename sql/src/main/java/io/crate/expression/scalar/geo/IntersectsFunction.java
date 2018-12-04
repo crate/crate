@@ -24,16 +24,16 @@ package io.crate.expression.scalar.geo;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.data.Input;
+import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Input;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.locationtech.spatial4j.shape.Shape;
@@ -75,7 +75,7 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Boolean evaluate(Input<Object>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
         assert args.length == 2 : "Invalid number of Arguments";
         Object left = args[0].value();
         if (left == null) {
@@ -96,7 +96,7 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
         Symbol left = symbol.arguments().get(0);
         Symbol right = symbol.arguments().get(1);
         int numLiterals = 0;
@@ -117,7 +117,7 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
         }
 
         if (numLiterals == 2) {
-            return Literal.of(evaluate((Input) left, (Input) right));
+            return Literal.of(evaluate(txnCtx, (Input) left, (Input) right));
         }
 
         if (literalConverted) {

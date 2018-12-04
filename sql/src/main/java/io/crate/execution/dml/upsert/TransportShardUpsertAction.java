@@ -31,6 +31,7 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
@@ -121,13 +122,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             ? GeneratedColumns.Validation.VALUE_MATCH
             : GeneratedColumns.Validation.NONE;
 
+        TransactionContext txnCtx = TransactionContext.of(request.userName(), request.currentSchema());
         InsertSourceGen insertSourceGen = insertColumns == null
             ? null
-            : InsertSourceGen.of(functions, tableInfo, valueValidation, Arrays.asList(insertColumns));
+            : InsertSourceGen.of(txnCtx, functions, tableInfo, valueValidation, Arrays.asList(insertColumns));
 
         UpdateSourceGen updateSourceGen = request.updateColumns() == null
             ? null
-            : new UpdateSourceGen(functions, tableInfo, request.updateColumns());
+            : new UpdateSourceGen(functions, txnCtx, tableInfo, request.updateColumns());
 
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {

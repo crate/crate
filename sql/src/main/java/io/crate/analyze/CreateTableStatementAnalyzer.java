@@ -24,11 +24,11 @@ package io.crate.analyze;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CrateTableOption;
 import io.crate.sql.tree.CreateTable;
@@ -80,11 +80,11 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
     public CreateTableAnalyzedStatement analyze(CreateTable createTable,
                                                 ParameterContext parameterContext,
-                                                TransactionContext transactionContext) {
+                                                CoordinatorTxnCtx coordinatorTxnCtx) {
         CreateTableAnalyzedStatement statement = new CreateTableAnalyzedStatement();
         Row parameters = parameterContext.parameters();
         RelationName relationName = RelationName
-            .of(createTable.name().getName(), transactionContext.sessionContext().searchPath().currentSchema());
+            .of(createTable.name().getName(), coordinatorTxnCtx.sessionContext().searchPath().currentSchema());
         statement.table(relationName, createTable.ifNotExists(), schemas);
 
         // apply default in case it is not specified in the genericProperties,
@@ -105,7 +105,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
             Collections.emptyList(),
             functions,
             parameterContext,
-            transactionContext);
+            coordinatorTxnCtx);
 
         // update table settings
         statement.tableParameter().settingsBuilder().put(tableElements.settings());

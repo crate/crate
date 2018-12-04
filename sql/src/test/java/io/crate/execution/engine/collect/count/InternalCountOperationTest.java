@@ -27,6 +27,7 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.TableInfo;
@@ -54,9 +55,10 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
 
         CountOperation countOperation = internalCluster().getDataNodeInstance(CountOperation.class);
         ClusterService clusterService = internalCluster().getDataNodeInstance(ClusterService.class);
+        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         MetaData metaData = clusterService.state().getMetaData();
         Index index = metaData.index(getFqn("t")).getIndex();
-        assertThat(countOperation.count(index, 0, Literal.BOOLEAN_TRUE), is(3L));
+        assertThat(countOperation.count(txnCtx, index, 0, Literal.BOOLEAN_TRUE), is(3L));
 
         Schemas schemas = internalCluster().getInstance(Schemas.class);
         TableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t"));
@@ -65,6 +67,6 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);
 
         Symbol filter = sqlExpressions.normalize(sqlExpressions.asSymbol("name = 'Marvin'"));
-        assertThat(countOperation.count(index, 0, filter), is(1L));
+        assertThat(countOperation.count(txnCtx, index, 0, filter), is(1L));
     }
 }

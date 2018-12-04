@@ -21,6 +21,7 @@ package io.crate.operation.language;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.types.ArrayType;
 import io.crate.types.GeoPointType;
@@ -68,7 +69,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Object evaluate(Input<Object>[] values) {
+    public Object evaluate(TransactionContext txnCtx, Input<Object>[] values) {
         try {
             return evaluateScriptWithBindings(JavaScriptLanguage.bindScript(script), values);
         } catch (ScriptException e) {
@@ -97,7 +98,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         }
 
         @Override
-        public final Object evaluate(Input<Object>[] values) {
+        public final Object evaluate(TransactionContext txnCtx, Input<Object>[] values) {
             return evaluateScriptWithBindings(bindings, values);
         }
 

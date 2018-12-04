@@ -23,7 +23,10 @@
 package io.crate.expression.eval;
 
 import io.crate.analyze.relations.FieldResolver;
+import io.crate.data.Input;
 import io.crate.expression.NestableInput;
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.scalar.arithmetic.MapFunction;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.FunctionCopyVisitor;
@@ -32,16 +35,13 @@ import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.SymbolFormatter;
-import io.crate.data.Input;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
-import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.scalar.arithmetic.MapFunction;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -156,10 +156,10 @@ public class EvaluatingNormalizer {
         }
     }
 
-    public Symbol normalize(@Nullable Symbol symbol, @Nullable TransactionContext transactionContext) {
+    public Symbol normalize(@Nullable Symbol symbol, @Nullable TransactionContext txnCtx) {
         if (symbol == null) {
             return null;
         }
-        return visitor.process(symbol, transactionContext);
+        return visitor.process(symbol, txnCtx);
     }
 }

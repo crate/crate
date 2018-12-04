@@ -33,6 +33,7 @@ import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataType;
@@ -73,7 +74,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         }
 
         @Override
-        public String evaluate(Input<InputType>... args) {
+        public String evaluate(TransactionContext txnCtx, Input<InputType>... args) {
             // dummy-lang functions simple print the type of the only argument
             return "DUMMY EATS " + metaData.argumentTypes().get(0).getName();
         }

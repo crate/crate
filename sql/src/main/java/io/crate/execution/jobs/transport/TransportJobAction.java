@@ -88,7 +88,12 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(request.enableProfiling(), contextBuilder);
 
         List<CompletableFuture<StreamBucket>> directResponseFutures = jobSetup.prepareOnRemote(
-            request.nodeOperations(), contextBuilder, sharedShardContexts);
+            request.userName(),
+            request.currentSchema(),
+            request.nodeOperations(),
+            contextBuilder,
+            sharedShardContexts
+        );
 
         try {
             RootTask context = tasksService.createTask(contextBuilder);

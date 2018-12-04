@@ -289,7 +289,8 @@ class Collect extends ZeroInputPlan {
                 functionArguments.add(
                     Literal.of(
                         arg.valueType(),
-                        SymbolEvaluator.evaluate(plannerContext.functions(), arg, params, subQueryResults)
+                        SymbolEvaluator.evaluate(
+                            plannerContext.transactionContext(), plannerContext.functions(), arg, params, subQueryResults)
                     )
                 );
             }
@@ -317,8 +318,7 @@ class Collect extends ZeroInputPlan {
             boundOutputs,
             Collections.emptyList(),
             where.queryOrFallback(),
-            DistributionInfo.DEFAULT_BROADCAST,
-            sessionContext.user()
+            DistributionInfo.DEFAULT_BROADCAST
         );
     }
 

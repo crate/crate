@@ -27,6 +27,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.metadata.TransactionContext;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import javax.annotation.Nullable;
@@ -78,21 +79,23 @@ public class ProjectingRowConsumer implements RowConsumer {
     public static RowConsumer create(RowConsumer lastConsumer,
                                      Collection<? extends Projection> projections,
                                      UUID jobId,
+                                     TransactionContext txnCtx,
                                      RamAccountingContext ramAccountingContext,
                                      ProjectorFactory projectorFactory) {
         if (projections.isEmpty()) {
             return lastConsumer;
         }
-        return new ProjectingRowConsumer(lastConsumer, projections, jobId, ramAccountingContext, projectorFactory);
+        return new ProjectingRowConsumer(lastConsumer, projections, jobId, txnCtx, ramAccountingContext, projectorFactory);
     }
 
     private ProjectingRowConsumer(RowConsumer consumer,
                                   Collection<? extends Projection> projections,
                                   UUID jobId,
+                                  TransactionContext txnCtx,
                                   RamAccountingContext ramAccountingContext,
                                   ProjectorFactory projectorFactory) {
         this.consumer = consumer;
-        this.projectors = new Projectors(projections, jobId, ramAccountingContext, projectorFactory);
+        this.projectors = new Projectors(projections, jobId, txnCtx, ramAccountingContext, projectorFactory);
     }
 
     @Override

@@ -42,6 +42,7 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobRequest;
 import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.metadata.TransactionContext;
 import io.crate.profile.ProfilingContext;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
@@ -142,7 +143,7 @@ public final class JobLauncher {
         }
     }
 
-    public void execute(RowConsumer consumer) {
+    public void execute(RowConsumer consumer, TransactionContext txnCtx) {
         assert nodeOperationTrees.size() == 1 : "must only have 1 NodeOperationTree for non-bulk operations";
         NodeOperationTree nodeOperationTree = nodeOperationTrees.get(0);
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperationTree.nodeOperations());
@@ -150,13 +151,13 @@ public final class JobLauncher {
         List<ExecutionPhase> handlerPhases = Collections.singletonList(nodeOperationTree.leaf());
         List<RowConsumer> handlerConsumers = Collections.singletonList(consumer);
         try {
-            setupTasks(operationByServer, handlerPhases, handlerConsumers);
+            setupTasks(txnCtx, operationByServer, handlerPhases, handlerConsumers);
         } catch (Throwable throwable) {
             consumer.accept(null, throwable);
         }
     }
 
-    public List<CompletableFuture<Long>> executeBulk() {
+    public List<CompletableFuture<Long>> executeBulk(TransactionContext txnCtx) {
         Iterable<NodeOperation> nodeOperations = nodeOperationTrees.stream()
             .flatMap(opTree -> opTree.nodeOperations().stream())
             ::iterator;
@@ -173,14 +174,15 @@ public final class JobLauncher {
             handlerPhases.add(nodeOperationTree.leaf());
         }
         try {
-            setupTasks(operationByServer, handlerPhases, handlerConsumers);
+            setupTasks(txnCtx, operationByServer, handlerPhases, handlerConsumers);
         } catch (Throwable throwable) {
             return Collections.singletonList(CompletableFutures.failedFuture(throwable));
         }
         return results;
     }
 
-    private void setupTasks(Map<String, Collection<NodeOperation>> operationByServer,
+    private void setupTasks(TransactionContext txnCtx,
+                            Map<String, Collection<NodeOperation>> operationByServer,
                             List<ExecutionPhase> handlerPhases,
                             List<RowConsumer> handlerConsumers) throws Throwable {
         assert handlerPhases.size() == handlerConsumers.size() : "handlerPhases size must match handlerConsumers size";
@@ -199,6 +201,8 @@ public final class JobLauncher {
         RootTask.Builder builder = tasksService.newBuilder(jobId, localNodeId, operationByServer.keySet());
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(builder);
         List<CompletableFuture<StreamBucket>> directResponseFutures = jobSetup.prepareOnHandler(
+            txnCtx.userName(),
+            txnCtx.currentSchema(),
             localNodeOperations,
             builder,
             handlerPhaseAndReceiver,
@@ -239,7 +243,14 @@ public final class JobLauncher {
             }
         }
         sendJobRequests(
-            localNodeId, operationByServer, pageBucketReceivers, handlerPhaseAndReceiver, bucketIdx, initializationTracker);
+            txnCtx,
+            localNodeId,
+            operationByServer,
+            pageBucketReceivers,
+            handlerPhaseAndReceiver,
+            bucketIdx,
+            initializationTracker
+        );
     }
 
     private SharedShardContexts maybeInstrumentProfiler(RootTask.Builder builder) {
@@ -287,7 +298,8 @@ public final class JobLauncher {
         return handlerPhaseAndReceiver;
     }
 
-    private void sendJobRequests(String localNodeId,
+    private void sendJobRequests(TransactionContext txnCtx,
+                                 String localNodeId,
                                  Map<String, Collection<NodeOperation>> operationByServer,
                                  List<PageBucketReceiver> pageBucketReceivers,
                                  List<Tuple<ExecutionPhase, RowConsumer>> handlerPhases,
@@ -295,7 +307,8 @@ public final class JobLauncher {
                                  InitializationTracker initializationTracker) {
         for (Map.Entry<String, Collection<NodeOperation>> entry : operationByServer.entrySet()) {
             String serverNodeId = entry.getKey();
-            JobRequest request = new JobRequest(jobId, localNodeId, entry.getValue(), enableProfiling);
+            JobRequest request = new JobRequest(
+                jobId, txnCtx.userName(), txnCtx.currentSchema(), localNodeId, entry.getValue(), enableProfiling);
             if (hasDirectResponse) {
                 transportJobAction.execute(serverNodeId, request,
                     BucketForwarder.asActionListener(pageBucketReceivers, bucketIdx, initializationTracker));

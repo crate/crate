@@ -32,6 +32,7 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Expression;
@@ -56,6 +57,7 @@ import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
 
@@ -167,7 +169,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
 
         assertTrue(client().admin().indices().prepareClose(partitionName).execute().actionGet().isAcknowledged());
 
-        Bucket bucket = executePlan(plan.plan, new Row1(1));
+        Bucket bucket = executePlan(plan.plan, plan.plannerContext, new Row1(1));
         assertThat(bucket, contains(isRow(-1L)));
 
         execute("select * from information_schema.table_partitions where table_name = 't'");
@@ -185,7 +187,8 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         }};
 
         ESClusterUpdateSettingsPlan node = new ESClusterUpdateSettingsPlan(persistentSettings);
-        Bucket objects = executePlan(node);
+        PlannerContext plannerContext = mock(PlannerContext.class);
+        Bucket objects = executePlan(node, plannerContext);
 
         assertThat(objects, contains(isRow(1L)));
         assertEquals("false", client().admin().cluster().prepareState().execute().actionGet().getState().metaData()
@@ -198,7 +201,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         }};
 
         node = new ESClusterUpdateSettingsPlan(ImmutableMap.<String, List<Expression>>of(), transientSettings);
-        objects = executePlan(node);
+        objects = executePlan(node, plannerContext);
 
         assertThat(objects, contains(isRow(1L)));
         assertEquals("123s", client().admin().cluster().prepareState().execute().actionGet().getState().metaData()
@@ -215,7 +218,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         }};
 
         node = new ESClusterUpdateSettingsPlan(persistentSettings, transientSettings);
-        objects = executePlan(node);
+        objects = executePlan(node, plannerContext);
 
         MetaData md = client().admin().cluster().prepareState().execute().actionGet().getState().metaData();
         assertThat(objects, contains(isRow(1L)));
@@ -223,11 +226,11 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         assertEquals("243s", md.transientSettings().get(transientSetting));
     }
 
-    private Bucket executePlan(Plan plan, Row params) throws Exception {
+    private Bucket executePlan(Plan plan, PlannerContext plannerContext, Row params) throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
         plan.execute(
             executor,
-            null,
+            plannerContext,
             consumer,
             params,
             SubQueryResults.EMPTY
@@ -235,7 +238,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         return consumer.getBucket();
     }
 
-    private Bucket executePlan(Plan plan) throws Exception {
-        return executePlan(plan, Row.EMPTY);
+    private Bucket executePlan(Plan plan, PlannerContext plannerContext) throws Exception {
+        return executePlan(plan, plannerContext, Row.EMPTY);
     }
 }

@@ -29,6 +29,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -70,8 +71,8 @@ public class DeletePartitions implements Plan {
                         RowConsumer consumer,
                         Row params,
                         SubQueryResults subQueryResults) {
-
-        ArrayList<String> indexNames = getIndices(executor.functions(), params, subQueryResults);
+        ArrayList<String> indexNames = getIndices(
+            plannerContext.transactionContext(), executor.functions(), params, subQueryResults);
         DeleteIndexRequest request = new DeleteIndexRequest(indexNames.toArray(new String[0]));
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
         executor.transportActionProvider().transportDeleteIndexAction()
@@ -79,10 +80,10 @@ public class DeletePartitions implements Plan {
     }
 
     @VisibleForTesting
-    ArrayList<String> getIndices(Functions functions, Row parameters, SubQueryResults subQueryResults) {
+    ArrayList<String> getIndices(TransactionContext txnCtx, Functions functions, Row parameters, SubQueryResults subQueryResults) {
         ArrayList<String> indexNames = new ArrayList<>();
         Function<Symbol, String> symbolToString =
-            s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, s, parameters, subQueryResults));
+            s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(txnCtx, functions, s, parameters, subQueryResults));
         for (List<Symbol> partitionValues : partitions) {
             List<String> values = Lists2.map(partitionValues, symbolToString);
             String indexName = IndexParts.toIndexName(relationName, PartitionName.encodeIdent(values));

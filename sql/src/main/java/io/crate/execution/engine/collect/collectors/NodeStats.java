@@ -37,6 +37,7 @@ import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import org.elasticsearch.action.ActionListener;
@@ -64,6 +65,7 @@ public final class NodeStats {
     public static BatchIterator<Row> newInstance(TransportNodeStatsAction transportStatTablesAction,
                                                  RoutedCollectPhase collectPhase,
                                                  Collection<DiscoveryNode> nodes,
+                                                 TransactionContext txnCtx,
                                                  InputFactory inputFactory) {
 
         return CollectingBatchIterator.newInstance(
@@ -73,6 +75,7 @@ public final class NodeStats {
                 transportStatTablesAction,
                 collectPhase,
                 nodes,
+                txnCtx,
                 inputFactory
             )
         );
@@ -84,15 +87,18 @@ public final class NodeStats {
         private final TransportNodeStatsAction nodeStatsAction;
         private final RoutedCollectPhase collectPhase;
         private final Collection<DiscoveryNode> nodes;
+        private final TransactionContext txnCtx;
         private final InputFactory inputFactory;
 
         LoadNodeStats(TransportNodeStatsAction nodeStatsAction,
                       RoutedCollectPhase collectPhase,
                       Collection<DiscoveryNode> nodes,
+                      TransactionContext txnCtx,
                       InputFactory inputFactory) {
             this.nodeStatsAction = nodeStatsAction;
             this.collectPhase = collectPhase;
             this.nodes = nodes;
+            this.txnCtx = txnCtx;
             this.inputFactory = inputFactory;
         }
 
@@ -101,7 +107,7 @@ public final class NodeStats {
             StaticTableReferenceResolver<NodeStatsContext> referenceResolver =
                 new StaticTableReferenceResolver<>(SysNodesTableInfo.expressions());
             return getNodeStatsContexts()
-                .thenApply(result -> RowsTransformer.toRowsIterable(inputFactory, referenceResolver, collectPhase, result));
+                .thenApply(result -> RowsTransformer.toRowsIterable(txnCtx, inputFactory, referenceResolver, collectPhase, result));
         }
 
         private CompletableFuture<List<NodeStatsContext>> getNodeStatsContexts() {

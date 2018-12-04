@@ -22,19 +22,19 @@
 package io.crate.expression.predicate;
 
 import com.google.common.base.Preconditions;
+import io.crate.data.Input;
 import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.FunctionFormatSpec;
-import io.crate.data.Input;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -67,7 +67,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
         assert symbol != null : "function must not be null";
         assert symbol.arguments().size() == 1 : "function's number of arguments must be 1";
 
@@ -81,7 +81,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
     }
 
     @Override
-    public Boolean evaluate(Input[] args) {
+    public Boolean evaluate(TransactionContext txnCtx, Input[] args) {
         assert args.length == 1 : "number of args must be 1";
         return args[0] == null || args[0].value() == null;
     }

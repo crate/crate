@@ -36,6 +36,7 @@ import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -48,6 +49,7 @@ public final class PKLookupTask extends AbstractTask {
 
     private final UUID jobId;
     private final RamAccountingContext ramAccountingContext;
+    private final TransactionContext txnCtx;
     private final PKLookupOperation pkLookupOperation;
     private final boolean ignoreMissing;
     private final Map<ShardId, List<PKAndVersion>> idsByShard;
@@ -61,6 +63,7 @@ public final class PKLookupTask extends AbstractTask {
                  int phaseId,
                  String name,
                  RamAccountingContext ramAccountingContext,
+                 TransactionContext txnCtx,
                  InputFactory inputFactory,
                  PKLookupOperation pkLookupOperation,
                  List<ColumnIdent> partitionedByColumns,
@@ -72,6 +75,7 @@ public final class PKLookupTask extends AbstractTask {
         this.jobId = jobId;
         this.name = name;
         this.ramAccountingContext = ramAccountingContext;
+        this.txnCtx = txnCtx;
         this.pkLookupOperation = pkLookupOperation;
         this.idsByShard = idsByShard;
         this.shardProjections = shardProjections;
@@ -80,7 +84,7 @@ public final class PKLookupTask extends AbstractTask {
         this.ignoreMissing = !partitionedByColumns.isEmpty();
         DocRefResolver docRefResolver = new DocRefResolver(partitionedByColumns);
 
-        InputFactory.Context<CollectExpression<Doc, ?>> ctx = inputFactory.ctxForRefs(docRefResolver);
+        InputFactory.Context<CollectExpression<Doc, ?>> ctx = inputFactory.ctxForRefs(txnCtx, docRefResolver);
         ctx.add(toCollect);
         expressions = ctx.expressions();
         inputRow = new InputRow(ctx.topLevelInputs());
@@ -94,6 +98,7 @@ public final class PKLookupTask extends AbstractTask {
         } else {
             pkLookupOperation.runWithShardProjections(
                 jobId,
+                txnCtx,
                 ramAccountingContext,
                 ignoreMissing,
                 idsByShard,

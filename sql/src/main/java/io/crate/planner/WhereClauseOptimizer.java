@@ -35,7 +35,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
@@ -108,7 +108,7 @@ public final class WhereClauseOptimizer {
                                               Functions functions,
                                               Row params,
                                               SubQueryResults subQueryResults,
-                                              TransactionContext txnCtx) {
+                                              CoordinatorTxnCtx txnCtx) {
             if (docKeys != null) {
                 throw new IllegalStateException(getClass().getSimpleName()
                                                 + " must not be converted to a WhereClause if docKeys are present");
@@ -143,7 +143,7 @@ public final class WhereClauseOptimizer {
     public static DetailedQuery optimize(EvaluatingNormalizer normalizer,
                                          Symbol query,
                                          DocTableInfo table,
-                                         TransactionContext txnCtx) {
+                                         CoordinatorTxnCtx txnCtx) {
         Symbol queryGenColsProcessed = GeneratedColumnExpander.maybeExpand(
             query,
             table.generatedColumns(),

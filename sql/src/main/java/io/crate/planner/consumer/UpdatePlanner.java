@@ -153,7 +153,7 @@ public final class UpdatePlanner {
 
             executor.phasesTaskFactory()
                 .create(plannerContext.jobId(), singletonList(nodeOpTree))
-                .execute(consumer);
+                .execute(consumer, plannerContext.transactionContext());
         }
 
         @Override
@@ -168,7 +168,7 @@ public final class UpdatePlanner {
             }
             return executor.phasesTaskFactory()
                 .create(plannerContext.jobId(), nodeOpTreeList)
-                .executeBulk();
+                .executeBulk(plannerContext.transactionContext());
         }
     }
 
@@ -224,8 +224,7 @@ public final class UpdatePlanner {
             newArrayList(idReference),
             singletonList(updateProjection),
             where.queryOrFallback(),
-            DistributionInfo.DEFAULT_BROADCAST,
-            plannerCtx.transactionContext().sessionContext().user()
+            DistributionInfo.DEFAULT_BROADCAST
         );
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
         return Merge.ensureOnHandler(collect, plannerCtx, singletonList(MergeCountProjection.INSTANCE));

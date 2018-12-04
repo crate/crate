@@ -44,10 +44,10 @@ import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
@@ -93,7 +93,7 @@ final class SemiJoins {
      * @return the rewritten relation or null if a rewrite wasn't possible.
      */
     @Nullable
-    QueriedRelation tryRewrite(QueriedRelation rel, TransactionContext transactionCtx) {
+    QueriedRelation tryRewrite(QueriedRelation rel, CoordinatorTxnCtx transactionCtx) {
         WhereClause where = rel.where();
         if (!where.hasQuery()) {
             return null;

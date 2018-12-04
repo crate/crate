@@ -32,9 +32,11 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.support.RetryListener;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.IndexParts;
 import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.dml.UpdateById;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
@@ -46,7 +48,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentMissingException;
@@ -88,7 +89,8 @@ public class LegacyUpsertByIdTask {
     private final boolean isPartitioned;
     private final UUID jobId;
 
-    public LegacyUpsertByIdTask(UUID jobId,
+    public LegacyUpsertByIdTask(TransactionContext txnCtx,
+                                UUID jobId,
                                 LegacyUpsertById upsertById,
                                 ClusterService clusterService,
                                 ScheduledExecutorService scheduler,
@@ -108,6 +110,8 @@ public class LegacyUpsertByIdTask {
         this.isPartitioned = upsertById.isPartitioned();
 
         reqBuilder = new ShardUpsertRequest.Builder(
+            txnCtx.userName(),
+            txnCtx.currentSchema(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             upsertById.isIgnoreDuplicateKeys() ? DuplicateKeyAction.IGNORE : DuplicateKeyAction.UPDATE_OR_FAIL,
             upsertById.numBulkResponses() > 0 || items.size() > 1,

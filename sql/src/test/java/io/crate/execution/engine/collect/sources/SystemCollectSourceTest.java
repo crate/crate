@@ -31,6 +31,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -72,13 +73,13 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             Collections.singletonList(shardId),
             ImmutableList.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),
-            DistributionInfo.DEFAULT_BROADCAST,
-            null
+            DistributionInfo.DEFAULT_BROADCAST
         );
         collectPhase.orderBy(new OrderBy(Collections.singletonList(shardId), new boolean[]{false}, new Boolean[]{null}));
 
         Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(
             collectPhase,
+            CoordinatorTxnCtx.systemTransactionContext(),
             unassignedShardRefResolver(),
             false
         ).apply(Collections.singletonList(new UnassignedShard(
@@ -107,16 +108,16 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             ImmutableList.of(),
             ImmutableList.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),
-            DistributionInfo.DEFAULT_BROADCAST,
-            null);
+            DistributionInfo.DEFAULT_BROADCAST);
 
         // No read isolation
         List<String> noReadIsolationIterable = new ArrayList<>();
         noReadIsolationIterable.add("a");
         noReadIsolationIterable.add("b");
 
+        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(
-            collectPhase, unassignedShardRefResolver(), false)
+            collectPhase, txnCtx, unassignedShardRefResolver(), false)
             .apply(noReadIsolationIterable);
         assertThat(Iterables.size(rows), is(2));
 
@@ -128,7 +129,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
         readIsolationIterable.add("a");
         readIsolationIterable.add("b");
 
-        rows = systemCollectSource.toRowsIterableTransformation(collectPhase, unassignedShardRefResolver(), true)
+        rows = systemCollectSource.toRowsIterableTransformation(collectPhase, txnCtx, unassignedShardRefResolver(), true)
             .apply(readIsolationIterable);
         assertThat(Iterables.size(rows), is(2));
 

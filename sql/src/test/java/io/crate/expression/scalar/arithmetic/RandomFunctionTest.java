@@ -21,13 +21,11 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.data.Input;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.SearchPath;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,6 +41,7 @@ import static org.hamcrest.Matchers.sameInstance;
 public class RandomFunctionTest extends AbstractScalarFunctionsTest {
 
     private RandomFunction random;
+    private TransactionContext txnCtx = TransactionContext.of("dummyUser", "dummySchema");
 
     @Before
     public void prepareRandom() {
@@ -52,14 +51,14 @@ public class RandomFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateRandom() {
-        assertThat(random.evaluate(new Input[0]),
+        assertThat(random.evaluate(txnCtx, new Input[0]),
             is(allOf(greaterThanOrEqualTo(0.0), lessThan(1.0))));
     }
 
     @Test
     public void normalizeReference() {
-        Function function = new Function(random.info(), Collections.<Symbol>emptyList());
-        Function normalized = (Function) random.normalizeSymbol(function, new TransactionContext(SessionContext.systemSessionContext()));
+        Function function = new Function(random.info(), Collections.emptyList());
+        Function normalized = (Function) random.normalizeSymbol(function, txnCtx);
         assertThat(normalized, sameInstance(function));
     }
 

@@ -177,6 +177,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testExceptionWhileProcessingItemsNotContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            "dummyUser",
+            "dummySchema",
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
@@ -196,6 +198,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testExceptionWhileProcessingItemsContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            "dummyUser",
+            "dummySchema",
             DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             null,
@@ -235,6 +239,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testKilledSetWhileProcessingItemsDoesNotThrowException() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            "dummyUser",
+            "dummySchema",
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
@@ -254,6 +260,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testItemsWithoutSourceAreSkippedOnReplicaOperation() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            "dummyUser",
+            "dummySchema",
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,

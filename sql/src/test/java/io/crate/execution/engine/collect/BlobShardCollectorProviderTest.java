@@ -31,6 +31,8 @@ import io.crate.blob.v2.BlobShard;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.integrationtests.SQLHttpIntegrationTest;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
@@ -56,10 +58,10 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
     private BlobShardCollectorProvider collectorProvider;
 
     private Iterable<Row> getBlobRows(RoutedCollectPhase phase, boolean repeat) throws Exception {
-        Method m = BlobShardCollectorProvider.class.getDeclaredMethod("getBlobRows", RoutedCollectPhase.class, boolean.class);
+        Method m = BlobShardCollectorProvider.class.getDeclaredMethod("getBlobRows", TransactionContext.class, RoutedCollectPhase.class, boolean.class);
         m.setAccessible(true);
         //noinspection unchecked
-        return (Iterable<Row>) m.invoke(collectorProvider, phase, repeat);
+        return (Iterable<Row>) m.invoke(collectorProvider, CoordinatorTxnCtx.systemTransactionContext(), phase, repeat);
     }
 
     @Test
@@ -79,8 +81,7 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
             ImmutableList.of(),
             ImmutableList.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),
-            DistributionInfo.DEFAULT_BROADCAST,
-            null
+            DistributionInfo.DEFAULT_BROADCAST
         );
 
         // No read Isolation

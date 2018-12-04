@@ -33,6 +33,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 
@@ -41,9 +42,11 @@ import java.util.Locale;
 
 public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?>> {
 
+    private final TransactionContext txnCtx;
     protected final Functions functions;
 
-    public BaseImplementationSymbolVisitor(Functions functions) {
+    public BaseImplementationSymbolVisitor(TransactionContext txnCtx, Functions functions) {
+        this.txnCtx = txnCtx;
         this.functions = functions;
     }
 
@@ -59,7 +62,7 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
             for (Symbol argument : function.arguments()) {
                 argumentInputs[i++] = process(argument, context);
             }
-            return new FunctionExpression<>(scalarImpl, argumentInputs);
+            return new FunctionExpression<>(txnCtx, scalarImpl, argumentInputs);
         } else {
             throw new UnsupportedFeatureException(
                 String.format(

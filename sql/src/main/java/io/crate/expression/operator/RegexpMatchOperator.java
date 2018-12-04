@@ -23,6 +23,7 @@ package io.crate.expression.operator;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.automaton.ByteRunAutomaton;
 import org.apache.lucene.util.automaton.RegExp;
@@ -43,7 +44,7 @@ public class RegexpMatchOperator extends Operator<String> {
 
 
     @Override
-    public Boolean evaluate(Input<String>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, Input<String>... args) {
         assert args.length == 2 : "invalid number of arguments";
         String source = args[0].value();
         if (source == null) {

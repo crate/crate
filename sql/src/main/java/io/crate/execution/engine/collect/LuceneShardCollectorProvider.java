@@ -44,9 +44,9 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
@@ -112,13 +112,14 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 shardId.getId(), searcher.reader(), System::currentTimeMillis, null);
             LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
                 collectPhase.where(),
+                collectTask.txnCtx(),
                 indexShard.mapperService(),
                 queryShardContext,
                 sharedShardContext.indexService().cache()
             );
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
-                docInputFactory.extractImplementations(collectPhase);
+                docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
 
             return new LuceneBatchIterator(
                 searcher.searcher(),
@@ -169,12 +170,13 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 indexShard.shardId().getId(), searcher.reader(), System::currentTimeMillis, null);
             queryContext = luceneQueryBuilder.convert(
                 collectPhase.where(),
+                collectTask.txnCtx(),
                 indexService.mapperService(),
                 queryShardContext,
                 indexService.cache()
             );
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);
-            ctx = docInputFactory.extractImplementations(collectPhase);
+            ctx = docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
             collectorContext = getCollectorContext(sharedShardContext.readerId(), ctx, queryShardContext::getForField);
         } catch (Throwable t) {
             if (searcher != null) {
@@ -203,7 +205,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             batchSize,
             collectorContext,
             optimizeQueryForSearchAfter,
-            LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), docInputFactory, fieldTypeLookup),
+            LuceneSortGenerator.generateLuceneSort(collectTask.txnCtx(), collectorContext, collectPhase.orderBy(), docInputFactory, fieldTypeLookup),
             ctx.topLevelInputs(),
             ctx.expressions()
         );

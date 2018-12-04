@@ -27,6 +27,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
+import io.crate.metadata.TransactionContext;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -38,17 +39,20 @@ import static io.crate.data.SentinelRow.SENTINEL;
 public class CountTask extends AbstractTask {
 
     private final CountPhase countPhase;
+    private final TransactionContext txnCtx;
     private final CountOperation countOperation;
     private final RowConsumer consumer;
     private final Map<String, IntIndexedContainer> indexShardMap;
     private CompletableFuture<Long> countFuture;
 
     CountTask(CountPhase countPhase,
+              TransactionContext txnCtx,
               CountOperation countOperation,
               RowConsumer consumer,
               Map<String, IntIndexedContainer> indexShardMap) {
         super(countPhase.phaseId());
         this.countPhase = countPhase;
+        this.txnCtx = txnCtx;
         this.countOperation = countOperation;
         this.consumer = consumer;
         this.indexShardMap = indexShardMap;
@@ -57,7 +61,7 @@ public class CountTask extends AbstractTask {
     @Override
     public synchronized void innerStart() {
         try {
-            countFuture = countOperation.count(indexShardMap, countPhase.where());
+            countFuture = countOperation.count(txnCtx, indexShardMap, countPhase.where());
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }

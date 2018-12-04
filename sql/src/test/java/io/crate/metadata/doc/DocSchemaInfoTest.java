@@ -31,6 +31,7 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -67,7 +68,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
                 return new Scalar() {
                     private final FunctionInfo info = new FunctionInfo(new FunctionIdent(metaData.schema(), metaData.name(), metaData.argumentTypes()), metaData.returnType());
                     @Override
-                    public Object evaluate(Input[] args) {
+                    public Object evaluate(TransactionContext txnCtx, Input[] args) {
                         return null;
                     }
 

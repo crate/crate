@@ -32,8 +32,8 @@ import io.crate.auth.user.User;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -281,7 +281,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     private PrivilegesAnalyzedStatement analyzePrivilegesStatement(String statement) {
         return (PrivilegesAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement(statement),
-            new TransactionContext(new SessionContext(0, Option.NONE, GRANTOR_TEST_USER, s -> {}, t -> {})),
+            new CoordinatorTxnCtx(new SessionContext(0, Option.NONE, GRANTOR_TEST_USER, s -> {}, t -> {})),
             ParameterContext.EMPTY
         ).analyzedStatement();
     }

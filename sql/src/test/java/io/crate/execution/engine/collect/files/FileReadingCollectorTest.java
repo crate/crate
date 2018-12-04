@@ -39,9 +39,8 @@ import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.reference.file.SourceLineExpression;
 import io.crate.expression.reference.file.SourceUriFailureExpression;
 import io.crate.external.S3ClientHelper;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.test.integration.CrateUnitTest;
@@ -90,6 +89,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     private static File tmpFileEmptyLine;
     private InputFactory inputFactory;
     private Input<String> sourceUriFailureInput;
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -119,8 +119,8 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     @Before
     public void prepare() throws Exception {
         Functions functions = new Functions(
-            ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
-            ImmutableMap.<String, FunctionResolver>of()
+            ImmutableMap.of(),
+            ImmutableMap.of()
         );
         inputFactory = new InputFactory(functions);
     }
@@ -279,7 +279,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                                                    final S3ObjectInputStream s3InputStream,
                                                    boolean collectSourceUriFailure) {
         InputFactory.Context<LineCollectorExpression<?>> ctx =
-            inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);
+            inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
         List<Input<?>> inputs = new ArrayList<>(2);
         Reference raw = createReference(SourceLineExpression.COLUMN_NAME, DataTypes.STRING);
         inputs.add(ctx.add(raw));

@@ -26,6 +26,7 @@ import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 
@@ -40,7 +41,7 @@ public class PgGetExpr extends Scalar<String, Object> {
     }
 
     @Override
-    public String evaluate(Input<Object>... args) {
+    public String evaluate(TransactionContext txnCtx, Input<Object>... args) {
         return null;
     }
 

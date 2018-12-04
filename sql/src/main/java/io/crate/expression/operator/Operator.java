@@ -29,8 +29,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.OperatorFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -48,7 +48,7 @@ public abstract class Operator<I> extends Scalar<Boolean, I> implements Operator
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function, TransactionContext transactionContext) {
+    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {
         // all operators evaluates to NULL if one argument is NULL
         // let's handle this here to prevent unnecessary collect operations
         for (Symbol symbol : function.arguments()) {
@@ -56,7 +56,7 @@ public abstract class Operator<I> extends Scalar<Boolean, I> implements Operator
                 return Literal.NULL;
             }
         }
-        return super.normalizeSymbol(function, transactionContext);
+        return super.normalizeSymbol(function, txnCtx);
     }
 
     private static boolean isNull(Symbol symbol) {

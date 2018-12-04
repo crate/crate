@@ -23,6 +23,7 @@ package io.crate.execution.engine.collect.count;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
 import org.elasticsearch.common.inject.ImplementedBy;
 import org.elasticsearch.index.Index;
 
@@ -33,8 +34,9 @@ import java.util.concurrent.CompletableFuture;
 @ImplementedBy(InternalCountOperation.class)
 public interface CountOperation {
 
-    CompletableFuture<Long> count(Map<String, IntIndexedContainer> indexShardMap,
+    CompletableFuture<Long> count(TransactionContext txnCtx,
+                                  Map<String, IntIndexedContainer> indexShardMap,
                                   Symbol filter) throws IOException, InterruptedException;
 
-    long count(Index index, int shardId, Symbol filter) throws IOException, InterruptedException;
+    long count(TransactionContext txnCtx, Index index, int shardId, Symbol filter) throws IOException, InterruptedException;
 }

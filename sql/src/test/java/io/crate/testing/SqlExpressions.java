@@ -42,9 +42,9 @@ import io.crate.expression.predicate.PredicateModule;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.tablefunctions.TableFunctionModule;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -60,7 +60,7 @@ public class SqlExpressions {
     private final ExpressionAnalyzer expressionAnalyzer;
     private final ExpressionAnalysisContext expressionAnalysisCtx;
     private final Injector injector;
-    private final TransactionContext transactionContext;
+    private final CoordinatorTxnCtx coordinatorTxnCtx;
     private final EvaluatingNormalizer normalizer;
     private final Functions functions;
 
@@ -91,17 +91,17 @@ public class SqlExpressions {
         }
         injector = modulesBuilder.createInjector();
         functions = injector.getInstance(Functions.class);
-        transactionContext = new TransactionContext(new SessionContext(0, Option.NONE, user, s -> {}, e -> {}));
+        coordinatorTxnCtx = new CoordinatorTxnCtx(new SessionContext(0, Option.NONE, user, s -> {}, e -> {}));
         expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            transactionContext,
+            coordinatorTxnCtx,
             parameters == null
                 ? ParamTypeHints.EMPTY
                 : new ParameterContext(new RowN(parameters), Collections.<Row>emptyList()),
             new FullQualifiedNameFieldProvider(
                 sources,
                 ParentRelations.NO_PARENTS,
-                transactionContext.sessionContext().searchPath().currentSchema()),
+                coordinatorTxnCtx.sessionContext().searchPath().currentSchema()),
             null
         );
         normalizer = new EvaluatingNormalizer(functions, RowGranularity.DOC, null, fieldResolver);
@@ -113,7 +113,7 @@ public class SqlExpressions {
     }
 
     public Symbol normalize(Symbol symbol) {
-        return normalizer.normalize(symbol, transactionContext);
+        return normalizer.normalize(symbol, coordinatorTxnCtx);
     }
 
     public <T> T getInstance(Class<T> clazz) {
@@ -125,6 +125,6 @@ public class SqlExpressions {
     }
 
     public void setDefaultSchema(String schema) {
-        this.transactionContext.sessionContext().setSearchPath(schema);
+        this.coordinatorTxnCtx.sessionContext().setSearchPath(schema);
     }
 }

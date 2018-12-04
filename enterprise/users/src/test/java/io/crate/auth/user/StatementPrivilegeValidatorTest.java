@@ -29,7 +29,7 @@ import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.sql.parser.SqlParser;
@@ -126,7 +126,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
 
     private void analyze(String stmt, User user) {
         e.analyzer.boundAnalyze(SqlParser.createStatement(stmt),
-            new TransactionContext(new SessionContext(0, Option.NONE, user,
+            new CoordinatorTxnCtx(new SessionContext(0, Option.NONE, user,
                 userManager.getStatementValidator(user, Schemas.DOC_SCHEMA_NAME),
                 userManager.getExceptionValidator(user, Schemas.DOC_SCHEMA_NAME))), ParameterContext.EMPTY);
     }

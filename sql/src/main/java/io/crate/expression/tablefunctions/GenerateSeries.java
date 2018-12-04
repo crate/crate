@@ -33,6 +33,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -139,7 +140,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     }
 
     @Override
-    public Bucket evaluate(Input<T>... args) {
+    public Bucket evaluate(TransactionContext txnCtx, Input<T>... args) {
         T startInclusive = args[0].value();
         T stopInclusive = args[1].value();
         T step = args.length == 3 ? args[2].value() : defaultStep;

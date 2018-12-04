@@ -28,8 +28,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TimestampType;
@@ -117,7 +117,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
         assert symbol.arguments().size() > 1 && symbol.arguments().size() < 4 : "Invalid number of arguments";
 
         if (anyNonLiterals(symbol.arguments())) {
@@ -138,12 +138,12 @@ public class DateTruncFunction extends Scalar<Long, Object> {
 
         return Literal.of(
             DataTypes.TIMESTAMP,
-            evaluate(new Input[]{interval, timezone, tsSymbol})
+            evaluate(txnCtx, new Input[]{interval, timezone, tsSymbol})
         );
     }
 
     @Override
-    public final Long evaluate(Input[] args) {
+    public final Long evaluate(TransactionContext txnCtx, Input[] args) {
         assert args.length > 1 && args.length < 4 : "Invalid number of arguments";
         Object value;
         String timeZone = TimeZoneParser.DEFAULT_TZ_LITERAL.value();

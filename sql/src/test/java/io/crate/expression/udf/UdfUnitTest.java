@@ -25,6 +25,7 @@ package io.crate.expression.udf;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -77,7 +78,7 @@ public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
         }
 
         @Override
-        public Integer evaluate(Input<Integer>[] args) {
+        public Integer evaluate(TransactionContext txnCtx, Input<Integer>[] args) {
             return RESULT;
         }
     }

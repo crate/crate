@@ -63,13 +63,13 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.SymbolFormatter;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
@@ -151,7 +151,7 @@ public class ExpressionAnalyzer {
             .put(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL)
             .build();
 
-    private final TransactionContext transactionContext;
+    private final CoordinatorTxnCtx coordinatorTxnCtx;
     private final java.util.function.Function<ParameterExpression, Symbol> convertParamFunction;
     private final FieldProvider<?> fieldProvider;
 
@@ -164,21 +164,21 @@ public class ExpressionAnalyzer {
     private static final Pattern SUBSCRIPT_SPLIT_PATTERN = Pattern.compile("^([^\\.\\[]+)(\\.*)([^\\[]*)(\\['.*'\\])");
 
     public ExpressionAnalyzer(Functions functions,
-                              TransactionContext transactionContext,
+                              CoordinatorTxnCtx coordinatorTxnCtx,
                               java.util.function.Function<ParameterExpression, Symbol> convertParamFunction,
                               FieldProvider fieldProvider,
                               @Nullable SubqueryAnalyzer subQueryAnalyzer) {
-        this(functions, transactionContext, convertParamFunction, fieldProvider, subQueryAnalyzer, Operation.READ);
+        this(functions, coordinatorTxnCtx, convertParamFunction, fieldProvider, subQueryAnalyzer, Operation.READ);
     }
 
     public ExpressionAnalyzer(Functions functions,
-                              TransactionContext transactionContext,
+                              CoordinatorTxnCtx coordinatorTxnCtx,
                               java.util.function.Function<ParameterExpression, Symbol> convertParamFunction,
                               FieldProvider fieldProvider,
                               @Nullable SubqueryAnalyzer subQueryAnalyzer,
                               Operation operation) {
         this.functions = functions;
-        this.transactionContext = transactionContext;
+        this.coordinatorTxnCtx = coordinatorTxnCtx;
         this.convertParamFunction = convertParamFunction;
         this.fieldProvider = fieldProvider;
         this.subQueryAnalyzer = subQueryAnalyzer;
@@ -255,7 +255,7 @@ public class ExpressionAnalyzer {
     public ExpressionAnalyzer copyForOperation(Operation operation) {
         return new ExpressionAnalyzer(
             functions,
-            transactionContext,
+            coordinatorTxnCtx,
             convertParamFunction,
             fieldProvider,
             subQueryAnalyzer,
@@ -629,7 +629,7 @@ public class ExpressionAnalyzer {
             Symbol left = process(node.getLeft(), context);
             Symbol right = process(node.getRight(), context);
 
-            Comparison comparison = new Comparison(functions, transactionContext, node.getType(), left, right);
+            Comparison comparison = new Comparison(functions, coordinatorTxnCtx, node.getType(), left, right);
             comparison.normalize(context);
             FunctionIdent ident = comparison.toFunctionIdent();
             return allocateFunction(ident.name(), comparison.arguments(), context);
@@ -715,7 +715,7 @@ public class ExpressionAnalyzer {
             try {
                 return fieldProvider.resolveField(node.getName(), null, operation);
             } catch (ColumnUnknownException exception) {
-                if (transactionContext.sessionContext().options().contains(Option.ALLOW_QUOTED_SUBSCRIPT)) {
+                if (coordinatorTxnCtx.sessionContext().options().contains(Option.ALLOW_QUOTED_SUBSCRIPT)) {
                     String quotedSubscriptLiteral = getQuotedSubscriptLiteral(node.getName().toString());
                     if (quotedSubscriptLiteral != null) {
                         return process(SqlParser.createExpression(quotedSubscriptLiteral), context);
@@ -800,14 +800,14 @@ public class ExpressionAnalyzer {
             Symbol min = process(node.getMin(), context);
             Symbol max = process(node.getMax(), context);
 
-            Comparison gte = new Comparison(functions, transactionContext, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, value, min);
+            Comparison gte = new Comparison(functions, coordinatorTxnCtx, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, value, min);
             FunctionIdent gteIdent = gte.normalize(context).toFunctionIdent();
             Symbol gteFunc = allocateFunction(
                 gteIdent.name(),
                 gte.arguments(),
                 context);
 
-            Comparison lte = new Comparison(functions, transactionContext, ComparisonExpression.Type.LESS_THAN_OR_EQUAL, value, max);
+            Comparison lte = new Comparison(functions, coordinatorTxnCtx, ComparisonExpression.Type.LESS_THAN_OR_EQUAL, value, max);
             FunctionIdent lteIdent = lte.normalize(context).toFunctionIdent();
             Symbol lteFunc = allocateFunction(
                 lteIdent.name(),
@@ -885,21 +885,21 @@ public class ExpressionAnalyzer {
                                                 String functionName,
                                                 List<Symbol> arguments,
                                                 ExpressionAnalysisContext context) {
-        return allocateBuiltinOrUdfFunction(schema, functionName, arguments, context, functions, transactionContext);
+        return allocateBuiltinOrUdfFunction(schema, functionName, arguments, context, functions, coordinatorTxnCtx);
     }
 
     private Symbol allocateFunction(String functionName,
                                     List<Symbol> arguments,
                                     ExpressionAnalysisContext context) {
-        return allocateFunction(functionName, arguments, context, functions, transactionContext);
+        return allocateFunction(functionName, arguments, context, functions, coordinatorTxnCtx);
     }
 
     static Symbol allocateFunction(String functionName,
                                    List<Symbol> arguments,
                                    ExpressionAnalysisContext context,
                                    Functions functions,
-                                   TransactionContext transactionContext) {
-        return allocateBuiltinOrUdfFunction(null, functionName, arguments, context, functions, transactionContext);
+                                   CoordinatorTxnCtx coordinatorTxnCtx) {
+        return allocateBuiltinOrUdfFunction(null, functionName, arguments, context, functions, coordinatorTxnCtx);
     }
 
     /**
@@ -911,7 +911,7 @@ public class ExpressionAnalyzer {
      * @param arguments The arguments to provide to the {@link Function}.
      * @param context Context holding the state for the current translation.
      * @param functions The {@link Functions} to normalize constant expressions.
-     * @param transactionContext {@link TransactionContext} for this transaction.
+     * @param coordinatorTxnCtx {@link CoordinatorTxnCtx} for this transaction.
      * @return The supplied {@link Function} or a {@link Literal} in case of constant folding.
      */
     private static Symbol allocateBuiltinOrUdfFunction(@Nullable String schema,
@@ -919,12 +919,12 @@ public class ExpressionAnalyzer {
                                                        List<Symbol> arguments,
                                                        ExpressionAnalysisContext context,
                                                        Functions functions,
-                                                       TransactionContext transactionContext) {
+                                                       CoordinatorTxnCtx coordinatorTxnCtx) {
         FunctionImplementation funcImpl = functions.get(
             schema,
             functionName,
             arguments,
-            transactionContext.sessionContext().searchPath());
+            coordinatorTxnCtx.sessionContext().searchPath());
 
         FunctionInfo functionInfo = funcImpl.info();
         if (functionInfo.type() == FunctionInfo.Type.AGGREGATE) {
@@ -933,7 +933,7 @@ public class ExpressionAnalyzer {
         List<Symbol> castArguments = cast(arguments, functionInfo.ident().argumentTypes());
         Function newFunction = new Function(functionInfo, castArguments);
         if (functionInfo.isDeterministic() && Symbols.allLiterals(newFunction)) {
-            return funcImpl.normalizeSymbol(newFunction, transactionContext);
+            return funcImpl.normalizeSymbol(newFunction, coordinatorTxnCtx);
         }
         return newFunction;
     }
@@ -955,7 +955,7 @@ public class ExpressionAnalyzer {
     private static class Comparison {
 
         private final Functions functions;
-        private final TransactionContext transactionContext;
+        private final CoordinatorTxnCtx coordinatorTxnCtx;
         private ComparisonExpression.Type comparisonExpressionType;
         private Symbol left;
         private Symbol right;
@@ -963,12 +963,12 @@ public class ExpressionAnalyzer {
         private FunctionIdent functionIdent;
 
         private Comparison(Functions functions,
-                           TransactionContext transactionContext,
+                           CoordinatorTxnCtx coordinatorTxnCtx,
                            ComparisonExpression.Type comparisonExpressionType,
                            Symbol left,
                            Symbol right) {
             this.functions = functions;
-            this.transactionContext = transactionContext;
+            this.coordinatorTxnCtx = coordinatorTxnCtx;
             this.operatorName = Operator.PREFIX + comparisonExpressionType.getValue();
             this.comparisonExpressionType = comparisonExpressionType;
             this.left = left;
@@ -1028,7 +1028,7 @@ public class ExpressionAnalyzer {
                 ImmutableList.of(left, right),
                 context,
                 functions,
-                transactionContext);
+                coordinatorTxnCtx);
             right = null;
             functionIdent = NotPredicate.INFO.ident();
             operatorName = NotPredicate.NAME;

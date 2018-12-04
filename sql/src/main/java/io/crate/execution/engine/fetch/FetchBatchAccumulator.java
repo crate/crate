@@ -36,9 +36,10 @@ import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
 import io.crate.expression.InputRow;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -58,7 +59,8 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
     private final InputRow outputRow;
     private final ArrayList<Object[]> inputValues = new ArrayList<>();
 
-    public FetchBatchAccumulator(FetchOperation fetchOperation,
+    public FetchBatchAccumulator(TransactionContext txnCtx,
+                                 FetchOperation fetchOperation,
                                  Functions functions,
                                  List<Symbol> outputSymbols,
                                  FetchProjectorContext fetchProjectorContext,
@@ -67,7 +69,7 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
         this.context = fetchProjectorContext;
         this.fetchSize = fetchSize;
 
-        FetchRowInputSymbolVisitor rowInputSymbolVisitor = new FetchRowInputSymbolVisitor(functions);
+        FetchRowInputSymbolVisitor rowInputSymbolVisitor = new FetchRowInputSymbolVisitor(txnCtx, functions);
         this.collectRowContext = new FetchRowInputSymbolVisitor.Context(fetchProjectorContext.tableToFetchSource);
 
         List<Input<?>> inputs = new ArrayList<>(outputSymbols.size());

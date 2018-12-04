@@ -25,6 +25,9 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import io.crate.auth.user.User;
+import io.crate.auth.user.UserLookup;
+import io.crate.auth.user.UserManager;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
@@ -39,6 +42,7 @@ import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.reference.sys.check.node.SysNodeChecks;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.information.InformationSchemaInfo;
@@ -54,6 +58,8 @@ import org.elasticsearch.common.inject.Inject;
 import java.util.Map;
 import java.util.function.Function;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
  * <p>
@@ -65,6 +71,7 @@ public class SystemCollectSource implements CollectSource {
     private final ClusterService clusterService;
     private final InputFactory inputFactory;
 
+    private final UserLookup userLookup;
     private final InformationSchemaTableDefinitions informationSchemaTables;
     private final SysTableDefinitions sysTables;
     private final PgCatalogTableDefinitions pgCatalogTables;
@@ -72,12 +79,14 @@ public class SystemCollectSource implements CollectSource {
     @Inject
     public SystemCollectSource(ClusterService clusterService,
                                Functions functions,
+                               UserManager userManager,
                                InformationSchemaTableDefinitions informationSchemaTables,
                                SysTableDefinitions sysTableDefinitions,
                                SysNodeChecks sysNodeChecks,
                                PgCatalogTableDefinitions pgCatalogTables) {
         this.clusterService = clusterService;
         inputFactory = new InputFactory(functions);
+        this.userLookup = userManager;
         this.informationSchemaTables = informationSchemaTables;
         this.sysTables = sysTableDefinitions;
         this.pgCatalogTables = pgCatalogTables;
@@ -86,12 +95,14 @@ public class SystemCollectSource implements CollectSource {
     }
 
     Function<Iterable, Iterable<? extends Row>> toRowsIterableTransformation(RoutedCollectPhase collectPhase,
+                                                                             TransactionContext txnCtx,
                                                                              ReferenceResolver<?> referenceResolver,
                                                                              boolean requiresRepeat) {
-        return objects -> recordsToRows(collectPhase, referenceResolver, requiresRepeat, objects);
+        return objects -> recordsToRows(collectPhase, txnCtx, referenceResolver, requiresRepeat, objects);
     }
 
     private Iterable<? extends Row> recordsToRows(RoutedCollectPhase collectPhase,
+                                                  TransactionContext txnCtx,
                                                   ReferenceResolver<?> referenceResolver,
                                                   boolean requiresRepeat,
                                                   Iterable<?> data) {
@@ -99,6 +110,7 @@ public class SystemCollectSource implements CollectSource {
             data = ImmutableList.copyOf(data);
         }
         return RowsTransformer.toRowsIterable(
+            txnCtx,
             inputFactory,
             referenceResolver,
             collectPhase,
@@ -106,23 +118,28 @@ public class SystemCollectSource implements CollectSource {
     }
 
     @Override
-    public BatchIterator<Row> getIterator(CollectPhase phase, CollectTask collectTask, boolean supportMoveToStart) {
+    public BatchIterator<Row> getIterator(TransactionContext txnCtx,
+                                          CollectPhase phase,
+                                          CollectTask collectTask,
+                                          boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
 
         Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
         RelationName relationName = RelationName.fromIndexName(table);
         StaticTableDefinition<?> tableDefinition = tableDefinition(relationName);
+        User user = requireNonNull(userLookup.findUser(txnCtx.userName()), "User who invoked a statement must exist");
 
         return CollectingBatchIterator.newInstance(
             () -> {},
             // kill no-op: Can't interrupt remote retrieval;
             // If data is already local, then `CollectingBatchIterator` takes care of kill handling.
             t -> {},
-            () -> tableDefinition.retrieveRecords(collectPhase.user())
+            () -> tableDefinition.retrieveRecords(user)
                 .thenApply(records ->
                         recordsToRows(
                             collectPhase,
+                            collectTask.txnCtx(),
                             tableDefinition.getReferenceResolver(),
                             supportMoveToStart,
                             records

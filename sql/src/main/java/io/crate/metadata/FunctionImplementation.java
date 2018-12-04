@@ -40,11 +40,11 @@ public interface FunctionImplementation {
      * Normalize a symbol into a simplified form.
      * This may return the symbol as is if it cannot be normalized.
      *
-     * @param transactionContext context which is shared across normalizeSymbol calls during a statement-lifecycle.
+     * @param txnCtx context which is shared across normalizeSymbol calls during a statement-lifecycle.
      *                This will only be present if normalizeSymbol is called on the handler node.
      *                normalizeSymbol calls during execution won't receive a StmtCtx
      */
-    default Symbol normalizeSymbol(Function function, @Nullable TransactionContext transactionContext) {
+    default Symbol normalizeSymbol(Function function, @Nullable TransactionContext txnCtx) {
         return function;
     }
 }

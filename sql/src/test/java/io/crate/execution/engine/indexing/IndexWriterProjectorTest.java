@@ -36,6 +36,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -81,6 +82,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             new NodeJobsCounter(),
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
+            CoordinatorTxnCtx.systemTransactionContext(),
             internalCluster().getInstance(Functions.class),
             Settings.EMPTY,
             tableSettings,

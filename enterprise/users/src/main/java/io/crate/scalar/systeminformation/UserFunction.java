@@ -19,7 +19,6 @@
 package io.crate.scalar.systeminformation;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.auth.user.User;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -27,13 +26,12 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.Locale;
 
 public class UserFunction extends Scalar<String, Object> implements FunctionFormatSpec {
 
@@ -58,24 +56,17 @@ public class UserFunction extends Scalar<String, Object> implements FunctionForm
     }
 
     @Override
-    public String evaluate(Input<Object>... args) {
+    public String evaluate(TransactionContext txnCtx, Input<Object>... args) {
         assert args.length == 0 : "number of args must be 0";
-        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Cannot evaluate %s function", name));
+        return txnCtx.userName();
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, @Nullable TransactionContext transactionContext) {
-        if (transactionContext == null) {
+    public Symbol normalizeSymbol(Function symbol, @Nullable TransactionContext txnCtx) {
+        if (txnCtx == null) {
             return Literal.NULL;
         }
-
-        assert transactionContext.sessionContext() != null : name + " requires a session context";
-        User user = transactionContext.sessionContext().user();
-        String username = null;
-        if (user != null) {
-            username = user.name();
-        }
-        return Literal.of(username);
+        return Literal.of(txnCtx.userName());
     }
 
     @Override

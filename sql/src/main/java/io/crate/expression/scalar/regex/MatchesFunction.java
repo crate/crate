@@ -31,8 +31,8 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
@@ -78,7 +78,7 @@ public class MatchesFunction extends Scalar<String[], Object> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
         final int size = symbol.arguments().size();
         assert size == 2 || size == 3 : "function's number of arguments must be 2 or 3";
 
@@ -101,7 +101,7 @@ public class MatchesFunction extends Scalar<String[], Object> {
         if (size == 3) {
             args[2] = (Input) symbol.arguments().get(2);
         }
-        return Literal.of(evaluate(args), ARRAY_STRING_TYPE);
+        return Literal.of(evaluate(txnCtx, args), ARRAY_STRING_TYPE);
     }
 
     @Override
@@ -132,7 +132,7 @@ public class MatchesFunction extends Scalar<String[], Object> {
     }
 
     @Override
-    public String[] evaluate(Input[] args) {
+    public String[] evaluate(TransactionContext txnCtx, Input[] args) {
         assert args.length == 2 || args.length == 3 : "number of args must be 2 or 3";
         String val = (String) args[0].value();
         String pattern = (String) args[1].value();

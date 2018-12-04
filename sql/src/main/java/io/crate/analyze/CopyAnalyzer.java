@@ -39,6 +39,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
@@ -46,7 +47,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.Validators;
@@ -281,12 +281,12 @@ class CopyAnalyzer {
                                                  EvaluatingNormalizer normalizer,
                                                  ExpressionAnalyzer expressionAnalyzer,
                                                  ExpressionAnalysisContext expressionAnalysisContext,
-                                                 TransactionContext transactionContext) {
+                                                 CoordinatorTxnCtx coordinatorTxnCtx) {
         // primary key optimization and partition selection from query happens later
         // based on the queriedRelation in the LogicalPlanner
         if (where.isPresent()) {
             Symbol query = normalizer.normalize(
-                expressionAnalyzer.convert(where.get(), expressionAnalysisContext), transactionContext);
+                expressionAnalyzer.convert(where.get(), expressionAnalysisContext), coordinatorTxnCtx);
             return new WhereClause(query, partitions, Collections.emptySet());
         } else {
             return new WhereClause(null, partitions, Collections.emptySet());

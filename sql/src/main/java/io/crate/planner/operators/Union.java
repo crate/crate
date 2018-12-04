@@ -32,8 +32,8 @@ import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -64,7 +64,7 @@ import static io.crate.planner.operators.Limit.limitAndOffset;
  */
 public class Union extends TwoInputPlan {
 
-    static Builder create(UnionSelect ttr, SubqueryPlanner subqueryPlanner, Functions functions, TransactionContext txnCtx) {
+    static Builder create(UnionSelect ttr, SubqueryPlanner subqueryPlanner, Functions functions, CoordinatorTxnCtx txnCtx) {
         return (tableStats, usedColsByParent) -> {
 
             QueriedRelation left = ttr.left();

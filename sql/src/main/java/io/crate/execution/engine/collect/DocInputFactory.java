@@ -22,14 +22,15 @@
 package io.crate.execution.engine.collect;
 
 import io.crate.analyze.OrderBy;
-import io.crate.lucene.FieldTypeLookup;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.lucene.FieldTypeLookup;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.types.DataType;
 import io.crate.types.IpType;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -55,7 +56,8 @@ public class DocInputFactory {
         this.referenceResolver = referenceResolver;
     }
 
-    public InputFactory.Context<? extends LuceneCollectorExpression<?>> extractImplementations(RoutedCollectPhase phase) {
+    public InputFactory.Context<? extends LuceneCollectorExpression<?>> extractImplementations(TransactionContext txnCtx,
+                                                                                               RoutedCollectPhase phase) {
         OrderBy orderBy = phase.orderBy();
         ReferenceResolver<? extends LuceneCollectorExpression<?>> refResolver;
         if (orderBy == null) {
@@ -68,7 +70,7 @@ public class DocInputFactory {
                 return referenceResolver.getImplementation(ref);
             };
         }
-        InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = inputFactory.ctxForRefs(refResolver);
+        InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = inputFactory.ctxForRefs(txnCtx, refResolver);
         ctx.add(phase.toCollect());
         return ctx;
     }
@@ -93,7 +95,7 @@ public class DocInputFactory {
         return new OrderByCollectorExpression(ref, orderBy, valueConversion);
     }
 
-    public InputFactory.Context<? extends LuceneCollectorExpression<?>> getCtx() {
-        return inputFactory.ctxForRefs(referenceResolver);
+    public InputFactory.Context<? extends LuceneCollectorExpression<?>> getCtx(TransactionContext txnCtx) {
+        return inputFactory.ctxForRefs(txnCtx, referenceResolver);
     }
 }

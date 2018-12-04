@@ -23,8 +23,9 @@
 package io.crate.expression.scalar.conditional;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionInfo;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 
 public class CoalesceFunction extends ConditionalFunction {
     public static final String NAME = "coalesce";
@@ -34,7 +35,7 @@ public class CoalesceFunction extends ConditionalFunction {
     }
 
     @Override
-    public Object evaluate(Input... args) {
+    public Object evaluate(TransactionContext txnCtx, Input... args) {
         for (Input input : args) {
             Object value = input.value();
             if (value != null) {

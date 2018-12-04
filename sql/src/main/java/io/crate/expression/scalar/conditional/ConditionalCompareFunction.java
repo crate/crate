@@ -24,6 +24,7 @@ package io.crate.expression.scalar.conditional;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 
 import java.util.Comparator;
 
@@ -34,7 +35,7 @@ abstract class ConditionalCompareFunction extends ConditionalFunction implements
     }
 
     @Override
-    public Object evaluate(Input... args) {
+    public Object evaluate(TransactionContext txnCtx, Input... args) {
         assert args != null : "args must not be null";
         assert args.length > 0 : "number of args must be > 1";
 

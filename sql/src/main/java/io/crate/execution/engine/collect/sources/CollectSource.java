@@ -26,8 +26,12 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.engine.collect.CollectTask;
+import io.crate.metadata.TransactionContext;
 
 public interface CollectSource {
 
-    BatchIterator<Row> getIterator(CollectPhase collectPhase, CollectTask collectTask, boolean supportMoveToStart);
+    BatchIterator<Row> getIterator(TransactionContext txnCtx,
+                                   CollectPhase collectPhase,
+                                   CollectTask collectTask,
+                                   boolean supportMoveToStart);
 }
