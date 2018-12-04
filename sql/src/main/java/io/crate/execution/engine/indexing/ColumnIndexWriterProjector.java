@@ -37,6 +37,7 @@ import io.crate.expression.InputRow;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -59,6 +60,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                       NodeJobsCounter nodeJobsCounter,
                                       ScheduledExecutorService scheduler,
                                       Executor executor,
+                                      TransactionContext txnCtx,
                                       Functions functions,
                                       Settings settings,
                                       Settings tableSettings,
@@ -77,7 +79,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                       boolean autoCreateIndices,
                                       UUID jobId) {
         RowShardResolver rowShardResolver = new RowShardResolver(
-            functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
+            txnCtx, functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         assert columnReferences.size() == insertInputs.size()
             : "number of insert inputs must be equal to the number of columns";
 
@@ -92,6 +94,8 @@ public class ColumnIndexWriterProjector implements Projector {
             assignments = convert.sources();
         }
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
+            txnCtx.userName(),
+            txnCtx.currentSchema(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             ignoreDuplicateKeys ? DuplicateKeyAction.IGNORE : DuplicateKeyAction.UPDATE_OR_FAIL,
             true, // continueOnErrors

@@ -37,6 +37,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 
@@ -77,32 +78,34 @@ public class InputFactory {
         this.functions = functions;
     }
 
-    public <T extends Input<?>> Context<T> ctxForRefs(ReferenceResolver<? extends T> referenceResolver) {
+    public <T extends Input<?>> Context<T> ctxForRefs(TransactionContext txnCtx, ReferenceResolver<? extends T> referenceResolver) {
         List<T> expressions = new ArrayList<>();
-        return new Context<>(expressions,
+        return new Context<>(
+            expressions,
             new RefVisitor<>(
+                txnCtx,
                 functions,
                 new GatheringRefResolver<>(expressions::add, referenceResolver)));
     }
 
-    public Context<CollectExpression<Row, ?>> ctxForInputColumns() {
+    public Context<CollectExpression<Row, ?>> ctxForInputColumns(TransactionContext txnCtx) {
         List<CollectExpression<Row, ?>> expressions = new ArrayList<>();
-        return new Context<>(expressions, new InputColumnVisitor(functions, expressions));
+        return new Context<>(expressions, new InputColumnVisitor(txnCtx, functions, expressions));
     }
 
-    public Context<CollectExpression<Row, ?>> ctxForInputColumns(Iterable<? extends Symbol> symbols) {
-        Context<CollectExpression<Row, ?>> context = ctxForInputColumns();
+    public Context<CollectExpression<Row, ?>> ctxForInputColumns(TransactionContext txnCtx, Iterable<? extends Symbol> symbols) {
+        Context<CollectExpression<Row, ?>> context = ctxForInputColumns(txnCtx);
         context.add(symbols);
         return context;
     }
 
-    public Context<CollectExpression<Row, ?>> ctxForAggregations() {
+    public Context<CollectExpression<Row, ?>> ctxForAggregations(TransactionContext txnCtx) {
         List<CollectExpression<Row, ?>> expressions = new ArrayList<>();
         List<AggregationContext> aggregationContexts = new ArrayList<>();
         return new Context<>(
             expressions,
             aggregationContexts,
-            new AggregationVisitor(functions, expressions, aggregationContexts));
+            new AggregationVisitor(txnCtx, functions, expressions, aggregationContexts));
     }
 
     public static class Context<T extends Input<?>> {
@@ -166,8 +169,8 @@ public class InputFactory {
         private final List<CollectExpression<Row, ?>> expressions;
         private final IntObjectMap<InputCollectExpression> inputCollectExpressions = new IntObjectHashMap<>();
 
-        InputColumnVisitor(Functions functions, List<CollectExpression<Row, ?>> expressions) {
-            super(functions);
+        InputColumnVisitor(TransactionContext txnCtx, Functions functions, List<CollectExpression<Row, ?>> expressions) {
+            super(txnCtx, functions);
             this.expressions = expressions;
         }
 
@@ -188,10 +191,11 @@ public class InputFactory {
 
         private final List<AggregationContext> aggregationContexts;
 
-        AggregationVisitor(Functions functions,
+        AggregationVisitor(TransactionContext txnCtx,
+                           Functions functions,
                            List<CollectExpression<Row, ?>> expressions,
                            List<AggregationContext> aggregationContexts) {
-            super(functions, expressions);
+            super(txnCtx, functions, expressions);
             this.aggregationContexts = aggregationContexts;
         }
 
@@ -215,8 +219,8 @@ public class InputFactory {
         private final ReferenceResolver<T> referenceResolver;
         private final Map<Reference, T> referenceMap;
 
-        RefVisitor(Functions functions, ReferenceResolver<T> referenceResolver) {
-            super(functions);
+        RefVisitor(TransactionContext txnCtx, Functions functions, ReferenceResolver<T> referenceResolver) {
+            super(txnCtx, functions);
             this.referenceResolver = referenceResolver;
             this.referenceMap = new HashMap<>();
         }

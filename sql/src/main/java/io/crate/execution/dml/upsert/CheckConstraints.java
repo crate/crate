@@ -27,6 +27,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -39,8 +40,11 @@ public final class CheckConstraints<T, E extends CollectExpression<T, ?>> {
     private final List<E> expressions;
     private final List<ColumnIdent> notNullColumns;
 
-    public CheckConstraints(InputFactory inputFactory, ReferenceResolver<E> refResolver, DocTableInfo table) {
-        InputFactory.Context<E> ctx = inputFactory.ctxForRefs(refResolver);
+    public CheckConstraints(TransactionContext txnCtx,
+                            InputFactory inputFactory,
+                            ReferenceResolver<E> refResolver,
+                            DocTableInfo table) {
+        InputFactory.Context<E> ctx = inputFactory.ctxForRefs(txnCtx, refResolver);
         notNullColumns = new ArrayList<>(table.notNullColumns());
         for (int i = 0; i < notNullColumns.size(); i++) {
             Reference notNullRef = table.getReference(notNullColumns.get(i));

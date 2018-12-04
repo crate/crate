@@ -126,7 +126,7 @@ public final class CopyStatementPlanner {
             NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
             executor.phasesTaskFactory()
                 .create(plannerContext.jobId(), Collections.singletonList(nodeOpTree))
-                .execute(consumer);
+                .execute(consumer, plannerContext.transactionContext());
         }
     }
 
@@ -153,7 +153,7 @@ public final class CopyStatementPlanner {
             NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(plan, executor.localNodeId());
             executor.phasesTaskFactory()
                 .create(plannerContext.jobId(), Collections.singletonList(nodeOpTree))
-                .execute(consumer);
+                .execute(consumer, plannerContext.transactionContext());
         }
     }
 

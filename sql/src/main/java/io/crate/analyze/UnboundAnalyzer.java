@@ -25,7 +25,7 @@ package io.crate.analyze;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.Explain;
@@ -73,8 +73,8 @@ class UnboundAnalyzer {
     }
 
     public AnalyzedStatement analyze(Statement statement, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
-        TransactionContext transactionContext = new TransactionContext(sessionContext);
-        return dispatcher.process(statement, new Analysis(transactionContext, ParameterContext.EMPTY, paramTypeHints));
+        CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
+        return dispatcher.process(statement, new Analysis(coordinatorTxnCtx, ParameterContext.EMPTY, paramTypeHints));
     }
 
     private static class UnboundDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {
@@ -147,11 +147,11 @@ class UnboundAnalyzer {
 
         @Override
         protected AnalyzedStatement visitShowColumns(ShowColumns node, Analysis context) {
-            TransactionContext transactionContext = context.transactionContext();
+            CoordinatorTxnCtx coordinatorTxnCtx = context.transactionContext();
             Query query = showStatementAnalyzer.rewriteShowColumns(node,
-                transactionContext.sessionContext().searchPath().currentSchema());
+                coordinatorTxnCtx.sessionContext().searchPath().currentSchema());
             return (QueriedRelation) relationAnalyzer.analyzeUnbound(
-                query, transactionContext, context.parameterContext().typeHints());
+                query, coordinatorTxnCtx, context.parameterContext().typeHints());
         }
 
         @Override

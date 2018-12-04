@@ -25,7 +25,7 @@ package io.crate.analyze.where;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.eval.NullEliminator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -46,7 +46,7 @@ public class NullEliminatorTest extends CrateUnitTest {
 
     private void assertReplacedAndNormalized(String expression, String expectedString) {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
-        assertReplaced(expression, expectedString,  s -> normalizer.normalize(s, TransactionContext.systemTransactionContext()));
+        assertReplaced(expression, expectedString,  s -> normalizer.normalize(s, CoordinatorTxnCtx.systemTransactionContext()));
     }
 
     private void assertReplaced(String expression, String expectedString, Function<Symbol, Symbol> postProcessor) {

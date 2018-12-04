@@ -12,6 +12,7 @@ import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.types.DataTypes;
@@ -44,6 +45,7 @@ public class CsvReaderBenchmark {
 
     private String fileUri;
     private InputFactory inputFactory;
+    private TransactionContext txnCtx = TransactionContext.of("dummyUser", "dummySchema");
     File tempFile;
 
     @Setup
@@ -93,7 +95,7 @@ public class CsvReaderBenchmark {
     @Benchmark()
     public void measureFileReadingIteratorForCSV(Blackhole blackhole) {
         Reference raw = createReference("_raw", DataTypes.STRING);
-        InputFactory.Context<LineCollectorExpression<?>> ctx = inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);
+        InputFactory.Context<LineCollectorExpression<?>> ctx = inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
 
         List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
         BatchIterator<Row> batchIterator = FileReadingIterator.newInstance(

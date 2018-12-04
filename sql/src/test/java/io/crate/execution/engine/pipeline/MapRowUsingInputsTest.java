@@ -30,7 +30,9 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
@@ -47,11 +49,12 @@ public class MapRowUsingInputsTest extends CrateUnitTest {
 
     private List<Input<?>> inputs;
     private List<CollectExpression<Row, ?>> expressions;
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void createInputs() throws Exception {
         InputFactory inputFactory = new InputFactory(getFunctions());
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
         inputs = Collections.singletonList(ctx.add(ArithmeticFunctions.of(
             ArithmeticFunctions.Names.ADD,
             new InputColumn(0, DataTypes.LONG),

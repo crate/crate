@@ -58,6 +58,8 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         UUID jobId = UUID.randomUUID();
         Reference[] missingAssignmentColumns = new Reference[]{ID_REF, NAME_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            "dummyUser",
+            "dummySchema",
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             assignmentColumns,

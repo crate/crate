@@ -30,6 +30,7 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -67,7 +68,7 @@ public class EmptyRowTableFunction {
         }
 
         @Override
-        public Object evaluate(Input[] args) {
+        public Object evaluate(TransactionContext txnCtx, Input[] args) {
             return new CollectionBucket(Collections.singletonList(new Object[0]));
         }
 

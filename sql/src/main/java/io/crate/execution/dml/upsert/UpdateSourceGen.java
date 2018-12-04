@@ -34,6 +34,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -82,11 +83,11 @@ final class UpdateSourceGen {
     private final ArrayList<Reference> updateColumns;
     private final CheckConstraints<Doc, CollectExpression<Doc, ?>> checks;
 
-    UpdateSourceGen(Functions functions, DocTableInfo table, String[] updateColumns) {
+    UpdateSourceGen(Functions functions, TransactionContext txnCtx, DocTableInfo table, String[] updateColumns) {
         DocRefResolver refResolver = new DocRefResolver(table.partitionedBy());
-        this.eval = new Evaluator(functions, refResolver);
+        this.eval = new Evaluator(functions, txnCtx, refResolver);
         InputFactory inputFactory = new InputFactory(functions);
-        this.checks = new CheckConstraints<>(inputFactory, refResolver, table);
+        this.checks = new CheckConstraints<>(txnCtx, inputFactory, refResolver, table);
         this.updateColumns = new ArrayList<>(updateColumns.length);
         for (String updateColumn : updateColumns) {
             ColumnIdent column = ColumnIdent.fromPath(updateColumn);
@@ -98,6 +99,7 @@ final class UpdateSourceGen {
         } else {
             generatedColumns = new GeneratedColumns<>(
                 inputFactory,
+                txnCtx,
                 GeneratedColumns.Validation.VALUE_MATCH,
                 refResolver,
                 this.updateColumns,
@@ -155,8 +157,9 @@ final class UpdateSourceGen {
         private final ReferenceResolver<CollectExpression<Doc, ?>> refResolver;
 
         private Evaluator(Functions functions,
+                          TransactionContext txnCtx,
                           ReferenceResolver<CollectExpression<Doc, ?>> refResolver) {
-            super(functions);
+            super(txnCtx, functions);
             this.refResolver = refResolver;
         }
 

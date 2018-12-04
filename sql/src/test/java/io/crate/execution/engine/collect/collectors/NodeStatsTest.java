@@ -30,6 +30,8 @@ import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
@@ -66,6 +68,7 @@ public class NodeStatsTest extends CrateUnitTest {
     private RoutedCollectPhase collectPhase;
     private Collection<DiscoveryNode> nodes = new HashSet<>();
     private TransportNodeStatsAction transportNodeStatsAction = mock(TransportNodeStatsAction.class);
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     private Reference idRef;
     private Reference nameRef;
@@ -100,6 +103,7 @@ public class NodeStatsTest extends CrateUnitTest {
             transportNodeStatsAction,
             collectPhase,
             nodes,
+            txnCtx,
             new InputFactory(getFunctions())
         );
         iterator.loadNextBatch();
@@ -119,6 +123,7 @@ public class NodeStatsTest extends CrateUnitTest {
             transportNodeStatsAction,
             collectPhase,
             nodes,
+            txnCtx,
             new InputFactory(getFunctions())
         );
         iterator.loadNextBatch();
@@ -137,6 +142,7 @@ public class NodeStatsTest extends CrateUnitTest {
             transportNodeStatsAction,
             collectPhase,
             nodes,
+            txnCtx,
             new InputFactory(getFunctions())
         );
         iterator.loadNextBatch();
@@ -166,6 +172,7 @@ public class NodeStatsTest extends CrateUnitTest {
             transportNodeStatsAction,
             collectPhase,
             nodes,
+            txnCtx,
             new InputFactory(getFunctions())
         ));
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);

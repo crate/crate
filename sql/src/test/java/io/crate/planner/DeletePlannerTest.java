@@ -28,6 +28,8 @@ import io.crate.data.Row;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.operators.SubQueryResults;
@@ -49,6 +51,7 @@ import static org.hamcrest.Matchers.is;
 public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void prepare() throws IOException {
@@ -79,7 +82,7 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan.docKeys().size(), is(2));
         List<String> docKeys = Lists.newArrayList(plan.docKeys())
             .stream()
-            .map(x -> x.getId(e.functions(), Row.EMPTY, SubQueryResults.EMPTY))
+            .map(x -> x.getId(txnCtx, e.functions(), Row.EMPTY, SubQueryResults.EMPTY))
             .collect(Collectors.toList());
 
         assertThat(docKeys, Matchers.containsInAnyOrder("1", "2"));

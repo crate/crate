@@ -40,6 +40,7 @@ import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.RowGranularity;
@@ -186,7 +187,10 @@ public class CollectSourceResolver {
     private static class VoidCollectSource implements CollectSource {
 
         @Override
-        public BatchIterator<Row> getIterator(CollectPhase collectPhase, CollectTask collectTask, boolean supportMoveToStart) {
+        public BatchIterator<Row> getIterator(TransactionContext txnCtx,
+                                              CollectPhase collectPhase,
+                                              CollectTask collectTask,
+                                              boolean supportMoveToStart) {
             return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
     }

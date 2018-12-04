@@ -32,9 +32,9 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -49,7 +49,6 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 
 public class RoutedCollectPhaseTest extends CrateUnitTest {
@@ -67,8 +66,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             toCollect,
             ImmutableList.<Projection>of(),
             WhereClause.MATCH_ALL.queryOrFallback(),
-            DistributionInfo.DEFAULT_MODULO,
-            null // not streamed
+            DistributionInfo.DEFAULT_MODULO
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -84,7 +82,6 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
         assertThat(cn.phaseId(), is(cn2.phaseId()));
         assertThat(cn.maxRowGranularity(), is(cn2.maxRowGranularity()));
         assertThat(cn.distributionInfo(), is(cn2.distributionInfo()));
-        assertThat(cn2.user(), nullValue());
     }
 
     @Test
@@ -99,13 +96,12 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             Collections.singletonList(toInt10),
             Collections.emptyList(),
             WhereClause.MATCH_ALL.queryOrFallback(),
-            DistributionInfo.DEFAULT_SAME_NODE,
-            null
+            DistributionInfo.DEFAULT_SAME_NODE
         );
         collect.orderBy(new OrderBy(Collections.singletonList(toInt10), new boolean[]{false}, new Boolean[]{null}));
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
         RoutedCollectPhase normalizedCollect = collect.normalize(
-            normalizer, new TransactionContext(SessionContext.systemSessionContext()));
+            normalizer, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
         assertThat(normalizedCollect.orderBy(), notNullValue());
     }
@@ -122,13 +118,12 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             Collections.singletonList(toInt10),
             Collections.emptyList(),
             WhereClause.MATCH_ALL.queryOrFallback(),
-            DistributionInfo.DEFAULT_SAME_NODE,
-            null
+            DistributionInfo.DEFAULT_SAME_NODE
         );
         collect.nodePageSizeHint(10);
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
         RoutedCollectPhase normalizedCollect = collect.normalize(
-            normalizer, new TransactionContext(SessionContext.systemSessionContext()));
+            normalizer, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
         assertThat(normalizedCollect.nodePageSizeHint(), is(10));
     }
@@ -144,12 +139,11 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             Collections.singletonList(Literal.of(10)),
             Collections.emptyList(),
             WhereClause.MATCH_ALL.queryOrFallback(),
-            DistributionInfo.DEFAULT_SAME_NODE,
-            null
+            DistributionInfo.DEFAULT_SAME_NODE
         );
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
         RoutedCollectPhase normalizedCollect = collect.normalize(
-            normalizer, new TransactionContext(SessionContext.systemSessionContext()));
+            normalizer, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
         assertThat(normalizedCollect, sameInstance(collect));
     }

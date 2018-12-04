@@ -38,8 +38,8 @@ import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -160,7 +160,7 @@ public class Session implements AutoCloseable {
      *              Use {@link #quickExec(String, ResultReceiver, Row)} to use the regular parser
      */
     public void quickExec(String statement, Function<String, Statement> parse, ResultReceiver resultReceiver, Row params) {
-        TransactionContext txnCtx = new TransactionContext(sessionContext);
+        CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionContext);
         Statement parsedStmt = parse.apply(statement);
         AnalyzedStatement analyzedStatement = analyzer.unboundAnalyze(parsedStmt, sessionContext, ParamTypeHints.EMPTY);
         assert analyzedStatement.isUnboundPlanningSupported()
@@ -217,7 +217,7 @@ public class Session implements AutoCloseable {
                             RoutingProvider routingProvider,
                             RowConsumer consumer,
                             Row params,
-                            TransactionContext txnCtx) {
+                            CoordinatorTxnCtx txnCtx) {
         PlannerContext plannerContext = new PlannerContext(
             planner.currentClusterState(),
             routingProvider,

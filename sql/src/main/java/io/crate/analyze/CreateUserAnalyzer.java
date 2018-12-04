@@ -26,8 +26,8 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.Expression;
@@ -54,7 +54,7 @@ public class CreateUserAnalyzer {
         this.functions = functions;
     }
 
-    public CreateUserAnalyzedStatement analyze(CreateUser node, ParamTypeHints typeHints, TransactionContext txnContext) {
+    public CreateUserAnalyzedStatement analyze(CreateUser node, ParamTypeHints typeHints, CoordinatorTxnCtx txnContext) {
         if (!node.properties().isEmpty()) {
             ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 functions,

@@ -79,8 +79,7 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
             ImmutableList.of(),
             ImmutableList.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),
-            DistributionInfo.DEFAULT_MODULO,
-            null
+            DistributionInfo.DEFAULT_MODULO
         );
         MergePhase mergePhase = new MergePhase(
             jobId,

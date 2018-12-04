@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.execution.support.ThreadPools;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.IndexParts;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -74,7 +75,7 @@ public class InternalCountOperation implements CountOperation {
     }
 
     @Override
-    public CompletableFuture<Long> count(Map<String, IntIndexedContainer> indexShardMap, Symbol filter) {
+    public CompletableFuture<Long> count(TransactionContext txnCtx, Map<String, IntIndexedContainer> indexShardMap, Symbol filter) {
         List<Supplier<Long>> suppliers = new ArrayList<>();
         MetaData metaData = clusterService.state().getMetaData();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShardMap.entrySet()) {
@@ -91,7 +92,7 @@ public class InternalCountOperation implements CountOperation {
                 int shardValue = shardCursor.value;
                 suppliers.add(() -> {
                     try {
-                        return count(index, shardValue, filter);
+                        return count(txnCtx, index, shardValue, filter);
                     } catch (IOException | InterruptedException e) {
                         throw new RuntimeException(e);
                     }
@@ -108,7 +109,7 @@ public class InternalCountOperation implements CountOperation {
     }
 
     @Override
-    public long count(Index index, int shardId, Symbol filter) throws IOException, InterruptedException {
+    public long count(TransactionContext txnCtx, Index index, int shardId, Symbol filter) throws IOException, InterruptedException {
         IndexService indexService;
         try {
             indexService = indicesService.indexServiceSafe(index);
@@ -123,6 +124,7 @@ public class InternalCountOperation implements CountOperation {
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
                 filter,
+                txnCtx,
                 indexService.mapperService(),
                 indexService.newQueryShardContext(shardId, searcher.reader(), System::currentTimeMillis,  null),
                 indexService.cache());

@@ -35,6 +35,8 @@ import java.util.UUID;
 public class JobRequest extends TransportRequest {
 
     private UUID jobId;
+    private String userName;
+    private String currentSchema;
     private String coordinatorNodeId;
     private Collection<? extends NodeOperation> nodeOperations;
     private boolean enableProfiling;
@@ -43,10 +45,14 @@ public class JobRequest extends TransportRequest {
     }
 
     public JobRequest(UUID jobId,
+                      String userName,
+                      String currentSchema,
                       String coordinatorNodeId,
                       Collection<? extends NodeOperation> nodeOperations,
                       boolean enableProfiling) {
         this.jobId = jobId;
+        this.userName = userName;
+        this.currentSchema = currentSchema;
         this.coordinatorNodeId = coordinatorNodeId;
         this.nodeOperations = nodeOperations;
         this.enableProfiling = enableProfiling;
@@ -68,6 +74,14 @@ public class JobRequest extends TransportRequest {
         return enableProfiling;
     }
 
+    public String userName() {
+        return userName;
+    }
+
+    public String currentSchema() {
+        return currentSchema;
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
@@ -82,6 +96,9 @@ public class JobRequest extends TransportRequest {
         }
         this.nodeOperations = nodeOperations;
         enableProfiling = in.readBoolean();
+
+        userName = in.readString();
+        currentSchema = in.readString();
     }
 
     @Override
@@ -98,5 +115,7 @@ public class JobRequest extends TransportRequest {
         }
 
         out.writeBoolean(enableProfiling);
+        out.writeString(userName);
+        out.writeString(currentSchema);
     }
 }

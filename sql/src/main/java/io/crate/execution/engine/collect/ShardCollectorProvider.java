@@ -117,6 +117,7 @@ public abstract class ShardCollectorProvider {
         return Projectors.wrap(
             Projections.shardProjections(collectPhase.projections()),
             collectPhase.jobId(),
+            collectTask.txnCtx(),
             collectTask.queryPhaseRamAccountingContext(),
             projectorFactory,
             iterator

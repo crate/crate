@@ -26,18 +26,18 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.ingestion.IngestRuleListener;
-import io.crate.ingestion.IngestionService;
-import io.crate.metadata.Functions;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.rule.ingest.IngestRule;
-import io.crate.metadata.table.Operation;
 import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
+import io.crate.ingestion.IngestRuleListener;
+import io.crate.ingestion.IngestionService;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
+import io.crate.metadata.rule.ingest.IngestRule;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.collect.Tuple;
@@ -76,6 +76,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
         private final IngestionService ingestionService;
         private final InputFactory inputFactory;
         private final ExpressionAnalyzer expressionAnalyzer;
+        private final CoordinatorTxnCtx coordinatorTxnCtx;
         private AtomicReference<Set<Tuple<Predicate<Row>, IngestRule>>> predicateAndIngestRulesReference;
         private final ExpressionAnalysisContext expressionAnalysisContext;
         private FieldProvider<Symbol> inputColumnProvider = new FieldProvider<Symbol>() {
@@ -91,9 +92,9 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
             this.inputFactory = new InputFactory(functions);
             this.ingestionService = ingestionService;
             this.expressionAnalysisContext = new ExpressionAnalysisContext();
-            TransactionContext transactionContext = new TransactionContext(SessionContext.systemSessionContext());
+            coordinatorTxnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
             this.expressionAnalyzer = new ExpressionAnalyzer(
-                functions, transactionContext, null, inputColumnProvider, null);
+                functions, coordinatorTxnCtx, null, inputColumnProvider, null);
         }
 
         void registerListener() {
@@ -116,7 +117,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
             for (IngestRule rule : rules) {
                 Symbol conditionSymbol = expressionAnalyzer.convert(SqlParser.createExpression(rule.getCondition()),
                     expressionAnalysisContext);
-                Predicate<Row> conditionPredicate = RowFilter.create(inputFactory, conditionSymbol);
+                Predicate<Row> conditionPredicate = RowFilter.create(coordinatorTxnCtx, inputFactory, conditionSymbol);
                 newRules.add(new Tuple<>(conditionPredicate, rule));
             }
             predicateAndIngestRulesReference.set(newRules);

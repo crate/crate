@@ -30,10 +30,10 @@ import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.Collection;
@@ -58,7 +58,7 @@ class Relations {
      */
     static QueriedRelation applyQSToRelation(RelationNormalizer normalizer,
                                              Functions functions,
-                                             TransactionContext transactionContext,
+                                             CoordinatorTxnCtx coordinatorTxnCtx,
                                              AnalyzedRelation relation,
                                              QuerySpec querySpec) {
         QueriedRelation newRelation;
@@ -70,7 +70,7 @@ class Relations {
             newRelation = new QueriedTable<>(
                 false,
                 tableRelation,
-                querySpec.copyAndReplace(s -> evalNormalizer.normalize(s, transactionContext)));
+                querySpec.copyAndReplace(s -> evalNormalizer.normalize(s, coordinatorTxnCtx)));
         } else {
             QueriedRelation queriedRelation = (QueriedRelation) relation;
             newRelation = new QueriedSelectRelation(
@@ -79,7 +79,7 @@ class Relations {
                 namesFromOutputs(querySpec.outputs()),
                 querySpec
             );
-            newRelation = (QueriedRelation) normalizer.normalize(newRelation, transactionContext);
+            newRelation = (QueriedRelation) normalizer.normalize(newRelation, coordinatorTxnCtx);
         }
         if (newRelation.where().hasQuery() && newRelation.getQualifiedName().equals(relation.getQualifiedName())) {
             // This relation will be represented as a subquery and needs a proper QualifiedName.

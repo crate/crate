@@ -27,6 +27,7 @@ import io.crate.analyze.Id;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.planner.ExplainLeaf;
 import io.crate.planner.operators.SubQueryResults;
@@ -58,17 +59,17 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             key = docKeys.get(pos);
         }
 
-        public String getId(Functions functions, Row params, SubQueryResults subQueryResults) {
+        public String getId(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
             return idFunction.apply(
                 Lists.transform(
                     key.subList(0, width),
-                    s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, s, params, subQueryResults))
+                    s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(txnCtx, functions, s, params, subQueryResults))
                 ));
         }
 
-        public Optional<Long> version(Functions functions, Row params, SubQueryResults subQueryResults) {
+        public Optional<Long> version(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
             if (withVersions && key.get(width) != null) {
-                Object val = SymbolEvaluator.evaluate(functions, key.get(width), params, subQueryResults);
+                Object val = SymbolEvaluator.evaluate(txnCtx, functions, key.get(width), params, subQueryResults);
                 return Optional.of(LongType.INSTANCE.value(val));
             }
             return Optional.empty();
@@ -78,21 +79,21 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             return key;
         }
 
-        public List<String> getPartitionValues(Functions functions, Row params, SubQueryResults subQueryResults) {
+        public List<String> getPartitionValues(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
             if (partitionIdx == null || partitionIdx.isEmpty()) {
                 return Collections.emptyList();
             }
             return Lists.transform(
                 partitionIdx,
-                pIdx -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, key.get(pIdx), params, subQueryResults)));
+                pIdx -> DataTypes.STRING.value(SymbolEvaluator.evaluate(txnCtx, functions, key.get(pIdx), params, subQueryResults)));
 
         }
 
-        public String getRouting(Functions functions, Row params, SubQueryResults subQueryResults) {
+        public String getRouting(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
             if (clusteredByIdx >= 0) {
-                return SymbolEvaluator.evaluate(functions, key.get(clusteredByIdx), params, subQueryResults).toString();
+                return SymbolEvaluator.evaluate(txnCtx, functions, key.get(clusteredByIdx), params, subQueryResults).toString();
             }
-            return getId(functions, params, subQueryResults);
+            return getId(txnCtx, functions, params, subQueryResults);
         }
     }
 

@@ -29,13 +29,14 @@ import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import io.crate.expression.symbol.FetchReference;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.expression.symbol.FetchReference;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -71,6 +72,7 @@ public class FetchBatchAccumulatorTest {
     @Test
     public void testFetchBatchAccumulatorMultipleFetches() throws Exception {
         FetchBatchAccumulator fetchBatchAccumulator = new FetchBatchAccumulator(
+            CoordinatorTxnCtx.systemTransactionContext(),
             fetchOperation,
             getFunctions(),
             buildOutputSymbols(),

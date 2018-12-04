@@ -26,6 +26,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.engine.collect.sources.CollectSource;
 import io.crate.execution.engine.collect.sources.CollectSourceResolver;
+import io.crate.metadata.TransactionContext;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -49,11 +50,12 @@ public class MapSideDataCollectOperation {
         this.threadPool = threadPool;
     }
 
-    public BatchIterator<Row> createIterator(CollectPhase collectPhase,
+    public BatchIterator<Row> createIterator(TransactionContext txnCtx,
+                                             CollectPhase collectPhase,
                                              boolean requiresScroll,
                                              CollectTask collectTask) {
         CollectSource service = collectSourceResolver.getService(collectPhase);
-        return service.getIterator(collectPhase, collectTask, requiresScroll);
+        return service.getIterator(txnCtx, collectPhase, collectTask, requiresScroll);
     }
 
     public void launch(Runnable runnable, String threadPoolName) throws RejectedExecutionException {

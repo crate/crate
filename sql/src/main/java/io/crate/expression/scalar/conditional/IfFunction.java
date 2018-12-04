@@ -23,14 +23,15 @@
 package io.crate.expression.scalar.conditional;
 
 import io.crate.data.Input;
+import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 
 import java.util.List;
@@ -70,7 +71,7 @@ public class IfFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Object evaluate(Input... args) {
+    public Object evaluate(TransactionContext txnCtx, Input... args) {
         Boolean condition = (Boolean) args[0].value();
         if (condition != null && condition) {
             return args[1].value();

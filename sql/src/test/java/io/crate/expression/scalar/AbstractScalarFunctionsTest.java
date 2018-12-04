@@ -35,13 +35,14 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -77,6 +78,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     protected SqlExpressions sqlExpressions;
     protected Functions functions;
     protected Map<QualifiedName, AnalyzedRelation> tableSources;
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void prepareFunctions() throws Exception {
@@ -145,8 +147,8 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
                 inputs[i] = ((Input) function.arguments().get(i));
             }
             Object expectedValue = ((Input) normalized).value();
-            assertThat(((Scalar) impl).evaluate(inputs), is(expectedValue));
-            assertThat(((Scalar) impl).compile(function.arguments()).evaluate(inputs), is(expectedValue));
+            assertThat(((Scalar) impl).evaluate(txnCtx, inputs), is(expectedValue));
+            assertThat(((Scalar) impl).compile(function.arguments()).evaluate(txnCtx, inputs), is(expectedValue));
         }
     }
 
@@ -177,7 +179,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         Function function = (Function) functionSymbol;
         Scalar scalar = (Scalar) functions.getQualified(function.info().ident());
 
-        InputApplierContext inputApplierContext = new InputApplierContext(inputs, sqlExpressions);
+        InputApplierContext inputApplierContext = new InputApplierContext(inputs, txnCtx, sqlExpressions);
         AssertingInput[] arguments = new AssertingInput[function.arguments().size()];
         for (int i = 0; i < function.arguments().size(); i++) {
             Symbol arg = function.arguments().get(i);
@@ -188,7 +190,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             }
         }
 
-        Object actualValue = scalar.compile(function.arguments()).evaluate((Input[]) arguments);
+        Object actualValue = scalar.compile(function.arguments()).evaluate(txnCtx, (Input[]) arguments);
         // readable output for the AssertionError
         if (actualValue instanceof BytesRef) {
             actualValue = BytesRefs.toString(actualValue);
@@ -200,7 +202,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             argument.calls = 0;
         }
 
-        actualValue = scalar.evaluate((Input[]) arguments);
+        actualValue = scalar.evaluate(txnCtx, (Input[]) arguments);
         // readable output for the AssertionError
         if (actualValue instanceof BytesRef) {
             actualValue = BytesRefs.toString(actualValue);
@@ -267,15 +269,15 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         return normalize(functionName, Literal.of(type, value));
     }
 
-    protected Symbol normalize(TransactionContext transactionContext, String functionName, Symbol... args) {
+    protected Symbol normalize(CoordinatorTxnCtx coordinatorTxnCtx, String functionName, Symbol... args) {
         List<Symbol> argList = Arrays.asList(args);
         FunctionImplementation function = functions.get(null, functionName, argList, SearchPath.pathWithPGCatalogAndDoc());
         return function.normalizeSymbol(new Function(function.info(),
-            argList), transactionContext);
+            argList), coordinatorTxnCtx);
     }
 
     protected Symbol normalize(String functionName, Symbol... args) {
-        return normalize(new TransactionContext(SessionContext.systemSessionContext()), functionName, args);
+        return normalize(new CoordinatorTxnCtx(SessionContext.systemSessionContext()), functionName, args);
     }
 
     private class AssertingInput implements Input {
@@ -304,10 +306,12 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     private static class InputApplierContext implements Iterator<Input> {
 
         private final Iterator<Input> inputsIterator;
+        private final TransactionContext txnCtx;
         private final SqlExpressions sqlExpressions;
 
-        InputApplierContext(Input[] inputs, SqlExpressions sqlExpressions) {
+        InputApplierContext(Input[] inputs, TransactionContext txnCtx, SqlExpressions sqlExpressions) {
             this.inputsIterator = Arrays.asList(inputs).iterator();
+            this.txnCtx = txnCtx;
             this.sqlExpressions = sqlExpressions;
         }
 
@@ -368,7 +372,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
                 FunctionIdent ident = function.info().ident();
                 Scalar scalar =
                     (Scalar) context.sqlExpressions.functions().getQualified(ident);
-                return new FunctionExpression<>(scalar, argInputs);
+                return new FunctionExpression<>(context.txnCtx, scalar, argInputs);
             }
         }
     }

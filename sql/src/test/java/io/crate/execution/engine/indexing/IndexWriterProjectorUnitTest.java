@@ -32,6 +32,7 @@ import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -95,6 +96,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             new NodeJobsCounter(),
             scheduler,
             executor,
+            CoordinatorTxnCtx.systemTransactionContext(),
             TestingHelpers.getFunctions(),
             Settings.EMPTY,
             Settings.EMPTY,

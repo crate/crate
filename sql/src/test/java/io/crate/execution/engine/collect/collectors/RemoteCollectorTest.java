@@ -87,8 +87,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             Collections.singletonList(createReference("name", DataTypes.STRING)),
             Collections.emptyList(),
             WhereClause.MATCH_ALL.queryOrFallback(),
-            DistributionInfo.DEFAULT_BROADCAST,
-            null
+            DistributionInfo.DEFAULT_BROADCAST
         );
         transportJobAction = mock(TransportJobAction.class);
         TasksService tasksService = new TasksService(
@@ -110,6 +109,8 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         consumer = new TestingRowConsumer();
         remoteCollector = new RemoteCollector(
             jobId,
+            "dummyUser",
+            "dummySchema",
             "localNode",
             "remoteNode",
             transportJobAction,

@@ -32,9 +32,9 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Delete;
 
@@ -48,7 +48,7 @@ final class DeleteAnalyzer {
         this.relationAnalyzer = relationAnalyzer;
     }
 
-    public AnalyzedDeleteStatement analyze(Delete delete, ParamTypeHints typeHints, TransactionContext txnContext) {
+    public AnalyzedDeleteStatement analyze(Delete delete, ParamTypeHints typeHints, CoordinatorTxnCtx txnContext) {
         StatementAnalysisContext stmtCtx = new StatementAnalysisContext(typeHints, Operation.DELETE, txnContext);
         RelationAnalysisContext relationCtx = stmtCtx.startRelation();
         AnalyzedRelation relation = relationAnalyzer.analyze(delete.getRelation(), stmtCtx);

@@ -28,6 +28,8 @@ import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.CauseMatcher;
@@ -42,12 +44,15 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class CountTaskTest extends CrateUnitTest {
+
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     private static CountPhase countPhaseWithId(int phaseId) {
         return new CountPhase(phaseId,
@@ -61,9 +66,9 @@ public class CountTaskTest extends CrateUnitTest {
         CompletableFuture<Long> future = new CompletableFuture<>();
 
         CountOperation countOperation = mock(CountOperation.class);
-        when(countOperation.count(anyMap(), any(Symbol.class))).thenReturn(future);
+        when(countOperation.count(eq(txnCtx), anyMap(), any(Symbol.class))).thenReturn(future);
 
-        CountTask countTask = new CountTask(countPhaseWithId(1), countOperation, new TestingRowConsumer(), null);
+        CountTask countTask = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
         countTask.prepare();
         countTask.start();
         future.complete(1L);
@@ -73,9 +78,9 @@ public class CountTaskTest extends CrateUnitTest {
 
         // on error
         future = new CompletableFuture<>();
-        when(countOperation.count(anyMap(), any(Symbol.class))).thenReturn(future);
+        when(countOperation.count(eq(txnCtx), anyMap(), any(Symbol.class))).thenReturn(future);
 
-        countTask = new CountTask(countPhaseWithId(2), countOperation, new TestingRowConsumer(), null);
+        countTask = new CountTask(countPhaseWithId(2), txnCtx, countOperation, new TestingRowConsumer(), null);
         countTask.prepare();
         countTask.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
@@ -90,7 +95,7 @@ public class CountTaskTest extends CrateUnitTest {
         CompletableFuture<Long> future = mock(CompletableFuture.class);
         CountOperation countOperation = new FakeCountOperation(future);
 
-        CountTask countTask = new CountTask(countPhaseWithId(1), countOperation, new TestingRowConsumer(), null);
+        CountTask countTask = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
 
         countTask.prepare();
         countTask.start();
@@ -109,12 +114,12 @@ public class CountTaskTest extends CrateUnitTest {
         }
 
         @Override
-        public CompletableFuture<Long> count(Map<String, IntIndexedContainer> indexShardMap, Symbol filter) {
+        public CompletableFuture<Long> count(TransactionContext txnCtx, Map<String, IntIndexedContainer> indexShardMap, Symbol filter) {
             return future;
         }
 
         @Override
-        public long count(Index index, int shardId, Symbol filter) {
+        public long count(TransactionContext txnCtx, Index index, int shardId, Symbol filter) {
             return 0;
         }
     }

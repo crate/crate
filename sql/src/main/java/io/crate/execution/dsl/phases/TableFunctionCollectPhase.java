@@ -56,8 +56,8 @@ public class TableFunctionCollectPhase extends RoutedCollectPhase implements Col
             outputs,
             projections,
             where,
-            DistributionInfo.DEFAULT_BROADCAST,
-            null);
+            DistributionInfo.DEFAULT_BROADCAST
+        );
         this.functionImplementation = functionImplementation;
         this.functionArguments = functionArguments;
     }

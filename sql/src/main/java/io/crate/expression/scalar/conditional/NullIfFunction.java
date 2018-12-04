@@ -23,12 +23,13 @@
 package io.crate.expression.scalar.conditional;
 
 import io.crate.data.Input;
+import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 
 import java.util.List;
@@ -41,7 +42,7 @@ public class NullIfFunction extends ConditionalFunction {
     }
 
     @Override
-    public Object evaluate(Input... args) {
+    public Object evaluate(TransactionContext txnCtx, Input... args) {
         Object arg0Value = args[0].value();
         return arg0Value != null && arg0Value.equals(args[1].value()) ? null : arg0Value;
     }

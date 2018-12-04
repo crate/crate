@@ -29,6 +29,7 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
@@ -92,7 +93,7 @@ public final class AnyLikeOperator extends Operator<Object> {
     }
 
     @Override
-    public Boolean evaluate(Input<Object>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
         Object value = args[0].value();
         Object collectionReference = args[1].value();
 

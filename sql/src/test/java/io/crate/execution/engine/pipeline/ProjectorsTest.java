@@ -33,6 +33,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -96,7 +97,9 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
         Projectors projectors = new Projectors(
             Arrays.asList(filterProjection, groupProjection),
             UUID.randomUUID(),
-            RAM_ACCOUNTING_CONTEXT, projectorFactory
+            CoordinatorTxnCtx.systemTransactionContext(),
+            RAM_ACCOUNTING_CONTEXT,
+            projectorFactory
         );
 
         assertThat(projectors.providesIndependentScroll(), is(true));

@@ -29,7 +29,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -49,14 +49,14 @@ public class PlannerContext {
             context.routingProvider,
             UUID.randomUUID(),
             context.functions,
-            context.transactionContext,
+            context.coordinatorTxnCtx,
             softLimit,
             fetchSize
         );
     }
 
     private final UUID jobId;
-    private final TransactionContext transactionContext;
+    private final CoordinatorTxnCtx coordinatorTxnCtx;
     private final int softLimit;
     private final int fetchSize;
     private final RoutingBuilder routingBuilder;
@@ -70,7 +70,7 @@ public class PlannerContext {
                           RoutingProvider routingProvider,
                           UUID jobId,
                           Functions functions,
-                          TransactionContext transactionContext,
+                          CoordinatorTxnCtx coordinatorTxnCtx,
                           int softLimit,
                           int fetchSize) {
         this.routingProvider = routingProvider;
@@ -78,7 +78,7 @@ public class PlannerContext {
         this.routingBuilder = new RoutingBuilder(clusterState, routingProvider);
         this.clusterState = clusterState;
         this.jobId = jobId;
-        this.transactionContext = transactionContext;
+        this.coordinatorTxnCtx = coordinatorTxnCtx;
         this.softLimit = softLimit;
         this.fetchSize = fetchSize;
         this.handlerNode = clusterState.getNodes().getLocalNodeId();
@@ -92,8 +92,8 @@ public class PlannerContext {
         return fetchSize;
     }
 
-    public TransactionContext transactionContext() {
-        return transactionContext;
+    public CoordinatorTxnCtx transactionContext() {
+        return coordinatorTxnCtx;
     }
 
     public void applySoftLimit(QuerySpec querySpec) {

@@ -39,7 +39,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -72,8 +72,8 @@ public class EqualityExtractor {
         this.normalizer = normalizer;
     }
 
-    public List<List<Symbol>> extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext transactionContext) {
-        return extractMatches(columns, symbol, false, transactionContext);
+    public List<List<Symbol>> extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable CoordinatorTxnCtx coordinatorTxnCtx) {
+        return extractMatches(columns, symbol, false, coordinatorTxnCtx);
     }
 
     /**
@@ -100,15 +100,15 @@ public class EqualityExtractor {
     @Nullable
     public List<List<Symbol>> extractExactMatches(List<ColumnIdent> columns,
                                                   Symbol symbol,
-                                                  @Nullable TransactionContext transactionContext) {
-        return extractMatches(columns, symbol, true, transactionContext);
+                                                  @Nullable CoordinatorTxnCtx coordinatorTxnCtx) {
+        return extractMatches(columns, symbol, true, coordinatorTxnCtx);
     }
 
     @Nullable
     private List<List<Symbol>> extractMatches(Collection<ColumnIdent> columns,
                                               Symbol symbol,
                                               boolean exact,
-                                              @Nullable TransactionContext transactionContext) {
+                                              @Nullable CoordinatorTxnCtx coordinatorTxnCtx) {
         EqualityExtractor.ProxyInjectingVisitor.Context context =
             new EqualityExtractor.ProxyInjectingVisitor.Context(columns, exact);
         Symbol proxiedTree = ProxyInjectingVisitor.INSTANCE.process(symbol, context);
@@ -131,7 +131,7 @@ public class EqualityExtractor {
                     anyNull = true;
                 }
             }
-            Symbol normalized = normalizer.normalize(proxiedTree, transactionContext);
+            Symbol normalized = normalizer.normalize(proxiedTree, coordinatorTxnCtx);
             if (normalized == Literal.BOOLEAN_TRUE) {
                 if (anyNull) {
                     return null;

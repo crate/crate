@@ -25,13 +25,17 @@ package io.crate.execution.engine.pipeline;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Projector;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.RowGranularity;
 
 import java.util.UUID;
 
 public interface ProjectorFactory {
 
-    Projector create(Projection projection, RamAccountingContext ramAccountingContext, UUID jobId);
+    Projector create(Projection projection,
+                     TransactionContext txnCtx,
+                     RamAccountingContext ramAccountingContext,
+                     UUID jobId);
 
     RowGranularity supportedGranularity();
 }

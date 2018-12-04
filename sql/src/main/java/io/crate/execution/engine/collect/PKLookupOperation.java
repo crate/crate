@@ -36,6 +36,7 @@ import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.engine.pipeline.Projectors;
 import io.crate.expression.reference.Doc;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -66,8 +67,8 @@ public final class PKLookupOperation {
     }
 
     public BatchIterator<Doc> lookup(boolean ignoreMissing,
-                                           Map<ShardId, List<PKAndVersion>> idsByShard,
-                                           boolean consumerRequiresRepeat) {
+                                     Map<ShardId, List<PKAndVersion>> idsByShard,
+                                     boolean consumerRequiresRepeat) {
         Stream<Doc> getResultStream = idsByShard.entrySet().stream()
             .flatMap(entry -> {
                 ShardId shardId = entry.getKey();
@@ -108,6 +109,7 @@ public final class PKLookupOperation {
 
 
     public void runWithShardProjections(UUID jobId,
+                                        TransactionContext txnCtx,
                                         RamAccountingContext ramAccountingContext,
                                         boolean ignoreMissing,
                                         Map<ShardId, List<PKAndVersion>> idsByShard,
@@ -161,7 +163,7 @@ public final class PKLookupOperation {
                 .map(resultToRow);
 
             Projectors projectors = new Projectors(
-                projections, jobId, ramAccountingContext, shardAndIds.projectorFactory);
+                projections, jobId, txnCtx, ramAccountingContext, shardAndIds.projectorFactory);
             final Iterable<Row> rowIterable;
             if (nodeConsumer.requiresScroll() && !projectors.providesIndependentScroll()) {
                 rowIterable = rowStream.map(row -> new RowN(row.materialize())).collect(Collectors.toList());

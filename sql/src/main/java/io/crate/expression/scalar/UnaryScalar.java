@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 
@@ -54,7 +55,7 @@ public class UnaryScalar<R, T> extends Scalar<R, T> {
 
     @SafeVarargs
     @Override
-    public final R evaluate(Input<T>... args) {
+    public final R evaluate(TransactionContext txnCtx, Input<T>... args) {
         assert args.length == 1 : "UnaryScalar expects exactly 1 argument, got: " + args.length;
         T value = args[0].value();
         if (value == null) {

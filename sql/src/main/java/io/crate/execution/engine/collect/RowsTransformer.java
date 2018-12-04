@@ -35,6 +35,7 @@ import io.crate.expression.InputCondition;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
@@ -42,14 +43,16 @@ import java.util.Collections;
 
 public final class RowsTransformer {
 
-    public static Iterable<Row> toRowsIterable(InputFactory inputFactory,
+    public static Iterable<Row> toRowsIterable(TransactionContext txnCtx,
+                                               InputFactory inputFactory,
                                                ReferenceResolver<?> referenceResolver,
                                                RoutedCollectPhase collectPhase,
                                                Iterable<?> iterable) {
-        return toRowsIterable(inputFactory, referenceResolver, collectPhase, iterable, true);
+        return toRowsIterable(txnCtx, inputFactory, referenceResolver, collectPhase, iterable, true);
     }
 
-    public static Iterable<Row> toRowsIterable(InputFactory inputFactory,
+    public static Iterable<Row> toRowsIterable(TransactionContext txnCtx,
+                                               InputFactory inputFactory,
                                                ReferenceResolver<?> referenceResolver,
                                                RoutedCollectPhase collectPhase,
                                                Iterable<?> iterable,
@@ -57,7 +60,7 @@ public final class RowsTransformer {
         if (!QueryClause.canMatch(collectPhase.where())) {
             return Collections.emptyList();
         }
-        InputFactory.Context ctx = inputFactory.ctxForRefs(referenceResolver);
+        InputFactory.Context ctx = inputFactory.ctxForRefs(txnCtx, referenceResolver);
         ctx.add(collectPhase.toCollect());
         OrderBy orderBy = collectPhase.orderBy();
         if (orderBy != null) {

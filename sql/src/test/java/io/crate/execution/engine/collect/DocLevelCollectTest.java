@@ -194,8 +194,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             toCollect,
             ImmutableList.of(),
             whereClause.queryOrFallback(),
-            DistributionInfo.DEFAULT_BROADCAST,
-            null
+            DistributionInfo.DEFAULT_BROADCAST
         );
     }
 
@@ -245,7 +244,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             "remoteNode");
 
         List<CompletableFuture<StreamBucket>> results = jobSetup.prepareOnRemote(
-            ImmutableList.of(nodeOperation), builder, sharedShardContexts);
+            "dummyUser",
+            "dummySchema",
+            ImmutableList.of(nodeOperation),
+            builder,
+            sharedShardContexts
+        );
         RootTask rootTask = tasksService.createTask(builder);
         rootTask.start();
         return results.get(0).get(2, TimeUnit.SECONDS);

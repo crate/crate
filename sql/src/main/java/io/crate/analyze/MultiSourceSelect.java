@@ -30,9 +30,9 @@ import io.crate.analyze.relations.RelationSplitter;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
@@ -71,7 +71,7 @@ public class MultiSourceSelect implements QueriedRelation {
      */
     public static MultiSourceSelect createWithPushDown(RelationNormalizer relationNormalizer,
                                                        Functions functions,
-                                                       TransactionContext transactionContext,
+                                                       CoordinatorTxnCtx coordinatorTxnCtx,
                                                        MultiSourceSelect mss,
                                                        QuerySpec querySpec) {
         RelationSplitter splitter = new RelationSplitter(
@@ -85,7 +85,7 @@ public class MultiSourceSelect implements QueriedRelation {
         for (Map.Entry<QualifiedName, AnalyzedRelation> entry : mss.sources.entrySet()) {
             AnalyzedRelation relation = entry.getValue();
             QuerySpec spec = splitter.getSpec(relation);
-            QueriedRelation queriedRelation = Relations.applyQSToRelation(relationNormalizer, functions, transactionContext, relation, spec);
+            QueriedRelation queriedRelation = Relations.applyQSToRelation(relationNormalizer, functions, coordinatorTxnCtx, relation, spec);
             Function<Field, Field> convertField = f -> mapFieldToNewRelation(f, relation, queriedRelation);
             querySpec = querySpec.copyAndReplace(FieldReplacer.bind(convertField));
             entry.setValue(queriedRelation);

@@ -40,6 +40,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.LocalSysColReferenceResolver;
 import io.crate.metadata.RowGranularity;
@@ -73,7 +74,10 @@ public class NodeStatsCollectSource implements CollectSource {
     }
 
     @Override
-    public BatchIterator<Row> getIterator(CollectPhase phase, CollectTask collectTask, boolean supportMoveToStart) {
+    public BatchIterator<Row> getIterator(TransactionContext txnCtx,
+                                          CollectPhase phase,
+                                          CollectTask collectTask,
+                                          boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         if (!QueryClause.canMatch(collectPhase.where())) {
             return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
@@ -85,7 +89,7 @@ public class NodeStatsCollectSource implements CollectSource {
         if (nodes.isEmpty()) {
             return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
-        return NodeStats.newInstance(nodeStatsAction, collectPhase, nodes, inputFactory);
+        return NodeStats.newInstance(nodeStatsAction, collectPhase, nodes, txnCtx, inputFactory);
     }
 
     @Nullable

@@ -30,8 +30,8 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
@@ -60,7 +60,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function, TransactionContext transactionContext) {
+    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {
         if (anyNonLiterals(function.arguments())) {
             return function;
         }
@@ -69,7 +69,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
             inputs[i] = ((Input) function.arguments().get(i));
         }
         //noinspection unchecked
-        return Literal.of(functionInfo.returnType(), evaluate(inputs));
+        return Literal.of(functionInfo.returnType(), evaluate(txnCtx, inputs));
     }
 
     private static class StringConcatFunction extends ConcatFunction {
@@ -79,7 +79,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         }
 
         @Override
-        public String evaluate(Input[] args) {
+        public String evaluate(TransactionContext txnCtx, Input[] args) {
             String firstArg = (String) args[0].value();
             String secondArg = (String) args[1].value();
             if (firstArg == null) {
@@ -102,7 +102,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         }
 
         @Override
-        public String evaluate(Input[] args) {
+        public String evaluate(TransactionContext txnCtx, Input[] args) {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < args.length; i++) {
                 Input input = args[i];

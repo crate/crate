@@ -26,8 +26,8 @@ import io.crate.data.Bucket;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.table.TableInfo;
 
 /**
@@ -36,7 +36,7 @@ import io.crate.metadata.table.TableInfo;
 public abstract class TableFunctionImplementation<T> extends Scalar<Bucket, T> {
 
     @Override
-    public Symbol normalizeSymbol(Function function, TransactionContext transactionContext) {
+    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {
         // Never normalize table functions;
         // The RelationAnalyzer expects a function symbol and can't deal with Literals
         return function;

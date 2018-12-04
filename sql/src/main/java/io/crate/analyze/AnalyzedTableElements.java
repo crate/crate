@@ -37,7 +37,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
@@ -244,9 +244,9 @@ public class AnalyzedTableElements {
                              Collection<? extends Reference> existingColumns,
                              Functions functions,
                              ParameterContext parameterContext,
-                             TransactionContext transactionContext) {
+                             CoordinatorTxnCtx coordinatorTxnCtx) {
         expandColumnIdents();
-        validateGeneratedColumns(relationName, existingColumns, functions, parameterContext, transactionContext);
+        validateGeneratedColumns(relationName, existingColumns, functions, parameterContext, coordinatorTxnCtx);
         for (AnalyzedColumnDefinition column : columns) {
             column.validate();
             addCopyToInfo(column);
@@ -260,7 +260,7 @@ public class AnalyzedTableElements {
                                           Collection<? extends Reference> existingColumns,
                                           Functions functions,
                                           ParameterContext parameterContext,
-                                          TransactionContext transactionContext) {
+                                          CoordinatorTxnCtx coordinatorTxnCtx) {
         List<Reference> tableReferences = new ArrayList<>();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             buildReference(relationName, columnDefinition, tableReferences);
@@ -269,7 +269,7 @@ public class AnalyzedTableElements {
 
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences, relationName);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, transactionContext, parameterContext, tableReferenceResolver, null);
+            functions, coordinatorTxnCtx, parameterContext, tableReferenceResolver, null);
         SymbolPrinter printer = new SymbolPrinter(functions);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         for (AnalyzedColumnDefinition columnDefinition : columns) {

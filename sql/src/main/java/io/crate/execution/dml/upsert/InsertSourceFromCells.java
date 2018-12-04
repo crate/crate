@@ -34,6 +34,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.ValueExtractors;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -53,7 +54,8 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     private final CheckConstraints<Row, CollectExpression<Row, ?>> checks;
     private final GeneratedColumns<Row> generatedColumns;
 
-    InsertSourceFromCells(Functions functions,
+    InsertSourceFromCells(TransactionContext txnCtx,
+                          Functions functions,
                           DocTableInfo table,
                           GeneratedColumns.Validation validation,
                           List<Reference> targets) {
@@ -65,13 +67,14 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         } else {
             generatedColumns = new GeneratedColumns<>(
                 inputFactory,
+                txnCtx,
                 validation,
                 referenceResolver,
                 targets,
                 table.generatedColumns()
             );
         }
-        checks = new CheckConstraints<>(inputFactory, referenceResolver, table);
+        checks = new CheckConstraints<>(txnCtx, inputFactory, referenceResolver, table);
     }
 
     public void checkConstraints(Object[] values) {

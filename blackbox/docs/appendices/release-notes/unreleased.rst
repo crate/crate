@@ -46,6 +46,8 @@ Breaking Changes
 Changes
 =======
 
+- Functions like ``current_schema`` and ``current_user`` which depend on the
+  active session can now be used as generated columns.
 
 - Added the ``replace`` scalar function.
 

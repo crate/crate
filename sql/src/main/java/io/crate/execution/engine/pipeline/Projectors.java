@@ -28,6 +28,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.metadata.TransactionContext;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,6 +46,7 @@ public final class Projectors {
 
     public Projectors(Collection<? extends Projection> projections,
                       UUID jobId,
+                      TransactionContext txnCtx,
                       RamAccountingContext ramAccountingContext,
                       ProjectorFactory projectorFactory) {
         boolean independentScroll = false;
@@ -53,7 +55,7 @@ public final class Projectors {
             if (projection.requiredGranularity().ordinal() > projectorFactory.supportedGranularity().ordinal()) {
                 continue;
             }
-            Projector projector = projectorFactory.create(projection, ramAccountingContext, jobId);
+            Projector projector = projectorFactory.create(projection, txnCtx, ramAccountingContext, jobId);
             projectors.add(projector);
             independentScroll = independentScroll || projector.providesIndependentScroll();
         }
@@ -66,6 +68,7 @@ public final class Projectors {
      */
     public static BatchIterator<Row> wrap(Collection<? extends Projection> projections,
                                           UUID jobId,
+                                          TransactionContext txnCtx,
                                           RamAccountingContext ramAccountingContext,
                                           ProjectorFactory projectorFactory,
                                           BatchIterator<Row> source) {
@@ -74,7 +77,7 @@ public final class Projectors {
             if (projection.requiredGranularity().ordinal() > projectorFactory.supportedGranularity().ordinal()) {
                 continue;
             }
-            result = projectorFactory.create(projection, ramAccountingContext, jobId).apply(result);
+            result = projectorFactory.create(projection, txnCtx, ramAccountingContext, jobId).apply(result);
         }
         return result;
     }

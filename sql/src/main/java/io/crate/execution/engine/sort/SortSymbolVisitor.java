@@ -34,6 +34,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.ByteType;
@@ -79,9 +80,14 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
         private final boolean reverseFlag;
         private final CollectorContext context;
+        private final TransactionContext txnCtx;
         private final Boolean nullFirst;
 
-        SortSymbolContext(CollectorContext collectorContext, boolean reverseFlag, Boolean nullFirst) {
+        SortSymbolContext(TransactionContext txnCtx,
+                          CollectorContext collectorContext,
+                          boolean reverseFlag,
+                          Boolean nullFirst) {
+            this.txnCtx = txnCtx;
             this.nullFirst = nullFirst;
             this.context = collectorContext;
             this.reverseFlag = reverseFlag;
@@ -98,13 +104,14 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     }
 
     SortField[] generateSortFields(List<Symbol> sortSymbols,
-                                          CollectorContext collectorContext,
-                                          boolean[] reverseFlags,
-                                          Boolean[] nullsFirst) {
+                                   TransactionContext txnCtx,
+                                   CollectorContext collectorContext,
+                                   boolean[] reverseFlags,
+                                   Boolean[] nullsFirst) {
         SortField[] sortFields = new SortField[sortSymbols.size()];
         for (int i = 0; i < sortSymbols.size(); i++) {
             Symbol sortSymbol = sortSymbols.get(i);
-            sortFields[i] = generateSortField(sortSymbol, new SortSymbolContext(collectorContext, reverseFlags[i], nullsFirst[i]));
+            sortFields[i] = generateSortField(sortSymbol, new SortSymbolContext(txnCtx, collectorContext, reverseFlags[i], nullsFirst[i]));
         }
         return sortFields;
     }
@@ -185,7 +192,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                                       final Symbol symbol,
                                       final SortSymbolContext context,
                                       final boolean missingNullValue) {
-        InputFactory.Context<? extends LuceneCollectorExpression<?>> inputContext = docInputFactory.getCtx();
+        InputFactory.Context<? extends LuceneCollectorExpression<?>> inputContext = docInputFactory.getCtx(context.txnCtx);
         final Input input = inputContext.add(symbol);
         final Collection<? extends LuceneCollectorExpression<?>> expressions = inputContext.expressions();
 

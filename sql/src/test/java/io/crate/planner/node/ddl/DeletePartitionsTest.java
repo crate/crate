@@ -24,6 +24,8 @@ package io.crate.planner.node.ddl;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.RowN;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -31,6 +33,8 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
+
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Test
     public void testIndexNameGeneration() throws Exception {
@@ -41,12 +45,12 @@ public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
 
         Object[] args1 = {"1395874800000"};
         assertThat(
-            plan.getIndices(e.functions(), new RowN(args1), SubQueryResults.EMPTY),
+            plan.getIndices(txnCtx, e.functions(), new RowN(args1), SubQueryResults.EMPTY),
             Matchers.containsInAnyOrder(".partitioned.parted_pks.04732cpp6ks3ed1o60o30c1g"));
 
         Object[] args2 = {"1395961200000"};
         assertThat(
-            plan.getIndices(e.functions(), new RowN(args2), SubQueryResults.EMPTY),
+            plan.getIndices(txnCtx, e.functions(), new RowN(args2), SubQueryResults.EMPTY),
             Matchers.containsInAnyOrder(".partitioned.parted_pks.04732cpp6ksjcc9i60o30c1g"));
     }
 

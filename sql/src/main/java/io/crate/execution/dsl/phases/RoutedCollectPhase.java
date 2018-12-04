@@ -23,7 +23,6 @@
 package io.crate.execution.dsl.phases;
 
 import io.crate.analyze.OrderBy;
-import io.crate.auth.user.User;
 import io.crate.collections.Lists2;
 import io.crate.data.Paging;
 import io.crate.execution.dsl.projection.Projection;
@@ -33,9 +32,9 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -66,9 +65,6 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     @Nullable
     private OrderBy orderBy = null;
 
-    @Nullable
-    private User user = null;
-
     public RoutedCollectPhase(UUID jobId,
                               int executionNodeId,
                               String name,
@@ -77,8 +73,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                               List<Symbol> toCollect,
                               List<Projection> projections,
                               Symbol where,
-                              DistributionInfo distributionInfo,
-                              @Nullable User user) {
+                              DistributionInfo distributionInfo) {
         super(jobId, executionNodeId, name, projections);
         assert toCollect.stream().noneMatch(
             st -> SymbolVisitors.any(s -> s instanceof Field || s instanceof SelectSymbol, st))
@@ -92,7 +87,6 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         this.maxRowGranularity = maxRowGranularity;
         this.toCollect = toCollect;
         this.distributionInfo = distributionInfo;
-        this.user = user;
         this.outputTypes = extractOutputTypes(toCollect, projections);
     }
 
@@ -203,14 +197,6 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         return maxRowGranularity;
     }
 
-    /**
-     * Returns the user of the current session. Can be null and will not be streamed.
-     */
-    @Nullable
-    public User user() {
-        return user;
-    }
-
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitRoutedCollectPhase(this, context);
@@ -253,12 +239,12 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
      *
      * @return a normalized node, if no changes occurred returns this
      */
-    public RoutedCollectPhase normalize(EvaluatingNormalizer normalizer, TransactionContext transactionContext) {
+    public RoutedCollectPhase normalize(EvaluatingNormalizer normalizer, CoordinatorTxnCtx coordinatorTxnCtx) {
         RoutedCollectPhase result = this;
-        Function<Symbol, Symbol> normalize = s -> normalizer.normalize(s, transactionContext);
+        Function<Symbol, Symbol> normalize = s -> normalizer.normalize(s, coordinatorTxnCtx);
         List<Symbol> newToCollect = Lists2.map(toCollect, normalize);
         boolean changed = !newToCollect.equals(toCollect);
-        Symbol newWhereClause = normalizer.normalize(where, transactionContext);
+        Symbol newWhereClause = normalizer.normalize(where, coordinatorTxnCtx);
         OrderBy orderBy = this.orderBy;
         if (orderBy != null) {
             orderBy = orderBy.copyAndReplace(normalize);
@@ -274,8 +260,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                 newToCollect,
                 projections,
                 newWhereClause,
-                distributionInfo,
-                user
+                distributionInfo
             );
             result.nodePageSizeHint(nodePageSizeHint);
             result.orderBy(orderBy);
@@ -301,13 +286,12 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                Objects.equals(where, that.where) &&
                Objects.equals(distributionInfo, that.distributionInfo) &&
                Objects.equals(nodePageSizeHint, that.nodePageSizeHint) &&
-               Objects.equals(orderBy, that.orderBy) &&
-               Objects.equals(user, that.user);
+               Objects.equals(orderBy, that.orderBy);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), routing, toCollect, maxRowGranularity, where, distributionInfo,
-            nodePageSizeHint, orderBy, user);
+        return Objects.hash(
+            super.hashCode(), routing, toCollect, maxRowGranularity, where, distributionInfo, nodePageSizeHint, orderBy);
     }
 }

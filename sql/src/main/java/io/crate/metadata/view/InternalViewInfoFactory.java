@@ -30,7 +30,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.elasticsearch.cluster.ClusterState;
@@ -64,7 +64,7 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
         List<Reference> columns;
         try {
             AnalyzedRelation relation = analyzerProvider.get()
-                .analyze(parsedStmt, TransactionContext.systemTransactionContext(), ParameterContext.EMPTY);
+                .analyze(parsedStmt, CoordinatorTxnCtx.systemTransactionContext(), ParameterContext.EMPTY);
             final List<Reference> collectedColumns = new ArrayList<>(relation.fields().size());
             relation.fields()
                 .forEach(field -> collectedColumns.add(

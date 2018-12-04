@@ -26,6 +26,7 @@ import io.crate.data.Input;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -44,10 +45,10 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
     private final Map<ColumnIdent, Input<?>> generatedCols;
     private final List<CollectExpression<Map<String, Object>, ?>> expressions;
 
-    public GeneratedColsFromRawInsertSource(Functions functions, List<GeneratedReference> generatedColumns) {
+    public GeneratedColsFromRawInsertSource(TransactionContext txnCtx, Functions functions, List<GeneratedReference> generatedColumns) {
         InputFactory inputFactory = new InputFactory(functions);
         InputFactory.Context<CollectExpression<Map<String, Object>, ?>> ctx =
-            inputFactory.ctxForRefs(FromSourceRefResolver.INSTANCE);
+            inputFactory.ctxForRefs(txnCtx, FromSourceRefResolver.INSTANCE);
         this.generatedCols = new HashMap<>(generatedColumns.size());
         for (int i = 0; i < generatedColumns.size(); i++) {
             GeneratedReference ref = generatedColumns.get(i);

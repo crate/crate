@@ -25,6 +25,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
@@ -35,13 +36,17 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 public class RegexpMatchOperatortest extends CrateUnitTest {
+
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+
+
     private static Symbol normalizeSymbol(String source, String pattern) {
         RegexpMatchOperator op = new RegexpMatchOperator();
         Function function = new Function(
             op.info(),
             Arrays.<Symbol>asList(Literal.of(source), Literal.of(pattern))
         );
-        return op.normalizeSymbol(function, new TransactionContext(SessionContext.systemSessionContext()));
+        return op.normalizeSymbol(function, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
     }
 
     private Boolean regexpNormalize(String source, String pattern) {
@@ -69,7 +74,7 @@ public class RegexpMatchOperatortest extends CrateUnitTest {
 
     private Boolean regexpEvaluate(String source, String pattern) {
         RegexpMatchOperator op = new RegexpMatchOperator();
-        return op.evaluate(Literal.of(source), Literal.of(pattern));
+        return op.evaluate(txnCtx, Literal.of(source), Literal.of(pattern));
     }
 
     @Test

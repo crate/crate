@@ -52,7 +52,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -416,7 +416,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     public static class PlanForNode {
         public final Plan plan;
         final String nodeName;
-        final PlannerContext plannerContext;
+        public final PlannerContext plannerContext;
 
         private PlanForNode(Plan plan, String nodeName, PlannerContext plannerContext) {
             this.plan = plan;
@@ -435,19 +435,19 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         ParameterContext parameterContext = new ParameterContext(Row.EMPTY, Collections.<Row>emptyList());
         SessionContext sessionContext = new SessionContext(
             0, Option.NONE, User.CRATE_USER, x -> {}, x -> {}, sqlExecutor.getCurrentSchema());
-        TransactionContext transactionContext = new TransactionContext(sessionContext);
+        CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         PlannerContext plannerContext = new PlannerContext(
             planner.currentClusterState(),
             routingProvider,
             UUID.randomUUID(),
             planner.functions(),
-            transactionContext,
+            coordinatorTxnCtx,
             0,
             0
         );
         Plan plan = planner.plan(
-            analyzer.boundAnalyze(SqlParser.createStatement(stmt), transactionContext, parameterContext).analyzedStatement(),
+            analyzer.boundAnalyze(SqlParser.createStatement(stmt), coordinatorTxnCtx, parameterContext).analyzedStatement(),
             plannerContext);
         return new PlanForNode(plan, nodeName, plannerContext);
     }

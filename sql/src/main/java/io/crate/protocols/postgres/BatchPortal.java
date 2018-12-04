@@ -39,7 +39,7 @@ import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
@@ -65,7 +65,7 @@ class BatchPortal extends AbstractPortal {
     private final List<List<? extends DataType>> outputTypes = new ArrayList<>();
     private final List<ResultReceiver> resultReceivers = new ArrayList<>();
 
-    private TransactionContext transactionContext;
+    private CoordinatorTxnCtx coordinatorTxnCtx;
 
     BatchPortal(String name,
                 String query,
@@ -115,14 +115,14 @@ class BatchPortal extends AbstractPortal {
                        @Nullable AnalyzedStatement analyzedStatement,
                        List<Object> params,
                        @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
-        transactionContext = new TransactionContext(sessionContext);
+        coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
         queries.add(query);
         batchParams.add(params);
         this.resultFormatCodes.add(resultFormatCodes);
 
         if (analyzedStatement == null) {
             Analysis analysis = portalContext.getAnalyzer().boundAnalyze(
-                statement, transactionContext, new ParameterContext(getArgs(), Collections.emptyList()));
+                statement, coordinatorTxnCtx, new ParameterContext(getArgs(), Collections.emptyList()));
             analyzedStatement = analysis.analyzedStatement();
         }
 
@@ -158,7 +158,7 @@ class BatchPortal extends AbstractPortal {
                 routingProvider,
                 jobId,
                 planner.functions(),
-                transactionContext,
+                coordinatorTxnCtx,
                 0,
                 0
             );

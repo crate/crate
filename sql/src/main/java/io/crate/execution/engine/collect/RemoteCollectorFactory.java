@@ -147,6 +147,8 @@ public class RemoteCollectorFactory {
         String localNode = clusterService.localNode().getId();
         return remoteNode -> new RemoteCollector(
             jobId,
+            collectTask.txnCtx().userName(),
+            collectTask.txnCtx().currentSchema(),
             localNode,
             remoteNode,
             transportActionProvider.transportJobInitAction(),
@@ -176,8 +178,7 @@ public class RemoteCollectorFactory {
             collectPhase.toCollect(),
             new ArrayList<>(Projections.shardProjections(collectPhase.projections())),
             collectPhase.where(),
-            DistributionInfo.DEFAULT_BROADCAST,
-            null
+            DistributionInfo.DEFAULT_BROADCAST
         );
     }
 }

@@ -22,15 +22,16 @@
 package io.crate.expression.scalar.arithmetic;
 
 import com.google.common.base.Preconditions;
-import io.crate.expression.symbol.FuncArg;
 import io.crate.data.Input;
-import io.crate.metadata.functions.params.FuncParams;
+import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.symbol.FuncArg;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -63,7 +64,7 @@ public abstract class SquareRootFunction extends Scalar<Number, Number> {
         }
 
         @Override
-        public Double evaluate(Input[] args) {
+        public Double evaluate(TransactionContext txnCtx, Input[] args) {
             Number value = (Number) args[0].value();
             if (value == null) {
                 return null;

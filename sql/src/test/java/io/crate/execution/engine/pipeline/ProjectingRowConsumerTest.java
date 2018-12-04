@@ -41,6 +41,8 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
@@ -81,6 +83,7 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
     private Functions functions;
     private ThreadPool threadPool;
     private ProjectorFactory projectorFactory;
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
 
     @Before
@@ -144,7 +147,7 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
         RowConsumer delegateConsumerRequiresScroll = new DummyRowConsumer(true);
 
         RowConsumer projectingConsumer = ProjectingRowConsumer.create(delegateConsumerRequiresScroll,
-            Collections.singletonList(filterProjection), UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, projectorFactory);
+            Collections.singletonList(filterProjection), UUID.randomUUID(), txnCtx, RAM_ACCOUNTING_CONTEXT, projectorFactory);
 
         assertThat(projectingConsumer.requiresScroll(), is(true));
     }
@@ -157,7 +160,7 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
         RowConsumer delegateConsumerRequiresScroll = new DummyRowConsumer(true);
 
         RowConsumer projectingConsumer = ProjectingRowConsumer.create(delegateConsumerRequiresScroll,
-            Collections.singletonList(groupProjection), UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, projectorFactory);
+            Collections.singletonList(groupProjection), UUID.randomUUID(), txnCtx, RAM_ACCOUNTING_CONTEXT, projectorFactory);
 
         assertThat(projectingConsumer.requiresScroll(), is(false));
     }
@@ -169,7 +172,7 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
         RowConsumer delegateConsumerRequiresScroll = new DummyRowConsumer(false);
 
         RowConsumer projectingConsumer = ProjectingRowConsumer.create(delegateConsumerRequiresScroll,
-            Collections.singletonList(groupProjection), UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, projectorFactory);
+            Collections.singletonList(groupProjection), UUID.randomUUID(), txnCtx, RAM_ACCOUNTING_CONTEXT, projectorFactory);
 
         assertThat(projectingConsumer.requiresScroll(), is(false));
     }
@@ -189,6 +192,7 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
             consumer,
             Collections.singletonList(writerProjection),
             UUID.randomUUID(),
+            txnCtx,
             RAM_ACCOUNTING_CONTEXT,
             projectorFactory
         );

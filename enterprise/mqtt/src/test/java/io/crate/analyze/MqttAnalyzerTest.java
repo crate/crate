@@ -26,7 +26,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.sql.tree.CreateIngestRule;
 import io.crate.sql.tree.QualifiedName;
 import org.junit.Test;
@@ -61,7 +61,7 @@ public class MqttAnalyzerTest {
         sessionContext.setSearchPath("custom");
         ParameterContext parameterContext = mock(ParameterContext.class);
         ParamTypeHints paramTypeHints = mock(ParamTypeHints.class);
-        Analysis analysis = new Analysis(new TransactionContext(sessionContext), parameterContext, paramTypeHints);
+        Analysis analysis = new Analysis(new CoordinatorTxnCtx(sessionContext), parameterContext, paramTypeHints);
 
         CreateIngestionRuleAnalysedStatement analyzed = analyzer.analyze(createIngestRule, analysis);
 

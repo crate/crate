@@ -25,6 +25,7 @@ package io.crate.expression.scalar.arithmetic;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 
@@ -51,7 +52,7 @@ public final class BinaryScalar<T> extends Scalar<T, T> {
 
 
     @Override
-    public T evaluate(Input<T>[] args) {
+    public T evaluate(TransactionContext txnCtx, Input<T>[] args) {
         T arg0Value = type.value(args[0].value());
         T arg1Value = type.value(args[1].value());
 

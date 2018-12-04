@@ -39,11 +39,11 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
@@ -105,7 +105,7 @@ class InsertFromSubQueryAnalyzer {
         this.relationAnalyzer = relationAnalyzer;
     }
 
-    public AnalyzedInsertStatement analyze(InsertFromSubquery insert, ParamTypeHints typeHints, TransactionContext txnCtx) {
+    public AnalyzedInsertStatement analyze(InsertFromSubquery insert, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
         DocTableInfo targetTable = (DocTableInfo) schemas.resolveTableInfo(insert.table().getName(), Operation.INSERT,
             txnCtx.sessionContext().searchPath());
         DocTableRelation tableRelation = new DocTableRelation(targetTable);
@@ -240,7 +240,7 @@ class InsertFromSubQueryAnalyzer {
                                                        DocTableRelation targetTable,
                                                        List<Reference> targetCols,
                                                        ExpressionAnalyzer exprAnalyzer,
-                                                       TransactionContext txnCtx,
+                                                       CoordinatorTxnCtx txnCtx,
                                                        Function<ParameterExpression, Symbol> paramConverter,
                                                        Insert.DuplicateKeyContext duplicateKeyContext) {
         if (duplicateKeyContext.getAssignments().isEmpty()) {
@@ -279,7 +279,7 @@ class InsertFromSubQueryAnalyzer {
     private Map<Reference, Symbol> processUpdateAssignments(DocTableRelation tableRelation,
                                                             List<Reference> targetColumns,
                                                             java.util.function.Function<ParameterExpression, Symbol> parameterContext,
-                                                            TransactionContext transactionContext,
+                                                            CoordinatorTxnCtx coordinatorTxnCtx,
                                                             FieldProvider fieldProvider,
                                                             Insert.DuplicateKeyContext duplicateKeyContext) {
         if (duplicateKeyContext.getAssignments().isEmpty()) {
@@ -287,9 +287,9 @@ class InsertFromSubQueryAnalyzer {
         }
 
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, transactionContext, parameterContext, fieldProvider, null, Operation.UPDATE);
+            functions, coordinatorTxnCtx, parameterContext, fieldProvider, null, Operation.UPDATE);
 
         return getUpdateAssignments(functions, tableRelation, targetColumns, expressionAnalyzer,
-            transactionContext, parameterContext, duplicateKeyContext);
+            coordinatorTxnCtx, parameterContext, duplicateKeyContext);
     }
 }

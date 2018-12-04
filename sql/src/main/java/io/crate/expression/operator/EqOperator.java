@@ -29,6 +29,7 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
@@ -60,7 +61,7 @@ public final class EqOperator extends Operator<Object> {
     }
 
     @Override
-    public Boolean evaluate(Input[] args) {
+    public Boolean evaluate(TransactionContext txnCtx, Input[] args) {
         assert args.length == 2 : "number of args must be 2";
         Object left = args[0].value();
         if (left == null) {
@@ -87,7 +88,7 @@ public final class EqOperator extends Operator<Object> {
         }
 
         @Override
-        public Boolean evaluate(Input[] args) {
+        public Boolean evaluate(TransactionContext txnCtx, Input[] args) {
             Object[] left = (Object[]) args[0].value();
             if (left == null) {
                 return null;
@@ -115,7 +116,7 @@ public final class EqOperator extends Operator<Object> {
 
         @Override
         @SafeVarargs
-        public final Boolean evaluate(Input<Object>... args) {
+        public final Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
             Object left = args[0].value();
             Object right = args[1].value();
             if (left == null || right == null) {

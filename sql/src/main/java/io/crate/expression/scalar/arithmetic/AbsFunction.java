@@ -22,16 +22,17 @@
 package io.crate.expression.scalar.arithmetic;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.expression.symbol.FuncArg;
 import io.crate.data.Input;
-import io.crate.metadata.functions.params.FuncParams;
+import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.symbol.FuncArg;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -58,7 +59,7 @@ public class AbsFunction extends Scalar<Number, Number> {
     }
 
     @Override
-    public Number evaluate(Input<Number>... args) {
+    public Number evaluate(TransactionContext txnCtx, Input<Number>... args) {
         assert args.length == 1 : "number of args must be 1";
         Number value = args[0].value();
         if (value != null) {

@@ -28,7 +28,9 @@ import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.sql.tree.QualifiedName;
@@ -44,6 +46,7 @@ public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
 
     private SqlExpressions sqlExpressions;
     private Functions functions;
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void prepareFunctions() throws Exception {
@@ -57,7 +60,7 @@ public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
         Function function = (Function) functionSymbol;
         FunctionIdent ident = function.info().ident();
         TableFunctionImplementation<?> tableFunction = (TableFunctionImplementation) functions.getQualified(ident);
-        return tableFunction.evaluate(function.arguments().stream().map(a -> (Input) a).toArray(Input[]::new));
+        return tableFunction.evaluate(txnCtx, function.arguments().stream().map(a -> (Input) a).toArray(Input[]::new));
     }
 
     protected void assertExecute(String expr, String expected) {

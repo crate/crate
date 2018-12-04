@@ -28,6 +28,7 @@ import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.engine.collect.sources.FileCollectSource;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
@@ -84,7 +85,8 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         CollectTask collectTask = mock(CollectTask.class);
-        BatchIterator<Row> iterator = fileCollectSource.getIterator(collectNode, collectTask, false);
+        BatchIterator<Row> iterator = fileCollectSource.getIterator(
+            CoordinatorTxnCtx.systemTransactionContext(), collectNode, collectTask, false);
         consumer.accept(iterator, null);
         assertThat(new CollectionBucket(consumer.getResult()), contains(
             isRow("Arthur", 38),

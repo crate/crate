@@ -22,6 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -38,7 +39,8 @@ public interface InsertSourceGen {
     BytesReference generateSource(Object[] values) throws IOException;
 
 
-    static InsertSourceGen of(Functions functions,
+    static InsertSourceGen of(TransactionContext txnCtx,
+                              Functions functions,
                               DocTableInfo table,
                               GeneratedColumns.Validation validation,
                               List<Reference> targets) {
@@ -46,9 +48,9 @@ public interface InsertSourceGen {
             if (table.generatedColumns().isEmpty()) {
                 return new FromRawInsertSource();
             } else {
-                return new GeneratedColsFromRawInsertSource(functions, table.generatedColumns());
+                return new GeneratedColsFromRawInsertSource(txnCtx, functions, table.generatedColumns());
             }
         }
-        return new InsertSourceFromCells(functions, table, validation, targets);
+        return new InsertSourceFromCells(txnCtx, functions, table, validation, targets);
     }
 }

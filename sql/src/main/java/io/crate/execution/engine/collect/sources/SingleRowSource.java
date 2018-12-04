@@ -34,6 +34,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.metadata.ClusterReferenceResolver;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import org.elasticsearch.common.inject.Inject;
@@ -52,7 +53,10 @@ public class SingleRowSource implements CollectSource {
     }
 
     @Override
-    public BatchIterator<Row> getIterator(CollectPhase phase, CollectTask collectTask, boolean supportMoveToStart) {
+    public BatchIterator<Row> getIterator(TransactionContext txnCtx,
+                                          CollectPhase phase,
+                                          CollectTask collectTask,
+                                          boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         collectPhase = collectPhase.normalize(clusterNormalizer, null);
 
@@ -63,7 +67,7 @@ public class SingleRowSource implements CollectSource {
             : "whereClause must have been normalized to a value, but is: " + collectPhase.where();
 
         InputFactory inputFactory = new InputFactory(functions);
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(collectPhase.toCollect());
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx, collectPhase.toCollect());
 
         return InMemoryBatchIterator.of(new InputRow(ctx.topLevelInputs()), SentinelRow.SENTINEL);
     }

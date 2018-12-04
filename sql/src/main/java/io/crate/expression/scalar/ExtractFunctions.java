@@ -28,6 +28,7 @@ import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataType;
@@ -114,7 +115,7 @@ public class ExtractFunctions {
         public abstract Number evaluate(long value);
 
         @Override
-        public Number evaluate(Input... args) {
+        public Number evaluate(TransactionContext txnCtx, Input... args) {
             assert args.length == 1 : "extract only takes one argument";
             Object value = args[0].value();
             if (value == null) {

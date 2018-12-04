@@ -23,8 +23,10 @@
 package io.crate.user;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.expression.symbol.Literal;
 import io.crate.data.Row;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -44,10 +46,12 @@ public class UserActionsTest extends CrateUnitTest {
         ImmutableMap.of()
     );
 
+    TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+
     @Test
     public void testSecureHashIsGeneratedFromPasswordProperty() throws Exception {
         SecureHash secureHash = UserActions.generateSecureHash(
-            Collections.singletonMap("password", Literal.of("password")), Row.EMPTY, functions);
+            Collections.singletonMap("password", Literal.of("password")), Row.EMPTY, txnCtx, functions);
         assertThat(secureHash, Matchers.notNullValue());
 
         SecureString password = new SecureString("password".toCharArray());
@@ -56,7 +60,7 @@ public class UserActionsTest extends CrateUnitTest {
 
     @Test
     public void testNoSecureHashIfPasswordPropertyNotPresent() throws Exception {
-        SecureHash secureHash = UserActions.generateSecureHash(emptyMap(), Row.EMPTY, functions);
+        SecureHash secureHash = UserActions.generateSecureHash(emptyMap(), Row.EMPTY, txnCtx, functions);
         assertNull(secureHash);
     }
 
@@ -64,18 +68,20 @@ public class UserActionsTest extends CrateUnitTest {
     public void testPasswordMustNotBeEmptyErrorIsRaisedIfPasswordIsEmpty() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Password must not be empty");
-        UserActions.generateSecureHash(singletonMap("password", Literal.of("")), Row.EMPTY, functions);
+        UserActions.generateSecureHash(singletonMap("password", Literal.of("")), Row.EMPTY, txnCtx, functions);
     }
 
     @Test
     public void testUserPasswordProperty() throws Exception {
-        SecureString password = UserActions.getUserPasswordProperty(ImmutableMap.of("password", Literal.of("my-pass")), Row.EMPTY, functions);
+        SecureString password = UserActions.getUserPasswordProperty(
+            ImmutableMap.of("password", Literal.of("my-pass")), Row.EMPTY, txnCtx, functions);
         assertEquals(new SecureString("my-pass".toCharArray()), password);
     }
 
     @Test
     public void testNoPasswordIfPropertyIsNull() throws Exception {
-        SecureString password = UserActions.getUserPasswordProperty(ImmutableMap.of("password", Literal.of(DataTypes.UNDEFINED, null)), Row.EMPTY, functions);
+        SecureString password = UserActions.getUserPasswordProperty(
+            ImmutableMap.of("password", Literal.of(DataTypes.UNDEFINED, null)), Row.EMPTY, txnCtx, functions);
         assertNull(password);
     }
 
@@ -83,6 +89,6 @@ public class UserActionsTest extends CrateUnitTest {
     public void testInvalidPasswordProperty() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("\"invalid\" is not a valid user property");
-        UserActions.getUserPasswordProperty(ImmutableMap.of("invalid", Literal.of("password")), Row.EMPTY, functions);
+        UserActions.getUserPasswordProperty(ImmutableMap.of("invalid", Literal.of("password")), Row.EMPTY, txnCtx, functions);
     }
 }

@@ -27,6 +27,7 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
@@ -53,7 +54,7 @@ public class FormatFunction extends Scalar<String, Object> {
 
     @SafeVarargs
     @Override
-    public final String evaluate(Input<Object>... args) {
+    public final String evaluate(TransactionContext txnCtx, Input<Object>... args) {
         assert args.length > 1 : "number of args must be > 1";
         Object arg0Value = args[0].value();
         assert arg0Value != null : "1st argument must not be null";

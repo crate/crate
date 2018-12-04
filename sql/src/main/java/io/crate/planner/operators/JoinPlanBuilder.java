@@ -33,7 +33,7 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
@@ -68,13 +68,13 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
     private final WhereClause where;
     private final SubqueryPlanner subqueryPlanner;
     private final Functions functions;
-    private final TransactionContext txnCtx;
+    private final CoordinatorTxnCtx txnCtx;
 
     private JoinPlanBuilder(MultiSourceSelect mss,
                             WhereClause where,
                             SubqueryPlanner subqueryPlanner,
                             Functions functions,
-                            TransactionContext txnCtx) {
+                            CoordinatorTxnCtx txnCtx) {
         this.mss = mss;
         this.where = where;
         this.subqueryPlanner = subqueryPlanner;
@@ -86,7 +86,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                        WhereClause where,
                                        SubqueryPlanner subqueryPlanner,
                                        Functions functions,
-                                       TransactionContext txnCtx) {
+                                       CoordinatorTxnCtx txnCtx) {
         return new JoinPlanBuilder(mss, where, subqueryPlanner, functions, txnCtx);
     }
 
@@ -242,7 +242,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                             boolean orderByCanBePushedDown,
                                             QueriedRelation leftRelation,
                                             Functions functions,
-                                            TransactionContext txnCtx) {
+                                            CoordinatorTxnCtx txnCtx) {
         QualifiedName nextName = nextRel.getQualifiedName();
 
         Set<Symbol> usedFromNext = new LinkedHashSet<>();

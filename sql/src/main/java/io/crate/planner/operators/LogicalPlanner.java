@@ -49,9 +49,10 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -153,12 +154,12 @@ public class LogicalPlanner {
                                         PlannerContext plannerContext,
                                         SubqueryPlanner subqueryPlanner,
                                         FetchMode fetchMode) {
-        TransactionContext transactionContext = plannerContext.transactionContext();
+        CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
         QueriedRelation relation = optimizingRewriter.optimize(
-            (QueriedRelation) relationNormalizer.normalize(queriedRelation, transactionContext),
-            transactionContext
+            (QueriedRelation) relationNormalizer.normalize(queriedRelation, coordinatorTxnCtx),
+            coordinatorTxnCtx
         );
-        LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true, functions, transactionContext)
+        LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true, functions, coordinatorTxnCtx)
             .build(tableStats, new HashSet<>(relation.outputs()));
 
         LogicalPlan optimizedPlan = tryOptimize(logicalPlan);
@@ -184,7 +185,7 @@ public class LogicalPlanner {
                                     SubqueryPlanner subqueryPlanner,
                                     boolean isLastFetch,
                                     Functions functions,
-                                    TransactionContext txnCtx) {
+                                    CoordinatorTxnCtx txnCtx) {
         LogicalPlan.Builder builder = prePlan(relation, fetchMode, subqueryPlanner, isLastFetch, functions, txnCtx);
         if (isLastFetch) {
             return builder;
@@ -197,7 +198,7 @@ public class LogicalPlanner {
                                                SubqueryPlanner subqueryPlanner,
                                                boolean isLastFetch,
                                                Functions functions,
-                                               TransactionContext txnCtx) {
+                                               CoordinatorTxnCtx txnCtx) {
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
         return FetchOrEval.create(
             Limit.create(
@@ -255,7 +256,7 @@ public class LogicalPlanner {
                                                         SubqueryPlanner subqueryPlanner,
                                                         FetchMode fetchMode,
                                                         Functions functions,
-                                                        TransactionContext txnCtx) {
+                                                        CoordinatorTxnCtx txnCtx) {
         if (queriedRelation instanceof AnalyzedView) {
             return plan(((AnalyzedView) queriedRelation).relation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
         }
@@ -343,14 +344,21 @@ public class LogicalPlanner {
     }
 
     private static void doExecute(LogicalPlan logicalPlan,
-                                  DependencyCarrier executor,
+                                  DependencyCarrier dependencies,
                                   PlannerContext plannerContext,
                                   RowConsumer consumer,
                                   Row params,
                                   SubQueryResults subQueryResults,
                                   boolean enableProfiling) {
-        NodeOperationTree nodeOpTree = getNodeOperationTree(logicalPlan, executor, plannerContext, params, subQueryResults);
-        executeNodeOpTree(executor, plannerContext.jobId(), consumer, enableProfiling, nodeOpTree);
+        NodeOperationTree nodeOpTree = getNodeOperationTree(logicalPlan, dependencies, plannerContext, params, subQueryResults);
+        executeNodeOpTree(
+            dependencies,
+            plannerContext.transactionContext(),
+            plannerContext.jobId(),
+            consumer,
+            enableProfiling,
+            nodeOpTree
+        );
     }
 
     public static NodeOperationTree getNodeOperationTree(LogicalPlan logicalPlan,
@@ -363,10 +371,15 @@ public class LogicalPlanner {
         return NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
     }
 
-    public static void executeNodeOpTree(DependencyCarrier executor, UUID jobId, RowConsumer consumer, boolean enableProfiling, NodeOperationTree nodeOpTree) {
-        executor.phasesTaskFactory()
+    public static void executeNodeOpTree(DependencyCarrier dependencies,
+                                         TransactionContext txnCtx,
+                                         UUID jobId,
+                                         RowConsumer consumer,
+                                         boolean enableProfiling,
+                                         NodeOperationTree nodeOpTree) {
+        dependencies.phasesTaskFactory()
             .create(jobId, Collections.singletonList(nodeOpTree), enableProfiling)
-            .execute(consumer);
+            .execute(consumer, txnCtx);
     }
 
     private class Visitor extends AnalyzedStatementVisitor<PlannerContext, LogicalPlan> {

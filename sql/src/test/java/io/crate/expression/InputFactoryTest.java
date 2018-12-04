@@ -34,9 +34,11 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -55,6 +57,7 @@ public class InputFactoryTest extends CrateUnitTest {
 
     private SqlExpressions expressions = new SqlExpressions(ImmutableMap.of(T3.T1, T3.TR_1), T3.TR_1);
     private InputFactory factory = new InputFactory(expressions.functions());
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Test
     public void testAggregationSymbolsInputReuse() throws Exception {
@@ -66,7 +69,7 @@ public class InputFactoryTest extends CrateUnitTest {
             new Aggregation(avgX.info(), countX.info().returnType(), Arrays.asList(new InputColumn(0)))
         );
 
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx);
         ctx.add(aggregations);
         List<AggregationContext> aggregationContexts = ctx.aggregations();
 
@@ -89,7 +92,7 @@ public class InputFactoryTest extends CrateUnitTest {
         );
         List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), add);
 
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx);
         ctx.add(keys);
         ArrayList<CollectExpression<Row, ?>> expressions = new ArrayList<>(ctx.expressions());
         assertThat(expressions.size(), is(2));
@@ -132,7 +135,7 @@ public class InputFactoryTest extends CrateUnitTest {
             Arrays.<Symbol>asList(new InputColumn(0))
         ));
 
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx);
         ctx.add(keys);
 
         // inputs: [ x, add ]
@@ -165,7 +168,7 @@ public class InputFactoryTest extends CrateUnitTest {
     @Test
     public void testCompiled() throws Exception {
         Function function = (Function) expressions.normalize(expressions.asSymbol("a like 'f%'"));
-        InputFactory.Context<Input<?>> ctx = factory.ctxForRefs(i -> Literal.of("foo"));
+        InputFactory.Context<Input<?>> ctx = factory.ctxForRefs(txnCtx, i -> Literal.of("foo"));
         Input<?> input = ctx.add(function);
 
         FunctionExpression expression = (FunctionExpression) input;
@@ -182,7 +185,7 @@ public class InputFactoryTest extends CrateUnitTest {
     @Test
     public void testSameReferenceResultsInSameExpressionInstance() {
         Symbol symbol = expressions.normalize(expressions.asSymbol("a"));
-        InputFactory.Context<Input<?>> ctx = factory.ctxForRefs(i -> Literal.of("foo"));
+        InputFactory.Context<Input<?>> ctx = factory.ctxForRefs(txnCtx, i -> Literal.of("foo"));
         Input<?> input1 = ctx.add(symbol);
         Input<?> input2 = ctx.add(symbol);
 

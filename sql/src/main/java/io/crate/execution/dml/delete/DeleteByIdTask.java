@@ -26,6 +26,7 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.ShardRequestExecutor;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.operators.SubQueryResults;
@@ -43,6 +44,7 @@ public class DeleteByIdTask {
 
     public DeleteByIdTask(UUID jobId,
                           ClusterService clusterService,
+                          TransactionContext txnCtx,
                           Functions functions,
                           TransportShardDeleteAction deleteAction,
                           DeleteById deleteById) {
@@ -51,6 +53,7 @@ public class DeleteByIdTask {
         DeleteRequests deleteRequests = new DeleteRequests(jobId, requestTimeout);
         executor = new ShardRequestExecutor<>(
             clusterService,
+            txnCtx,
             functions,
             deleteById.table(),
             deleteRequests,

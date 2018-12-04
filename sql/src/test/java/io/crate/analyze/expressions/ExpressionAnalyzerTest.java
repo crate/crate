@@ -45,12 +45,12 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
@@ -92,7 +92,7 @@ import static org.mockito.Mockito.when;
 public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private ImmutableMap<QualifiedName, AnalyzedRelation> dummySources;
-    private TransactionContext transactionContext;
+    private CoordinatorTxnCtx coordinatorTxnCtx;
     private ExpressionAnalysisContext context;
     private ParamTypeHints paramTypeHints;
     private Functions functions;
@@ -104,7 +104,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         paramTypeHints = ParamTypeHints.EMPTY;
         DummyRelation dummyRelation = new DummyRelation("obj.x", "myObj.x", "myObj.x.AbC");
         dummySources = ImmutableMap.of(new QualifiedName("foo"), dummyRelation);
-        transactionContext = TransactionContext.systemTransactionContext();
+        coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         context = new ExpressionAnalysisContext();
         functions = getFunctions();
         executor = SQLExecutor.builder(clusterService)
@@ -121,7 +121,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage("Unsupported expression current_time");
         SessionContext sessionContext = SessionContext.systemSessionContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, transactionContext, paramTypeHints,
+            functions, coordinatorTxnCtx, paramTypeHints,
             new FullQualifiedNameFieldProvider(
                 dummySources,
                 ParentRelations.NO_PARENTS,
@@ -138,7 +138,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), User.CRATE_USER,s -> {}, t -> {});
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            new TransactionContext(sessionContext),
+            new CoordinatorTxnCtx(sessionContext),
             paramTypeHints,
             new FullQualifiedNameFieldProvider(
                 dummySources,
@@ -181,7 +181,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), User.CRATE_USER, s -> {}, t -> {});
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            new TransactionContext(sessionContext),
+            new CoordinatorTxnCtx(sessionContext),
             paramTypeHints,
             new FullQualifiedNameFieldProvider(
                 dummySources,
@@ -213,10 +213,10 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new QualifiedName("t2"), tr2
         );
         SessionContext sessionContext = SessionContext.systemSessionContext();
-        TransactionContext transactionContext = new TransactionContext(sessionContext);
+        CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            transactionContext,
+            coordinatorTxnCtx,
             paramTypeHints,
             new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.searchPath().currentSchema()),
             null
@@ -261,19 +261,19 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             Collections.singletonList(Literal.BOOLEAN_FALSE),
             localContext,
             functions,
-            TransactionContext.systemTransactionContext());
+            CoordinatorTxnCtx.systemTransactionContext());
         Symbol fn2 = ExpressionAnalyzer.allocateFunction(
             functionName,
             Collections.singletonList(Literal.BOOLEAN_FALSE),
             localContext,
             functions,
-            TransactionContext.systemTransactionContext());
+            CoordinatorTxnCtx.systemTransactionContext());
         Symbol fn3 = ExpressionAnalyzer.allocateFunction(
             functionName,
             Collections.singletonList(Literal.BOOLEAN_TRUE),
             localContext,
             functions,
-            TransactionContext.systemTransactionContext());
+            CoordinatorTxnCtx.systemTransactionContext());
 
         // different instances
         assertThat(fn1, allOf(

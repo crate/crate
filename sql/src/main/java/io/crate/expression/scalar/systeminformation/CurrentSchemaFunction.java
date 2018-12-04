@@ -31,8 +31,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -59,18 +59,17 @@ public class CurrentSchemaFunction extends Scalar<String, Object> implements Fun
     }
 
     @Override
-    public String evaluate(Input<Object>... args) {
+    public String evaluate(TransactionContext txnCtx, Input<Object>... args) {
         assert args.length == 0 : "number of args must be 0";
-        throw new UnsupportedOperationException("Cannot evaluate CURRENT_SCHEMA function.");
+        return txnCtx.currentSchema();
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, @Nullable TransactionContext transactionContext) {
-        if (transactionContext == null) {
+    public Symbol normalizeSymbol(Function symbol, @Nullable TransactionContext txnCtx) {
+        if (txnCtx == null) {
             return Literal.NULL;
         }
-        assert transactionContext.sessionContext() != null : "CURRENT_SCHEMA requires a session context";
-        return Literal.of(transactionContext.sessionContext().searchPath().currentSchema());
+        return Literal.of(txnCtx.currentSchema());
     }
 
     @Override

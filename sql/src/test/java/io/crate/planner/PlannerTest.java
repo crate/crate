@@ -2,7 +2,7 @@ package io.crate.planner;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.sql.tree.LongLiteral;
@@ -56,7 +56,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList()),
             UUID.randomUUID(),
             e.functions(),
-            new TransactionContext(SessionContext.systemSessionContext()),
+            new CoordinatorTxnCtx(SessionContext.systemSessionContext()),
             0,
             0);
 

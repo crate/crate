@@ -21,15 +21,15 @@
 
 package io.crate.expression.predicate;
 
+import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.OperatorFormatSpec;
-import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -52,7 +52,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> implements OperatorFo
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
         assert symbol != null : "function must not be null";
         assert symbol.arguments().size() == 1 : "function's number of arguments must be 1";
 
@@ -73,7 +73,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> implements OperatorFo
     }
 
     @Override
-    public Boolean evaluate(Input<Boolean>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, Input<Boolean>... args) {
         assert args.length == 1 : "number of args must be 1";
         Boolean value = args[0].value();
         return value != null ? !value : null;

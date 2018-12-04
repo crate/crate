@@ -55,6 +55,7 @@ import io.crate.data.Row;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.expression.udf.UserDefinedFunctionDDLClient;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.user.SecureHash;
 import io.crate.user.UserActions;
@@ -77,7 +78,6 @@ import org.elasticsearch.common.settings.Settings;
 import java.security.GeneralSecurityException;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
 
 import static io.crate.analyze.OptimizeTableAnalyzer.FLUSH;
 import static io.crate.analyze.OptimizeTableAnalyzer.MAX_NUM_SEGMENTS;
@@ -92,7 +92,7 @@ import static io.crate.concurrent.CompletableFutures.failedFuture;
  * If the future returns <code>null</code>, no row count shall be created.
  */
 @Singleton
-public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row, CompletableFuture<Long>> {
+public class DDLStatementDispatcher {
 
     private final Provider<BlobAdminClient> blobAdminClient;
     private final TableCreator tableCreator;
@@ -137,50 +137,59 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         this.functions = functions;
     }
 
-    @Override
-    public CompletableFuture<Long> apply(AnalyzedStatement analyzedStatement, Row parameters) {
-        return innerVisitor.process(analyzedStatement, parameters);
+    public CompletableFuture<Long> apply(AnalyzedStatement analyzedStatement, Row parameters, TransactionContext txnCtx) {
+        return innerVisitor.process(analyzedStatement, new Ctx(txnCtx, parameters));
     }
 
-    private class InnerVisitor extends AnalyzedStatementVisitor<Row, CompletableFuture<Long>> {
+    private static class Ctx {
+        final TransactionContext txnCtx;
+        final Row parameters;
+
+        public Ctx(TransactionContext txnCtx, Row parameters) {
+            this.txnCtx = txnCtx;
+            this.parameters = parameters;
+        }
+    }
+
+    private class InnerVisitor extends AnalyzedStatementVisitor<Ctx, CompletableFuture<Long>> {
 
         @Override
-        protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Row parameters) {
+        protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Ctx ctx) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement));
         }
 
         @Override
-        public CompletableFuture<Long> visitCreateTableStatement(CreateTableAnalyzedStatement analysis, Row parameters) {
+        public CompletableFuture<Long> visitCreateTableStatement(CreateTableAnalyzedStatement analysis, Ctx ctx) {
             return tableCreator.create(analysis);
         }
 
         @Override
-        public CompletableFuture<Long> visitAlterTableStatement(final AlterTableAnalyzedStatement analysis, Row parameters) {
+        public CompletableFuture<Long> visitAlterTableStatement(final AlterTableAnalyzedStatement analysis, Ctx ctx) {
             return alterTableOperation.executeAlterTable(analysis);
         }
 
         @Override
-        public CompletableFuture<Long> visitAddColumnStatement(AddColumnAnalyzedStatement analysis, Row parameters) {
+        public CompletableFuture<Long> visitAddColumnStatement(AddColumnAnalyzedStatement analysis, Ctx ctx) {
             return alterTableOperation.executeAlterTableAddColumn(analysis);
         }
 
         public CompletableFuture<Long> visitAlterTableOpenCloseStatement(AlterTableOpenCloseAnalyzedStatement analysis,
-                                                                         Row parameters) {
+                                                                         Ctx ctx) {
             return alterTableOperation.executeAlterTableOpenClose(analysis);
         }
 
         @Override
-        public CompletableFuture<Long> visitAlterTableRenameStatement(AlterTableRenameAnalyzedStatement analysis, Row parameters) {
+        public CompletableFuture<Long> visitAlterTableRenameStatement(AlterTableRenameAnalyzedStatement analysis, Ctx ctx) {
             return alterTableOperation.executeAlterTableRenameTable(analysis);
         }
 
         @Override
-        public CompletableFuture<Long> visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, Row parameters) {
+        public CompletableFuture<Long> visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, Ctx ctx) {
             return RerouteActions.executeRetryFailed(rerouteAction::execute);
         }
 
         @Override
-        public CompletableFuture<Long> visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, Row parameters) {
+        public CompletableFuture<Long> visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, Ctx ctx) {
             if (UPGRADE_SEGMENTS.get(analysis.settings())) {
                 return executeUpgradeSegments(analysis, transportUpgradeActionProvider.get());
             } else {
@@ -189,7 +198,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         }
 
         @Override
-        public CompletableFuture<Long> visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, Row parameters) {
+        public CompletableFuture<Long> visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, Ctx ctx) {
             if (analysis.indexNames().isEmpty()) {
                 return CompletableFuture.completedFuture(null);
             }
@@ -205,65 +214,65 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
 
         @Override
         public CompletableFuture<Long> visitCreateBlobTableStatement(CreateBlobTableAnalyzedStatement analysis,
-                                                                     Row parameters) {
+                                                                     Ctx ctx) {
             return blobAdminClient.get().createBlobTable(analysis.tableName(), analysis.tableParameter().settings());
         }
 
         @Override
-        public CompletableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, Row parameters) {
+        public CompletableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, Ctx ctx) {
             return blobAdminClient.get().alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings());
         }
 
         @Override
-        public CompletableFuture<Long> visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, Row parameters) {
+        public CompletableFuture<Long> visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, Ctx ctx) {
             return blobAdminClient.get().dropBlobTable(analysis.table().ident().name());
         }
 
         @Override
         public CompletableFuture<Long> visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis,
-                                                                            Row parameters) {
+                                                                            Ctx ctx) {
             return repositoryService.execute(analysis);
         }
 
         @Override
         public CompletableFuture<Long> visitCreateRepositoryAnalyzedStatement(CreateRepositoryAnalyzedStatement analysis,
-                                                                              Row parameters) {
+                                                                              Ctx ctx) {
             return repositoryService.execute(analysis);
         }
 
         @Override
         public CompletableFuture<Long> visitDropSnapshotAnalyzedStatement(DropSnapshotAnalyzedStatement analysis,
-                                                                          Row parameters) {
+                                                                          Ctx ctx) {
             return snapshotRestoreDDLDispatcher.dispatch(analysis);
         }
 
         public CompletableFuture<Long> visitCreateSnapshotAnalyzedStatement(CreateSnapshotAnalyzedStatement analysis,
-                                                                            Row parameters) {
+                                                                            Ctx ctx) {
             return snapshotRestoreDDLDispatcher.dispatch(analysis);
         }
 
         @Override
         public CompletableFuture<Long> visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis,
-                                                                             Row parameters) {
+                                                                             Ctx ctx) {
             return snapshotRestoreDDLDispatcher.dispatch(analysis);
         }
 
         @Override
         protected CompletableFuture<Long> visitCreateFunctionStatement(CreateFunctionAnalyzedStatement analysis,
-                                                                       Row parameters) {
-            return udfDDLClient.execute(analysis, parameters);
+                                                                       Ctx ctx) {
+            return udfDDLClient.execute(analysis, ctx.parameters);
         }
 
         @Override
-        public CompletableFuture<Long> visitDropFunctionStatement(DropFunctionAnalyzedStatement analysis, Row parameters) {
+        public CompletableFuture<Long> visitDropFunctionStatement(DropFunctionAnalyzedStatement analysis, Ctx ctx) {
             return udfDDLClient.execute(analysis);
         }
 
         @Override
-        protected CompletableFuture<Long> visitCreateUserStatement(CreateUserAnalyzedStatement analysis, Row parameters) {
+        protected CompletableFuture<Long> visitCreateUserStatement(CreateUserAnalyzedStatement analysis, Ctx ctx) {
             SecureHash secureHash;
             try {
-                secureHash = UserActions.generateSecureHash(analysis.properties(), parameters, functions);
+                secureHash = UserActions.generateSecureHash(analysis.properties(), ctx.parameters, ctx.txnCtx, functions);
             } catch (GeneralSecurityException | IllegalArgumentException e) {
                 return failedFuture(e);
             }
@@ -271,10 +280,10 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         }
 
         @Override
-        public CompletableFuture<Long> visitAlterUserStatement(AlterUserAnalyzedStatement analysis, Row parameters) {
+        public CompletableFuture<Long> visitAlterUserStatement(AlterUserAnalyzedStatement analysis, Ctx ctx) {
             SecureHash newPassword;
             try {
-                newPassword = UserActions.generateSecureHash(analysis.properties(), parameters, functions);
+                newPassword = UserActions.generateSecureHash(analysis.properties(), ctx.parameters, ctx.txnCtx, functions);
             } catch (GeneralSecurityException | IllegalArgumentException e) {
                 return failedFuture(e);
             }
@@ -282,23 +291,23 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         }
 
         @Override
-        protected CompletableFuture<Long> visitDropUserStatement(DropUserAnalyzedStatement analysis, Row parameters) {
+        protected CompletableFuture<Long> visitDropUserStatement(DropUserAnalyzedStatement analysis, Ctx ctx) {
             return userManager.dropUser(analysis.userName(), analysis.ifExists());
         }
 
         @Override
-        protected CompletableFuture<Long> visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement analysis, Row parameters) {
-            return RerouteActions.execute(rerouteAction::execute, analysis, parameters);
+        protected CompletableFuture<Long> visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement analysis, Ctx ctx) {
+            return RerouteActions.execute(rerouteAction::execute, analysis, ctx.parameters);
         }
 
         @Override
-        protected CompletableFuture<Long> visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement analysis, Row parameters) {
-            return RerouteActions.execute(rerouteAction::execute, analysis, parameters);
+        protected CompletableFuture<Long> visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement analysis, Ctx ctx) {
+            return RerouteActions.execute(rerouteAction::execute, analysis, ctx.parameters);
         }
 
         @Override
-        protected CompletableFuture<Long> visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement analysis, Row parameters) {
-            return RerouteActions.execute(rerouteAction::execute, analysis, parameters);
+        protected CompletableFuture<Long> visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement analysis, Ctx ctx) {
+            return RerouteActions.execute(rerouteAction::execute, analysis, ctx.parameters);
         }
     }
 

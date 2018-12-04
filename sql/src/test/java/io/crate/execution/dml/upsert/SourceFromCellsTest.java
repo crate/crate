@@ -25,6 +25,8 @@ package io.crate.execution.dml.upsert;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.core.collections.Maps;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -54,6 +56,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     private DocTableInfo t2;
     private Reference obj;
     private Reference b;
+    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void setUpExecutor() throws Exception {
@@ -76,7 +79,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGeneratedSourceBytesRef() throws IOException {
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            e.functions(), t1, GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y));
+            txnCtx, e.functions(), t1, GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y));
         BytesReference source = sourceFromCells.generateSource(new Object[]{1, 2});
         assertThat(source.utf8ToString(), is("{\"x\":1,\"y\":2,\"z\":3}"));
     }
@@ -84,7 +87,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGenerateSourceRaisesAnErrorIfGeneratedColumnValueIsSuppliedByUserAndDoesNotMatch() throws IOException {
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            e.functions(), t1, GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y, z));
+            txnCtx, e.functions(), t1, GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y, z));
 
         expectedException.expectMessage("Given value 8 for generated column z does not match calculation (x + y) = 3");
         sourceFromCells.generateSource(new Object[]{1, 2, 8});
@@ -93,7 +96,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGeneratedColumnGenerationThatDependsOnNestedColumnOfObject() throws IOException {
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            e.functions(), t2, GeneratedColumns.Validation.VALUE_MATCH, Collections.singletonList(obj));
+            txnCtx, e.functions(), t2, GeneratedColumns.Validation.VALUE_MATCH, Collections.singletonList(obj));
         HashMap<Object, Object> m = new HashMap<>();
         m.put("a", 10);
         BytesReference source = sourceFromCells.generateSource(new Object[]{m});

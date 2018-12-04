@@ -57,12 +57,12 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -173,7 +173,7 @@ public class SQLExecutor {
     private final RelationNormalizer relationNormalizer;
     private final RelationAnalyzer relAnalyzer;
     private final SessionContext sessionContext;
-    private final TransactionContext transactionContext;
+    private final CoordinatorTxnCtx coordinatorTxnCtx;
     private final Random random;
     private final Schemas schemas;
 
@@ -192,13 +192,13 @@ public class SQLExecutor {
             new RoutingProvider(random.nextInt(), emptyList()),
             UUID.randomUUID(),
             functions,
-            new TransactionContext(sessionContext),
+            new CoordinatorTxnCtx(sessionContext),
             -1,
             -1
         );
     }
 
-    public <T extends AnalyzedRelation> T normalize(QueriedRelation relation, TransactionContext txnCtx) {
+    public <T extends AnalyzedRelation> T normalize(QueriedRelation relation, CoordinatorTxnCtx txnCtx) {
         //noinspection unchecked
         return (T) relationNormalizer.normalize(relation, txnCtx);
     }
@@ -206,7 +206,7 @@ public class SQLExecutor {
     public <T extends QueriedRelation> T normalize(String statement) {
         return normalize(
             analyze(statement),
-            new TransactionContext(SessionContext.systemSessionContext())
+            new CoordinatorTxnCtx(SessionContext.systemSessionContext())
         );
     }
 
@@ -434,7 +434,7 @@ public class SQLExecutor {
         public Builder addPartitionedTable(String createTableStmt, String... partitions) throws IOException {
             CreateTable stmt = (CreateTable) SqlParser.createStatement(createTableStmt);
             CreateTableAnalyzedStatement analyzedStmt = createTableStatementAnalyzer.analyze(
-                stmt, ParameterContext.EMPTY, new TransactionContext(SessionContext.systemSessionContext()));
+                stmt, ParameterContext.EMPTY, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
             if (!analyzedStmt.isPartitioned()) {
                 throw new IllegalArgumentException("use addTable(..) to add non partitioned tables");
             }
@@ -478,7 +478,7 @@ public class SQLExecutor {
         public Builder addTable(String createTableStmt) throws IOException {
             CreateTable stmt = (CreateTable) SqlParser.createStatement(createTableStmt);
             CreateTableAnalyzedStatement analyzedStmt = createTableStatementAnalyzer.analyze(
-                stmt, ParameterContext.EMPTY, new TransactionContext(SessionContext.systemSessionContext()));
+                stmt, ParameterContext.EMPTY, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
             if (analyzedStmt.isPartitioned()) {
                 throw new IllegalArgumentException("use addPartitionedTable(..) to add partitioned tables");
@@ -570,7 +570,7 @@ public class SQLExecutor {
         this.planner = planner;
         this.relAnalyzer = relAnalyzer;
         this.sessionContext = sessionContext;
-        this.transactionContext = new TransactionContext(sessionContext);
+        this.coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
         this.schemas = schemas;
         this.random = random;
     }
@@ -581,7 +581,7 @@ public class SQLExecutor {
 
     private <T extends AnalyzedStatement> T analyzeInternal(String stmt, ParameterContext parameterContext) {
         Analysis analysis = analyzer.boundAnalyze(
-            SqlParser.createStatement(stmt), transactionContext, parameterContext);
+            SqlParser.createStatement(stmt), coordinatorTxnCtx, parameterContext);
         //noinspection unchecked
         return (T) analysis.analyzedStatement();
     }
@@ -614,15 +614,15 @@ public class SQLExecutor {
      *                If tables are used here they must also be registered in the SQLExecutor having used {@link Builder#addDocTable(DocTableInfo)}
      */
     public Symbol asSymbol(Map<QualifiedName, AnalyzedRelation> sources, String expression) {
-        TransactionContext transactionContext = new TransactionContext(sessionContext);
+        CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            transactionContext,
+            coordinatorTxnCtx,
             ParamTypeHints.EMPTY,
             new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.searchPath().currentSchema()),
             new SubqueryAnalyzer(
                 relAnalyzer,
-                new StatementAnalysisContext(ParamTypeHints.EMPTY, Operation.READ, transactionContext)
+                new StatementAnalysisContext(ParamTypeHints.EMPTY, Operation.READ, coordinatorTxnCtx)
             )
         );
         return expressionAnalyzer.convert(
@@ -641,7 +641,7 @@ public class SQLExecutor {
             routingProvider,
             jobId,
             functions,
-            transactionContext,
+            coordinatorTxnCtx,
             softLimit,
             fetchSize
         );
@@ -674,7 +674,7 @@ public class SQLExecutor {
             // we eventually should integrate normalize into unboundAnalyze.
             // But then we have to remove the whereClauseAnalyzer calls because they depend on all values being available
             stmt = (AnalyzedStatement) new RelationNormalizer(functions)
-                .normalize((AnalyzedRelation) stmt, transactionContext);
+                .normalize((AnalyzedRelation) stmt, coordinatorTxnCtx);
         }
         return (T) planner.plan(stmt, getPlannerContext(planner.currentClusterState()));
     }

@@ -27,7 +27,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -46,7 +46,7 @@ import static org.hamcrest.core.Is.is;
 @SuppressWarnings("unchecked")
 public class EqualityExtractorTest extends CrateUnitTest {
 
-    private TransactionContext transactionContext = new TransactionContext(SessionContext.systemSessionContext());
+    private CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
     private SqlExpressions expressions = new SqlExpressions(ImmutableMap.of(T3.T1, T3.TR_1), T3.TR_1);
     private EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
     private EqualityExtractor ee = new EqualityExtractor(normalizer);
@@ -54,7 +54,7 @@ public class EqualityExtractorTest extends CrateUnitTest {
     private ColumnIdent i = new ColumnIdent("i");
 
     private List<List<Symbol>> analyzeParentX(Symbol query) {
-        return ee.extractParentMatches(ImmutableList.of(x), query, transactionContext);
+        return ee.extractParentMatches(ImmutableList.of(x), query, coordinatorTxnCtx);
     }
 
     private List<List<Symbol>> analyzeExactX(Symbol query) {
@@ -66,7 +66,7 @@ public class EqualityExtractorTest extends CrateUnitTest {
     }
 
     private List<List<Symbol>> analyzeExact(Symbol query, List<ColumnIdent> primaryKeys) {
-        return ee.extractExactMatches(primaryKeys, query, transactionContext);
+        return ee.extractExactMatches(primaryKeys, query, coordinatorTxnCtx);
     }
 
     private Symbol query(String expression) {

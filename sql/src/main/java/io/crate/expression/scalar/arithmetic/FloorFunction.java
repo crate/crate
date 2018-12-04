@@ -23,8 +23,9 @@ package io.crate.expression.scalar.arithmetic;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.data.Input;
-import io.crate.metadata.FunctionInfo;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -61,7 +62,7 @@ public abstract class FloorFunction extends SingleArgumentArithmeticFunction {
         }
 
         @Override
-        public Long evaluate(Input[] args) {
+        public Long evaluate(TransactionContext txnCtx, Input[] args) {
             Object value = args[0].value();
             if (value == null) {
                 return null;
@@ -78,7 +79,7 @@ public abstract class FloorFunction extends SingleArgumentArithmeticFunction {
         }
 
         @Override
-        public Integer evaluate(Input[] args) {
+        public Integer evaluate(TransactionContext txnCtx, Input[] args) {
             Object value = args[0].value();
             if (value == null) {
                 return null;

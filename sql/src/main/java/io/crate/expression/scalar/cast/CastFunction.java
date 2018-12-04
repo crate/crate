@@ -22,21 +22,21 @@
 
 package io.crate.expression.scalar.cast;
 
+import io.crate.data.Input;
+import io.crate.exceptions.ConversionException;
+import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.FunctionFormatSpec;
-import io.crate.data.Input;
-import io.crate.exceptions.ConversionException;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -62,7 +62,7 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
 
     @SafeVarargs
     @Override
-    public final Object evaluate(Input<Object>... args) {
+    public final Object evaluate(TransactionContext txnCtx, Input<Object>... args) {
         assert args.length == 1 : "Number of arguments must be 1";
         Object value = args[0].value();
         try {
@@ -78,7 +78,7 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
         assert symbol.arguments().size() == 1 : "Number of arguments must be 1";
         Symbol argument = symbol.arguments().get(0);
         if (argument.symbolType().isValueSymbol()) {

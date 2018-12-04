@@ -37,6 +37,7 @@ import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.blob.BlobReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -77,12 +78,12 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
     protected BatchIterator<Row> getUnorderedIterator(RoutedCollectPhase collectPhase,
                                                       boolean requiresScroll,
                                                       CollectTask collectTask) {
-        return InMemoryBatchIterator.of(getBlobRows(collectPhase, requiresScroll), SentinelRow.SENTINEL);
+        return InMemoryBatchIterator.of(getBlobRows(collectTask.txnCtx(), collectPhase, requiresScroll), SentinelRow.SENTINEL);
     }
 
-    private Iterable<Row> getBlobRows(RoutedCollectPhase collectPhase, boolean requiresRepeat) {
+    private Iterable<Row> getBlobRows(TransactionContext txnCtx, RoutedCollectPhase collectPhase, boolean requiresRepeat) {
         Iterable<File> files = blobShard.blobContainer().getFiles();
-        Iterable<Row> rows = RowsTransformer.toRowsIterable(inputFactory, BlobReferenceResolver.INSTANCE, collectPhase, files);
+        Iterable<Row> rows = RowsTransformer.toRowsIterable(txnCtx, inputFactory, BlobReferenceResolver.INSTANCE, collectPhase, files);
         if (requiresRepeat) {
             return ImmutableList.copyOf(rows);
         }
@@ -94,6 +95,8 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                                    CollectTask collectTask,
                                                    boolean requiresRepeat) {
         RoutedCollectPhase normalizedCollectPhase = collectPhase.normalize(shardNormalizer, null);
-        return new BlobOrderedDocCollector(blobShard.indexShard().shardId(), getBlobRows(normalizedCollectPhase, requiresRepeat));
+        return new BlobOrderedDocCollector(
+            blobShard.indexShard().shardId(),
+            getBlobRows(collectTask.txnCtx(), normalizedCollectPhase, requiresRepeat));
     }
 }

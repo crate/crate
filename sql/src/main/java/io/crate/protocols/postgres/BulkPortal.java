@@ -35,7 +35,7 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Field;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -140,11 +140,11 @@ class BulkPortal extends AbstractPortal {
     @Override
     public CompletableFuture<?> sync(Planner planner, JobsLogs jobsLogs) {
         List<Row> bulkParams = Rows.of(bulkArgs);
-        TransactionContext transactionContext = new TransactionContext(sessionContext);
+        CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
 
         if (analyzedStatement == null) {
             Analysis analysis = portalContext.getAnalyzer().boundAnalyze(statement,
-                transactionContext,
+                coordinatorTxnCtx,
                 new ParameterContext(Row.EMPTY, bulkParams));
             analyzedStatement = analysis.analyzedStatement();
         }
@@ -156,7 +156,7 @@ class BulkPortal extends AbstractPortal {
             routingProvider,
             jobId,
             planner.functions(),
-            transactionContext,
+            coordinatorTxnCtx,
             0,
             maxRows
         );

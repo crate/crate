@@ -27,8 +27,8 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
-import io.crate.metadata.TransactionContext;
 
 public final class OptimizingRewriter {
 
@@ -41,18 +41,18 @@ public final class OptimizingRewriter {
     /**
      * Return the relation as is or a re-written relation
      */
-    public QueriedRelation optimize(QueriedRelation relation, TransactionContext transactionContext) {
-        return new Visitor(new SemiJoins(functions), transactionContext).process(relation, null);
+    public QueriedRelation optimize(QueriedRelation relation, CoordinatorTxnCtx coordinatorTxnCtx) {
+        return new Visitor(new SemiJoins(functions), coordinatorTxnCtx).process(relation, null);
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<Void, QueriedRelation> {
 
         private final SemiJoins semiJoins;
-        private final TransactionContext transactionContext;
+        private final CoordinatorTxnCtx coordinatorTxnCtx;
 
-        public Visitor(SemiJoins semiJoins, TransactionContext transactionContext) {
+        public Visitor(SemiJoins semiJoins, CoordinatorTxnCtx coordinatorTxnCtx) {
             this.semiJoins = semiJoins;
-            this.transactionContext = transactionContext;
+            this.coordinatorTxnCtx = coordinatorTxnCtx;
         }
 
         @Override
@@ -76,10 +76,10 @@ public final class OptimizingRewriter {
         }
 
         private QueriedRelation maybeApplySemiJoinRewrite(QueriedRelation queriedRelation) {
-            if (!transactionContext.sessionContext().getSemiJoinsRewriteEnabled()) {
+            if (!coordinatorTxnCtx.sessionContext().getSemiJoinsRewriteEnabled()) {
                 return queriedRelation;
             }
-            QueriedRelation rewrite = semiJoins.tryRewrite(queriedRelation, transactionContext);
+            QueriedRelation rewrite = semiJoins.tryRewrite(queriedRelation, coordinatorTxnCtx);
             if (rewrite == null) {
                 return queriedRelation;
             }

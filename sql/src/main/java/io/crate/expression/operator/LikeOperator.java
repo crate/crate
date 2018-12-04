@@ -24,6 +24,7 @@ package io.crate.expression.operator;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 
@@ -65,7 +66,7 @@ public class LikeOperator extends Operator<String> {
     }
 
     @Override
-    public Boolean evaluate(Input<String>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, Input<String>... args) {
         assert args != null : "args must not be null";
         assert args.length == 2 : "number of args must be 2";
 
@@ -154,7 +155,7 @@ public class LikeOperator extends Operator<String> {
 
         @SafeVarargs
         @Override
-        public final Boolean evaluate(Input<String>... args) {
+        public final Boolean evaluate(TransactionContext txnCtx, Input<String>... args) {
             String value = args[0].value();
             if (value == null) {
                 return null;

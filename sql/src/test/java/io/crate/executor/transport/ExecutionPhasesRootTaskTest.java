@@ -65,8 +65,7 @@ public class ExecutionPhasesRootTaskTest {
             ImmutableList.of(),
             ImmutableList.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),
-            DistributionInfo.DEFAULT_BROADCAST,
-            null
+            DistributionInfo.DEFAULT_BROADCAST
         );
 
         MergePhase m1 = new MergePhase(

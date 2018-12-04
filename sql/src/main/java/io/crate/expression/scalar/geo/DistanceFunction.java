@@ -21,20 +21,20 @@
 
 package io.crate.expression.scalar.geo;
 
+import io.crate.data.Input;
+import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolFormatter;
-import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -75,7 +75,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
     }
 
     @Override
-    public Double evaluate(Input[] args) {
+    public Double evaluate(TransactionContext txnCtx, Input[] args) {
         assert args.length == 2 : "number of args must be 2";
         return evaluate(args[0], args[1]);
     }
@@ -113,7 +113,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
         Symbol arg1 = symbol.arguments().get(0);
         Symbol arg2 = symbol.arguments().get(1);
         DataType arg1Type = arg1.valueType();

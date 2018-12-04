@@ -32,10 +32,10 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -240,8 +240,8 @@ public class WriterProjection extends Projection {
                '}';
     }
 
-    public WriterProjection normalize(EvaluatingNormalizer normalizer, TransactionContext transactionContext) {
-        Symbol nUri = normalizer.normalize(uri, transactionContext);
+    public WriterProjection normalize(EvaluatingNormalizer normalizer, TransactionContext txnCtx) {
+        Symbol nUri = normalizer.normalize(uri, txnCtx);
         if (uri != nUri) {
             return new WriterProjection(
                 inputs,

@@ -35,10 +35,10 @@ import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
@@ -72,7 +72,7 @@ public final class UpdateAnalyzer {
         this.relationAnalyzer = relationAnalyzer;
     }
 
-    public AnalyzedUpdateStatement analyze(Update update, ParamTypeHints typeHints, TransactionContext txnCtx) {
+    public AnalyzedUpdateStatement analyze(Update update, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
         /* UPDATE t1 SET col1 = ?, col2 = ? WHERE id = ?`
          *               ^^^^^^^^^^^^^^^^^^       ^^^^^^
          *               assignments               whereClause
@@ -117,7 +117,7 @@ public final class UpdateAnalyzer {
 
     private HashMap<Reference, Symbol> getAssignments(List<Assignment> assignments,
                                                       ParamTypeHints typeHints,
-                                                      TransactionContext txnCtx,
+                                                      CoordinatorTxnCtx txnCtx,
                                                       AbstractTableRelation table,
                                                       EvaluatingNormalizer normalizer,
                                                       SubqueryAnalyzer subqueryAnalyzer,

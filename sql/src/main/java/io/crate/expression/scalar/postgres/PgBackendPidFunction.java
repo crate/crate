@@ -22,15 +22,15 @@
 
 package io.crate.expression.scalar.postgres;
 
+import io.crate.data.Input;
+import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 
 import java.util.Collections;
@@ -50,7 +50,7 @@ public class PgBackendPidFunction extends Scalar<Integer, Void> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
         assert symbol.arguments().size() == 0 : "function's number of arguments must be 0";
         return Literal.of(-1);
     }
@@ -61,7 +61,7 @@ public class PgBackendPidFunction extends Scalar<Integer, Void> {
     }
 
     @Override
-    public Integer evaluate(Input[] args) {
+    public Integer evaluate(TransactionContext txnCtx, Input[] args) {
         assert args.length == 0 : "number of args must be 0";
         return -1;
     }

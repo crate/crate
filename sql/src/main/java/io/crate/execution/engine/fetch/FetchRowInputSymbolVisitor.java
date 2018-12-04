@@ -28,6 +28,7 @@ import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -185,8 +186,8 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
         }
     }
 
-    public FetchRowInputSymbolVisitor(Functions functions) {
-        super(functions);
+    public FetchRowInputSymbolVisitor(TransactionContext txnCtx, Functions functions) {
+        super(txnCtx, functions);
     }
 
     @Override

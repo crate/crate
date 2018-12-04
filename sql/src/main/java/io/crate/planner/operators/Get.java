@@ -80,14 +80,16 @@ public class Get extends ZeroInputPlan {
         List<Symbol> boundOutputs = Lists2.map(
             outputs, s -> SubQueryAndParamBinder.convert(s, params, subQueryResults));
         for (DocKeys.DocKey docKey : docKeys) {
-            String id = docKey.getId(plannerContext.functions(), params, subQueryResults);
+            String id = docKey.getId(plannerContext.transactionContext(), plannerContext.functions(), params, subQueryResults);
             if (id == null) {
                 continue;
             }
-            List<String> partitionValues = docKey.getPartitionValues(plannerContext.functions(), params, subQueryResults);
+            List<String> partitionValues = docKey.getPartitionValues(
+                plannerContext.transactionContext(), plannerContext.functions(), params, subQueryResults);
             String indexName = indexName(docTableInfo, partitionValues);
 
-            String routing = docKey.getRouting(plannerContext.functions(), params, subQueryResults);
+            String routing = docKey.getRouting(
+                plannerContext.transactionContext(), plannerContext.functions(), params, subQueryResults);
             ShardRouting shardRouting;
             try {
                 shardRouting = plannerContext.resolveShard(indexName, id, routing);
@@ -117,7 +119,7 @@ public class Get extends ZeroInputPlan {
                 idsByShard.put(shardRouting.shardId(), pkAndVersions);
             }
             long version = docKey
-                .version(plannerContext.functions(), params, subQueryResults)
+                .version(plannerContext.transactionContext(), plannerContext.functions(), params, subQueryResults)
                 .orElse(Versions.MATCH_ANY);
             pkAndVersions.add(new PKAndVersion(id, version));
         }

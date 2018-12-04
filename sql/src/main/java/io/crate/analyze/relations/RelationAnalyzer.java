@@ -52,6 +52,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -59,7 +60,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
@@ -126,15 +126,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     public AnalyzedRelation analyzeUnbound(Query query,
-                                           TransactionContext transactionContext,
+                                           CoordinatorTxnCtx coordinatorTxnCtx,
                                            ParamTypeHints paramTypeHints) {
-        return analyze(query, new StatementAnalysisContext(paramTypeHints, Operation.READ, transactionContext));
+        return analyze(query, new StatementAnalysisContext(paramTypeHints, Operation.READ, coordinatorTxnCtx));
     }
 
     public AnalyzedRelation analyze(Node node,
-                                    TransactionContext transactionContext,
+                                    CoordinatorTxnCtx coordinatorTxnCtx,
                                     ParameterContext parameterContext) {
-        return analyze(node, new StatementAnalysisContext(parameterContext, Operation.READ, transactionContext));
+        return analyze(node, new StatementAnalysisContext(parameterContext, Operation.READ, coordinatorTxnCtx));
     }
 
     @Override
@@ -238,15 +238,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (optCriteria.isPresent()) {
             JoinCriteria joinCriteria = optCriteria.get();
             if (joinCriteria instanceof JoinOn) {
-                final TransactionContext transactionContext = statementContext.transactionContext();
+                final CoordinatorTxnCtx coordinatorTxnCtx = statementContext.transactionContext();
                 ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                     functions,
-                    transactionContext,
+                    coordinatorTxnCtx,
                     statementContext.convertParamFunction(),
                     new FullQualifiedNameFieldProvider(
                         relationContext.sources(),
                         relationContext.parentSources(),
-                        transactionContext.sessionContext().searchPath().currentSchema()),
+                        coordinatorTxnCtx.sessionContext().searchPath().currentSchema()),
                     new SubqueryAnalyzer(this, statementContext));
                 try {
                     joinCondition = expressionAnalyzer.convert(
@@ -285,15 +285,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
 
         RelationAnalysisContext context = statementContext.currentRelationContext();
-        TransactionContext transactionContext = statementContext.transactionContext();
+        CoordinatorTxnCtx coordinatorTxnCtx = statementContext.transactionContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            transactionContext,
+            coordinatorTxnCtx,
             statementContext.convertParamFunction(),
             new FullQualifiedNameFieldProvider(
                 context.sources(),
                 context.parentSources(),
-                transactionContext.sessionContext().searchPath().currentSchema()),
+                coordinatorTxnCtx.sessionContext().searchPath().currentSchema()),
             new SubqueryAnalyzer(this, statementContext));
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
 

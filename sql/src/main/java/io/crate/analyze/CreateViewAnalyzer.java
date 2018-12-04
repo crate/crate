@@ -25,7 +25,7 @@ package io.crate.analyze;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.SqlParser;
@@ -40,7 +40,7 @@ public final class CreateViewAnalyzer {
         this.relationAnalyzer = relationAnalyzer;
     }
 
-    public AnalyzedStatement analyze(CreateView createView, TransactionContext txnCtx) {
+    public AnalyzedStatement analyze(CreateView createView, CoordinatorTxnCtx txnCtx) {
         RelationName name = RelationName.of(createView.name(), txnCtx.sessionContext().searchPath().currentSchema());
         name.ensureValidForRelationCreation();
         if (BlobSchemaInfo.NAME.equals(name.schema())) {

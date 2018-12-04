@@ -22,28 +22,32 @@
 
 package io.crate.execution.engine.fetch;
 
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.AsyncOperationBatchIterator;
 import io.crate.data.BatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 
 import java.util.List;
 
 public class FetchProjector implements Projector {
 
+    private final TransactionContext txnCtx;
     private final FetchOperation fetchOperation;
     private final Functions functions;
     private final List<Symbol> outputSymbols;
     private final FetchProjectorContext fetchProjectorContext;
     private final int fetchSize;
 
-    public FetchProjector(FetchOperation fetchOperation,
+    public FetchProjector(TransactionContext txnCtx,
+                          FetchOperation fetchOperation,
                           Functions functions,
                           List<Symbol> outputSymbols,
                           FetchProjectorContext fetchProjectorContext,
                           int fetchSize) {
+        this.txnCtx = txnCtx;
         this.fetchOperation = fetchOperation;
         this.functions = functions;
         this.outputSymbols = outputSymbols;
@@ -56,6 +60,7 @@ public class FetchProjector implements Projector {
         return new AsyncOperationBatchIterator<>(
             batchIterator,
             new FetchBatchAccumulator(
+                txnCtx,
                 fetchOperation,
                 functions,
                 outputSymbols,

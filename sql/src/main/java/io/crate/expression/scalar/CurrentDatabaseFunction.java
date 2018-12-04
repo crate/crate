@@ -26,6 +26,7 @@ import io.crate.Constants;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 
@@ -42,7 +43,7 @@ final class CurrentDatabaseFunction extends Scalar<String, Void> {
     }
 
     @Override
-    public String evaluate(Input[] args) {
+    public String evaluate(TransactionContext txnCtx, Input[] args) {
         return Constants.DB_NAME;
     }
 }

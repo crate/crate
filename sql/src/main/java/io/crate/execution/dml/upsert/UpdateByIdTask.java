@@ -29,6 +29,7 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.node.dml.UpdateById;
@@ -44,6 +45,7 @@ import java.util.function.Function;
 
 public class UpdateByIdTask {
 
+    private final TransactionContext txnCtx;
     private final ClusterService clusterService;
     private final Functions functions;
     private final TransportShardUpsertAction shardUpsertAction;
@@ -52,10 +54,12 @@ public class UpdateByIdTask {
     private final Assignments assignments;
 
     public UpdateByIdTask(UUID jobId,
+                          TransactionContext txnCtx,
                           ClusterService clusterService,
                           Functions functions,
                           TransportShardUpsertAction shardUpsertAction,
                           UpdateById updateById) {
+        this.txnCtx = txnCtx;
         this.clusterService = clusterService;
         this.functions = functions;
         this.shardUpsertAction = shardUpsertAction;
@@ -63,6 +67,8 @@ public class UpdateByIdTask {
         assignments = Assignments.convert(updateById.assignmentByTargetCol());
         createBuilder = (continueOnError) ->
             new ShardUpsertRequest.Builder(
+                txnCtx.userName(),
+                txnCtx.currentSchema(),
                 ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(clusterService.state().metaData().settings()),
                 DuplicateKeyAction.UPDATE_OR_FAIL,
                 continueOnError,
@@ -77,6 +83,7 @@ public class UpdateByIdTask {
         UpdateRequests updateRequests = new UpdateRequests(createBuilder.apply(true), updateById.table(), assignments);
         ShardRequestExecutor<ShardUpsertRequest> executor = new ShardRequestExecutor<>(
             clusterService,
+            txnCtx,
             functions,
             updateById.table(),
             updateRequests,
@@ -90,6 +97,7 @@ public class UpdateByIdTask {
         UpdateRequests updateRequests = new UpdateRequests(createBuilder.apply(true), updateById.table(), assignments);
         ShardRequestExecutor<ShardUpsertRequest> executor = new ShardRequestExecutor<>(
             clusterService,
+            txnCtx,
             functions,
             updateById.table(),
             updateRequests,

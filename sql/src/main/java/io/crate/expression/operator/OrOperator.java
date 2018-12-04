@@ -22,10 +22,10 @@
 
 package io.crate.expression.operator;
 
+import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
@@ -45,7 +45,7 @@ public class OrOperator extends Operator<Boolean> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function, TransactionContext transactionContext) {
+    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {
         assert function != null : "function must not be null";
         assert function.arguments().size() == 2  : "number of args must be 2";
 
@@ -53,7 +53,7 @@ public class OrOperator extends Operator<Boolean> {
         Symbol right = function.arguments().get(1);
 
         if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
-            return Literal.of(evaluate((Input) left, (Input) right));
+            return Literal.of(evaluate(txnCtx, (Input) left, (Input) right));
         }
 
         /*
@@ -91,7 +91,7 @@ public class OrOperator extends Operator<Boolean> {
     }
 
     @Override
-    public Boolean evaluate(Input<Boolean>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, Input<Boolean>... args) {
         assert args != null : "args must not be null";
         assert args.length == 2 : "number of args must be 2";
         assert args[0] != null && args[1] != null : "1st and 2nd argument must not be null";
