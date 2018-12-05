@@ -21,71 +21,65 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
+import io.crate.expression.scalar.UnaryScalar;
+import io.crate.expression.symbol.FuncArg;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
+import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
 
-import java.util.Collections;
+import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Map;
 
-public abstract class CeilFunction extends SingleArgumentArithmeticFunction {
+public final class CeilFunction {
 
     public static final String NAME = "ceil";
 
-    CeilFunction(FunctionInfo info) {
-        super(info);
-    }
-
     public static void register(ScalarFunctionModule module) {
-        Map<DataType, SingleArgumentArithmeticFunction> functionMap =
-            ImmutableMap.<DataType, SingleArgumentArithmeticFunction>builder()
-            .put(DataTypes.FLOAT, new FloatCeilFunction(Collections.singletonList(DataTypes.FLOAT)))
-            .put(DataTypes.INTEGER, new FloatCeilFunction(Collections.singletonList(DataTypes.INTEGER)))
-            .put(DataTypes.DOUBLE, new DoubleCeilFunction(Collections.singletonList(DataTypes.DOUBLE)))
-            .put(DataTypes.LONG, new DoubleCeilFunction(Collections.singletonList(DataTypes.LONG)))
-            .put(DataTypes.SHORT, new DoubleCeilFunction(Collections.singletonList(DataTypes.SHORT)))
-            .put(DataTypes.BYTE, new DoubleCeilFunction(Collections.singletonList(DataTypes.BYTE)))
-            .put(DataTypes.UNDEFINED, new DoubleCeilFunction(Collections.singletonList(DataTypes.UNDEFINED)))
-            .build();
-        module.register(NAME, new Resolver(NAME, functionMap));
-    }
-
-    private static class DoubleCeilFunction extends CeilFunction {
-
-        DoubleCeilFunction(List<DataType> dataTypes) {
-            super(generateDoubleFunctionInfo(NAME, dataTypes));
-        }
-
-        @Override
-        public Long evaluate(TransactionContext txnCtx, Input[] args) {
-            Object value = args[0].value();
-            if (value == null) {
-                return null;
+        module.register(NAME, new FunctionResolver() {
+            @Nullable
+            @Override
+            public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
+                return FuncParams.SINGLE_NUMERIC.match(funcArgs);
             }
-            return ((Double) Math.ceil(((Number) value).doubleValue())).longValue();
-        }
 
-    }
+            @Override
+            public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
+                if (types.size() != 1) {
+                    Iterable<String> typeNames = types.stream().map(DataType::getName)::iterator;
+                    throw new IllegalArgumentException(
+                        "No overload found for ceil for arguments: " + String.join(", ", typeNames));
+                }
+                DataType argType = types.get(0);
+                DataType returnType;
+                switch (argType.id()) {
+                    case ByteType.ID:
+                    case ShortType.ID:
+                    case IntegerType.ID:
+                    case FloatType.ID:
+                        returnType = DataTypes.INTEGER;
+                        break;
 
-    private static class FloatCeilFunction extends CeilFunction {
+                    case DoubleType.ID:
+                    case LongType.ID:
+                        returnType = DataTypes.LONG;
+                        break;
 
-        FloatCeilFunction(List<DataType> dataTypes) {
-            super(generateFloatFunctionInfo(NAME, dataTypes));
-        }
-
-        @Override
-        public Integer evaluate(TransactionContext txnCtx, Input[] args) {
-            Object value = args[0].value();
-            if (value == null) {
-                return null;
+                    default:
+                        throw new IllegalArgumentException(
+                            "No overload found for ceil for arguments: " + argType.getName());
+                }
+                return new UnaryScalar<>(
+                    NAME, argType, returnType, x -> returnType.value(Math.ceil(((Number) x).doubleValue())));
             }
-            return ((Double) Math.ceil(((Number) value).doubleValue())).intValue();
-        }
-
+        });
     }
 }
