@@ -34,9 +34,9 @@ public class RelationNameTest extends CrateUnitTest {
     @Test
     public void testIndexName() throws Exception {
         RelationName ti = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
-        assertThat(ti.indexName(), is("t"));
+        assertThat(ti.indexNameOrAlias(), is("t"));
         ti = new RelationName("s", "t");
-        assertThat(ti.indexName(), is("s.t"));
+        assertThat(ti.indexNameOrAlias(), is("s.t"));
     }
 
     @Test
@@ -54,7 +54,7 @@ public class RelationNameTest extends CrateUnitTest {
     @Test
     public void testFromIndexNameCreatesCorrectBlobRelationName() {
         RelationName relationName = new RelationName("blob", "foobar");
-        String indexName = relationName.indexName();
+        String indexName = relationName.indexNameOrAlias();
         assertThat(BlobIndex.isBlobIndex(indexName), is(true));
         assertThat(RelationName.fromIndexName(indexName), is(relationName));
     }

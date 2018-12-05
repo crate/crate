@@ -400,7 +400,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                     onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
                 }
                 legacyUpsertById.add(
-                    tableInfo.ident().indexName(),
+                    tableInfo.ident().indexNameOrAlias(),
                     analysis.ids().get(i),
                     analysis.routingValues().get(i),
                     onDuplicateKeyAssignments,

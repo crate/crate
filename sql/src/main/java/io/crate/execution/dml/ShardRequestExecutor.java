@@ -144,7 +144,7 @@ public class ShardRequestExecutor<Req> {
             List<String> partitionValues = docKey.getPartitionValues(txnCtx, functions, parameters, subQueryResults);
             final String indexName;
             if (partitionValues == null) {
-                indexName = table.ident().indexName();
+                indexName = table.ident().indexNameOrAlias();
             } else {
                 indexName = IndexParts.toIndexName(table.ident(), PartitionName.encodeIdent(partitionValues));
             }

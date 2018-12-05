@@ -189,7 +189,7 @@ public class SnapshotRestoreDDLDispatcher {
             } else if (ignoreUnavailable) {
                 // If ignoreUnavailable is true, it's cheaper to simply return indexName and the partitioned wildcard instead
                 // checking if it's a partitioned table or not
-                resolveIndicesAndTemplatesContext.addIndex(table.tableIdent().indexName());
+                resolveIndicesAndTemplatesContext.addIndex(table.tableIdent().indexNameOrAlias());
                 // For the case its a partitioned table we restore all partitions and the templates
                 String templateName = table.partitionTemplate();
                 resolveIndicesAndTemplatesContext.addIndex(templateName + "*");
@@ -261,7 +261,7 @@ public class SnapshotRestoreDDLDispatcher {
         public static void resolveTableFromSnapshot(RestoreSnapshotAnalyzedStatement.RestoreTableInfo table,
                                                     List<SnapshotInfo> snapshots,
                                                     ResolveIndicesAndTemplatesContext ctx) throws RelationUnknown {
-            String name = table.tableIdent().indexName();
+            String name = table.tableIdent().indexNameOrAlias();
             for (SnapshotInfo snapshot : snapshots) {
                 for (String index : snapshot.indices()) {
                     if (name.equals(index)) {

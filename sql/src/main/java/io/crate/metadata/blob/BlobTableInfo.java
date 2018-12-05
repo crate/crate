@@ -83,7 +83,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
                          @Nullable Version versionCreated,
                          @Nullable Version versionUpgraded,
                          boolean closed) {
-        assert ident.indexName().equals(index) : "RelationName indexName must match index";
+        assert ident.indexNameOrAlias().equals(index) : "RelationName indexName must match index";
         this.ident = ident;
         this.index = index;
         this.numberOfShards = numberOfShards;

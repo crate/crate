@@ -56,7 +56,7 @@ public class IndexNameResolver {
     }
 
     public static Supplier<String> forTable(final RelationName relationName) {
-        return relationName::indexName;
+        return relationName::indexNameOrAlias;
     }
 
     private static Supplier<String> forPartition(RelationName relationName, String partitionIdent) {

@@ -143,7 +143,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         IndicesService indicesService = mock(IndicesService.class);
         IndexService indexService = mock(IndexService.class);
-        Index charactersIndex = new Index(TABLE_IDENT.indexName(), charactersIndexUUID);
+        Index charactersIndex = new Index(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID);
         Index partitionIndex = new Index(PARTITION_INDEX, partitionIndexUUID);
 
         when(indicesService.indexServiceSafe(charactersIndex)).thenReturn(indexService);
@@ -175,7 +175,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testExceptionWhileProcessingItemsNotContinueOnError() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
+        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             "dummyUser",
             "dummySchema",
@@ -196,7 +196,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testExceptionWhileProcessingItemsContinueOnError() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
+        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             "dummyUser",
             "dummySchema",
@@ -237,7 +237,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testKilledSetWhileProcessingItemsDoesNotThrowException() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
+        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             "dummyUser",
             "dummySchema",
@@ -258,7 +258,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testItemsWithoutSourceAreSkippedOnReplicaOperation() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
+        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             "dummyUser",
             "dummySchema",

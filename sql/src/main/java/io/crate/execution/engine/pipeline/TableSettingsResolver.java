@@ -41,9 +41,9 @@ public final class TableSettingsResolver {
     }
 
     private static Settings forTable(MetaData metaData, RelationName relationName) {
-        IndexMetaData indexMetaData = metaData.index(relationName.indexName());
+        IndexMetaData indexMetaData = metaData.index(relationName.indexNameOrAlias());
         if (indexMetaData == null) {
-            throw new IndexNotFoundException(relationName.indexName());
+            throw new IndexNotFoundException(relationName.indexNameOrAlias());
         }
         return indexMetaData.getSettings();
     }
