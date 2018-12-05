@@ -87,6 +87,7 @@ import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -139,6 +140,7 @@ public class Analyzer {
     private final AlterUserAnalyzer alterUserAnalyzer;
     private final CreateViewAnalyzer createViewAnalyzer;
     private final Schemas schemas;
+    private final SwapTableAnalyzer swapTableAnalyzer;
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
@@ -167,6 +169,7 @@ public class Analyzer {
             functions,
             numberOfShards
         );
+        this.swapTableAnalyzer = new SwapTableAnalyzer(functions, schemas);
         this.createViewAnalyzer = new CreateViewAnalyzer(relationAnalyzer);
         this.showCreateTableAnalyzer = new ShowCreateTableAnalyzer(schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
@@ -502,6 +505,16 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitCreateView(CreateView createView, Analysis analysis) {
             return createViewAnalyzer.analyze(createView, analysis.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitSwapTable(SwapTable swapTable, Analysis analysis) {
+            return swapTableAnalyzer.analyze(
+                swapTable,
+                analysis.transactionContext(),
+                analysis.paramTypeHints(),
+                analysis.sessionContext().searchPath()
+            );
         }
 
         @Override

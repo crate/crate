@@ -73,7 +73,7 @@ Options
 .......
 
 
-**prune_source**
+**drop_source**
    | *Default*: ``false``
 
    A boolean option that if set to ``true`` causes the command to remove the
