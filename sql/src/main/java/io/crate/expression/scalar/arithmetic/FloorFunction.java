@@ -21,71 +21,43 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
+import io.crate.expression.scalar.UnaryScalar;
+import io.crate.expression.symbol.FuncArg;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import java.util.Collections;
+import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Map;
 
-public abstract class FloorFunction extends SingleArgumentArithmeticFunction {
+public final class FloorFunction {
 
     public static final String NAME = "floor";
 
-    FloorFunction(FunctionInfo info) {
-        super(info);
-    }
-
     public static void register(ScalarFunctionModule module) {
-        Map<DataType, SingleArgumentArithmeticFunction> functionMap =
-            ImmutableMap.<DataType, SingleArgumentArithmeticFunction>builder()
-            .put(DataTypes.FLOAT, new FloatFloorFunction(Collections.singletonList(DataTypes.FLOAT)))
-            .put(DataTypes.INTEGER, new FloatFloorFunction(Collections.singletonList(DataTypes.INTEGER)))
-            .put(DataTypes.DOUBLE, new DoubleFloorFunction(Collections.singletonList(DataTypes.DOUBLE)))
-            .put(DataTypes.LONG, new DoubleFloorFunction(Collections.singletonList(DataTypes.LONG)))
-            .put(DataTypes.SHORT, new DoubleFloorFunction(Collections.singletonList(DataTypes.SHORT)))
-            .put(DataTypes.BYTE, new DoubleFloorFunction(Collections.singletonList(DataTypes.BYTE)))
-            .put(DataTypes.UNDEFINED, new DoubleFloorFunction(Collections.singletonList(DataTypes.UNDEFINED)))
-            .build();
-        module.register(NAME, new Resolver(NAME, functionMap));
-    }
-
-    private static class DoubleFloorFunction extends FloorFunction {
-
-        DoubleFloorFunction(List<DataType> dataTypes) {
-            super(generateDoubleFunctionInfo(NAME, dataTypes));
-        }
-
-        @Override
-        public Long evaluate(TransactionContext txnCtx, Input[] args) {
-            Object value = args[0].value();
-            if (value == null) {
-                return null;
+        module.register(NAME, new FunctionResolver() {
+            @Nullable
+            @Override
+            public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
+                return FuncParams.SINGLE_NUMERIC.match(funcArgs);
             }
-            return ((Double) Math.floor(((Number) value).doubleValue())).longValue();
-        }
 
-    }
-
-    private static class FloatFloorFunction extends FloorFunction {
-
-        FloatFloorFunction(List<DataType> dataTypes) {
-            super(generateFloatFunctionInfo(NAME, dataTypes));
-        }
-
-        @Override
-        public Integer evaluate(TransactionContext txnCtx, Input[] args) {
-            Object value = args[0].value();
-            if (value == null) {
-                return null;
+            @Override
+            public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
+                if (types.size() != 1) {
+                    throw FunctionResolver.noSignatureMatch(NAME, types);
+                }
+                DataType argType = types.get(0);
+                DataType returnType = DataTypes.getIntegralReturnType(argType);
+                if (returnType == null) {
+                    throw FunctionResolver.noSignatureMatch(NAME, types);
+                }
+                return new UnaryScalar<>(
+                    NAME, argType, returnType, x -> returnType.value(Math.floor(((Number) x).doubleValue())));
             }
-            return ((Double) Math.floor(((Number) value).doubleValue())).intValue();
-        }
-
+        });
     }
 }
