@@ -24,7 +24,6 @@ package io.crate.expression.scalar.cast;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -44,7 +43,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testCasts() throws Exception {
-        assertEvaluate("cast(10.4 as string)", new BytesRef("10.4"));
+        assertEvaluate("cast(10.4 as string)", "10.4");
         assertEvaluate("cast(null as string)", null);
         assertEvaluate("cast(10.4 as long)", 10L);
         assertEvaluate("to_long_array([10.2, 12.3])", new Long[] { 10L, 12L });
@@ -58,13 +57,13 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testDoubleColonOperatorCast() {
-        assertEvaluate("10.4::string", new BytesRef("10.4"));
+        assertEvaluate("10.4::string", "10.4");
         assertEvaluate("[1, 2, 0]::array(boolean)", new Boolean[]{true, true, false});
-        assertEvaluate("(1+3)/2::string", new BytesRef("2"));
+        assertEvaluate("(1+3)/2::string", "2");
         assertEvaluate("'10'::long + 5", 15L);
-        assertEvaluate("-4::string", new BytesRef("-4"));
+        assertEvaluate("-4::string", "-4");
         assertEvaluate("'-4'::long", -4L);
-        assertEvaluate("-4::string || ' apples'", new BytesRef("-4 apples"));
+        assertEvaluate("-4::string || ' apples'", "-4 apples");
         assertEvaluate("'-4'::long + 10", 6L);
     }
 }

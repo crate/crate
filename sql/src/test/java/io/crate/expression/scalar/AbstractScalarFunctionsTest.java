@@ -38,11 +38,11 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -53,8 +53,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -170,9 +168,6 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         if (functionSymbol instanceof Literal) {
             Object value = ((Literal) functionSymbol).value();
-            if (value instanceof BytesRef) {
-                value = BytesRefs.toString(value);
-            }
             assertThat(value, expectedValue);
             return;
         }
@@ -191,10 +186,6 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         }
 
         Object actualValue = scalar.compile(function.arguments()).evaluate(txnCtx, (Input[]) arguments);
-        // readable output for the AssertionError
-        if (actualValue instanceof BytesRef) {
-            actualValue = BytesRefs.toString(actualValue);
-        }
         assertThat(actualValue, expectedValue);
 
         // Reset calls
@@ -203,10 +194,6 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         }
 
         actualValue = scalar.evaluate(txnCtx, (Input[]) arguments);
-        // readable output for the AssertionError
-        if (actualValue instanceof BytesRef) {
-            actualValue = BytesRefs.toString(actualValue);
-        }
         assertThat(actualValue, expectedValue);
     }
 
@@ -226,8 +213,6 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     public void assertEvaluate(String functionExpression, Object expectedValue, Input... inputs) {
         if (expectedValue == null) {
             assertEvaluate(functionExpression, nullValue());
-        } else if (expectedValue instanceof BytesRef) {
-            assertEvaluate(functionExpression, is(BytesRefs.toString(expectedValue)), inputs);
         } else {
             assertEvaluate(functionExpression, is(expectedValue), inputs);
         }
