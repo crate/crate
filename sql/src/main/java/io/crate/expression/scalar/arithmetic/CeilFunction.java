@@ -27,14 +27,8 @@ import io.crate.expression.symbol.FuncArg;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.functions.params.FuncParams;
-import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.DoubleType;
-import io.crate.types.FloatType;
-import io.crate.types.IntegerType;
-import io.crate.types.LongType;
-import io.crate.types.ShortType;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -54,28 +48,12 @@ public final class CeilFunction {
             @Override
             public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
                 if (types.size() != 1) {
-                    Iterable<String> typeNames = types.stream().map(DataType::getName)::iterator;
-                    throw new IllegalArgumentException(
-                        "No overload found for ceil for arguments: " + String.join(", ", typeNames));
+                    throw FunctionResolver.noSignatureMatch(NAME, types);
                 }
                 DataType argType = types.get(0);
-                DataType returnType;
-                switch (argType.id()) {
-                    case ByteType.ID:
-                    case ShortType.ID:
-                    case IntegerType.ID:
-                    case FloatType.ID:
-                        returnType = DataTypes.INTEGER;
-                        break;
-
-                    case DoubleType.ID:
-                    case LongType.ID:
-                        returnType = DataTypes.LONG;
-                        break;
-
-                    default:
-                        throw new IllegalArgumentException(
-                            "No overload found for ceil for arguments: " + argType.getName());
+                DataType returnType = DataTypes.getIntegralReturnType(argType);
+                if (returnType == null) {
+                    throw FunctionResolver.noSignatureMatch(NAME, types);
                 }
                 return new UnaryScalar<>(
                     NAME, argType, returnType, x -> returnType.value(Math.ceil(((Number) x).doubleValue())));

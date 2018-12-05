@@ -26,6 +26,7 @@ import io.crate.expression.symbol.FuncArg;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -57,4 +58,11 @@ public interface FunctionResolver {
      * @throws java.lang.IllegalArgumentException thrown if there is no function that can handle the given types.
      */
     FunctionImplementation getForTypes(List<DataType> symbols) throws IllegalArgumentException;
+
+
+    static IllegalArgumentException noSignatureMatch(String functionName, Collection<DataType> types) {
+        Iterable<String> typeNames = types.stream().map(DataType::getName)::iterator;
+        throw new IllegalArgumentException(
+            "No matching signature found for " + functionName + " for argument types: " + String.join(", ", typeNames));
+    }
 }
