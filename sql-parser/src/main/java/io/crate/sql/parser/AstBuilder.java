@@ -161,6 +161,7 @@ import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.SubscriptExpression;
+import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableElement;
 import io.crate.sql.tree.TableFunction;
@@ -235,6 +236,15 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             visitCollection(context.crateTableOption(), CrateTableOption.class),
             extractGenericProperties(context.withProperties()),
             notExists);
+    }
+
+    @Override
+    public Node visitAlterClusterSwapTable(SqlBaseParser.AlterClusterSwapTableContext ctx) {
+        return new SwapTable(
+            getQualifiedName(ctx.source),
+            getQualifiedName(ctx.target),
+            extractGenericProperties(ctx.withProperties())
+        );
     }
 
     @Override
