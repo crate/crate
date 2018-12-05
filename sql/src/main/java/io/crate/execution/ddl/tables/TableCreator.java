@@ -86,7 +86,7 @@ public class TableCreator {
     }
 
     private CreateIndexRequest createIndexRequest(CreateTableAnalyzedStatement statement) {
-        return new CreateIndexRequest(statement.tableIdent().indexName(), settings(statement))
+        return new CreateIndexRequest(statement.tableIdent().indexNameOrAlias(), settings(statement))
             .mapping(Constants.DEFAULT_MAPPING_TYPE, statement.mapping());
     }
 
@@ -101,7 +101,7 @@ public class TableCreator {
             .settings(settings(statement))
             .patterns(Collections.singletonList(statement.templatePrefix()))
             .order(100)
-            .alias(new Alias(statement.tableIdent().indexName()));
+            .alias(new Alias(statement.tableIdent().indexNameOrAlias()));
     }
 
     private void createTable(final CompletableFuture<Long> result, final CreateTableAnalyzedStatement statement) {

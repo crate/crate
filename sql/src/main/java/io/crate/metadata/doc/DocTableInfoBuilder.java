@@ -74,18 +74,18 @@ class DocTableInfoBuilder {
         DocIndexMetaData docIndexMetaData;
         String templateName = PartitionName.templateName(ident.schema(), ident.name());
         if (metaData.getTemplates().containsKey(templateName)) {
-            docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.indexName(), templateName);
+            docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.indexNameOrAlias(), templateName);
             // We need all concrete indices, regardless of their state, for operations such as reopening.
             concreteIndices = indexNameExpressionResolver.concreteIndexNames(
-                state, IndicesOptions.lenientExpandOpen(), ident.indexName());
+                state, IndicesOptions.lenientExpandOpen(), ident.indexNameOrAlias());
             // We need all concrete open indices, as closed indices must not appear in the routing.
             concreteOpenIndices = indexNameExpressionResolver.concreteIndexNames(
                 state, IndicesOptions.fromOptions(true, true, true,
-                    false, IndicesOptions.strictExpandOpenAndForbidClosed()), ident.indexName());
+                    false, IndicesOptions.strictExpandOpenAndForbidClosed()), ident.indexNameOrAlias());
         } else {
             try {
                 concreteIndices = indexNameExpressionResolver.concreteIndexNames(
-                    state, IndicesOptions.strictExpandOpen(), ident.indexName());
+                    state, IndicesOptions.strictExpandOpen(), ident.indexNameOrAlias());
                 concreteOpenIndices = concreteIndices;
                 if (concreteIndices.length == 0) {
                     // no matching index found
@@ -153,7 +153,7 @@ class DocTableInfoBuilder {
                         partitions.add(partitionName);
                     } catch (IllegalArgumentException e) {
                         // ignore
-                        logger.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", indexName, ident.indexName()));
+                        logger.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", indexName, ident.indexNameOrAlias()));
                     }
                 }
             }

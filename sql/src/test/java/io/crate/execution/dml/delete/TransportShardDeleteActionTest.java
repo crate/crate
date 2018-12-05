@@ -72,7 +72,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         indexUUID = UUIDs.randomBase64UUID();
         IndicesService indicesService = mock(IndicesService.class);
         IndexService indexService = mock(IndexService.class);
-        when(indicesService.indexServiceSafe(new Index(TABLE_IDENT.indexName(), indexUUID))).thenReturn(indexService);
+        when(indicesService.indexServiceSafe(new Index(TABLE_IDENT.indexNameOrAlias(), indexUUID))).thenReturn(indexService);
         indexShard = mock(IndexShard.class);
         when(indexService.getShard(0)).thenReturn(indexShard);
 
@@ -93,7 +93,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testKilledSetWhileProcessingItemsDoesNotThrowExceptionAndMustMarkItemPosition() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), indexUUID, 0);
+        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), indexUUID, 0);
         final ShardDeleteRequest request = new ShardDeleteRequest(shardId, UUID.randomUUID());
         request.add(1, new ShardDeleteRequest.Item("1"));
 
@@ -106,7 +106,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testReplicaOperationWillSkipItemsFromMarkedPositionOn() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), indexUUID, 0);
+        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), indexUUID, 0);
         final ShardDeleteRequest request = new ShardDeleteRequest(shardId, UUID.randomUUID());
         request.add(1, new ShardDeleteRequest.Item("1"));
         request.skipFromLocation(1);

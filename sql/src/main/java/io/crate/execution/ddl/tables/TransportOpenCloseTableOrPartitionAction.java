@@ -85,6 +85,6 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
     @Override
     protected ClusterBlockException checkBlock(OpenCloseTableOrPartitionRequest request, ClusterState state) {
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE,
-            indexNameExpressionResolver.concreteIndexNames(state, STRICT_INDICES_OPTIONS, request.tableIdent().indexName()));
+            indexNameExpressionResolver.concreteIndexNames(state, STRICT_INDICES_OPTIONS, request.tableIdent().indexNameOrAlias()));
     }
 }

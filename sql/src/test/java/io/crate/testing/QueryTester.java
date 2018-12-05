@@ -150,7 +150,7 @@ public final class QueryTester implements AutoCloseable {
 
             DocSchemaInfo docSchema = findDocSchema(sqlExecutor.schemas());
             table = (DocTableInfo) docSchema.getTables().iterator().next();
-            Index index = new Index(table.ident().indexName(), UUIDs.randomBase64UUID());
+            Index index = new Index(table.ident().indexNameOrAlias(), UUIDs.randomBase64UUID());
             queryBuilder = new LuceneQueryBuilder(sqlExecutor.functions());
             Settings nodeSettings = Settings.builder()
                 .put(IndexMetaData.SETTING_VERSION_CREATED, indexVersion)

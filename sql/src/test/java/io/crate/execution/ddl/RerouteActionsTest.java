@@ -184,7 +184,7 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
 
         ClusterRerouteRequest request = new ClusterRerouteRequest();
         AllocateReplicaAllocationCommand command = new AllocateReplicaAllocationCommand(
-            userTable.ident().indexName(), 0, "node1");
+            userTable.ident().indexNameOrAlias(), 0, "node1");
         request.add(command);
         assertEquals(request, actualRequest);
     }
@@ -201,7 +201,7 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
 
         ClusterRerouteRequest request = new ClusterRerouteRequest();
         MoveAllocationCommand command = new MoveAllocationCommand(
-            userTable.ident().indexName(), 0, "node1", "node2");
+            userTable.ident().indexNameOrAlias(), 0, "node1", "node2");
         request.add(command);
         assertEquals(request, actualRequest);
     }
@@ -220,7 +220,7 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
 
         ClusterRerouteRequest request = new ClusterRerouteRequest();
         CancelAllocationCommand command = new CancelAllocationCommand(
-            userTable.ident().indexName(), 0, "node1", true);
+            userTable.ident().indexNameOrAlias(), 0, "node1", true);
         request.add(command);
         assertEquals(request, actualRequest);
     }

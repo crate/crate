@@ -99,17 +99,17 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
 
         try {
             Index[] sourceIndices = indexNameExpressionResolver.concreteIndices(currentState, STRICT_INDICES_OPTIONS,
-                sourceRelationName.indexName());
+                sourceRelationName.indexNameOrAlias());
             validateAllIndicesAreClosed(currentState, sourceRelationName, sourceIndices, isPartitioned);
 
             String[] targetIndices;
             if (isPartitioned) {
                 targetIndices = buildNewPartitionIndexNames(sourceIndices, targetRelationName);
                 // change the alias for all partitions
-                currentState = changeAliases(currentState, sourceIndices, sourceRelationName.indexName(),
-                    targetRelationName.indexName());
+                currentState = changeAliases(currentState, sourceIndices, sourceRelationName.indexNameOrAlias(),
+                    targetRelationName.indexNameOrAlias());
             } else {
-                targetIndices = new String[]{targetRelationName.indexName()};
+                targetIndices = new String[]{targetRelationName.indexNameOrAlias()};
             }
 
             MetaData metaData = currentState.getMetaData();
@@ -203,7 +203,7 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
             .settings(sourceTemplateMetaData.settings())
             .patterns(Collections.singletonList(targetTemplatePrefix))
             .putMapping(Constants.DEFAULT_MAPPING_TYPE, sourceTemplateMetaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE))
-            .putAlias(AliasMetaData.builder(targetIdent.indexName()));
+            .putAlias(AliasMetaData.builder(targetIdent.indexNameOrAlias()));
         IndexTemplateMetaData newTemplate = templateBuilder.build();
 
         mdBuilder.removeTemplate(sourceTemplateMetaData.getName()).put(newTemplate);

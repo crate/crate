@@ -120,7 +120,7 @@ public final class RerouteActions {
         ShardedTable shardedTable = statement.tableInfo();
         if (shardedTable instanceof DocTableInfo) {
             DocTableInfo docTableInfo = (DocTableInfo) shardedTable;
-            String indexName = docTableInfo.ident().indexName();
+            String indexName = docTableInfo.ident().indexNameOrAlias();
             PartitionName partitionName = AlterTableAnalyzer.createPartitionName(statement.partitionProperties(),
                 docTableInfo, parameters);
             if (partitionName != null) {

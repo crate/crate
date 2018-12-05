@@ -91,7 +91,10 @@ public final class RelationName implements Writeable {
         return Identifiers.quoteIfNeeded(schema) + "." + Identifiers.quoteIfNeeded(name);
     }
 
-    public String indexName() {
+    /**
+     * @return The indexName for non-partitioned tables or the alias name for partitioned tables.
+     */
+    public String indexNameOrAlias() {
         if (schema.equalsIgnoreCase(Schemas.DOC_SCHEMA_NAME)) {
             return name;
         } else if (schema.equalsIgnoreCase(BlobSchemaInfo.NAME)) {

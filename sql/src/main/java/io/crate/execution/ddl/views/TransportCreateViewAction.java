@@ -107,7 +107,7 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
     }
 
     private static boolean conflictsWithTable(RelationName viewName, MetaData indexMetaData) {
-        return indexMetaData.hasIndex(viewName.indexName())
+        return indexMetaData.hasIndex(viewName.indexNameOrAlias())
                || indexMetaData.templates().containsKey(PartitionName.templateName(viewName.schema(), viewName.name()));
     }
 
