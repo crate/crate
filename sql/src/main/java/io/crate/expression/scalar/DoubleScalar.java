@@ -23,11 +23,16 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import java.util.function.DoubleUnaryOperator;
+
+import static java.util.Collections.singletonList;
 
 /**
  * Scalar implementation that wraps another function: f(double) -> double
@@ -40,8 +45,8 @@ public final class DoubleScalar extends Scalar<Double, Number> {
     private final FunctionInfo info;
     private final DoubleUnaryOperator func;
 
-    public DoubleScalar(FunctionInfo info, DoubleUnaryOperator func) {
-        this.info = info;
+    public DoubleScalar(String name, DataType inputType, DoubleUnaryOperator func) {
+        this.info = new FunctionInfo(new FunctionIdent(name, singletonList(inputType)), DataTypes.DOUBLE);
         this.func = func;
     }
 

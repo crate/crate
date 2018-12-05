@@ -22,14 +22,11 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import java.util.Collections;
 import java.util.function.DoubleUnaryOperator;
 
 public final class TrigonometricFunctions {
@@ -45,8 +42,7 @@ public final class TrigonometricFunctions {
 
     private static void register(ScalarFunctionModule module, String name, DoubleUnaryOperator func) {
         for (DataType inputType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            FunctionIdent ident = new FunctionIdent(name, Collections.singletonList(inputType));
-            module.register(new DoubleScalar(new FunctionInfo(ident, DataTypes.DOUBLE), func));
+            module.register(new DoubleScalar(name, inputType, func));
         }
     }
 
