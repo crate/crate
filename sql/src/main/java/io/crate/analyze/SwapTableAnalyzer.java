@@ -31,6 +31,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.SwapTable;
@@ -39,7 +40,7 @@ import java.util.HashMap;
 
 public final class SwapTableAnalyzer {
 
-    private static final String DROP_SOURCE = "drop_source";
+    public static final String DROP_SOURCE = "drop_source";
     private final Functions functions;
     private final Schemas schemas;
 
@@ -67,8 +68,8 @@ public final class SwapTableAnalyzer {
             dropSource = exprAnalyzer.convert(dropSourceExpr, new ExpressionAnalysisContext());
         }
         return new AnalyzedSwapTable(
-            schemas.resolveTableInfo(swapTable.source(), Operation.ALTER_TABLE_RENAME, searchPath),
-            schemas.resolveTableInfo(swapTable.target(), Operation.ALTER_TABLE_RENAME, searchPath),
+            (DocTableInfo) schemas.resolveTableInfo(swapTable.source(), Operation.ALTER, searchPath),
+            (DocTableInfo) schemas.resolveTableInfo(swapTable.target(), Operation.ALTER, searchPath),
             dropSource
         );
     }

@@ -29,6 +29,7 @@ import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.analyze.AnalyzedSwapTable;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
@@ -187,6 +188,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitSelectStatement(QueriedRelation relation, PlannerContext context) {
         return logicalPlanner.plan(relation, context);
+    }
+
+    @Override
+    public Plan visitSwapTable(AnalyzedSwapTable swapTable, PlannerContext context) {
+        return new SwapTablePlan(swapTable);
     }
 
     @Override
