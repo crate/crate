@@ -20,51 +20,41 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.execution.ddl;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.RelationName;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 
-public final class AnalyzedSwapTable implements AnalyzedStatement {
+import java.io.IOException;
 
-    private final DocTableInfo source;
-    private final DocTableInfo target;
-    private final Symbol dropSource;
+public final class RelationNameSwap implements Writeable {
 
-    AnalyzedSwapTable(DocTableInfo source, DocTableInfo target, Symbol dropSource) {
+    private final RelationName source;
+    private final RelationName target;
+
+    public RelationNameSwap(RelationName source, RelationName target) {
         this.source = source;
         this.target = target;
-        this.dropSource = dropSource;
     }
 
-    public DocTableInfo source() {
+    public RelationNameSwap(StreamInput in) throws IOException {
+        this.source = new RelationName(in);
+        this.target = new RelationName(in);
+    }
+
+    public RelationName source() {
         return source;
     }
 
-    public DocTableInfo target() {
+    public RelationName target() {
         return target;
     }
 
-    public Symbol dropSource() {
-        return dropSource;
-    }
-
     @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitSwapTable(this, context);
-    }
-
-    @Override
-    public boolean isWriteOperation() {
-        return true;
-    }
-
-    @Override
-    public String toString() {
-        return "AnalyzedSwapTable{" +
-               "source=" + source +
-               ", target=" + target +
-               ", dropSource=" + dropSource +
-               '}';
+    public void writeTo(StreamOutput out) throws IOException {
+        source.writeTo(out);
+        target.writeTo(out);
     }
 }
