@@ -21,69 +21,49 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
+import io.crate.expression.scalar.UnaryScalar;
+import io.crate.expression.symbol.FuncArg;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import java.util.Collections;
+import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Map;
 
-public abstract class RoundFunction extends SingleArgumentArithmeticFunction {
+public final class RoundFunction {
 
     public static final String NAME = "round";
 
-    RoundFunction(FunctionInfo info) {
-        super(info);
-    }
-
     public static void register(ScalarFunctionModule module) {
-        Map<DataType, SingleArgumentArithmeticFunction> functionMap =
-            ImmutableMap.<DataType, SingleArgumentArithmeticFunction>builder()
-            .put(DataTypes.FLOAT, new FloatRoundFunction(Collections.singletonList(DataTypes.FLOAT)))
-            .put(DataTypes.INTEGER, new FloatRoundFunction(Collections.singletonList(DataTypes.INTEGER)))
-            .put(DataTypes.DOUBLE, new DoubleRoundFunction(Collections.singletonList(DataTypes.DOUBLE)))
-            .put(DataTypes.LONG, new DoubleRoundFunction(Collections.singletonList(DataTypes.LONG)))
-            .put(DataTypes.SHORT, new DoubleRoundFunction(Collections.singletonList(DataTypes.SHORT)))
-            .put(DataTypes.BYTE, new DoubleRoundFunction(Collections.singletonList(DataTypes.BYTE)))
-            .put(DataTypes.UNDEFINED, new DoubleRoundFunction(Collections.singletonList(DataTypes.UNDEFINED)))
-            .build();
-        module.register(NAME, new Resolver(NAME, functionMap));
-    }
+        module.register(NAME, new FunctionResolver() {
 
-    private static class FloatRoundFunction extends RoundFunction {
-
-        FloatRoundFunction(List<DataType> dataTypes) {
-            super(generateFloatFunctionInfo(NAME, dataTypes));
-        }
-
-        @Override
-        public Integer evaluate(TransactionContext txnCtx, Input[] args) {
-            Object value = args[0].value();
-            if (value == null) {
-                return null;
+            @Nullable
+            @Override
+            public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
+                return FuncParams.SINGLE_NUMERIC.match(funcArgs);
             }
-            return Math.round(((Number) value).floatValue());
-        }
-    }
 
-    private static class DoubleRoundFunction extends RoundFunction {
-
-        DoubleRoundFunction(List<DataType> dataTypes) {
-            super(generateDoubleFunctionInfo(NAME, dataTypes));
-        }
-
-        @Override
-        public Long evaluate(TransactionContext txnCtx, Input[] args) {
-            Object value = args[0].value();
-            if (value == null) {
-                return null;
+            @Override
+            public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
+                if (types.size() != 1) {
+                    throw FunctionResolver.noSignatureMatch(NAME, types);
+                }
+                DataType argType = types.get(0);
+                DataType returnType = DataTypes.getIntegralReturnType(argType);
+                if (returnType == null) {
+                    throw FunctionResolver.noSignatureMatch(NAME, types);
+                }
+                if (returnType.equals(DataTypes.INTEGER)) {
+                    return new UnaryScalar<>(
+                        NAME, argType, returnType, x -> Math.round(((Number) x).floatValue()));
+                } else {
+                    return new UnaryScalar<>(
+                        NAME, argType, returnType, x -> Math.round(((Number) x).doubleValue()));
+                }
             }
-            return Math.round(((Number) value).doubleValue());
-        }
+        });
     }
 }
