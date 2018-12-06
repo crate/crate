@@ -46,6 +46,9 @@ public class WindowBatchIteratorTest {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> new WindowBatchIterator(
                 emptyWindow(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                1,
                 TestingBatchIterators.range(0, 10),
                 getIntSummingCollector()
             )
@@ -59,6 +62,9 @@ public class WindowBatchIteratorTest {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> new WindowBatchIterator(
                 emptyWindow(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                1,
                 new BatchSimulatingIterator<>(
                     TestingBatchIterators.range(0, 10), 4, 2, null),
                 getIntSummingCollector()

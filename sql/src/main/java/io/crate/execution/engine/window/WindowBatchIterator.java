@@ -24,12 +24,15 @@ package io.crate.execution.engine.window;
 
 import io.crate.analyze.WindowDefinition;
 import io.crate.data.BatchIterator;
+import io.crate.data.Input;
 import io.crate.data.MappedForwardingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.execution.engine.collect.CollectExpression;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collector;
 
@@ -65,6 +68,9 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
     private final BatchIterator<Row> source;
     private final Collector<Row, ?, Iterable<Row>> collector;
     private final WindowDefinition windowDefinition;
+    private final Object[] outgoingCells;
+    private final LinkedList<Object[]> standaloneOutgoingCells;
+    private final List<CollectExpression<Row, ?>> standaloneExpressions;
 
     private Row currentElement;
 
@@ -73,8 +79,12 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
     private final List<Row> peerRows = new ArrayList<>();
     private boolean peersCollected = false;
     private Row prevRow = null;
+    private int collectorNumberOfColumns;
 
     WindowBatchIterator(WindowDefinition windowDefinition,
+                        List<Input<?>> standaloneInputs,
+                        List<CollectExpression<Row, ?>> standaloneExpressions,
+                        int windowFunctionsCount,
                         BatchIterator<Row> source,
                         Collector<Row, ?, Iterable<Row>> collector) {
         assert windowDefinition.partitions().size() == 0 : "Only empty OVER() is supported now";
@@ -84,6 +94,9 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         this.windowDefinition = windowDefinition;
         this.source = source;
         this.collector = collector;
+        this.standaloneExpressions = standaloneExpressions;
+        this.outgoingCells = new Object[windowFunctionsCount + standaloneInputs.size()];
+        this.standaloneOutgoingCells = new LinkedList<>();
     }
 
     @SuppressWarnings("unused")
@@ -99,6 +112,10 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
 
     @Override
     public Row currentElement() {
+        if (standaloneOutgoingCells.size() > 0) {
+            Object[] inputRowCells = standaloneOutgoingCells.removeFirst();
+            System.arraycopy(inputRowCells, 0, outgoingCells, collectorNumberOfColumns, inputRowCells.length);
+        }
         return currentElement;
     }
 
@@ -124,6 +141,8 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         while (source.moveNext()) {
             sourceRowsConsumed++;
             Row sourceRow = source.currentElement();
+            computeAndFillStandaloneOutgoingCellsFor(sourceRow);
+
             if (arePeers(prevRow, sourceRow)) {
                 peersCollected = false;
                 RowN materializedRow = new RowN(sourceRow.materialize());
@@ -146,18 +165,33 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
                 // we still need to emit rows
                 windowRowPosition++;
                 return true;
-            } else {
-                return false;
             }
         }
         return false;
+    }
+
+    private void computeAndFillStandaloneOutgoingCellsFor(Row sourceRow) {
+        if (standaloneExpressions.size() > 0) {
+            Object[] standaloneInputValues = new Object[standaloneExpressions.size()];
+            for (int i = 0; i < standaloneExpressions.size(); i++) {
+                CollectExpression<Row, ?> expression = standaloneExpressions.get(i);
+                expression.setNextRow(sourceRow);
+                standaloneInputValues[i] = expression.value();
+            }
+            standaloneOutgoingCells.add(standaloneInputValues);
+        }
     }
 
     private void collectPeers() {
         Iterable<Row> rows = peerRows.stream().collect(collector);
         peerRows.clear();
         peersCollected = true;
-        currentElement = rows.iterator().next();
+        Row collectedRow = rows.iterator().next();
+        collectorNumberOfColumns = collectedRow.numColumns();
+        for (int i = 0; i < collectorNumberOfColumns; i++) {
+            outgoingCells[i] = collectedRow.get(i);
+        }
+        currentElement = new RowN(outgoingCells);
         prevRow = null;
     }
 }

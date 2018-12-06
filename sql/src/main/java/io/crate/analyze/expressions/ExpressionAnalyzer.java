@@ -975,12 +975,12 @@ public class ExpressionAnalyzer {
             coordinatorTxnCtx.sessionContext().searchPath());
 
         FunctionInfo functionInfo = funcImpl.info();
-        if (functionInfo.type() == FunctionInfo.Type.AGGREGATE) {
-            context.indicateAggregates();
-        }
         List<Symbol> castArguments = cast(arguments, functionInfo.ident().argumentTypes());
         Function newFunction;
         if (windowDefinition == null) {
+            if (functionInfo.type() == FunctionInfo.Type.AGGREGATE) {
+                context.indicateAggregates();
+            }
             newFunction = new Function(functionInfo, castArguments);
         } else {
             if (functionInfo.type() != FunctionInfo.Type.WINDOW && functionInfo.type() != FunctionInfo.Type.AGGREGATE) {

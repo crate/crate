@@ -583,8 +583,8 @@ public class ProjectionToProjectorVisitor
         Map<WindowFunction, List<Symbol>> functionsWithInputs = windowAgg.functionsWithInputs();
 
         ArrayList<WindowFunctionContext> functionContexts = new ArrayList<>(functionsWithInputs.size());
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
         for (Map.Entry<WindowFunction, List<Symbol>> functionAndInputsEntry : functionsWithInputs.entrySet()) {
-            InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
             ctx.add(functionAndInputsEntry.getValue());
 
             FunctionImplementation impl = this.functions.getQualified((functionAndInputsEntry.getKey()).info().ident());
@@ -592,7 +592,17 @@ public class ProjectionToProjectorVisitor
             functionContexts.add(new WindowFunctionContext(ctx.topLevelInputs(), (AggregationFunction) impl, ctx.expressions()));
         }
 
-        return new WindowProjector(windowAgg.windowDefinition(), functionContexts, context.ramAccountingContext, indexVersionCreated, bigArrays);
+        InputFactory.Context<CollectExpression<Row, ?>> contextForStandaloneInputs = inputFactory.ctxForInputColumns(context.txnCtx);
+        contextForStandaloneInputs.add(windowAgg.standalone());
+
+        return new WindowProjector(
+            windowAgg.windowDefinition(),
+            functionContexts,
+            contextForStandaloneInputs.topLevelInputs(),
+            contextForStandaloneInputs.expressions(),
+            context.ramAccountingContext,
+            indexVersionCreated,
+            bigArrays);
     }
 
     @Override

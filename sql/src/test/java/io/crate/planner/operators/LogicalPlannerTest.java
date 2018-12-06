@@ -75,7 +75,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAvgWindowFunction() {
         LogicalPlan plan = plan("select avg(x) OVER() from t1");
-        assertThat(plan, isPlan("WindowAgg[avg(x)]\n" +
+        assertThat(plan, isPlan("FetchOrEval[avg(x)]\n" +
+                                "WindowAgg[avg(x)]\n" +
                                 "Collect[doc.t1 | [x] | All]\n"));
     }
 
