@@ -41,4 +41,11 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
         assertThat(printedTable(response.rows()), is("1.5| 3\n1.5| 3\n1.5| 3\n"));
     }
 
+    @Test
+    public void testSelectStandaloneColumnsAndWindowFunction() {
+        execute("select col1, avg(col1) OVER(), col2 from unnest([1, 2, null], [3, 4, 5])");
+        assertThat(printedTable(response.rows()), is("1| 1.5| 3\n" +
+                                                     "2| 1.5| 4\n" +
+                                                     "NULL| 1.5| 5\n"));
+    }
 }

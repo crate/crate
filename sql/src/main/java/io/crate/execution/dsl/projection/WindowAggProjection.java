@@ -37,21 +37,33 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class WindowAggProjection extends Projection {
 
     private final WindowDefinition windowDefinition;
+    private final List<Symbol> standaloneWithInputs;
     private LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs;
     private ArrayList<Symbol> outputs;
 
-    public WindowAggProjection(WindowDefinition windowDefinition, LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs) {
+    public WindowAggProjection(WindowDefinition windowDefinition,
+                               LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs,
+                               List<Symbol> standaloneWithInputs) {
+        Set<WindowFunction> windowFunctions = functionsWithInputs.keySet();
+        assert windowFunctions.stream().noneMatch(Symbols.IS_COLUMN)
+            : "Cannot operate on Reference or Field: " + windowFunctions;
+        assert standaloneWithInputs.stream().noneMatch(Symbols.IS_COLUMN)
+            : "Cannot operate on Reference or Field: " + standaloneWithInputs;
         this.windowDefinition = windowDefinition;
         this.functionsWithInputs = functionsWithInputs;
-        outputs = new ArrayList<>(functionsWithInputs.keySet());
+        this.standaloneWithInputs = standaloneWithInputs;
+        outputs = new ArrayList<>(windowFunctions);
+        outputs.addAll(standaloneWithInputs);
     }
 
     public WindowAggProjection(StreamInput in) throws IOException {
         windowDefinition = new WindowDefinition(in);
+        standaloneWithInputs = Symbols.listFromStream(in);
         int functionsCount = in.readVInt();
         functionsWithInputs = new LinkedHashMap<>(functionsCount, 1f);
         for (int i = 0; i < functionsCount; i++) {
@@ -68,6 +80,10 @@ public class WindowAggProjection extends Projection {
 
     public Map<WindowFunction, List<Symbol>> functionsWithInputs() {
         return functionsWithInputs;
+    }
+
+    public List<Symbol> standalone() {
+        return standaloneWithInputs;
     }
 
     @Override
@@ -102,6 +118,7 @@ public class WindowAggProjection extends Projection {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         windowDefinition.writeTo(out);
+        Symbols.toStream(standaloneWithInputs, out);
         out.writeVInt(functionsWithInputs.size());
         for (Map.Entry<WindowFunction, List<Symbol>> functionWithInputs : functionsWithInputs.entrySet()) {
             Symbols.toStream(functionWithInputs.getKey(), out);
