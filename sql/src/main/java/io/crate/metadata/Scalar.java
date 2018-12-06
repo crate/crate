@@ -47,6 +47,15 @@ import java.util.List;
  *     An exception is if {@link #compile(List)} returns a NEW instance.
  * </p>
  *
+ * To implement scalar functions, you may want to use one of the following abstractions:
+ *
+ * <ul>
+ *     <li>{@link io.crate.expression.scalar.UnaryScalar}</li>
+ *     <li>{@link io.crate.expression.scalar.arithmetic.BinaryScalar}</li>
+ *     <li>{@link io.crate.expression.scalar.DoubleScalar}</li>
+ *     <li>{@link io.crate.expression.scalar.TripleScalar}</li>
+ * </ul>
+ *
  * @param <ReturnType> the class of the returned value
  */
 public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation {
