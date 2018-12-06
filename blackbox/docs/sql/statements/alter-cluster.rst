@@ -68,6 +68,10 @@ An example use case of this feature is some sort of schema migration using
 copy over the data from the old table and then replace the old table with the
 new table.
 
+.. NOTE::
+
+    Swapping two tables causes the shards to be unavailable for a short period.
+
 
 Options
 .......
