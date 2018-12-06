@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.join;
 
-import io.crate.data.Paging;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import java.util.function.IntSupplier;
@@ -32,15 +31,16 @@ import java.util.function.IntSupplier;
  */
 public class RamBlockSizeCalculator implements IntSupplier {
 
-    static final int DEFAULT_BLOCK_SIZE = Paging.PAGE_SIZE;
-
+    private final int defaultBlockSize;
     private final CircuitBreaker circuitBreaker;
     private final long estimatedRowSizeForLeft;
     private final long numberOfRowsForLeft;
 
-    RamBlockSizeCalculator(CircuitBreaker circuitBreaker,
+    RamBlockSizeCalculator(int defaultBlockSize,
+                           CircuitBreaker circuitBreaker,
                            long estimatedRowSizeForLeft,
                            long numberOfRowsForLeft) {
+        this.defaultBlockSize = defaultBlockSize;
         this.circuitBreaker = circuitBreaker;
         this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
         this.numberOfRowsForLeft = numberOfRowsForLeft;
@@ -49,7 +49,7 @@ public class RamBlockSizeCalculator implements IntSupplier {
     @Override
     public int getAsInt() {
         if (statisticsUnavailable(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)) {
-            return DEFAULT_BLOCK_SIZE;
+            return defaultBlockSize;
         }
 
         int blockSize = (int) Math.min(Integer.MAX_VALUE, (circuitBreaker.getLimit() - circuitBreaker.getUsed()) / estimatedRowSizeForLeft);
@@ -59,7 +59,7 @@ public class RamBlockSizeCalculator implements IntSupplier {
         // eventually and does not load the next batch while another is already switching. this would result in a
         // dead lock caused by the constraint that all receivers must response to the collect nodes before a next batch
         // is sent.
-        blockSize = Math.min(DEFAULT_BLOCK_SIZE, blockSize);
+        blockSize = Math.min(defaultBlockSize, blockSize);
 
         // In case no mem available from circuit breaker then still allocate a small blockSize,
         // so that at least some rows (min 1) could be processed and a CircuitBreakerException can be triggered.

@@ -26,6 +26,7 @@ import io.crate.breaker.RowAccounting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.ListenableBatchIterator;
+import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.join.CombinedRow;
@@ -74,7 +75,7 @@ public class HashJoinOperation implements CompletionListenable {
                             getHashBuilderFromSymbols(txnCtx, inputFactory, joinLeftInputs),
                             getHashBuilderFromSymbols(txnCtx, inputFactory, joinRightInputs),
                             rowAccounting,
-                            new RamBlockSizeCalculator(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)
+                            new RamBlockSizeCalculator(Paging.PAGE_SIZE, circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)
                         ), completionFuture);
                         nlResultConsumer.accept(joinIterator, null);
                     } catch (Exception e) {
