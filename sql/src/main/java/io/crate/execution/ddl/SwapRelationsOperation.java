@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.cluster.DDLClusterStateService;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
@@ -49,11 +50,14 @@ import java.util.function.Consumer;
 public class SwapRelationsOperation {
 
     private final AllocationService allocationService;
+    private final DDLClusterStateService ddlClusterStateService;
     private final IndexNameExpressionResolver indexNameResolver;
 
     public SwapRelationsOperation(AllocationService allocationService,
+                                  DDLClusterStateService ddlClusterStateService,
                                   IndexNameExpressionResolver indexNameResolver) {
         this.allocationService = allocationService;
+        this.ddlClusterStateService = ddlClusterStateService;
         this.indexNameResolver = indexNameResolver;
     }
 
@@ -85,20 +89,34 @@ public class SwapRelationsOperation {
         for (RelationName dropRelation : dropRelations) {
             for (Index index : indexNameResolver.concreteIndices(
                 state, IndicesOptions.LENIENT_EXPAND_OPEN, dropRelation.indexNameOrAlias())) {
-                updatedMetaData.remove(index.getName());
-                routingBuilder.remove(index.getName());
-                updatedState.newIndices.remove(index.getName());
+
+                String indexName = index.getName();
+                updatedMetaData.remove(indexName);
+                routingBuilder.remove(indexName);
+                updatedState.newIndices.remove(indexName);
             }
         }
-        ClusterState stateAfterDropRelations = allocationService.reroute(
-            ClusterState
-                .builder(stateAfterRename)
-                .metaData(updatedMetaData)
-                .routingTable(routingBuilder.build())
-                .build(),
-            "indices drop after name switch"
+        ClusterState stateAfterDropRelations = ClusterState
+            .builder(stateAfterRename)
+            .metaData(updatedMetaData)
+            .routingTable(routingBuilder.build())
+            .build();
+        return new UpdatedState(
+            allocationService.reroute(
+                applyDropTableClusterStateModifiers(stateAfterDropRelations, dropRelations),
+                "indices drop after name switch"
+            ),
+            updatedState.newIndices
         );
-        return new UpdatedState(stateAfterDropRelations, updatedState.newIndices);
+    }
+
+    private ClusterState applyDropTableClusterStateModifiers(ClusterState stateAfterDropRelations,
+                                                             List<RelationName> dropRelations) {
+        ClusterState updatedState = stateAfterDropRelations;
+        for (RelationName dropRelation : dropRelations) {
+            updatedState = ddlClusterStateService.onDropTable(updatedState, dropRelation);
+        }
+        return updatedState;
     }
 
     private UpdatedState applyRenameActions(ClusterState state,
@@ -122,15 +140,24 @@ public class SwapRelationsOperation {
             addSourceIndicesRenamedToTargetName(
                 state, metaData, updatedMetaData, blocksBuilder, routingBuilder, target, source, newIndexNames::add);
         }
-        ClusterState newState = allocationService.reroute(
-            ClusterState.builder(state)
-                .metaData(updatedMetaData)
-                .routingTable(routingBuilder.build())
-                .blocks(blocksBuilder)
-                .build(),
+        ClusterState stateAfterSwap = ClusterState.builder(state)
+            .metaData(updatedMetaData)
+            .routingTable(routingBuilder.build())
+            .blocks(blocksBuilder)
+            .build();
+        ClusterState reroutedState = allocationService.reroute(
+            applyClusterStateModifiers(stateAfterSwap, swapRelationsRequest.swapActions()),
             "indices name switch"
         );
-        return new UpdatedState(newState, newIndexNames);
+        return new UpdatedState(reroutedState, newIndexNames);
+    }
+
+    private ClusterState applyClusterStateModifiers(ClusterState newState, List<RelationNameSwap> swapActions) {
+        ClusterState updatedState = newState;
+        for (RelationNameSwap swapAction : swapActions) {
+            updatedState = ddlClusterStateService.onSwapRelations(updatedState, swapAction.source(), swapAction.target());
+        }
+        return updatedState;
     }
 
     private void removeOccurrences(ClusterState state,

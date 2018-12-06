@@ -256,6 +256,17 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
+    public void testPrivilegeIsSwappedWithSwapTable() {
+        executeAsSuperuser("create table doc.t1 (x int)");
+        executeAsSuperuser("create table doc.t2 (x int)");
+        executeAsSuperuser("grant dql on table doc.t1 to " + TEST_USERNAME);
+
+        executeAsSuperuser("alter cluster swap table doc.t1 to doc.t2 with (drop_source = true)");
+        execute("select * from doc.t2", null, testUserSession());
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
     public void testRenamePartitionedTableTransfersPrivilegesToNewTable() {
         executeAsSuperuser("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("insert into t1 values (1)");

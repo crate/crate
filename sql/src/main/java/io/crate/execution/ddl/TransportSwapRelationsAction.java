@@ -22,10 +22,13 @@
 
 package io.crate.execution.ddl;
 
+import io.crate.metadata.RelationName;
+import io.crate.metadata.cluster.DDLClusterStateService;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.ActiveShardsObserver;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -41,6 +44,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class TransportSwapRelationsAction extends TransportMasterNodeAction<SwapRelationsRequest, AcknowledgedResponse> {
@@ -55,6 +61,7 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
                                         ThreadPool threadPool,
                                         ActionFilters actionFilters,
                                         IndexNameExpressionResolver indexNameExpressionResolver,
+                                        DDLClusterStateService ddlClusterStateService,
                                         AllocationService allocationService) {
         super(settings,
             "internal:crate:sql/alter/cluster/indices",
@@ -65,7 +72,8 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
             indexNameExpressionResolver,
             SwapRelationsRequest::new);
         this.activeShardsObserver = new ActiveShardsObserver(settings, clusterService, threadPool);
-        this.swapRelationsOperation = new SwapRelationsOperation(allocationService, indexNameExpressionResolver);
+        this.swapRelationsOperation = new SwapRelationsOperation(
+            allocationService, ddlClusterStateService, indexNameExpressionResolver);
     }
 
     @Override
@@ -126,6 +134,17 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
 
     @Override
     protected ClusterBlockException checkBlock(SwapRelationsRequest request, ClusterState state) {
-        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
+        Set<String> affectedIndices = new HashSet<>();
+        for (RelationNameSwap swapAction : request.swapActions()) {
+            affectedIndices.addAll(Arrays.asList(indexNameExpressionResolver.concreteIndexNames(
+                state, IndicesOptions.LENIENT_EXPAND_OPEN, swapAction.source().indexNameOrAlias())));
+            affectedIndices.addAll(Arrays.asList(indexNameExpressionResolver.concreteIndexNames(
+                state, IndicesOptions.LENIENT_EXPAND_OPEN, swapAction.target().indexNameOrAlias())));
+        }
+        for (RelationName dropRelation : request.dropRelations()) {
+            affectedIndices.addAll(Arrays.asList(indexNameExpressionResolver.concreteIndexNames(
+                state, IndicesOptions.LENIENT_EXPAND_OPEN, dropRelation.indexNameOrAlias())));
+        }
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_READ, affectedIndices.toArray(new String[0]));
     }
 }

@@ -83,6 +83,12 @@ public interface DDLClusterStateModifier {
         return currentState;
     }
 
+    default ClusterState onSwapRelations(ClusterState currentState,
+                                         RelationName source,
+                                         RelationName target) {
+        return currentState;
+    }
+
     /**
      * Called while a view is dropped.
      */

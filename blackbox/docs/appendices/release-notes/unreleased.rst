@@ -46,6 +46,9 @@ Breaking Changes
 Changes
 =======
 
+- Added a ``ALTER CLUSTER SWAP TABLE`` statement that can be used to switch the
+  name of two tables.
+
 - Functions like ``current_schema`` and ``current_user`` which depend on the
   active session can now be used as generated columns.
 

@@ -65,7 +65,7 @@ public class DDLClusterStateService {
             (modifier, clusterState) -> modifier.onOpenTablePartition(clusterState, partitionName));
     }
 
-    ClusterState onDropTable(ClusterState currentState, RelationName relationName) {
+    public ClusterState onDropTable(ClusterState currentState, RelationName relationName) {
         return applyOnAllModifiers(currentState,
             (modifier, clusterState) -> modifier.onDropTable(clusterState, relationName));
     }
@@ -81,6 +81,10 @@ public class DDLClusterStateService {
     public ClusterState onDropView(ClusterState currentState, List<RelationName> relationNames) {
         return applyOnAllModifiers(currentState,
             (modifier, clusterState) -> modifier.onDropView(clusterState, relationNames));
+    }
+
+    public ClusterState onSwapRelations(ClusterState state, RelationName source, RelationName target) {
+        return applyOnAllModifiers(state, (modifier, currentState) -> modifier.onSwapRelations(currentState, source, target));
     }
 
     private ClusterState applyOnAllModifiers(ClusterState currentState,

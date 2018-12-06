@@ -54,6 +54,21 @@ public class UserManagerDDLModifier implements DDLClusterStateModifier {
         return currentState;
     }
 
+    @Override
+    public ClusterState onSwapRelations(ClusterState currentState, RelationName source, RelationName target) {
+        MetaData currentMetaData = currentState.metaData();
+        UsersPrivilegesMetaData userPrivileges = currentMetaData.custom(UsersPrivilegesMetaData.TYPE);
+        if (userPrivileges == null) {
+            return currentState;
+        }
+        UsersPrivilegesMetaData updatedPrivileges = UsersPrivilegesMetaData.swapPrivileges(userPrivileges, source, target);
+        return ClusterState.builder(currentState)
+            .metaData(MetaData.builder(currentMetaData)
+                .putCustom(UsersPrivilegesMetaData.TYPE, updatedPrivileges)
+                .build())
+            .build();
+    }
+
     private ClusterState dropPrivilegesForTableOrView(ClusterState currentState, RelationName relationName) {
         MetaData currentMetaData = currentState.metaData();
         MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
