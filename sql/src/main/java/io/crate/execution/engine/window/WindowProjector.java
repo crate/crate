@@ -42,13 +42,21 @@ public class WindowProjector implements Projector {
 
     private final WindowDefinition windowDefinition;
     private final AggregateCollector collector;
+    private final List<Input<?>> standaloneInputs;
+    private final int windowFunctionsCount;
+    private final List<CollectExpression<Row, ?>> standaloneExpressions;
 
     public WindowProjector(WindowDefinition windowDefinition,
                            List<WindowFunctionContext> windowFunctions,
+                           List<Input<?>> standaloneInputs,
+                           List<CollectExpression<Row, ?>> standaloneExpressions,
                            RamAccountingContext ramAccountingContext,
                            Version indexVersionCreated,
                            BigArrays bigArrays) {
         this.windowDefinition = windowDefinition;
+        this.standaloneInputs = standaloneInputs;
+        this.standaloneExpressions = standaloneExpressions;
+        this.windowFunctionsCount = windowFunctions.size();
 
         List<CollectExpression<Row, ?>> expressions = new ArrayList<>();
 
@@ -75,6 +83,12 @@ public class WindowProjector implements Projector {
 
     @Override
     public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
-        return new WindowBatchIterator(windowDefinition, batchIterator, collector);
+        return new WindowBatchIterator(
+            windowDefinition,
+            standaloneInputs,
+            standaloneExpressions,
+            windowFunctionsCount,
+            batchIterator,
+            collector);
     }
 }

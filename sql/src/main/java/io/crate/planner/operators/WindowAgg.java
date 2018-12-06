@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
+import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.WindowAggProjection;
@@ -37,7 +38,6 @@ import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -50,7 +50,7 @@ import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 public class WindowAgg extends OneInputPlan {
 
     private final List<WindowFunction> windowFunctions;
-    private final List<Symbol> outputs;
+    private final List<Symbol> standalone;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder source, List<WindowFunction> windowFunctions) {
         if (windowFunctions.isEmpty()) {
@@ -73,14 +73,18 @@ public class WindowAgg extends OneInputPlan {
             allUsedColumns.addAll(columnsUsedInFunctions);
             LogicalPlan sourcePlan = source.build(tableStats, allUsedColumns);
 
-            return new WindowAgg(sourcePlan, windowFunctions);
+            /**
+             * Pass along the source outputs as standalone symbols as they might be required in cases like:
+             *      select x, avg(x) OVER() from t;
+             */
+            return new WindowAgg(sourcePlan, windowFunctions, sourcePlan.outputs());
         };
     }
 
-    private WindowAgg(LogicalPlan source, List<WindowFunction> windowFunctions) {
-        super(source);
+    private WindowAgg(LogicalPlan source, List<WindowFunction> windowFunctions, List<Symbol> standalone) {
+        super(source, Lists2.concat(windowFunctions, standalone));
         this.windowFunctions = windowFunctions;
-        this.outputs = new ArrayList<>(windowFunctions);
+        this.standalone = standalone;
     }
 
     List<WindowFunction> windowFunctions() {
@@ -89,7 +93,7 @@ public class WindowAgg extends OneInputPlan {
 
     @Override
     protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new WindowAgg(newSource, windowFunctions);
+        return new WindowAgg(newSource, windowFunctions, standalone);
     }
 
     @Override
@@ -115,8 +119,9 @@ public class WindowAgg extends OneInputPlan {
         sourcePlan = Merge.ensureOnHandler(sourcePlan, plannerContext);
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
+        List<Symbol> standaloneWithInputs = InputColumns.create(this.standalone, sourceSymbols);
         for (Map.Entry<WindowDefinition, LinkedHashMap<WindowFunction, List<Symbol>>> entry : groupFunctionsByWindow(sourceSymbols, windowFunctions).entrySet()) {
-            sourcePlan.addProjection(new WindowAggProjection(entry.getKey(), entry.getValue()));
+            sourcePlan.addProjection(new WindowAggProjection(entry.getKey(), entry.getValue(), standaloneWithInputs));
         }
         return sourcePlan;
     }

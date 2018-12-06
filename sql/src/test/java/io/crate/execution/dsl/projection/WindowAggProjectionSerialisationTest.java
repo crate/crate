@@ -40,6 +40,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +67,10 @@ public class WindowAggProjectionSerialisationTest {
         functionsWithInputs.put(firstWindowFunction, Arrays.asList(Literal.of(1L)));
         functionsWithInputs.put(secondWindowFunction, Arrays.asList(Literal.of(2L)));
 
-        WindowAggProjection windowAggProjection = new WindowAggProjection(partitionByOneWindowDef, functionsWithInputs);
+        WindowAggProjection windowAggProjection =
+            new WindowAggProjection(partitionByOneWindowDef,
+                functionsWithInputs,
+                Collections.singletonList(Literal.of(42L)));
         BytesStreamOutput output = new BytesStreamOutput();
         windowAggProjection.writeTo(output);
 
