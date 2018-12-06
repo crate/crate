@@ -87,7 +87,7 @@ public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDL
         RelationName relationName = request.tableIdent();
         String partitionIndexName = request.partitionIndexName();
         MetaData metaData = currentState.metaData();
-        String indexToResolve = partitionIndexName != null ? partitionIndexName : relationName.indexName();
+        String indexToResolve = partitionIndexName != null ? partitionIndexName : relationName.indexNameOrAlias();
         PartitionName partitionName = partitionIndexName != null ? PartitionName.fromIndexOrTemplate(partitionIndexName) : null;
         String[] concreteIndices = indexNameExpressionResolver.concreteIndexNames(
             currentState, IndicesOptions.lenientExpandOpen(), indexToResolve);

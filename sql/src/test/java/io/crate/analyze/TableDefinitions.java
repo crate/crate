@@ -233,7 +233,7 @@ public final class TableDefinitions {
     public static TestingBlobTableInfo createBlobTable(RelationName ident) {
         return new TestingBlobTableInfo(
             ident,
-            ident.indexName(),
+            ident.indexNameOrAlias(),
             5,
             "0",
             ImmutableMap.<String, Object>of(),

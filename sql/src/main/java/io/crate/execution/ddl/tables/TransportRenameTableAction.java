@@ -79,7 +79,7 @@ public class TransportRenameTableAction extends AbstractDDLTransportAction<Renam
     protected ClusterBlockException checkBlock(RenameTableRequest request, ClusterState state) {
         try {
             return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE,
-                indexNameExpressionResolver.concreteIndexNames(state, STRICT_INDICES_OPTIONS, request.sourceTableIdent().indexName()));
+                indexNameExpressionResolver.concreteIndexNames(state, STRICT_INDICES_OPTIONS, request.sourceTableIdent().indexNameOrAlias()));
         } catch (IndexNotFoundException e) {
             if (request.isPartitioned() == false) {
                 throw e;

@@ -160,7 +160,7 @@ public class Get extends ZeroInputPlan {
             assert partitionValues != null : "values must not be null";
             return IndexParts.toIndexName(relation, PartitionName.encodeIdent(partitionValues));
         } else {
-            return relation.indexName();
+            return relation.indexNameOrAlias();
         }
     }
 }

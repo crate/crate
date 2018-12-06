@@ -443,7 +443,7 @@ public class SQLExecutor {
             XContentBuilder mappingBuilder = XContentFactory.jsonBuilder().map(analyzedStmt.mapping());
             CompressedXContent mapping = new CompressedXContent(BytesReference.bytes(mappingBuilder));
             Settings settings = analyzedStmt.tableParameter().settings().getByPrefix("index.");
-            AliasMetaData.Builder alias = AliasMetaData.builder(analyzedStmt.tableIdent().indexName());
+            AliasMetaData.Builder alias = AliasMetaData.builder(analyzedStmt.tableIdent().indexNameOrAlias());
             IndexTemplateMetaData.Builder template = IndexTemplateMetaData.builder(analyzedStmt.templateName())
                 .patterns(singletonList(analyzedStmt.templatePrefix()))
                 .order(100)
@@ -486,7 +486,7 @@ public class SQLExecutor {
             ClusterState prevState = clusterService.state();
             RelationName relationName = analyzedStmt.tableIdent();
             IndexMetaData indexMetaData = getIndexMetaData(
-                relationName.indexName(), analyzedStmt, prevState.nodes().getSmallestNonClientNodeVersion())
+                relationName.indexNameOrAlias(), analyzedStmt, prevState.nodes().getSmallestNonClientNodeVersion())
                 .build();
 
             ClusterState state = ClusterState.builder(prevState)

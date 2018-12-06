@@ -159,7 +159,7 @@ public class TestingTableInfo extends DocTableInfo {
         private static String[] concreteIndices(RelationName ident, ImmutableList<PartitionName> partitionsList) {
             String[] concreteIndices;
             if (partitionsList.isEmpty()) {
-                concreteIndices = new String[]{ident.indexName()};
+                concreteIndices = new String[]{ident.indexNameOrAlias()};
             } else {
                 concreteIndices = Lists.transform(partitionsList, new Function<PartitionName, String>() {
                     @Nullable

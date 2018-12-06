@@ -201,7 +201,7 @@ public class Routing implements Writeable {
     public static Routing forTableOnAllNodes(RelationName relationName, DiscoveryNodes nodes) {
         TreeMap<String, Map<String, IntIndexedContainer>> indicesByNode = new TreeMap<>();
         Map<String, IntIndexedContainer> shardsByIndex = Collections.singletonMap(
-            relationName.indexName(),
+            relationName.indexNameOrAlias(),
             IntArrayList.from(IntArrayList.EMPTY_ARRAY)
         );
         for (DiscoveryNode node : nodes) {

@@ -220,8 +220,8 @@ public class AlterTableOperation {
                 }
             }
         } else {
-            results.add(updateMapping(analysis.tableParameter().mappings(), table.ident().indexName()));
-            results.add(updateSettings(analysis.tableParameter(), table.ident().indexName()));
+            results.add(updateMapping(analysis.tableParameter().mappings(), table.ident().indexNameOrAlias()));
+            results.add(updateSettings(analysis.tableParameter(), table.ident().indexNameOrAlias()));
         }
 
         final CompletableFuture<Long> result = new CompletableFuture<>();
@@ -249,8 +249,8 @@ public class AlterTableOperation {
             return renamePartitionedTable(sourceTableInfo, targetRelationName);
         }
 
-        String[] sourceIndices = new String[]{sourceRelationName.indexName()};
-        String[] targetIndices = new String[]{targetRelationName.indexName()};
+        String[] sourceIndices = new String[]{sourceRelationName.indexNameOrAlias()};
+        String[] targetIndices = new String[]{targetRelationName.indexNameOrAlias()};
 
         List<ChainableAction<Long>> actions = new ArrayList<>(3);
 
@@ -402,7 +402,7 @@ public class AlterTableOperation {
             .order(indexTemplateMetaData.order())
             .settings(settings)
             .patterns(indexTemplateMetaData.getPatterns())
-            .alias(new Alias(relationName.indexName()));
+            .alias(new Alias(relationName.indexNameOrAlias()));
         for (ObjectObjectCursor<String, AliasMetaData> container : indexTemplateMetaData.aliases()) {
             Alias alias = new Alias(container.key);
             request.alias(alias);

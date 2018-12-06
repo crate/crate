@@ -84,7 +84,7 @@ public class ShardRowContext {
         if (indexParts.isPartitioned()) {
             partitionIdent = indexParts.getPartitionIdent();
             RelationName relationName = indexParts.toRelationName();
-            aliasName = relationName.indexName();
+            aliasName = relationName.indexNameOrAlias();
             templateName = PartitionName.templateName(relationName.schema(), relationName.name());
         } else {
             partitionIdent = "";
