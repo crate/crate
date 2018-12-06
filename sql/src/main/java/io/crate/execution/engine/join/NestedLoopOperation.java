@@ -29,6 +29,7 @@ import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.FilteringBatchIterator;
 import io.crate.data.ListenableBatchIterator;
+import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.join.CombinedRow;
@@ -155,7 +156,8 @@ public class NestedLoopOperation implements CompletionListenable {
                                                                   long estimatedNumberOfRowsLeft,
                                                                   boolean blockNestedLoop) {
         if (blockNestedLoop) {
-            IntSupplier blockSizeCalculator = new RamBlockSizeCalculator(circuitBreaker, estimatedRowsSizeLeft, estimatedNumberOfRowsLeft);
+            IntSupplier blockSizeCalculator = new RamBlockSizeCalculator(
+                Paging.PAGE_SIZE, circuitBreaker, estimatedRowsSizeLeft, estimatedNumberOfRowsLeft);
             RowAccounting rowAccounting = new RowAccountingWithEstimators(leftSideColumnTypes, ramAccountingContext);
             return JoinBatchIterators.crossJoinBlockNL(left, right, combiner, blockSizeCalculator, rowAccounting);
         } else {
