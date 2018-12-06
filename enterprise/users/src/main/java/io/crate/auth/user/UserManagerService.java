@@ -200,11 +200,18 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        if (!event.metaDataChanged()) {
-            return;
+        MetaData prevMetaData = event.previousState().metaData();
+        MetaData newMetaData = event.state().metaData();
+
+        UsersMetaData prevUsers = prevMetaData.custom(UsersMetaData.TYPE);
+        UsersMetaData newUsers = newMetaData.custom(UsersMetaData.TYPE);
+
+        UsersPrivilegesMetaData prevUsersPrivileges = prevMetaData.custom(UsersPrivilegesMetaData.TYPE);
+        UsersPrivilegesMetaData newUsersPrivileges = newMetaData.custom(UsersPrivilegesMetaData.TYPE);
+
+        if (prevUsers != newUsers || prevUsersPrivileges != newUsersPrivileges) {
+            users = getUsers(newUsers, newUsersPrivileges);
         }
-        MetaData metaData = event.state().metaData();
-        users = getUsers(metaData.custom(UsersMetaData.TYPE), metaData.custom(UsersPrivilegesMetaData.TYPE));
     }
 
 
