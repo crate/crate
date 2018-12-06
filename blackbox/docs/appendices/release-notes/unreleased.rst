@@ -46,6 +46,9 @@ Breaking Changes
 Changes
 =======
 
+- Added support for executing aggregations as ``window functions`` with an
+  empty OVER clause as the window definition.
+
 - Functions like ``current_schema`` and ``current_user`` which depend on the
   active session can now be used as generated columns.
 
