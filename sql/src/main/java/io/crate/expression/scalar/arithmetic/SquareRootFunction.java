@@ -22,23 +22,18 @@
 package io.crate.expression.scalar.arithmetic;
 
 import com.google.common.base.Preconditions;
-import io.crate.data.Input;
+import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.FuncArg;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public abstract class SquareRootFunction extends Scalar<Number, Number> {
+public final class SquareRootFunction {
 
     public static final String NAME = "sqrt";
 
@@ -46,43 +41,17 @@ public abstract class SquareRootFunction extends Scalar<Number, Number> {
         module.register(NAME, new Resolver());
     }
 
-    private final FunctionInfo info;
-
-    SquareRootFunction(FunctionInfo info) {
-        this.info = info;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
-    static class DoubleSquareRootFunction extends SquareRootFunction {
-
-        DoubleSquareRootFunction(FunctionInfo info) {
-            super(info);
-        }
-
-        @Override
-        public Double evaluate(TransactionContext txnCtx, Input[] args) {
-            Number value = (Number) args[0].value();
-            if (value == null) {
-                return null;
-            }
-            Preconditions.checkArgument(value.doubleValue() >= 0, "cannot take square root of a negative number");
-            return Math.sqrt(value.doubleValue());
-        }
-
+    private static double sqrt(double value) {
+        Preconditions.checkArgument(value >= 0, "cannot take square root of a negative number");
+        return Math.sqrt(value);
     }
 
     private static class Resolver implements FunctionResolver {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new DoubleSquareRootFunction(
-                new FunctionInfo(
-                    new FunctionIdent(NAME, dataTypes),
-                    DataTypes.DOUBLE));
+            DataType argType = dataTypes.get(0);
+            return new DoubleScalar(NAME, argType, SquareRootFunction::sqrt);
         }
 
         @Nullable
