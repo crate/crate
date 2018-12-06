@@ -21,24 +21,18 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.UnaryScalar;
 import io.crate.expression.symbol.FuncArg;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class AbsFunction extends Scalar<Number, Number> {
+public final class AbsFunction {
 
     public static final String NAME = "abs";
 
@@ -46,41 +40,23 @@ public class AbsFunction extends Scalar<Number, Number> {
         module.register(NAME, new Resolver());
     }
 
-    private final FunctionInfo info;
-
-    public AbsFunction(DataType dataType) {
-        this.info = new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.of(dataType)), dataType);
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
-    @Override
-    public Number evaluate(TransactionContext txnCtx, Input<Number>... args) {
-        assert args.length == 1 : "number of args must be 1";
-        Number value = args[0].value();
-        if (value != null) {
-            return (Number) info.returnType().value(Math.abs(value.doubleValue()));
-        }
-        return null;
-    }
-
     private static class Resolver implements FunctionResolver {
 
-        private final FuncParams funcParams = FuncParams.builder(Param.NUMERIC).build();
-
         @Override
-        public FunctionImplementation getForTypes(List<DataType> symbols) throws IllegalArgumentException {
-            return new AbsFunction(symbols.get(0));
+        public FunctionImplementation getForTypes(List<DataType> argTypes) throws IllegalArgumentException {
+            DataType argType = argTypes.get(0);
+            return new UnaryScalar<>(
+                NAME,
+                argType,
+                argType,
+                x -> argType.value(Math.abs(((Number) x).doubleValue()))
+            );
         }
 
         @Nullable
         @Override
         public List<DataType> getSignature(List<? extends FuncArg> symbols) {
-            return funcParams.match(symbols);
+            return FuncParams.SINGLE_NUMERIC.match(symbols);
         }
     }
 }
