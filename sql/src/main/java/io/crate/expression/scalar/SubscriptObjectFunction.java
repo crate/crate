@@ -27,8 +27,8 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
@@ -74,7 +74,7 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> {
         return evaluate(args[0].value(), args[1].value());
     }
 
-    private Object evaluate(Object element, Object key) {
+    private static Object evaluate(Object element, Object key) {
         if (element == null || key == null) {
             return null;
         }
