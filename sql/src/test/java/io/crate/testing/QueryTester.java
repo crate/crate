@@ -50,7 +50,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.MMapDirectory;
 import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterModule;
@@ -101,6 +101,7 @@ import org.elasticsearch.test.IndexSettingsModule;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -228,7 +229,7 @@ public final class QueryTester implements AutoCloseable {
             );
             indexFieldDataService = indexService.fieldData();
             IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());
-            writer = new IndexWriter(new RAMDirectory(), conf);
+            writer = new IndexWriter(new MMapDirectory(Files.createTempDirectory(tempDir, "lucene-idx")), conf);
             tableName = new QualifiedName(table.ident().name());
             docTableRelation = new DocTableRelation(table);
             expressions = new SqlExpressions(

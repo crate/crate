@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
@@ -37,6 +36,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -57,7 +57,7 @@ import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.search.TopFieldDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -67,6 +67,7 @@ import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -76,19 +77,30 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 
-public class LuceneOrderedDocCollectorTest extends RandomizedTest {
+public class LuceneOrderedDocCollectorTest extends CrateUnitTest {
 
     private static final Reference REFERENCE = new Reference(new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
     private final NumberFieldMapper.NumberType fieldType = NumberFieldMapper.NumberType.LONG;
     private NumberFieldMapper.NumberFieldType valueFieldType;
+    private IndexWriter iw;
+
+    @Before
+    public void setUpIndexWriter() throws Exception {
+        iw = new IndexWriter(new MMapDirectory(createTempDir()), new IndexWriterConfig(new KeywordAnalyzer()));
+        valueFieldType = new NumberFieldMapper.NumberFieldType(fieldType);
+        valueFieldType.setName("value");
+    }
+
+    @After
+    public void tearDownIndexWriter() throws Exception {
+        iw.close();
+    }
 
     private Directory createLuceneIndex() throws IOException {
-        Path tmpDir = newTempDir();
+        Path tmpDir = createTempDir();
         Directory index = FSDirectory.open(tmpDir);
         StandardAnalyzer analyzer = new StandardAnalyzer();
         IndexWriterConfig cfg = new IndexWriterConfig(analyzer);
@@ -150,12 +162,6 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             results[i] = value.equals(missingValue) ? null : value;
         }
         return results;
-    }
-
-    @Before
-    public void setUp() {
-        valueFieldType = new NumberFieldMapper.NumberFieldType(fieldType);
-        valueFieldType.setName("value");
     }
 
     @Test
@@ -270,17 +276,16 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     @Test
     public void testSearchMoreAppliesMinScoreFilter() throws Exception {
-        IndexWriter w = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
         KeywordFieldMapper.KeywordFieldType fieldType = new KeywordFieldMapper.KeywordFieldType();
         fieldType.setName("x");
         fieldType.freeze();
 
         for (int i = 0; i < 3; i++) {
-            addDoc(w, fieldType, "Arthur");
+            addDoc(iw, fieldType, "Arthur");
         }
-        addDoc(w, fieldType, "Arthurr"); // not "Arthur" to lower score
-        w.commit();
-        IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(w, true, true));
+        addDoc(iw, fieldType, "Arthurr"); // not "Arthur" to lower score
+        iw.commit();
+        IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(iw, true, true));
 
         List<LuceneCollectorExpression<?>> columnReferences = Collections.singletonList(new ScoreCollectorExpression());
         Query query = fieldType.fuzzyQuery("Arthur", Fuzziness.AUTO, 2, 3, true);

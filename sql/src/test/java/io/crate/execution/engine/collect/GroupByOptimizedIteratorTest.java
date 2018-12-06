@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.collect;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -29,21 +30,34 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
-public class GroupByOptimizedIteratorTest {
+public class GroupByOptimizedIteratorTest extends CrateUnitTest {
 
+    private IndexWriter iw;
+
+    @Before
+    public void setupIndexWriter() throws Exception {
+        MMapDirectory directory = new MMapDirectory(createTempDir());
+        iw = new IndexWriter(directory, new IndexWriterConfig(new StandardAnalyzer()));
+    }
+
+    @After
+    public void tearDownIndexWriter() throws Exception {
+        iw.close();
+        iw.getDirectory().close();
+    }
 
     @Test
     public void testHighCardinalityRatioReturnsTrueForHighCardinality() throws Exception {
-        IndexWriter iw = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
         String columnName = "x";
         for (int i = 0; i < 10; i++) {
             Document doc = new Document();
@@ -54,7 +68,6 @@ public class GroupByOptimizedIteratorTest {
         iw.commit();
 
         IndexSearcher indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
-
         assertThat(
             GroupByOptimizedIterator.hasHighCardinalityRatio(() -> new Engine.Searcher("dummy", indexSearcher, () -> {}), "x"),
             is(true)
@@ -63,7 +76,6 @@ public class GroupByOptimizedIteratorTest {
 
     @Test
     public void testHighCardinalityRatioReturnsTrueForLowCardinality() throws Exception {
-        IndexWriter iw = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
         String columnName = "x";
         for (int i = 0; i < 10; i++) {
             Document doc = new Document();
@@ -74,7 +86,6 @@ public class GroupByOptimizedIteratorTest {
         iw.commit();
 
         IndexSearcher indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
-
         assertThat(
             GroupByOptimizedIterator.hasHighCardinalityRatio(() -> new Engine.Searcher("dummy", indexSearcher, () -> {}), "x"),
             is(false)

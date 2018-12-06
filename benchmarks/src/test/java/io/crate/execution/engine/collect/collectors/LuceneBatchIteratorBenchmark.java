@@ -33,8 +33,9 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.MMapDirectory;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.core.internal.io.IOUtils;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -42,8 +43,11 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -57,10 +61,13 @@ public class LuceneBatchIteratorBenchmark {
     private CollectorContext collectorContext;
     private IndexSearcher indexSearcher;
     private List<IntegerColumnReference> columnRefs;
+    private IndexWriter iw;
+    private Path tempDirectory;
 
     @Setup
     public void createLuceneBatchIterator() throws Exception {
-        IndexWriter iw = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
+        tempDirectory = Files.createTempDirectory("lucene-batch-iterator-benchmark");
+        iw = new IndexWriter(new MMapDirectory(tempDirectory), new IndexWriterConfig(new StandardAnalyzer()));
         String columnName = "x";
         for (int i = 0; i < 10_000_000; i++) {
             Document doc = new Document();
@@ -77,6 +84,13 @@ public class LuceneBatchIteratorBenchmark {
             mappedFieldType -> null,
             new CollectorFieldsVisitor(0)
         );
+    }
+
+    @TearDown
+    public void closeIndexWriter() throws Exception {
+        iw.close();
+        iw.getDirectory().close();
+        IOUtils.rm(tempDirectory);
     }
 
     @Benchmark

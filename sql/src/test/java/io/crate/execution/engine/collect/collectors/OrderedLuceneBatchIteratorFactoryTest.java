@@ -52,11 +52,12 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.MMapDirectory;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.index.shard.ShardId;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -86,11 +87,13 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
     private List<Object[]> expectedResult;
     private boolean[] reverseFlags = new boolean[]{true};
     private Boolean[] nullsFirst = new Boolean[]{null};
+    private IndexWriter iw1;
+    private IndexWriter iw2;
 
     @Before
     public void prepareSearchers() throws Exception {
-        IndexWriter iw1 = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
-        IndexWriter iw2 = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
+        iw1 = new IndexWriter(new MMapDirectory(createTempDir()), new IndexWriterConfig(new StandardAnalyzer()));
+        iw2 = new IndexWriter(new MMapDirectory(createTempDir()), new IndexWriterConfig(new StandardAnalyzer()));
 
         expectedResult = LongStream.range(0, 20)
             .mapToObj(i -> new Object[]{i})
@@ -117,6 +120,12 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
             reverseFlags,
             nullsFirst
         );
+    }
+
+    @After
+    public void tearDownIndexWriters() throws Exception {
+        iw1.close();
+        iw2.close();
     }
 
     @Test

@@ -28,7 +28,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.LogByteSizeMergePolicy;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.MMapDirectory;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
@@ -48,7 +48,7 @@ public abstract class DocLevelExpressionsTest extends ESSingleNodeTestCase {
         Settings settings = Settings.builder().put("index.fielddata.cache", "none").build();
         IndexService indexService = createIndex("test", settings);
         ifd = indexService.fieldData();
-        writer = new IndexWriter(new RAMDirectory(),
+        writer = new IndexWriter(new MMapDirectory(createTempDir()),
             new IndexWriterConfig(new StandardAnalyzer()).setMergePolicy(new LogByteSizeMergePolicy()));
 
         insertValues(writer);

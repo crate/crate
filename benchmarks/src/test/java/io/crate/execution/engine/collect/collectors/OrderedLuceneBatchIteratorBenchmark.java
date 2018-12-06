@@ -51,10 +51,11 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.MMapDirectory;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.index.shard.ShardId;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -63,8 +64,11 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -86,11 +90,14 @@ public class OrderedLuceneBatchIteratorBenchmark {
     private OrderBy orderBy;
     private CollectorContext collectorContext;
     private ShardId dummyShardId;
+    private Path tempDirectory;
+    private IndexWriter iw;
 
     @Setup
     public void createLuceneBatchIterator() throws Exception {
-        IndexWriter iw = new IndexWriter(
-            new RAMDirectory(), new IndexWriterConfig(new StandardAnalyzer())
+        tempDirectory = Files.createTempDirectory("ordered-lucene-batch-iterator-benchmark");
+        iw = new IndexWriter(
+            new MMapDirectory(tempDirectory), new IndexWriterConfig(new StandardAnalyzer())
         );
         dummyShardId = new ShardId("dummy", UUIDs.randomBase64UUID(), 1);
         columnName = "x";
@@ -113,6 +120,12 @@ public class OrderedLuceneBatchIteratorBenchmark {
             reverseFlags,
             nullsFirst
         );
+    }
+
+    @TearDown
+    public void removeTempDirAndCloseIndexWriter() throws Exception {
+        iw.close();
+        IOUtils.rm(tempDirectory);
     }
 
     @Benchmark
