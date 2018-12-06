@@ -499,7 +499,8 @@ def create_doctest_suite():
         tests.append(s)
 
     for fn in doctest_files('general/dql/joins.rst',
-                            'general/builtins/subquery-expressions.rst',):
+                            'general/builtins/subquery-expressions.rst',
+                            'general/builtins/window-functions.rst',):
         s = docsuite(fn, setUp=setUpEmpDeptAndColourArticlesAndGeo)
         s.layer = crate_layer
         tests.append(s)
