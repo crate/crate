@@ -46,6 +46,8 @@ Breaking Changes
 Changes
 =======
 
+- Added support for executing aggregations as ``window functions`` with an
+  empty OVER clause as the window definition.
 
 - Added the ``replace`` scalar function.
 

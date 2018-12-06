@@ -22,3 +22,4 @@ Operators are reserved keywords that are primarily used in a
   operators
   array-comparisons
   subquery-expressions
+  window-functions
