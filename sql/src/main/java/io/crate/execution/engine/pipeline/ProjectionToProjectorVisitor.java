@@ -79,11 +79,11 @@ import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
@@ -449,7 +449,8 @@ public class ProjectionToProjectorVisitor
             false,
             projection.assignmentsColumns(),
             null,
-            context.jobId
+            context.jobId,
+            true
         );
         ShardDMLExecutor<ShardUpsertRequest, ShardUpsertRequest.Item> shardDMLExecutor = new ShardDMLExecutor<>(
             ShardDMLExecutor.DEFAULT_BULK_SIZE,

@@ -47,6 +47,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
@@ -179,6 +180,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             "dummyUser",
             "dummySchema",
+            TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
@@ -200,6 +202,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             "dummyUser",
             "dummySchema",
+            TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             null,
@@ -241,6 +244,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             "dummyUser",
             "dummySchema",
+            TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
@@ -262,6 +266,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             "dummyUser",
             "dummySchema",
+            TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
