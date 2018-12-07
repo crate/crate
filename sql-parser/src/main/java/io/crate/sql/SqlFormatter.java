@@ -75,6 +75,7 @@ import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SingleColumn;
 import io.crate.sql.tree.SortItem;
 import io.crate.sql.tree.StringLiteral;
+import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
@@ -118,6 +119,19 @@ public final class SqlFormatter {
         @Override
         protected Void visitNode(Node node, Integer indent) {
             throw new UnsupportedOperationException("not yet implemented: " + node);
+        }
+
+        @Override
+        public Void visitSwapTable(SwapTable swapTable, Integer indent) {
+            append(indent, "ALTER CLUSTER SWAP TABLE ");
+            append(indent, swapTable.source().toString());
+            append(indent, " TO ");
+            append(indent, swapTable.target().toString());
+            if (!swapTable.properties().isEmpty()) {
+                append(indent, " ");
+                process(swapTable.properties(), indent);
+            }
+            return null;
         }
 
         @Override

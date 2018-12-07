@@ -25,6 +25,7 @@ package io.crate.planner;
 import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.DDLStatementDispatcher;
+import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.ddl.views.TransportCreateViewAction;
 import io.crate.execution.ddl.views.TransportDropViewAction;
@@ -58,6 +59,7 @@ public class DependencyCarrier {
     private final ProjectionBuilder projectionBuilder;
     private final TransportCreateViewAction createViewAction;
     private final TransportDropViewAction dropViewAction;
+    private final TransportSwapRelationsAction swapRelationsAction;
     private final LicenseService licenseService;
 
     @Inject
@@ -72,7 +74,8 @@ public class DependencyCarrier {
                              DCLStatementDispatcher dclStatementDispatcher,
                              TransportDropTableAction transportDropTableAction,
                              TransportCreateViewAction createViewAction,
-                             TransportDropViewAction dropViewAction) {
+                             TransportDropViewAction dropViewAction,
+                             TransportSwapRelationsAction swapRelationsAction) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.phasesTaskFactory = phasesTaskFactory;
@@ -86,6 +89,11 @@ public class DependencyCarrier {
         projectionBuilder = new ProjectionBuilder(functions);
         this.createViewAction = createViewAction;
         this.dropViewAction = dropViewAction;
+        this.swapRelationsAction = swapRelationsAction;
+    }
+
+    public TransportSwapRelationsAction swapRelationsAction() {
+        return swapRelationsAction;
     }
 
     public DDLStatementDispatcher ddlAction() {

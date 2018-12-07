@@ -61,6 +61,7 @@ import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.SubscriptExpression;
+import io.crate.sql.tree.SwapTable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -121,6 +122,12 @@ public class TestStatementBuilder {
         printStatement("drop table test");
         printStatement("drop table if exists test");
         printStatement("drop table bar.foo");
+    }
+
+    @Test
+    public void testSwapTable() {
+        printStatement("ALTER CLUSTER SWAP TABLE t1 TO t2");
+        printStatement("ALTER CLUSTER SWAP TABLE t1 TO t2 WITH (prune_second = true)");
     }
 
     @Test
@@ -1376,6 +1383,7 @@ public class TestStatementBuilder {
         if (statement instanceof Query ||
             statement instanceof CreateTable ||
             statement instanceof CopyFrom ||
+            statement instanceof SwapTable ||
             statement instanceof CreateFunction ||
             statement instanceof CreateUser ||
             statement instanceof DropUser ||
