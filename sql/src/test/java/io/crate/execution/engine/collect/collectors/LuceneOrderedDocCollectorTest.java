@@ -97,6 +97,7 @@ public class LuceneOrderedDocCollectorTest extends CrateUnitTest {
     @After
     public void tearDownIndexWriter() throws Exception {
         iw.close();
+        iw.getDirectory().close();
     }
 
     private Directory createLuceneIndex() throws IOException {

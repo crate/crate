@@ -125,7 +125,9 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
     @After
     public void tearDownIndexWriters() throws Exception {
         iw1.close();
+        iw1.getDirectory().close();
         iw2.close();
+        iw2.getDirectory().close();
     }
 
     @Test
