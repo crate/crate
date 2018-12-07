@@ -52,6 +52,10 @@ public class FrameBoundDefinition implements Writeable {
         this.value = value;
     }
 
+    public FrameBoundDefinition(Type type) {
+        this(type, null);
+    }
+
     public Type type() {
         return type;
     }

@@ -27,9 +27,11 @@ import io.crate.analyze.WindowDefinition;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.planner.ExecutionPlan;
@@ -38,7 +40,7 @@ import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -49,6 +51,7 @@ import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 public class WindowAgg extends OneInputPlan {
 
+    private final WindowDefinition windowDefinition;
     private final List<WindowFunction> windowFunctions;
     private final List<Symbol> standalone;
 
@@ -60,29 +63,42 @@ public class WindowAgg extends OneInputPlan {
         for (WindowFunction windowFunction : windowFunctions) {
             WindowDefinition windowDefinition = windowFunction.windowDefinition();
             if (windowDefinition.partitions().size() > 0 ||
-                windowDefinition.orderBy() != null ||
-                windowDefinition.windowFrameDefinition() != null) {
-                throw new UnsupportedFeatureException("Custom window definitions are currently not supported. " +
-                                                      "Only empty OVER() windows are supported. ");
+                !windowDefinition.windowFrameDefinition().equals(WindowDefinition.DEFAULT_WINDOW_FRAME)) {
+                throw new UnsupportedFeatureException("Window partitions or custom frame definitions are not supported");
             }
         }
 
         return (tableStats, usedBeforeNextFetch) -> {
             HashSet<Symbol> allUsedColumns = new HashSet<>(usedBeforeNextFetch);
             Set<Symbol> columnsUsedInFunctions = extractColumns(windowFunctions);
+            LinkedHashMap<WindowDefinition, ArrayList<WindowFunction>> groupedFunctions = new LinkedHashMap<>();
+            for (WindowFunction windowFunction : windowFunctions) {
+                WindowDefinition windowDefinition = windowFunction.windowDefinition();
+                OrderBy orderBy = windowDefinition.orderBy();
+                if (orderBy != null) {
+                    columnsUsedInFunctions.addAll(extractColumns(orderBy.orderBySymbols()));
+                }
+                ArrayList<WindowFunction> functions = groupedFunctions.computeIfAbsent(windowDefinition, w -> new ArrayList<>());
+                functions.add(windowFunction);
+            }
             allUsedColumns.addAll(columnsUsedInFunctions);
             LogicalPlan sourcePlan = source.build(tableStats, allUsedColumns);
 
-            /**
-             * Pass along the source outputs as standalone symbols as they might be required in cases like:
-             *      select x, avg(x) OVER() from t;
-             */
-            return new WindowAgg(sourcePlan, windowFunctions, sourcePlan.outputs());
+            LogicalPlan lastWindowAgg = sourcePlan;
+            for (Map.Entry<WindowDefinition, ArrayList<WindowFunction>> entry : groupedFunctions.entrySet()) {
+                /**
+                 * Pass along the source outputs as standalone symbols as they might be required in cases like:
+                 *      select x, avg(x) OVER() from t;
+                 */
+                lastWindowAgg = new WindowAgg(lastWindowAgg, entry.getKey(), entry.getValue(), lastWindowAgg.outputs());
+            }
+            return lastWindowAgg;
         };
     }
 
-    private WindowAgg(LogicalPlan source, List<WindowFunction> windowFunctions, List<Symbol> standalone) {
+    private WindowAgg(LogicalPlan source, WindowDefinition windowDefinition, List<WindowFunction> windowFunctions, List<Symbol> standalone) {
         super(source, Lists2.concat(windowFunctions, standalone));
+        this.windowDefinition = windowDefinition;
         this.windowFunctions = windowFunctions;
         this.standalone = standalone;
     }
@@ -93,7 +109,7 @@ public class WindowAgg extends OneInputPlan {
 
     @Override
     protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new WindowAgg(newSource, windowFunctions, standalone);
+        return new WindowAgg(newSource, windowDefinition, windowFunctions, standalone);
     }
 
     @Override
@@ -120,29 +136,45 @@ public class WindowAgg extends OneInputPlan {
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
         List<Symbol> standaloneWithInputs = InputColumns.create(this.standalone, sourceSymbols);
-        for (Map.Entry<WindowDefinition, LinkedHashMap<WindowFunction, List<Symbol>>> entry : groupFunctionsByWindow(sourceSymbols, windowFunctions).entrySet()) {
-            sourcePlan.addProjection(new WindowAggProjection(entry.getKey(), entry.getValue(), standaloneWithInputs));
-        }
-        return sourcePlan;
-    }
 
-    private static Map<WindowDefinition, LinkedHashMap<WindowFunction, List<Symbol>>> groupFunctionsByWindow(InputColumns.SourceSymbols sourceSymbols,
-                                                                                                             List<WindowFunction> windowFunctions) {
-        Map<WindowDefinition, LinkedHashMap<WindowFunction, List<Symbol>>> groupedFunctions = new HashMap<>();
-
+        LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = new LinkedHashMap<>(windowFunctions.size(), 1f);
         for (WindowFunction windowFunction : windowFunctions) {
-            WindowDefinition windowDefinition = windowFunction.windowDefinition();
-
             WindowFunction windowFunctionSymbol = (WindowFunction) InputColumns.create(windowFunction, sourceSymbols);
             List<Symbol> inputs = InputColumns.create(windowFunction.arguments(), sourceSymbols);
-            LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = groupedFunctions.get(windowDefinition);
-            if (functionsWithInputs == null) {
-                functionsWithInputs = new LinkedHashMap<>();
-                groupedFunctions.put(windowDefinition, functionsWithInputs);
-            }
             functionsWithInputs.put(windowFunctionSymbol, inputs);
         }
-        return groupedFunctions;
+
+        OrderBy orderBy = windowDefinition.orderBy();
+        int[] orderByIndexes = null;
+        if (orderBy != null) {
+            InputColumns.SourceSymbols orderByCtx = new InputColumns.SourceSymbols(source.outputs());
+            List<Symbol> outputs = InputColumns.create(source.outputs(), orderByCtx);
+            List<Symbol> orderByInputColumns = InputColumns.create(orderBy.orderBySymbols(), orderByCtx);
+
+            orderByIndexes = new int[orderByInputColumns.size()];
+            for (int i = 0; i < orderByInputColumns.size(); i++) {
+                Symbol orderBySymbol = orderByInputColumns.get(i);
+                assert orderBySymbol instanceof InputColumn : "Window ordering should be expressed as ICs at this stage";
+                orderByIndexes[i] = ((InputColumn) orderBySymbol).index();
+            }
+
+            OrderedTopNProjection topNProjection = new OrderedTopNProjection(
+                Limit.limitAndOffset(limit, offset),
+                0,
+                outputs,
+                orderByInputColumns,
+                orderBy.reverseFlags(),
+                orderBy.nullsFirst()
+            );
+            sourcePlan.addProjection(
+                topNProjection,
+                limit,
+                offset,
+                null
+            );
+        }
+        sourcePlan.addProjection(new WindowAggProjection(windowDefinition, functionsWithInputs, standaloneWithInputs, orderByIndexes));
+        return sourcePlan;
     }
 
     @Override

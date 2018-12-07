@@ -276,7 +276,7 @@ public class ExpressionAnalyzer {
 
         OrderBy orderBy = OrderyByAnalyzer.analyzeSortItems(window.getOrderBy(), sortKey -> convert(sortKey, context));
 
-        WindowFrameDefinition windowFrameDefinition = null;
+        WindowFrameDefinition windowFrameDefinition = WindowDefinition.DEFAULT_WINDOW_FRAME;
         if (window.getWindowFrame().isPresent()) {
             WindowFrame windowFrame = window.getWindowFrame().get();
             FrameBound start = windowFrame.getStart();

@@ -83,17 +83,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testPartitionedWindowPlansAreNotSupported() {
         expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("Custom window definitions are currently not supported. " +
-                                        "Only empty OVER() windows are supported.");
+        expectedException.expectMessage("Window partitions or custom frame definitions are not supported");
         plan("select avg(x) OVER(PARTITION BY a) from t1");
-    }
-
-    @Test
-    public void testOrderedWindowPlansAreNotSupported() {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("Custom window definitions are currently not supported. " +
-                                        "Only empty OVER() windows are supported.");
-        plan("select avg(x) OVER(ORDER BY a) from t1");
     }
 
     @Test

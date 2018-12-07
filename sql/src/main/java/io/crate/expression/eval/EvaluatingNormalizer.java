@@ -22,6 +22,8 @@
 
 package io.crate.expression.eval;
 
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.WindowDefinition;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.data.Input;
 import io.crate.expression.NestableInput;
@@ -37,10 +39,10 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -163,7 +165,16 @@ public class EvaluatingNormalizer {
         @Override
         public Symbol visitWindowFunction(WindowFunction function, TransactionContext context) {
             Function normalizedFunction = (Function) normalizeFunction(function, context);
-            return new WindowFunction(normalizedFunction.info(), normalizedFunction.arguments(), function.windowDefinition());
+            WindowDefinition windowDefinition = function.windowDefinition();
+            OrderBy windowOrderBy = windowDefinition.orderBy();
+            if (windowOrderBy != null) {
+                windowDefinition = new WindowDefinition(
+                    windowDefinition.partitions(),
+                    windowOrderBy.copyAndReplace(s -> process(s, context)),
+                    windowDefinition.windowFrameDefinition()
+                );
+            }
+            return new WindowFunction(normalizedFunction.info(), normalizedFunction.arguments(), windowDefinition);
         }
     }
 

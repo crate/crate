@@ -37,8 +37,40 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
 
     @Test
     public void testMultipleWindowFunctions() {
-        execute("select avg(col1) OVER(), sum(col1) OVER() from unnest([1, 2, null])");
-        assertThat(printedTable(response.rows()), is("1.5| 3\n1.5| 3\n1.5| 3\n"));
+        execute("select col1, sum(col1) OVER(ORDER BY col1), sum(col2) OVER(ORDER BY col2) from unnest([1, 2, 2, 3, 4], [5, 6, 6, 7, 1])");
+        assertThat(printedTable(response.rows()), is("4| 12| 1\n1| 1| 6\n2| 5| 18\n2| 5| 18\n3| 8| 25\n"));
+    }
+
+    @Test
+    public void testOrderedWindow() {
+        execute("select col1, avg(col1) OVER(ORDER BY col1 NULLS LAST) from unnest([2, 1, 1, 3, 3, null, 4]) order by 1 desc");
+        assertThat(printedTable(response.rows()), is("NULL| 2.3333333333333335\n" +
+                                                     "4| 2.3333333333333335\n" +
+                                                     "3| 2.0\n" +
+                                                     "3| 2.0\n" +
+                                                     "2| 1.3333333333333333\n" +
+                                                     "1| 1.0\n" +
+                                                     "1| 1.0\n"));
+    }
+
+    @Test
+    public void testOrderedWindowByMultipleColumns() {
+        execute("select col1, sum(col1) OVER(ORDER BY col1, col2) from unnest([1, 2, 2, 2, 3, 2], [6, 7, 6, 9, -1, 6])");
+        assertThat(printedTable(response.rows()), is("1| 1\n" +
+                                                     "2| 5\n" +
+                                                     "2| 5\n" +
+                                                     "2| 7\n" +
+                                                     "2| 9\n" +
+                                                     "3| 12\n"));
+    }
+
+    @Test
+    public void testOrderedWindowWithSingleRowWindows() {
+        execute("select col1, sum(col1) OVER(ORDER BY col1) from unnest([1, 2, 3, 4])");
+        assertThat(printedTable(response.rows()), is("1| 1\n" +
+                                                     "2| 3\n" +
+                                                     "3| 6\n" +
+                                                     "4| 10\n"));
     }
 
     @Test

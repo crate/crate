@@ -31,6 +31,7 @@ import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -45,10 +46,14 @@ public class WindowAggProjection extends Projection {
     private final List<Symbol> standaloneWithInputs;
     private LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs;
     private ArrayList<Symbol> outputs;
+    @Nullable
+    private int[] orderByIndexes;
 
     public WindowAggProjection(WindowDefinition windowDefinition,
                                LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs,
-                               List<Symbol> standaloneWithInputs) {
+                               List<Symbol> standaloneWithInputs,
+                               @Nullable int[] orderByIndexes) {
+
         Set<WindowFunction> windowFunctions = functionsWithInputs.keySet();
         assert windowFunctions.stream().noneMatch(Symbols.IS_COLUMN)
             : "Cannot operate on Reference or Field: " + windowFunctions;
@@ -57,6 +62,7 @@ public class WindowAggProjection extends Projection {
         this.windowDefinition = windowDefinition;
         this.functionsWithInputs = functionsWithInputs;
         this.standaloneWithInputs = standaloneWithInputs;
+        this.orderByIndexes = orderByIndexes;
         outputs = new ArrayList<>(windowFunctions);
         outputs.addAll(standaloneWithInputs);
     }
@@ -71,6 +77,9 @@ public class WindowAggProjection extends Projection {
             List<Symbol> inputs = Symbols.listFromStream(in);
             functionsWithInputs.put(function, inputs);
         }
+        if (in.readBoolean()) {
+            orderByIndexes = in.readIntArray();
+        }
         outputs = new ArrayList<>(functionsWithInputs.keySet());
     }
 
@@ -84,6 +93,11 @@ public class WindowAggProjection extends Projection {
 
     public List<Symbol> standalone() {
         return standaloneWithInputs;
+    }
+
+    @Nullable
+    public int[] orderByIndexes() {
+        return orderByIndexes;
     }
 
     @Override
@@ -123,6 +137,12 @@ public class WindowAggProjection extends Projection {
         for (Map.Entry<WindowFunction, List<Symbol>> functionWithInputs : functionsWithInputs.entrySet()) {
             Symbols.toStream(functionWithInputs.getKey(), out);
             Symbols.toStream(functionWithInputs.getValue(), out);
+        }
+        if (orderByIndexes != null) {
+            out.writeBoolean(true);
+            out.writeIntArray(orderByIndexes);
+        } else {
+            out.writeBoolean(false);
         }
     }
 
