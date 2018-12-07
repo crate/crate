@@ -33,6 +33,7 @@ import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -96,6 +97,11 @@ public final class WhereClauseValidator {
             continueTraversal(function, context);
             context.functions.pop();
             return function;
+        }
+
+        @Override
+        public Symbol visitWindowFunction(WindowFunction symbol, Context context) {
+            throw new IllegalArgumentException("Window functions are not allowed in WHERE");
         }
 
         private Function continueTraversal(Function symbol, Context context) {

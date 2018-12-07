@@ -25,6 +25,7 @@ import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.WindowFunction;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.metadata.FunctionInfo;
 
@@ -89,6 +90,11 @@ public class HavingSymbolValidator {
                 context.insideAggregation = false;
             }
             return null;
+        }
+
+        @Override
+        public Void visitWindowFunction(WindowFunction symbol, HavingContext context) {
+            throw new IllegalArgumentException("Window functions are not allowed in HAVING");
         }
 
         @Override
