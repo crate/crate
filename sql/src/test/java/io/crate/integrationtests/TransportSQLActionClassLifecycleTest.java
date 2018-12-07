@@ -351,7 +351,6 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     }
 
     @Test
-    @UseJdbc(0) // copy has no rowcount
     public void testCopyToDirectoryOnPartitionedTableWithPartitionClause() throws Exception {
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy parted partition (date='2014-01-01') to DIRECTORY ?", $(uriTemplate));
@@ -372,7 +371,6 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     }
 
     @Test
-    @UseJdbc(0) // COPY has no rowcount
     public void testCopyToDirectoryOnPartitionedTableWithoutPartitionClause() throws Exception {
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy parted to DIRECTORY ?", $(uriTemplate));
@@ -413,7 +411,6 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     }
 
     @Test
-    @UseJdbc(0) // set has no rowcount
     public void testSetMultipleStatement() throws Exception {
         SQLResponse response = execute(
             "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");

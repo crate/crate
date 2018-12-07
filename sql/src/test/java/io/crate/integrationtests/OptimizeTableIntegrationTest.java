@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,7 +35,6 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
-@UseJdbc(0) // optimize has no rowcount
 public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
 
     @Rule

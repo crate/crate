@@ -25,7 +25,6 @@ import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.testing.SQLResponse;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
@@ -354,7 +353,6 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(0)
     public void createAndExtendFullCustomAnalyzer() throws IOException {
         execute("CREATE ANALYZER a7 (" +
                 "  char_filters (" +

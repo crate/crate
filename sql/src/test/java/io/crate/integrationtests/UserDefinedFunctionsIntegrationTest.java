@@ -35,7 +35,6 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
-import io.crate.testing.UseJdbc;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -55,7 +54,6 @@ import java.util.stream.Collectors;
 import static org.hamcrest.CoreMatchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
-@UseJdbc(0) // create/drop function has no rowcount
 public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegrationTest {
 
     public static class DummyFunction<InputType> extends Scalar<String, InputType>  {

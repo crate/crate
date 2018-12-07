@@ -116,7 +116,6 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(0) // set has no rowcount
     public void testSetSingleStatement() throws Exception {
         execute("select settings['stats']['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));

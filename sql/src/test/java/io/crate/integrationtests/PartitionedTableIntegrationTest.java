@@ -33,7 +33,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
@@ -110,7 +109,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(0) // no copy row count
     public void testCopyFromIntoPartitionedTableWithPARTITIONKeyword() throws Exception {
         execute("create table quotes (" +
                 "id integer primary key," +
@@ -150,7 +148,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
      * Otherwise the rowCount returned from the copy from statement is ambiguous.
      */
     @Test
-    @UseJdbc(0) // no copy rowcount
     public void testCopyFromIntoPartitionedTable() throws Exception {
         execute("create table quotes (" +
                 "  id integer primary key, " +
@@ -179,7 +176,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(0) // copy from has no rowcount
     public void testCopyFromIntoPartitionedTableWithGeneratedColumnPK() throws Exception {
         execute("create table quotes (" +
                 "  id integer, " +
@@ -228,7 +224,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(0) // no copy rowcount
     public void testCopyFromPartitionedTableCustomSchema() throws Exception {
         execute("create table my_schema.parted (" +
                 "  id long, " +
@@ -1104,7 +1099,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(0) // no drop table rowcount
     public void testDropPartitionedTable() throws Exception {
         execute("create table quotes (" +
                 "  id integer, " +
@@ -1193,7 +1187,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(0) // no drop table rowcount
     public void testPartitionedTableAllConstraintsRoundTrip() throws Exception {
         execute("create table quotes (id integer primary key, quote string, " +
                 "date timestamp primary key, user_id string primary key) " +
@@ -1231,7 +1224,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(0) // no drop table rowcount
     public void testPartitionedTableSchemaAllConstraintsRoundTrip() throws Exception {
         execute("create table my_schema.quotes (id integer primary key, quote string, " +
                 "date timestamp primary key, user_id string primary key) " +
@@ -1294,7 +1286,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(0) // drop table has no row count
     public void testPartitionedTableNestedAllConstraintsRoundTrip() throws Exception {
         execute("create table quotes (" +
                 "id integer, " +
@@ -1575,7 +1566,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(0) // no refresh row count
     public void testRefreshPartitionedTableAllPartitions() throws Exception {
         execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
         ensureYellow();
@@ -1614,7 +1604,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(0) // refresh has no row count
     public void testRefreshPartitionedTableSinglePartitions() throws Exception {
         execute("create table parted (id integer, name string, date timestamp) partitioned by (date) " +
                 "with (number_of_replicas=0, refresh_interval=-1)");
@@ -1658,7 +1647,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(0) // no refresh row count
     public void testRefreshMultipleTablesWithPartition() throws Exception {
         execute("create table t1 (" +
                 "  id integer, " +
@@ -2195,7 +2183,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(0) // requires rowcount for refresh
     public void testRefreshIgnoresClosedPartitions() {
         execute("create table t (x int, p int) " +
                 "partitioned by (p) clustered into 1 shards with (number_of_replicas = 0, refresh_interval = 0)");

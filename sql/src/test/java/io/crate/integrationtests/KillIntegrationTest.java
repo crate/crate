@@ -25,7 +25,6 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.testing.SQLResponse;
-import io.crate.testing.UseJdbc;
 import io.crate.testing.plugin.CrateTestingPlugin;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.plugins.Plugin;
@@ -48,7 +47,6 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-@UseJdbc(0)
 public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
