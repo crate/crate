@@ -28,7 +28,6 @@ import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
-import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -363,37 +362,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         private final Reference[] missingAssignmentsColumns;
         private final UUID jobId;
         private boolean validateGeneratedColumns;
-
-        public Builder(String userName,
-                       String currentSchema,
-                       TimeValue timeout,
-                       DuplicateKeyAction duplicateKeyAction,
-                       boolean continueOnError,
-                       @Nullable String[] assignmentsColumns,
-                       @Nullable Reference[] missingAssignmentsColumns,
-                       UUID jobId) {
-            this(userName,
-                currentSchema,
-                timeout,
-                duplicateKeyAction,
-                continueOnError,
-                assignmentsColumns,
-                missingAssignmentsColumns,
-                jobId,
-                true);
-        }
-
-        public Builder(String userName,
-                       String currentSchema,
-                       DuplicateKeyAction duplicateKeyAction,
-                       boolean continueOnError,
-                       @Nullable String[] assignmentsColumns,
-                       @Nullable Reference[] missingAssignmentsColumns,
-                       UUID jobId,
-                       boolean validateGeneratedColumns) {
-            this(userName, currentSchema, ReplicationRequest.DEFAULT_TIMEOUT, duplicateKeyAction, continueOnError,
-                assignmentsColumns, missingAssignmentsColumns, jobId, validateGeneratedColumns);
-        }
 
         public Builder(String userName,
                        String currentSchema,
