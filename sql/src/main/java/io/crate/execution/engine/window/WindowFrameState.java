@@ -22,36 +22,32 @@
 
 package io.crate.execution.engine.window;
 
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.execution.engine.collect.CollectExpression;
-
 import java.util.List;
 
-public class WindowFunctionContext {
+/**
+ * Holds the runtime information of a window frame during the execution of a window function.
+ */
+final class WindowFrameState {
 
-    private final List<Input<?>> inputs;
-    private final AggregationFunction function;
-    private final List<? extends CollectExpression<Row, ?>> expressions;
+    private final int lowerBound;
+    private final int upperBoundExclusive;
+    private List<Object[]> rows;
 
-    public WindowFunctionContext(List<Input<?>> inputs,
-                                 AggregationFunction function,
-                                 List<? extends CollectExpression<Row, ?>> expressions) {
-        this.inputs = inputs;
-        this.function = function;
-        this.expressions = expressions;
+    WindowFrameState(int lowerBound, int upperBoundExclusive, List<Object[]> rows) {
+        this.lowerBound = lowerBound;
+        this.upperBoundExclusive = upperBoundExclusive;
+        this.rows = rows;
     }
 
-    public List<Input<?>> inputs() {
-        return inputs;
+    int lowerBound() {
+        return lowerBound;
     }
 
-    public AggregationFunction function() {
-        return function;
+    int upperBoundExclusive() {
+        return upperBoundExclusive;
     }
 
-    public List<? extends CollectExpression<Row, ?>> expressions() {
-        return expressions;
+    public Iterable<Object[]> getRows() {
+        return rows;
     }
 }

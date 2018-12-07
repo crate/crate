@@ -23,62 +23,34 @@
 package io.crate.execution.engine.window;
 
 import io.crate.analyze.WindowDefinition;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.execution.engine.aggregation.AggregateCollector;
-import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.expression.symbol.AggregateMode;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
 
-import java.util.ArrayList;
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class WindowProjector implements Projector {
 
     private final WindowDefinition windowDefinition;
-    private final AggregateCollector collector;
     private final List<Input<?>> standaloneInputs;
-    private final int windowFunctionsCount;
     private final List<CollectExpression<Row, ?>> standaloneExpressions;
+    private final List<WindowFunction> windowFunctions;
+    @Nullable
+    private final int[] orderByIndexes;
 
     public WindowProjector(WindowDefinition windowDefinition,
-                           List<WindowFunctionContext> windowFunctions,
+                           List<WindowFunction> windowFunctions,
                            List<Input<?>> standaloneInputs,
                            List<CollectExpression<Row, ?>> standaloneExpressions,
-                           RamAccountingContext ramAccountingContext,
-                           Version indexVersionCreated,
-                           BigArrays bigArrays) {
+                           @Nullable int[] orderByIndexes) {
         this.windowDefinition = windowDefinition;
         this.standaloneInputs = standaloneInputs;
         this.standaloneExpressions = standaloneExpressions;
-        this.windowFunctionsCount = windowFunctions.size();
-
-        List<CollectExpression<Row, ?>> expressions = new ArrayList<>();
-
-        AggregationFunction[] functions = new AggregationFunction[windowFunctions.size()];
-        Input[][] inputs = new Input[windowFunctions.size()][];
-
-        for (int i = 0; i < windowFunctions.size(); i++) {
-            WindowFunctionContext functionContext = windowFunctions.get(i);
-            functions[i] = functionContext.function();
-            inputs[i] = functionContext.inputs().toArray(new Input[0]);
-            expressions.addAll(functionContext.expressions());
-        }
-
-        collector = new AggregateCollector(
-            expressions,
-            ramAccountingContext,
-            AggregateMode.ITER_FINAL,
-            functions,
-            indexVersionCreated,
-            bigArrays,
-            inputs
-        );
+        this.windowFunctions = windowFunctions;
+        this.orderByIndexes = orderByIndexes;
     }
 
     @Override
@@ -87,8 +59,8 @@ public class WindowProjector implements Projector {
             windowDefinition,
             standaloneInputs,
             standaloneExpressions,
-            windowFunctionsCount,
             batchIterator,
-            collector);
+            windowFunctions,
+            orderByIndexes);
     }
 }

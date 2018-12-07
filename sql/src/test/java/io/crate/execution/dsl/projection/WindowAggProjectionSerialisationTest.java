@@ -70,7 +70,8 @@ public class WindowAggProjectionSerialisationTest {
         WindowAggProjection windowAggProjection =
             new WindowAggProjection(partitionByOneWindowDef,
                 functionsWithInputs,
-                Collections.singletonList(Literal.of(42L)));
+                Collections.singletonList(Literal.of(42L)),
+                null);
         BytesStreamOutput output = new BytesStreamOutput();
         windowAggProjection.writeTo(output);
 
