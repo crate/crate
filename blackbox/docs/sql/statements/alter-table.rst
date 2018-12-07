@@ -132,9 +132,9 @@ continue working.
 
 ``RENAME TO``
 -------------
+
 Can be used to rename a table, while maintaining its schema and data. During
-this operation the table will be closed, and all operations upon the table will
-fail until the rename operation is completed.
+this operation the shards of the table will become temporarily unavailable.
 
 .. _alter_table_reroute:
 
