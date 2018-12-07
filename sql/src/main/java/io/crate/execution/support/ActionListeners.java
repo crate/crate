@@ -23,8 +23,13 @@
 package io.crate.execution.support;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.ActiveShardCount;
+import org.elasticsearch.action.support.ActiveShardsObserver;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 public final class ActionListeners {
 
@@ -44,5 +49,34 @@ public final class ActionListeners {
                 }
             }
         };
+    }
+
+    public static <T extends AcknowledgedResponse> ActionListener<T> waitForShards(ActionListener<T> delegate,
+                                                                                   ActiveShardsObserver observer,
+                                                                                   TimeValue timeout,
+                                                                                   Runnable onShardsNotAcknowledged,
+                                                                                   Supplier<String[]> indices) {
+
+        return ActionListener.wrap(
+            resp -> {
+                if (resp.isAcknowledged()) {
+                    observer.waitForActiveShards(
+                        indices.get(),
+                        ActiveShardCount.DEFAULT,
+                        timeout,
+                        shardsAcknowledged -> {
+                            if (!shardsAcknowledged) {
+                                onShardsNotAcknowledged.run();
+                            }
+                            delegate.onResponse(resp);
+                        },
+                        delegate::onFailure
+                    );
+                } else {
+                    delegate.onResponse(resp);
+                }
+            },
+            delegate::onFailure
+        );
     }
 }

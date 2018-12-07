@@ -22,102 +22,98 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.Constants;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.execution.ddl.tables.RenameTableRequest;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.AliasAction;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.MetaDataIndexAliasesService;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.cluster.routing.RoutingTable;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
-public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor<RenameTableRequest> {
+public class RenameTableClusterStateExecutor {
 
     private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
 
     private final Logger logger;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final MetaDataIndexAliasesService metaDataIndexAliasesService;
-    private final NamedXContentRegistry xContentRegistry;
     private final DDLClusterStateService ddlClusterStateService;
+    private final AllocationService allocationService;
 
     public RenameTableClusterStateExecutor(IndexNameExpressionResolver indexNameExpressionResolver,
-                                           MetaDataIndexAliasesService metaDataIndexAliasesService,
-                                           NamedXContentRegistry namedXContentRegistry,
+                                           AllocationService allocationService,
                                            DDLClusterStateService ddlClusterStateService) {
+        this.allocationService = allocationService;
         logger = LogManager.getLogger(getClass());
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.metaDataIndexAliasesService = metaDataIndexAliasesService;
-        this.xContentRegistry = namedXContentRegistry;
         this.ddlClusterStateService = ddlClusterStateService;
     }
 
-    @Override
-    protected ClusterState execute(ClusterState currentState, RenameTableRequest request) throws Exception {
-        RelationName sourceRelationName = request.sourceTableIdent();
-        RelationName targetRelationName = request.targetTableIdent();
+    public ClusterState execute(ClusterState currentState, RenameTableRequest request) throws Exception {
+        RelationName source = request.sourceTableIdent();
+        RelationName target = request.targetTableIdent();
         boolean isPartitioned = request.isPartitioned();
 
-        MetaData.Builder mdBuilder = null;
-        ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
-            .blocks(currentState.blocks());
+        MetaData currentMetaData = currentState.getMetaData();
+        MetaData.Builder newMetaData = MetaData.builder(currentMetaData);
 
-        IndexTemplateMetaData indexTemplateMetaData = null;
         if (isPartitioned) {
-            indexTemplateMetaData = DDLClusterStateHelpers.templateMetaData(currentState.getMetaData(), sourceRelationName);
+            IndexTemplateMetaData indexTemplateMetaData = DDLClusterStateHelpers.templateMetaData(currentMetaData, source);
             if (indexTemplateMetaData == null) {
                 throw new IndexTemplateMissingException("Template for partitioned table is missing");
             }
-            validatePartitionedTemplateIsMarkedAsClosed(indexTemplateMetaData, sourceRelationName);
+            renameTemplate(newMetaData, indexTemplateMetaData, target);
         }
 
-        logger.info("renaming table '{}' to '{}'", sourceRelationName.fqn(), targetRelationName.fqn());
+        RoutingTable.Builder newRoutingTable = RoutingTable.builder(currentState.routingTable());
+        ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder().blocks(currentState.blocks());
+
+        logger.info("renaming table '{}' to '{}'", source.fqn(), target.fqn());
 
         try {
-            Index[] sourceIndices = indexNameExpressionResolver.concreteIndices(currentState, STRICT_INDICES_OPTIONS,
-                sourceRelationName.indexNameOrAlias());
-            validateAllIndicesAreClosed(currentState, sourceRelationName, sourceIndices, isPartitioned);
+            Index[] sourceIndices = indexNameExpressionResolver.concreteIndices(
+                currentState, STRICT_INDICES_OPTIONS, source.indexNameOrAlias());
 
-            String[] targetIndices;
-            if (isPartitioned) {
-                targetIndices = buildNewPartitionIndexNames(sourceIndices, targetRelationName);
-                // change the alias for all partitions
-                currentState = changeAliases(currentState, sourceIndices, sourceRelationName.indexNameOrAlias(),
-                    targetRelationName.indexNameOrAlias());
-            } else {
-                targetIndices = new String[]{targetRelationName.indexNameOrAlias()};
+            for (Index sourceIndex : sourceIndices) {
+                IndexMetaData sourceIndexMetaData = currentMetaData.getIndexSafe(sourceIndex);
+                String sourceIndexName = sourceIndex.getName();
+                newMetaData.remove(sourceIndexName);
+                newRoutingTable.remove(sourceIndexName);
+                blocksBuilder.removeIndexBlocks(sourceIndexName);
+
+                IndexMetaData targetMd;
+                if (isPartitioned) {
+                    PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndexName);
+                    String targetIndexName = IndexParts.toIndexName(target, partitionName.ident());
+                    targetMd = IndexMetaData.builder(sourceIndexMetaData)
+                        .removeAllAliases()
+                        .putAlias(AliasMetaData.builder(target.indexNameOrAlias()).build())
+                        .index(targetIndexName)
+                        .build();
+                } else {
+                    targetMd = IndexMetaData.builder(sourceIndexMetaData)
+                        .index(target.indexNameOrAlias())
+                        .build();
+                }
+                newMetaData.put(targetMd, true);
+                newRoutingTable.addAsFromCloseToOpen(targetMd);
+                blocksBuilder.addBlocks(targetMd);
             }
-
-            MetaData metaData = currentState.getMetaData();
-            mdBuilder = MetaData.builder(metaData);
-
-            // rename all concrete indices
-            renameIndices(metaData, mdBuilder, blocksBuilder, sourceIndices, targetIndices);
-
         } catch (IndexNotFoundException e) {
             if (isPartitioned == false) {
                 throw e;
@@ -125,114 +121,34 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
             // empty partition case, no indices, just a template exists
         }
 
-        if (isPartitioned) {
-            // rename template (delete old one, and create a new one)
-            if (mdBuilder == null) {
-                // partition is empty, only template exists
-                mdBuilder = MetaData.builder(currentState.getMetaData());
-            }
-            renameTemplate(mdBuilder, indexTemplateMetaData, targetRelationName);
-        }
-        // The MetaData will always be overridden (and not merged!) when applying it on a cluster state builder.
-        // So we must re-build the state with the latest modifications before we pass this state to possible modifiers.
-        // Otherwise they would operate on the old MetaData and would just ignore any modifications.
-        currentState = ClusterState.builder(currentState).metaData(mdBuilder).blocks(blocksBuilder).build();
+        ClusterState clusterStateAfterRename = ClusterState.builder(currentState)
+            .metaData(newMetaData)
+            .routingTable(newRoutingTable.build())
+            .blocks(blocksBuilder)
+            .build();
 
-        // call possible modifiers
-        return ddlClusterStateService.onRenameTable(currentState, sourceRelationName, targetRelationName, request.isPartitioned());
+        return allocationService.reroute(
+            ddlClusterStateService.onRenameTable(clusterStateAfterRename, source, target, request.isPartitioned()),
+            "rename-table"
+        );
     }
 
-    private ClusterState changeAliases(ClusterState currentState, Index[] partitions, String oldAlias, String newAlias) {
-        List<AliasAction> aliasActions = new ArrayList<>(2 * partitions.length);
-        for (Index partition : partitions) {
-            String indexName = partition.getName();
-            aliasActions.add(new AliasAction.Remove(indexName, oldAlias));
-            aliasActions.add(new AliasAction.Add(indexName, newAlias, null, null, null, null));
-        }
-        return metaDataIndexAliasesService.innerExecute(currentState, aliasActions);
-    }
-
-    private void validatePartitionedTemplateIsMarkedAsClosed(IndexTemplateMetaData templateMetaData,
-                                                             RelationName relationName) throws Exception {
-        Map<String, Object> mapping = parseMapping(
-            templateMetaData.getMappings().get(Constants.DEFAULT_MAPPING_TYPE).string());
-        //noinspection unchecked
-        mapping = (Map<String, Object>) mapping.get(Constants.DEFAULT_MAPPING_TYPE);
-        assert mapping != null : "parsed mapping must not be null";
-
-        if (DocIndexMetaData.isClosed(null, mapping, true) == false) {
-            throw new IllegalStateException("Partitioned table '" + relationName.fqn() +
-                                            "' is not closed, cannot perform a rename");
-        }
-    }
-
-    private Map<String, Object> parseMapping(String mappingSource) {
-        try (XContentParser parser = JsonXContent.jsonXContent.createParser(
-            xContentRegistry, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)) {
-            return parser.map();
-        } catch (IOException e) {
-            throw new ElasticsearchException("failed to parse mapping", e);
-        }
-    }
-
-    private static void renameIndices(MetaData metaData,
-                                      MetaData.Builder mdBuilder,
-                                      ClusterBlocks.Builder blocksBuilder,
-                                      Index[] sourceIndices,
-                                      String[] targetIndices) {
-        for (int i = 0; i < sourceIndices.length; i++) {
-            Index index = sourceIndices[i];
-            IndexMetaData indexMetaData = metaData.getIndexSafe(index);
-            IndexMetaData targetIndexMetadata = IndexMetaData.builder(indexMetaData)
-                .index(targetIndices[i]).build();
-            mdBuilder.remove(index.getName());
-            mdBuilder.put(targetIndexMetadata, true);
-            blocksBuilder.removeIndexBlocks(index.getName());
-            blocksBuilder.addBlocks(targetIndexMetadata);
-        }
-    }
-
-    private static void renameTemplate(MetaData.Builder mdBuilder,
+    private static void renameTemplate(MetaData.Builder newMetaData,
                                        IndexTemplateMetaData sourceTemplateMetaData,
-                                       RelationName targetIdent) throws Exception {
-        String targetTemplateName = PartitionName.templateName(targetIdent.schema(), targetIdent.name());
-        String targetTemplatePrefix = PartitionName.templatePrefix(targetIdent.schema(), targetIdent.name());
+                                       RelationName target) throws Exception {
+        String targetTemplateName = PartitionName.templateName(target.schema(), target.name());
+        String targetTemplatePrefix = PartitionName.templatePrefix(target.schema(), target.name());
 
-        IndexTemplateMetaData.Builder templateBuilder = IndexTemplateMetaData.builder(targetTemplateName)
+        IndexTemplateMetaData.Builder newTemplate = IndexTemplateMetaData.builder(targetTemplateName)
             .order(sourceTemplateMetaData.order())
             .settings(sourceTemplateMetaData.settings())
             .patterns(Collections.singletonList(targetTemplatePrefix))
-            .putMapping(Constants.DEFAULT_MAPPING_TYPE, sourceTemplateMetaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE))
-            .putAlias(AliasMetaData.builder(targetIdent.indexNameOrAlias()));
-        IndexTemplateMetaData newTemplate = templateBuilder.build();
-
-        mdBuilder.removeTemplate(sourceTemplateMetaData.getName()).put(newTemplate);
-    }
-
-    private static String[] buildNewPartitionIndexNames(Index[] sourceIndices, RelationName targetRelationName) {
-        String[] newPartitionIndexNames = new String[sourceIndices.length];
-        for (int i = 0; i < sourceIndices.length; i++) {
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndices[i].getName());
-            String targetIndexName = IndexParts.toIndexName(targetRelationName, partitionName.ident());
-            newPartitionIndexNames[i] = targetIndexName;
+            .putAlias(AliasMetaData.builder(target.indexNameOrAlias()));
+        for (ObjectObjectCursor<String, CompressedXContent> mapping : sourceTemplateMetaData.mappings()) {
+            newTemplate.putMapping(mapping.key, mapping.value);
         }
-        return newPartitionIndexNames;
-    }
-
-    private static void validateAllIndicesAreClosed(ClusterState currentState,
-                                                    RelationName sourceRelationName,
-                                                    Index[] sourceIndices,
-                                                    boolean isPartitioned) {
-        for (Index index : sourceIndices) {
-            final IndexMetaData indexMetaData = currentState.metaData().getIndexSafe(index);
-            if (indexMetaData.getState() != IndexMetaData.State.CLOSE) {
-                String msg = "Table '" + sourceRelationName.fqn() + "' is not closed, cannot perform a rename";
-                if (isPartitioned) {
-                    msg = "Partition '" + index.getName() + "' of table '" + sourceRelationName.fqn() +
-                          "' is not closed, cannot perform a rename";
-                }
-                throw new IllegalStateException(msg);
-            }
-        }
+        newMetaData
+            .removeTemplate(sourceTemplateMetaData.getName())
+            .put(newTemplate.build());
     }
 }
