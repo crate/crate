@@ -25,6 +25,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.WindowFunction;
 
 import java.util.Locale;
 
@@ -59,6 +60,11 @@ public class GroupBySymbolValidator {
                         String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", function.info().type()));
             }
             return null;
+        }
+
+        @Override
+        public Void visitWindowFunction(WindowFunction symbol, String context) {
+            throw new IllegalArgumentException("Window functions are not allowed in GROUP BY");
         }
 
         @Override
