@@ -113,6 +113,35 @@ public class UsersPrivilegesMetaData extends AbstractNamedDiffable<MetaData.Cust
         this.usersPrivileges = usersPrivileges;
     }
 
+    public static UsersPrivilegesMetaData swapPrivileges(UsersPrivilegesMetaData usersPrivileges,
+                                                         RelationName source,
+                                                         RelationName target) {
+        HashMap<String, Set<Privilege>> privilegesByUser = new HashMap<>();
+        for (Map.Entry<String, Set<Privilege>> userPrivileges : usersPrivileges.usersPrivileges.entrySet()) {
+            String user = userPrivileges.getKey();
+            Set<Privilege> privileges = userPrivileges.getValue();
+            Set<Privilege> updatedPrivileges = new HashSet<>();
+            for (Privilege privilege : privileges) {
+                PrivilegeIdent ident = privilege.ident();
+                if (ident.clazz() == Privilege.Clazz.TABLE) {
+                    if (source.fqn().equals(ident.ident())) {
+                        updatedPrivileges.add(
+                            new Privilege(privilege.state(), ident.type(), ident.clazz(), target.fqn(), privilege.grantor()));
+                    } else if (target.fqn().equals(ident.ident())) {
+                        updatedPrivileges.add(
+                            new Privilege(privilege.state(), ident.type(), ident.clazz(), source.fqn(), privilege.grantor()));
+                    } else {
+                        updatedPrivileges.add(privilege);
+                    }
+                } else {
+                    updatedPrivileges.add(privilege);
+                }
+            }
+            privilegesByUser.put(user, updatedPrivileges);
+        }
+        return new UsersPrivilegesMetaData(privilegesByUser);
+    }
+
     /**
      * Applies the provided privileges to the specified users.
      *

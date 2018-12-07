@@ -584,4 +584,8 @@ public abstract class AstVisitor<R, C> {
     public R visitDropView(DropView dropView, C context) {
         return visitStatement(dropView, context);
     }
+
+    public R visitSwapTable(SwapTable swapTable, C context) {
+        return visitStatement(swapTable, context);
+    }
 }
