@@ -67,6 +67,7 @@ import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Explain;
+import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.InsertFromValues;
@@ -515,6 +516,11 @@ public class Analyzer {
                 analysis.paramTypeHints(),
                 analysis.sessionContext().searchPath()
             );
+        }
+
+        @Override
+        public AnalyzedStatement visitGCDanglingArtifacts(GCDanglingArtifacts gcDanglingArtifacts, Analysis context) {
+            return AnalyzedGCDanglingArtifacts.INSTANCE;
         }
 
         @Override

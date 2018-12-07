@@ -45,8 +45,6 @@ import io.crate.execution.support.ChainableActions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -66,7 +64,6 @@ import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
@@ -88,7 +85,6 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -113,8 +109,7 @@ import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_
 @Singleton
 public class AlterTableOperation {
 
-    private static final String RESIZE_PREFIX = "." + "resized" + ".";
-    private static final String BACKUP_PREFIX = "." + "backup" + ".";
+    public static final String RESIZE_PREFIX = ".resized.";
 
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
@@ -127,8 +122,6 @@ public class AlterTableOperation {
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction;
     private final IndexScopedSettings indexScopedSettings;
-    private final ActiveShardsObserver activeShardsObserver;
-    private final Logger logger;
     private final SQLOperations sqlOperations;
     private Session session;
 
@@ -144,9 +137,7 @@ public class AlterTableOperation {
                                TransportDeleteIndexAction transportDeleteIndexAction,
                                TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction,
                                SQLOperations sqlOperations,
-                               IndexScopedSettings indexScopedSettings,
-                               Settings settings,
-                               ThreadPool threadPool) {
+                               IndexScopedSettings indexScopedSettings) {
 
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
@@ -160,8 +151,6 @@ public class AlterTableOperation {
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
         this.indexScopedSettings = indexScopedSettings;
         this.sqlOperations = sqlOperations;
-        this.activeShardsObserver = new ActiveShardsObserver(settings, clusterService, threadPool);
-        logger = LogManager.getLogger(getClass());
     }
 
     public CompletableFuture<Long> executeAlterTableAddColumn(final AddColumnAnalyzedStatement analysis) {
@@ -306,7 +295,14 @@ public class AlterTableOperation {
             () -> CompletableFuture.completedFuture(-1L)
         ));
         actions.add(new ChainableAction<>(
-            () -> swapAndDropIndex(resizedIndex, sourceIndexName),
+            () -> swapAndDropIndex(resizedIndex, sourceIndexName)
+                .exceptionally(error -> {
+                    throw new IllegalStateException(
+                        "The resize operation to change the number of shards completed partially but run into a failure. " +
+                        "Please retry the operation or clean up the internal indices with ALTER CLUSTER GC DANGLING ARTIFACTS. "
+                        + error.getMessage(), error
+                    );
+                }),
             () -> CompletableFuture.completedFuture(-1L)
         ));
         if (isShrinkOperation) {
@@ -490,7 +486,7 @@ public class AlterTableOperation {
         }
 
         PutIndexTemplateRequest request = preparePutIndexTemplateRequest(indexScopedSettings, indexTemplateMetaData,
-            newMappings, mappingsToRemove, newSettings, relationName, templateName, logger);
+            newMappings, mappingsToRemove, newSettings, relationName, templateName);
         FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         transportPutIndexTemplateAction.execute(request, listener);
         return listener;
@@ -503,8 +499,7 @@ public class AlterTableOperation {
                                                                   Map<String, Object> mappingsToRemove,
                                                                   Settings newSettings,
                                                                   RelationName relationName,
-                                                                  String templateName,
-                                                                  Logger logger) {
+                                                                  String templateName) {
         // merge mappings
         Map<String, Object> mapping = mergeTemplateMapping(indexTemplateMetaData, newMappings);
 

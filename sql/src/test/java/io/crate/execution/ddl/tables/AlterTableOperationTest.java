@@ -95,8 +95,7 @@ public class AlterTableOperationTest extends CrateUnitTest {
             .build();
 
         PutIndexTemplateRequest request = AlterTableOperation.preparePutIndexTemplateRequest(indexScopedSettings, indexTemplateMetaData,
-            Collections.emptyMap(), Collections.emptyMap(), Settings.EMPTY, new RelationName(Schemas.DOC_SCHEMA_NAME, "t1"), "t1.*",
-            logger);
+            Collections.emptyMap(), Collections.emptyMap(), Settings.EMPTY, new RelationName(Schemas.DOC_SCHEMA_NAME, "t1"), "t1.*");
 
         assertThat(request.settings().keySet(), contains(SETTING_NUMBER_OF_SHARDS));
     }

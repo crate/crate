@@ -24,7 +24,9 @@ package io.crate.metadata;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import io.crate.blob.v2.BlobIndex;
+import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.metadata.blob.BlobSchemaInfo;
 
 import javax.annotation.Nullable;
@@ -42,6 +44,10 @@ public class IndexParts {
     private static final String PARTITIONED_KEY_WORD = "partitioned";
     @VisibleForTesting
     public static final String PARTITIONED_TABLE_PART = "." + PARTITIONED_KEY_WORD + ".";
+
+    public static final List<String> DANGLING_INDICES_PREFIX_PATTERNS = ImmutableList.of(
+        AlterTableOperation.RESIZE_PREFIX + "*"
+    );
 
     private final String schema;
     private final String table;

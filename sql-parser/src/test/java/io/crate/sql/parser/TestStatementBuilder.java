@@ -43,6 +43,7 @@ import io.crate.sql.tree.DropIngestRule;
 import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.KillStatement;
@@ -161,6 +162,11 @@ public class TestStatementBuilder {
     public void testSwapTable() {
         printStatement("ALTER CLUSTER SWAP TABLE t1 TO t2");
         printStatement("ALTER CLUSTER SWAP TABLE t1 TO t2 WITH (prune_second = true)");
+    }
+
+    @Test
+    public void testAlterClusterGCDanglingArtifacts() {
+        printStatement("ALTER CLUSTER GC DANGLING ARTIFACTS");
     }
 
     @Test
@@ -1417,6 +1423,7 @@ public class TestStatementBuilder {
             statement instanceof CreateTable ||
             statement instanceof CopyFrom ||
             statement instanceof SwapTable ||
+            statement instanceof GCDanglingArtifacts ||
             statement instanceof CreateFunction ||
             statement instanceof CreateUser ||
             statement instanceof DropUser ||

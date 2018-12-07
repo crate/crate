@@ -242,4 +242,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitSwapTable(AnalyzedSwapTable swapTable, C context) {
         return visitAnalyzedStatement(swapTable, context);
     }
+
+    public R visitGCDanglingArtifacts(AnalyzedGCDanglingArtifacts gcDanglingIndices, C context) {
+        return visitAnalyzedStatement(gcDanglingIndices, context);
+    }
 }

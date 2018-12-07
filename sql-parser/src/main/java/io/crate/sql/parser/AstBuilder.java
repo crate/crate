@@ -93,6 +93,7 @@ import io.crate.sql.tree.Extract;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.FunctionArgument;
 import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.GrantPrivilege;
@@ -151,8 +152,8 @@ import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SetStatement;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
-import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowSchemas;
+import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.SimpleCaseExpression;
@@ -249,6 +250,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             getQualifiedName(ctx.target),
             extractGenericProperties(ctx.withProperties())
         );
+    }
+
+    @Override
+    public Node visitAlterClusterGCDanglingArtifacts(SqlBaseParser.AlterClusterGCDanglingArtifactsContext ctx) {
+        return GCDanglingArtifacts.INSTANCE;
     }
 
     @Override
