@@ -600,4 +600,8 @@ public abstract class AstVisitor<R, C> {
     public R visitWindowFrame(WindowFrame windowFrame, C context) {
         return visitNode(windowFrame, context);
     }
+
+    public R visitGCDanglingArtifacts(GCDanglingArtifacts gcDanglingArtifacts, C context) {
+        return visitStatement(gcDanglingArtifacts, context);
+    }
 }

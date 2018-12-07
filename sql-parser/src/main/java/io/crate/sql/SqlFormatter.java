@@ -47,6 +47,7 @@ import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionArgument;
+import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.IndexColumnConstraint;
@@ -130,6 +131,12 @@ public final class SqlFormatter {
                 append(indent, " ");
                 process(swapTable.properties(), indent);
             }
+            return null;
+        }
+
+        @Override
+        public Void visitGCDanglingArtifacts(GCDanglingArtifacts gcDanglingArtifacts, Integer indent) {
+            append(indent, "ALTER CLUSTER GC DANGLING ARTIFACTS");
             return null;
         }
 

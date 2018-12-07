@@ -46,10 +46,14 @@ Breaking Changes
 Changes
 =======
 
+- Added a ``ALTER CLUSTER GC DANGLING ARTIFACTS`` statement that can be used to
+  clean up internal structures that weren't properly cleaned up due to cluster
+  failures during operations which create such temporary artifacts.
+
 - Added support for per-table shard allocation filtering.
 
-- Added support for shrinking an existing table or table partition using the
-  ``ALTER TABLE SET`` statement.
+- Added support for changing the number of shards on an existing table or
+  partition using the ``ALTER TABLE SET`` statement.
 
 - Improved resiliency of the ``ALTER TABLE RENAME`` operation by making it an
   atomic operation.

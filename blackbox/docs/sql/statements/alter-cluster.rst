@@ -17,9 +17,11 @@ Synopsis
 
 ::
 
-    ALTER CLUSTER
-      { REROUTE RETRY FAILED }
-      | { SWAP TABLE source TO target [ WITH ( expr = expr [ , ... ] ) ] }
+    ALTER CLUSTER 
+      { REROUTE RETRY FAILED
+      | SWAP TABLE source TO target [ WITH ( expr = expr [ , ... ] ) ]
+      | GC DANGLING ARTIFACTS
+      }
 
 
 Description
@@ -83,3 +85,19 @@ Options
    A boolean option that if set to ``true`` causes the command to remove the
    ``source`` table after the rename. This causes the command to *replace*
    ``source`` with ``target``, instead of swapping the names.
+
+
+``GC DANGLING ARTIFACTS``
+-------------------------
+
+::
+
+   GC DANGLING ARTIFACTS
+
+
+Some operations in CrateDB might temporarily create data to complete the
+operation. If during such an operation the cluster starts failing these
+temporary artifacts might not be cleaned up correctly.
+
+The ``ALTER CLUSTER GC DANGLING ARTIFACTS`` command can be used to remove all
+artifacts created by such operations.

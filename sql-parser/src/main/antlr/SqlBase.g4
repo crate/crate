@@ -56,6 +56,7 @@ statement
     | ALTER (BLOB)? TABLE alterTableDefinition REROUTE rerouteOption                 #alterTableReroute
     | ALTER CLUSTER REROUTE RETRY FAILED                                             #alterClusterRerouteRetryFailed
     | ALTER CLUSTER SWAP TABLE source=qname TO target=qname withProperties?          #alterClusterSwapTable
+    | ALTER CLUSTER GC DANGLING ARTIFACTS                                            #alterClusterGCDanglingArtifacts
     | ALTER USER name=ident SET '(' genericProperties ')'                            #alterUser
     | RESET GLOBAL primaryExpression (',' primaryExpression)*                        #resetGlobal
     | SET SESSION CHARACTERISTICS AS TRANSACTION setExpr (setExpr)*                  #setSessionTransactionMode
@@ -648,7 +649,7 @@ nonReserved
     | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION | RETURN | SUMMARY
     | WORK | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | DEFERRABLE
     | STRING_TYPE | IP | DOUBLE | FLOAT | TIMESTAMP | LONG | INT | INTEGER | SHORT | BYTE | BOOLEAN
-    | REPLACE | SWAP
+    | REPLACE | SWAP | GC | DANGLING | ARTIFACTS
     ;
 
 SELECT: 'SELECT';
@@ -733,6 +734,9 @@ CREATE: 'CREATE';
 BLOB: 'BLOB';
 TABLE: 'TABLE';
 SWAP: 'SWAP';
+GC: 'GC';
+DANGLING: 'DANGLING';
+ARTIFACTS: 'ARTIFACTS';
 CLUSTER: 'CLUSTER';
 REPOSITORY: 'REPOSITORY';
 SNAPSHOT: 'SNAPSHOT';
