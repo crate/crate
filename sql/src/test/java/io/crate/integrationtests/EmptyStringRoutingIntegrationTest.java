@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.SQLResponse;
-import io.crate.testing.UseJdbc;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -107,7 +106,6 @@ public class EmptyStringRoutingIntegrationTest extends SQLTransportIntegrationTe
     }
 
     @Test
-    @UseJdbc(0) // copy has no rowcount
     public void testCopyFromEmptyStringRouting() throws Exception {
         execute("create table t (i int primary key, c string primary key, a int) clustered by (c)");
         ensureYellow();

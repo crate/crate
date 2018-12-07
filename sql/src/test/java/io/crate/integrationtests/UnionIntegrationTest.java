@@ -23,7 +23,6 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,7 +32,6 @@ import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 1)
-@UseJdbc
 public class UnionIntegrationTest extends SQLTransportIntegrationTest {
 
     @Before

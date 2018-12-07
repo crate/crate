@@ -23,7 +23,6 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -47,7 +46,6 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(0) // drop repository has no rowcount
     public void testDropExistingRepository() throws Exception {
         execute("CREATE REPOSITORY existing_repo TYPE \"fs\" with (location=?, compress=True)",
             new Object[]{

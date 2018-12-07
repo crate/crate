@@ -28,7 +28,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
@@ -585,7 +584,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(0) // drop table has no rowcount
     public void testDropTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
@@ -616,7 +614,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(0) // drop table has no rowcount
     public void testDropTableIfExists() {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
@@ -646,7 +643,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(0) // drop table has no rowcount
     public void testDropIfExistsBlobTable() throws Exception {
         execute("create blob table screenshots with (number_of_replicas=0)");
         execute("drop blob table if exists screenshots");
@@ -714,7 +710,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(0) // drop table has no rowcount
     public void testDropTableWithCustomSchema() throws Exception {
         execute("create table a.t (name string) with (number_of_replicas=0)");
         ensureYellow();

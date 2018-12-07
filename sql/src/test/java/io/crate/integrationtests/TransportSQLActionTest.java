@@ -919,7 +919,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(0)
     public void testRefresh() throws Exception {
         execute("create table test (id int primary key, name string) with (refresh_interval = 0)");
         ensureYellow();

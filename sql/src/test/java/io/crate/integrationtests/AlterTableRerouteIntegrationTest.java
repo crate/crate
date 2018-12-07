@@ -22,7 +22,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -32,7 +31,6 @@ import static org.hamcrest.core.Is.is;
 // ensure that only data nodes are picked for rerouting
 @ESIntegTestCase.ClusterScope(supportsDedicatedMasters = false, numDataNodes = 2, numClientNodes = 0)
 @UseRandomizedSchema(random = false)
-@UseJdbc(0) // reroute table has no rowcount
 public class AlterTableRerouteIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

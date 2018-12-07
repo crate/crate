@@ -38,7 +38,6 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
 import io.crate.testing.TestingRowConsumer;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -116,7 +115,6 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(0) // create table has no rowcount
     public void testCreateTableWithOrphanedAlias() throws Exception {
         String partitionName = IndexParts.toIndexName(
             sqlExecutor.getCurrentSchema(), "test", PartitionName.encodeIdent(singletonList("foo")));

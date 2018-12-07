@@ -23,12 +23,10 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-@UseJdbc(0) // rename table has no rowcount
 public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
