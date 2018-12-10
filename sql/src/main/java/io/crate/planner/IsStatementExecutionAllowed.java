@@ -37,7 +37,6 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
-import io.crate.expression.tablefunctions.EmptyRowTableFunction;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -85,10 +84,6 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
                    || InformationSchemaInfo.NAME.equals(schema);
         }
 
-        private static boolean isEmptyRowTable(TableInfo tableInfo) {
-            return tableInfo.ident().equals(EmptyRowTableFunction.TABLE_IDENT);
-        }
-
         @Override
         public boolean test(AnalyzedRelation relation) {
             return process(relation, null);
@@ -122,7 +117,7 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
         @Override
         public Boolean visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
             TableInfo tableInfo = queriedTable.tableRelation().tableInfo();
-            return isSysSchema(tableInfo.ident().schema()) || isEmptyRowTable(tableInfo);
+            return isSysSchema(tableInfo.ident().schema());
         }
 
         @Override
