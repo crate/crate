@@ -22,7 +22,6 @@
 
 package io.crate.execution.ddl;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -37,11 +36,8 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.index.Index;
 
-import java.io.IOException;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -216,23 +212,7 @@ public class SwapRelationsOperation {
             routingBuilder.addAsFromCloseToOpen(targetMd);
         }
         if (sourceTemplate != null) {
-            String targetTemplateName = PartitionName.templateName(target.schema(), target.name());
-            String targetAlias = target.indexNameOrAlias();
-            IndexTemplateMetaData.Builder templateBuilder = IndexTemplateMetaData
-                .builder(targetTemplateName)
-                .patterns(Collections.singletonList(PartitionName.templatePrefix(target.schema(), target.name())))
-                .settings(sourceTemplate.settings())
-                .order(sourceTemplate.order())
-                .putAlias(AliasMetaData.builder(targetAlias).build())
-                .version(sourceTemplate.version());
-
-            for (ObjectObjectCursor<String, CompressedXContent> mapping : sourceTemplate.mappings()) {
-                try {
-                    templateBuilder.putMapping(mapping.key, mapping.value);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+            IndexTemplateMetaData.Builder templateBuilder = Templates.copyWithNewName(sourceTemplate, target);
             updatedMetaData.put(templateBuilder);
         }
     }
