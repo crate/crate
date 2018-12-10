@@ -22,7 +22,7 @@
 
 package io.crate.metadata.cluster;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import io.crate.execution.ddl.Templates;
 import io.crate.execution.ddl.tables.RenameTableRequest;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -39,12 +39,9 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
-
-import java.util.Collections;
 
 public class RenameTableClusterStateExecutor {
 
@@ -135,20 +132,10 @@ public class RenameTableClusterStateExecutor {
 
     private static void renameTemplate(MetaData.Builder newMetaData,
                                        IndexTemplateMetaData sourceTemplateMetaData,
-                                       RelationName target) throws Exception {
-        String targetTemplateName = PartitionName.templateName(target.schema(), target.name());
-        String targetTemplatePrefix = PartitionName.templatePrefix(target.schema(), target.name());
-
-        IndexTemplateMetaData.Builder newTemplate = IndexTemplateMetaData.builder(targetTemplateName)
-            .order(sourceTemplateMetaData.order())
-            .settings(sourceTemplateMetaData.settings())
-            .patterns(Collections.singletonList(targetTemplatePrefix))
-            .putAlias(AliasMetaData.builder(target.indexNameOrAlias()));
-        for (ObjectObjectCursor<String, CompressedXContent> mapping : sourceTemplateMetaData.mappings()) {
-            newTemplate.putMapping(mapping.key, mapping.value);
-        }
+                                       RelationName target) {
+        IndexTemplateMetaData.Builder updatedTemplate = Templates.copyWithNewName(sourceTemplateMetaData, target);
         newMetaData
             .removeTemplate(sourceTemplateMetaData.getName())
-            .put(newTemplate.build());
+            .put(updatedTemplate);
     }
 }
