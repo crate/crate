@@ -284,7 +284,7 @@ public class AlterTableOperation {
         // pickup node
         DiscoveryNode resizeNode = getNodeForResize(currentState);
 
-        List<ChainableAction<Long>> actions = new ArrayList<>(7);
+        List<ChainableAction<Long>> actions = new ArrayList<>(8);
         // change allocation
         actions.add(new ChainableAction<>(
             () -> initAllocationToNode(resizeNode.getName(), sourceIndexName),
@@ -297,16 +297,31 @@ public class AlterTableOperation {
             () -> CompletableFuture.completedFuture(-1L)
         ));
 
+        final String targetIndexName = SHRINK_PREFIX + sourceIndexName;
+        final String backupIndexName = BACKUP_PREFIX + sourceIndexName;
+
+        // delete possible leftover temp index from previous failed shrink operation
+        List<String> indicesToDelete = new ArrayList<>(2);
+        if (currentState.metaData().index(targetIndexName) != null) {
+            indicesToDelete.add(targetIndexName);
+        }
+        if (currentState.metaData().index(backupIndexName) != null) {
+            indicesToDelete.add(backupIndexName);
+        }
+        if (!indicesToDelete.isEmpty()) {
+            actions.add(new ChainableAction<>(
+                () -> deleteIndex(indicesToDelete.toArray(new String[indicesToDelete.size()])),
+                () -> CompletableFuture.completedFuture(-1L)
+            ));
+        }
+
         // shrink index
-        String targetIndexName = SHRINK_PREFIX + sourceIndexName;
         actions.add(new ChainableAction<>(
             () -> shrinkIndex(sourceIndexName, sourceIndexAlias, targetIndexName, targetNumberOfShards),
             () -> CompletableFuture.completedFuture(-1L)
         ));
 
         // index rename
-        final String backupIndexName = BACKUP_PREFIX + sourceIndexName;
-
         List<RenameIndexAction> renameIndexActionList = new ArrayList<>(2);
         renameIndexActionList.add(new RenameIndexAction(sourceIndexName, backupIndexName));
         renameIndexActionList.add(new RenameIndexAction(targetIndexName, sourceIndexName));
@@ -454,8 +469,8 @@ public class AlterTableOperation {
         return listener;
     }
 
-    private CompletableFuture<Long> deleteIndex(String indexName) {
-        DeleteIndexRequest request = new DeleteIndexRequest(indexName);
+    private CompletableFuture<Long> deleteIndex(String... indexNames) {
+        DeleteIndexRequest request = new DeleteIndexRequest(indexNames);
 
         FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 0L);
         transportDeleteIndexAction.execute(request, listener);
