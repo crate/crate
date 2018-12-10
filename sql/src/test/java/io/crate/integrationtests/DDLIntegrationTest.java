@@ -33,6 +33,7 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsReques
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -716,6 +717,31 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[0][0], is(1));
         execute("select id from quotes");
         assertThat(response.rowCount(), is(2L));
+    }
+
+    @Test
+    public void testAlterShardsTableEnsureLeftoverIndicesAreRemoved() throws Exception {
+        execute("create table quotes (id integer, quote string, date timestamp) " +
+                "clustered into 3 shards");
+        ensureYellow();
+
+        final String targetIndexName = ".shrinked.quotes";
+        final String backupIndexName = ".backup.quotes";
+
+        createIndex(targetIndexName, backupIndexName);
+
+        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+        assertThat(clusterService.state().metaData().hasIndex(targetIndexName), is(true));
+        assertThat(clusterService.state().metaData().hasIndex(backupIndexName), is(true));
+
+        execute("alter table quotes set (\"blocks.write\"=?)", $(true));
+        execute("alter table quotes set (number_of_shards=?)", $(1));
+
+        execute("select number_of_shards from information_schema.tables where table_name = 'quotes'");
+        assertThat(response.rows()[0][0], is(1));
+
+        assertThat(clusterService.state().metaData().hasIndex(targetIndexName), is(false));
+        assertThat(clusterService.state().metaData().hasIndex(backupIndexName), is(false));
     }
 
     @Test
