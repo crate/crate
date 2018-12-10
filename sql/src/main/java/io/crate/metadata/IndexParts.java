@@ -177,6 +177,12 @@ public class IndexParts {
         return ((diff == 0 && idx1 == 0) || diff == 1) && idx2 + PARTITIONED_TABLE_PART.length() < indexName.length();
     }
 
+    public static boolean isDangling(String indexName) {
+        return indexName.startsWith(".") &&
+               !indexName.startsWith(PARTITIONED_TABLE_PART) &&
+               !BlobIndex.isBlobIndex(indexName);
+    }
+
     private static void assertPartitionPrefix(String prefix) {
         if (!PARTITIONED_KEY_WORD.equals(prefix)) {
             throw new IllegalArgumentException("Invalid partition prefix: " + prefix);

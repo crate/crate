@@ -38,6 +38,7 @@ import io.crate.expression.reference.sys.shard.ShardPartitionOrphanedExpression;
 import io.crate.expression.reference.sys.shard.ShardRecoveryExpression;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -60,6 +61,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -309,9 +311,9 @@ public class SysShardsTableInfo extends StaticTableInfo {
                               RoutingProvider.ShardSelection shardSelection,
                               SessionContext sessionContext) {
         // TODO: filter on whereClause
-        Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
-        String[] concreteIndices = clusterState.metaData().getConcreteAllOpenIndices();
-
+        String[] concreteIndices = Arrays.stream(clusterState.metaData().getConcreteAllOpenIndices())
+            .filter(index -> !IndexParts.isDangling(index))
+            .toArray(String[]::new);
         User user = sessionContext != null ? sessionContext.user() : null;
         if (user != null) {
             List<String> accessibleTables = new ArrayList<>(concreteIndices.length);
@@ -324,6 +326,7 @@ public class SysShardsTableInfo extends StaticTableInfo {
             concreteIndices = accessibleTables.toArray(new String[0]);
         }
 
+        Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
         GroupShardsIterator<ShardIterator> groupShardsIterator =
             clusterState.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
         for (final ShardIterator shardIt : groupShardsIterator) {

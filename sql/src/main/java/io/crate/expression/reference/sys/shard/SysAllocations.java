@@ -22,6 +22,7 @@
 
 package io.crate.expression.reference.sys.shard;
 
+import io.crate.metadata.IndexParts;
 import org.elasticsearch.action.admin.cluster.allocation.TransportClusterAllocationExplainAction;
 import org.elasticsearch.cluster.ClusterInfo;
 import org.elasticsearch.cluster.ClusterInfoService;
@@ -68,6 +69,7 @@ public class SysAllocations implements Iterable<SysAllocation> {
         final RoutingAllocation allocation = new RoutingAllocation(
             allocationDeciders, routingNodes, state, clusterInfo, System.nanoTime());
         return allocation.routingTable().allShards().stream()
+            .filter(shardRouting -> !IndexParts.isDangling(shardRouting.getIndexName()))
             .map(shardRouting -> {
                 return new SysAllocation(
                     TransportClusterAllocationExplainAction.explainShard(

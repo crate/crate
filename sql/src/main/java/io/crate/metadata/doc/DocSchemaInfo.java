@@ -27,6 +27,8 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -34,8 +36,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.metadata.view.ViewsMetaData;
@@ -123,7 +123,8 @@ public class DocSchemaInfo implements SchemaInfo {
 
     private final ConcurrentHashMap<String, DocTableInfo> docTableByName = new ConcurrentHashMap<>();
 
-    private static final Predicate<String> NO_BLOB = ((Predicate<String>)BlobIndex::isBlobIndex).negate();
+    private static final Predicate<String> NO_BLOB_NOR_DANGLING =
+        index -> ! (BlobIndex.isBlobIndex(index) || IndexParts.isDangling(index));
 
     private final String schemaName;
 
@@ -196,7 +197,7 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     private static void extractRelationNamesForSchema(Stream<String> stream, String schema, Set<String> target) {
-        stream.filter(NO_BLOB)
+        stream.filter(NO_BLOB_NOR_DANGLING)
             .map(IndexParts::new)
             .filter(indexParts -> !indexParts.isPartitioned())
             .filter(indexParts -> indexParts.matchesSchema(schema))

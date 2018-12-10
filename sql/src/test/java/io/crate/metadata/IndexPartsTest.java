@@ -69,6 +69,18 @@ public class IndexPartsTest {
         assertThat(new IndexParts(schemaTable).getPartitionIdent(), is(""));
         assertThat(new IndexParts(partitionedTable).getPartitionIdent(), is(ident));;
         assertThat(new IndexParts(schemaPartitionedTable).getPartitionIdent(), is(ident));
+
+        assertThat(IndexParts.isDangling(table), is(false));
+        assertThat(IndexParts.isDangling(schemaTable), is(false));
+        assertThat(IndexParts.isDangling(partitionedTable), is(false));
+        assertThat(IndexParts.isDangling(schemaPartitionedTable), is(false));
+        assertThat(IndexParts.isDangling("schema..partitioned."), is(false));
+        assertThat(IndexParts.isDangling("schema.partitioned."), is(false));
+        assertThat(IndexParts.isDangling("schema..partitioned.t"), is(false));
+        assertThat(IndexParts.isDangling(".shrinked.t"), is(true));
+        assertThat(IndexParts.isDangling(".shrinked.schema.t"), is(true));
+        assertThat(IndexParts.isDangling(".shrinked.partitioned.t.ident"), is(true));
+        assertThat(IndexParts.isDangling(".shrinked.schema..partitioned.t.ident"), is(true));
     }
 
 }
