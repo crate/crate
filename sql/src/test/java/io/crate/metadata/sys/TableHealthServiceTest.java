@@ -28,11 +28,11 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.settings.Settings;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
@@ -98,8 +98,8 @@ public class TableHealthServiceTest extends CrateDummyClusterServiceUnitTest {
         Map<TableHealthService.TablePartitionIdent, TableHealthService.ShardsInfo> tables =
             Collections.singletonMap(tablePartitionIdent, new TableHealthService.ShardsInfo());
 
-        List<TableHealth> tableHealthList = tableHealthService.buildTablesHealth(tables);
-        assertThat(tableHealthList.size(), is(0));
+        Iterable<TableHealth> tableHealth = tableHealthService.buildTablesHealth(tables);
+        assertThat(tableHealth, Matchers.emptyIterable());
     }
 
     @Test
@@ -122,7 +122,8 @@ public class TableHealthServiceTest extends CrateDummyClusterServiceUnitTest {
         Map<TableHealthService.TablePartitionIdent, TableHealthService.ShardsInfo> tables =
             Collections.singletonMap(tablePartitionIdent, new TableHealthService.ShardsInfo());
 
-        List<TableHealth> tableHealthList = tableHealthService.buildTablesHealth(tables);
-        assertThat(tableHealthList.size(), is(1));
+        Iterable<TableHealth> tableHealth = tableHealthService.buildTablesHealth(tables);
+        assertThat(tableHealth, Matchers.contains(
+            new TableHealth("my_blob_table", "blob", null, TableHealth.Health.RED, 2, 0)));
     }
 }
