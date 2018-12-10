@@ -21,6 +21,10 @@ env:
 # to avoid errors in es submodule.
 build:
   ci:
+    # Solve "trustAnchors parameter must be non-empty" issue
+    - sudo apt-get update & sudo apt-get install ca-certificates-java
+    - sudo update-ca-certificates -f
+
     - useradd -m ciuser
     - CIUSER_BUILD_DIR=/home/ciuser/build
     - mv $SHIPPABLE_BUILD_DIR $CIUSER_BUILD_DIR
