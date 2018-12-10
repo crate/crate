@@ -41,7 +41,6 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.logging.Loggers;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -71,7 +70,6 @@ public class DistResultRXTaskTest extends CrateUnitTest {
                                                       int numBuckets) {
 
         PageBucketReceiver pageBucketReceiver = new CumulativePageBucketReceiver(
-            Loggers.getLogger(DistResultRXTask.class),
             "n1",
             1,
             MoreExecutors.directExecutor(),

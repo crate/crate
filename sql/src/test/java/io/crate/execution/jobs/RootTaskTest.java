@@ -137,7 +137,6 @@ public class RootTaskTest extends CrateUnitTest {
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
 
         PageBucketReceiver pageBucketReceiver = new CumulativePageBucketReceiver(
-            Loggers.getLogger(DistResultRXTask.class),
             "n1",
             2,
             MoreExecutors.directExecutor(),

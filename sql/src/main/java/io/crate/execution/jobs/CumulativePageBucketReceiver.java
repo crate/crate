@@ -31,6 +31,7 @@ import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.netty.util.collection.IntObjectHashMap;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
@@ -55,6 +56,8 @@ import static io.crate.concurrent.CompletableFutures.failedFuture;
  */
 public class CumulativePageBucketReceiver implements PageBucketReceiver {
 
+    private static final Logger LOGGER = LogManager.getLogger(CumulativePageBucketReceiver.class);
+
     private final Object lock = new Object();
     private final String nodeName;
     private final boolean traceEnabled;
@@ -70,22 +73,19 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
     private final RowConsumer consumer;
     private final PagingIterator<Integer, Row> pagingIterator;
     private final BatchIterator<Row> batchPagingIterator;
-    private final Logger logger;
     private final CompletableFuture<?> processingFuture = new CompletableFuture<>();
 
     private Throwable lastThrowable = null;
     private volatile CompletableFuture<List<KeyIterable<Integer, Row>>> currentPage = new CompletableFuture<>();
     private volatile boolean receivingFirstPage = true;
 
-    public CumulativePageBucketReceiver(Logger logger,
-                                        String nodeName,
+    public CumulativePageBucketReceiver(String nodeName,
                                         int phaseId,
                                         Executor executor,
                                         Streamer<?>[] streamers,
                                         RowConsumer rowConsumer,
                                         PagingIterator<Integer, Row> pagingIterator,
                                         int numBuckets) {
-        this.logger = logger;
         this.nodeName = nodeName;
         this.phaseId = phaseId;
         this.executor = executor;
@@ -117,7 +117,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
                 }
             }
         );
-        traceEnabled = logger.isTraceEnabled();
+        traceEnabled = LOGGER.isTraceEnabled();
     }
 
     @Override
@@ -266,7 +266,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
 
     private void traceLog(String msg, int bucketIdx) {
         if (traceEnabled) {
-            logger.trace("{} phaseId={} bucket={}", msg, phaseId, bucketIdx);
+            LOGGER.trace("{} phaseId={} bucket={}", msg, phaseId, bucketIdx);
         }
     }
 

@@ -81,13 +81,12 @@ import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.types.DataTypes;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -120,7 +119,6 @@ import static io.crate.execution.dsl.projection.Projections.shardProjections;
 public class JobSetup extends AbstractComponent {
 
     private final MapSideDataCollectOperation collectOperation;
-    private final Logger distResultRXTaskLogger;
     private final ClusterService clusterService;
     private final CountOperation countOperation;
     private final CrateCircuitBreakerService circuitBreakerService;
@@ -147,7 +145,6 @@ public class JobSetup extends AbstractComponent {
                     ShardCollectSource shardCollectSource,
                     BigArrays bigArrays) {
         super(settings);
-        distResultRXTaskLogger = LogManager.getLogger(DistResultRXTask.class);
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
@@ -666,7 +663,6 @@ public class JobSetup extends AbstractComponent {
             PageBucketReceiver pageBucketReceiver;
             if (collector == null) {
                 pageBucketReceiver = new CumulativePageBucketReceiver(
-                    distResultRXTaskLogger,
                     nodeName(),
                     phase.phaseId(),
                     searchTp,
@@ -899,7 +895,6 @@ public class JobSetup extends AbstractComponent {
             }
 
             PageBucketReceiver pageBucketReceiver = new CumulativePageBucketReceiver(
-                distResultRXTaskLogger,
                 nodeName(),
                 mergePhase.phaseId(),
                 searchTp,
