@@ -94,4 +94,43 @@ class TableHealth {
     public String fqn() {
         return fqn;
     }
+
+    @Override
+    public String toString() {
+        return "TableHealth{" +
+               "name='" + tableName + '\'' +
+               ", schema='" + tableSchema + '\'' +
+               ", partitionIdent='" + partitionIdent + '\'' +
+               ", health=" + health +
+               ", missingShards=" + missingShards +
+               ", underreplicatedShards=" + underreplicatedShards +
+               '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TableHealth that = (TableHealth) o;
+
+        if (missingShards != that.missingShards) return false;
+        if (underreplicatedShards != that.underreplicatedShards) return false;
+        if (!tableName.equals(that.tableName)) return false;
+        if (!tableSchema.equals(that.tableSchema)) return false;
+        if (partitionIdent != null ? !partitionIdent.equals(that.partitionIdent) : that.partitionIdent != null)
+            return false;
+        return health == that.health;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = tableName.hashCode();
+        result = 31 * result + tableSchema.hashCode();
+        result = 31 * result + (partitionIdent != null ? partitionIdent.hashCode() : 0);
+        result = 31 * result + health.hashCode();
+        result = 31 * result + (int) (missingShards ^ (missingShards >>> 32));
+        result = 31 * result + (int) (underreplicatedShards ^ (underreplicatedShards >>> 32));
+        return result;
+    }
 }
