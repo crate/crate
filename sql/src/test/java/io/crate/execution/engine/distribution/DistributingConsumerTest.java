@@ -157,7 +157,6 @@ public class DistributingConsumerTest extends CrateUnitTest {
 
     private DistResultRXTask createPageDownstreamContext(Streamer<?>[] streamers, TestingRowConsumer collectingConsumer) {
         PageBucketReceiver pageBucketReceiver = new CumulativePageBucketReceiver(
-            Loggers.getLogger(DistResultRXTask.class),
             "n1",
             1,
             executorService,

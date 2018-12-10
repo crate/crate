@@ -184,7 +184,6 @@ public class RemoteCollector {
             pagingIterator = PassThroughPagingIterator.oneShot();
         }
         PageBucketReceiver pageBucketReceiver = new CumulativePageBucketReceiver(
-            LOGGER,
             localNode,
             RECEIVER_PHASE_ID,
             executor,
