@@ -22,11 +22,11 @@
 
 package io.crate.execution.ddl;
 
+import io.crate.execution.support.ActionListeners;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -89,27 +89,15 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
     @Override
     protected void masterOperation(SwapRelationsRequest request, ClusterState state, ActionListener<AcknowledgedResponse> listener) throws Exception {
         AtomicReference<String[]> indexNamesAfterRelationSwap = new AtomicReference<>(null);
-        ActionListener<AcknowledgedResponse> waitForActiveShardsListener = ActionListener.wrap(response -> {
-            if (response.isAcknowledged()) {
-                activeShardsObserver.waitForActiveShards(
-                    indexNamesAfterRelationSwap.get(),
-                    ActiveShardCount.DEFAULT,
-                    request.ackTimeout(),
-                    shardsAcknowledged -> {
-                        if (!shardsAcknowledged) {
-                            logger.debug(
-                                "Switched name of relations, but the operation timed out waiting for enough shards to be started");
-                        }
-                        listener.onResponse(response);
-                    },
-                    listener::onFailure
-                );
-            } else {
-                listener.onResponse(response);
-            }
-        }, listener::onFailure);
+        ActionListener<AcknowledgedResponse> waitForShardsListener = ActionListeners.waitForShards(
+            listener,
+            activeShardsObserver,
+            request.ackTimeout(),
+            () -> logger.info("Switched name of relations, but the operation timed out waiting for enough shards to be started"),
+            indexNamesAfterRelationSwap::get
+        );
         AckedClusterStateUpdateTask<AcknowledgedResponse> updateTask =
-            new AckedClusterStateUpdateTask<AcknowledgedResponse>(Priority.HIGH, request, waitForActiveShardsListener) {
+            new AckedClusterStateUpdateTask<AcknowledgedResponse>(Priority.HIGH, request, waitForShardsListener) {
 
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
