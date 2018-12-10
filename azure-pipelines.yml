@@ -1,6 +1,6 @@
 ---
 jobs:
-  - job: LinuxJDK10
+  - job: LinuxJDK11
     pool:
       vmImage: 'Ubuntu 16.04'
     steps:
@@ -13,7 +13,7 @@ jobs:
           gradleWrapperFile: 'gradlew'
           gradleOptions: '-Xmx2048m'
           javaHomeOption: 'JDKVersion'
-          jdkVersionOption: '1.10'
+          jdkVersionOption: '1.11'
           jdkArchitectureOption: 'x64'
           publishJUnitResults: true
           testResultsFiles: '**/TEST-*.xml'
