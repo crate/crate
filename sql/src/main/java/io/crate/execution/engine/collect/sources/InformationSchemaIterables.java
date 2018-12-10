@@ -141,7 +141,8 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private static Stream<TableInfo> tablesStream(Schemas schemas) {
         return sequentialStream(schemas)
             .flatMap(s -> sequentialStream(s.getTables()))
-            .filter(i -> !IndexParts.isPartitioned(i.ident().indexNameOrAlias()));
+            .filter(i -> !(IndexParts.isPartitioned(i.ident().indexNameOrAlias()) ||
+                           IndexParts.isDangling(i.ident().indexNameOrAlias())));
     }
 
     private static <T> Stream<T> sequentialStream(Iterable<T> iterable) {
