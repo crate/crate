@@ -1985,4 +1985,22 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("Table functions are not allowed in WHERE");
         analyze("select * from sys.nodes where unnest([1]) = 1");
     }
+
+
+    public void testUsingWindowFunctionInGroupByIsProhibited() {
+        expectedException.expectMessage("Window functions are not allowed in GROUP BY");
+        analyze("select count(*) from t1 group by sum(1) OVER()");
+    }
+
+    @Test
+    public void testUsingWindowFunctionInHavingIsProhibited() {
+        expectedException.expectMessage("Window functions are not allowed in HAVING");
+        analyze("select count(*) from t1 having sum(1) OVER() > 1");
+    }
+
+    @Test
+    public void testUsingWindowFunctionInWhereClauseIsNotAllowed() {
+        expectedException.expectMessage("Window functions are not allowed in WHERE");
+        analyze("select count(*) from t1 where sum(1) OVER() = 1");
+    }
 }

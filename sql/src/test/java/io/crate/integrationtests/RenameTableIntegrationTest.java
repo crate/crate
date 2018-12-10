@@ -37,7 +37,6 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("alter table t1 rename to t2");
         assertThat(response.rowCount(), is(-1L));
-        ensureYellow();
 
         execute("select * from t2 order by id");
         assertThat(TestingHelpers.printedTable(response.rows()), is("1\n" +
@@ -56,7 +55,6 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (id) values (1), (2)");
         refresh();
         execute("alter table t1 rename to t2");
-        ensureYellow();
 
         // creating a new table using the old name must succeed
         execute("create table t1 (id int) with (number_of_replicas = 0)");
@@ -75,7 +73,6 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("alter table t1 rename to t2");
         assertThat(response.rowCount(), is(-1L));
-        ensureYellow();
 
         execute("select closed from information_schema.tables where table_name = 't2'");
         assertThat(response.rows()[0][0], is(true));
@@ -89,7 +86,6 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("alter table tp1 rename to tp2");
         assertThat(response.rowCount(), is(-1L));
-        ensureYellow();
 
         execute("select id from tp2 order by id2");
         assertThat(TestingHelpers.printedTable(response.rows()), is("1\n" +
@@ -109,7 +105,6 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("alter table tp1 rename to tp2");
         assertThat(response.rowCount(), is(-1L));
-        ensureYellow();
 
         execute("select * from tp2");
         assertThat(response.rowCount(), is(0L));
@@ -121,11 +116,9 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
         refresh();
         execute("alter table tp1 rename to tp2");
-        ensureYellow();
 
         // creating a new table using the old name must succeed
         execute("create table tp1 (id int, id2 integer) partitioned by (id) with (number_of_replicas = 0)");
-        ensureYellow();
         // also inserting must work (no old blocks traces)
         execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
 
@@ -147,7 +140,6 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
         execute("alter table tp1 partition (id=1) close");
 
         execute("alter table tp1 rename to tp2");
-        ensureYellow();
 
         execute("select closed from information_schema.table_partitions where partition_ident = '04132'");
         assertThat(response.rows()[0][0], is(true));

@@ -38,9 +38,6 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
-import io.crate.execution.support.ChainableAction;
-import io.crate.execution.support.ChainableActions;
-import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -49,18 +46,12 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
-import org.elasticsearch.action.admin.indices.close.TransportCloseIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
-import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
-import org.elasticsearch.action.admin.indices.open.OpenIndexResponse;
-import org.elasticsearch.action.admin.indices.open.TransportOpenIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
@@ -103,8 +94,6 @@ public class AlterTableOperation {
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final TransportPutMappingAction transportPutMappingAction;
     private final TransportUpdateSettingsAction transportUpdateSettingsAction;
-    private final TransportOpenIndexAction transportOpenIndexAction;
-    private final TransportCloseIndexAction transportCloseIndexAction;
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
     private final IndexScopedSettings indexScopedSettings;
@@ -117,8 +106,6 @@ public class AlterTableOperation {
                                TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                                TransportPutMappingAction transportPutMappingAction,
                                TransportUpdateSettingsAction transportUpdateSettingsAction,
-                               TransportOpenIndexAction transportOpenIndexAction,
-                               TransportCloseIndexAction transportCloseIndexAction,
                                TransportRenameTableAction transportRenameTableAction,
                                TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
                                SQLOperations sqlOperations,
@@ -128,8 +115,6 @@ public class AlterTableOperation {
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.transportPutMappingAction = transportPutMappingAction;
         this.transportUpdateSettingsAction = transportUpdateSettingsAction;
-        this.transportOpenIndexAction = transportOpenIndexAction;
-        this.transportCloseIndexAction = transportCloseIndexAction;
         this.transportRenameTableAction = transportRenameTableAction;
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
         this.indexScopedSettings = indexScopedSettings;
@@ -175,21 +160,6 @@ public class AlterTableOperation {
         return listener;
     }
 
-    private CompletableFuture<Long> openTable(String... indices) {
-        FutureActionListener<OpenIndexResponse, Long> listener = new FutureActionListener<>(r -> -1L);
-        OpenIndexRequest request = new OpenIndexRequest(indices);
-        request.waitForActiveShards(ActiveShardCount.ALL);
-        transportOpenIndexAction.execute(request, listener);
-        return listener;
-    }
-
-    private CompletableFuture<Long> closeTable(String... indices) {
-        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
-        CloseIndexRequest request = new CloseIndexRequest(indices);
-        transportCloseIndexAction.execute(request, listener);
-        return listener;
-    }
-
     public CompletableFuture<Long> executeAlterTable(AlterTableAnalyzedStatement analysis) {
         DocTableInfo table = analysis.table();
         List<CompletableFuture<Long>> results = new ArrayList<>(3);
@@ -229,108 +199,12 @@ public class AlterTableOperation {
         return result;
     }
 
-    private CompletableFuture<Long> updateOpenCloseOnPartitionTemplate(boolean openTable, RelationName relationName) {
-        Map<String, Object> metaMap = Collections.singletonMap("_meta", Collections.singletonMap("closed", true));
-        if (openTable) {
-            //Remove the mapping from the template.
-            return updateTemplate(Collections.emptyMap(), metaMap, Settings.EMPTY, relationName);
-        } else {
-            //Otherwise, add the mapping to the template.
-            return updateTemplate(metaMap, Settings.EMPTY, relationName);
-        }
-    }
-
     public CompletableFuture<Long> executeAlterTableRenameTable(AlterTableRenameAnalyzedStatement statement) {
         DocTableInfo sourceTableInfo = statement.sourceTableInfo();
         RelationName sourceRelationName = sourceTableInfo.ident();
         RelationName targetRelationName = statement.targetTableIdent();
 
-        if (sourceTableInfo.isPartitioned()) {
-            return renamePartitionedTable(sourceTableInfo, targetRelationName);
-        }
-
-        String[] sourceIndices = new String[]{sourceRelationName.indexNameOrAlias()};
-        String[] targetIndices = new String[]{targetRelationName.indexNameOrAlias()};
-
-        List<ChainableAction<Long>> actions = new ArrayList<>(3);
-
-        if (sourceTableInfo.isClosed() == false) {
-            actions.add(new ChainableAction<>(
-                () -> closeTable(sourceIndices),
-                () -> openTable(sourceIndices)
-            ));
-        }
-        actions.add(new ChainableAction<>(
-            () -> renameTable(sourceRelationName, targetRelationName, false),
-            () -> renameTable(targetRelationName, sourceRelationName, false)
-        ));
-        if (sourceTableInfo.isClosed() == false) {
-            actions.add(new ChainableAction<>(
-                () -> openTable(targetIndices),
-                () -> CompletableFuture.completedFuture(-1L)
-            ));
-        }
-        return ChainableActions.run(actions);
-    }
-
-    private CompletableFuture<Long> renamePartitionedTable(DocTableInfo sourceTableInfo, RelationName targetRelationName) {
-        boolean completeTableIsClosed = sourceTableInfo.isClosed();
-        RelationName sourceRelationName = sourceTableInfo.ident();
-        String[] sourceIndices = sourceTableInfo.concreteIndices();
-        String[] targetIndices = new String[sourceIndices.length];
-        // only close/open open partitions
-        List<String> sourceIndicesToClose = new ArrayList<>(sourceIndices.length);
-        List<String> targetIndicesToOpen = new ArrayList<>(sourceIndices.length);
-
-        MetaData metaData = clusterService.state().metaData();
-        for (int i = 0; i < sourceIndices.length; i++) {
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndices[i]);
-            String sourceIndexName = partitionName.asIndexName();
-            String targetIndexName = IndexParts.toIndexName(targetRelationName, partitionName.ident());
-            targetIndices[i] = targetIndexName;
-            if (metaData.index(sourceIndexName).getState() == IndexMetaData.State.OPEN) {
-                sourceIndicesToClose.add(sourceIndexName);
-                targetIndicesToOpen.add(targetIndexName);
-            }
-        }
-        String[] sourceIndicesToCloseArray = sourceIndicesToClose.toArray(new String[0]);
-        String[] targetIndicesToOpenArray = targetIndicesToOpen.toArray(new String[0]);
-
-        List<ChainableAction<Long>> actions = new ArrayList<>(7);
-
-        if (completeTableIsClosed == false) {
-            actions.add(new ChainableAction<>(
-                () -> updateOpenCloseOnPartitionTemplate(false, sourceRelationName),
-                () -> updateOpenCloseOnPartitionTemplate(true, sourceRelationName)
-            ));
-            if (sourceIndicesToCloseArray.length > 0) {
-                actions.add(new ChainableAction<>(
-                    () -> closeTable(sourceIndicesToCloseArray),
-                    () -> openTable(sourceIndicesToCloseArray)
-                ));
-            }
-        }
-
-        actions.add(new ChainableAction<>(
-            () -> renameTable(sourceRelationName, targetRelationName, true),
-            () -> renameTable(targetRelationName, sourceRelationName, true)
-        ));
-
-        if (completeTableIsClosed == false) {
-            actions.add(new ChainableAction<>(
-                () -> updateOpenCloseOnPartitionTemplate(true, targetRelationName),
-                () -> updateOpenCloseOnPartitionTemplate(false, targetRelationName)
-            ));
-
-            if (targetIndicesToOpenArray.length > 0) {
-                actions.add(new ChainableAction<>(
-                    () -> openTable(targetIndicesToOpenArray),
-                    () -> CompletableFuture.completedFuture(-1L)
-                ));
-            }
-        }
-
-        return ChainableActions.run(actions);
+        return renameTable(sourceRelationName, targetRelationName, sourceTableInfo.isPartitioned());
     }
 
     private CompletableFuture<Long> renameTable(RelationName sourceRelationName,

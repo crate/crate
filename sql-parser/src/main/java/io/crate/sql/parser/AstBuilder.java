@@ -90,6 +90,7 @@ import io.crate.sql.tree.ExistsPredicate;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Extract;
+import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.FunctionArgument;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.GenericProperties;
@@ -175,6 +176,8 @@ import io.crate.sql.tree.Union;
 import io.crate.sql.tree.Update;
 import io.crate.sql.tree.ValuesList;
 import io.crate.sql.tree.WhenClause;
+import io.crate.sql.tree.Window;
+import io.crate.sql.tree.WindowFrame;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
@@ -187,6 +190,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 class AstBuilder extends SqlBaseBaseVisitor<Node> {
@@ -446,7 +450,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitCopyTo(SqlBaseParser.CopyToContext context) {
         return new CopyTo(
             (Table) visit(context.tableWithPartition()),
-            context.columns() == null ? Collections.emptyList() : visitCollection(context.columns().primaryExpression(), Expression.class),
+            context.columns() == null ? emptyList() : visitCollection(context.columns().primaryExpression(), Expression.class),
             visitIfPresent(context.where(), Expression.class),
             context.DIRECTORY() != null,
             (Expression) visit(context.path),
@@ -493,7 +497,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             return new Insert.DuplicateKeyContext(
                 Insert.DuplicateKeyContext.Type.ON_DUPLICATE_KEY_UPDATE,
                 visitCollection(context.onDuplicate().assignment(), Assignment.class),
-                Collections.emptyList());
+                emptyList());
         } else if (context.onConflict() != null) {
             SqlBaseParser.OnConflictContext onConflictContext = context.onConflict();
             final List<String> conflictColumns;
@@ -502,12 +506,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                     .map(RuleContext::getText)
                     .collect(toList());
             } else {
-                conflictColumns = Collections.emptyList();
+                conflictColumns = emptyList();
             }
             if (onConflictContext.NOTHING() != null) {
                 return new Insert.DuplicateKeyContext(
                     Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING,
-                    Collections.emptyList(),
+                    emptyList(),
                     conflictColumns);
             } else {
                 if (conflictColumns == null) {
@@ -1311,6 +1315,43 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitOver(SqlBaseParser.OverContext ctx) {
+        List<SortItem> orderBy;
+        if (ctx.ORDER() != null) {
+            orderBy = visitCollection(ctx.sortItem(), SortItem.class);
+        } else {
+            orderBy = emptyList();
+        }
+        return new Window(
+            visitCollection(ctx.partition, Expression.class),
+            orderBy,
+            visitIfPresent(ctx.windowFrame(), WindowFrame.class));
+    }
+
+    @Override
+    public Node visitWindowFrame(SqlBaseParser.WindowFrameContext ctx) {
+        return new WindowFrame(
+            getFrameType(ctx.frameType),
+            (FrameBound) visit(ctx.start),
+            visitIfPresent(ctx.end, FrameBound.class));
+    }
+
+    @Override
+    public Node visitUnboundedFrame(SqlBaseParser.UnboundedFrameContext context) {
+        return new FrameBound(getUnboundedFrameBoundType(context.boundType));
+    }
+
+    @Override
+    public Node visitBoundedFrame(SqlBaseParser.BoundedFrameContext context) {
+        return new FrameBound(getBoundedFrameBoundType(context.boundType), (Expression) visit(context.expr()));
+    }
+
+    @Override
+    public Node visitCurrentRowBound(SqlBaseParser.CurrentRowBoundContext context) {
+        return new FrameBound(FrameBound.Type.CURRENT_ROW);
+    }
+
+    @Override
     public Node visitDoubleColonCast(SqlBaseParser.DoubleColonCastContext context) {
         return new Cast((Expression) visit(context.valueExpression()), (ColumnType) visit(context.dataType()));
     }
@@ -1440,7 +1481,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new FunctionCall(
             getQualifiedName(context.qname()),
             isDistinct(context.setQuant()),
-            visitCollection(context.expr(), Expression.class));
+            visitCollection(context.expr(), Expression.class),
+            visitIfPresent(context.over(), Window.class)
+        );
     }
 
     // Literals
@@ -1772,7 +1815,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                                                          SqlBaseParser.ClazzContext clazz,
                                                          SqlBaseParser.QnamesContext qnamesContext) {
         if (onCluster) {
-            return new ClassAndIdent(CLUSTER, Collections.emptyList());
+            return new ClassAndIdent(CLUSTER, emptyList());
         } else {
             return new ClassAndIdent(getClazz(clazz.getStart()), getIdents(qnamesContext.qname()));
         }
@@ -1785,6 +1828,40 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         ClassAndIdent(String clazz, List<QualifiedName> idents) {
             this.clazz = clazz;
             this.idents = idents;
+        }
+    }
+
+    private static WindowFrame.Type getFrameType(Token type) {
+        switch (type.getType()) {
+            case SqlBaseLexer.RANGE:
+                return WindowFrame.Type.RANGE;
+            case SqlBaseLexer.ROWS:
+                return WindowFrame.Type.ROWS;
+            default:
+                throw new IllegalArgumentException("Unsupported frame type: " + type.getText());
+        }
+    }
+
+    private static FrameBound.Type getBoundedFrameBoundType(Token token) {
+        switch (token.getType()) {
+            case SqlBaseLexer.PRECEDING:
+                return FrameBound.Type.PRECEDING;
+            case SqlBaseLexer.FOLLOWING:
+                return FrameBound.Type.FOLLOWING;
+            default:
+                throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
+        }
+    }
+
+    private static FrameBound.Type getUnboundedFrameBoundType(Token token) {
+        switch (token.getType()) {
+            case SqlBaseLexer.PRECEDING:
+                return FrameBound.Type.UNBOUNDED_PRECEDING;
+            case SqlBaseLexer.FOLLOWING:
+                return FrameBound.Type.UNBOUNDED_FOLLOWING;
+
+            default:
+                throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
         }
     }
 }

@@ -23,6 +23,7 @@ package io.crate.execution.dsl.projection.builder;
 
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.WindowFunction;
 
 import java.util.List;
 
@@ -46,12 +47,14 @@ public class SplitPoints {
     private final List<Symbol> toCollect;
     private final List<Function> aggregates;
     private final List<Function> tableFunctions;
+    private final List<WindowFunction> windowFunctions;
 
 
-    SplitPoints(List<Symbol> toCollect, List<Function> aggregates, List<Function> tableFunctions) {
+    SplitPoints(List<Symbol> toCollect, List<Function> aggregates, List<Function> tableFunctions, List<WindowFunction> windowFunctions) {
         this.toCollect = toCollect;
         this.aggregates = aggregates;
         this.tableFunctions = tableFunctions;
+        this.windowFunctions = windowFunctions;
     }
 
     public List<Symbol> toCollect() {
@@ -64,5 +67,9 @@ public class SplitPoints {
 
     public List<Function> tableFunctions() {
         return tableFunctions;
+    }
+
+    public List<WindowFunction> windowFunctions() {
+        return windowFunctions;
     }
 }

@@ -46,6 +46,9 @@ Breaking Changes
 Changes
 =======
 
+- Added support for executing aggregations as ``window functions`` with an
+  empty OVER clause as the window definition.
+
 - Added a ``ALTER CLUSTER SWAP TABLE`` statement that can be used to switch the
   name of two tables.
 
