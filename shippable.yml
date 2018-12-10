@@ -23,8 +23,7 @@ build:
   ci:
     # Solve "trustAnchors parameter must be non-empty" issue
     - sudo dpkg --purge --force-depends ca-certificates-java
-    - sudo apt-get update & sudo apt-get install ca-certificates-java
-    - sudo update-ca-certificates -f
+    - sudo apt-get update & sudo apt-get install ca-certificates-utils
 
     - useradd -m ciuser
     - CIUSER_BUILD_DIR=/home/ciuser/build
