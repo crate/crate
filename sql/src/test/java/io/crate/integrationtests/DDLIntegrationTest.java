@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
-import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -32,10 +31,10 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -730,11 +729,14 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "clustered into 3 shards");
         ensureYellow();
 
-        final String targetIndexName = AlterTableOperation.SHRINK_PREFIX + "quotes";
-        final String backupIndexName = AlterTableOperation.BACKUP_PREFIX + "quotes";
+        final String targetIndexName = ".shrinked.quotes";
+        final String backupIndexName = ".backup.quotes";
 
-        client().admin().indices().prepareCreate(targetIndexName).execute().actionGet();
-        client().admin().indices().prepareCreate(backupIndexName).execute().actionGet();
+        createIndex(targetIndexName, backupIndexName);
+
+        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+        assertThat(clusterService.state().metaData().hasIndex(targetIndexName), is(true));
+        assertThat(clusterService.state().metaData().hasIndex(backupIndexName), is(true));
 
         execute("alter table quotes set (\"blocks.write\"=?)", $(true));
         execute("alter table quotes set (number_of_shards=?)", $(1));
@@ -742,11 +744,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("select number_of_shards from information_schema.tables where table_name = 'quotes'");
         assertThat(response.rows()[0][0], is(1));
 
-        IndicesExistsResponse indicesExistsResponse = cluster().client().admin()
-            .indices().prepareExists(new String[]{targetIndexName, backupIndexName})
-            .execute().actionGet();
-
-        assertThat(indicesExistsResponse.isExists(), Matchers.is(false));
+        assertThat(clusterService.state().metaData().hasIndex(targetIndexName), is(false));
+        assertThat(clusterService.state().metaData().hasIndex(backupIndexName), is(false));
     }
 
     @Test

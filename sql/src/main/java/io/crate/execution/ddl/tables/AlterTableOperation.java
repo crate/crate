@@ -120,10 +120,8 @@ import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_
 @Singleton
 public class AlterTableOperation {
 
-    // todo: replace with DanglingIndex definitions after merge
-    public static final String SHRINK_PREFIX = "." + "shrinked" + ".";
-    public static final String BACKUP_PREFIX = "." + "backup" + ".";
-    //
+    private static final String SHRINK_PREFIX = "." + "shrinked" + ".";
+    private static final String BACKUP_PREFIX = "." + "backup" + ".";
 
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
@@ -313,7 +311,7 @@ public class AlterTableOperation {
         // pickup node
         DiscoveryNode resizeNode = getNodeForResize(currentState);
 
-        List<ChainableAction<Long>> actions = new ArrayList<>(9);
+        List<ChainableAction<Long>> actions = new ArrayList<>(8);
         // change allocation
         actions.add(new ChainableAction<>(
             () -> initAllocationToNode(resizeNode.getName(), sourceIndexName),
@@ -330,15 +328,16 @@ public class AlterTableOperation {
         final String backupIndexName = BACKUP_PREFIX + sourceIndexName;
 
         // delete possible leftover temp index from previous failed shrink operation
+        List<String> indicesToDelete = new ArrayList<>(2);
         if (currentState.metaData().index(targetIndexName) != null) {
-            actions.add(new ChainableAction<>(
-                () -> deleteIndex(targetIndexName),
-                () -> CompletableFuture.completedFuture(-1L)
-            ));
+            indicesToDelete.add(targetIndexName);
         }
         if (currentState.metaData().index(backupIndexName) != null) {
+            indicesToDelete.add(backupIndexName);
+        }
+        if (!indicesToDelete.isEmpty()) {
             actions.add(new ChainableAction<>(
-                () -> deleteIndex(backupIndexName),
+                () -> deleteIndex(indicesToDelete.toArray(new String[indicesToDelete.size()])),
                 () -> CompletableFuture.completedFuture(-1L)
             ));
         }
@@ -497,8 +496,8 @@ public class AlterTableOperation {
         return listener;
     }
 
-    private CompletableFuture<Long> deleteIndex(String indexName) {
-        DeleteIndexRequest request = new DeleteIndexRequest(indexName);
+    private CompletableFuture<Long> deleteIndex(String... indexNames) {
+        DeleteIndexRequest request = new DeleteIndexRequest(indexNames);
 
         FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 0L);
         transportDeleteIndexAction.execute(request, listener);
