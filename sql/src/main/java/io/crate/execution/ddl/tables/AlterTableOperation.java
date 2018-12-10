@@ -120,8 +120,10 @@ import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_
 @Singleton
 public class AlterTableOperation {
 
-    private static final String SHRINK_PREFIX = "." + "shrinked" + ".";
-    private static final String BACKUP_PREFIX = "." + "backup" + ".";
+    // todo: replace with DanglingIndex definitions after merge
+    public static final String SHRINK_PREFIX = "." + "shrinked" + ".";
+    public static final String BACKUP_PREFIX = "." + "backup" + ".";
+    //
 
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
@@ -311,7 +313,7 @@ public class AlterTableOperation {
         // pickup node
         DiscoveryNode resizeNode = getNodeForResize(currentState);
 
-        List<ChainableAction<Long>> actions = new ArrayList<>(7);
+        List<ChainableAction<Long>> actions = new ArrayList<>(9);
         // change allocation
         actions.add(new ChainableAction<>(
             () -> initAllocationToNode(resizeNode.getName(), sourceIndexName),
@@ -324,16 +326,30 @@ public class AlterTableOperation {
             () -> CompletableFuture.completedFuture(-1L)
         ));
 
+        final String targetIndexName = SHRINK_PREFIX + sourceIndexName;
+        final String backupIndexName = BACKUP_PREFIX + sourceIndexName;
+
+        // delete possible leftover temp index from previous failed shrink operation
+        if (currentState.metaData().index(targetIndexName) != null) {
+            actions.add(new ChainableAction<>(
+                () -> deleteIndex(targetIndexName),
+                () -> CompletableFuture.completedFuture(-1L)
+            ));
+        }
+        if (currentState.metaData().index(backupIndexName) != null) {
+            actions.add(new ChainableAction<>(
+                () -> deleteIndex(backupIndexName),
+                () -> CompletableFuture.completedFuture(-1L)
+            ));
+        }
+
         // shrink index
-        String targetIndexName = SHRINK_PREFIX + sourceIndexName;
         actions.add(new ChainableAction<>(
             () -> shrinkIndex(sourceIndexName, sourceIndexAlias, targetIndexName, targetNumberOfShards),
             () -> CompletableFuture.completedFuture(-1L)
         ));
 
         // index rename
-        final String backupIndexName = BACKUP_PREFIX + sourceIndexName;
-
         List<RenameIndexAction> renameIndexActionList = new ArrayList<>(2);
         renameIndexActionList.add(new RenameIndexAction(sourceIndexName, backupIndexName));
         renameIndexActionList.add(new RenameIndexAction(targetIndexName, sourceIndexName));
