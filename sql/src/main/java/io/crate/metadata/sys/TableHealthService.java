@@ -35,22 +35,20 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.RestStatus;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -135,22 +133,25 @@ public class TableHealthService extends AbstractComponent {
     }
 
     @VisibleForTesting
-    List<TableHealth> buildTablesHealth(Map<TablePartitionIdent, ShardsInfo> tables) {
-        List<TableHealth> tableHealthList = new ArrayList<>(tables.size());
-        for (Map.Entry<TablePartitionIdent, ShardsInfo> entry : tables.entrySet()) {
-            TablePartitionIdent ident = entry.getKey();
-            ShardsInfo shardsInfo = entry.getValue();
-            RelationName relationName = new RelationName(ident.tableSchema, ident.tableName);
-            ShardedTable tableInfo;
-            try {
-                tableInfo = schemas.getTableInfo(relationName);
-            } catch (RelationUnknown e) {
-                continue;
-            }
+    Iterable<TableHealth> buildTablesHealth(Map<TablePartitionIdent, ShardsInfo> tables) {
+        return () -> tables.entrySet().stream()
+            .map(this::tableHealthFromEntry)
+            .filter(Objects::nonNull)
+            .iterator();
+    }
 
-            tableHealthList.add(calculateHealth(ident, shardsInfo, tableInfo.numberOfShards()));
+
+    private TableHealth tableHealthFromEntry(Map.Entry<TablePartitionIdent, ShardsInfo> entry) {
+        TablePartitionIdent ident = entry.getKey();
+        ShardsInfo shardsInfo = entry.getValue();
+        RelationName relationName = new RelationName(ident.tableSchema, ident.tableName);
+        ShardedTable tableInfo;
+        try {
+            tableInfo = schemas.getTableInfo(relationName);
+        } catch (RelationUnknown e) {
+            return null;
         }
-        return tableHealthList;
+        return calculateHealth(ident, shardsInfo, tableInfo.numberOfShards());
     }
 
     @VisibleForTesting
