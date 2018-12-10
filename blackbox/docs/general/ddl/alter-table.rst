@@ -101,13 +101,7 @@ A table can be renamed by using ``ALTER TABLE`` with the ``RENAME TO`` clause::
      cr> alter table my_table rename to my_new_table;
      ALTER OK, -1 rows affected (... sec)
 
-During the rename operation the table will be closed, and all operations on the
-table will fail until the rename operation is completed.
-
-.. Warning::
-
-    Do not run multiple concurrent rename operations on the same table. The rename
-    operation is not atomic.
+During the rename operation the shards of the table become temporarily unavailable.
 
 .. _ddl_reroute_shards:
 

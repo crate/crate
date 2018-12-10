@@ -46,6 +46,9 @@ Breaking Changes
 Changes
 =======
 
+- Improved resiliency of the ``ALTER TABLE RENAME`` operation by making it an
+  atomic operation.
+
 - Added support for executing aggregations as ``window functions`` with an
   empty OVER clause as the window definition.
 
