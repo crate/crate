@@ -211,11 +211,10 @@ public class AlterTableOperation {
                                                 RelationName targetRelationName,
                                                 boolean isPartitioned) {
         RenameTableRequest request = new RenameTableRequest(sourceRelationName, targetRelationName, isPartitioned);
-        FutureActionListener<RenameTableResponse, Long> listener = new FutureActionListener<>(r -> -1L);
+        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         transportRenameTableAction.execute(request, listener);
         return listener;
     }
-
 
     private CompletableFuture<Long> updateTemplate(TableParameter tableParameter, RelationName relationName) {
         return updateTemplate(tableParameter.mappings(), tableParameter.settings(), relationName);

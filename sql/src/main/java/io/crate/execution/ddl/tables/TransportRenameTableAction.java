@@ -29,6 +29,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -48,7 +49,7 @@ import org.elasticsearch.transport.TransportService;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Singleton
-public class TransportRenameTableAction extends TransportMasterNodeAction<RenameTableRequest, RenameTableResponse> {
+public class TransportRenameTableAction extends TransportMasterNodeAction<RenameTableRequest, AcknowledgedResponse> {
 
     private static final String ACTION_NAME = "internal:crate:sql/table/rename";
     private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
@@ -81,14 +82,14 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
     }
 
     @Override
-    protected RenameTableResponse newResponse() {
-        return new RenameTableResponse();
+    protected AcknowledgedResponse newResponse() {
+        return new AcknowledgedResponse();
     }
 
     @Override
-    protected void masterOperation(RenameTableRequest request, ClusterState state, ActionListener<RenameTableResponse> listener) throws Exception {
+    protected void masterOperation(RenameTableRequest request, ClusterState state, ActionListener<AcknowledgedResponse> listener) throws Exception {
         AtomicReference<String[]> newIndexNames = new AtomicReference<>(null);
-        ActionListener<RenameTableResponse> waitForShardsListener = ActionListeners.waitForShards(
+        ActionListener<AcknowledgedResponse> waitForShardsListener = ActionListeners.waitForShards(
             listener,
             activeShardsObserver,
             request.timeout(),
@@ -98,7 +99,7 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
 
         clusterService.submitStateUpdateTask(
             "rename-table",
-            new AckedClusterStateUpdateTask<RenameTableResponse>(Priority.HIGH, request, waitForShardsListener) {
+            new AckedClusterStateUpdateTask<AcknowledgedResponse>(Priority.HIGH, request, waitForShardsListener) {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     ClusterState updatedState = executor.execute(currentState, request);
@@ -117,8 +118,8 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
                 }
 
                 @Override
-                protected RenameTableResponse newResponse(boolean acknowledged) {
-                    return new RenameTableResponse(acknowledged);
+                protected AcknowledgedResponse newResponse(boolean acknowledged) {
+                    return new AcknowledgedResponse(acknowledged);
                 }
             });
     }
