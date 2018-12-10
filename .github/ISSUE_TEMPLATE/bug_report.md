@@ -15,15 +15,27 @@ about: Create a report to help us improve
  - JVM version: java -version 
  - Kernel: uname -a
  - Distribution: cat /etc/os-release
- - Docker: docker \-\-version
  - Number of nodes; Please mention special master/data/client node configuration
 
+If using docker:
+
+ - Docker: docker \-\-version
+ - Problem can be reproduced without docker: 
+    - [ ] yes
+    - [ ] no -> Consider reporting the issue in https://github.com/crate/docker-crate instead
+
 -->
+
+
 
 **Problem description**:
 
 <!-- 
-Please include relevant logs and error messages or stacktraces if possible.
+Please be precise about errors. Instead of saying "doesn't work" or "fails",
+describe the behavior you're observing and what you'd expect to see.
+
+Include relevant logs and error messages or stacktraces if possible.
+
 If there are memory issues please provide the garbage collection log file if
 possible.
 
@@ -31,4 +43,5 @@ possible.
 
 **Steps to reproduce**:
 
-<!-- please include table schema & some sample records if possible -->
+<!-- Please include table schema and some sample records and the statements
+that lead to the problem. -->
