@@ -438,28 +438,8 @@ public class AlterTableOperation {
         request.setResizeType(targetNumberOfShards > currentNumShards ? ResizeType.SPLIT : ResizeType.SHRINK);
         request.setCopySettings(Boolean.TRUE);
         request.setWaitForActiveShards(ActiveShardCount.ONE);
-
-        FutureActionListener<ResizeResponse, Long> listener
-            = new FutureActionListener<>(response -> {
-                if (response.isAcknowledged()) {
-                    activeShardsObserver.waitForActiveShards(request.getTargetIndexRequest().indices(),
-                        ActiveShardCount.ONE,
-                        request.ackTimeout(),
-                        shardsAcked -> {
-                            if (!shardsAcked) {
-                                throw new RuntimeException("Shard resize operation was successful but the operation " +
-                                                           "timed out while waiting for enough shards to be started.");
-                            }
-                        },
-                        e -> {
-                            throw new IllegalStateException(e);
-                        });
-                } else {
-                    throw new RuntimeException(
-                        "Publishing new cluster state during shard resize operation has timed out.");
-                }
-                return 0L;
-            });
+        FutureActionListener<ResizeResponse, Long> listener =
+            new FutureActionListener<>(resp -> resp.isAcknowledged() ? 1L : 0L);
 
         transportResizeAction.execute(request, listener);
         return listener;
