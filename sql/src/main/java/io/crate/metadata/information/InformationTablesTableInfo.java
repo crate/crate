@@ -98,6 +98,12 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             ImmutableList.of("routing", "allocation", "enable"));
         static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = new ColumnIdent("settings",
             ImmutableList.of("routing", "allocation", "total_shards_per_node"));
+        static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_REQUIRE = new ColumnIdent("settings",
+            ImmutableList.of("routing", "allocation", "require"));
+        static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_INCLUDE = new ColumnIdent("settings",
+            ImmutableList.of("routing", "allocation", "include"));
+        static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_EXCLUDE = new ColumnIdent("settings",
+            ImmutableList.of("routing", "allocation", "exclude"));
         static final ColumnIdent TABLE_SETTINGS_WARMER = new ColumnIdent("settings",
             ImmutableList.of("warmer"));
         static final ColumnIdent TABLE_SETTINGS_WARMER_ENABLED = new ColumnIdent("settings",
@@ -169,6 +175,9 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             .register(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, DataTypes.OBJECT)
             .register(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, DataTypes.STRING)
             .register(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, DataTypes.INTEGER)
+            .register(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_REQUIRE, DataTypes.OBJECT)
+            .register(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_INCLUDE, DataTypes.OBJECT)
+            .register(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_EXCLUDE, DataTypes.OBJECT)
             .register(Columns.TABLE_SETTINGS_WARMER, DataTypes.OBJECT)
             .register(Columns.TABLE_SETTINGS_WARMER_ENABLED, DataTypes.BOOLEAN)
             .register(Columns.TABLE_SETTINGS_WRITE, DataTypes.OBJECT)

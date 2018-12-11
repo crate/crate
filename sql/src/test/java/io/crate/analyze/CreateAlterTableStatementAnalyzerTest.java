@@ -62,6 +62,7 @@ import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
@@ -1120,5 +1121,19 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         CreateTableAnalyzedStatement stmt = e.analyze("create table t (p int, x int) partitioned by (p) " +
                                                       "with (number_of_routing_shards = 10)");
         assertThat(stmt.tableParameter().settings().get("index.number_of_routing_shards"), is("10"));
+    }
+
+    @Test
+    public void testAlterTableSetDynamicSetting() {
+        AlterTableAnalyzedStatement analysis =
+            e.analyze("alter table users set (\"routing.allocation.exclude.foo\"='bar')");
+        assertThat(analysis.tableParameter().settings().get(INDEX_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "foo"), is("bar"));
+    }
+
+    @Test
+    public void testAlterTableResetDynamicSetting() {
+        AlterTableAnalyzedStatement analysis =
+            e.analyze("alter table users reset (\"routing.allocation.exclude.foo\")");
+        assertThat(analysis.tableParameter().settings().get(INDEX_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "foo"), nullValue());
     }
 }

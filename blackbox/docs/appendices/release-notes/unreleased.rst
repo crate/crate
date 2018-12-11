@@ -46,6 +46,8 @@ Breaking Changes
 Changes
 =======
 
+- Added support for per-table shard allocation filtering.
+
 - Added support for shrinking an existing table or table partition using the
   ``ALTER TABLE SET`` statement.
 

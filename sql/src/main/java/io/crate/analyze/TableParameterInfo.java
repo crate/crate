@@ -108,6 +108,9 @@ public class TableParameterInfo {
             .add(MAX_NGRAM_DIFF)
             .add(MAX_SHINGLE_DIFF)
             .add(IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING)
+            .add(IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_SETTING)
+            .add(IndexMetaData.INDEX_ROUTING_INCLUDE_GROUP_SETTING)
+            .add(IndexMetaData.INDEX_ROUTING_EXCLUDE_GROUP_SETTING)
             .build();
 
     static final Set<Setting> SETTINGS_WITH_OTHER_SETTING_FALLBACK = ImmutableSet.of(
@@ -117,7 +120,7 @@ public class TableParameterInfo {
     private static final ImmutableMap<String, Setting> SUPPORTED_SETTINGS_DEFAULT
         = SUPPORTED_SETTINGS
             .stream()
-            .collect(ImmutableMap.toImmutableMap((s) -> stripIndexPrefix(s.getKey()), s -> s));
+            .collect(ImmutableMap.toImmutableMap((s) -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
 
     private static final ImmutableList<Setting> EXCLUDED_SETTING_FOR_METADATA_IMPORT =
         ImmutableList.<Setting>builder()
@@ -194,16 +197,35 @@ public class TableParameterInfo {
         return key;
     }
 
+    private static String stripDotSuffix(String key) {
+        if (key.endsWith(".")) {
+            return key.substring(0, key.length() - 1);
+        }
+        return key;
+    }
+
     public static ImmutableMap<String, Object> tableParametersFromIndexMetaData(IndexMetaData metaData) {
         Settings settings = metaData.getSettings();
         ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
         for (Setting setting : SUPPORTED_SETTINGS) {
             boolean shouldBeExcluded = EXCLUDED_SETTING_FOR_METADATA_IMPORT.contains(setting);
-            if (shouldBeExcluded == false && settings.hasValue(setting.getKey())) {
-                builder.put(setting.getKey(), convertEsSettingType(setting.get(settings)));
+            if (shouldBeExcluded == false) {
+                if (setting instanceof Setting.AffixSetting) {
+                    flattenAffixSetting(builder, settings, (Setting.AffixSetting) setting);
+                } else if (settings.hasValue(setting.getKey())) {
+                    builder.put(setting.getKey(), convertEsSettingType(setting.get(settings)));
+                }
             }
         }
         return builder.build();
+    }
+
+    private static void flattenAffixSetting(ImmutableMap.Builder<String, Object> builder,
+                                            Settings settings,
+                                            Setting.AffixSetting<?> setting) {
+        String prefix = setting.getKey();
+        setting.getNamespaces(settings)
+            .forEach(s -> builder.put(prefix + s, setting.getConcreteSetting(prefix + s).get(settings)));
     }
 
     private static Object convertEsSettingType(Object value) {

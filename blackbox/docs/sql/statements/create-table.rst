@@ -469,6 +469,27 @@ the shard unallocated.
 :value:
   Number of retries to allocate a shard. Defaults to 5.
 
+``routing.allocation.include.{attribute}``
+------------------------------------------
+
+Assign the table to a node whose ``{attribute}`` has at least one of the
+comma-separated values.
+See :ref:`ddl_shard_allocation` for details.
+
+``routing.allocation.require.{attribute}``
+------------------------------------------
+
+Assign the table to a node whose ``{attribute}`` has all of the comma-separated
+values.
+See :ref:`ddl_shard_allocation` for details.
+
+``routing.allocation.exclude.{attribute}``
+------------------------------------------
+
+Assign the table to a node whose ``{attribute}`` has none of the comma-separated
+values.
+See :ref:`ddl_shard_allocation` for details.
+
 ``warming.enable``
 ------------------
 
