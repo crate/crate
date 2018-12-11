@@ -60,15 +60,11 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
                 "clustered into 3 shards");
         ensureYellow();
 
-        final String targetIndexName = ".resized." + getFqn("quotes");
-        final String backupIndexName = ".backup." + getFqn("quotes");
-        logger.info("targetIndexName:" + targetIndexName );
-
-        createIndex(targetIndexName, backupIndexName);
+        final String resizeIndex = ".resized." + getFqn("quotes");
+        createIndex(resizeIndex);
 
         ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
-        assertThat(clusterService.state().metaData().hasIndex(targetIndexName), is(true));
-        assertThat(clusterService.state().metaData().hasIndex(backupIndexName), is(true));
+        assertThat(clusterService.state().metaData().hasIndex(resizeIndex), is(true));
 
         execute("alter table quotes set (\"blocks.write\"=?)", $(true));
         execute("alter table quotes set (number_of_shards=?)", $(1));
@@ -76,8 +72,7 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
         execute("select number_of_shards from information_schema.tables where table_name = 'quotes'");
         assertThat(response.rows()[0][0], is(1));
 
-        assertThat(clusterService.state().metaData().hasIndex(targetIndexName), is(false));
-        assertThat(clusterService.state().metaData().hasIndex(backupIndexName), is(false));
+        assertThat(clusterService.state().metaData().hasIndex(resizeIndex), is(false));
     }
 
     @Test

@@ -38,9 +38,8 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
-import io.crate.execution.ddl.index.BulkRenameIndexRequest;
-import io.crate.execution.ddl.index.BulkRenameIndexRequest.RenameIndexAction;
-import io.crate.execution.ddl.index.TransportRenameIndexNameAction;
+import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
+import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
 import io.crate.execution.support.ChainableAction;
 import io.crate.execution.support.ChainableActions;
 import io.crate.metadata.PartitionName;
@@ -126,7 +125,7 @@ public class AlterTableOperation {
     private final TransportResizeAction transportResizeAction;
     private final TransportClusterHealthAction transportClusterHealthAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
-    private final TransportRenameIndexNameAction transportRenameIndexNameAction;
+    private final TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction;
     private final IndexScopedSettings indexScopedSettings;
     private final ActiveShardsObserver activeShardsObserver;
     private final Logger logger;
@@ -143,7 +142,7 @@ public class AlterTableOperation {
                                TransportResizeAction transportResizeAction,
                                TransportClusterHealthAction transportClusterHealthAction,
                                TransportDeleteIndexAction transportDeleteIndexAction,
-                               TransportRenameIndexNameAction transportRenameIndexNameAction,
+                               TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction,
                                SQLOperations sqlOperations,
                                IndexScopedSettings indexScopedSettings,
                                Settings settings,
@@ -157,7 +156,7 @@ public class AlterTableOperation {
         this.transportResizeAction = transportResizeAction;
         this.transportClusterHealthAction = transportClusterHealthAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
-        this.transportRenameIndexNameAction = transportRenameIndexNameAction;
+        this.transportSwapAndDropIndexNameAction = transportSwapAndDropIndexNameAction;
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
         this.indexScopedSettings = indexScopedSettings;
         this.sqlOperations = sqlOperations;
@@ -284,9 +283,8 @@ public class AlterTableOperation {
         validateForResizeRequest(sourceIndexMetaData, targetNumberOfShards);
 
         final List<ChainableAction<Long>> actions = new ArrayList<>();
-        final String targetIndexName = RESIZE_PREFIX + sourceIndexName;
-        final String backupIndexName = BACKUP_PREFIX + sourceIndexName;
-        deleteLeftOverFromPreviousOperations(currentState, actions, targetIndexName, backupIndexName);
+        final String resizedIndex = RESIZE_PREFIX + sourceIndexName;
+        deleteLeftOverFromPreviousOperations(currentState, actions, resizedIndex);
 
         if (isShrinkOperation) {
             actions.add(new ChainableAction<>(
@@ -302,22 +300,13 @@ public class AlterTableOperation {
             () -> resizeIndex(
                 currentState.metaData().index(sourceIndexName),
                 sourceIndexAlias,
-                targetIndexName,
+                resizedIndex,
                 targetNumberOfShards
             ),
             () -> CompletableFuture.completedFuture(-1L)
         ));
-
-        List<RenameIndexAction> renameIndexActionList = new ArrayList<>(2);
-        renameIndexActionList.add(new RenameIndexAction(sourceIndexName, backupIndexName));
-        renameIndexActionList.add(new RenameIndexAction(targetIndexName, sourceIndexName));
-
         actions.add(new ChainableAction<>(
-            () -> renameIndicesBulk(renameIndexActionList),
-            () -> CompletableFuture.completedFuture(-1L)
-        ));
-        actions.add(new ChainableAction<>(
-            () -> deleteIndex(backupIndexName),
+            () -> swapAndDropIndex(resizedIndex, sourceIndexName),
             () -> CompletableFuture.completedFuture(-1L)
         ));
         if (isShrinkOperation) {
@@ -333,17 +322,13 @@ public class AlterTableOperation {
         return ChainableActions.run(actions);
     }
 
-    private void deleteLeftOverFromPreviousOperations(ClusterState currentState, List<ChainableAction<Long>> actions, String targetIndexName, String backupIndexName) {
-        List<String> indicesToDelete = new ArrayList<>(2);
-        if (currentState.metaData().index(targetIndexName) != null) {
-            indicesToDelete.add(targetIndexName);
-        }
-        if (currentState.metaData().index(backupIndexName) != null) {
-            indicesToDelete.add(backupIndexName);
-        }
-        if (!indicesToDelete.isEmpty()) {
+    private void deleteLeftOverFromPreviousOperations(ClusterState currentState,
+                                                      List<ChainableAction<Long>> actions,
+                                                      String resizeIndex) {
+
+        if (currentState.metaData().hasIndex(resizeIndex)) {
             actions.add(new ChainableAction<>(
-                () -> deleteIndex(indicesToDelete.toArray(new String[0])),
+                () -> deleteIndex(resizeIndex),
                 () -> CompletableFuture.completedFuture(-1L)
             ));
         }
@@ -453,8 +438,8 @@ public class AlterTableOperation {
         return listener;
     }
 
-    private CompletableFuture<Long> renameIndicesBulk(final List<RenameIndexAction> renameIndexActions) {
-        BulkRenameIndexRequest request = new BulkRenameIndexRequest(renameIndexActions);
+    private CompletableFuture<Long> swapAndDropIndex(String source, String target) {
+        SwapAndDropIndexRequest request = new SwapAndDropIndexRequest(source, target);
         FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(response -> {
             if (!response.isAcknowledged()) {
                 throw new RuntimeException("Publishing new cluster state during Shrink operation (rename phase) " +
@@ -462,7 +447,7 @@ public class AlterTableOperation {
             }
             return 0L;
         });
-        transportRenameIndexNameAction.execute(request, listener);
+        transportSwapAndDropIndexNameAction.execute(request, listener);
         return listener;
     }
 

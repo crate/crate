@@ -23,7 +23,7 @@
 package io.crate.execution.ddl.index;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.cluster.RenameIndexClusterStateExecutor;
+import io.crate.metadata.cluster.SwapAndDropIndexExecutor;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
@@ -39,39 +39,39 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+/**
+ * Renames a sourceIndex to targetIndex, and drops the former targetIndex - effectively overriding the target
+ */
 @Singleton
-public class TransportRenameIndexNameAction extends AbstractDDLTransportAction<BulkRenameIndexRequest, AcknowledgedResponse> {
+public class TransportSwapAndDropIndexNameAction extends AbstractDDLTransportAction<SwapAndDropIndexRequest, AcknowledgedResponse> {
 
-    private static final String ACTION_NAME = "internal:crate:sql/index/rename_bulk";
+    private static final String ACTION_NAME = "internal:crate:sql/index/swap_and_drop_index";
 
-    private final RenameIndexClusterStateExecutor executor;
+    private final SwapAndDropIndexExecutor executor;
 
     @Inject
-    public TransportRenameIndexNameAction(Settings settings,
-                                          TransportService transportService,
-                                          ClusterService clusterService,
-                                          ThreadPool threadPool,
-                                          ActionFilters actionFilters,
-                                          AllocationService allocationService,
-                                          IndexNameExpressionResolver indexNameExpressionResolver) {
+    public TransportSwapAndDropIndexNameAction(Settings settings,
+                                               TransportService transportService,
+                                               ClusterService clusterService,
+                                               ThreadPool threadPool,
+                                               ActionFilters actionFilters,
+                                               AllocationService allocationService,
+                                               IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, ACTION_NAME, transportService, clusterService, threadPool, actionFilters,
-            indexNameExpressionResolver, BulkRenameIndexRequest::new, AcknowledgedResponse::new, AcknowledgedResponse::new,
-            "bulk-rename-index");
-        executor = new RenameIndexClusterStateExecutor(allocationService);
+            indexNameExpressionResolver, SwapAndDropIndexRequest::new, AcknowledgedResponse::new, AcknowledgedResponse::new,
+            "swap-and-drop-index");
+        executor = new SwapAndDropIndexExecutor(allocationService);
     }
 
     @Override
-    public ClusterStateTaskExecutor<BulkRenameIndexRequest> clusterStateTaskExecutor(BulkRenameIndexRequest request) {
+    public ClusterStateTaskExecutor<SwapAndDropIndexRequest> clusterStateTaskExecutor(SwapAndDropIndexRequest request) {
         return executor;
     }
 
     @Override
-    protected ClusterBlockException checkBlock(BulkRenameIndexRequest request, ClusterState state) {
-        String[] sourceIndices = request
-            .renameIndexActions()
-            .stream()
-            .map(BulkRenameIndexRequest.RenameIndexAction::sourceIndexName)
-            .toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, sourceIndices);
+    protected ClusterBlockException checkBlock(SwapAndDropIndexRequest request, ClusterState state) {
+        return state.blocks().indicesBlockedException(
+            ClusterBlockLevel.METADATA_WRITE,
+            new String[] { request.source(), request.target() });
     }
 }
