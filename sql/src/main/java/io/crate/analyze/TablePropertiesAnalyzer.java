@@ -24,10 +24,8 @@ package io.crate.analyze;
 import io.crate.data.Row;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 public final class TablePropertiesAnalyzer {
@@ -81,26 +79,18 @@ public final class TablePropertiesAnalyzer {
         Map<String, Setting> settingMap = tableParameterInfo.supportedSettings();
         Map<String, Setting> mappingsMap = tableParameterInfo.supportedMappings();
 
-        for (String name : properties) {
-            Setting setting = settingMap.get(name);
-            boolean isMappingEntry = false;
-            if (setting == null) {
-                setting = mappingsMap.get(name);
-                isMappingEntry = true;
-            }
-            if (setting == null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, INVALID_MESSAGE, name));
-            }
-            Object value = setting.getDefault(Settings.EMPTY);
-            if (isMappingEntry) {
-                tableParameter.mappings().put(setting.getKey(), value);
-            } else {
-                if (value instanceof Settings) {
-                    tableParameter.settingsBuilder().put((Settings) value);
-                } else {
-                    tableParameter.settingsBuilder().put(setting.getKey(), value.toString());
-                }
-            }
-        }
+        GenericPropertiesConverter.resetSettingsFromProperties(
+            tableParameter.settingsBuilder(),
+            properties,
+            settingMap,
+            mappingsMap::containsKey,
+            INVALID_MESSAGE);
+
+        GenericPropertiesConverter.resetSettingsFromProperties(
+            tableParameter.mappingsBuilder(),
+            properties,
+            mappingsMap,
+            settingMap::containsKey,
+            INVALID_MESSAGE);
     }
 }

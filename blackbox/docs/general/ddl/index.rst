@@ -19,6 +19,7 @@ Data Definition
    partitioned-tables
    sharding
    replication
+   shard-allocation
    column-policy
    fulltext-indices
    analyzers

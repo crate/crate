@@ -25,6 +25,10 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.doc.DocTableInfo;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
@@ -155,11 +159,36 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         static final String ENABLE = "enable";
         static final String TOTAL_SHARDS_PER_NODE = "total_shards_per_node";
+        static final String REQUIRE = "require";
+        static final String INCLUDE = "include";
+        static final String EXCLUDE = "exclude";
 
         private void addChildImplementations() {
             childImplementations.put(ENABLE, new StringTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE.getKey()));
             childImplementations.put(TOTAL_SHARDS_PER_NODE, new TableParameterExpression(TableParameterInfo.TOTAL_SHARDS_PER_NODE.getKey()));
+            childImplementations.put(REQUIRE, NestableCollectExpression.<RelationInfo, Map<String, Object>>forFunction(
+                r -> mapOfDynamicGroupSetting(IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_PREFIX, r)));
+            childImplementations.put(INCLUDE, NestableCollectExpression.<RelationInfo, Map<String, Object>>forFunction(
+                r -> mapOfDynamicGroupSetting(IndexMetaData.INDEX_ROUTING_INCLUDE_GROUP_PREFIX, r)));
+            childImplementations.put(EXCLUDE, NestableCollectExpression.<RelationInfo, Map<String, Object>>forFunction(
+                r -> mapOfDynamicGroupSetting(IndexMetaData.INDEX_ROUTING_EXCLUDE_GROUP_PREFIX, r)));
         }
+    }
+
+    private static Map<String, Object> mapOfDynamicGroupSetting(String groupName, RelationInfo row) {
+        if (row instanceof DocTableInfo) {
+            Map<String, Object> valueMap = new HashMap<>();
+            for (Map.Entry<String, Object> entry : row.parameters().entrySet()) {
+                String key = entry.getKey();
+                if (key.startsWith(groupName)) {
+                    valueMap.put(key.substring(groupName.length() + 1), entry.getValue());
+                }
+            }
+            if (valueMap.size() > 0) {
+                return valueMap;
+            }
+        }
+        return null;
     }
 
     static class TablesSettingsWarmerExpression extends AbstractTablesSettingsExpression {

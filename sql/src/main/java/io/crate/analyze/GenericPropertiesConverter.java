@@ -29,11 +29,14 @@ import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
+
+import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_SETTING_PREFIX;
 
 public class GenericPropertiesConverter {
 
@@ -103,34 +106,134 @@ public class GenericPropertiesConverter {
         if (!properties.isEmpty()) {
             for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
                 String settingName = entry.getKey();
-                if (ignoreProperty.test(settingName)) {
+                if (ignoreProperty.test(settingName) || ignoreProperty.test(getPossibleGroup(settingName))) {
                     continue;
                 }
-                Setting<?> setting = supportedSettings.get(settingName);
-                if (setting == null) {
+                SettingHolder settingHolder = getSupportedSetting(supportedSettings, settingName);
+                if (settingHolder == null) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, entry.getKey()));
                 }
-                Settings.Builder singleSettingBuilder = Settings.builder();
-                genericPropertyToSetting(singleSettingBuilder, setting.getKey(), entry.getValue(), parameters);
-                Object value = setting.get(singleSettingBuilder.build());
-                if (value instanceof Settings) {
-                    builder.put((Settings) value);
-                } else {
-                    builder.put(setting.getKey(), value.toString());
-                }
+                settingHolder.apply(builder, entry.getValue(), parameters);
             }
+        }
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    static void resetSettingsFromProperties(Settings.Builder builder,
+                                            List<String> properties,
+                                            Map<String, Setting> supportedSettings,
+                                            Predicate<String> ignoreProperty,
+                                            String invalidMessage) {
+        for (String name : properties) {
+            if (ignoreProperty.test(name) || ignoreProperty.test(getPossibleGroup(name))) {
+                continue;
+            }
+            SettingHolder settingHolder = getSupportedSetting(supportedSettings, name);
+            if (settingHolder == null) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, name));
+            }
+            settingHolder.reset(builder);
         }
     }
 
     private static void setDefaults(Settings.Builder builder, Map<String, Setting> supportedSettings) {
         for (Map.Entry<String, Setting> entry : supportedSettings.entrySet()) {
-            Setting setting = entry.getValue();
+            SettingHolder settingHolder = new SettingHolder(entry.getValue());
             // We'd set the "wrong" default for settings that base their default on other settings
-            if (TableParameterInfo.SETTINGS_WITH_OTHER_SETTING_FALLBACK.contains(setting)) {
+            if (TableParameterInfo.SETTINGS_WITH_OTHER_SETTING_FALLBACK.contains(settingHolder.setting)) {
                 continue;
+            }
+            settingHolder.applyDefault(builder);
+        }
+    }
+
+    @Nullable
+    private static SettingHolder getSupportedSetting(Map<String, Setting> supportedSettings,
+                                                     String settingName) {
+        Setting<?> setting = supportedSettings.get(settingName);
+        if (setting == null) {
+            String groupKey = getPossibleGroup(settingName);
+            if (groupKey != null) {
+                setting = supportedSettings.get(groupKey);
+                if (setting instanceof Setting.AffixSetting) {
+                    setting = ((Setting.AffixSetting) setting).getConcreteSetting(INDEX_SETTING_PREFIX + settingName);
+                    return new SettingHolder(setting, true);
+                }
+            }
+        }
+
+        if (setting != null) {
+            return new SettingHolder(setting);
+        }
+        return null;
+    }
+
+    @Nullable
+    private static String getPossibleGroup(String key) {
+        int idx = key.lastIndexOf('.');
+        if (idx > 0) {
+            return key.substring(0, idx);
+        }
+        return null;
+    }
+
+    private static class SettingHolder {
+
+        private final Setting<?> setting;
+        private final boolean isAffixSetting;
+        private final boolean isChildOfAffixSetting;
+
+        SettingHolder(Setting<?> setting) {
+            this(setting, false);
+        }
+
+        SettingHolder(Setting<?> setting, boolean isChildOfAffixSetting) {
+            this.setting = setting;
+            this.isAffixSetting = setting instanceof Setting.AffixSetting;
+            this.isChildOfAffixSetting = isChildOfAffixSetting;
+        }
+
+        void applyDefault(Settings.Builder builder) {
+            if (isAffixSetting) {
+                // affix settings are user defined, they have no default value
+                return;
             }
             Object value = setting.getDefault(Settings.EMPTY);
             if (value instanceof Settings) {
+                builder.put((Settings) value);
+            } else {
+                builder.put(setting.getKey(), value.toString());
+            }
+        }
+
+        void apply(Settings.Builder builder, Expression valueExpression, Row parameters) {
+            if (isAffixSetting) {
+                // only concrete affix settings are supported otherwise it's not possible to parse values
+                throw new IllegalArgumentException(
+                    "Cannot change a dynamic group setting, only concrete settings allowed.");
+            }
+            Settings.Builder singleSettingBuilder = Settings.builder();
+            genericPropertyToSetting(singleSettingBuilder, setting.getKey(), valueExpression, parameters);
+            Object value = setting.get(singleSettingBuilder.build());
+            if (value instanceof Settings) {
+                builder.put((Settings) value);
+            } else {
+                builder.put(setting.getKey(), value.toString());
+            }
+
+        }
+
+        void reset(Settings.Builder builder) {
+            if (isAffixSetting) {
+                // only concrete affix settings are supported, ES does not support to reset a whole Affix setting group
+                throw new IllegalArgumentException(
+                    "Cannot change a dynamic group setting, only concrete settings allowed.");
+            }
+            Object value = setting.getDefault(Settings.EMPTY);
+            if (isChildOfAffixSetting) {
+                // affix settings should be removed on reset, they don't have a default value
+                builder.putNull(setting.getKey());
+            } else if (value instanceof Settings) {
                 builder.put((Settings) value);
             } else {
                 builder.put(setting.getKey(), value.toString());
