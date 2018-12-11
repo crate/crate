@@ -263,6 +263,17 @@ The number of replicas is defined like this::
 
 For further details and examples see :ref:`replication`.
 
+
+``number_of_routing_shards``
+----------------------------
+
+This number specifies the hashing space that is used internally to distribute
+documents across shards.
+
+This is an optional setting that enables users to later on increase the number
+of shards using :ref:`ref-alter-table`.
+
+
 .. _sql_ref_refresh_interval:
 
 ``refresh_interval``

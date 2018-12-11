@@ -125,6 +125,10 @@ public class GenericPropertiesConverter {
     private static void setDefaults(Settings.Builder builder, Map<String, Setting> supportedSettings) {
         for (Map.Entry<String, Setting> entry : supportedSettings.entrySet()) {
             Setting setting = entry.getValue();
+            // We'd set the "wrong" default for settings that base their default on other settings
+            if (TableParameterInfo.SETTINGS_WITH_OTHER_SETTING_FALLBACK.contains(setting)) {
+                continue;
+            }
             Object value = setting.getDefault(Settings.EMPTY);
             if (value instanceof Settings) {
                 builder.put((Settings) value);

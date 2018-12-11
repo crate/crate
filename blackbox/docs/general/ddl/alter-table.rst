@@ -37,36 +37,31 @@ In order to set a parameter to its default value use ``reset``::
 Changing the Number of Shards
 -----------------------------
 
-It is possible to change the number of primary shards of a table::
+To change the number of primary shards of a table, it is necessary to first
+block write operations to the table::
 
     cr> alter table my_table set ("blocks.write" = true);
     ALTER OK, -1 rows affected (... sec)
+
+Afterwards the number of shards can be either increased or decreased.
+
+To decrease the number of shards it is necessary to use a factor of the current
+number of primary shards. For example, a table with 8 shards can be shrunk into
+4, 2 or 1 primary shards.
+
+Increasing the number of shards is limited to tables which have been created
+with a ``number_of_routing_shards`` setting. For such tables the shards can be
+increased by a factor that depends on this setting. For example, a table with 5
+shards, with  ``number_of_routing_shards`` set to 20 can be changed to have
+either 10 or 20 shards. (5 x 2 (x 2)) = 20 or (5 x 4) = 20.
+
+::
 
     cr> alter table my_table set (number_of_shards = 2);
     ALTER OK, 0 rows affected (... sec)
 
     cr> alter table my_table set ("blocks.write" = false);
     ALTER OK, -1 rows affected (... sec)
-
-.. Warning::
-
-    In order to change the number of primary shards,
-    any write activity on the table needs to blocked first
-    (see :ref:`table-settings-blocks.write` parameter),
-    otherwise the operation will fail.
-    In addition, this parameter will have to be explicitly restored
-    to it's original value after the operation.
-
-.. Note::
-
-    We only support table shrinking, meaning that
-    the requested number of shards must be less than the
-    current number of the primary shards. Moreover, the requested number
-    of primary shards must be a factor of the current number of
-    primary shards. For example, a table with 8 primary shards
-    can be shrunk into 4, 2 or 1 primary shards. If the number of shards
-    of a table is a prime number, it can only be shrunk into a single
-    primary shard.
 
 
 Read :ref:`Alter Partitioned Tables <partitioned_tables_alter>` to see how to

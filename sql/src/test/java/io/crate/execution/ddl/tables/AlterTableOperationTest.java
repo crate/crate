@@ -136,13 +136,10 @@ public class AlterTableOperationTest extends CrateUnitTest {
     }
 
     @Test
-    public void testGreaterNumberOfShardsRequestedIsNotSupported() {
+    public void testGreaterNumberOfShardsRequestedIsSupported() {
         IndexMetaData indexMetaData = IndexMetaData.builder("t1")
             .settings(baseIndexSettings())
             .build();
-
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Increasing the number of shards is not supported");
         AlterTableOperation.validateNumberOfShardsForResize(indexMetaData, 10);
     }
 
@@ -159,9 +156,8 @@ public class AlterTableOperationTest extends CrateUnitTest {
 
     @Test
     public void testNullNumberOfShardsRequestedIsNotPermitted() {
-        Settings settings = Settings.EMPTY;
         expectedException.expect(NullPointerException.class);
-        expectedException.expectMessage("Invalid setting 'number_of_shards' provided in input");
-        AlterTableOperation.getValidNumberOfShards(settings);
+        expectedException.expectMessage("Setting 'number_of_shards' is missing");
+        AlterTableOperation.getNumberOfShards(Settings.EMPTY);
     }
 }
