@@ -232,7 +232,7 @@ public class TransportCreatePartitionsAction
             MetaData.Builder newMetaDataBuilder = MetaData.builder(currentState.metaData());
             for (String index : indicesToCreate) {
                 Settings indexSettings = createIndexSettings(currentState, templates);
-                int routingNumShards = IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(indexSettings);
+                int routingNumShards = IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(indexSettings);
 
                 String testIndex = indicesToCreate.get(0);
                 IndexMetaData.Builder tmpImdBuilder = IndexMetaData.builder(testIndex)
@@ -276,8 +276,9 @@ public class TransportCreatePartitionsAction
                     mappingsMetaData.put(mapper.type(), mappingMd);
                 }
 
-                final IndexMetaData.Builder indexMetaDataBuilder =
-                    IndexMetaData.builder(index).settings(indexSettings);
+                final IndexMetaData.Builder indexMetaDataBuilder = IndexMetaData.builder(index)
+                    .setRoutingNumShards(routingNumShards)
+                    .settings(indexSettings);
 
                 for (MappingMetaData mappingMd : mappingsMetaData.values()) {
                     indexMetaDataBuilder.putMapping(mappingMd);

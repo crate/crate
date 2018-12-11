@@ -508,10 +508,8 @@ public class SQLExecutor {
                 .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
 
             Settings indexSettings = builder.build();
-            Integer numRoutingShards = IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(indexSettings);
             return IndexMetaData.builder(indexName)
                 .settings(indexSettings)
-                .setRoutingNumShards(numRoutingShards)
                 .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, analyzedStmt.mapping()));
         }
 

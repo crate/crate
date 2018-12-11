@@ -33,10 +33,10 @@ import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
@@ -1107,5 +1107,18 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(stmt.analyzedTableElements().toMapping().toString(),
             is("{_meta={generated_columns={obj.c=2}}, " +
                "properties={obj={dynamic=true, type=object, properties={c={type=long}}}}}"));
+    }
+
+    @Test
+    public void testNumberOfRoutingShardsCanBeSetAtCreateTable() {
+        CreateTableAnalyzedStatement stmt = e.analyze("create table t (x int) with (number_of_routing_shards = 10)");
+        assertThat(stmt.tableParameter().settings().get("index.number_of_routing_shards"), is("10"));
+    }
+
+    @Test
+    public void testNumberOfRoutingShardsCanBeSetAtCreateTableForPartitionedTables() {
+        CreateTableAnalyzedStatement stmt = e.analyze("create table t (p int, x int) partitioned by (p) " +
+                                                      "with (number_of_routing_shards = 10)");
+        assertThat(stmt.tableParameter().settings().get("index.number_of_routing_shards"), is("10"));
     }
 }

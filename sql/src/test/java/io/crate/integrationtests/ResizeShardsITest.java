@@ -26,9 +26,10 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Test;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
-public class DDLShardResizeIntegrationTest extends SQLTransportIntegrationTest {
+public class ResizeShardsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testShrinkShardsOfTable() throws Exception {
@@ -59,7 +60,7 @@ public class DDLShardResizeIntegrationTest extends SQLTransportIntegrationTest {
                 "clustered into 3 shards");
         ensureYellow();
 
-        final String targetIndexName = ".shrinked." + getFqn("quotes");
+        final String targetIndexName = ".resized." + getFqn("quotes");
         final String backupIndexName = ".backup." + getFqn("quotes");
         logger.info("targetIndexName:" + targetIndexName );
 
@@ -104,5 +105,26 @@ public class DDLShardResizeIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[0][0], is(1));
         execute("select id from quotes");
         assertThat(response.rowCount(), is(2L));
+    }
+
+    @Test
+    public void testNumberOfShardsOfATableCanBeIncreased() {
+        execute("create table t1 (x int) clustered into 1 shards with (number_of_routing_shards = 10, \"blocks.write\" = true)");
+        execute("alter table t1 set (number_of_shards = 2)");
+
+        execute("select number_of_shards from information_schema.tables where table_name = 't1'");
+        assertThat(printedTable(response.rows()), is("2\n"));
+    }
+
+    @Test
+    public void testNumberOfShardsOfAPartitionCanBeIncreased() {
+        execute("create table t1 (x int, p int) partitioned by (p) clustered into 1 shards " +
+                "with (number_of_routing_shards = 10)");
+        execute("insert into t1 (x, p) values (1, 1), (2, 1)");
+        execute("alter table t1 partition (p = 1) set (\"blocks.write\" = true)");
+
+        execute("alter table t1 partition (p = 1) set (number_of_shards = 2)");
+        execute("select number_of_shards from information_schema.table_partitions where table_name = 't1'");
+        assertThat(printedTable(response.rows()), is("2\n"));
     }
 }

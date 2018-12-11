@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.metadata.settings.NumberOfReplicasSetting;
 import io.crate.metadata.settings.Validators;
@@ -43,6 +44,7 @@ import org.elasticsearch.index.translog.Translog;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
+import java.util.Set;
 
 @Immutable
 @ThreadSafe
@@ -105,7 +107,12 @@ public class TableParameterInfo {
             .add(ALLOCATION_MAX_RETRIES)
             .add(MAX_NGRAM_DIFF)
             .add(MAX_SHINGLE_DIFF)
+            .add(IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING)
             .build();
+
+    static final Set<Setting> SETTINGS_WITH_OTHER_SETTING_FALLBACK = ImmutableSet.of(
+        IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING
+    );
 
     private static final ImmutableMap<String, Setting> SUPPORTED_SETTINGS_DEFAULT
         = SUPPORTED_SETTINGS
@@ -191,7 +198,8 @@ public class TableParameterInfo {
         Settings settings = metaData.getSettings();
         ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
         for (Setting setting : SUPPORTED_SETTINGS) {
-            if (EXCLUDED_SETTING_FOR_METADATA_IMPORT.contains(setting) == false) {
+            boolean shouldBeExcluded = EXCLUDED_SETTING_FOR_METADATA_IMPORT.contains(setting);
+            if (shouldBeExcluded == false && settings.hasValue(setting.getKey())) {
                 builder.put(setting.getKey(), convertEsSettingType(setting.get(settings)));
             }
         }
