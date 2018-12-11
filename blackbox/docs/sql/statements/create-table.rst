@@ -432,8 +432,8 @@ every :ref:`translog.sync_interval <translog_sync_interval>`. If set to
 :value:
   ``REQUEST`` (default), ``ASYNC``
 
-``allocation.total_shards_per_node``
-------------------------------------
+``routing.allocation.total_shards_per_node``
+--------------------------------------------
 
 Controls the total number of shards (replicas and primaries) allowed to be
 allocated on a single node. Defaults to unbounded (-1).
@@ -441,8 +441,8 @@ allocated on a single node. Defaults to unbounded (-1).
 :value:
   Number of shards per node.
 
-``allocation.enable``
----------------------
+``routing.allocation.enable``
+-----------------------------
 
 Controls shard allocation for a specific table. Can be set to:
 
@@ -460,8 +460,8 @@ Controls shard allocation for a specific table. Can be set to:
 
 .. _allocation_max_retries:
 
-``allocation.max_retries``
---------------------------
+``routing.allocation.max_retries``
+----------------------------------
 
 Defines the number of attempts to allocate a shard before giving up and leaving
 the shard unallocated.
