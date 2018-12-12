@@ -577,13 +577,15 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             )));
     }
 
-    private void execute(Plan plan, Row params) {
+    private List<Object[]> execute(Plan plan, Row params) throws Exception {
+        TestingRowConsumer consumer = new TestingRowConsumer();
         plan.execute(
             mock(DependencyCarrier.class),
             e.getPlannerContext(clusterService.state()),
-            new TestingRowConsumer(),
+            consumer,
             params,
             SubQueryResults.EMPTY
         );
+        return consumer.getResult();
     }
 }

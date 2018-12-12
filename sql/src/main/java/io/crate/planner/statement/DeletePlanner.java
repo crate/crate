@@ -121,11 +121,11 @@ public final class DeletePlanner {
         }
 
         @Override
-        public void execute(DependencyCarrier executor,
-                            PlannerContext plannerContext,
-                            RowConsumer consumer,
-                            Row params,
-                            SubQueryResults subQueryResults) {
+        public void executeOrFail(DependencyCarrier executor,
+            PlannerContext plannerContext,
+            RowConsumer consumer,
+            Row params,
+            SubQueryResults subQueryResults) {
 
             WhereClause where = detailedQuery.toBoundWhereClause(
                 table.tableInfo(),

@@ -50,11 +50,11 @@ public final class DeleteAllPartitions implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier executor,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         DeleteAllPartitionsTask task = new DeleteAllPartitionsTask(
             this, executor.transportActionProvider().transportDeleteIndexAction());
         task.execute(consumer);

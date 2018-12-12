@@ -50,11 +50,11 @@ public class CreateAnalyzerPlan implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier executor,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         CreateAnalyzerTask task = new CreateAnalyzerTask(
             this, executor.transportActionProvider().transportClusterUpdateSettingsAction());
         task.execute(consumer);
