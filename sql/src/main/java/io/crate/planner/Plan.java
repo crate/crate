@@ -52,11 +52,35 @@ public interface Plan {
 
     StatementType type();
 
-    void execute(DependencyCarrier executor,
-                 PlannerContext plannerContext,
-                 RowConsumer consumer,
-                 Row params,
-                 SubQueryResults subQueryResults);
+    /**
+     * Execute the given plan.
+     * Implementations are allowed to raise errors instead of triggering the consumer.
+     *
+     * Users of the Plan should prefer {@link #execute(DependencyCarrier, PlannerContext, RowConsumer, Row, SubQueryResults)}
+     * to ensure the consumer is always invoked.
+     */
+    void executeOrFail(DependencyCarrier dependencies,
+                       PlannerContext plannerContext,
+                       RowConsumer consumer,
+                       Row params,
+                       SubQueryResults subQueryResults) throws Exception;
+
+    /**
+     * Execute the plan, transferring the result to the RowConsumer
+     *
+     * Implementations must override {@link #executeOrFail(DependencyCarrier, PlannerContext, RowConsumer, Row, SubQueryResults)} instead.
+     */
+    default void execute(DependencyCarrier dependencies,
+                         PlannerContext plannerContext,
+                         RowConsumer consumer,
+                         Row params,
+                         SubQueryResults subQueryResults) {
+        try {
+            executeOrFail(dependencies, plannerContext, consumer, params, subQueryResults);
+        } catch (Throwable t) {
+            consumer.accept(null, t);
+        }
+    }
 
     default List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
                                                       PlannerContext plannerContext,

@@ -47,12 +47,12 @@ public class SetLicensePlan implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         LicenseKey metaData = new LicenseKey(stmt.licenseKey());
-        executor.licenseService().registerLicense(metaData, new OneRowActionListener<>(consumer, response -> new Row1(1L)));
+        dependencies.licenseService().registerLicense(metaData, new OneRowActionListener<>(consumer, response -> new Row1(1L)));
     }
 }

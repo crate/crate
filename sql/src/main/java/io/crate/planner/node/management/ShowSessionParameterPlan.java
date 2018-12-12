@@ -56,22 +56,17 @@ public class ShowSessionParameterPlan implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier executor,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
         BatchIterator<Row> batchIterator;
-        try {
-            if (statement.showAll()) {
-                batchIterator = iteratorForAllParameters(sessionContext);
-            } else {
-                batchIterator = iteratorForSingleParameter(statement.parameterName(), sessionContext);
-            }
-        } catch (Throwable t) {
-            consumer.accept(null, t);
-            return;
+        if (statement.showAll()) {
+            batchIterator = iteratorForAllParameters(sessionContext);
+        } else {
+            batchIterator = iteratorForSingleParameter(statement.parameterName(), sessionContext);
         }
         consumer.accept(batchIterator, null);
     }

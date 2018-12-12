@@ -54,12 +54,12 @@ public class DropTablePlan implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
-        DropTableTask task = new DropTableTask(this, executor.transportDropTableAction());
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
+        DropTableTask task = new DropTableTask(this, dependencies.transportDropTableAction());
         task.execute(consumer);
     }
 }

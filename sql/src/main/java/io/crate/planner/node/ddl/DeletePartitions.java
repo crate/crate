@@ -66,16 +66,16 @@ public class DeletePartitions implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         ArrayList<String> indexNames = getIndices(
-            plannerContext.transactionContext(), executor.functions(), params, subQueryResults);
+            plannerContext.transactionContext(), dependencies.functions(), params, subQueryResults);
         DeleteIndexRequest request = new DeleteIndexRequest(indexNames.toArray(new String[0]));
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
-        executor.transportActionProvider().transportDeleteIndexAction()
+        dependencies.transportActionProvider().transportDeleteIndexAction()
             .execute(request, new OneRowActionListener<>(consumer, r -> Row1.ROW_COUNT_UNKNOWN));
     }
 
