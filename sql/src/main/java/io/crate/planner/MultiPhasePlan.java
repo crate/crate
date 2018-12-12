@@ -68,15 +68,15 @@ public class MultiPhasePlan implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
-        MultiPhaseExecutor.execute(dependencies, executor, plannerContext, params)
+    public void executeOrFail(DependencyCarrier dependencyCarrier,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
+        MultiPhaseExecutor.execute(dependencies, dependencyCarrier, plannerContext, params)
             .whenComplete((subQueryValues, failure) -> {
                 if (failure == null) {
-                    rootPlan.execute(executor, plannerContext, consumer, params, subQueryValues);
+                    rootPlan.execute(dependencyCarrier, plannerContext, consumer, params, subQueryValues);
                 } else {
                     consumer.accept(null, failure);
                 }

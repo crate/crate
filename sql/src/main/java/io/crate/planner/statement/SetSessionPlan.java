@@ -59,11 +59,11 @@ public class SetSessionPlan implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier executor,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) throws Exception {
         for (Map.Entry<String, List<Expression>> entry : settings.entrySet()) {
             SessionSettingApplier applier = SessionSettingRegistry.getApplier(entry.getKey());
             if (applier == null) {

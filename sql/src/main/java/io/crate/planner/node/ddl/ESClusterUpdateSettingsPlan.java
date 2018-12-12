@@ -68,13 +68,13 @@ public class ESClusterUpdateSettingsPlan implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         ESClusterUpdateSettingsTask task = new ESClusterUpdateSettingsTask(
-            this, executor.transportActionProvider().transportClusterUpdateSettingsAction());
+            this, dependencies.transportActionProvider().transportClusterUpdateSettingsAction());
         task.execute(consumer, params);
     }
 

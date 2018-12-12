@@ -226,17 +226,13 @@ public class SimplePortal extends AbstractPortal {
             maxRows,
             new JobsLogsUpdateListener(jobId, jobsLogs)
         );
-        try {
-            plan.execute(
-                dependencyCarrier,
-                plannerContext,
-                consumer,
-                rowParams,
-                SubQueryResults.EMPTY
-            );
-        } catch (Exception e) {
-            consumer.accept(null, e);
-        }
+        plan.execute(
+            dependencyCarrier,
+            plannerContext,
+            consumer,
+            rowParams,
+            SubQueryResults.EMPTY
+        );
         synced = true;
         return resultReceiver.completionFuture();
     }

@@ -143,11 +143,11 @@ public final class UpdatePlanner {
         }
 
         @Override
-        public void execute(DependencyCarrier executor,
-                            PlannerContext plannerContext,
-                            RowConsumer consumer,
-                            Row params,
-                            SubQueryResults subQueryResults) {
+        public void executeOrFail(DependencyCarrier executor,
+                                  PlannerContext plannerContext,
+                                  RowConsumer consumer,
+                                  Row params,
+                                  SubQueryResults subQueryResults) throws Exception {
             ExecutionPlan executionPlan = createExecutionPlan.create(plannerContext, params, subQueryResults);
             NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
 

@@ -176,11 +176,11 @@ public class LegacyUpsertById implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerCtx,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier executor,
+                              PlannerContext plannerCtx,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) throws Exception {
         LegacyUpsertByIdTask task = new LegacyUpsertByIdTask(
             plannerCtx.jobId(),
             this,

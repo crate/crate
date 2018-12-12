@@ -68,16 +68,16 @@ public final class UpdateById implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerCtx,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         UpdateByIdTask task = new UpdateByIdTask(
-            plannerCtx.jobId(),
-            executor.clusterService(),
-            executor.functions(),
-            executor.transportActionProvider().transportShardUpsertAction(),
+            plannerContext.jobId(),
+            dependencies.clusterService(),
+            dependencies.functions(),
+            dependencies.transportActionProvider().transportShardUpsertAction(),
             this
         );
         task.execute(consumer, params, subQueryResults);

@@ -228,11 +228,11 @@ public interface LogicalPlan extends Plan {
     long estimatedRowSize();
 
     @Override
-    default void execute(DependencyCarrier executor,
-                         PlannerContext plannerContext,
-                         RowConsumer consumer,
-                         Row params,
-                         SubQueryResults subQueryResults) {
+    default void executeOrFail(DependencyCarrier executor,
+                               PlannerContext plannerContext,
+                               RowConsumer consumer,
+                               Row params,
+                               SubQueryResults subQueryResults) throws Exception {
         LogicalPlanner.execute(this, executor, plannerContext, consumer, params, subQueryResults, false);
     }
 
