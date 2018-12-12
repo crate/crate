@@ -57,6 +57,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
@@ -555,13 +556,15 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             )));
     }
 
-    private void execute(Plan plan, Row params) {
+    private List<Object[]> execute(Plan plan, Row params) throws Exception {
+        TestingRowConsumer consumer = new TestingRowConsumer();
         plan.execute(
             mock(DependencyCarrier.class),
             e.getPlannerContext(clusterService.state()),
-            new TestingRowConsumer(),
+            consumer,
             params,
             SubQueryResults.EMPTY
         );
+        return consumer.getResult();
     }
 }

@@ -93,11 +93,11 @@ public class ExplainPlan implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier dependencies,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         if (context != null) {
             assert subPlan instanceof LogicalPlan : "subPlan must be a LogicalPlan";
             LogicalPlan plan = (LogicalPlan) subPlan;

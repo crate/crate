@@ -116,11 +116,11 @@ public final class CopyStatementPlanner {
         }
 
         @Override
-        public void execute(DependencyCarrier executor,
-                            PlannerContext plannerContext,
-                            RowConsumer consumer,
-                            Row params,
-                            SubQueryResults subQueryResults) {
+        public void executeOrFail(DependencyCarrier executor,
+                                  PlannerContext plannerContext,
+                                  RowConsumer consumer,
+                                  Row params,
+                                  SubQueryResults subQueryResults) {
             ExecutionPlan executionPlan = planCopyToExecution(
                 copyTo, plannerContext, logicalPlanner, subqueryPlanner, executor.projectionBuilder(), params);
             NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
@@ -144,11 +144,11 @@ public final class CopyStatementPlanner {
         }
 
         @Override
-        public void execute(DependencyCarrier executor,
-                            PlannerContext plannerContext,
-                            RowConsumer consumer,
-                            Row params,
-                            SubQueryResults subQueryResults) {
+        public void executeOrFail(DependencyCarrier executor,
+                                  PlannerContext plannerContext,
+                                  RowConsumer consumer,
+                                  Row params,
+                                  SubQueryResults subQueryResults) {
             ExecutionPlan plan = planCopyFromExecution(executor.clusterService().state().nodes(), copyFrom, plannerContext);
             NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(plan, executor.localNodeId());
             executor.phasesTaskFactory()

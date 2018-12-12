@@ -75,15 +75,16 @@ public class KillPlan implements Plan {
         return StatementType.MANAGEMENT;
     }
 
+
     @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         execute(
-            executor.transportActionProvider().transportKillAllNodeAction(),
-            executor.transportActionProvider().transportKillJobsNodeAction(),
+            dependencies.transportActionProvider().transportKillAllNodeAction(),
+            dependencies.transportActionProvider().transportKillJobsNodeAction(),
             consumer
         );
     }

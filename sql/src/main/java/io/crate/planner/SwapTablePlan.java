@@ -55,11 +55,11 @@ public class SwapTablePlan implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier dependencies,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         boolean dropSource = Objects.requireNonNull(DataTypes.BOOLEAN.value(SymbolEvaluator.evaluate(
             plannerContext.transactionContext(),
             dependencies.functions(),

@@ -39,12 +39,11 @@ public final class GCDangingArtifactsPlan implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier dependencies,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
-
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         OneRowActionListener<AcknowledgedResponse> listener =
             new OneRowActionListener<>(consumer, r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L));
 

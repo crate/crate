@@ -48,11 +48,11 @@ public class DropViewPlan implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier dependencies,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         DropViewRequest request = new DropViewRequest(dropViewStmt.views(), dropViewStmt.ifExists());
         Function<DropViewResponse, Row> responseToRow = resp -> {
             if (dropViewStmt.ifExists() || resp.missing().isEmpty()) {

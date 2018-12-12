@@ -50,11 +50,11 @@ public class ShowCreateTablePlan implements Plan {
     }
 
     @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         Row1 row;
         try {
             CreateTable createTable = MetaDataToASTNodeResolver.resolveCreateTable(statement.tableInfo());
