@@ -37,17 +37,57 @@ In order to set a parameter to its default value use ``reset``::
 Changing the Number of Shards
 -----------------------------
 
+Changing the number of shards in general works in the following steps.
+
+1. A new target table is created but with more/less number of primary shards.
+#. The segments from the source table (the underling Lucene index to be
+   precise) are hard-linked into the target table at file system level.
+#. The source table is dropped while the new table is renamed into the
+   source and then recovered in the cluster.
+
+.. NOTE::
+    Segment hard-linking makes this operation relevantly cheap as it involves
+    no data copying. If the file system, however, does not support hard-linking,
+    then all segments will be copied into the new table, resulting in much more
+    time and resource consuming operation.
+
 To change the number of primary shards of a table, it is necessary to first
-block write operations to the table::
+satisfy certain conditions.
+
+Decrease the Number of Shards
+.............................
+
+To decrease the number of shards, it is necessary to ensure the following
+two conditions:
+
+First, a (primary or replica) copy of every shard of the table must be present
+on the **same** node. The user can choose the most suitable node for this
+operation and then restrict table shard allocation on that node using the
+:ref:`ddl_shard_allocation`.
+
+The second condition for decreasing a table's number of shards is to block write
+operations to the table::
 
     cr> alter table my_table set ("blocks.write" = true);
     ALTER OK, -1 rows affected (... sec)
 
-Afterwards the number of shards can be either increased or decreased.
+Afterwards the number of shards can be decreased::
 
-To decrease the number of shards it is necessary to use a factor of the current
-number of primary shards. For example, a table with 8 shards can be shrunk into
-4, 2 or 1 primary shards.
+    cr> alter table my_table set (number_of_shards = 1);
+    ALTER OK, 0 rows affected (... sec)
+
+The user should then revert the restrictions applied on the table, for instance
+::
+
+    cr> alter table my_table reset ("routing.allocation.require._name", "blocks.write");
+    ALTER OK, -1 rows affected (... sec)
+
+It is necessary to use a factor of the current number of primary shards as
+the target number of shards. For example, a table with 8 shards can be shrunk
+into 4, 2 or 1 primary shards.
+
+Increase the Number of Shards
+.............................
 
 Increasing the number of shards is limited to tables which have been created
 with a ``number_of_routing_shards`` setting. For such tables the shards can be
@@ -55,14 +95,22 @@ increased by a factor that depends on this setting. For example, a table with 5
 shards, with  ``number_of_routing_shards`` set to 20 can be changed to have
 either 10 or 20 shards. (5 x 2 (x 2)) = 20 or (5 x 4) = 20.
 
-::
+The only condition required for increasing the number of shards is to block
+operations to the table::
+
+    cr> alter table my_table set ("blocks.write" = true);
+    ALTER OK, -1 rows affected (... sec)
+
+Afterwards, the table shards can be increased::
 
     cr> alter table my_table set (number_of_shards = 2);
     ALTER OK, 0 rows affected (... sec)
 
+Similarly, the user should revert the restrictions applied on the table,
+for instance::
+
     cr> alter table my_table set ("blocks.write" = false);
     ALTER OK, -1 rows affected (... sec)
-
 
 Read :ref:`Alter Partitioned Tables <partitioned_tables_alter>` to see how to
 alter parameters of partitioned tables.

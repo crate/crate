@@ -47,8 +47,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -102,7 +100,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_BLOCKS_WRITE_SETTING;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_PREFIX;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
@@ -252,7 +249,8 @@ public class AlterTableOperation {
     private CompletableFuture<Long> executeAlterTableChangeNumberOfShards(AlterTableAnalyzedStatement analysis) {
         final DocTableInfo table = analysis.table();
         final boolean isPartitioned = table.isPartitioned();
-        String sourceIndexName, sourceIndexAlias;
+        String sourceIndexName;
+        String sourceIndexAlias;
         if (isPartitioned) {
             Optional<PartitionName> partitionName = analysis.partitionName();
             assert partitionName.isPresent() : "Resizing operations for partitioned tables " +
@@ -265,26 +263,14 @@ public class AlterTableOperation {
         }
 
         final ClusterState currentState = clusterService.state();
-        final DiscoveryNode resizeNode = getNodeForResize(currentState);
         final IndexMetaData sourceIndexMetaData = currentState.metaData().index(sourceIndexName);
         final int targetNumberOfShards = getNumberOfShards(analysis.tableParameter().settings());
-        final boolean isShrinkOperation = targetNumberOfShards < sourceIndexMetaData.getNumberOfShards();
         validateForResizeRequest(sourceIndexMetaData, targetNumberOfShards);
 
         final List<ChainableAction<Long>> actions = new ArrayList<>();
         final String resizedIndex = RESIZE_PREFIX + sourceIndexName;
         deleteLeftOverFromPreviousOperations(currentState, actions, resizedIndex);
 
-        if (isShrinkOperation) {
-            actions.add(new ChainableAction<>(
-                () -> initAllocationToNode(resizeNode.getName(), sourceIndexName),
-                () -> CompletableFuture.completedFuture(-1L)
-            ));
-            actions.add(new ChainableAction<>(
-                () -> ensureIndexAllocation(sourceIndexName),
-                () -> CompletableFuture.completedFuture(-1L)
-            ));
-        }
         actions.add(new ChainableAction<>(
             () -> resizeIndex(
                 currentState.metaData().index(sourceIndexName),
@@ -305,16 +291,6 @@ public class AlterTableOperation {
                 }),
             () -> CompletableFuture.completedFuture(-1L)
         ));
-        if (isShrinkOperation) {
-            actions.add(new ChainableAction<>(
-                () -> initRevertAllocation(sourceIndexName),
-                () -> CompletableFuture.completedFuture(-1L)
-            ));
-            actions.add(new ChainableAction<>(
-                () -> ensureIndexAllocation(sourceIndexName),
-                () -> CompletableFuture.completedFuture(-1L)
-            ));
-        }
         return ChainableActions.run(actions);
     }
 
@@ -376,30 +352,6 @@ public class AlterTableOperation {
         assert !state.nodes().getDataNodes().isEmpty() : "No Data nodes available " +
                                                          "for index resize operation";
         return state.nodes().getDataNodes().valuesIt().next();
-    }
-
-    private CompletableFuture<Long> initAllocationToNode(String nodeName, String... indices) {
-        Settings settings = Settings.builder()
-            .put(INDEX_ROUTING_REQUIRE_GROUP_PREFIX + "._name", nodeName)
-            .build();
-
-        return updateSettings(settings, indices);
-    }
-
-    private CompletableFuture<Long> ensureIndexAllocation(String... indices) {
-        FutureActionListener<ClusterHealthResponse, Long> listener = new FutureActionListener<>(r -> 0L);
-        ClusterHealthRequest request = new ClusterHealthRequest(indices)
-            .waitForNoRelocatingShards(true)
-            .waitForActiveShards(ActiveShardCount.DEFAULT);
-        transportClusterHealthAction.execute(request, listener);
-        return listener;
-    }
-
-    private CompletableFuture<Long> initRevertAllocation(String... indices) {
-        Settings settings = Settings.builder()
-            .putNull(INDEX_ROUTING_REQUIRE_GROUP_PREFIX + "._name")
-            .build();
-        return updateSettings(settings, indices);
     }
 
     private CompletableFuture<Long> resizeIndex(IndexMetaData sourceIndex,
