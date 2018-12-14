@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import java.util.Arrays;
 import java.util.Collection;
 
 public class ArrayType extends CollectionType {
@@ -77,6 +78,15 @@ public class ArrayType extends CollectionType {
             }
         }
         return result;
+    }
+
+    @Override
+    public Object valueForSets(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value instanceof Collection) {
+            return value;
+        } else {
+            return Arrays.asList((Object[]) value);
+        }
     }
 
     @Override

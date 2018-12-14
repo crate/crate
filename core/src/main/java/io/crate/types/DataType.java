@@ -80,6 +80,14 @@ public abstract class DataType<T> implements Comparable, Streamable {
 
     public abstract T value(Object value) throws IllegalArgumentException, ClassCastException;
 
+    /**
+     * Potentially transforms the value into a different structure that is suitable to be used
+     * in maps and sets due to proper equals and hashCode implementations.
+     */
+    public Object valueForSets(Object value) throws IllegalArgumentException, ClassCastException {
+        return value;
+    }
+
     public abstract int compareValueTo(T val1, T val2);
 
     /**
