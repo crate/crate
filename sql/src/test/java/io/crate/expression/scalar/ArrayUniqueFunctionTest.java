@@ -22,15 +22,17 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.ConversionException;
+import io.crate.expression.symbol.Literal;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.is;
 
 public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
@@ -60,6 +62,16 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
     public void testArrayUniqueOnNestedArrayReturnsUniqueInnerArrays() {
         assertEvaluate("array_unique([[0, 0], [1, 1]], [[0, 0], [1, 1]])",
             new Object[]{ new Long[]{0L, 0L}, new Long[]{1L, 1L} });
+    }
+
+    @Test
+    public void testArrayUniqueWithObjectArraysThatContainArraysReturnsUniqueArrays() {
+        assertEvaluate(
+            "array_unique([{x=[1, 1]}], [{x=[1, 1]}])",
+             Matchers.arrayContainingInAnyOrder(
+               Matchers.hasEntry(is("x"), Matchers.arrayContaining(is(1L), is(1L)))
+           )
+        );
     }
 
     @Test

@@ -26,12 +26,13 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.data.Input;
+import io.crate.expression.FunctionExpression;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -41,7 +42,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.expression.FunctionExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -157,9 +157,9 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
      * </code>
      */
     @SuppressWarnings("unchecked")
-    public void assertEvaluate(String functionExpression, Matcher<Object> expectedValue, Input... inputs) {
+    public <T> void assertEvaluate(String functionExpression, Matcher<T> expectedValue, Input... inputs) {
         if (expectedValue == null) {
-            expectedValue = nullValue();
+            expectedValue = (Matcher<T>) nullValue();
         }
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         functionSymbol = sqlExpressions.normalize(functionSymbol);
@@ -168,7 +168,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             if (value instanceof BytesRef) {
                 value = BytesRefs.toString(value);
             }
-            assertThat(value, expectedValue);
+            assertThat((T) value, expectedValue);
             return;
         }
         Function function = (Function) functionSymbol;
@@ -190,7 +190,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         if (actualValue instanceof BytesRef) {
             actualValue = BytesRefs.toString(actualValue);
         }
-        assertThat(actualValue, expectedValue);
+        assertThat((T) actualValue, expectedValue);
 
         // Reset calls
         for (AssertingInput argument : arguments) {
@@ -202,7 +202,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         if (actualValue instanceof BytesRef) {
             actualValue = BytesRefs.toString(actualValue);
         }
-        assertThat(actualValue, expectedValue);
+        assertThat((T) actualValue, expectedValue);
     }
 
     /**
