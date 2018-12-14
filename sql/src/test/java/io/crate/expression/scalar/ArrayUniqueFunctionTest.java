@@ -56,6 +56,12 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void testArrayUniqueOnNestedArrayReturnsUniqueInnerArrays() {
+        assertEvaluate("array_unique([[0, 0], [1, 1]], [[0, 0], [1, 1]])",
+            new Object[]{ new Long[]{0L, 0L}, new Long[]{1L, 1L} });
+    }
+
+    @Test
     public void testZeroArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("unknown function: array_unique()");
