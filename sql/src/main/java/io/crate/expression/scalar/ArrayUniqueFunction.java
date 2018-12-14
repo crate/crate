@@ -35,7 +35,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -70,7 +71,8 @@ class ArrayUniqueFunction extends Scalar<Object[], Object> {
 
     @Override
     public Object[] evaluate(Input[] args) {
-        Set<Object> uniqueSet = new LinkedHashSet<>();
+        Set<Object> uniqueSet = new HashSet<>();
+        ArrayList<Object> uniqueItems = new ArrayList<>();
         for (Input array : args) {
             assert array != null : "inputs must never be null";
             Object[] arrayValue = (Object[]) array.value();
@@ -78,10 +80,12 @@ class ArrayUniqueFunction extends Scalar<Object[], Object> {
                 continue;
             }
             for (Object element : arrayValue) {
-                uniqueSet.add(elementType.value(element));
+                if (uniqueSet.add(elementType.valueForSets(element))) {
+                    uniqueItems.add(elementType.value(element));
+                }
             }
         }
-        return uniqueSet.toArray();
+        return uniqueItems.toArray(new Object[0]);
     }
 
 
