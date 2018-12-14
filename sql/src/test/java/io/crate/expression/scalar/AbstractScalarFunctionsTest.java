@@ -160,15 +160,15 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
      * </code>
      */
     @SuppressWarnings("unchecked")
-    public void assertEvaluate(String functionExpression, Matcher<Object> expectedValue, Input... inputs) {
+    public <T> void assertEvaluate(String functionExpression, Matcher<T> expectedValue, Input... inputs) {
         if (expectedValue == null) {
-            expectedValue = nullValue();
+            expectedValue = (Matcher<T>) nullValue();
         }
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         if (functionSymbol instanceof Literal) {
             Object value = ((Literal) functionSymbol).value();
-            assertThat(value, expectedValue);
+            assertThat((T) value, expectedValue);
             return;
         }
         Function function = (Function) functionSymbol;
@@ -186,7 +186,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         }
 
         Object actualValue = scalar.compile(function.arguments()).evaluate(txnCtx, (Input[]) arguments);
-        assertThat(actualValue, expectedValue);
+        assertThat((T) actualValue, expectedValue);
 
         // Reset calls
         for (AssertingInput argument : arguments) {
@@ -194,7 +194,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         }
 
         actualValue = scalar.evaluate(txnCtx, (Input[]) arguments);
-        assertThat(actualValue, expectedValue);
+        assertThat((T) actualValue, expectedValue);
     }
 
     /**
