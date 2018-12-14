@@ -46,6 +46,9 @@ Breaking Changes
 Changes
 =======
 
+- ``geo_shape`` columns can now be casted to ``object`` with ``cast`` in
+  addition to ``try_cast``.
+
 - Added a ``ALTER CLUSTER GC DANGLING ARTIFACTS`` statement that can be used to
   clean up internal structures that weren't properly cleaned up due to cluster
   failures during operations which create such temporary artifacts.
