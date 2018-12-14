@@ -28,15 +28,16 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -71,7 +72,8 @@ class ArrayUniqueFunction extends Scalar<Object[], Object> {
 
     @Override
     public Object[] evaluate(TransactionContext txnCtx, Input[] args) {
-        Set<Object> uniqueSet = new LinkedHashSet<>();
+        Set<Object> uniqueSet = new HashSet<>();
+        ArrayList<Object> uniqueItems = new ArrayList<>();
         for (Input array : args) {
             assert array != null : "inputs must never be null";
             Object[] arrayValue = (Object[]) array.value();
@@ -79,10 +81,12 @@ class ArrayUniqueFunction extends Scalar<Object[], Object> {
                 continue;
             }
             for (Object element : arrayValue) {
-                uniqueSet.add(elementType.value(element));
+                if (uniqueSet.add(elementType.valueForSets(element))) {
+                    uniqueItems.add(elementType.value(element));
+                }
             }
         }
-        return uniqueSet.toArray();
+        return uniqueItems.toArray(new Object[0]);
     }
 
 
