@@ -56,6 +56,14 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void testCastGeoShapeToObject() {
+        Map<String, Object> shape = new HashMap<>();
+        shape.put("type", "LineString");
+        shape.put("coordinates", new Double[][] {new Double[] { 0d, 0d}, new Double[] {2d, 0d} });
+        assertEvaluate("geoshape::object", shape, () -> shape);
+    }
+
+    @Test
     public void testDoubleColonOperatorCast() {
         assertEvaluate("10.4::string", "10.4");
         assertEvaluate("[1, 2, 0]::array(boolean)", new Boolean[]{true, true, false});

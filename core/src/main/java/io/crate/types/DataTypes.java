@@ -150,6 +150,7 @@ public final class DataTypes {
         .put(TIMESTAMP.id(), ImmutableSet.of(DOUBLE, LONG, STRING))
         .put(UNDEFINED.id(), ImmutableSet.of()) // actually convertible to every type, see NullType
         .put(GEO_POINT.id(), ImmutableSet.of(new ArrayType(DOUBLE)))
+        .put(GEO_SHAPE.id(), ImmutableSet.of(OBJECT))
         .put(OBJECT.id(), ImmutableSet.of(GEO_SHAPE))
         .put(ArrayType.ID, ImmutableSet.of()) // convertability handled in ArrayType
         .put(SetType.ID, ImmutableSet.of()) // convertability handled in SetType
