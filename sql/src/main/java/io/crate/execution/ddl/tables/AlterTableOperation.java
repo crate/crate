@@ -69,7 +69,6 @@ import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.compress.CompressedXContent;
@@ -347,13 +346,7 @@ public class AlterTableOperation {
                                                " Use 'ALTER table ... set (\"blocks.write\"=true)' and retry");
         }
     }
-
-    private static DiscoveryNode getNodeForResize(ClusterState state) {
-        assert !state.nodes().getDataNodes().isEmpty() : "No Data nodes available " +
-                                                         "for index resize operation";
-        return state.nodes().getDataNodes().valuesIt().next();
-    }
-
+    
     private CompletableFuture<Long> resizeIndex(IndexMetaData sourceIndex,
                                                 @Nullable String sourceIndexAlias,
                                                 String targetIndexName,
