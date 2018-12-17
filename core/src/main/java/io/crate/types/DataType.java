@@ -83,8 +83,18 @@ public abstract class DataType<T> implements Comparable, Streamable {
     /**
      * Potentially transforms the value into a different structure that is suitable to be used
      * in maps and sets due to proper equals and hashCode implementations.
+     *
+     * <pre>
+     *     Contracts:
+     *      hashableValue(value1) = hashableValue(value1)
+     *      hashableValue(value1).hashCode = hashableValue(value1).hashCode
+     *
+     *      hashableValue(value1) != hashableValue(value2)
+     * </pre>
+     *
+     * The function is not required to retain all information (e.g like ordering) as long as the contract holds
      */
-    public Object valueForSets(Object value) throws IllegalArgumentException, ClassCastException {
+    public Object hashableValue(Object value) throws IllegalArgumentException, ClassCastException {
         return value;
     }
 

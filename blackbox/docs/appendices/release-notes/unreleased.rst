@@ -162,8 +162,8 @@ Changes
 Fixes
 =====
 
-- ``array_unique`` now works for nested arrays and arrays with objects which
-  contain arrays.
+- ``array_unique`` and ``array_difference`` now work for nested arrays and
+  arrays with objects which contain arrays.
 
 - Fixed an issue that could cause some type of statements to remain listed
   within ``sys.jobs`` if their execution stopped with a failure.

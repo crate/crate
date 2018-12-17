@@ -74,26 +74,26 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    public Object valueForSets(Object value) throws IllegalArgumentException, ClassCastException {
+    public Object hashableValue(Object value) throws IllegalArgumentException, ClassCastException {
         if (value instanceof Map) {
             Map<String, Object> m = (Map<String, Object>) value;
             HashMap<String, Object> result = new HashMap<>();
             for (Map.Entry<String, Object> entry : m.entrySet()) {
-                result.put(entry.getKey(), valueForSets(entry.getValue()));
+                result.put(entry.getKey(), hashableValue(entry.getValue()));
             }
             return result;
         } else if (value instanceof Collection) {
             Collection collection = (Collection) value;
             ArrayList<Object> result = new ArrayList<>(collection.size());
             for (Object o : collection) {
-                result.add(valueForSets(o));
+                result.add(hashableValue(o));
             }
             return result;
         } else if (value.getClass().isArray()) {
             Object[] arr = (Object[]) value;
             ArrayList<Object> result = new ArrayList<>(arr.length);
             for (Object o : arr) {
-                result.add(valueForSets(o));
+                result.add(hashableValue(o));
             }
             return result;
         } else {

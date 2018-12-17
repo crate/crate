@@ -25,16 +25,17 @@ package io.crate.expression.scalar;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
 
     private static final ArrayType INTEGER_ARRAY_TYPE = new ArrayType(DataTypes.INTEGER);
-    private static final ArrayType LONG_ARRAY_TYPE = new ArrayType(DataTypes.LONG);
 
     @Test
     public void testCompileWithValues() throws Exception {
@@ -44,6 +45,20 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testCompileWithRefs() throws Exception {
         assertCompile("array_difference(int_array, int_array)", IsSame::sameInstance);
+    }
+
+    @Test
+    public void testArrayDifferenceRemovesTheNestedArraysInTheFirstArrayThatAreContainedWithinTheSecondArray() {
+        assertEvaluate(
+            "array_difference([[1, 2], [1, 3]], [[1, 2]])",
+            Matchers.arrayContaining(Matchers.arrayContaining(1L, 3L)));
+    }
+
+    @Test
+    public void testArrayDifferenceRemovesTheObjectsInTheFirstArrayThatAreContainedInTheSecond() {
+        assertEvaluate(
+            "array_difference([{x=[1, 2]}, {x=[1, 3]}], [{x=[1, 3]}])",
+            Matchers.arrayContaining(Matchers.hasEntry(is("x"), Matchers.arrayContaining(1L, 2L))));
     }
 
     @Test
