@@ -47,6 +47,7 @@ import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.ingestion.IngestionModules;
 import io.crate.ingestion.IngestionService;
 import io.crate.lucene.ArrayMapperService;
+import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.MetaDataBlobModule;
@@ -179,7 +180,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             TasksService.class,
             Schemas.class,
             ArrayMapperService.class,
-            IngestionService.class);
+            IngestionService.class,
+            DanglingArtifactsService.class);
 
         if (ingestionModules != null) {
             serviceClasses.addAll(ingestionModules.getServiceClasses());
