@@ -25,6 +25,7 @@ package io.crate.node;
 import com.google.common.collect.ImmutableList;
 import io.crate.Build;
 import io.crate.Version;
+import io.crate.metadata.IndexParts;
 import io.crate.plugin.BlobPlugin;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.plugin.HttpTransportPlugin;
@@ -34,6 +35,8 @@ import io.crate.plugin.SrvPlugin;
 import io.crate.udc.plugin.UDCPlugin;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;
@@ -87,5 +90,23 @@ public class CrateNode extends Node {
             Constants.JVM_NAME,
             Constants.JAVA_VERSION,
             Constants.JVM_VERSION);
+    }
+
+    @Override
+    protected void logDanglingIndices(Logger logger) {
+        if (!logger.isInfoEnabled()) {
+            return;
+        }
+
+        IndicesExistsResponse response =
+            client()
+                .admin()
+                .indices()
+                .exists(new IndicesExistsRequest(IndexParts.DANGLING_INDICES_PREFIX_PATTERNS.toArray(new String[0])))
+                .actionGet();
+
+        if (response.isExists()) {
+            logger.info("Dangling indices exist in the cluster. Use 'alter cluster gc dangling artifacts;' to remove them");
+        }
     }
 }
