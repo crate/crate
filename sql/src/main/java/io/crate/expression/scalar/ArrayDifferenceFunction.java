@@ -24,15 +24,15 @@ package io.crate.expression.scalar;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import io.crate.data.Input;
 import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Input;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -90,7 +90,7 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
         Set<Object> subtractSet = new HashSet<>();
         if (array.length > 0) {
             for (Object element : array) {
-                subtractSet.add(innerType.value(element));
+                subtractSet.add(innerType.hashableValue(element));
             }
         }
 
@@ -116,7 +116,7 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
 
                 Object[] array = (Object[]) argValue;
                 for (Object element : array) {
-                    localSubtractSet.add(innerType.value(element));
+                    localSubtractSet.add(innerType.hashableValue(element));
                 }
             }
         } else {
@@ -124,13 +124,11 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
         }
 
         List<Object> resultList = new ArrayList<>(originalArray.length);
-        for (Object anOriginalArray : originalArray) {
-            Object element = innerType.value(anOriginalArray);
-            if (!localSubtractSet.contains(element)) {
-                resultList.add(element);
+        for (Object value : originalArray) {
+            if (!localSubtractSet.contains(innerType.hashableValue(value))) {
+                resultList.add(value);
             }
         }
-
         return resultList.toArray();
     }
 
