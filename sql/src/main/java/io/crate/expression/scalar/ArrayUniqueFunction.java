@@ -81,7 +81,7 @@ class ArrayUniqueFunction extends Scalar<Object[], Object> {
                 continue;
             }
             for (Object element : arrayValue) {
-                if (uniqueSet.add(elementType.valueForSets(element))) {
+                if (uniqueSet.add(elementType.hashableValue(element))) {
                     uniqueItems.add(elementType.value(element));
                 }
             }

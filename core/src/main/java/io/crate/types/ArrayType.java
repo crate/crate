@@ -81,7 +81,7 @@ public class ArrayType extends CollectionType {
     }
 
     @Override
-    public Object valueForSets(Object value) throws IllegalArgumentException, ClassCastException {
+    public Object hashableValue(Object value) throws IllegalArgumentException, ClassCastException {
         if (value instanceof Collection) {
             return value;
         } else {
