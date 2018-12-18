@@ -24,12 +24,16 @@ package io.crate.execution.engine.window;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.MappedForwardingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.join.RamAccountingBatchIterator;
+import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -93,13 +97,25 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
                         List<CollectExpression<Row, ?>> standaloneExpressions,
                         BatchIterator<Row> source,
                         List<WindowFunction> functions,
+                        List<DataType> outputTypes,
+                        RamAccountingContext ramAccountingContext,
                         @Nullable int[] orderByIndexes) {
         assert windowDefinition.partitions().size() == 0 : "Window partitions are not supported.";
         assert windowDefinition.windowFrameDefinition().equals(WindowDefinition.DEFAULT_WINDOW_FRAME) : "Custom window frame definitions are not supported";
         assert windowDefinition.orderBy() == null || orderByIndexes != null : "Window is ordered but the IC indexes are not specified";
 
         this.order = windowDefinition.orderBy();
-        this.source = source;
+
+        // adding 8 extra bytes as some cells of each row will be part of a LinkedList which adds the overhead of
+        // 2 pointers for prev and next element (4 bytes each with compressed oops)
+        int extraRowOverhead = 8;
+        if (standaloneInputs.size() > 0) {
+            // another LinkedList is used for standalone inputs
+            extraRowOverhead += 8;
+        }
+        RowAccountingWithEstimators rowAccounting =
+            new RowAccountingWithEstimators(outputTypes, ramAccountingContext, extraRowOverhead);
+        this.source = new RamAccountingBatchIterator<>(source, rowAccounting);
         this.standaloneExpressions = standaloneExpressions;
         this.windowFunctionsCount = functions.size();
         this.outgoingCells = new Object[windowFunctionsCount + standaloneInputs.size()];
