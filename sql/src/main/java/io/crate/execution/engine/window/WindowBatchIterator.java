@@ -35,7 +35,6 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.join.RamAccountingBatchIterator;
 import io.crate.types.DataType;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -99,10 +98,10 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
                         List<WindowFunction> functions,
                         List<DataType> outputTypes,
                         RamAccountingContext ramAccountingContext,
-                        @Nullable int[] orderByIndexes) {
+                        int[] orderByIndexes) {
         assert windowDefinition.partitions().size() == 0 : "Window partitions are not supported.";
         assert windowDefinition.windowFrameDefinition().equals(WindowDefinition.DEFAULT_WINDOW_FRAME) : "Custom window frame definitions are not supported";
-        assert windowDefinition.orderBy() == null || orderByIndexes != null : "Window is ordered but the IC indexes are not specified";
+        assert windowDefinition.orderBy() == null || orderByIndexes.length > 0 : "Window is ordered but the IC indexes are not specified";
 
         this.order = windowDefinition.orderBy();
 
@@ -124,10 +123,6 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         this.functions = functions;
 
         arePeerCellsPredicate = (prevRowCells, currentRowCells) -> {
-            if (orderByIndexes == null) {
-                return true;
-            }
-
             for (int i = 0; i < orderByIndexes.length; i++) {
                 int samplingIndex = orderByIndexes[i];
                 if (!prevRowCells[samplingIndex].equals(currentRowCells[samplingIndex])) {

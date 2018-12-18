@@ -31,7 +31,6 @@ import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.types.DataType;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public class WindowProjector implements Projector {
@@ -40,7 +39,6 @@ public class WindowProjector implements Projector {
     private final List<Input<?>> standaloneInputs;
     private final List<CollectExpression<Row, ?>> standaloneExpressions;
     private final List<WindowFunction> windowFunctions;
-    @Nullable
     private final int[] orderByIndexes;
     private final List<DataType> outputTypes;
     private final RamAccountingContext ramAccountingContext;
@@ -51,7 +49,7 @@ public class WindowProjector implements Projector {
                            List<CollectExpression<Row, ?>> standaloneExpressions,
                            List<DataType> outputTypes,
                            RamAccountingContext ramAccountingContext,
-                           @Nullable int[] orderByIndexes) {
+                           int[] orderByIndexes) {
         this.windowDefinition = windowDefinition;
         this.standaloneInputs = standaloneInputs;
         this.standaloneExpressions = standaloneExpressions;
