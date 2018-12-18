@@ -46,14 +46,14 @@ public class WindowAggProjection extends Projection {
     private final List<Symbol> standaloneWithInputs;
     private LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs;
     private ArrayList<Symbol> outputs;
-    @Nullable
     private int[] orderByIndexes;
 
     public WindowAggProjection(WindowDefinition windowDefinition,
                                LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs,
                                List<Symbol> standaloneWithInputs,
-                               @Nullable int[] orderByIndexes) {
-
+                               int[] orderByIndexes) {
+        assert orderByIndexes != null
+            : "Order by indexes cannot be null. An empty container signals the absence of order by symbols";
         Set<WindowFunction> windowFunctions = functionsWithInputs.keySet();
         assert windowFunctions.stream().noneMatch(Symbols.IS_COLUMN)
             : "Cannot operate on Reference or Field: " + windowFunctions;
@@ -77,9 +77,7 @@ public class WindowAggProjection extends Projection {
             List<Symbol> inputs = Symbols.listFromStream(in);
             functionsWithInputs.put(function, inputs);
         }
-        if (in.readBoolean()) {
-            orderByIndexes = in.readIntArray();
-        }
+        orderByIndexes = in.readIntArray();
         outputs = new ArrayList<>(functionsWithInputs.keySet());
     }
 
@@ -138,12 +136,7 @@ public class WindowAggProjection extends Projection {
             Symbols.toStream(functionWithInputs.getKey(), out);
             Symbols.toStream(functionWithInputs.getValue(), out);
         }
-        if (orderByIndexes != null) {
-            out.writeBoolean(true);
-            out.writeIntArray(orderByIndexes);
-        } else {
-            out.writeBoolean(false);
-        }
+        out.writeIntArray(orderByIndexes);
     }
 
     @Override

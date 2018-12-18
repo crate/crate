@@ -51,6 +51,8 @@ import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 public class WindowAgg extends OneInputPlan {
 
+    private static final int[] EMPTY_ORDER_BY_INDEXES = new int[0];
+
     private final WindowDefinition windowDefinition;
     private final List<WindowFunction> windowFunctions;
     private final List<Symbol> standalone;
@@ -145,7 +147,7 @@ public class WindowAgg extends OneInputPlan {
         }
 
         OrderBy orderBy = windowDefinition.orderBy();
-        int[] orderByIndexes = null;
+        int[] orderByIndexes = EMPTY_ORDER_BY_INDEXES;
         if (orderBy != null) {
             InputColumns.SourceSymbols orderByCtx = new InputColumns.SourceSymbols(source.outputs());
             List<Symbol> outputs = InputColumns.create(source.outputs(), orderByCtx);
