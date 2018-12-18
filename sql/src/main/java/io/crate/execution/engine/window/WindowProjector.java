@@ -23,11 +23,13 @@
 package io.crate.execution.engine.window;
 
 import io.crate.analyze.WindowDefinition;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -40,17 +42,23 @@ public class WindowProjector implements Projector {
     private final List<WindowFunction> windowFunctions;
     @Nullable
     private final int[] orderByIndexes;
+    private final List<DataType> outputTypes;
+    private final RamAccountingContext ramAccountingContext;
 
     public WindowProjector(WindowDefinition windowDefinition,
                            List<WindowFunction> windowFunctions,
                            List<Input<?>> standaloneInputs,
                            List<CollectExpression<Row, ?>> standaloneExpressions,
+                           List<DataType> outputTypes,
+                           RamAccountingContext ramAccountingContext,
                            @Nullable int[] orderByIndexes) {
         this.windowDefinition = windowDefinition;
         this.standaloneInputs = standaloneInputs;
         this.standaloneExpressions = standaloneExpressions;
         this.windowFunctions = windowFunctions;
         this.orderByIndexes = orderByIndexes;
+        this.outputTypes = outputTypes;
+        this.ramAccountingContext = ramAccountingContext;
     }
 
     @Override
@@ -61,6 +69,8 @@ public class WindowProjector implements Projector {
             standaloneExpressions,
             batchIterator,
             windowFunctions,
+            outputTypes,
+            ramAccountingContext,
             orderByIndexes);
     }
 }
