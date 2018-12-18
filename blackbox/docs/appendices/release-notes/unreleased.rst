@@ -162,6 +162,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused incorrectness in the navigation of the Admin UI.
+
+- Updated the license div to be responsive in the Admin UI.
+
 - ``array_unique`` and ``array_difference`` now work for nested arrays and
   arrays with objects which contain arrays.
 
