@@ -91,6 +91,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
@@ -589,16 +590,22 @@ public class ProjectionToProjectorVisitor
             InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
             ctx.add(functionAndInputsEntry.getValue());
 
-            FunctionImplementation impl = this.functions.getQualified((functionAndInputsEntry.getKey()).info().ident());
+            FunctionImplementation impl = this.functions.getQualified(functionAndInputsEntry.getKey().info().ident());
             assert impl instanceof AggregationFunction : "We currently only support aggregation functions as window functions";
             windowFunctions.add(
                 new AggregateToWindowFunctionAdapter(
                     ctx.topLevelInputs().toArray(new Input[0]),
-                    (AggregationFunction) impl, ctx.expressions(),
+                    (AggregationFunction) impl,
+                    ctx.expressions(),
                     indexVersionCreated,
                     bigArrays,
                     context.ramAccountingContext)
             );
+        }
+
+        ArrayList<DataType> outputTypes = new ArrayList<>(windowAgg.standalone().size());
+        for (Symbol symbol : windowAgg.standalone()) {
+            outputTypes.add(symbol.valueType());
         }
 
         InputFactory.Context<CollectExpression<Row, ?>> contextForStandaloneInputs = inputFactory.ctxForInputColumns(context.txnCtx);
@@ -609,6 +616,8 @@ public class ProjectionToProjectorVisitor
             windowFunctions,
             contextForStandaloneInputs.topLevelInputs(),
             contextForStandaloneInputs.expressions(),
+            outputTypes,
+            context.ramAccountingContext,
             windowAgg.orderByIndexes());
     }
 

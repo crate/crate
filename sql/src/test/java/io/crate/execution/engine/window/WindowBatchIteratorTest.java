@@ -23,10 +23,13 @@
 package io.crate.execution.engine.window;
 
 import io.crate.analyze.WindowDefinition;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
+import io.crate.types.DataTypes;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -36,9 +39,13 @@ import java.util.stream.IntStream;
 
 import static org.elasticsearch.common.collect.Tuple.tuple;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 public class WindowBatchIteratorTest {
+
+    private final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
+        new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
 
     private List<Object[]> expectedRowNumberResult = IntStream.range(0, 10)
         .mapToObj(l -> new Object[]{l + 1}).collect(Collectors.toList());
@@ -52,6 +59,8 @@ public class WindowBatchIteratorTest {
                 Collections.emptyList(),
                 TestingBatchIterators.range(0, 10),
                 Collections.singletonList(rowNumberWindowFunction()),
+                Collections.singletonList(DataTypes.INTEGER),
+                RAM_ACCOUNTING_CONTEXT,
                 null)
         );
 
@@ -68,6 +77,8 @@ public class WindowBatchIteratorTest {
                 new BatchSimulatingIterator<>(
                     TestingBatchIterators.range(0, 10), 4, 2, null),
                 Collections.singletonList(rowNumberWindowFunction()),
+                Collections.singletonList(DataTypes.INTEGER),
+                RAM_ACCOUNTING_CONTEXT,
                 null)
         );
 
@@ -90,12 +101,33 @@ public class WindowBatchIteratorTest {
             Collections.emptyList(),
             TestingBatchIterators.range(0, 10),
             Collections.singletonList(frameBoundsWindowFunction),
+            Collections.singletonList(DataTypes.INTEGER),
+            RAM_ACCOUNTING_CONTEXT,
             null), null);
 
         Object[] expectedBounds = {tuple(0, 10)};
         List<Object[]> result = consumer.getResult();
 
         IntStream.range(0, 10).forEach(i -> assertThat(result.get(i), is(expectedBounds)));
+    }
+
+    @Test
+    public void testWindowBatchIteratorAccountsUsedMemory() {
+        WindowBatchIterator windowBatchIterator = new WindowBatchIterator(
+            emptyWindow(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            TestingBatchIterators.range(0, 10),
+            Collections.singletonList(rowNumberWindowFunction()),
+            Collections.singletonList(DataTypes.INTEGER),
+            RAM_ACCOUNTING_CONTEXT,
+            null);
+        RAM_ACCOUNTING_CONTEXT.release();
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(windowBatchIterator, null);
+
+        // should've accounted for 10 integers (with padding) and some overhead
+        assertThat(RAM_ACCOUNTING_CONTEXT.totalBytes(), is(greaterThan(160L)));
     }
 
     private static WindowDefinition emptyWindow() {
