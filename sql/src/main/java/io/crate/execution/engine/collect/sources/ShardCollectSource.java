@@ -52,19 +52,18 @@ import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
-import io.crate.execution.support.ThreadPools;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.sys.SysShardsTableInfo;
@@ -177,7 +176,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         this.remoteCollectorFactory = remoteCollectorFactory;
         ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         this.availableThreads = numIdleThreads(executor, EsExecutors.numberOfProcessors(settings));
-        this.executor = ThreadPools.withDirectExecutionFallback(executor);
+        this.executor = executor;
         this.inputFactory = new InputFactory(functions);
         this.shardCollectorProviderFactory = new ShardCollectorProviderFactory(
             clusterService,
