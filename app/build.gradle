@@ -431,7 +431,7 @@ task collectEnterpriseModules(
         }
     }
 }
-collectEnterpriseModules.outputs.file ('enterprise')
+collectEnterpriseModules.outputs.dir ('enterprise')
 
 
 task downloadPlugins(
@@ -480,7 +480,7 @@ task downloadPlugins(
     }
 }
 
-downloadPlugins.outputs.file ('plugins')
+downloadPlugins.outputs.dir ('plugins')
 
 
 
