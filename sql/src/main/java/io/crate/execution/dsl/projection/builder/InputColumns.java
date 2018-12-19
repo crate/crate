@@ -118,7 +118,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
      * a {@link SourceSymbols} class.
      * <p>
      *     If {@code symbols} and the inputSymbols of the Context class are the same,
-     *     it's better to use {@link InputColumn#fromSymbols(Collection)} to create a 1:1 InputColumn mapping.
+     *     it's better to use {@link InputColumn#mapToInputColumns(Collection)} to create a 1:1 InputColumn mapping.
      * </p>
      */
     public static List<Symbol> create(Collection<? extends Symbol> symbols, SourceSymbols sourceSymbols) {

@@ -46,7 +46,7 @@ public class TopNProjection extends Projection {
 
         this.limit = limit;
         this.offset = offset;
-        this.outputs = InputColumn.fromTypes(outputTypes);
+        this.outputs = InputColumn.mapToInputColumns(outputTypes);
     }
 
     public TopNProjection(StreamInput in) throws IOException {
