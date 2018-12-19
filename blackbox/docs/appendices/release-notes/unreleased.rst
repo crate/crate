@@ -44,11 +44,3 @@ Changes
 Fixes
 =====
 
-- ``array_unique`` and ``array_difference`` now work for nested arrays and
-  arrays with objects which contain arrays.
-
-- Fixed an issue that could cause some type of statements to remain listed
-  within ``sys.jobs`` if their execution stopped with a failure.
-
-- Fixed an issue which caused ``EXPLAIN`` statements to use a wrong ``routing``
-  entries representation on versions >= 3.1.0.
