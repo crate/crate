@@ -41,7 +41,10 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     private final DataType dataType;
     private final int index;
 
-    public static List<Symbol> fromTypes(List<DataType> dataTypes) {
+    /**
+     * Map each data type to an {@link InputColumn} with an index corresponding to the data type's position in the list.
+     */
+    public static List<Symbol> mapToInputColumns(List<DataType> dataTypes) {
         List<Symbol> inputColumns = new ArrayList<>(dataTypes.size());
         for (int i = 0; i < dataTypes.size(); i++) {
             inputColumns.add(new InputColumn(i, dataTypes.get(i)));
@@ -49,7 +52,10 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
         return inputColumns;
     }
 
-    public static List<Symbol> fromSymbols(Collection<? extends Symbol> symbols) {
+    /**
+     * Map each symbol to an {@link InputColumn} with an index corresponding to the symbol's position in the collection.
+     */
+    public static List<Symbol> mapToInputColumns(Collection<? extends Symbol> symbols) {
         List<Symbol> inputColumns = new ArrayList<>(symbols.size());
         int idx = 0;
         for (Symbol symbol : symbols) {

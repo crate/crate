@@ -113,7 +113,7 @@ public class ProjectionBuilder {
 
     public static FilterProjection filterProjection(Collection<? extends Symbol> inputs, Symbol query) {
         // FilterProjection can only pass-through rows as is; create inputColumns which preserve the type:
-        return new FilterProjection(InputColumns.create(query, inputs), InputColumn.fromSymbols(inputs));
+        return new FilterProjection(InputColumns.create(query, inputs), InputColumn.mapToInputColumns(inputs));
     }
 
     /**
@@ -141,7 +141,7 @@ public class ProjectionBuilder {
             if (numOutputs >= numInputTypes) {
                 return null;
             }
-            return new EvalProjection(InputColumn.fromTypes(strippedInputs));
+            return new EvalProjection(InputColumn.mapToInputColumns(strippedInputs));
         }
         return new TopNProjection(limit, offset, strippedInputs);
     }
@@ -153,6 +153,6 @@ public class ProjectionBuilder {
                                                     @Nullable List<String> outputNames,
                                                     WriterProjection.OutputFormat outputFormat) {
         return new WriterProjection(
-            InputColumn.fromSymbols(inputs), uri, compressionType, overwrites, outputNames, outputFormat);
+            InputColumn.mapToInputColumns(inputs), uri, compressionType, overwrites, outputNames, outputFormat);
     }
 }
