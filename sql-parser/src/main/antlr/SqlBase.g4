@@ -426,8 +426,8 @@ assignment
 createStmt
     : CREATE TABLE (IF NOT EXISTS)? table
         '(' tableElement (',' tableElement)* ')'
-         crateTableOption* withProperties?                                           #createTable
-    | CREATE BLOB TABLE table numShards=clusteredInto? withProperties?               #createBlobTable
+         partitionedByOrClusteredInto withProperties?                                #createTable
+    | CREATE BLOB TABLE table numShards=blobClusteredInto? withProperties?           #createBlobTable
     | CREATE REPOSITORY name=ident TYPE type=ident withProperties?                   #createRepository
     | CREATE SNAPSHOT qname (ALL | TABLE tableWithPartitions) withProperties?        #createSnapshot
     | CREATE ANALYZER name=ident (EXTENDS extendedName=ident)?
@@ -454,14 +454,22 @@ alterTableDefinition
     | tableWithPartition                                                             #tableWithPartitionDefault
     ;
 
-crateTableOption
-    : PARTITIONED BY columns                                                         #partitionedBy
-    | CLUSTERED (BY '(' routing=primaryExpression ')')?
-        (INTO numShards=parameterOrInteger SHARDS)?                                  #clusteredBy
+partitionedByOrClusteredInto
+    : partitionedBy? clusteredBy?
+    | clusteredBy? partitionedBy?
     ;
 
-clusteredInto
-    : CLUSTERED INTO numShards=parameterOrSimpleLiteral SHARDS
+partitionedBy
+    : PARTITIONED BY columns
+    ;
+
+clusteredBy
+    : CLUSTERED (BY '(' routing=primaryExpression ')')?
+        (INTO numShards=parameterOrInteger SHARDS)?
+    ;
+
+blobClusteredInto
+    : CLUSTERED INTO numShards=parameterOrInteger SHARDS
     ;
 
 tableElement

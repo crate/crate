@@ -230,9 +230,23 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new CreateTable(
             (Table) visit(context.table()),
             visitCollection(context.tableElement(), TableElement.class),
-            visitCollection(context.crateTableOption(), CrateTableOption.class),
+            processTableOptions(context.partitionedByOrClusteredInto()),
             extractGenericProperties(context.withProperties()),
             notExists);
+    }
+
+    private List<CrateTableOption> processTableOptions(@Nullable SqlBaseParser.PartitionedByOrClusteredIntoContext ctx) {
+        if (ctx == null) {
+            return Collections.emptyList();
+        }
+        ArrayList<CrateTableOption> tableOptions = new ArrayList<>(2);
+        if (ctx.clusteredBy() != null) {
+            tableOptions.add((ClusteredBy) visit(ctx.clusteredBy()));
+        }
+        if (ctx.partitionedBy() != null) {
+            tableOptions.add((PartitionedBy) visit(ctx.partitionedBy()));
+        }
+        return tableOptions;
     }
 
     @Override
@@ -714,8 +728,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitClusteredInto(SqlBaseParser.ClusteredIntoContext context) {
-        return new ClusteredBy(null, visitIfPresent(context.numShards, Expression.class));
+    public Node visitBlobClusteredInto(SqlBaseParser.BlobClusteredIntoContext ctx) {
+        return new ClusteredBy(null, visitIfPresent(ctx.numShards, Expression.class));
     }
 
     @Override
