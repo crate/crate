@@ -383,30 +383,14 @@ public class TransportCreatePartitionsAction
         for (int i = templates.size() - 1; i >= 0; i--) {
             indexSettingsBuilder.put(templates.get(i).settings());
         }
-        if (indexSettingsBuilder.get(IndexMetaData.SETTING_NUMBER_OF_SHARDS) == null) {
-            indexSettingsBuilder.put(IndexMetaData.SETTING_NUMBER_OF_SHARDS,
-                settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5));
-        }
-        if (indexSettingsBuilder.get(IndexMetaData.SETTING_NUMBER_OF_REPLICAS) == null) {
-            indexSettingsBuilder.put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS,
-                settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1));
-        }
-        if (settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS) != null
-            && indexSettingsBuilder.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS) == null) {
-            indexSettingsBuilder.put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS,
-                settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS));
-        }
-
         if (indexSettingsBuilder.get(IndexMetaData.SETTING_VERSION_CREATED) == null) {
             DiscoveryNodes nodes = currentState.nodes();
             final Version createdVersion = Version.min(Version.CURRENT, nodes.getSmallestNonClientNodeVersion());
             indexSettingsBuilder.put(IndexMetaData.SETTING_VERSION_CREATED, createdVersion);
         }
-
         if (indexSettingsBuilder.get(IndexMetaData.SETTING_CREATION_DATE) == null) {
             indexSettingsBuilder.put(IndexMetaData.SETTING_CREATION_DATE, new DateTime(DateTimeZone.UTC).getMillis());
         }
-
         indexSettingsBuilder.put(IndexMetaData.SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
 
         return indexSettingsBuilder.build();
