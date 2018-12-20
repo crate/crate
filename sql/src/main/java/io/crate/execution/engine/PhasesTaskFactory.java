@@ -27,7 +27,6 @@ import io.crate.execution.jobs.JobSetup;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
-import io.crate.execution.support.ThreadPools;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -63,7 +62,7 @@ public final class PhasesTaskFactory {
         this.indicesService = indicesService;
         this.jobAction = jobAction;
         this.killJobsNodeAction = killJobsNodeAction;
-        this.searchExecutor = ThreadPools.withDirectExecutionFallback(threadPool.executor(ThreadPool.Names.SEARCH));
+        this.searchExecutor = threadPool.executor(ThreadPool.Names.SEARCH);
     }
 
     public JobLauncher create(UUID jobId, List<NodeOperationTree> nodeOperationTreeList) {

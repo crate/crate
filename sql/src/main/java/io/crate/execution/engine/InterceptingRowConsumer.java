@@ -28,6 +28,7 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.support.ThreadPools;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.apache.logging.log4j.LogManager;
@@ -82,7 +83,7 @@ class InterceptingRowConsumer implements RowConsumer {
         }
         if (failure == null) {
             assert iterator != null : "iterator must be present";
-            executor.execute(() -> consumer.accept(iterator, null));
+            ThreadPools.forceExecute(executor, () -> consumer.accept(iterator, null));
         } else {
             transportKillJobsNodeAction.broadcast(
                 new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<Long>() {
