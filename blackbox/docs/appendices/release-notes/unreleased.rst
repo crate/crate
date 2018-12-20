@@ -44,3 +44,4 @@ Changes
 Fixes
 =====
 
+- Support ECS Task IAM profile credentials on AWS S3 repositories.
