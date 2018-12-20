@@ -185,6 +185,9 @@ def test_suite():
         crate_home=crate_path(),
         port=CRATE_HTTP_PORT,
         transport_port=CRATE_TRANSPORT_PORT,
+        settings={
+            'psql.port': GLOBAL_PORT_POOL.get(),
+        }
     )
     hadoop_layer = HadoopLayer()
     layer = HadoopAndCrateLayer(crate_layer, hadoop_layer)

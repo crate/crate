@@ -262,7 +262,8 @@ def test_suite():
             "CRATE_JAVA_OPTS": JMX_OPTS.format(JMX_PORT)
         },
         settings={
-            'license.enterprise': True
+            'license.enterprise': True,
+            'psql.port': GLOBAL_PORT_POOL.get(),
         }
     )
 
