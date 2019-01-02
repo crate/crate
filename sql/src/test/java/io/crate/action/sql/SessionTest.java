@@ -43,6 +43,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
@@ -217,6 +218,19 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[]{DataTypes.STRING, DataTypes.STRING}));
+    }
+
+    @Test
+    public void testTypesCanBeResolvedIfParametersAreInSubRelation() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService).build();
+
+        AnalyzedStatement stmt = e.analyzer.unboundAnalyze(
+            SqlParser.createStatement("select * from (select $1::int + $2) t"),
+            SessionContext.systemSessionContext(),
+            ParamTypeHints.EMPTY
+        );
+        DataType[] parameterTypes = new Session.ParameterTypeExtractor().getParameterTypes(stmt::visitSymbols);
+        assertThat(parameterTypes, arrayContaining(is(DataTypes.INTEGER), is(DataTypes.INTEGER)));
     }
 
     @Test

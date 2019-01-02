@@ -36,6 +36,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class QueriedSelectRelation implements QueriedRelation {
 
@@ -99,5 +100,33 @@ public class QueriedSelectRelation implements QueriedRelation {
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         subRelation.setQualifiedName(qualifiedName);
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (Symbol output : outputs()) {
+            consumer.accept(output);
+        }
+        subRelation.visitSymbols(consumer);
+        where().accept(consumer);
+        for (Symbol groupKey : groupBy()) {
+            consumer.accept(groupKey);
+        }
+        HavingClause having = having();
+        if (having != null) {
+            having.accept(consumer);
+        }
+        OrderBy orderBy = orderBy();
+        if (orderBy != null) {
+            orderBy.accept(consumer);
+        }
+        Symbol limit = limit();
+        if (limit != null) {
+            consumer.accept(limit);
+        }
+        Symbol offset = offset();
+        if (offset != null) {
+            consumer.accept(offset);
+        }
     }
 }
