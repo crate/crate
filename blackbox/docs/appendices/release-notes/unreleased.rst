@@ -41,6 +41,9 @@ Breaking Changes
 Changes
 =======
 
+- Renamed ``information_schema.columns.user_defined_type_*`` columns to
+  ``information_schema_columns.udt_*`` for SQL standard compatibility.
+
 - Changed type of column ``information_schema.columns.is_generated`` to ``STRING``
   with value ``NEVER`` or ``ALWAYS`` for SQL standard compatibility.
 
