@@ -41,6 +41,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Changed type of column ``information_schema.columns.is_generated`` to ``STRING``
+  with value ``NEVER`` or ``ALWAYS`` for SQL standard compatibility.
+
 - Removed the deprecated average duration and query frequency JMX metrics. The
   total counts and sum of durations as documented in :ref:`query_stats_mbean`
   should be used instead.

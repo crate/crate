@@ -328,7 +328,7 @@ infinite recursion of your mind, beware!)::
     | generation_expression     | string    |               18 |
     | interval_precision        | integer   |               19 |
     | interval_type             | string    |               20 |
-    | is_generated              | boolean   |               21 |
+    | is_generated              | string    |               21 |
     | is_nullable               | boolean   |               22 |
     | numeric_precision         | integer   |               23 |
     | numeric_precision_radix   | integer   |               24 |
@@ -437,8 +437,8 @@ infinite recursion of your mind, beware!)::
 |                               | If the column is not generated ``NULL`` is    |               |
 |                               | returned.                                     |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``is_generated``              | Returns ``true`` or ``false`` wether the      | ``Boolean``   |
-|                               | column is generated or not                    |               |
+| ``is_generated``              | Returns ``ALWAYS`` or ``NEVER`` wether the    | ``String``    |
+|                               | column is generated or not.                   |               |
 +-------------------------------+-----------------------------------------------+---------------+
 
 
