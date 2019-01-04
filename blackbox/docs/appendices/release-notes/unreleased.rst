@@ -41,8 +41,6 @@ Breaking Changes
 Changes
 =======
 
-- Changed type of column ``information_schema.columns.is_generated`` to ``STRING``
-  with value ``NEVER`` or ``ALWAYS`` for SQL standard compatibility.
 
 Fixes
 =====
