@@ -303,42 +303,42 @@ infinite recursion of your mind, beware!)::
     ... from information_schema.columns
     ... where table_schema = 'information_schema'
     ... and table_name = 'columns' order by ordinal_position asc;
-    +--------------------------+-----------+------------------+
-    | column_name              | data_type | ordinal_position |
-    +--------------------------+-----------+------------------+
-    | character_maximum_length | integer   |                1 |
-    | character_octet_length   | integer   |                2 |
-    | character_set_catalog    | string    |                3 |
-    | character_set_name       | string    |                4 |
-    | character_set_schema     | string    |                5 |
-    | check_action             | integer   |                6 |
-    | check_references         | string    |                7 |
-    | collation_catalog        | string    |                8 |
-    | collation_name           | string    |                9 |
-    | collation_schema         | string    |               10 |
-    | column_default           | string    |               11 |
-    | column_name              | string    |               12 |
-    | data_type                | string    |               13 |
-    | datetime_precision       | integer   |               14 |
-    | domain_catalog           | string    |               15 |
-    | domain_name              | string    |               16 |
-    | domain_schema            | string    |               17 |
-    | generation_expression    | string    |               18 |
-    | interval_precision       | integer   |               19 |
-    | interval_type            | string    |               20 |
-    | is_generated             | string    |               21 |
-    | is_nullable              | boolean   |               22 |
-    | numeric_precision        | integer   |               23 |
-    | numeric_precision_radix  | integer   |               24 |
-    | numeric_scale            | integer   |               25 |
-    | ordinal_position         | short     |               26 |
-    | table_catalog            | string    |               27 |
-    | table_name               | string    |               28 |
-    | table_schema             | string    |               29 |
-    | udt_catalog              | string    |               30 |
-    | udt_name                 | string    |               31 |
-    | udt_schema               | string    |               32 |
-    +--------------------------+-----------+------------------+
+    +---------------------------+-----------+------------------+
+    | column_name               | data_type | ordinal_position |
+    +---------------------------+-----------+------------------+
+    | character_maximum_length  | integer   |                1 |
+    | character_octet_length    | integer   |                2 |
+    | character_set_catalog     | string    |                3 |
+    | character_set_name        | string    |                4 |
+    | character_set_schema      | string    |                5 |
+    | check_action              | integer   |                6 |
+    | check_references          | string    |                7 |
+    | collation_catalog         | string    |                8 |
+    | collation_name            | string    |                9 |
+    | collation_schema          | string    |               10 |
+    | column_default            | string    |               11 |
+    | column_name               | string    |               12 |
+    | data_type                 | string    |               13 |
+    | datetime_precision        | integer   |               14 |
+    | domain_catalog            | string    |               15 |
+    | domain_name               | string    |               16 |
+    | domain_schema             | string    |               17 |
+    | generation_expression     | string    |               18 |
+    | interval_precision        | integer   |               19 |
+    | interval_type             | string    |               20 |
+    | is_generated              | string    |               21 |
+    | is_nullable               | boolean   |               22 |
+    | numeric_precision         | integer   |               23 |
+    | numeric_precision_radix   | integer   |               24 |
+    | numeric_scale             | integer   |               25 |
+    | ordinal_position          | short     |               26 |
+    | table_catalog             | string    |               27 |
+    | table_name                | string    |               28 |
+    | table_schema              | string    |               29 |
+    | user_defined_type_catalog | string    |               30 |
+    | user_defined_type_name    | string    |               31 |
+    | user_defined_type_schema  | string    |               32 |
+    +---------------------------+-----------+------------------+
     SELECT 32 rows in set (... sec)
 
 .. NOTE::
@@ -421,11 +421,11 @@ infinite recursion of your mind, beware!)::
 +-------------------------------+-----------------------------------------------+---------------+
 | ``domain_name``               | Not implemented (always returns ``NULL``)     | ``String``    |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``udt_catalog``               | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``user_defined_type_catalog`` | Not implemented (always returns ``NULL``)     | ``String``    |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``udt_schema``                | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``user_defined_type_schema``  | Not implemented (always returns ``NULL``)     | ``String``    |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``udt_name``                  | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``user_defined_type_name``    | Not implemented (always returns ``NULL``)     | ``String``    |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``check_references``          | Not implemented (always returns ``NULL``)     | ``String``    |
 +-------------------------------+-----------------------------------------------+---------------+
