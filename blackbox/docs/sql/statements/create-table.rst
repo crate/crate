@@ -237,6 +237,12 @@ The optional WITH clause can specify parameters for tables.
 :table_parameter:
   Specifies an optional parameter for the table.
 
+.. NOTE::
+
+   Some parameters are nested, and therefore need to be wrapped in double quotes in order to be set:
+   ``WITH ("allocation.max_retries" = 5)``.
+   Nested parameters are those that contain a ``.`` between parameter names, e.g. ``write.wait_for_active_shards``.
+
 Available parameters are:
 
 .. _number_of_replicas:
