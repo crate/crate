@@ -78,9 +78,9 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
         static final ColumnIdent DOMAIN_CATALOG = new ColumnIdent("domain_catalog");
         static final ColumnIdent DOMAIN_SCHEMA = new ColumnIdent("domain_schema");
         static final ColumnIdent DOMAIN_NAME = new ColumnIdent("domain_name");
-        static final ColumnIdent USER_DEFINED_TYPE_CATALOG = new ColumnIdent("udt_catalog");
-        static final ColumnIdent USER_DEFINED_TYPE_SCHEMA = new ColumnIdent("udt_schema");
-        static final ColumnIdent USER_DEFINED_TYPE_NAME = new ColumnIdent("udt_name");
+        static final ColumnIdent USER_DEFINED_TYPE_CATALOG = new ColumnIdent("user_defined_type_catalog");
+        static final ColumnIdent USER_DEFINED_TYPE_SCHEMA = new ColumnIdent("user_defined_type_schema");
+        static final ColumnIdent USER_DEFINED_TYPE_NAME = new ColumnIdent("user_defined_type_name");
         static final ColumnIdent CHECK_REFERENCES = new ColumnIdent("check_references");
         static final ColumnIdent CHECK_ACTION = new ColumnIdent("check_action");
     }

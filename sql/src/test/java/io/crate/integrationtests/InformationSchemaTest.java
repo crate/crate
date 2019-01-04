@@ -626,9 +626,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| table_catalog| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| false| NULL| NULL| NULL| 27| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
             "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| table_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| false| NULL| NULL| NULL| 28| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
             "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| table_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| false| NULL| NULL| NULL| 29| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| udt_catalog| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 30| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| udt_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 31| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| udt_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 32| information_schema| columns| information_schema| NULL| NULL| NULL\n")
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| user_defined_type_catalog| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 30| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| user_defined_type_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 31| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| user_defined_type_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 32| information_schema| columns| information_schema| NULL| NULL| NULL\n")
         );
     }
 
