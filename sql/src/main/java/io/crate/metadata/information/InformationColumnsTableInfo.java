@@ -47,9 +47,6 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
     public static final String NAME = "columns";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    private static final String IS_GENERATED_NEVER = "NEVER";
-    private static final String IS_GENERATED_ALWAYS = "ALWAYS";
-
     public static class Columns {
         static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
         static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
@@ -93,7 +90,7 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
             .register(Columns.COLUMN_NAME, DataTypes.STRING, false)
             .register(Columns.ORDINAL_POSITION, DataTypes.SHORT, false)
             .register(Columns.DATA_TYPE, DataTypes.STRING, false)
-            .register(Columns.IS_GENERATED, DataTypes.STRING, false)
+            .register(Columns.IS_GENERATED, DataTypes.BOOLEAN, false)
             .register(Columns.IS_NULLABLE, DataTypes.BOOLEAN, false)
             .register(Columns.GENERATION_EXPRESSION, DataTypes.STRING)
             .register(Columns.COLUMN_DEFAULT, DataTypes.STRING)
@@ -192,12 +189,7 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
             .put(Columns.CHECK_ACTION,
                 () -> NestableCollectExpression.constant(null))
             .put(Columns.IS_GENERATED,
-                () -> NestableCollectExpression.forFunction(r -> {
-                    if (r.info instanceof GeneratedReference) {
-                        return IS_GENERATED_ALWAYS;
-                    }
-                    return IS_GENERATED_NEVER;
-                }))
+                () -> NestableCollectExpression.forFunction(r -> r.info instanceof GeneratedReference))
             .put(Columns.IS_NULLABLE,
                 () -> NestableCollectExpression.forFunction(r ->
                     !r.tableInfo.primaryKey().contains(r.info.column()) && r.info.isNullable()))
