@@ -459,14 +459,14 @@ class FetchOrEval extends OneInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
-        if (pushDown instanceof Order) {
-            LogicalPlan newPlan = source.tryOptimize(pushDown, mapper);
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
+        if (ancestor instanceof Order) {
+            LogicalPlan newPlan = source.tryOptimize(ancestor, mapper);
             if (newPlan != null && newPlan != source) {
                 return updateSource(newPlan, mapper);
             }
         }
-        return super.tryOptimize(pushDown, mapper);
+        return super.tryOptimize(ancestor, mapper);
     }
 
     @Override

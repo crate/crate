@@ -39,8 +39,8 @@ abstract class ZeroInputPlan extends LogicalPlanBase {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
-        if (pushDown != null) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
+        if (ancestor != null) {
             return null;
         }
         // We don't have any sources, so just return this instance

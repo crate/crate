@@ -166,8 +166,8 @@ public class Union extends TwoInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
-        if (pushDown instanceof Order) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
+        if (ancestor instanceof Order) {
             SymbolMapper symbolMapper = (newOutputs, x) -> {
                 x = mapper.apply(outputs, x);
                 int idx = outputs.indexOf(x);
@@ -176,13 +176,13 @@ public class Union extends TwoInputPlan {
                 }
                 return newOutputs.get(idx);
             };
-            LogicalPlan newLhs = lhs.tryOptimize(pushDown, symbolMapper);
-            LogicalPlan newRhs = rhs.tryOptimize(pushDown, symbolMapper);
+            LogicalPlan newLhs = lhs.tryOptimize(ancestor, symbolMapper);
+            LogicalPlan newRhs = rhs.tryOptimize(ancestor, symbolMapper);
             if (newLhs != null && newRhs != null) {
                 return updateSources(newLhs, newRhs);
             }
         }
-        return super.tryOptimize(pushDown, mapper);
+        return super.tryOptimize(ancestor, mapper);
     }
 
     @Override

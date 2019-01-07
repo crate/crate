@@ -126,8 +126,8 @@ public class HashAggregate extends OneInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
-        if (pushDown != null) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
+        if (ancestor != null) {
             // can't push down anything
             return null;
         }
