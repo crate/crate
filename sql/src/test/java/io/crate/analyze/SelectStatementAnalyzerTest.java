@@ -53,10 +53,10 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -2002,5 +2002,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testUsingWindowFunctionInWhereClauseIsNotAllowed() {
         expectedException.expectMessage("Window functions are not allowed in WHERE");
         analyze("select count(*) from t1 where sum(1) OVER() = 1");
+    }
+
+    @Test
+    public void testCastToNestedArrayCanBeUsed() {
+        QueriedRelation relation = analyze("select [[1, 2, 3]]::array(array(int))");
+        assertThat(relation.outputs().get(0).valueType(), is(new ArrayType(new ArrayType(DataTypes.INTEGER))));
     }
 }
