@@ -25,6 +25,8 @@ package io.crate.execution.engine.export;
 import com.google.common.base.Preconditions;
 import io.crate.execution.dsl.projection.WriterProjection;
 
+import javax.annotation.Nullable;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -38,7 +40,7 @@ public class OutputFile extends Output {
     private final boolean overwrite;
     private final boolean compression;
 
-    public OutputFile(URI uri, WriterProjection.CompressionType compressionType) {
+    public OutputFile(URI uri, @Nullable WriterProjection.CompressionType compressionType) {
         Preconditions.checkArgument(uri.getHost() == null);
         this.path = uri.getPath();
         compression = compressionType != null;
@@ -60,6 +62,6 @@ public class OutputFile extends Output {
         if (compression) {
             os = new GZIPOutputStream(os);
         }
-        return os;
+        return new BufferedOutputStream(os);
     }
 }

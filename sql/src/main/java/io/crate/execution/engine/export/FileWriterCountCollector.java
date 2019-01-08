@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.export;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -203,6 +204,13 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         return Collections.emptySet();
     }
 
+    @VisibleForTesting
+    static XContentBuilder createJsonBuilder(OutputStream outputStream) throws IOException {
+        XContentBuilder builder = XContentFactory.jsonBuilder(outputStream);
+        builder.generator().configure(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM, false);
+        return builder;
+    }
+
     interface RowWriter {
 
         void write(Row row);
@@ -223,7 +231,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
             this.outputStream = outputStream;
             this.collectExpressions = collectExpressions;
             this.overwrites = overwrites;
-            builder = XContentFactory.jsonBuilder(outputStream);
+            builder = createJsonBuilder(outputStream);
         }
 
         @Override
@@ -288,7 +296,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
             this.outputStream = outputStream;
             this.collectExpressions = collectExpressions;
             this.inputs = inputs;
-            builder = XContentFactory.jsonBuilder(outputStream);
+            builder = createJsonBuilder(outputStream);
         }
 
         public void write(Row row) {
