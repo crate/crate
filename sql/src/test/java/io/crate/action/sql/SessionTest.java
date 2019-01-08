@@ -24,6 +24,7 @@ package io.crate.action.sql;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.Relations;
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Literal;
@@ -43,6 +44,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
@@ -217,6 +219,52 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[]{DataTypes.STRING, DataTypes.STRING}));
+    }
+
+    @Test
+    public void testTypesCanBeResolvedIfParametersAreInSubRelation() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService).build();
+
+        AnalyzedStatement stmt = e.analyzer.unboundAnalyze(
+            SqlParser.createStatement("select * from (select $1::integer + $2) t"),
+            SessionContext.systemSessionContext(),
+            ParamTypeHints.EMPTY
+        );
+        DataType[] parameterTypes = new Session.ParameterTypeExtractor().getParameterTypes(
+            consumer -> Relations.traverseDeepSymbols(stmt, consumer));
+        assertThat(parameterTypes, arrayContaining(is(DataTypes.INTEGER), is(DataTypes.INTEGER)));
+    }
+
+    @Test
+    public void testTypesCanBeResolvedIfParametersAreInSubRelationOfInsertStatement() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (x int)")
+            .build();
+
+        AnalyzedStatement stmt = e.analyzer.unboundAnalyze(
+            SqlParser.createStatement("insert into t (x) (select * from (select $1::integer + $2) t)"),
+            SessionContext.systemSessionContext(),
+            ParamTypeHints.EMPTY
+        );
+        DataType[] parameterTypes = new Session.ParameterTypeExtractor().getParameterTypes(
+            consumer -> Relations.traverseDeepSymbols(stmt, consumer));
+        assertThat(parameterTypes, arrayContaining(is(DataTypes.INTEGER), is(DataTypes.INTEGER)));
+    }
+
+    @Test
+    public void testTypesCanBeResolvedIfParametersAreInSubQueryInDeleteStatement() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (x integer)")
+            .build();
+
+        AnalyzedStatement stmt = e.analyzer.unboundAnalyze(
+            SqlParser.createStatement("delete from t where x = (select $1::long)"),
+            SessionContext.systemSessionContext(),
+            ParamTypeHints.EMPTY
+        );
+        DataType[] parameterTypes = new Session.ParameterTypeExtractor().getParameterTypes(
+            consumer -> Relations.traverseDeepSymbols(stmt, consumer));
+        assertThat(parameterTypes, arrayContaining(is(DataTypes.LONG)));
     }
 
     @Test

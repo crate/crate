@@ -44,6 +44,11 @@ Changes
 Fixes
 =====
 
+- The type of parameter placeholders in sub-queries in the FROM clause of a
+  query can now be resolved to support postgresql clients relying on the
+  ``ParameterDescription`` message.
+  This enables queries like ``select * from (select $1::int + $2) t``
+
 - Fixed error readability of certain ``ALTER TABLE`` operations.
 
 - Fixed sql parser to not allow repeated ``PARTITION BY`` or ``CLUSTERED BY |

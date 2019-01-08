@@ -39,6 +39,13 @@ public interface AnalyzedStatement {
      */
     boolean isWriteOperation();
 
+    /**
+     * Calls the consumer for all top-level symbols within the statement.
+     * Implementations must not traverse into sub-relations.
+     *
+     * Use {@link Relations#traverseDeepSymbols(AnalyzedStatement, Consumer)}
+     * For a variant that traverses into sub-relations.
+     */
     default void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 
