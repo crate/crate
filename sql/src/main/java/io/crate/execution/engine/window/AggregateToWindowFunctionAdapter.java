@@ -28,9 +28,14 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.util.BigArrays;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class AggregateToWindowFunctionAdapter implements WindowFunction {
@@ -59,6 +64,16 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
         this.indexVersionCreated = indexVersionCreated;
         this.bigArrays = bigArrays;
         this.accumulatedState = aggregationFunction.newState(ramAccountingContext, indexVersionCreated, bigArrays);
+    }
+
+    @Override
+    public FunctionInfo info() {
+        return aggregationFunction.info();
+    }
+
+    @Override
+    public Symbol normalizeSymbol(Function function, @Nullable TransactionContext txnCtx) {
+        return aggregationFunction.normalizeSymbol(function, txnCtx);
     }
 
     @Override

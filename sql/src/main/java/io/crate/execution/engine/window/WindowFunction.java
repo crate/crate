@@ -22,7 +22,9 @@
 
 package io.crate.execution.engine.window;
 
-public interface WindowFunction {
+import io.crate.metadata.FunctionImplementation;
+
+public interface WindowFunction extends FunctionImplementation {
 
     /**
      * Computes the window function for the row identified by the provided {@param rowIdx}.
