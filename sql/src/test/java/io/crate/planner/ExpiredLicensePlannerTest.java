@@ -225,6 +225,12 @@ public class ExpiredLicensePlannerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
+    public void testQueryOnTableFunctionIsAllowedIfLicenseIsExpired() {
+        ExecutionPlan plan = e.plan("select null as \"user\", current_schema as \"schema\"");
+        assertThat(plan, instanceOf(Collect.class));
+    }
+
+    @Test
     public void testSetSessionStatementIsAllowedIfLicenseIsExpired() {
         // postgres clients send set session statements initially on connecting, we want to allow them to.
         Plan plan = e.plan("set session whatever = 'x'");

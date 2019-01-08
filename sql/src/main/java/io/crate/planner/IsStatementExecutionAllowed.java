@@ -37,16 +37,14 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
-import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.metadata.table.TableInfo;
 
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
 final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> {
 
-    private static final IsReadQueryOnSystemOrEmptyRowTable IS_READ_QUERY_ON_SYSTEM_TABLE = new IsReadQueryOnSystemOrEmptyRowTable();
+    private static final IsReadQueryOnTableRelationOrTableFunction IS_READ_QUERY_ON_SYS_TABLE_OR_TABLE_FUNCTION =
+        new IsReadQueryOnTableRelationOrTableFunction();
     private final BooleanSupplier hasValidLicense;
 
     IsStatementExecutionAllowed(BooleanSupplier hasValidLicense) {
@@ -74,15 +72,10 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
             }
         }
         return (analyzedStatement instanceof QueriedRelation
-                && IS_READ_QUERY_ON_SYSTEM_TABLE.test((QueriedRelation) analyzedStatement));
+                && IS_READ_QUERY_ON_SYS_TABLE_OR_TABLE_FUNCTION.test((QueriedRelation) analyzedStatement));
     }
 
-    private static final class IsReadQueryOnSystemOrEmptyRowTable extends AnalyzedRelationVisitor<Void, Boolean> implements Predicate<AnalyzedRelation> {
-
-        private static boolean isSysSchema(String schema) {
-            return SysSchemaInfo.NAME.equals(schema)
-                   || InformationSchemaInfo.NAME.equals(schema);
-        }
+    private static final class IsReadQueryOnTableRelationOrTableFunction extends AnalyzedRelationVisitor<Void, Boolean> implements Predicate<AnalyzedRelation> {
 
         @Override
         public boolean test(AnalyzedRelation relation) {
@@ -116,8 +109,7 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
 
         @Override
         public Boolean visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
-            TableInfo tableInfo = queriedTable.tableRelation().tableInfo();
-            return isSysSchema(tableInfo.ident().schema());
+            return process(queriedTable.tableRelation(), context);
         }
 
         @Override

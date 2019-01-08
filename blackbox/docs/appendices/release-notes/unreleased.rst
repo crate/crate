@@ -45,6 +45,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that prevented queries on table functions from working if the
+  cluster contains an expired license.
+
 - Casts to nested arrays are now properly supported.
 
 - The type of parameter placeholders in sub-queries in the FROM clause of a
