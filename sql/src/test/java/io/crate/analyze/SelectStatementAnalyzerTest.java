@@ -1958,4 +1958,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("Relation 'doc.a' unknown");
         analyze("select doc.a.x from t1 as a");
     }
+
+    @Test
+    public void testCastToNestedArrayCanBeUsed() {
+        QueriedRelation relation = analyze("select [[1, 2, 3]]::array(array(integer))");
+        assertThat(relation.outputs().get(0).valueType(), is(new ArrayType(new ArrayType(DataTypes.INTEGER))));
+    }
 }
