@@ -29,6 +29,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.Relations;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -37,6 +38,7 @@ import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.ParameterSymbol;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TransactionContext;
@@ -351,7 +353,8 @@ public class Session implements AutoCloseable {
                     // statement without result set -> return null for NoData msg
                     return new DescribeResult(null);
                 }
-                DataType[] parameterSymbols = parameterTypeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
+                DataType[] parameterSymbols =
+                    parameterTypeExtractor.getParameterTypes(x -> Relations.traverseDeepSymbols(analyzedStatement, x));
                 if (parameterSymbols.length > 0) {
                     preparedStmt.setDescribedParameters(parameterSymbols);
                 }
@@ -501,6 +504,12 @@ public class Session implements AutoCloseable {
         @Override
         public void accept(Symbol symbol) {
             process(symbol, null);
+        }
+
+        @Override
+        public Void visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
+            Relations.traverseDeepSymbols(selectSymbol.relation(), this);
+            return null;
         }
 
         @Override

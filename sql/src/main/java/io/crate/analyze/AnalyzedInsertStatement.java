@@ -76,4 +76,18 @@ public final class AnalyzedInsertStatement implements AnalyzedStatement {
         }
         onDuplicateKeyAssignments.values().forEach(consumer);
     }
+
+    @Nullable
+    public List<List<Symbol>> rows() {
+        return rows;
+    }
+
+    @Nullable
+    public AnalyzedStatement subRelation() {
+        return subRelation;
+    }
+
+    public Map<Reference, Symbol> onDuplicateKeyAssignments() {
+        return onDuplicateKeyAssignments;
+    }
 }
