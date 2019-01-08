@@ -44,6 +44,8 @@ Changes
 Fixes
 =====
 
+- Casts to nested arrays are now properly supported.
+
 - The type of parameter placeholders in sub-queries in the FROM clause of a
   query can now be resolved to support postgresql clients relying on the
   ``ParameterDescription`` message.
