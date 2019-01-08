@@ -40,6 +40,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -151,21 +152,22 @@ public class ChainableActionsTest {
             doCalls,
             undoCalls,
             () -> CompletableFuture.completedFuture(0),
-            () -> CompletableFutures.failedFuture(new RuntimeException("undo operation failed"))));
+            () -> CompletableFutures.failedFuture(new RuntimeException("the undo operation failed"))));
 
         // last one which will throw an error, undo() on all previous actions must be called in reverse order
         actions.add(new TrackedChainableAction(
             numActions - 1,
             doCalls,
             undoCalls,
-            () -> CompletableFutures.failedFuture(new RuntimeException("do operation failed")),
+            () -> CompletableFutures.failedFuture(new RuntimeException("the do operation failed")),
             () -> CompletableFuture.completedFuture(0)));
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
 
         assertThat(result.isCompletedExceptionally(), is(true));
         assertThat(doCalls, contains(0, 1, 2));
-        // undo was only called on action 1. as it failed, no other action was rolled back
+        // Undo was only called on action 1 as 2 failed and this undo action failed also,
+        // so no other action was rolled back.
         assertThat(undoCalls, contains(1));
 
         try {
@@ -179,6 +181,58 @@ public class ChainableActionsTest {
             assertThat(new String(out.toByteArray()), allOf(
                 containsString("do operation failed"),
                 containsString("undo operation failed")));
+        }
+    }
+
+    @Test
+    public void testRollbackIsOnlyDoneOnce() {
+        int numActions = 3;
+        List<TrackedChainableAction> actions = new ArrayList<>(numActions);
+        List<Integer> doCalls = new ArrayList<>(numActions);
+        List<Integer> undoCalls = new ArrayList<>(numActions);
+
+        actions.add(new TrackedChainableAction(
+            0,
+            doCalls,
+            undoCalls,
+            () -> CompletableFutures.failedFuture(new RuntimeException("the first do operation failed")),
+            () -> CompletableFuture.completedFuture(0)));
+
+        // 2nd one will throw an error on rollback
+        actions.add(new TrackedChainableAction(
+            1,
+            doCalls,
+            undoCalls,
+            () -> CompletableFuture.completedFuture(0),
+            () -> CompletableFutures.failedFuture(new RuntimeException("the undo operation failed"))));
+
+        // last one which will throw an error, undo() on all previous actions must be called in reverse order
+        actions.add(new TrackedChainableAction(
+            2,
+            doCalls,
+            undoCalls,
+            () -> CompletableFutures.failedFuture(new RuntimeException("the do operation failed")),
+            () -> CompletableFuture.completedFuture(0)));
+
+        CompletableFuture<Integer> result = ChainableActions.run(actions);
+
+        assertThat(result.isCompletedExceptionally(), is(true));
+        assertThat(doCalls, contains(0));
+        // undo was only called on action 0 as it failed, so rollback only action 0
+        assertThat(undoCalls, contains(0));
+
+        try {
+            result.get();
+        } catch (Throwable t) {
+            t = SQLExceptions.unwrap(t);
+            assertThat(t, not(instanceOf(MultiException.class)));
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            t.printStackTrace(new PrintStream(out));
+            assertThat(new String(out.toByteArray()), containsString("the first do operation failed"));
+            assertThat(new String(out.toByteArray()), allOf(
+                not(containsString("the do operation failed")),
+                not(containsString("the undo operation failed"))));
         }
     }
 }

@@ -44,6 +44,8 @@ Changes
 Fixes
 =====
 
+- Fixed error readability of certain ``ALTER TABLE`` operations.
+
 - Fixed sql parser to not allow repeated ``PARTITION BY`` or ``CLUSTERED BY |
   INTO`` tokens on ``CREATE TABLE`` statements.
 
