@@ -21,16 +21,30 @@
 
 package io.crate.planner.node.ddl;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.execution.ddl.tables.DropTableTask;
+import io.crate.execution.ddl.tables.DropTableRequest;
+import io.crate.execution.ddl.tables.DropTableResponse;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.index.IndexNotFoundException;
+
+import static io.crate.data.SentinelRow.SENTINEL;
 
 public class DropTablePlan implements Plan {
+
+    private static final Logger LOGGER = LogManager.getLogger(DropTablePlan.class);
+    private static final Row ROW_ZERO = new Row1(0L);
+    private static final Row ROW_ONE = new Row1(1L);
 
     private final DocTableInfo table;
     private final boolean ifExists;
@@ -40,10 +54,7 @@ public class DropTablePlan implements Plan {
         this.ifExists = ifExists;
     }
 
-    public boolean ifExists() {
-        return ifExists;
-    }
-
+    @VisibleForTesting
     public DocTableInfo tableInfo() {
         return table;
     }
@@ -59,7 +70,30 @@ public class DropTablePlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        DropTableTask task = new DropTableTask(this, dependencies.transportDropTableAction());
-        task.execute(consumer);
+        DropTableRequest request = new DropTableRequest(table.ident(), table.isPartitioned());
+        dependencies.transportDropTableAction().execute(request, new ActionListener<DropTableResponse>() {
+            @Override
+            public void onResponse(DropTableResponse response) {
+                if (!response.isAcknowledged()) {
+                    warnNotAcknowledged();
+                }
+                consumer.accept(InMemoryBatchIterator.of(ROW_ONE, SENTINEL), null);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                if (ifExists && e instanceof IndexNotFoundException) {
+                    consumer.accept(InMemoryBatchIterator.of(ROW_ZERO, SENTINEL), null);
+                } else {
+                    consumer.accept(null, e);
+                }
+            }
+        });
+    }
+
+    private void warnNotAcknowledged() {
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.", table.ident());
+        }
     }
 }
