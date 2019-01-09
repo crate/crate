@@ -52,7 +52,7 @@ class FailureOnlyResponseListener implements ActionListener<JobResponse> {
 
     @Override
     public void onFailure(Exception e) {
-        initializationTracker.jobInitialized();
+        initializationTracker.jobInitializationFailed(e);
         // could be a preparation failure - in that case the regular error propagation doesn't work as it hasn't been set up yet
         // so fail rowReceivers directly
         for (Tuple<ExecutionPhase, RowConsumer> consumer : consumers) {
