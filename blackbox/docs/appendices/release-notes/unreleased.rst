@@ -47,6 +47,9 @@ Changes
 Fixes
 =====
 
+- Fixed a race condition that could lead to stuck queries. One case this could
+  occur is if a node was being stopped or crashed.
+
 - Fixed an issue that prevented queries on table functions from working if the
   cluster contains an expired license.
 
