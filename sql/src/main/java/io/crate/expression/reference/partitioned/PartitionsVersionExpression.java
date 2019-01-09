@@ -23,7 +23,7 @@
 package io.crate.expression.reference.partitioned;
 
 import io.crate.Version;
-import io.crate.core.collections.Maps;
+import io.crate.common.collections.Maps;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.expression.reference.information.TableExpressions;

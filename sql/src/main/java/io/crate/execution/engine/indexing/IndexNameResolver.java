@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Supplier;
 
-import static io.crate.core.StringUtils.nullOrString;
+import static io.crate.common.StringUtils.nullOrString;
 
 public class IndexNameResolver {
 

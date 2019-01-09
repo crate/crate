@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static io.crate.core.collections.Maps.getByPath;
+import static io.crate.common.collections.Maps.getByPath;
 
 
 public final class ValueExtractors {

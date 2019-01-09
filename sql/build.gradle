@@ -9,7 +9,7 @@ configurations {
 
 dependencies {
     compile project(':shared')
-    compile project(':core')
+    compile project(':common')
     compile project(':dex')
     compile project(':blob')
     compile project(':sql-parser')
