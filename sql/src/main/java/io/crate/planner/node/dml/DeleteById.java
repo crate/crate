@@ -24,14 +24,20 @@ package io.crate.planner.node.dml;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.execution.dml.delete.DeleteByIdTask;
+import io.crate.execution.dml.ShardRequestExecutor;
+import io.crate.execution.dml.delete.ShardDeleteRequest;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class DeleteById implements Plan {
@@ -58,35 +64,68 @@ public class DeleteById implements Plan {
     }
 
     @Override
-    public void executeOrFail(DependencyCarrier executor,
+    public void executeOrFail(DependencyCarrier dependencies,
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        DeleteByIdTask task = new DeleteByIdTask(
-            plannerContext.jobId(),
-            executor.clusterService(),
-            plannerContext.transactionContext(),
-            executor.functions(),
-            executor.transportActionProvider().transportShardDeleteAction(),
-            this
-        );
-        task.execute(consumer, params, subQueryResults);
+        createExecutor(dependencies, plannerContext)
+            .execute(consumer, params, subQueryResults);
     }
 
     @Override
-    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
+    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier dependencies,
                                                      PlannerContext plannerContext,
                                                      List<Row> bulkParams,
                                                      SubQueryResults subQueryResults) {
-        DeleteByIdTask task = new DeleteByIdTask(
-            plannerContext.jobId(),
-            executor.clusterService(),
+        return createExecutor(dependencies, plannerContext)
+            .executeBulk(bulkParams, subQueryResults);
+    }
+
+    private ShardRequestExecutor<ShardDeleteRequest> createExecutor(DependencyCarrier dependencies,
+                                                                    PlannerContext plannerContext) {
+        ClusterService clusterService = dependencies.clusterService();
+        TimeValue requestTimeout = ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING
+            .setting().get(clusterService.state().metaData().settings());
+        return new ShardRequestExecutor<>(
+            clusterService,
             plannerContext.transactionContext(),
-            executor.functions(),
-            executor.transportActionProvider().transportShardDeleteAction(),
-            this
+            dependencies.functions(),
+            table,
+            new DeleteRequests(plannerContext.jobId(), requestTimeout),
+            dependencies.transportActionProvider().transportShardDeleteAction()::execute,
+            docKeys
         );
-        return task.executeBulk(bulkParams, subQueryResults);
+    }
+
+    static class DeleteRequests implements ShardRequestExecutor.RequestGrouper<ShardDeleteRequest> {
+
+        private final UUID jobId;
+        private final TimeValue requestTimeout;
+
+        DeleteRequests(UUID jobId, TimeValue requestTimeout) {
+            this.jobId = jobId;
+            this.requestTimeout = requestTimeout;
+        }
+
+        @Override
+        public ShardDeleteRequest newRequest(ShardId shardId) {
+            ShardDeleteRequest request = new ShardDeleteRequest(shardId, jobId);
+            request.timeout(requestTimeout);
+            return request;
+        }
+
+        @Override
+        public void bind(Row parameters, SubQueryResults subQueryResults) {
+        }
+
+        @Override
+        public void addItem(ShardDeleteRequest request, int location, String id, Long version) {
+            ShardDeleteRequest.Item item = new ShardDeleteRequest.Item(id);
+            if (version != null) {
+                item.version(version);
+            }
+            request.add(location, item);
+        }
     }
 }
