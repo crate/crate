@@ -60,7 +60,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.plugin.BlobPlugin;
-import io.crate.plugin.CrateCorePlugin;
+import io.crate.plugin.CrateCommonPlugin;
 import io.crate.plugin.HttpTransportPlugin;
 import io.crate.plugin.LicensePlugin;
 import io.crate.plugin.SQLPlugin;
@@ -170,7 +170,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             SQLPlugin.class,
             LicensePlugin.class,
             BlobPlugin.class,
-            CrateCorePlugin.class,
+            CrateCommonPlugin.class,
             HttpTransportPlugin.class,
             CommonAnalysisPlugin.class,
             URLRepositoryPlugin.class

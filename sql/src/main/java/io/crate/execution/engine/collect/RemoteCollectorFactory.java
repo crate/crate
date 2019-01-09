@@ -24,7 +24,7 @@ package io.crate.execution.engine.collect;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
-import io.crate.core.collections.TreeMapBuilder;
+import io.crate.common.collections.TreeMapBuilder;
 import io.crate.data.BatchIterator;
 import io.crate.data.Buckets;
 import io.crate.data.CollectingBatchIterator;

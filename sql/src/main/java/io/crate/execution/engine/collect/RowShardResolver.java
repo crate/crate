@@ -38,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import static io.crate.core.StringUtils.nullOrString;
+import static io.crate.common.StringUtils.nullOrString;
 
 @NotThreadSafe
 public class RowShardResolver {

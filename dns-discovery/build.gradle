@@ -4,7 +4,7 @@ archivesBaseName = 'crate-dns-discovery'
 group = 'io.crate'
 
 dependencies {
-    compile project(':core')
+    compile project(':common')
     compile "io.netty:netty-resolver-dns:${versions.netty4}"
     testCompile project(':integration-testing')
 }

@@ -23,7 +23,7 @@
 package io.crate.execution.dml.upsert;
 
 import io.crate.collections.Lists2;
-import io.crate.core.collections.Maps;
+import io.crate.common.collections.Maps;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;

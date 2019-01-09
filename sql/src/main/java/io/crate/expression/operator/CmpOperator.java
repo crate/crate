@@ -22,7 +22,7 @@
 
 package io.crate.expression.operator;
 
-import io.crate.core.collections.MapComparator;
+import io.crate.common.collections.MapComparator;
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;

@@ -52,7 +52,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static io.crate.core.StringUtils.nullOrString;
+import static io.crate.common.StringUtils.nullOrString;
 
 public class WhereClauseAnalyzer {
 

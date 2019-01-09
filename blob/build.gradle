@@ -3,7 +3,7 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 archivesBaseName = 'crate-blob'
 
 dependencies {
-    compile project(':core')
+    compile project(':common')
     compile project(':http')
     compile project(':es:es-transport')
     testCompile project(':integration-testing')

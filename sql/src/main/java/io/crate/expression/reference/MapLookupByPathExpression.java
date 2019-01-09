@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference;
 
-import io.crate.core.collections.Maps;
+import io.crate.common.collections.Maps;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 
