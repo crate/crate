@@ -23,7 +23,7 @@
 package io.crate.expression.reference.sys.cluster;
 
 import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.core.collections.Maps;
+import io.crate.common.collections.Maps;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.plugin.SQLPlugin;

@@ -24,7 +24,7 @@ package io.crate.analyze;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableMap;
-import io.crate.core.collections.TreeMapBuilder;
+import io.crate.common.collections.TreeMapBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;

@@ -22,7 +22,7 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.core.collections.Sorted;
+import io.crate.common.collections.Sorted;
 import io.crate.sql.Literals;
 
 import java.lang.reflect.Array;

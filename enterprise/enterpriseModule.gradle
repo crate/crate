@@ -1,8 +1,8 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
 
-task getVersion(dependsOn: [':core:getVersion']) {
+task getVersion(dependsOn: [':common:getVersion']) {
     doFirst {
-        project.version = project(':core').getVersion.version
+        project.version = project(':common').getVersion.version
     }
 }
 

@@ -23,7 +23,7 @@ package io.crate.planner.node.dql;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
-import io.crate.core.collections.TreeMapBuilder;
+import io.crate.common.collections.TreeMapBuilder;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Routing;
