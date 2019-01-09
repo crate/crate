@@ -44,6 +44,9 @@ Changes
 Fixes
 =====
 
+- Fixed a race condition that could lead to stuck queries. One case this could
+  occur is if a node was being stopped or crashed.
+
 - Casts to nested arrays are now properly supported.
 
 - The type of parameter placeholders in sub-queries in the FROM clause of a
