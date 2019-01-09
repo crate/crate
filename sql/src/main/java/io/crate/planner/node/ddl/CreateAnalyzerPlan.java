@@ -24,24 +24,26 @@ package io.crate.planner.node.ddl;
 
 
 import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.execution.ddl.tables.CreateAnalyzerTask;
+import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.common.settings.Settings;
+
+import java.util.function.Function;
 
 public class CreateAnalyzerPlan implements Plan {
 
     private final Settings analyzerSettings;
+    private static final Function<Object, Row> TO_ONE_ROW = o -> new Row1(1L);
 
     public CreateAnalyzerPlan(Settings analyzerSettings) {
         this.analyzerSettings = analyzerSettings;
-    }
-
-    public Settings createAnalyzerSettings() {
-        return analyzerSettings;
     }
 
     @Override
@@ -50,13 +52,15 @@ public class CreateAnalyzerPlan implements Plan {
     }
 
     @Override
-    public void executeOrFail(DependencyCarrier executor,
+    public void executeOrFail(DependencyCarrier dependencies,
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        CreateAnalyzerTask task = new CreateAnalyzerTask(
-            this, executor.transportActionProvider().transportClusterUpdateSettingsAction());
-        task.execute(consumer);
+        ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest()
+            .persistentSettings(analyzerSettings);
+        OneRowActionListener<ClusterUpdateSettingsResponse> listener = new OneRowActionListener<>(consumer, TO_ONE_ROW);
+        dependencies.transportActionProvider().transportClusterUpdateSettingsAction()
+            .execute(request, listener);
     }
 }
