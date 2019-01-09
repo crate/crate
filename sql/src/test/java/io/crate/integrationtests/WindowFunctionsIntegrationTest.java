@@ -80,4 +80,13 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
                                                      "2| 1.5| 4\n" +
                                                      "NULL| 1.5| 5\n"));
     }
+
+    @Test
+    public void testRowNumber() {
+        execute("select col1, row_number() OVER(ORDER BY col1) from unnest(['a', 'c', 'd', 'b'])");
+        assertThat(printedTable(response.rows()), is("a| 1\n" +
+                                                     "b| 2\n" +
+                                                     "c| 3\n" +
+                                                     "d| 4\n"));
+    }
 }
