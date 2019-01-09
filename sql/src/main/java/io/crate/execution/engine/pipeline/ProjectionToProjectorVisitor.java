@@ -591,16 +591,21 @@ public class ProjectionToProjectorVisitor
             ctx.add(functionAndInputsEntry.getValue());
 
             FunctionImplementation impl = this.functions.getQualified(functionAndInputsEntry.getKey().info().ident());
-            assert impl instanceof AggregationFunction : "We currently only support aggregation functions as window functions";
-            windowFunctions.add(
-                new AggregateToWindowFunctionAdapter(
-                    ctx.topLevelInputs().toArray(new Input[0]),
-                    (AggregationFunction) impl,
-                    ctx.expressions(),
-                    indexVersionCreated,
-                    bigArrays,
-                    context.ramAccountingContext)
-            );
+            if (impl instanceof AggregationFunction) {
+                windowFunctions.add(
+                    new AggregateToWindowFunctionAdapter(
+                        ctx.topLevelInputs().toArray(new Input[0]),
+                        (AggregationFunction) impl,
+                        ctx.expressions(),
+                        indexVersionCreated,
+                        bigArrays,
+                        context.ramAccountingContext)
+                );
+            } else if (impl instanceof WindowFunction) {
+                windowFunctions.add((WindowFunction) impl);
+            } else {
+                throw new AssertionError("Function needs to be either a window or an aggregate function");
+            }
         }
 
         ArrayList<DataType> outputTypes = new ArrayList<>(windowAgg.standalone().size());

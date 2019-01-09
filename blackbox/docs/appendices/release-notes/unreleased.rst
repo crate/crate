@@ -41,6 +41,7 @@ Breaking Changes
 Changes
 =======
 
+- Added support for window function ``row_number()``.
 
 Fixes
 =====
