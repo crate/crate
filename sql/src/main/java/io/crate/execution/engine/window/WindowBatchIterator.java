@@ -259,7 +259,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         }
 
         for (Object[] outgoingCells : cellsForCurrentFrame) {
-            resultsForCurrentFrame.push(outgoingCells);
+            resultsForCurrentFrame.add(outgoingCells);
         }
 
         windowForCurrentRow.clear();
