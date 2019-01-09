@@ -41,6 +41,8 @@ Breaking Changes
 Changes
 =======
 
+- Buffer the file output of ``COPY TO`` operations to improve performance by not
+  writing to disk on every row.
 
 Fixes
 =====

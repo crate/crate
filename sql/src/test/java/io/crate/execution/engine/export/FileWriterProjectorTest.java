@@ -27,7 +27,6 @@ import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingHelpers;
@@ -38,10 +37,8 @@ import org.junit.rules.TemporaryFolder;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
@@ -49,7 +46,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static io.crate.data.SentinelRow.SENTINEL;
-import static org.hamcrest.core.Is.is;
 
 public class FileWriterProjectorTest extends CrateUnitTest {
 
@@ -62,17 +58,6 @@ public class FileWriterProjectorTest extends CrateUnitTest {
         IntStream.range(0, 5)
             .mapToObj(i -> String.format(Locale.ENGLISH, "input line %02d", i))
             .collect(Collectors.toList())), SENTINEL);
-
-    @Test
-    public void testToNestedStringObjectMap() throws Exception {
-        Map<ColumnIdent, Object> columnIdentMap = new HashMap<>();
-        columnIdentMap.put(new ColumnIdent("some", Arrays.asList("nested", "column")), "foo");
-        Map<String, Object> convertedMap = FileWriterCountCollector.toNestedStringObjectMap(columnIdentMap);
-
-        Map someMap = (Map) convertedMap.get("some");
-        Map nestedMap = (Map) someMap.get("nested");
-        assertThat(nestedMap.get("column"), is("foo"));
-    }
 
     @Test
     public void testWriteRawToFile() throws Exception {
