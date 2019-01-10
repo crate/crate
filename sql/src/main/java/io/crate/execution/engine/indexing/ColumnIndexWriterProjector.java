@@ -63,7 +63,8 @@ public class ColumnIndexWriterProjector implements Projector {
                                       TransactionContext txnCtx,
                                       Functions functions,
                                       Settings settings,
-                                      Settings tableSettings,
+                                      int targetTableNumShards,
+                                      int targetTableNumReplicas,
                                       Supplier<String> indexNameResolver,
                                       TransportActionProvider transportActionProvider,
                                       List<ColumnIdent> primaryKeyIdents,
@@ -124,7 +125,8 @@ public class ColumnIndexWriterProjector implements Projector {
             autoCreateIndices,
             transportActionProvider.transportShardUpsertAction()::execute,
             transportActionProvider.transportBulkCreateIndicesAction(),
-            tableSettings,
+            targetTableNumShards,
+            targetTableNumReplicas,
             UpsertResultContext.forRowCount()
         );
     }

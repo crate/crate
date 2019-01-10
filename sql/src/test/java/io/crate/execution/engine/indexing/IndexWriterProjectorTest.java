@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.indexing;
 
+import io.crate.analyze.NumberOfReplicas;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
@@ -46,6 +47,8 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
@@ -75,7 +78,8 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
         RelationName bulkImportIdent = new RelationName(sqlExecutor.getCurrentSchema(), "bulk_import");
-        Settings tableSettings = TableSettingsResolver.get(clusterService().state().getMetaData(), bulkImportIdent, false);
+        ClusterState state = clusterService().state();
+        Settings tableSettings = TableSettingsResolver.get(state.getMetaData(), bulkImportIdent, false);
         ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class);
         IndexWriterProjector writerProjector = new IndexWriterProjector(
             clusterService(),
@@ -85,7 +89,8 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             CoordinatorTxnCtx.systemTransactionContext(),
             internalCluster().getInstance(Functions.class),
             Settings.EMPTY,
-            tableSettings,
+            IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
+            NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize()),
             internalCluster().getInstance(TransportCreatePartitionsAction.class),
             internalCluster().getInstance(TransportShardUpsertAction.class)::execute,
             IndexNameResolver.forTable(bulkImportIdent),
