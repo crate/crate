@@ -1471,7 +1471,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitSimpleCase(SqlBaseParser.SimpleCaseContext context) {
         return new SimpleCaseExpression(
-            (Expression) visit(context.valueExpression()),
+            (Expression) visit(context.operand),
             visitCollection(context.whenClause(), WhenClause.class),
             visitOptionalContext(context.elseExpr, Expression.class));
     }

@@ -41,6 +41,8 @@ Breaking Changes
 Changes
 =======
 
+- Added support to use any expression in the operand of a ``CASE`` clause.
+
 - Buffer the file output of ``COPY TO`` operations to improve performance by not
   writing to disk on every row.
 
