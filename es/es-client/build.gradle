@@ -1,5 +1,3 @@
-apply from: "$rootDir/gradle/javaModule.gradle"
-
 compileJava {
     // upstream code - not interested in any warnings
     options.warnings = false
@@ -26,18 +24,7 @@ test {
 
 sourceSets {
     main {
-        java.srcDirs = ['../upstream/client/rest/src/main/java']
-        resources {
-            srcDir '../upstream/client/rest/src/main/resources'
-            include '**/*.*'
-        }
-    }
-}
-
-idea {
-    module {
-        contentRoot = file('../upstream/client')
-        excludeDirs += file('build')
+        java.srcDirs = ['rest/src/main/java']
     }
 }
 

@@ -24,20 +24,3 @@ dependencies {
     compile project(':es:es-server')
     compileOnly project(':es:es-lang-painless')
 }
-
-def moduleDir = file('../upstream/modules/analysis-common')
-
-sourceSets {
-    main {
-        java {
-            srcDir "$moduleDir/src/main/java"
-        }
-    }
-}
-
-idea {
-    module {
-        contentRoot = moduleDir
-        excludeDirs += file('build')
-    }
-}

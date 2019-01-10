@@ -19,21 +19,3 @@ dependencies {
     compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
     compile "com.google.guava:guava:${versions.guava}"
 }
-
-sourceSets {
-    main {
-        java.srcDirs = ['../upstream/test/framework/src/main/java']
-        resources {
-            srcDir '../upstream/test/framework/src/main/resources'
-            include '**/*.*'
-        }
-    }
-}
-
-idea {
-    module {
-        contentRoot = file('../upstream/test/framework')
-        excludeDirs += file('build')
-    }
-}
-
