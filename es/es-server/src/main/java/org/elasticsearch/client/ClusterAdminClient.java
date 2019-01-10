@@ -88,13 +88,6 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequest;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsResponse;
-import org.elasticsearch.action.admin.cluster.storedscripts.DeleteStoredScriptRequest;
-import org.elasticsearch.action.admin.cluster.storedscripts.DeleteStoredScriptRequestBuilder;
-import org.elasticsearch.action.admin.cluster.storedscripts.GetStoredScriptRequest;
-import org.elasticsearch.action.admin.cluster.storedscripts.GetStoredScriptRequestBuilder;
-import org.elasticsearch.action.admin.cluster.storedscripts.GetStoredScriptResponse;
-import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptRequest;
-import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptRequestBuilder;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequestBuilder;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
@@ -658,59 +651,4 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Explain the allocation of a shard
      */
     ClusterAllocationExplainRequestBuilder prepareAllocationExplain();
-
-    /**
-     * Store a script in the cluster state
-     */
-    PutStoredScriptRequestBuilder preparePutStoredScript();
-
-    /**
-     * Delete a script from the cluster state
-     */
-    void deleteStoredScript(DeleteStoredScriptRequest request, ActionListener<AcknowledgedResponse> listener);
-
-    /**
-     * Delete a script from the cluster state
-     */
-    ActionFuture<AcknowledgedResponse> deleteStoredScript(DeleteStoredScriptRequest request);
-
-    /**
-     * Delete a script from the cluster state
-     */
-    DeleteStoredScriptRequestBuilder prepareDeleteStoredScript();
-
-    /**
-     * Delete a script from the cluster state
-     */
-    DeleteStoredScriptRequestBuilder prepareDeleteStoredScript(String id);
-
-    /**
-     * Store a script in the cluster state
-     */
-    void putStoredScript(PutStoredScriptRequest request, ActionListener<AcknowledgedResponse> listener);
-
-    /**
-     * Store a script in the cluster state
-     */
-    ActionFuture<AcknowledgedResponse> putStoredScript(PutStoredScriptRequest request);
-
-    /**
-     * Get a script from the cluster state
-     */
-    GetStoredScriptRequestBuilder prepareGetStoredScript();
-
-    /**
-     * Get a script from the cluster state
-     */
-    GetStoredScriptRequestBuilder prepareGetStoredScript(String id);
-
-    /**
-     * Get a script from the cluster state
-     */
-    void getStoredScript(GetStoredScriptRequest request, ActionListener<GetStoredScriptResponse> listener);
-
-    /**
-     * Get a script from the cluster state
-     */
-    ActionFuture<GetStoredScriptResponse> getStoredScript(GetStoredScriptRequest request);
 }

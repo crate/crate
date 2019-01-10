@@ -45,12 +45,9 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.repositories.RepositoriesModule;
-import org.elasticsearch.script.ScriptModule;
-import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.watcher.ResourceWatcherService;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -73,7 +70,6 @@ import java.util.function.UnaryOperator;
  * <li>{@link MapperPlugin}
  * <li>{@link NetworkPlugin}
  * <li>{@link RepositoryPlugin}
- * <li>{@link ScriptPlugin}
  * <li>{@link SearchPlugin}
  * <li>{@link ReloadablePlugin}
  * </ul>
@@ -119,15 +115,12 @@ public abstract class Plugin implements Closeable {
      * @param client A client to make requests to the system
      * @param clusterService A service to allow watching and updating cluster state
      * @param threadPool A service to allow retrieving an executor to run an async action
-     * @param resourceWatcherService A service to watch for changes to node local files
-     * @param scriptService A service to allow running scripts on the local node
      * @param xContentRegistry the registry for extensible xContent parsing
      * @param environment the environment for path and setting configurations
      * @param nodeEnvironment the node environment used coordinate access to the data paths
      * @param namedWriteableRegistry the registry for {@link NamedWriteable} object parsing
      */
     public Collection<Object> createComponents(Client client, ClusterService clusterService, ThreadPool threadPool,
-                                               ResourceWatcherService resourceWatcherService, ScriptService scriptService,
                                                NamedXContentRegistry xContentRegistry, Environment environment,
                                                NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry) {
         return Collections.emptyList();
@@ -276,15 +269,6 @@ public abstract class Plugin implements Closeable {
      */
     @Deprecated
     public final void onModule(SettingsModule settingsModule) {}
-
-    /**
-     * Old-style guice scripting extension point. {@code @Deprecated} and {@code final} to act as a signpost for plugin authors upgrading
-     * from 2.x.
-     *
-     * @deprecated implement {@link ScriptPlugin} instead
-     */
-    @Deprecated
-    public final void onModule(ScriptModule module) {}
 
     /**
      * Old-style analysis extension point. {@code @Deprecated} and {@code final} to act as a signpost for plugin authors upgrading

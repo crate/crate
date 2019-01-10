@@ -49,7 +49,6 @@ import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.elasticsearch.index.query.support.NestedScope;
 import org.elasticsearch.index.similarity.SimilarityService;
-import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.lookup.SearchLookup;
 import org.elasticsearch.transport.RemoteClusterAware;
 
@@ -70,7 +69,6 @@ import static java.util.Collections.unmodifiableMap;
  */
 public class QueryShardContext extends QueryRewriteContext {
 
-    private final ScriptService scriptService;
     private final IndexSettings indexSettings;
     private final MapperService mapperService;
     private final SimilarityService similarityService;
@@ -100,7 +98,7 @@ public class QueryShardContext extends QueryRewriteContext {
 
     public QueryShardContext(int shardId, IndexSettings indexSettings, BitsetFilterCache bitsetFilterCache,
                              BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataLookup, MapperService mapperService,
-                             SimilarityService similarityService, ScriptService scriptService, NamedXContentRegistry xContentRegistry,
+                             SimilarityService similarityService, NamedXContentRegistry xContentRegistry,
                              NamedWriteableRegistry namedWriteableRegistry, Client client, IndexReader reader, LongSupplier nowInMillis,
                              String clusterAlias) {
         super(xContentRegistry, namedWriteableRegistry,client, nowInMillis);
@@ -111,7 +109,6 @@ public class QueryShardContext extends QueryRewriteContext {
         this.indexFieldDataService = indexFieldDataLookup;
         this.allowUnmappedFields = indexSettings.isDefaultAllowUnmappedFields();
         this.nestedScope = new NestedScope();
-        this.scriptService = scriptService;
         this.indexSettings = indexSettings;
         this.reader = reader;
         this.clusterAlias = clusterAlias;
@@ -121,7 +118,7 @@ public class QueryShardContext extends QueryRewriteContext {
 
     public QueryShardContext(QueryShardContext source) {
         this(source.shardId, source.indexSettings, source.bitsetFilterCache, source.indexFieldDataService, source.mapperService,
-                source.similarityService, source.scriptService, source.getXContentRegistry(), source.getWriteableRegistry(),
+                source.similarityService, source.getXContentRegistry(), source.getWriteableRegistry(),
                 source.client, source.reader, source.nowInMillis, source.clusterAlias);
         this.types = source.getTypes();
     }
@@ -326,12 +323,6 @@ public class QueryShardContext extends QueryRewriteContext {
 
     public Index index() {
         return indexSettings.getIndex();
-    }
-
-    /** Return the script service to allow compiling scripts. */
-    public final ScriptService getScriptService() {
-        failIfFrozen();
-        return scriptService;
     }
 
     /**

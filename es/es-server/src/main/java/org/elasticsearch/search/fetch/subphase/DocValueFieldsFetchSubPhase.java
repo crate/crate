@@ -28,7 +28,6 @@ import org.elasticsearch.index.fielddata.AtomicFieldData;
 import org.elasticsearch.index.fielddata.AtomicNumericFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
-import org.elasticsearch.index.fielddata.ScriptDocValues;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -104,7 +103,6 @@ public final class DocValueFieldsFetchSubPhase implements FetchSubPhase {
                 }
                 LeafReaderContext subReaderContext = null;
                 AtomicFieldData data = null;
-                ScriptDocValues<?> scriptValues = null; // legacy
                 SortedBinaryDocValues binaryValues = null; // binary / string / ip fields
                 SortedNumericDocValues longValues = null; // int / date fields
                 SortedNumericDoubleValues doubleValues = null; // floating-point fields
@@ -114,9 +112,7 @@ public final class DocValueFieldsFetchSubPhase implements FetchSubPhase {
                         int readerIndex = ReaderUtil.subIndex(hit.docId(), context.searcher().getIndexReader().leaves());
                         subReaderContext = context.searcher().getIndexReader().leaves().get(readerIndex);
                         data = indexFieldData.load(subReaderContext);
-                        if (format == null) {
-                            scriptValues = data.getLegacyFieldValues();
-                        } else if (indexFieldData instanceof IndexNumericFieldData) {
+                        if (indexFieldData instanceof IndexNumericFieldData) {
                             if (((IndexNumericFieldData) indexFieldData).getNumericType().isFloatingPoint()) {
                                 doubleValues = ((AtomicNumericFieldData) data).getDoubleValues();
                             } else {
@@ -137,10 +133,7 @@ public final class DocValueFieldsFetchSubPhase implements FetchSubPhase {
                     final List<Object> values = hitField.getValues();
 
                     int subDocId = hit.docId() - subReaderContext.docBase;
-                    if (scriptValues != null) {
-                        scriptValues.setNextDocId(subDocId);
-                        values.addAll(scriptValues);
-                    } else if (binaryValues != null) {
+                    if (binaryValues != null) {
                         if (binaryValues.advanceExact(subDocId)) {
                             for (int i = 0, count = binaryValues.docValueCount(); i < count; ++i) {
                                 values.add(format.format(binaryValues.nextValue()));

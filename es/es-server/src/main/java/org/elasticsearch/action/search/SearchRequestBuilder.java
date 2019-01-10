@@ -25,11 +25,8 @@ import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.script.Script;
 import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.Scroll;
-import org.elasticsearch.search.aggregations.AggregationBuilder;
-import org.elasticsearch.search.aggregations.PipelineAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.rescore.RescorerBuilder;
@@ -312,18 +309,6 @@ public class SearchRequestBuilder extends ActionRequestBuilder<SearchRequest, Se
     }
 
     /**
-     * Adds a script based field to load and return. The field does not have to be stored,
-     * but its recommended to use non analyzed or numeric fields.
-     *
-     * @param name   The name that will represent this value in the return hit
-     * @param script The script to use
-     */
-    public SearchRequestBuilder addScriptField(String name, Script script) {
-        sourceBuilder().scriptField(name, script);
-        return this;
-    }
-
-    /**
      * Adds a sort against the given field name and the sort ordering.
      *
      * @param field The name of the field
@@ -391,22 +376,6 @@ public class SearchRequestBuilder extends ActionRequestBuilder<SearchRequest, Se
      */
     public SearchRequestBuilder storedFields(String... fields) {
         sourceBuilder().storedFields(Arrays.asList(fields));
-        return this;
-    }
-
-    /**
-     * Adds an aggregation to the search operation.
-     */
-    public SearchRequestBuilder addAggregation(AggregationBuilder aggregation) {
-        sourceBuilder().aggregation(aggregation);
-        return this;
-    }
-
-    /**
-     * Adds an aggregation to the search operation.
-     */
-    public SearchRequestBuilder addAggregation(PipelineAggregationBuilder aggregation) {
-        sourceBuilder().aggregation(aggregation);
         return this;
     }
 
@@ -498,7 +467,7 @@ public class SearchRequestBuilder extends ActionRequestBuilder<SearchRequest, Se
         request.requestCache(requestCache);
         return this;
     }
-    
+
 
     /**
      * Sets if this request should allow partial results.  (If method is not called,
@@ -507,7 +476,7 @@ public class SearchRequestBuilder extends ActionRequestBuilder<SearchRequest, Se
     public SearchRequestBuilder setAllowPartialSearchResults(boolean allowPartialSearchResults) {
         request.allowPartialSearchResults(allowPartialSearchResults);
         return this;
-    }    
+    }
 
     /**
      * Should the query be profiled. Defaults to <code>false</code>

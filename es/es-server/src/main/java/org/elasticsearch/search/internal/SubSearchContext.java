@@ -22,13 +22,11 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Counter;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.ParsedQuery;
-import org.elasticsearch.search.aggregations.SearchContextAggregations;
 import org.elasticsearch.search.collapse.CollapseContext;
 import org.elasticsearch.search.fetch.FetchSearchResult;
 import org.elasticsearch.search.fetch.StoredFieldsContext;
 import org.elasticsearch.search.fetch.subphase.DocValueFieldsContext;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
-import org.elasticsearch.search.fetch.subphase.ScriptFieldsContext;
 import org.elasticsearch.search.fetch.subphase.highlight.SearchContextHighlight;
 import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.search.rescore.RescoreContext;
@@ -57,7 +55,6 @@ public class SubSearchContext extends FilteredSearchContext {
     private int docsIdsToLoadSize;
 
     private StoredFieldsContext storedFields;
-    private ScriptFieldsContext scriptFields;
     private FetchSourceContext fetchSourceContext;
     private DocValueFieldsContext docValueFieldsContext;
     private SearchContextHighlight highlight;
@@ -91,11 +88,6 @@ public class SubSearchContext extends FilteredSearchContext {
     }
 
     @Override
-    public SearchContext aggregations(SearchContextAggregations aggregations) {
-        throw new UnsupportedOperationException("Not supported");
-    }
-
-    @Override
     public SearchContextHighlight highlight() {
         return highlight;
     }
@@ -113,19 +105,6 @@ public class SubSearchContext extends FilteredSearchContext {
     @Override
     public void addRescore(RescoreContext rescore) {
         throw new UnsupportedOperationException("Not supported");
-    }
-
-    @Override
-    public boolean hasScriptFields() {
-        return scriptFields != null;
-    }
-
-    @Override
-    public ScriptFieldsContext scriptFields() {
-        if (scriptFields == null) {
-            scriptFields = new ScriptFieldsContext();
-        }
-        return this.scriptFields;
     }
 
     @Override

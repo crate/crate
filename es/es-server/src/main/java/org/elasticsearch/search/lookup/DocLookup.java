@@ -18,7 +18,6 @@
  */
 package org.elasticsearch.search.lookup;
 
-import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -46,10 +45,6 @@ public class DocLookup {
 
     public IndexFieldData<?> getForField(MappedFieldType fieldType) {
         return fieldDataLookup.apply(fieldType);
-    }
-
-    public LeafDocLookup getLeafDocLookup(LeafReaderContext context) {
-        return new LeafDocLookup(mapperService, fieldDataLookup, types, context);
     }
 
     public String[] getTypes() {

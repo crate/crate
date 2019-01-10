@@ -38,7 +38,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.search.SearchExtBuilder;
 import org.elasticsearch.search.SearchShardTarget;
-import org.elasticsearch.search.aggregations.SearchContextAggregations;
 import org.elasticsearch.search.collapse.CollapseContext;
 import org.elasticsearch.search.dfs.DfsSearchResult;
 import org.elasticsearch.search.fetch.FetchPhase;
@@ -46,7 +45,6 @@ import org.elasticsearch.search.fetch.FetchSearchResult;
 import org.elasticsearch.search.fetch.StoredFieldsContext;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.elasticsearch.search.fetch.subphase.InnerHitsContext;
-import org.elasticsearch.search.fetch.subphase.ScriptFieldsContext;
 import org.elasticsearch.search.fetch.subphase.highlight.SearchContextHighlight;
 import org.elasticsearch.search.lookup.SearchLookup;
 import org.elasticsearch.search.profile.Profilers;
@@ -157,16 +155,6 @@ public abstract class FilteredSearchContext extends SearchContext {
     }
 
     @Override
-    public SearchContextAggregations aggregations() {
-        return in.aggregations();
-    }
-
-    @Override
-    public SearchContext aggregations(SearchContextAggregations aggregations) {
-        return in.aggregations(aggregations);
-    }
-
-    @Override
     public SearchContextHighlight highlight() {
         return in.highlight();
     }
@@ -199,16 +187,6 @@ public abstract class FilteredSearchContext extends SearchContext {
     @Override
     public void addRescore(RescoreContext rescore) {
         in.addRescore(rescore);
-    }
-
-    @Override
-    public boolean hasScriptFields() {
-        return in.hasScriptFields();
-    }
-
-    @Override
-    public ScriptFieldsContext scriptFields() {
-        return in.scriptFields();
     }
 
     @Override

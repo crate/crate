@@ -52,7 +52,6 @@ import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.search.NestedHelper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.similarity.SimilarityService;
-import org.elasticsearch.search.aggregations.SearchContextAggregations;
 import org.elasticsearch.search.collapse.CollapseContext;
 import org.elasticsearch.search.dfs.DfsSearchResult;
 import org.elasticsearch.search.fetch.FetchPhase;
@@ -60,7 +59,6 @@ import org.elasticsearch.search.fetch.FetchSearchResult;
 import org.elasticsearch.search.fetch.StoredFieldsContext;
 import org.elasticsearch.search.fetch.subphase.DocValueFieldsContext;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
-import org.elasticsearch.search.fetch.subphase.ScriptFieldsContext;
 import org.elasticsearch.search.fetch.subphase.highlight.SearchContextHighlight;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
 import org.elasticsearch.search.internal.ScrollContext;
@@ -108,7 +106,6 @@ final class DefaultSearchContext extends SearchContext {
     private boolean explain;
     private boolean version = false; // by default, we don't return versions
     private StoredFieldsContext storedFields;
-    private ScriptFieldsContext scriptFields;
     private FetchSourceContext fetchSourceContext;
     private DocValueFieldsContext docValueFieldsContext;
     private int from = -1;
@@ -142,7 +139,6 @@ final class DefaultSearchContext extends SearchContext {
     private int[] docIdsToLoad;
     private int docsIdsToLoadFrom;
     private int docsIdsToLoadSize;
-    private SearchContextAggregations aggregations;
     private SearchContextHighlight highlight;
     private SuggestionSearchContext suggest;
     private List<RescoreContext> rescore;
@@ -364,17 +360,6 @@ final class DefaultSearchContext extends SearchContext {
     }
 
     @Override
-    public SearchContextAggregations aggregations() {
-        return aggregations;
-    }
-
-    @Override
-    public SearchContext aggregations(SearchContextAggregations aggregations) {
-        this.aggregations = aggregations;
-        return this;
-    }
-
-    @Override
     public void addSearchExt(SearchExtBuilder searchExtBuilder) {
         //it's ok to use the writeable name here given that we enforce it to be the same as the name of the element that gets
         //parsed by the corresponding parser. There is one single name and one single way to retrieve the parsed object from the context.
@@ -420,19 +405,6 @@ final class DefaultSearchContext extends SearchContext {
             this.rescore = new ArrayList<>();
         }
         this.rescore.add(rescore);
-    }
-
-    @Override
-    public boolean hasScriptFields() {
-        return scriptFields != null;
-    }
-
-    @Override
-    public ScriptFieldsContext scriptFields() {
-        if (scriptFields == null) {
-            scriptFields = new ScriptFieldsContext();
-        }
-        return this.scriptFields;
     }
 
     /**

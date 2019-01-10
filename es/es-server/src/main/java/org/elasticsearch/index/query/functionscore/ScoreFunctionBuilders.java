@@ -19,11 +19,6 @@
 
 package org.elasticsearch.index.query.functionscore;
 
-import org.elasticsearch.script.Script;
-import org.elasticsearch.script.ScriptType;
-
-import static java.util.Collections.emptyMap;
-
 /**
  * Static method aliases for constructors of known {@link ScoreFunctionBuilder}s.
  */
@@ -67,18 +62,10 @@ public class ScoreFunctionBuilders {
         return new LinearDecayFunctionBuilder(fieldName, origin, scale, offset, decay);
     }
 
-    public static ScriptScoreFunctionBuilder scriptFunction(Script script) {
-        return (new ScriptScoreFunctionBuilder(script));
-    }
-
-    public static ScriptScoreFunctionBuilder scriptFunction(String script) {
-        return (new ScriptScoreFunctionBuilder(new Script(ScriptType.INLINE, Script.DEFAULT_SCRIPT_LANG, script, emptyMap())));
-    }
-
     public static RandomScoreFunctionBuilder randomFunction() {
         return new RandomScoreFunctionBuilder();
     }
-    
+
     public static WeightBuilder weightFactorFunction(float weight) {
         return (WeightBuilder)(new WeightBuilder().setWeight(weight));
     }

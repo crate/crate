@@ -46,7 +46,6 @@ import org.apache.lucene.search.similarities.Similarity.SimWeight;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.TriFunction;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.AbstractIndexComponent;
@@ -54,13 +53,13 @@ import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.script.ScriptService;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -70,7 +69,7 @@ public final class SimilarityService extends AbstractIndexComponent {
     public static final String DEFAULT_SIMILARITY = "BM25";
     private static final String CLASSIC_SIMILARITY = "classic";
     private static final Map<String, Function<Version, Supplier<Similarity>>> DEFAULTS;
-    public static final Map<String, TriFunction<Settings, Version, ScriptService, Similarity>> BUILT_IN;
+    public static final Map<String, BiFunction<Settings, Version, Similarity>> BUILT_IN;
     static {
         Map<String, Function<Version, Supplier<Similarity>>> defaults = new HashMap<>();
         defaults.put(CLASSIC_SIMILARITY, version -> {
@@ -91,29 +90,27 @@ public final class SimilarityService extends AbstractIndexComponent {
             return () -> similarity;
         });
 
-        Map<String, TriFunction<Settings, Version, ScriptService, Similarity>> builtIn = new HashMap<>();
+        Map<String, BiFunction<Settings, Version, Similarity>> builtIn = new HashMap<>();
         builtIn.put(CLASSIC_SIMILARITY,
-                (settings, version, script) -> {
+                (settings, version) -> {
                     DEPRECATION_LOGGER.deprecated("The [classic] similarity is now deprecated in favour of BM25, which is generally "
-                            + "accepted as a better alternative. Use the [BM25] similarity or build a custom [scripted] similarity "
-                            + "instead.");
+                            + "accepted as a better alternative. Use the [BM25] similarity instead.");
                     return SimilarityProviders.createClassicSimilarity(settings, version);
                 });
         builtIn.put("BM25",
-                (settings, version, scriptService) -> SimilarityProviders.createBM25Similarity(settings, version));
+                (settings, version) -> SimilarityProviders.createBM25Similarity(settings, version));
         builtIn.put("boolean",
-                (settings, version, scriptService) -> SimilarityProviders.createBooleanSimilarity(settings, version));
+                (settings, version) -> SimilarityProviders.createBooleanSimilarity(settings, version));
         builtIn.put("DFR",
-                (settings, version, scriptService) -> SimilarityProviders.createDfrSimilarity(settings, version));
+                (settings, version) -> SimilarityProviders.createDfrSimilarity(settings, version));
         builtIn.put("IB",
-                (settings, version, scriptService) -> SimilarityProviders.createIBSimilarity(settings, version));
+                (settings, version) -> SimilarityProviders.createIBSimilarity(settings, version));
         builtIn.put("LMDirichlet",
-                (settings, version, scriptService) -> SimilarityProviders.createLMDirichletSimilarity(settings, version));
+                (settings, version) -> SimilarityProviders.createLMDirichletSimilarity(settings, version));
         builtIn.put("LMJelinekMercer",
-                (settings, version, scriptService) -> SimilarityProviders.createLMJelinekMercerSimilarity(settings, version));
+                (settings, version) -> SimilarityProviders.createLMJelinekMercerSimilarity(settings, version));
         builtIn.put("DFI",
-                (settings, version, scriptService) -> SimilarityProviders.createDfiSimilarity(settings, version));
-        builtIn.put("scripted", new ScriptedSimilarityProvider());
+                (settings, version) -> SimilarityProviders.createDfiSimilarity(settings, version));
         DEFAULTS = Collections.unmodifiableMap(defaults);
         BUILT_IN = Collections.unmodifiableMap(builtIn);
     }
@@ -121,8 +118,8 @@ public final class SimilarityService extends AbstractIndexComponent {
     private final Similarity defaultSimilarity;
     private final Map<String, Supplier<Similarity>> similarities;
 
-    public SimilarityService(IndexSettings indexSettings, ScriptService scriptService,
-                             Map<String, TriFunction<Settings, Version, ScriptService, Similarity>> similarities) {
+    public SimilarityService(IndexSettings indexSettings,
+                             Map<String, BiFunction<Settings, Version, Similarity>> similarities) {
         super(indexSettings);
         Map<String, Supplier<Similarity>> providers = new HashMap<>(similarities.size());
         Map<String, Settings> similaritySettings = this.indexSettings.getSettings().getGroups(IndexModule.SIMILARITY_SETTINGS_PREFIX);
@@ -140,9 +137,9 @@ public final class SimilarityService extends AbstractIndexComponent {
             } else if ((similarities.containsKey(typeName) || BUILT_IN.containsKey(typeName)) == false) {
                 throw new IllegalArgumentException("Unknown Similarity type [" + typeName + "] for [" + name + "]");
             }
-            TriFunction<Settings, Version, ScriptService, Similarity> defaultFactory = BUILT_IN.get(typeName);
-            TriFunction<Settings, Version, ScriptService, Similarity> factory = similarities.getOrDefault(typeName, defaultFactory);
-            Similarity similarity = factory.apply(providerSettings, indexSettings.getIndexVersionCreated(), scriptService);
+            BiFunction<Settings, Version, Similarity> defaultFactory = BUILT_IN.get(typeName);
+            BiFunction<Settings, Version, Similarity> factory = similarities.getOrDefault(typeName, defaultFactory);
+            Similarity similarity = factory.apply(providerSettings, indexSettings.getIndexVersionCreated());
             validateSimilarity(indexSettings.getIndexVersionCreated(), similarity);
             providers.put(name, () -> similarity);
         }

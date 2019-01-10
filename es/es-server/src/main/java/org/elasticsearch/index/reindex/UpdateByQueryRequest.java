@@ -37,7 +37,7 @@ import java.io.IOException;
  * representative set of subrequests. This is best-effort but better than {@linkplain ReindexRequest} because scripts can't change the
  * destination index and things.
  */
-public class UpdateByQueryRequest extends AbstractBulkIndexByScrollRequest<UpdateByQueryRequest>
+public class UpdateByQueryRequest extends AbstractBulkByScrollRequest<UpdateByQueryRequest>
     implements IndicesRequest.Replaceable, ToXContentObject {
     /**
      * Ingest pipeline to set on index requests made by this action.
@@ -207,10 +207,6 @@ public class UpdateByQueryRequest extends AbstractBulkIndexByScrollRequest<Updat
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        if (getScript() != null) {
-            builder.field("script");
-            getScript().toXContent(builder, params);
-        }
         getSearchRequest().source().innerToXContent(builder, params);
         builder.endObject();
         return builder;
