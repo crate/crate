@@ -22,14 +22,12 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.execution.dml.ShardRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.function.Predicate;
 
-public class BulkShardCreationLimiter<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
-    implements Predicate<ShardedRequests<TReq, TItem>> {
+public class BulkShardCreationLimiter implements Predicate<ShardedRequests<?, ?>> {
 
     /**
      * Defines the maximum number of new shards per node which can be safely created before running into the
@@ -47,7 +45,7 @@ public class BulkShardCreationLimiter<TReq extends ShardRequest<TReq, TItem>, TI
     }
 
     @Override
-    public boolean test(ShardedRequests<TReq, TItem> requests) {
+    public boolean test(ShardedRequests<?, ?> requests) {
         if (requests.itemsByMissingIndex.isEmpty() == false) {
             int numberOfShardForAllIndices = numberOfAllShards * requests.itemsByMissingIndex.size();
             int numberOfShardsPerNode = numberOfShardForAllIndices / numDataNodes;

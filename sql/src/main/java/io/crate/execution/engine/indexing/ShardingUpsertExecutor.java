@@ -83,7 +83,7 @@ public class ShardingUpsertExecutor
     private final Function<ShardId, ShardUpsertRequest> requestFactory;
     private final BulkRequestExecutor<ShardUpsertRequest> requestExecutor;
     private final TransportCreatePartitionsAction createPartitionsAction;
-    private final BulkShardCreationLimiter<ShardUpsertRequest, ShardUpsertRequest.Item> bulkShardCreationLimiter;
+    private final BulkShardCreationLimiter bulkShardCreationLimiter;
     private final UpsertResultCollector resultCollector;
     private volatile boolean createPartitionsRequestOngoing = false;
 
@@ -125,7 +125,7 @@ public class ShardingUpsertExecutor
             upsertResultContext.getLineNumberInput(),
             autoCreateIndices
         );
-        bulkShardCreationLimiter = new BulkShardCreationLimiter<>(
+        bulkShardCreationLimiter = new BulkShardCreationLimiter(
             targetTableNumShards,
             targetTableNumReplicas,
             clusterService.state().nodes().getDataNodes().size());

@@ -55,8 +55,8 @@ public class BulkShardCreationLimiterTest extends CrateUnitTest {
     public void testNumberOfShardsGreaterEqualThanLimit() throws Exception {
         int numberOfShards = BulkShardCreationLimiter.MAX_NEW_SHARDS_PER_NODE;
         int numberOfReplicas = 0;
-        BulkShardCreationLimiter<DummyShardRequest, DummyRequestItem> bulkShardCreationLimiter =
-            new BulkShardCreationLimiter<>(numberOfShards, numberOfReplicas, 1);
+        BulkShardCreationLimiter bulkShardCreationLimiter =
+            new BulkShardCreationLimiter(numberOfShards, numberOfReplicas, 1);
 
         assertThat(bulkShardCreationLimiter.test(SHARED_REQUESTS), is(true));
     }
@@ -65,8 +65,8 @@ public class BulkShardCreationLimiterTest extends CrateUnitTest {
     public void testNumberOfShardsLessThanLimit() throws Exception {
         int numberOfShards = BulkShardCreationLimiter.MAX_NEW_SHARDS_PER_NODE - 1;
         int numberOfReplicas = 0;
-        BulkShardCreationLimiter<DummyShardRequest, DummyRequestItem> bulkShardCreationLimiter =
-            new BulkShardCreationLimiter<>(numberOfShards, numberOfReplicas, 1);
+        BulkShardCreationLimiter bulkShardCreationLimiter =
+            new BulkShardCreationLimiter(numberOfShards, numberOfReplicas, 1);
 
         assertThat(bulkShardCreationLimiter.test(SHARED_REQUESTS), is(false));
     }
@@ -75,8 +75,8 @@ public class BulkShardCreationLimiterTest extends CrateUnitTest {
     public void testNumberOfShardsLessThanLimitWithTwoNodes() throws Exception {
         int numberOfShards = BulkShardCreationLimiter.MAX_NEW_SHARDS_PER_NODE - 1;
         int numberOfReplicas = 0;
-        BulkShardCreationLimiter<DummyShardRequest, DummyRequestItem> bulkShardCreationLimiter =
-            new BulkShardCreationLimiter<>(numberOfShards, numberOfReplicas, 2);
+        BulkShardCreationLimiter bulkShardCreationLimiter =
+            new BulkShardCreationLimiter(numberOfShards, numberOfReplicas, 2);
 
         assertThat(bulkShardCreationLimiter.test(SHARED_REQUESTS), is(false));
     }
