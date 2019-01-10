@@ -302,6 +302,8 @@ the same column.
 
 .. NOTE::
 
+    3D coordinates are not supported.
+
     Empty ``Polygon`` and ``LineString`` geo shapes are not supported.
 
 Definition
@@ -851,7 +853,7 @@ See the table below for a full list of aliases:
 .. _Java types: http://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text
 .. _GeoJSON: http://geojson.org/
-.. _GeoJSON geometry objects: http://geojson.org/geojson-spec.html#geometry-objects
+.. _GeoJSON geometry objects: https://tools.ietf.org/html/rfc7946#section-3.1
 .. _Geohash: https://en.wikipedia.org/wiki/Geohash
 .. _Quadtree: https://en.wikipedia.org/wiki/Quadtree
 .. _Trie: https://en.wikipedia.org/wiki/Trie
