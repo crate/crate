@@ -6,7 +6,6 @@ jobs:
     pool:
       vmImage: 'Ubuntu 16.04'
     steps:
-      - script: git submodule update --init -- es/upstream
       - task: Gradle@2
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: 20
@@ -25,7 +24,6 @@ jobs:
     pool:
       vmImage: 'Ubuntu 16.04'
     steps:
-      - script: git submodule update --init -- es/upstream
       - task: Gradle@2
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: 20
@@ -44,7 +42,6 @@ jobs:
     pool:
       vmImage: 'VS2017-Win2016'
     steps:
-      - script: git submodule update --init -- es/upstream
       - task: Gradle@2
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: 20
