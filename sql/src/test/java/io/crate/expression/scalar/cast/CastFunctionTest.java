@@ -60,7 +60,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         Map<String, Object> shape = new HashMap<>();
         shape.put("type", "LineString");
         shape.put("coordinates", new Double[][] {new Double[] { 0d, 0d}, new Double[] {2d, 0d} });
-        assertEvaluate("geoshape::object", shape, () -> shape);
+        assertEvaluate("geoshape::object", shape, Literal.of(shape));
     }
 
     @Test
