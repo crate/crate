@@ -138,6 +138,7 @@ following tables:
  - `pg_attrdef <pgsql_pg_attrdef_>`__
  - `pg_index <pgsql_pg_index_>`__
  - `pg_constraint <pgsql_pg_constraint_>`__
+ - `pg_description`_
 
 
 ``pg_type``
@@ -362,3 +363,4 @@ either because of the table is empty or by a not matching where clause.
 .. _pgsql_pg_index: https://www.postgresql.org/docs/10/static/catalog-pg-index.html
 .. _pgsql_pg_constraint: https://www.postgresql.org/docs/10/static/catalog-pg-constraint.html
 .. _pgsql_pg_database: https://www.postgresql.org/docs/10/static/catalog-pg-database.html
+.. _pg_description: https://www.postgresql.org/docs/10/catalog-pg-description.html

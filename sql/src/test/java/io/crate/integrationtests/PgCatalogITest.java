@@ -27,6 +27,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.is;
 
 public class PgCatalogITest extends SQLTransportIntegrationTest {
@@ -82,5 +83,12 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
         execute("select cn.* from pg_constraint cn, pg_class c where cn.conrelid = c.oid and c.relname = 't1'");
         assertThat(printedTable(response.rows()), is(
             "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| NULL| t1_pk| -2048275947| true| NULL| NULL| 728874843| NULL| p| 0| true| -874078436\n"));
+    }
+
+    @Test
+    public void testPgDescriptionTableIsEmpty() {
+        execute("select * from pg_description");
+        assertThat(printedTable(response.rows()), is(""));
+        assertThat(response.cols(), arrayContaining("classoid", "description", "objoid", "objsubid"));
     }
 }

@@ -41,6 +41,9 @@ Breaking Changes
 Changes
 =======
 
+- Added a ``pg_description`` table to the ``pg_catalog`` schema for improved
+  postgresql compatibility.
+
 - Added support for window function ``row_number()``.
 
 - Added support to use any expression in the operand of a ``CASE`` clause.
