@@ -238,7 +238,7 @@ primaryExpression
     | EXTRACT '(' stringLiteralOrIdentifier FROM expr ')'                            #extract
     | CAST '(' expr AS dataType ')'                                                  #cast
     | TRY_CAST '(' expr AS dataType ')'                                              #cast
-    | CASE valueExpression whenClause+ (ELSE elseExpr=expr)? END                     #simpleCase
+    | CASE operand=expr whenClause+ (ELSE elseExpr=expr)? END                        #simpleCase
     | CASE whenClause+ (ELSE elseExpr=expr)? END                                     #searchedCase
     | IF '('condition=expr ',' trueValue=expr (',' falseValue=expr)? ')'             #ifCase
     | ARRAY subqueryExpression                                                       #arraySubquery
