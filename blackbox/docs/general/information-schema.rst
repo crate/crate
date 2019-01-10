@@ -86,6 +86,7 @@ number of replicas.
     | pg_catalog         | pg_class                | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_constraint           | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_database             | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_description          | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_index                | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_namespace            | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_type                 | BASE TABLE |             NULL | NULL               |
@@ -107,7 +108,7 @@ number of replicas.
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 40 rows in set (... sec)
+    SELECT 41 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`partitioned_tables`)
