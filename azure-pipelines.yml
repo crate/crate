@@ -1,4 +1,6 @@
 ---
+trigger: none
+
 jobs:
   - job: LinuxJDK11
     pool:
