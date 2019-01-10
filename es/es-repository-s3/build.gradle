@@ -11,20 +11,3 @@ dependencies {
     compile 'com.fasterxml.jackson.core:jackson-annotations:2.6.0'
     compile 'javax.xml.bind:jaxb-api:2.2.2'
 }
-
-def pluginDir = file('../upstream/plugins/repository-s3')
-
-sourceSets {
-    main {
-        java {
-            srcDir "$pluginDir/src/main/java"
-        }
-    }
-}
-
-idea {
-    module {
-        contentRoot = pluginDir
-        excludeDirs += files('build', 'src/test')
-    }
-}
