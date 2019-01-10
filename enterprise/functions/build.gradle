@@ -1,8 +1,8 @@
 apply from: "$rootDir/enterprise/enterpriseModule.gradle"
 
-archivesBaseName = 'hll'
+archivesBaseName = 'functions'
 group = 'io.crate'
-description = 'HyperLogLog for CrateDB'
+description = 'Enterprise functions for CrateDB'
 
 dependencies {
     compile project(':sql')
