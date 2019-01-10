@@ -47,7 +47,6 @@ import org.apache.lucene.util.TestRuleMarkFailure;
 import org.apache.lucene.util.TestUtil;
 import org.apache.lucene.util.TimeUnits;
 import org.elasticsearch.Version;
-import org.elasticsearch.bootstrap.BootstrapForTesting;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -227,7 +226,6 @@ public abstract class ESTestCase extends LuceneTestCase {
             Configurator.shutdown(context);
         }));
 
-        BootstrapForTesting.ensureInitialized();
 
         // filter out joda timezones that are deprecated for the java time migration
         List<String> jodaTZIds = DateTimeZone.getAvailableIDs().stream()
