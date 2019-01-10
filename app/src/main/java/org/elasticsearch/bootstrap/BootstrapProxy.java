@@ -61,9 +61,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * ES_COPY_OF: core/src/main/java/org/elasticsearch/bootstrap/Bootstrap.java
  * <p>
- * This is a copy of {@link Bootstrap}
+ * This is a copy of ES src/main/java/org/elasticsearch/bootstrap/Bootstrap.java.
  * <p>
  * With following patches:
  * - CrateNode instead of Node is build/started in order to load the CrateCorePlugin

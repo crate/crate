@@ -3,7 +3,6 @@ import java.time.ZonedDateTime;
 
 dependencies {
     compile project(':es:es-core')
-    compile project(':es:es-secure-sm')
     compile project(':es:es-x-content')
     compileOnly project(':es:es-plugin-classloader')
     testRuntime project(':es:es-plugin-classloader')
