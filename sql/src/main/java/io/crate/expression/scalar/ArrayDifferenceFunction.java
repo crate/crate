@@ -40,6 +40,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -87,13 +88,15 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
 
         DataType innerType = ((ArrayType) this.info().returnType()).innerType();
         Object[] array = (Object[]) inputValue;
-        Set<Object> subtractSet = new HashSet<>();
-        if (array.length > 0) {
+        Set<Object> subtractSet;
+        if (array == null) {
+            subtractSet = Collections.emptySet();
+        } else {
+            subtractSet = new HashSet<>();
             for (Object element : array) {
                 subtractSet.add(innerType.hashableValue(element));
             }
         }
-
         return new ArrayDifferenceFunction(this.functionInfo, subtractSet);
     }
 

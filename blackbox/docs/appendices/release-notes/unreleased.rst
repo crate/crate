@@ -44,6 +44,8 @@ Changes
 Fixes
 =====
 
+- Fixed a ``NullPointerException`` that could occur using ``array_difference``.
+
 - Fixed a race condition that could lead to stuck queries. One case this could
   occur is if a node was being stopped or crashed.
 
