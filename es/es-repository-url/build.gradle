@@ -19,24 +19,8 @@
  * software solely pursuant to the terms of the relevant commercial
  * agreement.
  */
+apply from: "$rootDir/gradle/javaModule.gradle"
 
 dependencies {
     compile project(':es:es-server')
-}
-
-def moduleDir = file('../upstream/modules/repository-url')
-
-sourceSets {
-    main {
-        java {
-            srcDir "$moduleDir/src/main/java"
-        }
-    }
-}
-
-idea {
-    module {
-        contentRoot = moduleDir
-        excludeDirs += file('build')
-    }
 }

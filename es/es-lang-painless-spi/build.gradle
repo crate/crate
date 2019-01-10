@@ -1,21 +1,3 @@
-
-def moduleDir = file('../upstream/modules/lang-painless/spi')
-
 dependencies {
   compile project(':es:es-server')
-}
-
-sourceSets {
-    main {
-        java {
-            srcDir "$moduleDir/src/main/java"
-        }
-    }
-}
-
-idea {
-    module {
-        contentRoot = moduleDir
-        excludeDirs += file('build')
-    }
 }
