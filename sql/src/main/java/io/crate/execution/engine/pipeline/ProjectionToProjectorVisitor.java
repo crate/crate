@@ -23,6 +23,7 @@
 package io.crate.execution.engine.pipeline;
 
 import com.google.common.collect.Iterables;
+import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Bucket;
@@ -95,6 +96,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -358,8 +361,12 @@ public class ProjectionToProjectorVisitor
         Input<?> sourceInput = ctx.add(projection.rawSource());
         Supplier<String> indexNameResolver =
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
-        Settings tableSettings = TableSettingsResolver.get(clusterService.state().getMetaData(),
+        ClusterState state = clusterService.state();
+        Settings tableSettings = TableSettingsResolver.get(state.getMetaData(),
             projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
+
+        int targetTableNumShards = IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
+        int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize());
 
         UpsertResultContext upsertResultContext;
         if (projection instanceof SourceIndexWriterReturnSummaryProjection) {
@@ -379,8 +386,9 @@ public class ProjectionToProjectorVisitor
             threadPool.executor(ThreadPool.Names.SEARCH),
             context.txnCtx,
             functions,
-            clusterService.state().metaData().settings(),
-            tableSettings,
+            state.metaData().settings(),
+            targetTableNumShards,
+            targetTableNumReplicas,
             transportActionProvider.transportBulkCreateIndicesAction(),
             transportActionProvider.transportShardUpsertAction()::execute,
             indexNameResolver,
@@ -412,8 +420,13 @@ public class ProjectionToProjectorVisitor
         for (Symbol symbol : projection.columnSymbols()) {
             insertInputs.add(ctx.add(symbol));
         }
-        Settings tableSettings = TableSettingsResolver.get(clusterService.state().getMetaData(),
+        ClusterState state = clusterService.state();
+        Settings tableSettings = TableSettingsResolver.get(state.getMetaData(),
             projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
+
+        int targetTableNumShards = IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
+        int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize());
+
         return new ColumnIndexWriterProjector(
             clusterService,
             nodeJobsCounter,
@@ -421,8 +434,9 @@ public class ProjectionToProjectorVisitor
             threadPool.executor(ThreadPool.Names.SEARCH),
             context.txnCtx,
             functions,
-            clusterService.state().metaData().settings(),
-            tableSettings,
+            state.metaData().settings(),
+            targetTableNumShards,
+            targetTableNumReplicas,
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
             transportActionProvider,
             projection.primaryKeys(),

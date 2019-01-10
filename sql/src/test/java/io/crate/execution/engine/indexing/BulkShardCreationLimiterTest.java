@@ -25,13 +25,10 @@ package io.crate.execution.engine.indexing;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.io.IOException;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.hamcrest.Matchers.is;
 
 public class BulkShardCreationLimiterTest extends CrateUnitTest {
@@ -56,33 +53,30 @@ public class BulkShardCreationLimiterTest extends CrateUnitTest {
 
     @Test
     public void testNumberOfShardsGreaterEqualThanLimit() throws Exception {
-        Settings settings = Settings.builder()
-            .put(SETTING_NUMBER_OF_SHARDS, BulkShardCreationLimiter.MAX_NEW_SHARDS_PER_NODE)
-            .put(SETTING_NUMBER_OF_REPLICAS, 0).build();
+        int numberOfShards = BulkShardCreationLimiter.MAX_NEW_SHARDS_PER_NODE;
+        int numberOfReplicas = 0;
         BulkShardCreationLimiter<DummyShardRequest, DummyRequestItem> bulkShardCreationLimiter =
-            new BulkShardCreationLimiter<>(settings, 1);
+            new BulkShardCreationLimiter<>(numberOfShards, numberOfReplicas, 1);
 
         assertThat(bulkShardCreationLimiter.test(SHARED_REQUESTS), is(true));
     }
 
     @Test
     public void testNumberOfShardsLessThanLimit() throws Exception {
-        Settings settings = Settings.builder()
-            .put(SETTING_NUMBER_OF_SHARDS, BulkShardCreationLimiter.MAX_NEW_SHARDS_PER_NODE - 1)
-            .put(SETTING_NUMBER_OF_REPLICAS, 0).build();
+        int numberOfShards = BulkShardCreationLimiter.MAX_NEW_SHARDS_PER_NODE - 1;
+        int numberOfReplicas = 0;
         BulkShardCreationLimiter<DummyShardRequest, DummyRequestItem> bulkShardCreationLimiter =
-            new BulkShardCreationLimiter<>(settings, 1);
+            new BulkShardCreationLimiter<>(numberOfShards, numberOfReplicas, 1);
 
         assertThat(bulkShardCreationLimiter.test(SHARED_REQUESTS), is(false));
     }
 
     @Test
     public void testNumberOfShardsLessThanLimitWithTwoNodes() throws Exception {
-        Settings settings = Settings.builder()
-            .put(SETTING_NUMBER_OF_SHARDS, BulkShardCreationLimiter.MAX_NEW_SHARDS_PER_NODE)
-            .put(SETTING_NUMBER_OF_REPLICAS, 0).build();
+        int numberOfShards = BulkShardCreationLimiter.MAX_NEW_SHARDS_PER_NODE - 1;
+        int numberOfReplicas = 0;
         BulkShardCreationLimiter<DummyShardRequest, DummyRequestItem> bulkShardCreationLimiter =
-            new BulkShardCreationLimiter<>(settings, 2);
+            new BulkShardCreationLimiter<>(numberOfShards, numberOfReplicas, 2);
 
         assertThat(bulkShardCreationLimiter.test(SHARED_REQUESTS), is(false));
     }
