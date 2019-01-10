@@ -1,26 +1,9 @@
-
-def moduleDir = file('../upstream/modules/lang-painless')
-
 dependencies {
   compile 'org.antlr:antlr4-runtime:4.5.3'
   compile 'org.ow2.asm:asm-debug-all:5.1'
   compile project(':es:es-lang-painless-spi')
 }
 
-sourceSets {
-    main {
-        java {
-            srcDir "$moduleDir/src/main/java"
-        }
-    }
-}
-
-idea {
-    module {
-        contentRoot = moduleDir
-        excludeDirs += file('build')
-    }
-}
 
 /**********************************************
  *            Parser regeneration             *
@@ -34,8 +17,8 @@ dependencies {
   regenerate 'org.antlr:antlr4:4.5.3'
 }
 
-String grammarPath = "$moduleDir/src/main/antlr"
-String outputPath = "$moduleDir/src/main/java/org/elasticsearch/painless/antlr"
+String grammarPath = "src/main/antlr"
+String outputPath = "src/main/java/org/elasticsearch/painless/antlr"
 
 task cleanGenerated(type: Delete) {
   delete fileTree(grammarPath) {

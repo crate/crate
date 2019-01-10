@@ -19,6 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial
  * agreement.
  */
+
 description = 'The HDFS repository plugin adds support for Hadoop Distributed File-System (HDFS) repositories.'
 def classname = 'org.elasticsearch.repositories.hdfs.HdfsPlugin'
 def plugin_repositoryhdfs_version = '1.0.0'
@@ -97,22 +98,6 @@ dependencies {
     extraLibs "org.apache.zookeeper:zookeeper:3.4.6"
 }
 
-def pluginDir = file('../upstream/plugins/repository-hdfs')
-
-sourceSets {
-    main {
-        java {
-            srcDir "$pluginDir/src/main/java"
-        }
-    }
-}
-
-idea {
-    module {
-        contentRoot = pluginDir
-        excludeDirs += files('build', 'src/test')
-    }
-}
 
 jar {dependsOn(['writePropertiesFileRepositoryHSFS', 'copyRequiredLibs'])}
 task blackBoxTestJar {dependsOn([jar, 'copyExtraLibs'])}

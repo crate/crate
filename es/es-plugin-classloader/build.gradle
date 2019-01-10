@@ -1,18 +1,1 @@
-
-
-def libDir = file('../upstream/libs/plugin-classloader')
-
-sourceSets {
-    main {
-        java {
-            srcDir "$libDir/src/main/java"
-        }
-    }
-}
-
-idea {
-    module {
-        contentRoot = libDir
-        excludeDirs += files('build', 'src/test')
-    }
-}
+apply from: "$rootDir/gradle/javaModule.gradle"
