@@ -1,3 +1,0 @@
-[submodule "es/upstream"]
-	path = es/upstream
-	url = https://github.com/crate/elasticsearch.git

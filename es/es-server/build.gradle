@@ -2,8 +2,6 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
 dependencies {
-    // same dependencies as in es/upstream/server/build.gradle
-
     compile project(':es:es-core')
     compile project(':es:es-secure-sm')
     compile project(':es:es-x-content')
@@ -54,35 +52,4 @@ dependencies {
     compile "org.apache.logging.log4j:log4j-1.2-api:${versions.log4j2}"
 
     compile "net.java.dev.jna:jna:${versions.jna}"
-}
-
-// Build.java in ES sources will read those properties
-jar {
-    manifest {
-        attributes(
-            "Change": "git rev-parse HEAD".execute([], new File("es/upstream")).in.text.trim(),
-            "Build-Date": ZonedDateTime.now(ZoneOffset.UTC),
-            "X-Compile-Elasticsearch-Snapshot": false
-        )
-    }
-}
-
-def moduleDir = file('../upstream/server')
-
-sourceSets {
-    main {
-        java {
-            srcDir "$moduleDir/src/main/java"
-        }
-        resources {
-            srcDir "$moduleDir/src/main/resources"
-        }
-    }
-}
-
-idea {
-    module {
-        contentRoot = file("$moduleDir/src/main")
-        excludeDirs += file('build')
-    }
 }
