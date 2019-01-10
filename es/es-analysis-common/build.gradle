@@ -22,5 +22,4 @@
 
 dependencies {
     compile project(':es:es-server')
-    compileOnly project(':es:es-lang-painless')
 }
