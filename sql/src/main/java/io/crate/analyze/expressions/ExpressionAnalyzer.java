@@ -134,13 +134,13 @@ import io.crate.types.UndefinedType;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -437,60 +437,46 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitSimpleCaseExpression(SimpleCaseExpression node, ExpressionAnalysisContext context) {
-            return convertCaseExpressionToIfFunctions(node.getWhenClauses(), node.getOperand(),
-                node.getDefaultValue(), context);
+            /* CASE caseOperand
+             *   WHEN whenOperand1 THEN result1
+             *   WHEN whenOperand2 THEN result2
+             *   ELSE default
+             * END
+             * ---
+             * operands: [eq(caseOperand, whenOperand1), eq(caseOperand, whenOperand2)]
+             * results:  [result1, result2]
+             */
+            List<WhenClause> whenClauses = node.getWhenClauses();
+            List<Symbol> operands = new ArrayList<>(whenClauses.size());
+            List<Symbol> results = new ArrayList<>(whenClauses.size());
+            Symbol caseOperand = convert(node.getOperand(), context);
+            for (WhenClause whenClause : whenClauses) {
+                Symbol whenOperand = convert(whenClause.getOperand(), context);
+                operands.add(allocateFunction(EqOperator.NAME, ImmutableList.of(caseOperand, whenOperand), context));
+                results.add(convert(whenClause.getResult(), context));
+            }
+            ensureResultTypesMatch(results);
+            Expression defaultValue = node.getDefaultValue();
+            return createChain(
+                operands,
+                results,
+                defaultValue == null ? null : convert(defaultValue, context),
+                context
+            );
         }
 
         @Override
         protected Symbol visitSearchedCaseExpression(SearchedCaseExpression node, ExpressionAnalysisContext context) {
-            return convertCaseExpressionToIfFunctions(node.getWhenClauses(), null, node.getDefaultValue(), context);
-        }
-
-        private Symbol convertCaseExpressionToIfFunctions(List<WhenClause> whenClauseExpressions,
-                                                          @Nullable Expression operandExpression,
-                                                          @Nullable Expression defaultValue,
-                                                          ExpressionAnalysisContext context) {
-            List<Symbol> operands = new ArrayList<>(whenClauseExpressions.size());
-            List<Symbol> results = new ArrayList<>(whenClauseExpressions.size());
-            Set<DataType> resultsTypes = new HashSet<>(whenClauseExpressions.size());
-
-            // check for global operand
-            Symbol operandLeftSymbol = null;
-            if (operandExpression != null) {
-                operandLeftSymbol = operandExpression.accept(innerAnalyzer, context);
+            List<WhenClause> whenClauses = node.getWhenClauses();
+            List<Symbol> operands = new ArrayList<>(whenClauses.size());
+            List<Symbol> results = new ArrayList<>(whenClauses.size());
+            for (WhenClause whenClause : whenClauses) {
+                operands.add(whenClause.getOperand().accept(innerAnalyzer, context));
+                results.add(whenClause.getResult().accept(innerAnalyzer, context));
             }
-
-            for (WhenClause whenClause : whenClauseExpressions) {
-                Symbol operandSymbol = whenClause.getOperand().accept(innerAnalyzer, context);
-
-                if (operandLeftSymbol != null) {
-                    operandSymbol = allocateFunction(
-                        EqOperator.NAME,
-                        ImmutableList.of(operandLeftSymbol, operandSymbol),
-                        context);
-                }
-
-                operands.add(operandSymbol);
-
-                Symbol resultSymbol = whenClause.getResult().accept(innerAnalyzer, context);
-                results.add(resultSymbol);
-                resultsTypes.add(resultSymbol.valueType());
-            }
-
-            if (resultsTypes.size() == 2 && !resultsTypes.contains(DataTypes.UNDEFINED)
-                || resultsTypes.size() > 2) {
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "Data types of all result expressions of a CASE statement must be equal, found: %s",
-                    resultsTypes));
-            }
-
-            Symbol defaultValueSymbol = null;
-            if (defaultValue != null) {
-                defaultValueSymbol = defaultValue.accept(innerAnalyzer, context);
-            }
-
-
-            return createChain(operands, results, defaultValueSymbol, context);
+            ensureResultTypesMatch(results);
+            Expression defaultValue = node.getDefaultValue();
+            return createChain(operands, results, defaultValue == null ? null : convert(defaultValue, context), context);
         }
 
         /**
@@ -1088,6 +1074,18 @@ public class ExpressionAnalyzer {
                     "All columns within a match predicate must be of the same type. Found %s and %s",
                     columnType, column.valueType()));
             }
+        }
+    }
+
+    private static void ensureResultTypesMatch(Collection<? extends Symbol> results) {
+        HashSet<DataType> resultTypes = new HashSet<>();
+        for (Symbol result : results) {
+            resultTypes.add(result.valueType());
+        }
+        if (resultTypes.size() == 2 && !resultTypes.contains(DataTypes.UNDEFINED) || resultTypes.size() > 2) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "Data types of all result expressions of a CASE statement must be equal, found: %s",
+                resultTypes));
         }
     }
 
