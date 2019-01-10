@@ -22,12 +22,9 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.analyze.NumberOfReplicas;
 import io.crate.execution.dml.ShardRequest;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.settings.Settings;
+import org.apache.logging.log4j.Logger;
 
 import java.util.function.Predicate;
 
@@ -44,11 +41,9 @@ public class BulkShardCreationLimiter<TReq extends ShardRequest<TReq, TItem>, TI
     private final int numDataNodes;
     private final int numberOfAllShards;
 
-    BulkShardCreationLimiter(Settings tableSettings, int numDataNodes) {
+    BulkShardCreationLimiter(int numberOfShards, int numberOfReplicas, int numDataNodes) {
         this.numDataNodes = numDataNodes;
-        int numberOfShards = IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
-        int numberOfReplicas = NumberOfReplicas.fromSettings(tableSettings, numDataNodes);
-        numberOfAllShards = (numberOfShards + (numberOfShards * numberOfReplicas));
+        this.numberOfAllShards = (numberOfShards + (numberOfShards * numberOfReplicas));
     }
 
     @Override
@@ -57,8 +52,10 @@ public class BulkShardCreationLimiter<TReq extends ShardRequest<TReq, TItem>, TI
             int numberOfShardForAllIndices = numberOfAllShards * requests.itemsByMissingIndex.size();
             int numberOfShardsPerNode = numberOfShardForAllIndices / numDataNodes;
             if (numberOfShardsPerNode >= MAX_NEW_SHARDS_PER_NODE) {
-                LOGGER.debug("Number of NEW shards per node {} reached maximum limit of {}",
-                    numberOfShardsPerNode, MAX_NEW_SHARDS_PER_NODE);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Number of NEW shards per node {} reached maximum limit of {}",
+                        numberOfShardsPerNode, MAX_NEW_SHARDS_PER_NODE);
+                }
                 return true;
             }
         }
