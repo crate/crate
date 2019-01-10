@@ -123,12 +123,13 @@ Function Call
 A function is declared by its name followed by its arguments enclosed in
 parentheses::
 
-    function_name([expression [, expression ... ]])
+    function_name([expression [, expression ... ]]) [ OVER([ORDER BY expression] [, ...]) ]
 
 .. SEEALSO::
 
     - :ref:`scalar`
     - :ref:`aggregation`
+    - :ref:`window-functions`
 
 Type Cast
 =========
