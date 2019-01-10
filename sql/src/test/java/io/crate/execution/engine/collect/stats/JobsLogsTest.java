@@ -27,7 +27,7 @@ import com.google.common.collect.Iterables;
 import io.crate.auth.user.User;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.BlockingEvictingQueue;
+import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContext;

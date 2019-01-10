@@ -25,7 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
-import io.crate.core.StringUtils;
+import io.crate.common.StringUtils;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.sql.Identifiers;
 import org.elasticsearch.common.io.stream.StreamInput;

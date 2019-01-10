@@ -116,14 +116,14 @@ class Order extends OneInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
-        if (pushDown instanceof Order) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
+        if (ancestor instanceof Order) {
             // We can overwrite this Order with the Order being pushed down
             // because the order of the results will be changed anyway further
             // downstream.
-            return source.tryOptimize(pushDown, mapper);
+            return source.tryOptimize(ancestor, mapper);
         }
-        if (pushDown != null) {
+        if (ancestor != null) {
             // already pushing down something else
             return null;
         }

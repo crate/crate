@@ -24,7 +24,7 @@ package io.crate.execution.dml.upsert;
 
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.core.collections.Maps;
+import io.crate.common.collections.Maps;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;

@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.plugin.BlobPlugin;
-import io.crate.plugin.CrateCorePlugin;
+import io.crate.plugin.CrateCommonPlugin;
 import io.crate.plugin.HttpTransportPlugin;
 import io.crate.plugin.LicensePlugin;
 import io.crate.plugin.PluginLoaderPlugin;
@@ -52,7 +52,7 @@ public class CrateNode extends Node {
     private static final Collection<Class<? extends Plugin>> CLASSPATH_PLUGINS = ImmutableList.of(
         LicensePlugin.class,
         PluginLoaderPlugin.class,
-        CrateCorePlugin.class,
+        CrateCommonPlugin.class,
         HttpTransportPlugin.class,
         BlobPlugin.class,
         SrvPlugin.class,

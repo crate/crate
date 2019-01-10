@@ -21,7 +21,7 @@
 
 package io.crate.expression.operator;
 
-import io.crate.core.collections.MapComparator;
+import io.crate.common.collections.MapComparator;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;

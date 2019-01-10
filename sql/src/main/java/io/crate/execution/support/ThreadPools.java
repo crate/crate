@@ -25,9 +25,7 @@ package io.crate.execution.support;
 import com.google.common.collect.Iterables;
 import io.crate.collections.Lists2;
 import io.crate.concurrent.CompletableFutures;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -48,10 +46,6 @@ public class ThreadPools {
             // concurrent queries
             numProcessors
         );
-    }
-
-    public static Executor withDirectExecutionFallback(Executor executor) {
-        return new DirectFallbackExecutor(executor);
     }
 
     /**
@@ -98,24 +92,14 @@ public class ThreadPools {
     }
 
     /**
-     * Executor that delegates to {@link Executor} or
-     * runs the command synchronous if the provided executor throws {@link EsRejectedExecutionException}
+     * Execute the given runnable using the executor.
+     * If the executor throws a RejectedExecutionException the runnable is invoked directly in the calling thread
      */
-    private static class DirectFallbackExecutor implements Executor {
-
-        private final Executor delegate;
-
-        DirectFallbackExecutor(Executor delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public void execute(@Nonnull Runnable command) {
-            try {
-                delegate.execute(command);
-            } catch (RejectedExecutionException e) {
-                command.run();
-            }
+    public static void forceExecute(Executor executor, Runnable runnable) {
+        try {
+            executor.execute(runnable);
+        } catch (RejectedExecutionException e) {
+            runnable.run();
         }
     }
 }

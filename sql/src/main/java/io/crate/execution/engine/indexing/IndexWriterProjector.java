@@ -34,9 +34,9 @@ import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
@@ -71,7 +71,8 @@ public class IndexWriterProjector implements Projector {
                                 TransactionContext txnCtx,
                                 Functions functions,
                                 Settings settings,
-                                Settings tableSettings,
+                                int targetTableNumShards,
+                                int targetTableNumReplicas,
                                 TransportCreatePartitionsAction transportCreatePartitionsAction,
                                 BulkRequestExecutor<ShardUpsertRequest> shardUpsertAction,
                                 Supplier<String> indexNameResolver,
@@ -110,9 +111,6 @@ public class IndexWriterProjector implements Projector {
             jobId,
             false);
 
-        //noinspection unchecked
-        Input<String> sourceUri = upsertResultContext.getSourceUriInput();
-
         Function<String, ShardUpsertRequest.Item> itemFactory = id ->
             new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null);
 
@@ -131,7 +129,8 @@ public class IndexWriterProjector implements Projector {
             autoCreateIndices,
             shardUpsertAction,
             transportCreatePartitionsAction,
-            tableSettings,
+            targetTableNumShards,
+            targetTableNumReplicas,
             upsertResultContext
         );
     }

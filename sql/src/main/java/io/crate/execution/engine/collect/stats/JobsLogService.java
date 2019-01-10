@@ -32,7 +32,7 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.JobContextLogSizeEstimator;
 import io.crate.breaker.OperationContextLogSizeEstimator;
 import io.crate.breaker.SizeEstimator;
-import io.crate.core.collections.BlockingEvictingQueue;
+import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.ExpressionsInput;

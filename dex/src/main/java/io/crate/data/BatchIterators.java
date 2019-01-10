@@ -106,7 +106,7 @@ public class BatchIterators {
                                                     int size,
                                                     Supplier<A> supplier,
                                                     BiConsumer<A, T> accumulator,
-                                                    Predicate<A> stateLimiter) {
+                                                    Predicate<? super A> stateLimiter) {
         return new MappedForwardingBatchIterator<T, A>() {
 
             private A element = null;

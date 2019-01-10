@@ -105,53 +105,60 @@ public interface LogicalPlan extends Plan {
     }
 
     /**
-     * Tried to optimize the plan and its dependencies to execute more efficiently.
-     * This is done by creating optimized operators or "pushing down" parts of the
-     * plan.
-     *
-     * Optimized operators
-     *
-     * For example: Aggregate(count(*)) + Collect => Count
-     *
-     * Push Down
-     *
-     * Tries to "push-down" a LogicalPlan to this plan or the children of
-     * this plan. A push-down is an optimization which changes the plan by
-     * performing operations earlier in the plan tree. Ideally, it makes
-     * the plan execute more efficiently.
-     *
-     * For example, pushing down an *Order*:
+     * Try to optimize the plan by re-ordering or squashing operators.
      *
      * <pre>
-     *       *Order*                   Union
-     *          |                     /     \
-     *          |                    /       \
-     *        Union              *Order*  *Order*
-     *       /     \                |        |
-     *      /       \      =>       |        |
+     * For example, given the following operators:
+     *
+     *     A                                    +--- Refers to A, but could also refer to a parent of A
+     *     |                                   /
+     *     B -- // tryOptimize(LogicalPlan ancestor, SymbolMapper mapper)
+     *     |
+     *     C
+     *     |
+     *     D
+     * </pre>
+     *
+     * Implementations should attempt to do the following action as long as the query semantic is not changed:
+     *
+     * <pre>
+     *     - Merge A and B if possible. (For example, if both A and B are filters) (Merged operator is called B')
+     *     - Call C.tryOptimize:
+     *          - With B' if it is valid to push down the operator without changing semantics
+     *          - With null if the operator cannot be pushed down without changing semantics.
+     *            (To allow C to be merged with D, or C be moved below D)
+     *          - With A, if B cannot be changed/moved, but it might be valid to merge C with A, or move A below C.
+     * </pre>
+     *
+     * Real examples:
+     *
+     * <pre>
+     *     select count(*) optimization:
+     *
+     *
+     *     Aggregate(count(*))                  A
+     *          |                               |
+     *       Collect                            B   // B.tryOptimize(A) => Count
+     * </pre>
+     *
+     * <pre>
+     *     select * from t1 union all select * from t2 order by t1.x:
+     *
+     *       *Order*                   Union                       Union
+     *          |                     /     \                      /   \
+     *          |                    /       \                    /     \
+     *        Union              *Order*  *Order*               Order   Order
+     *       /     \                |        |                    |       |
+     *      /       \      =>       |        |           =>    Collect   Collect
      *   Collect   Order          Collect  Order
      *               |                       |
      *               |                       |
      *            Collect                 Collect
      * </pre>
      *
-     * Then combining two Order(s):
+     * @param ancestor A parent or ancestor operator which might
+     *                 be merged into the current operator or moved along the child operators.
      *
-     * <pre>
-     *        Union                  Union
-     *       /     \                /     \
-     *      /       \              /       \
-     *   Order   *Order*        Order   *Order*
-     *     |        |             |        |
-     *     |        |      =>     |        |
-     *   Order   *Order*       Collect  Collect
-     *              |
-     *              |
-     *           Collect
-     * </pre>
-     *
-     * @param pushDown The LogicalPlan which gets "pushed down". {@code null} if currently
-     *                 no plan gets pushed. If null, recurses to find other push down candidates.
      * @param mapper a function used to map symbols from the previous source to the new source.
      *               For example in a Join:
      *               If the OrderBy that is above of a join is moved beneath the join on one side
@@ -160,7 +167,7 @@ public interface LogicalPlan extends Plan {
      * @return A new LogicalPlan or null if rewriting/optimizing is not possible.
      */
     @Nullable
-    LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper);
+    LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper);
 
     /**
      * Uses the current shard allocation information to create a physical execution plan.

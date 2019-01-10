@@ -25,7 +25,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import io.crate.core.collections.TreeMapBuilder;
+import io.crate.common.collections.TreeMapBuilder;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.ColumnIdent;

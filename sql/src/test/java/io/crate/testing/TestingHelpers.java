@@ -27,7 +27,7 @@ import com.google.common.collect.Ordering;
 import io.crate.Version;
 import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
-import io.crate.core.collections.Sorted;
+import io.crate.common.collections.Sorted;
 import io.crate.data.Bucket;
 import io.crate.data.Buckets;
 import io.crate.data.Row;

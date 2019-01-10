@@ -22,17 +22,24 @@
 
 package io.crate.planner.node.dml;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.execution.dml.upsert.UpdateByIdTask;
+import io.crate.execution.dml.ShardRequestExecutor;
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.util.List;
 import java.util.Map;
@@ -43,23 +50,23 @@ public final class UpdateById implements Plan {
     private final DocTableInfo table;
     private final Map<Reference, Symbol> assignmentByTargetCol;
     private final DocKeys docKeys;
+    private final Assignments assignments;
 
     public UpdateById(DocTableInfo table, Map<Reference, Symbol> assignmentByTargetCol, DocKeys docKeys) {
         this.table = table;
+        this.assignments = Assignments.convert(assignmentByTargetCol);
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.docKeys = docKeys;
     }
 
-    public DocKeys docKeys() {
-        return docKeys;
-    }
-
-    public DocTableInfo table() {
-        return table;
-    }
-
+    @VisibleForTesting
     public Map<Reference, Symbol> assignmentByTargetCol() {
         return assignmentByTargetCol;
+    }
+
+    @VisibleForTesting
+    public DocKeys docKeys() {
+        return docKeys;
     }
 
     @Override
@@ -73,30 +80,75 @@ public final class UpdateById implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        UpdateByIdTask task = new UpdateByIdTask(
-            plannerContext.jobId(),
-            plannerContext.transactionContext(),
-            dependencies.clusterService(),
-            dependencies.functions(),
-            dependencies.transportActionProvider().transportShardUpsertAction(),
-            this
-        );
-        task.execute(consumer, params, subQueryResults);
+        createExecutor(dependencies, plannerContext)
+            .execute(consumer, params, subQueryResults);
     }
 
+
     @Override
-    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
+    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier dependencies,
                                                      PlannerContext plannerContext,
                                                      List<Row> bulkParams,
                                                      SubQueryResults subQueryResults) {
-        UpdateByIdTask task = new UpdateByIdTask(
+        return createExecutor(dependencies, plannerContext)
+            .executeBulk(bulkParams, subQueryResults);
+    }
+
+    private ShardRequestExecutor<ShardUpsertRequest> createExecutor(DependencyCarrier dependencies,
+                                                                    PlannerContext plannerContext) {
+        ClusterService clusterService = dependencies.clusterService();
+        CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
+        ShardUpsertRequest.Builder requestBuilder = new ShardUpsertRequest.Builder(
+            txnCtx.userName(),
+            txnCtx.currentSchema(),
+            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(clusterService.state().metaData().settings()),
+            ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
+            true,
+            assignments.targetNames(),
+            null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE
             plannerContext.jobId(),
-            plannerContext.transactionContext(),
-            executor.clusterService(),
-            executor.functions(),
-            executor.transportActionProvider().transportShardUpsertAction(),
-            this
+            false
         );
-        return task.executeBulk(bulkParams, subQueryResults);
+        UpdateRequests updateRequests = new UpdateRequests(requestBuilder, table, assignments);
+        return new ShardRequestExecutor<>(
+            clusterService,
+            txnCtx,
+            dependencies.functions(),
+            table,
+            updateRequests,
+            dependencies.transportActionProvider().transportShardUpsertAction()::execute,
+            docKeys
+        );
+    }
+
+    private static class UpdateRequests implements ShardRequestExecutor.RequestGrouper<ShardUpsertRequest> {
+
+        private final ShardUpsertRequest.Builder requestBuilder;
+        private final DocTableInfo table;
+        private final Assignments assignments;
+
+        private Symbol[] assignmentSources;
+
+        UpdateRequests(ShardUpsertRequest.Builder requestBuilder, DocTableInfo table, Assignments assignments) {
+            this.requestBuilder = requestBuilder;
+            this.table = table;
+            this.assignments = assignments;
+        }
+
+        @Override
+        public ShardUpsertRequest newRequest(ShardId shardId) {
+            return requestBuilder.newRequest(shardId);
+        }
+
+        @Override
+        public void bind(Row parameters, SubQueryResults subQueryResults) {
+            assignmentSources = assignments.bindSources(table, parameters, subQueryResults);
+        }
+
+        @Override
+        public void addItem(ShardUpsertRequest request, int location, String id, Long version) {
+            ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(id, assignmentSources, null, version);
+            request.add(location, item);
+        }
     }
 }

@@ -27,7 +27,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
-import io.crate.core.collections.TreeMapBuilder;
+import io.crate.common.collections.TreeMapBuilder;
 import io.crate.data.Paging;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.MergePhase;

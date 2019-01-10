@@ -49,8 +49,8 @@ abstract class TwoInputPlan extends LogicalPlanBase {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
-        if (pushDown != null) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
+        if (ancestor != null) {
             return null;
         }
         LogicalPlan newLhs = lhs.tryOptimize(null, mapper);

@@ -506,6 +506,13 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testCreateTableOptionsMultipleTimesNotAllowed() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("mismatched input 'partitioned' expecting <EOF>");
+        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1) partitioned by (col2)");
+    }
+
+    @Test
     public void testBlobTable() throws Exception {
         printStatement("drop blob table screenshots");
 

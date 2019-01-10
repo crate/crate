@@ -24,7 +24,7 @@ package io.crate.execution.engine.collect.stats;
 
 import io.crate.auth.user.User;
 import io.crate.breaker.SizeEstimator;
-import io.crate.core.collections.BlockingEvictingQueue;
+import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.expression.reference.sys.job.ContextLog;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;

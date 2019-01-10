@@ -323,18 +323,18 @@ class Collect extends ZeroInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
-        if (pushDown instanceof Order) {
-            return ((Order) pushDown).updateSource(this, mapper);
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
+        if (ancestor instanceof Order) {
+            return ((Order) ancestor).updateSource(this, mapper);
         }
-        if (pushDown instanceof Filter) {
-            Symbol ancestorQuery = mapper.apply(outputs, ((Filter) pushDown).query);
+        if (ancestor instanceof Filter) {
+            Symbol ancestorQuery = mapper.apply(outputs, ((Filter) ancestor).query);
             assert !SymbolVisitors.any(s -> s instanceof Field, ancestorQuery)
                 : "mapped ancestorQuery must not have any Field but only Reference symbols: " + ancestorQuery;
             return new Collect(
                 relation, outputs, where.add(ancestorQuery), numExpectedRows, estimatedRowSize);
         }
-        return super.tryOptimize(pushDown, mapper);
+        return super.tryOptimize(ancestor, mapper);
     }
 
     @Override

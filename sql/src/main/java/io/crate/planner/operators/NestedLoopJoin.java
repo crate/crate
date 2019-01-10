@@ -266,8 +266,8 @@ class NestedLoopJoin extends TwoInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
-        if (pushDown instanceof Order) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
+        if (ancestor instanceof Order) {
             /* Move the orderBy expression to the sub-relation if possible.
              *
              * This is possible because a nested loop preserves the ordering of the input-relation
@@ -281,14 +281,14 @@ class NestedLoopJoin extends TwoInputPlan {
                     Collections.newSetFromMap(new IdentityHashMap<>());
                 Consumer<Field> gatherRelations = f -> relationsInOrderBy.add(f.relation());
 
-                OrderBy orderBy = ((Order) pushDown).orderBy;
+                OrderBy orderBy = ((Order) ancestor).orderBy;
                 for (Symbol orderExpr : orderBy.orderBySymbols()) {
                     FieldsVisitor.visitFields(orderExpr, gatherRelations);
                 }
                 if (relationsInOrderBy.size() == 1) {
                     AnalyzedRelation relationInOrderBy = relationsInOrderBy.iterator().next();
                     if (relationInOrderBy == topMostLeftRelation) {
-                        LogicalPlan newLhs = lhs.tryOptimize(pushDown, SymbolMapper.fromMap(expressionMapping));
+                        LogicalPlan newLhs = lhs.tryOptimize(ancestor, SymbolMapper.fromMap(expressionMapping));
                         if (newLhs != null) {
                             return updateSources(newLhs, rhs);
                         }
@@ -296,7 +296,7 @@ class NestedLoopJoin extends TwoInputPlan {
                 }
             }
         }
-        return super.tryOptimize(pushDown, mapper);
+        return super.tryOptimize(ancestor, mapper);
     }
 
     @Override

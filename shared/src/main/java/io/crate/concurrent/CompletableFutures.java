@@ -22,7 +22,7 @@
 
 package io.crate.concurrent;
 
-import io.crate.core.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 
 import java.util.ArrayList;
 import java.util.Collection;

@@ -24,7 +24,6 @@ package org.elasticsearch.action.admin.indices.create;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import io.crate.metadata.IndexMappings;
@@ -62,7 +61,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -71,7 +69,6 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.DocumentMapper;
@@ -85,10 +82,7 @@ import org.elasticsearch.transport.TransportService;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -120,7 +114,6 @@ public class TransportCreatePartitionsAction
     private final IndicesService indicesService;
     private final AllocationService allocationService;
     private final NamedXContentRegistry xContentRegistry;
-    private final Environment environment;
     private final ActiveShardsObserver activeShardsObserver;
     private final ClusterStateTaskExecutor<CreatePartitionsRequest> executor = (currentState, tasks) -> {
         ClusterStateTaskExecutor.ClusterTasksResult.Builder<CreatePartitionsRequest> builder = ClusterStateTaskExecutor.ClusterTasksResult.builder();
@@ -138,7 +131,6 @@ public class TransportCreatePartitionsAction
     @Inject
     public TransportCreatePartitionsAction(Settings settings,
                                            TransportService transportService,
-                                           Environment environment,
                                            ClusterService clusterService,
                                            ThreadPool threadPool,
                                            AliasValidator aliasValidator,
@@ -148,7 +140,6 @@ public class TransportCreatePartitionsAction
                                            IndexNameExpressionResolver indexNameExpressionResolver,
                                            ActionFilters actionFilters) {
         super(settings, NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, CreatePartitionsRequest::new);
-        this.environment = environment;
         this.aliasValidator = aliasValidator;
         this.indicesService = indicesService;
         this.allocationService = allocationService;
@@ -221,10 +212,6 @@ public class TransportCreatePartitionsAction
 
             List<IndexTemplateMetaData> templates = findTemplates(request, currentState);
             applyTemplates(mappings, templatesAliases, templateNames, templates);
-            File mappingsDir = new File(environment.configFile().toFile(), "mappings");
-            if (mappingsDir.isDirectory()) {
-                addMappingFromMappingsFile(mappings, mappingsDir, request);
-            }
 
             // set `created` versions to actual ones
             IndexMappings.putDefaultSettingsToMappings(mappings);
@@ -311,9 +298,8 @@ public class TransportCreatePartitionsAction
             for (String index : indicesToCreate) {
                 routingTableBuilder.addAsNew(updatedState.metaData().index(index));
             }
-            updatedState = allocationService.reroute(
+            return allocationService.reroute(
                 ClusterState.builder(updatedState).routingTable(routingTableBuilder.build()).build(), "bulk-index-creation");
-            return updatedState;
         } finally {
             for (int i = 0; i < createdIndices.size(); i++) {
                 // Index was already partially created - need to clean up
@@ -348,22 +334,6 @@ public class TransportCreatePartitionsAction
         );
     }
 
-    private void addMappingFromMappingsFile(Map<String, Map<String, Object>> mappings, File mappingsDir, CreatePartitionsRequest request) {
-        for (String index : request.indices()) {
-            // first index level
-            File indexMappingsDir = new File(mappingsDir, index);
-            if (indexMappingsDir.isDirectory()) {
-                addMappings(mappings, indexMappingsDir);
-            }
-
-            // second is the _default mapping
-            File defaultMappingsDir = new File(mappingsDir, "_default");
-            if (defaultMappingsDir.isDirectory()) {
-                addMappings(mappings, defaultMappingsDir);
-            }
-        }
-    }
-
     private void validateAndFilterExistingIndices(ClusterState currentState,
                                                   List<String> indicesToCreate,
                                                   CreatePartitionsRequest request) {
@@ -383,57 +353,17 @@ public class TransportCreatePartitionsAction
         for (int i = templates.size() - 1; i >= 0; i--) {
             indexSettingsBuilder.put(templates.get(i).settings());
         }
-        if (indexSettingsBuilder.get(IndexMetaData.SETTING_NUMBER_OF_SHARDS) == null) {
-            indexSettingsBuilder.put(IndexMetaData.SETTING_NUMBER_OF_SHARDS,
-                settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5));
-        }
-        if (indexSettingsBuilder.get(IndexMetaData.SETTING_NUMBER_OF_REPLICAS) == null) {
-            indexSettingsBuilder.put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS,
-                settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1));
-        }
-        if (settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS) != null
-            && indexSettingsBuilder.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS) == null) {
-            indexSettingsBuilder.put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS,
-                settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS));
-        }
-
         if (indexSettingsBuilder.get(IndexMetaData.SETTING_VERSION_CREATED) == null) {
             DiscoveryNodes nodes = currentState.nodes();
             final Version createdVersion = Version.min(Version.CURRENT, nodes.getSmallestNonClientNodeVersion());
             indexSettingsBuilder.put(IndexMetaData.SETTING_VERSION_CREATED, createdVersion);
         }
-
         if (indexSettingsBuilder.get(IndexMetaData.SETTING_CREATION_DATE) == null) {
             indexSettingsBuilder.put(IndexMetaData.SETTING_CREATION_DATE, new DateTime(DateTimeZone.UTC).getMillis());
         }
-
         indexSettingsBuilder.put(IndexMetaData.SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
 
         return indexSettingsBuilder.build();
-    }
-
-    private void addMappings(Map<String, Map<String, Object>> mappings, File mappingsDir) {
-        File[] mappingsFiles = mappingsDir.listFiles();
-        assert mappingsFiles != null : "file list of the mapping directory should not be null";
-        for (File mappingFile : mappingsFiles) {
-            if (mappingFile.isHidden()) {
-                continue;
-            }
-            int lastDotIndex = mappingFile.getName().lastIndexOf('.');
-            String mappingType =
-                lastDotIndex != -1 ? mappingFile.getName().substring(0, lastDotIndex) : mappingFile.getName();
-            try (InputStreamReader reader = new InputStreamReader(new FileInputStream(mappingFile), Charsets.UTF_8)) {
-                String mappingSource = Streams.copyToString(reader);
-                if (mappings.containsKey(mappingType)) {
-                    XContentHelper.mergeDefaults(mappings.get(mappingType), parseMapping(mappingSource));
-                } else {
-                    mappings.put(mappingType, parseMapping(mappingSource));
-                }
-            } catch (Exception e) {
-                logger.warn("failed to read / parse mapping [" + mappingType + "] from location [" + mappingFile +
-                            "], ignoring...", e);
-            }
-        }
     }
 
     private void applyTemplates(Map<String, Map<String, Object>> mappings,

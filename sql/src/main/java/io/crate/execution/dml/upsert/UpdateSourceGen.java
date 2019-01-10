@@ -22,7 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.core.collections.Maps;
+import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.BaseImplementationSymbolVisitor;
@@ -72,7 +72,7 @@ import java.util.Map;
  *          (x = Reference)
  *          (excluded.x = Reference)
  *      insertValues: [10]
- *      
+ *
  *      resultSource: {x: 30, y: 30}
  * </pre>
  */

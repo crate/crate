@@ -31,14 +31,15 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 public class ChainableActions {
 
     /**
      * Runs the given list of chainable actions sequentially.
      *
-     * If one fails, all previous actions will be rolled back by calling
-     * the {@link ChainableAction#undo()} callable of each action in reverse order.
+     * If one fails, all previous actions will be rolled back by calling the {@link ChainableAction#undo()}
+     * callable of each action, including the failing one, in reverse order.
      */
     public static <R> CompletableFuture<R> run(List<? extends ChainableAction<R>> actions) {
         assert actions.size() > 0 : "Empty list of ChainableActions";
@@ -68,9 +69,20 @@ public class ChainableActions {
         return action.doIt();
     }
 
+    /**
+     * Rollback every previous action if the given result contains an error.
+     *
+     * Note: This method is called for every action, even if a previous one failed and doing a rollback on every
+     * chain action was done already. So the implementation must ensure that the rollback is only done once.
+     */
     private static <R> CompletableFuture<R> rollbackOnErrors(Result<R> result,
                                                              List<ChainableAction<R>> previousActions) {
         if (result.error != null) {
+            // Only undo the chain once
+            if (result.undoDone) {
+                Exceptions.rethrowUnchecked(result.error);
+                return CompletableFutures.failedFuture(result.error);
+            }
             int previousActionsSize = previousActions.size();
             CompletableFuture<R> previousActionUndo = previousActions.get(previousActionsSize - 1).undo();
             for (int i = previousActionsSize - 2; i >= 0; i--) {
@@ -86,6 +98,7 @@ public class ChainableActions {
                         return previousAction.undo();
                     });
             }
+            result.undoDone = true;
             return previousActionUndo
                 .handle(result::addResultAndError)
                 .thenCompose(r -> {
@@ -103,6 +116,7 @@ public class ChainableActions {
         @Nullable
         private Throwable error;
         private boolean errorOnUndo = false;
+        private boolean undoDone = false;
 
         public Result(@Nullable R result, @Nullable Throwable error) {
             this.result = result;
@@ -113,8 +127,9 @@ public class ChainableActions {
             if (result != null) {
                 this.result = result;
             }
+            t = unwrap(t);
             if (t != null) {
-                if (error != null) {
+                if (error != null && error != t) {
                     error = MultiException.of(error, t);
                     // if an error was already set, current error must resulted due to on undo operation
                     errorOnUndo = true;
@@ -124,5 +139,12 @@ public class ChainableActions {
             }
             return this;
         }
+    }
+
+    private static Throwable unwrap(@Nullable Throwable t) {
+        if (t instanceof CompletionException) {
+            return t.getCause();
+        }
+        return t;
     }
 }

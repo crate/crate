@@ -35,6 +35,7 @@ import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.support.RetryListener;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
@@ -43,9 +44,7 @@ import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAc
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -84,7 +83,7 @@ public class ShardingUpsertExecutor
     private final Function<ShardId, ShardUpsertRequest> requestFactory;
     private final BulkRequestExecutor<ShardUpsertRequest> requestExecutor;
     private final TransportCreatePartitionsAction createPartitionsAction;
-    private final BulkShardCreationLimiter<ShardUpsertRequest, ShardUpsertRequest.Item> bulkShardCreationLimiter;
+    private final BulkShardCreationLimiter bulkShardCreationLimiter;
     private final UpsertResultCollector resultCollector;
     private volatile boolean createPartitionsRequestOngoing = false;
 
@@ -102,7 +101,8 @@ public class ShardingUpsertExecutor
                            boolean autoCreateIndices,
                            BulkRequestExecutor<ShardUpsertRequest> requestExecutor,
                            TransportCreatePartitionsAction createPartitionsAction,
-                           Settings tableSettings,
+                           int targetTableNumShards,
+                           int targetTableNumReplicas,
                            UpsertResultContext upsertResultContext) {
         this.nodeJobsCounter = nodeJobsCounter;
         this.scheduler = scheduler;
@@ -125,7 +125,9 @@ public class ShardingUpsertExecutor
             upsertResultContext.getLineNumberInput(),
             autoCreateIndices
         );
-        bulkShardCreationLimiter = new BulkShardCreationLimiter<>(tableSettings,
+        bulkShardCreationLimiter = new BulkShardCreationLimiter(
+            targetTableNumShards,
+            targetTableNumReplicas,
             clusterService.state().nodes().getDataNodes().size());
         this.resultCollector = upsertResultContext.getResultCollector();
     }

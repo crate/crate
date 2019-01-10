@@ -435,6 +435,7 @@ def create_doctest_suite():
             'license.enterprise': 'true',
             'lang.js.enabled': 'true',
             'es.api.enabled': 'true',
+            'psql.port': GLOBAL_PORT_POOL.get(),
         }
     )
     tests = []
