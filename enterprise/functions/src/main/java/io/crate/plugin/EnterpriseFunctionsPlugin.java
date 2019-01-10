@@ -19,7 +19,7 @@
 package io.crate.plugin;
 
 import io.crate.Plugin;
-import io.crate.module.HyperLogLogModule;
+import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
@@ -27,26 +27,26 @@ import org.elasticsearch.common.settings.Settings;
 import java.util.Collection;
 import java.util.Collections;
 
-public class HyperLogLogPlugin implements Plugin {
+public class EnterpriseFunctionsPlugin implements Plugin {
 
     private final boolean isEnabled;
 
-    public HyperLogLogPlugin(Settings settings) {
+    public EnterpriseFunctionsPlugin(Settings settings) {
         isEnabled = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
     }
 
     @Override
     public String name() {
-        return "hyperLogLog";
+        return "enterpriseFunctions";
     }
 
     @Override
     public String description() {
-        return "CrateDB HyperLogLog Plugin";
+        return "CrateDB Enterprise Functions Plugin";
     }
 
     @Override
     public Collection<Module> createGuiceModules() {
-        return isEnabled ? Collections.singletonList(new HyperLogLogModule()) : Collections.emptyList();
+        return isEnabled ? Collections.singletonList(new EnterpriseFunctionsModule()) : Collections.emptyList();
     }
 }
