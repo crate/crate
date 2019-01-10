@@ -27,13 +27,13 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Input;
-import io.crate.expression.FunctionExpression;
-import io.crate.expression.symbol.Field;
+import io.crate.data.Row;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.InputFactory;
+import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
@@ -55,9 +55,8 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -69,11 +68,10 @@ import static org.hamcrest.core.Is.is;
 
 public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
-    private static final InputApplier INPUT_APPLIER = new InputApplier();
-
     protected SqlExpressions sqlExpressions;
     protected Functions functions;
     protected Map<QualifiedName, AnalyzedRelation> tableSources;
+    private InputFactory inputFactory;
 
     @Before
     public void prepareFunctions() throws Exception {
@@ -107,6 +105,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         tableSources = ImmutableMap.of(new QualifiedName("users"), tableRelation);
         sqlExpressions = new SqlExpressions(tableSources);
         functions = sqlExpressions.functions();
+        inputFactory = new InputFactory(functions);
     }
 
     /**
@@ -157,7 +156,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
      * </code>
      */
     @SuppressWarnings("unchecked")
-    public <T> void assertEvaluate(String functionExpression, Matcher<T> expectedValue, Input... inputs) {
+    public <T> void assertEvaluate(String functionExpression, Matcher<T> expectedValue, Literal<?>... literals) {
         if (expectedValue == null) {
             expectedValue = (Matcher<T>) nullValue();
         }
@@ -171,18 +170,21 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             assertThat((T) value, expectedValue);
             return;
         }
-        Function function = (Function) functionSymbol;
+        LinkedList<Literal<?>> unusedLiterals = new LinkedList<>(Arrays.asList(literals));
+        Function function = (Function) FieldReplacer.replaceFields(functionSymbol, f -> {
+            Literal<?> literal = unusedLiterals.pollFirst();
+            if (literal == null) {
+                throw new IllegalArgumentException("No value literal for field=" + f + ", please add more literals");
+            }
+            return literal;
+        });
         Scalar scalar = (Scalar) functions.getQualified(function.info().ident());
-
-        InputApplierContext inputApplierContext = new InputApplierContext(inputs, sqlExpressions);
-        AssertingInput[] arguments = new AssertingInput[function.arguments().size()];
+        AssertMax1ValueCallInput[] arguments = new AssertMax1ValueCallInput[function.arguments().size()];
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
         for (int i = 0; i < function.arguments().size(); i++) {
             Symbol arg = function.arguments().get(i);
-            if (arg instanceof Input) {
-                arguments[i] = new AssertingInput(((Input) arg));
-            } else {
-                arguments[i] = new AssertingInput(INPUT_APPLIER.process(arg, inputApplierContext));
-            }
+            Input<?> input = ctx.add(arg);
+            arguments[i] = new AssertMax1ValueCallInput(input);
         }
 
         Object actualValue = scalar.compile(function.arguments()).evaluate((Input[]) arguments);
@@ -193,7 +195,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         assertThat((T) actualValue, expectedValue);
 
         // Reset calls
-        for (AssertingInput argument : arguments) {
+        for (AssertMax1ValueCallInput argument : arguments) {
             argument.calls = 0;
         }
 
@@ -218,13 +220,13 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
      * assertEvaluate("foo('literalName', age)", "expectedValue", inputForAge)
      * </code>
      */
-    public void assertEvaluate(String functionExpression, Object expectedValue, Input... inputs) {
+    public void assertEvaluate(String functionExpression, Object expectedValue, Literal<?>... literals) {
         if (expectedValue == null) {
             assertEvaluate(functionExpression, nullValue());
         } else if (expectedValue instanceof BytesRef) {
-            assertEvaluate(functionExpression, is(BytesRefs.toString(expectedValue)), inputs);
+            assertEvaluate(functionExpression, is(BytesRefs.toString(expectedValue)), literals);
         } else {
-            assertEvaluate(functionExpression, is(expectedValue), inputs);
+            assertEvaluate(functionExpression, is(expectedValue), literals);
         }
     }
 
@@ -274,11 +276,11 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         return normalize(new TransactionContext(SessionContext.systemSessionContext()), functionName, args);
     }
 
-    private class AssertingInput implements Input {
+    private static class AssertMax1ValueCallInput implements Input {
         private final Input delegate;
         int calls = 0;
 
-        AssertingInput(Input delegate) {
+        AssertMax1ValueCallInput(Input delegate) {
             this.delegate = delegate;
         }
 
@@ -294,78 +296,6 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         @Override
         public String toString() {
             return delegate.toString();
-        }
-    }
-
-    private static class InputApplierContext implements Iterator<Input> {
-
-        private final Iterator<Input> inputsIterator;
-        private final SqlExpressions sqlExpressions;
-
-        InputApplierContext(Input[] inputs, SqlExpressions sqlExpressions) {
-            this.inputsIterator = Arrays.asList(inputs).iterator();
-            this.sqlExpressions = sqlExpressions;
-        }
-
-        public Input next() {
-            return inputsIterator.next();
-        }
-
-        @Override
-        public boolean hasNext() {
-            return inputsIterator.hasNext();
-        }
-
-        @Override
-        public void remove() {
-        }
-    }
-
-    /**
-     * Replace {@link Field} symbols with {@link Input} symbols found in the context.
-     * This way one can use column identifiers for scalar testing while providing the (literal) inputs the
-     * column should result in.
-     */
-    private static class InputApplier extends SymbolVisitor<InputApplierContext, Input> {
-
-        @Override
-        public Input visitLiteral(Literal symbol, InputApplierContext context) {
-            return symbol;
-        }
-
-        @Override
-        public Input visitField(Field field, InputApplierContext context) {
-            if (!context.hasNext()) {
-                return null;
-            }
-            return context.next();
-        }
-
-        @Override
-        public Input visitFunction(Function function, InputApplierContext context) {
-            List<Symbol> args = function.arguments();
-            Input[] argInputs = new Input[args.size()];
-            ArrayList<Symbol> newArgs = new ArrayList<>(args.size());
-            for (int j = 0; j < args.size(); j++) {
-                Symbol arg = args.get(j);
-                Input input = arg.accept(this, context);
-                argInputs[j] = input;
-                // replace arguments on function for normalization
-                if (input instanceof Literal) {
-                    newArgs.add((Literal) argInputs[j]);
-                } else {
-                    newArgs.add(arg);
-                }
-            }
-            function = new Function(function.info(), newArgs);
-            try {
-                return (Input) context.sqlExpressions.normalize(function);
-            } catch (Exception e) {
-                FunctionIdent ident = function.info().ident();
-                Scalar scalar =
-                    (Scalar) context.sqlExpressions.functions().getBuiltin(ident.name(), ident.argumentTypes());
-                return new FunctionExpression<>(scalar, argInputs);
-            }
         }
     }
 }
