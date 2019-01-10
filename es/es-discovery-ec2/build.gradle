@@ -2,20 +2,3 @@ dependencies {
     compile project(':es:es-server')
     compile "com.amazonaws:aws-java-sdk-ec2:${versions.aws}"
 }
-
-def pluginDir = file('../upstream/plugins/discovery-ec2')
-
-sourceSets {
-    main {
-        java {
-            srcDir "$pluginDir/src/main/java"
-        }
-    }
-}
-
-idea {
-    module {
-        contentRoot = pluginDir
-        excludeDirs += files('build', 'src/test')
-    }
-}

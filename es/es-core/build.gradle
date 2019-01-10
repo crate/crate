@@ -1,21 +1,3 @@
-
 dependencies {
     compile "org.apache.logging.log4j:log4j-api:${versions.log4j}"
-}
-
-def libDir = file('../upstream/libs/core')
-
-sourceSets {
-    main {
-        java {
-            srcDir "$libDir/src/main/java"
-        }
-    }
-}
-
-idea {
-    module {
-        contentRoot = libDir
-        excludeDirs += files('build', 'src/test')
-    }
 }

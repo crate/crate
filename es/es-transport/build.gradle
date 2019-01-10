@@ -8,20 +8,3 @@ dependencies {
     compile "io.netty:netty-resolver:${versions.netty4}"
     compile "io.netty:netty-transport:${versions.netty4}"
 }
-
-def moduleDir = file('../upstream/modules/transport-netty4')
-
-sourceSets {
-    main {
-        java {
-            srcDir "$moduleDir/src/main/java"
-        }
-    }
-}
-
-idea {
-    module {
-        contentRoot = moduleDir
-        excludeDirs += files('build')
-    }
-}
