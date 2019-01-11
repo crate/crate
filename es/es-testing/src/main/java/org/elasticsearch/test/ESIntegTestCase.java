@@ -133,7 +133,6 @@ import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.IndicesRequestCache;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.store.IndicesStore;
-import org.elasticsearch.ingest.IngestMetadata;
 import org.elasticsearch.node.NodeMocksPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
@@ -1208,7 +1207,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
     private static final Set<String> SAFE_METADATA_CUSTOMS =
             Collections.unmodifiableSet(
-                    new HashSet<>(Arrays.asList(IndexGraveyard.TYPE, IngestMetadata.TYPE, RepositoriesMetaData.TYPE)));
+                    new HashSet<>(Arrays.asList(IndexGraveyard.TYPE, RepositoriesMetaData.TYPE)));
 
     private static final Set<String> SAFE_CUSTOMS =
             Collections.unmodifiableSet(

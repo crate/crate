@@ -31,7 +31,6 @@ import org.elasticsearch.discovery.DiscoveryStats;
 import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.indices.NodeIndicesStats;
 import org.elasticsearch.indices.breaker.AllCircuitBreakerStats;
-import org.elasticsearch.ingest.IngestStats;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.OsStats;
@@ -81,9 +80,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
     private DiscoveryStats discoveryStats;
 
     @Nullable
-    private IngestStats ingestStats;
-
-    @Nullable
     private AdaptiveSelectionStats adaptiveSelectionStats;
 
     NodeStats() {
@@ -94,7 +90,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
                      @Nullable FsInfo fs, @Nullable TransportStats transport, @Nullable HttpStats http,
                      @Nullable AllCircuitBreakerStats breaker,
                      @Nullable DiscoveryStats discoveryStats,
-                     @Nullable IngestStats ingestStats,
                      @Nullable AdaptiveSelectionStats adaptiveSelectionStats) {
         super(node);
         this.timestamp = timestamp;
@@ -108,7 +103,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
         this.http = http;
         this.breaker = breaker;
         this.discoveryStats = discoveryStats;
-        this.ingestStats = ingestStats;
         this.adaptiveSelectionStats = adaptiveSelectionStats;
     }
 
@@ -190,11 +184,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
     }
 
     @Nullable
-    public IngestStats getIngestStats() {
-        return ingestStats;
-    }
-
-    @Nullable
     public AdaptiveSelectionStats getAdaptiveSelectionStats() {
         return adaptiveSelectionStats;
     }
@@ -221,7 +210,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
         http = in.readOptionalWriteable(HttpStats::new);
         breaker = in.readOptionalWriteable(AllCircuitBreakerStats::new);
         discoveryStats = in.readOptionalWriteable(DiscoveryStats::new);
-        ingestStats = in.readOptionalWriteable(IngestStats::new);
         if (in.getVersion().onOrAfter(Version.V_6_1_0)) {
             adaptiveSelectionStats = in.readOptionalWriteable(AdaptiveSelectionStats::new);
         } else {
@@ -248,7 +236,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
         out.writeOptionalWriteable(http);
         out.writeOptionalWriteable(breaker);
         out.writeOptionalWriteable(discoveryStats);
-        out.writeOptionalWriteable(ingestStats);
         if (out.getVersion().onOrAfter(Version.V_6_1_0)) {
             out.writeOptionalWriteable(adaptiveSelectionStats);
         }
@@ -305,9 +292,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
         }
         if (getDiscoveryStats() != null) {
             getDiscoveryStats().toXContent(builder, params);
-        }
-        if (getIngestStats() != null) {
-            getIngestStats().toXContent(builder, params);
         }
         if (getAdaptiveSelectionStats() != null) {
             getAdaptiveSelectionStats().toXContent(builder, params);
