@@ -272,20 +272,6 @@ import org.elasticsearch.action.index.IndexAction;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.ingest.DeletePipelineAction;
-import org.elasticsearch.action.ingest.DeletePipelineRequest;
-import org.elasticsearch.action.ingest.DeletePipelineRequestBuilder;
-import org.elasticsearch.action.ingest.GetPipelineAction;
-import org.elasticsearch.action.ingest.GetPipelineRequest;
-import org.elasticsearch.action.ingest.GetPipelineRequestBuilder;
-import org.elasticsearch.action.ingest.GetPipelineResponse;
-import org.elasticsearch.action.ingest.PutPipelineAction;
-import org.elasticsearch.action.ingest.PutPipelineRequest;
-import org.elasticsearch.action.ingest.PutPipelineRequestBuilder;
-import org.elasticsearch.action.ingest.SimulatePipelineAction;
-import org.elasticsearch.action.ingest.SimulatePipelineRequest;
-import org.elasticsearch.action.ingest.SimulatePipelineRequestBuilder;
-import org.elasticsearch.action.ingest.SimulatePipelineResponse;
 import org.elasticsearch.action.search.ClearScrollAction;
 import org.elasticsearch.action.search.ClearScrollRequest;
 import org.elasticsearch.action.search.ClearScrollRequestBuilder;
@@ -1069,81 +1055,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public SnapshotsStatusRequestBuilder prepareSnapshotStatus() {
             return new SnapshotsStatusRequestBuilder(this, SnapshotsStatusAction.INSTANCE);
-        }
-
-        @Override
-        public void putPipeline(PutPipelineRequest request, ActionListener<AcknowledgedResponse> listener) {
-            execute(PutPipelineAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ActionFuture<AcknowledgedResponse> putPipeline(PutPipelineRequest request) {
-            return execute(PutPipelineAction.INSTANCE, request);
-        }
-
-        @Override
-        public PutPipelineRequestBuilder preparePutPipeline(String id, BytesReference source) {
-            return new PutPipelineRequestBuilder(this, PutPipelineAction.INSTANCE, id, source);
-        }
-
-        @Override
-        public PutPipelineRequestBuilder preparePutPipeline(String id, BytesReference source, XContentType xContentType) {
-            return new PutPipelineRequestBuilder(this, PutPipelineAction.INSTANCE, id, source, xContentType);
-        }
-
-        @Override
-        public void deletePipeline(DeletePipelineRequest request, ActionListener<AcknowledgedResponse> listener) {
-            execute(DeletePipelineAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ActionFuture<AcknowledgedResponse> deletePipeline(DeletePipelineRequest request) {
-            return execute(DeletePipelineAction.INSTANCE, request);
-        }
-
-        @Override
-        public DeletePipelineRequestBuilder prepareDeletePipeline() {
-            return new DeletePipelineRequestBuilder(this, DeletePipelineAction.INSTANCE);
-        }
-
-        @Override
-        public DeletePipelineRequestBuilder prepareDeletePipeline(String id) {
-            return new DeletePipelineRequestBuilder(this, DeletePipelineAction.INSTANCE, id);
-        }
-
-        @Override
-        public void getPipeline(GetPipelineRequest request, ActionListener<GetPipelineResponse> listener) {
-            execute(GetPipelineAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ActionFuture<GetPipelineResponse> getPipeline(GetPipelineRequest request) {
-            return execute(GetPipelineAction.INSTANCE, request);
-        }
-
-        @Override
-        public GetPipelineRequestBuilder prepareGetPipeline(String... ids) {
-            return new GetPipelineRequestBuilder(this, GetPipelineAction.INSTANCE, ids);
-        }
-
-        @Override
-        public void simulatePipeline(SimulatePipelineRequest request, ActionListener<SimulatePipelineResponse> listener) {
-            execute(SimulatePipelineAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ActionFuture<SimulatePipelineResponse> simulatePipeline(SimulatePipelineRequest request) {
-            return execute(SimulatePipelineAction.INSTANCE, request);
-        }
-
-        @Override
-        public SimulatePipelineRequestBuilder prepareSimulatePipeline(BytesReference source) {
-            return new SimulatePipelineRequestBuilder(this, SimulatePipelineAction.INSTANCE, source);
-        }
-
-        @Override
-        public SimulatePipelineRequestBuilder prepareSimulatePipeline(BytesReference source, XContentType xContentType) {
-            return new SimulatePipelineRequestBuilder(this, SimulatePipelineAction.INSTANCE, source, xContentType);
         }
 
         @Override

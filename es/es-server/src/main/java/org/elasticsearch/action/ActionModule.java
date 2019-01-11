@@ -145,11 +145,6 @@ import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeSettingsAction;
 import org.elasticsearch.action.admin.indices.validate.query.TransportValidateQueryAction;
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryAction;
-import org.elasticsearch.action.bulk.BulkAction;
-import org.elasticsearch.action.bulk.TransportBulkAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
-import org.elasticsearch.action.delete.DeleteAction;
-import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.explain.ExplainAction;
 import org.elasticsearch.action.explain.TransportExplainAction;
 import org.elasticsearch.action.fieldcaps.FieldCapabilitiesAction;
@@ -160,16 +155,6 @@ import org.elasticsearch.action.get.MultiGetAction;
 import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.get.TransportMultiGetAction;
 import org.elasticsearch.action.get.TransportShardMultiGetAction;
-import org.elasticsearch.action.index.IndexAction;
-import org.elasticsearch.action.index.TransportIndexAction;
-import org.elasticsearch.action.ingest.DeletePipelineAction;
-import org.elasticsearch.action.ingest.DeletePipelineTransportAction;
-import org.elasticsearch.action.ingest.GetPipelineAction;
-import org.elasticsearch.action.ingest.GetPipelineTransportAction;
-import org.elasticsearch.action.ingest.PutPipelineAction;
-import org.elasticsearch.action.ingest.PutPipelineTransportAction;
-import org.elasticsearch.action.ingest.SimulatePipelineAction;
-import org.elasticsearch.action.ingest.SimulatePipelineTransportAction;
 import org.elasticsearch.action.main.MainAction;
 import org.elasticsearch.action.main.TransportMainAction;
 import org.elasticsearch.action.search.ClearScrollAction;
@@ -189,8 +174,6 @@ import org.elasticsearch.action.termvectors.TermVectorsAction;
 import org.elasticsearch.action.termvectors.TransportMultiTermVectorsAction;
 import org.elasticsearch.action.termvectors.TransportShardMultiTermsVectorAction;
 import org.elasticsearch.action.termvectors.TransportTermVectorsAction;
-import org.elasticsearch.action.update.TransportUpdateAction;
-import org.elasticsearch.action.update.UpdateAction;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -299,10 +282,6 @@ import org.elasticsearch.rest.action.document.RestMultiGetAction;
 import org.elasticsearch.rest.action.document.RestMultiTermVectorsAction;
 import org.elasticsearch.rest.action.document.RestTermVectorsAction;
 import org.elasticsearch.rest.action.document.RestUpdateAction;
-import org.elasticsearch.rest.action.ingest.RestDeletePipelineAction;
-import org.elasticsearch.rest.action.ingest.RestGetPipelineAction;
-import org.elasticsearch.rest.action.ingest.RestPutPipelineAction;
-import org.elasticsearch.rest.action.ingest.RestSimulatePipelineAction;
 import org.elasticsearch.rest.action.search.RestClearScrollAction;
 import org.elasticsearch.rest.action.search.RestExplainAction;
 import org.elasticsearch.rest.action.search.RestMultiSearchAction;
@@ -470,17 +449,12 @@ public class ActionModule extends AbstractModule {
         actions.register(AliasesExistAction.INSTANCE, TransportAliasesExistAction.class);
         actions.register(GetSettingsAction.INSTANCE, TransportGetSettingsAction.class);
 
-        actions.register(IndexAction.INSTANCE, TransportIndexAction.class);
         actions.register(GetAction.INSTANCE, TransportGetAction.class);
         actions.register(TermVectorsAction.INSTANCE, TransportTermVectorsAction.class);
         actions.register(MultiTermVectorsAction.INSTANCE, TransportMultiTermVectorsAction.class,
                 TransportShardMultiTermsVectorAction.class);
-        actions.register(DeleteAction.INSTANCE, TransportDeleteAction.class);
-        actions.register(UpdateAction.INSTANCE, TransportUpdateAction.class);
         actions.register(MultiGetAction.INSTANCE, TransportMultiGetAction.class,
                 TransportShardMultiGetAction.class);
-        actions.register(BulkAction.INSTANCE, TransportBulkAction.class,
-                TransportShardBulkAction.class);
         actions.register(SearchAction.INSTANCE, TransportSearchAction.class);
         actions.register(SearchScrollAction.INSTANCE, TransportSearchScrollAction.class);
         actions.register(MultiSearchAction.INSTANCE, TransportMultiSearchAction.class);
@@ -491,11 +465,6 @@ public class ActionModule extends AbstractModule {
 
         actions.register(FieldCapabilitiesAction.INSTANCE, TransportFieldCapabilitiesAction.class,
             TransportFieldCapabilitiesIndexAction.class);
-
-        actions.register(PutPipelineAction.INSTANCE, PutPipelineTransportAction.class);
-        actions.register(GetPipelineAction.INSTANCE, GetPipelineTransportAction.class);
-        actions.register(DeletePipelineAction.INSTANCE, DeletePipelineTransportAction.class);
-        actions.register(SimulatePipelineAction.INSTANCE, SimulatePipelineTransportAction.class);
 
         actionPlugins.stream().flatMap(p -> p.getActions().stream()).forEach(actions::register);
 
@@ -611,12 +580,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestListTasksAction(settings, restController, nodesInCluster));
         registerHandler.accept(new RestGetTaskAction(settings, restController));
         registerHandler.accept(new RestCancelTasksAction(settings, restController, nodesInCluster));
-
-        // Ingest API
-        registerHandler.accept(new RestPutPipelineAction(settings, restController));
-        registerHandler.accept(new RestGetPipelineAction(settings, restController));
-        registerHandler.accept(new RestDeletePipelineAction(settings, restController));
-        registerHandler.accept(new RestSimulatePipelineAction(settings, restController));
 
         // CAT API
         registerHandler.accept(new RestAllocationAction(settings, restController));
