@@ -44,6 +44,8 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused incorrectness in the navigation of the Admin UI.
+
 - Fixed a ``NullPointerException`` that could occur using ``array_difference``.
 
 - Fixed a race condition that could lead to stuck queries. One case this could
