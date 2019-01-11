@@ -40,8 +40,6 @@ import java.util.List;
 
 public class AggregateToWindowFunctionAdapter implements WindowFunction {
 
-    private final Input<?>[] inputs;
-    private final List<? extends CollectExpression<Row, ?>> expressions;
     private final AggregationFunction aggregationFunction;
     private final RamAccountingContext ramAccountingContext;
     private final Version indexVersionCreated;
@@ -51,15 +49,11 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private int seenFrameUpperBound = -1;
     private Object resultForCurrentFrame;
 
-    public AggregateToWindowFunctionAdapter(Input<?>[] inputs,
-                                            AggregationFunction aggregationFunction,
-                                            List<? extends CollectExpression<Row, ?>> expressions,
+    public AggregateToWindowFunctionAdapter(AggregationFunction aggregationFunction,
                                             Version indexVersionCreated,
                                             BigArrays bigArrays,
                                             RamAccountingContext ramAccountingContext) {
-        this.inputs = inputs;
         this.aggregationFunction = aggregationFunction;
-        this.expressions = expressions;
         this.ramAccountingContext = ramAccountingContext;
         this.indexVersionCreated = indexVersionCreated;
         this.bigArrays = bigArrays;
@@ -77,17 +71,17 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     }
 
     @Override
-    public Object execute(int rowIdx, WindowFrameState frame) {
-        if (isNewFrame(frame)) {
-            executeAggregateForFrame(frame);
+    public Object execute(int rowIdx, WindowFrameState frame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
+        if (isNewFrame(seenFrameUpperBound, frame)) {
+            executeAggregateForFrame(frame, expressions, args);
         } else if (isReiteratingWindow(frame)) {
             accumulatedState = aggregationFunction.newState(ramAccountingContext, indexVersionCreated, bigArrays);
-            executeAggregateForFrame(frame);
+            executeAggregateForFrame(frame, expressions, args);
         }
         return resultForCurrentFrame;
     }
 
-    private void executeAggregateForFrame(WindowFrameState frame) {
+    private void executeAggregateForFrame(WindowFrameState frame, List<? extends CollectExpression<Row, ?>> expressions, Input... inputs) {
         seenFrameUpperBound = frame.upperBoundExclusive();
         for (Object[] cells : frame.getRows()) {
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
@@ -97,10 +91,6 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
         }
 
         resultForCurrentFrame = aggregationFunction.terminatePartial(ramAccountingContext, accumulatedState);
-    }
-
-    private boolean isNewFrame(WindowFrameState frame) {
-        return frame.upperBoundExclusive() > seenFrameUpperBound;
     }
 
     private boolean isReiteratingWindow(WindowFrameState frame) {

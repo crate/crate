@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * Holds the runtime information of a window frame during the execution of a window function.
  */
-final class WindowFrameState {
+public final class WindowFrameState {
 
     private final int lowerBound;
     private final int upperBoundExclusive;
@@ -43,11 +43,29 @@ final class WindowFrameState {
         return lowerBound;
     }
 
-    int upperBoundExclusive() {
+    public int upperBoundExclusive() {
         return upperBoundExclusive;
     }
 
     public Iterable<Object[]> getRows() {
         return rows;
+    }
+
+    /**
+     * Retunrs the number of rows that are part of this frame.
+     */
+    public int size() {
+        return rows.size();
+    }
+
+    /**
+     * Return the row at the given index in the frame or null if the index is out of bounds.
+     */
+    public Object[] getRowAtIndexOrNull(int index) {
+        if (index < 0 || index >= rows.size()) {
+            return null;
+        }
+
+        return rows.get(index);
     }
 }

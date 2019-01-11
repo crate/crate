@@ -20,29 +20,36 @@
  * agreement.
  */
 
-package io.crate.execution.engine.window;
+package io.crate.window;
 
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.plugin.EnterpriseFunctionsPlugin;
+import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.Plugin;
 
+import java.util.Collection;
 import java.util.List;
 
-public interface WindowFunction extends FunctionImplementation {
+/**
+ * A proxy class which implements the elasticsearch Plugin interface
+ * so the EnterpriseFunctionsPlugin can be used in integration tests.
+ */
+public class EnterpriseFunctionsProxyTestPlugin extends Plugin {
 
-    /**
-     * Computes the window function for the row identified by the provided {@param rowIdx}.
-     * This method should be called sequentially for all the rows in a window, with each's row corresponding window
-     * frame state {@link WindowFrameState}.
-     *
-     * @param rowIdx       the 0-indexed id of the current window row.
-     * @param currentFrame the frame the row identified by {@param rowIdx} is part of.
-     */
-    Object execute(int rowIdx, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args);
+    private final EnterpriseFunctionsPlugin plugin;
 
-    default  boolean isNewFrame(int lastSeenFramUpperBound, WindowFrameState frame) {
-        return frame.upperBoundExclusive() > lastSeenFramUpperBound;
+    public EnterpriseFunctionsProxyTestPlugin(Settings settings) {
+        this.plugin = new EnterpriseFunctionsPlugin(settings);
     }
 
+    @Override
+    public Collection<Module> createGuiceModules() {
+        return plugin.createGuiceModules();
+    }
+
+    @Override
+    public List<Setting<?>> getSettings() {
+        return plugin.getSettings();
+    }
 }

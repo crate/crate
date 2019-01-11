@@ -600,17 +600,21 @@ public class ProjectionToProjectorVisitor
         LinkedHashMap<io.crate.expression.symbol.WindowFunction, List<Symbol>> functionsWithInputs = windowAgg.functionsWithInputs();
 
         ArrayList<WindowFunction> windowFunctions = new ArrayList<>(functionsWithInputs.size());
+        List<CollectExpression<Row, ?>> windowFuncArgsExpressions = new ArrayList<>(functionsWithInputs.size());
+        Input[][] windowFuncArgsInputs = new Input[functionsWithInputs.size()][];
+        int inputsIndex = 0;
         for (Map.Entry<io.crate.expression.symbol.WindowFunction, List<Symbol>> functionAndInputsEntry : functionsWithInputs.entrySet()) {
             InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
             ctx.add(functionAndInputsEntry.getValue());
+            windowFuncArgsInputs[inputsIndex] = ctx.topLevelInputs().toArray(new Input[0]);
+            inputsIndex++;
+            windowFuncArgsExpressions.addAll(ctx.expressions());
 
             FunctionImplementation impl = this.functions.getQualified(functionAndInputsEntry.getKey().info().ident());
             if (impl instanceof AggregationFunction) {
                 windowFunctions.add(
                     new AggregateToWindowFunctionAdapter(
-                        ctx.topLevelInputs().toArray(new Input[0]),
                         (AggregationFunction) impl,
-                        ctx.expressions(),
                         indexVersionCreated,
                         bigArrays,
                         context.ramAccountingContext)
@@ -633,11 +637,13 @@ public class ProjectionToProjectorVisitor
         return new WindowProjector(
             windowAgg.windowDefinition(),
             windowFunctions,
+            windowFuncArgsExpressions,
             contextForStandaloneInputs.topLevelInputs(),
             contextForStandaloneInputs.expressions(),
             outputTypes,
             context.ramAccountingContext,
-            windowAgg.orderByIndexes());
+            windowAgg.orderByIndexes(),
+            windowFuncArgsInputs);
     }
 
     @Override

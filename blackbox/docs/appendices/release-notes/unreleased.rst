@@ -41,6 +41,9 @@ Breaking Changes
 Changes
 =======
 
+- Added support for the ``last_value`` window function as an enterprise
+  feature.
+
 - Added a ``pg_description`` table to the ``pg_catalog`` schema for improved
   postgresql compatibility.
 

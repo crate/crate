@@ -28,6 +28,7 @@ enterprise features are enabled:
 - :ref:`ingest_mqtt`: ingest data using MQTT_ without any 3rd party tools
 - :ref:`aggregation-hll-distinct`: distinct count aggregation using the
   `HyperLoglog++`_ algorithm
+- :ref:`window-function-lastvalue`: ``last_value`` window function
 - `The CrateDB admin UI`_: `shards browser`_, `monitoring overview`_,
   `privileges browser`_
 
