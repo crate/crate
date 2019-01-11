@@ -22,15 +22,17 @@
 package io.crate.node;
 
 import io.crate.Constants;
+import io.crate.action.sql.SQLOperations;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.SQLTransportExecutor;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.internal.CrateSettingsPreparer;
 import org.hamcrest.Matchers;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -46,13 +48,11 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.env.Environment.PATH_DATA_SETTING;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.elasticsearch.env.Environment.PATH_LOGS_SETTING;
 import static org.hamcrest.Matchers.contains;
-
+import static org.hamcrest.Matchers.is;
 
 public class NodeSettingsTest extends CrateUnitTest {
 
@@ -60,8 +60,8 @@ public class NodeSettingsTest extends CrateUnitTest {
     public TemporaryFolder tmp = new TemporaryFolder();
 
     private CrateNode node;
-    private Client client;
     private boolean loggingConfigured = false;
+    private SQLOperations sqlOperations;
 
     private Path createConfigPath() throws IOException {
         File config = tmp.newFolder("crate", "config");
@@ -80,7 +80,8 @@ public class NodeSettingsTest extends CrateUnitTest {
         return config.toPath();
     }
 
-    private void doSetup() throws Exception {
+    @Before
+    public void doSetup() throws Exception {
         // mute log4j warning by configuring a dummy logger
         if (!loggingConfigured) {
             Logger root = Logger.getRootLogger();
@@ -100,19 +101,13 @@ public class NodeSettingsTest extends CrateUnitTest {
         Environment environment = CrateSettingsPreparer.prepareEnvironment(settings, configPath);
         node = new CrateNode(environment);
         node.start();
-        client = node.client();
-        client.admin().indices().prepareCreate("test")
-            .setSettings(Settings.builder()
-                .put(SETTING_NUMBER_OF_REPLICAS, 0)
-                .put(SETTING_NUMBER_OF_SHARDS, 1))
-            .execute().actionGet();
+        sqlOperations = node.injector().getInstance(SQLOperations.class);
     }
 
     @After
     public void shutDownNodeAndClient() throws IOException {
-        if (client != null) {
-            client.admin().indices().prepareDelete("test").execute().actionGet();
-            client = null;
+        if (sqlOperations != null) {
+            sqlOperations = null;
         }
         if (node != null) {
             node.close();
@@ -124,16 +119,17 @@ public class NodeSettingsTest extends CrateUnitTest {
      * The default cluster name is "crate" if not set differently in crate settings
      */
     @Test
-    public void testClusterName() throws Exception {
-        doSetup();
-        assertEquals("crate",
-            client.admin().cluster().prepareHealth().
-                setWaitForGreenStatus().execute().actionGet().getClusterName());
+    public void testClusterName() {
+        SQLResponse response = SQLTransportExecutor.execute(
+            "select name from sys.cluster",
+            new Object[0],
+            sqlOperations.newSystemSession())
+            .actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+        assertThat(response.rows()[0][0], is("crate"));
     }
 
     @Test
-    public void testDefaultPaths() throws Exception {
-        doSetup();
+    public void testDefaultPaths() {
         assertThat(PATH_DATA_SETTING.get(node.settings()), contains(
             Matchers.endsWith("data")
         ));
@@ -141,9 +137,7 @@ public class NodeSettingsTest extends CrateUnitTest {
     }
 
     @Test
-    public void testDefaultPorts() throws Exception {
-        doSetup();
-
+    public void testDefaultPorts() {
         assertEquals(
             Constants.HTTP_PORT_RANGE,
             node.settings().get("http.port")
