@@ -875,28 +875,6 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testGroupByMultiValueField() throws Exception {
-        this.setup.groupBySetup();
-        // inserting multiple values not supported anymore
-        client().prepareIndex(getFqn("characters"), Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>() {{
-            put("race", new String[]{"Android"});
-            put("gender", new String[]{"male", "robot"});
-            put("name", "Marvin2");
-        }}).execute().actionGet();
-        client().prepareIndex(getFqn("characters"), Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>() {{
-            put("race", new String[]{"Android"});
-            put("gender", new String[]{"male", "robot"});
-            put("name", "Marvin3");
-        }}).execute().actionGet();
-        execute("refresh table characters");
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column \"gender\" has a value that is an array. Group by doesn't work on Arrays");
-
-        execute("select gender from characters group by gender");
-    }
-
-    @Test
     public void testGroupByOnSysNodes() throws Exception {
         execute("select count(*), name from sys.nodes group by name");
         assertThat(response.rowCount(), Is.is(2L));
