@@ -39,7 +39,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.search.SearchExtBuilder;
 import org.elasticsearch.search.SearchShardTarget;
-import org.elasticsearch.search.aggregations.SearchContextAggregations;
 import org.elasticsearch.search.collapse.CollapseContext;
 import org.elasticsearch.search.dfs.DfsSearchResult;
 import org.elasticsearch.search.fetch.FetchPhase;
@@ -88,7 +87,6 @@ public class TestSearchContext extends SearchContext {
     ContextIndexSearcher searcher;
     int size;
     private int terminateAfter = DEFAULT_TERMINATE_AFTER;
-    private SearchContextAggregations aggregations;
     private ScrollContext scrollContext;
 
     private final long originNanoTime = System.nanoTime();
@@ -173,17 +171,6 @@ public class TestSearchContext extends SearchContext {
     @Override
     public SearchContext scrollContext(ScrollContext scrollContext) {
         this.scrollContext = scrollContext;
-        return this;
-    }
-
-    @Override
-    public SearchContextAggregations aggregations() {
-        return aggregations;
-    }
-
-    @Override
-    public SearchContext aggregations(SearchContextAggregations aggregations) {
-        this.aggregations = aggregations;
         return this;
     }
 

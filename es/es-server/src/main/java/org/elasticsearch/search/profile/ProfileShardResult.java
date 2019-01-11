@@ -22,7 +22,6 @@ package org.elasticsearch.search.profile;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.search.profile.aggregation.AggregationProfileShardResult;
 import org.elasticsearch.search.profile.query.QueryProfileShardResult;
 
 import java.io.IOException;
@@ -34,10 +33,7 @@ public class ProfileShardResult implements Writeable {
 
     private final List<QueryProfileShardResult> queryProfileResults;
 
-    private final AggregationProfileShardResult aggProfileShardResult;
-
-    public ProfileShardResult(List<QueryProfileShardResult> queryProfileResults, AggregationProfileShardResult aggProfileShardResult) {
-        this.aggProfileShardResult = aggProfileShardResult;
+    public ProfileShardResult(List<QueryProfileShardResult> queryProfileResults) {
         this.queryProfileResults = Collections.unmodifiableList(queryProfileResults);
     }
 
@@ -49,7 +45,6 @@ public class ProfileShardResult implements Writeable {
             queryProfileResults.add(result);
         }
         this.queryProfileResults = Collections.unmodifiableList(queryProfileResults);
-        this.aggProfileShardResult = new AggregationProfileShardResult(in);
     }
 
     @Override
@@ -58,14 +53,9 @@ public class ProfileShardResult implements Writeable {
         for (QueryProfileShardResult queryShardResult : queryProfileResults) {
             queryShardResult.writeTo(out);
         }
-        aggProfileShardResult.writeTo(out);
     }
 
     public List<QueryProfileShardResult> getQueryProfileResults() {
         return queryProfileResults;
-    }
-
-    public AggregationProfileShardResult getAggregationProfileResults() {
-        return aggProfileShardResult;
     }
 }

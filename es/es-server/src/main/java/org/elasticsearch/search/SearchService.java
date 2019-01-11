@@ -60,11 +60,6 @@ import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedInd
 import org.elasticsearch.node.ResponseCollectorService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.script.SearchScript;
-import org.elasticsearch.search.aggregations.AggregationInitializationException;
-import org.elasticsearch.search.aggregations.AggregatorFactories;
-import org.elasticsearch.search.aggregations.InternalAggregation;
-import org.elasticsearch.search.aggregations.MultiBucketConsumerService;
-import org.elasticsearch.search.aggregations.SearchContextAggregations;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.collapse.CollapseContext;
 import org.elasticsearch.search.dfs.DfsPhase;
@@ -177,8 +172,6 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
 
     private final ConcurrentMapLong<SearchContext> activeContexts = ConcurrentCollections.newConcurrentMapLongWithAggressiveConcurrency();
 
-    private final MultiBucketConsumerService multiBucketConsumerService;
-
     public SearchService(ClusterService clusterService, IndicesService indicesService,
                          ThreadPool threadPool, ScriptService scriptService, BigArrays bigArrays, FetchPhase fetchPhase,
                          ResponseCollectorService responseCollectorService) {
@@ -191,7 +184,6 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
         this.bigArrays = bigArrays;
         this.queryPhase = new QueryPhase(settings);
         this.fetchPhase = fetchPhase;
-        this.multiBucketConsumerService = new MultiBucketConsumerService(clusterService, settings);
 
         TimeValue keepAliveInterval = KEEPALIVE_INTERVAL_SETTING.get(settings);
         setKeepAlives(DEFAULT_KEEPALIVE_SETTING.get(settings), MAX_KEEPALIVE_SETTING.get(settings));
@@ -802,14 +794,6 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
             context.timeout(source.timeout());
         }
         context.terminateAfter(source.terminateAfter());
-        if (source.aggregations() != null) {
-            try {
-                AggregatorFactories factories = source.aggregations().build(context, null);
-                context.aggregations(new SearchContextAggregations(factories, multiBucketConsumerService.create()));
-            } catch (IOException e) {
-                throw new AggregationInitializationException("Failed to create aggregators", e);
-            }
-        }
         if (source.suggest() != null) {
             try {
                 context.suggest(source.suggest().build(queryShardContext));
@@ -1048,13 +1032,6 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
     public static boolean canRewriteToMatchNone(SearchSourceBuilder source) {
         if (source == null || source.query() == null || source.query() instanceof MatchAllQueryBuilder || source.suggest() != null) {
             return false;
-        } else {
-            AggregatorFactories.Builder aggregations = source.aggregations();
-            if (aggregations != null) {
-                if (aggregations.mustVisitAllDocs()) {
-                    return false;
-                }
-            }
         }
         return true;
     }
@@ -1089,10 +1066,6 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
      */
     public QueryRewriteContext getRewriteContext(LongSupplier nowInMillis) {
         return indicesService.getRewriteContext(nowInMillis);
-    }
-
-    public InternalAggregation.ReduceContext createReduceContext(boolean finalReduce) {
-        return new InternalAggregation.ReduceContext(bigArrays, scriptService, multiBucketConsumerService.create(), finalReduce);
     }
 
     public static final class CanMatchResponse extends SearchPhaseResult {
