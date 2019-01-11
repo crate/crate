@@ -20,7 +20,6 @@
 package org.elasticsearch.search.profile;
 
 import org.elasticsearch.search.internal.ContextIndexSearcher;
-import org.elasticsearch.search.profile.aggregation.AggregationProfiler;
 import org.elasticsearch.search.profile.query.QueryProfiler;
 
 import java.util.ArrayList;
@@ -32,13 +31,11 @@ public final class Profilers {
 
     private final ContextIndexSearcher searcher;
     private final List<QueryProfiler> queryProfilers;
-    private final AggregationProfiler aggProfiler;
 
     /** Sole constructor. This {@link Profilers} instance will initially wrap one {@link QueryProfiler}. */
     public Profilers(ContextIndexSearcher searcher) {
         this.searcher = searcher;
         this.queryProfilers = new ArrayList<>();
-        this.aggProfiler = new AggregationProfiler();
         addQueryProfiler();
     }
 
@@ -59,10 +56,4 @@ public final class Profilers {
     public List<QueryProfiler> getQueryProfilers() {
         return Collections.unmodifiableList(queryProfilers);
     }
-
-    /** Return the {@link AggregationProfiler}. */
-    public AggregationProfiler getAggregationProfiler() {
-        return aggProfiler;
-    }
-
 }

@@ -22,7 +22,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Counter;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.ParsedQuery;
-import org.elasticsearch.search.aggregations.SearchContextAggregations;
 import org.elasticsearch.search.collapse.CollapseContext;
 import org.elasticsearch.search.fetch.FetchSearchResult;
 import org.elasticsearch.search.fetch.StoredFieldsContext;
@@ -87,11 +86,6 @@ public class SubSearchContext extends FilteredSearchContext {
 
     @Override
     public SearchContext scrollContext(ScrollContext scrollContext) {
-        throw new UnsupportedOperationException("Not supported");
-    }
-
-    @Override
-    public SearchContext aggregations(SearchContextAggregations aggregations) {
         throw new UnsupportedOperationException("Not supported");
     }
 

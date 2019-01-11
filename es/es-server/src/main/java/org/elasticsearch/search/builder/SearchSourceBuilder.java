@@ -43,9 +43,6 @@ import org.elasticsearch.index.query.QueryRewriteContext;
 import org.elasticsearch.index.query.Rewriteable;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.search.SearchExtBuilder;
-import org.elasticsearch.search.aggregations.AggregationBuilder;
-import org.elasticsearch.search.aggregations.AggregatorFactories;
-import org.elasticsearch.search.aggregations.PipelineAggregationBuilder;
 import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.fetch.StoredFieldsContext;
 import org.elasticsearch.search.fetch.subphase.DocValueFieldsContext.FieldAndFormat;
@@ -100,8 +97,6 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
     public static final ParseField TRACK_SCORES_FIELD = new ParseField("track_scores");
     public static final ParseField TRACK_TOTAL_HITS_FIELD = new ParseField("track_total_hits");
     public static final ParseField INDICES_BOOST_FIELD = new ParseField("indices_boost");
-    public static final ParseField AGGREGATIONS_FIELD = new ParseField("aggregations");
-    public static final ParseField AGGS_FIELD = new ParseField("aggs");
     public static final ParseField HIGHLIGHT_FIELD = new ParseField("highlight");
     public static final ParseField SUGGEST_FIELD = new ParseField("suggest");
     public static final ParseField RESCORE_FIELD = new ParseField("rescore");
@@ -169,8 +164,6 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
     private List<ScriptField> scriptFields;
     private FetchSourceContext fetchSourceContext;
 
-    private AggregatorFactories.Builder aggregations;
-
     private HighlightBuilder highlightBuilder;
 
     private SuggestBuilder suggestBuilder;
@@ -197,7 +190,6 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
      * Read from a stream.
      */
     public SearchSourceBuilder(StreamInput in) throws IOException {
-        aggregations = in.readOptionalWriteable(AggregatorFactories.Builder::new);
         explain = in.readOptionalBoolean();
         fetchSourceContext = in.readOptionalWriteable(FetchSourceContext::new);
         if (in.getVersion().before(Version.V_6_4_0)) {
@@ -261,7 +253,6 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeOptionalWriteable(aggregations);
         out.writeOptionalBoolean(explain);
         out.writeOptionalWriteable(fetchSourceContext);
         if (out.getVersion().before(Version.V_6_4_0)) {
@@ -597,35 +588,6 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
     }
 
     /**
-     * Add an aggregation to perform as part of the search.
-     */
-    public SearchSourceBuilder aggregation(AggregationBuilder aggregation) {
-            if (aggregations == null) {
-            aggregations = AggregatorFactories.builder();
-            }
-        aggregations.addAggregator(aggregation);
-            return this;
-    }
-
-    /**
-     * Add an aggregation to perform as part of the search.
-     */
-    public SearchSourceBuilder aggregation(PipelineAggregationBuilder aggregation) {
-            if (aggregations == null) {
-            aggregations = AggregatorFactories.builder();
-            }
-        aggregations.addPipelineAggregator(aggregation);
-            return this;
-        }
-
-    /**
-     * Gets the bytes representing the aggregation builders for this request.
-     */
-    public AggregatorFactories.Builder aggregations() {
-        return aggregations;
-    }
-
-    /**
      * Adds highlight to perform as part of the search.
      */
     public SearchSourceBuilder highlighter(HighlightBuilder highlightBuilder) {
@@ -903,7 +865,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
      */
     public boolean isSuggestOnly() {
         return suggestBuilder != null
-            && queryBuilder == null && aggregations == null;
+            && queryBuilder == null;
     }
 
     /**
@@ -914,7 +876,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
      */
     @Override
     public SearchSourceBuilder rewrite(QueryRewriteContext context) throws IOException {
-        assert (this.equals(shallowCopy(queryBuilder, postQueryBuilder, aggregations, sliceBuilder, sorts, rescoreBuilders,
+        assert (this.equals(shallowCopy(queryBuilder, postQueryBuilder, sliceBuilder, sorts, rescoreBuilders,
             highlightBuilder)));
         QueryBuilder queryBuilder = null;
         if (this.queryBuilder != null) {
@@ -923,10 +885,6 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
         QueryBuilder postQueryBuilder = null;
         if (this.postQueryBuilder != null) {
             postQueryBuilder = this.postQueryBuilder.rewrite(context);
-        }
-        AggregatorFactories.Builder aggregations = null;
-        if (this.aggregations != null) {
-            aggregations = this.aggregations.rewrite(context);
         }
         List<SortBuilder<?>> sorts = Rewriteable.rewrite(this.sorts, context);
 
@@ -937,10 +895,10 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
         }
 
         boolean rewritten = queryBuilder != this.queryBuilder || postQueryBuilder != this.postQueryBuilder
-                || aggregations != this.aggregations || rescoreBuilders != this.rescoreBuilders || sorts != this.sorts ||
+                || rescoreBuilders != this.rescoreBuilders || sorts != this.sorts ||
                 this.highlightBuilder != highlightBuilder;
         if (rewritten) {
-            return shallowCopy(queryBuilder, postQueryBuilder, aggregations, this.sliceBuilder, sorts, rescoreBuilders, highlightBuilder);
+            return shallowCopy(queryBuilder, postQueryBuilder, this.sliceBuilder, sorts, rescoreBuilders, highlightBuilder);
         }
         return this;
     }
@@ -949,7 +907,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
      * Create a shallow copy of this builder with a new slice configuration.
      */
     public SearchSourceBuilder copyWithNewSlice(SliceBuilder slice) {
-        return shallowCopy(queryBuilder, postQueryBuilder, aggregations, slice, sorts, rescoreBuilders, highlightBuilder);
+        return shallowCopy(queryBuilder, postQueryBuilder, slice, sorts, rescoreBuilders, highlightBuilder);
     }
 
     /**
@@ -957,10 +915,9 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
      * {@link #rewrite(QueryRewriteContext)} and {@link #copyWithNewSlice(SliceBuilder)}.
      */
     private SearchSourceBuilder shallowCopy(QueryBuilder queryBuilder, QueryBuilder postQueryBuilder,
-                                            AggregatorFactories.Builder aggregations, SliceBuilder slice, List<SortBuilder<?>> sorts,
+                                            SliceBuilder slice, List<SortBuilder<?>> sorts,
                                             List<RescorerBuilder> rescoreBuilders, HighlightBuilder highlightBuilder) {
         SearchSourceBuilder rewrittenBuilder = new SearchSourceBuilder();
-        rewrittenBuilder.aggregations = aggregations;
         rewrittenBuilder.explain = explain;
         rewrittenBuilder.extBuilders = extBuilders;
         rewrittenBuilder.fetchSourceContext = fetchSourceContext;
@@ -1069,9 +1026,6 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
                                 " in [" + currentFieldName + "].", parser.getTokenLocation());
                         }
                     }
-                } else if (AGGREGATIONS_FIELD.match(currentFieldName, parser.getDeprecationHandler())
-                        || AGGS_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
-                    aggregations = AggregatorFactories.parseAggregators(parser);
                 } else if (HIGHLIGHT_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     highlightBuilder = HighlightBuilder.fromXContent(parser);
                 } else if (SUGGEST_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
@@ -1263,10 +1217,6 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
                 builder.endObject();
             }
             builder.endArray();
-        }
-
-        if (aggregations != null) {
-            builder.field(AGGREGATIONS_FIELD.getPreferredName(), aggregations);
         }
 
         if (highlightBuilder != null) {
@@ -1509,7 +1459,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
 
     @Override
     public int hashCode() {
-        return Objects.hash(aggregations, explain, fetchSourceContext, docValueFields, storedFieldsContext, from, highlightBuilder,
+        return Objects.hash(explain, fetchSourceContext, docValueFields, storedFieldsContext, from, highlightBuilder,
                 indexBoosts, minScore, postQueryBuilder, queryBuilder, rescoreBuilders, scriptFields, size,
                 sorts, searchAfterBuilder, sliceBuilder, stats, suggestBuilder, terminateAfter, timeout, trackScores, version,
                 profile, extBuilders, collapse, trackTotalHits);
@@ -1524,8 +1474,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
             return false;
         }
         SearchSourceBuilder other = (SearchSourceBuilder) obj;
-        return Objects.equals(aggregations, other.aggregations)
-                && Objects.equals(explain, other.explain)
+        return Objects.equals(explain, other.explain)
                 && Objects.equals(fetchSourceContext, other.fetchSourceContext)
                 && Objects.equals(docValueFields, other.docValueFields)
                 && Objects.equals(storedFieldsContext, other.storedFieldsContext)
