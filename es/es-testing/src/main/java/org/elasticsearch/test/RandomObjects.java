@@ -105,10 +105,7 @@ public final class RandomObjects {
                 case 5:
                     Float randomFloat = random.nextFloat();
                     originalValues.add(randomFloat);
-                    if (xContentType == XContentType.CBOR) {
-                        //with CBOR we get back a float
-                        expectedParsedValues.add(randomFloat);
-                    } else if (xContentType == XContentType.SMILE) {
+                    if (xContentType == XContentType.SMILE) {
                         //with SMILE we get back a double (this will change in Jackson 2.9 where it will return a Float)
                         expectedParsedValues.add(randomFloat.doubleValue());
                     } else {
