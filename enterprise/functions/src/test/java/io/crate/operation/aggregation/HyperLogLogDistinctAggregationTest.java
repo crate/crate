@@ -23,7 +23,7 @@ import io.crate.Streamer;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
-import io.crate.module.HyperLogLogModule;
+import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
@@ -46,7 +46,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
     @Before
     public void prepareFunctions() throws Exception {
         functions = new ModulesBuilder()
-            .add(new HyperLogLogModule())
+            .add(new EnterpriseFunctionsModule())
             .createInjector().getInstance(Functions.class);
     }
 
