@@ -52,7 +52,6 @@ import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.search.NestedHelper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.similarity.SimilarityService;
-import org.elasticsearch.search.aggregations.SearchContextAggregations;
 import org.elasticsearch.search.collapse.CollapseContext;
 import org.elasticsearch.search.dfs.DfsSearchResult;
 import org.elasticsearch.search.fetch.FetchPhase;
@@ -142,7 +141,6 @@ final class DefaultSearchContext extends SearchContext {
     private int[] docIdsToLoad;
     private int docsIdsToLoadFrom;
     private int docsIdsToLoadSize;
-    private SearchContextAggregations aggregations;
     private SearchContextHighlight highlight;
     private SuggestionSearchContext suggest;
     private List<RescoreContext> rescore;
@@ -360,17 +358,6 @@ final class DefaultSearchContext extends SearchContext {
     @Override
     public SearchContext scrollContext(ScrollContext scrollContext) {
         this.scrollContext = scrollContext;
-        return this;
-    }
-
-    @Override
-    public SearchContextAggregations aggregations() {
-        return aggregations;
-    }
-
-    @Override
-    public SearchContext aggregations(SearchContextAggregations aggregations) {
-        this.aggregations = aggregations;
         return this;
     }
 

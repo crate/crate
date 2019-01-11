@@ -35,9 +35,6 @@ import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentParserUtils;
-import org.elasticsearch.rest.action.search.RestSearchAction;
-import org.elasticsearch.search.aggregations.Aggregation;
 import org.elasticsearch.search.suggest.Suggest.Suggestion.Entry;
 import org.elasticsearch.search.suggest.Suggest.Suggestion.Entry.Option;
 import org.elasticsearch.search.suggest.completion.CompletionSuggestion;
@@ -384,12 +381,7 @@ public class Suggest implements Iterable<Suggest.Suggestion<? extends Entry<? ex
 
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            if (params.paramAsBoolean(RestSearchAction.TYPED_KEYS_PARAM, false)) {
-                // Concatenates the type and the name of the suggestion (ex: completion#foo)
-                builder.startArray(String.join(Aggregation.TYPED_KEYS_DELIMITER, getType(), getName()));
-            } else {
-                builder.startArray(getName());
-            }
+            builder.startArray(getName());
             for (Entry<?> entry : entries) {
                 entry.toXContent(builder, params);
             }
@@ -401,7 +393,6 @@ public class Suggest implements Iterable<Suggest.Suggestion<? extends Entry<? ex
         public static Suggestion<? extends Entry<? extends Option>> fromXContent(XContentParser parser) throws IOException {
             ensureExpectedToken(XContentParser.Token.START_ARRAY, parser.currentToken(), parser::getTokenLocation);
             SetOnce<Suggestion> suggestion = new SetOnce<>();
-            XContentParserUtils.parseTypedKeysObject(parser, Aggregation.TYPED_KEYS_DELIMITER, Suggestion.class, suggestion::set);
             return suggestion.get();
         }
 

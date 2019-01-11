@@ -27,18 +27,11 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.SearchPhaseResult;
 import org.elasticsearch.search.SearchShardTarget;
-import org.elasticsearch.search.aggregations.Aggregations;
-import org.elasticsearch.search.aggregations.InternalAggregations;
-import org.elasticsearch.search.aggregations.pipeline.PipelineAggregator;
-import org.elasticsearch.search.aggregations.pipeline.SiblingPipelineAggregator;
 import org.elasticsearch.search.profile.ProfileShardResult;
 import org.elasticsearch.search.suggest.Suggest;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.stream.Collectors;
 
-import static java.util.Collections.emptyList;
 import static org.elasticsearch.common.lucene.Lucene.readTopDocs;
 import static org.elasticsearch.common.lucene.Lucene.writeTopDocs;
 
@@ -48,9 +41,7 @@ public final class QuerySearchResult extends SearchPhaseResult {
     private int size;
     private TopDocs topDocs;
     private DocValueFormat[] sortValueFormats;
-    private InternalAggregations aggregations;
     private boolean hasAggs;
-    private List<SiblingPipelineAggregator> pipelineAggregators;
     private Suggest suggest;
     private boolean searchTimedOut;
     private Boolean terminatedEarly = null;
@@ -150,24 +141,6 @@ public final class QuerySearchResult extends SearchPhaseResult {
     }
 
     /**
-     * Returns and nulls out the aggregation for this search results. This allows to free up memory once the aggregation is consumed.
-     * @throws IllegalStateException if the aggregations have already been consumed.
-     */
-    public Aggregations consumeAggs() {
-        if (aggregations == null) {
-            throw new IllegalStateException("aggs already consumed");
-        }
-        Aggregations aggs = aggregations;
-        aggregations = null;
-        return aggs;
-    }
-
-    public void aggregations(InternalAggregations aggregations) {
-        this.aggregations = aggregations;
-        hasAggs = aggregations != null;
-    }
-
-    /**
      * Returns and nulls out the profiled results for this search, or potentially null if result was empty.
      * This allows to free up memory once the profiled result is consumed.
      * @throws IllegalStateException if the profiled result has already been consumed.
@@ -192,14 +165,6 @@ public final class QuerySearchResult extends SearchPhaseResult {
     public void profileResults(ProfileShardResult shardResults) {
         this.profileShardResults = shardResults;
         hasProfileResults = shardResults != null;
-    }
-
-    public List<SiblingPipelineAggregator> pipelineAggregators() {
-        return pipelineAggregators;
-    }
-
-    public void pipelineAggregators(List<SiblingPipelineAggregator> pipelineAggregators) {
-        this.pipelineAggregators = pipelineAggregators;
     }
 
     public Suggest suggest() {
@@ -287,11 +252,6 @@ public final class QuerySearchResult extends SearchPhaseResult {
             }
         }
         setTopDocs(readTopDocs(in));
-        if (hasAggs = in.readBoolean()) {
-            aggregations = InternalAggregations.readAggregations(in);
-        }
-        pipelineAggregators = in.readNamedWriteableList(PipelineAggregator.class).stream().map(a -> (SiblingPipelineAggregator) a)
-                .collect(Collectors.toList());
         if (in.readBoolean()) {
             suggest = Suggest.readSuggest(in);
         }
@@ -327,13 +287,6 @@ public final class QuerySearchResult extends SearchPhaseResult {
             }
         }
         writeTopDocs(out, topDocs);
-        if (aggregations == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            aggregations.writeTo(out);
-        }
-        out.writeNamedWriteableList(pipelineAggregators == null ? emptyList() : pipelineAggregators);
         if (suggest == null) {
             out.writeBoolean(false);
         } else {

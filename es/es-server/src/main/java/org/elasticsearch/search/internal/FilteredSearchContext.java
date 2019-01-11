@@ -38,7 +38,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.search.SearchExtBuilder;
 import org.elasticsearch.search.SearchShardTarget;
-import org.elasticsearch.search.aggregations.SearchContextAggregations;
 import org.elasticsearch.search.collapse.CollapseContext;
 import org.elasticsearch.search.dfs.DfsSearchResult;
 import org.elasticsearch.search.fetch.FetchPhase;
@@ -154,16 +153,6 @@ public abstract class FilteredSearchContext extends SearchContext {
     @Override
     public SearchContext scrollContext(ScrollContext scroll) {
         return in.scrollContext(scroll);
-    }
-
-    @Override
-    public SearchContextAggregations aggregations() {
-        return in.aggregations();
-    }
-
-    @Override
-    public SearchContext aggregations(SearchContextAggregations aggregations) {
-        return in.aggregations(aggregations);
     }
 
     @Override
