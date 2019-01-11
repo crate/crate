@@ -44,7 +44,6 @@ import org.elasticsearch.common.util.concurrent.QueueResizingEsThreadPoolExecuto
 import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.SearchPhase;
 import org.elasticsearch.search.SearchService;
-import org.elasticsearch.search.aggregations.AggregationPhase;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
 import org.elasticsearch.search.internal.ScrollContext;
 import org.elasticsearch.search.internal.SearchContext;
@@ -74,12 +73,10 @@ import static org.elasticsearch.search.query.TopDocsCollectorContext.createTopDo
  */
 public class QueryPhase implements SearchPhase {
 
-    private final AggregationPhase aggregationPhase;
     private final SuggestPhase suggestPhase;
     private RescorePhase rescorePhase;
 
     public QueryPhase(Settings settings) {
-        this.aggregationPhase = new AggregationPhase();
         this.suggestPhase = new SuggestPhase(settings);
         this.rescorePhase = new RescorePhase(settings);
     }
@@ -99,10 +96,6 @@ public class QueryPhase implements SearchPhase {
                     new DocValueFormat[0]);
             return;
         }
-        // Pre-process aggregations as late as possible. In the case of a DFS_Q_T_F
-        // request, preProcess is called on the DFS phase phase, this is why we pre-process them
-        // here to make sure it happens during the QUERY phase
-        aggregationPhase.preProcess(searchContext);
         final ContextIndexSearcher searcher = searchContext.searcher();
         boolean rescore = execute(searchContext, searchContext.searcher(), searcher::setCheckCancelled);
 
@@ -110,7 +103,6 @@ public class QueryPhase implements SearchPhase {
             rescorePhase.execute(searchContext);
         }
         suggestPhase.execute(searchContext);
-        aggregationPhase.execute(searchContext);
 
         if (searchContext.getProfilers() != null) {
             ProfileShardResult shardResults = SearchProfileShardResults
@@ -271,7 +263,7 @@ public class QueryPhase implements SearchPhase {
                 queryResult.terminatedEarly(true);
             } catch (TimeExceededException e) {
                 assert timeoutSet : "TimeExceededException thrown even though timeout wasn't set";
-                
+
                 if (searchContext.request().allowPartialSearchResults() == false) {
                     // Can't rethrow TimeExceededException because not serializable
                     throw new QueryPhaseExecutionException(searchContext, "Time exceeded");

@@ -28,8 +28,6 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.Scroll;
-import org.elasticsearch.search.aggregations.AggregationBuilder;
-import org.elasticsearch.search.aggregations.PipelineAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.rescore.RescorerBuilder;
@@ -394,22 +392,6 @@ public class SearchRequestBuilder extends ActionRequestBuilder<SearchRequest, Se
         return this;
     }
 
-    /**
-     * Adds an aggregation to the search operation.
-     */
-    public SearchRequestBuilder addAggregation(AggregationBuilder aggregation) {
-        sourceBuilder().aggregation(aggregation);
-        return this;
-    }
-
-    /**
-     * Adds an aggregation to the search operation.
-     */
-    public SearchRequestBuilder addAggregation(PipelineAggregationBuilder aggregation) {
-        sourceBuilder().aggregation(aggregation);
-        return this;
-    }
-
     public SearchRequestBuilder highlighter(HighlightBuilder highlightBuilder) {
         sourceBuilder().highlighter(highlightBuilder);
         return this;
@@ -498,7 +480,7 @@ public class SearchRequestBuilder extends ActionRequestBuilder<SearchRequest, Se
         request.requestCache(requestCache);
         return this;
     }
-    
+
 
     /**
      * Sets if this request should allow partial results.  (If method is not called,
@@ -507,7 +489,7 @@ public class SearchRequestBuilder extends ActionRequestBuilder<SearchRequest, Se
     public SearchRequestBuilder setAllowPartialSearchResults(boolean allowPartialSearchResults) {
         request.allowPartialSearchResults(allowPartialSearchResults);
         return this;
-    }    
+    }
 
     /**
      * Should the query be profiled. Defaults to <code>false</code>

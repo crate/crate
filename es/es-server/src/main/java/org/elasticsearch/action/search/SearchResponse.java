@@ -36,7 +36,6 @@ import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.rest.action.RestActions;
 import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.aggregations.Aggregations;
 import org.elasticsearch.search.internal.InternalSearchResponse;
 import org.elasticsearch.search.profile.ProfileShardResult;
 import org.elasticsearch.search.profile.SearchProfileShardResults;
@@ -105,10 +104,6 @@ public class SearchResponse extends ActionResponse implements StatusToXContentOb
      */
     public SearchHits getHits() {
         return internalResponse.hits();
-    }
-
-    public Aggregations getAggregations() {
-        return internalResponse.aggregations();
     }
 
 
@@ -252,7 +247,6 @@ public class SearchResponse extends ActionResponse implements StatusToXContentOb
         ensureExpectedToken(Token.FIELD_NAME, parser.currentToken(), parser::getTokenLocation);
         String currentFieldName = parser.currentName();
         SearchHits hits = null;
-        Aggregations aggs = null;
         Suggest suggest = null;
         SearchProfileShardResults profile = null;
         boolean timedOut = false;
@@ -285,8 +279,6 @@ public class SearchResponse extends ActionResponse implements StatusToXContentOb
             } else if (token == Token.START_OBJECT) {
                 if (SearchHits.Fields.HITS.equals(currentFieldName)) {
                     hits = SearchHits.fromXContent(parser);
-                } else if (Aggregations.AGGREGATIONS_FIELD.equals(currentFieldName)) {
-                    aggs = Aggregations.fromXContent(parser);
                 } else if (Suggest.NAME.equals(currentFieldName)) {
                     suggest = Suggest.fromXContent(parser);
                 } else if (SearchProfileShardResults.PROFILE_FIELD.equals(currentFieldName)) {
@@ -346,7 +338,7 @@ public class SearchResponse extends ActionResponse implements StatusToXContentOb
                 }
             }
         }
-        SearchResponseSections searchResponseSections = new SearchResponseSections(hits, aggs, suggest, timedOut, terminatedEarly,
+        SearchResponseSections searchResponseSections = new SearchResponseSections(hits, suggest, timedOut, terminatedEarly,
                 profile, numReducePhases);
         return new SearchResponse(searchResponseSections, scrollId, totalShards, successfulShards, skippedShards, tookInMillis,
                 failures.toArray(new ShardSearchFailure[failures.size()]), clusters);
