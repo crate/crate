@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -321,23 +322,6 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     public void testGetInvalidDigest() throws Exception {
         CloseableHttpResponse resp = get(blobUri("invlaid"));
         assertThat(resp.getStatusLine().getStatusCode(), is(404));
-    }
-
-    @Test
-    public void testIndexOnNonBlobTable() throws IOException {
-        // this test works only if ES API is enabled
-        HttpPut httpPut = new HttpPut(String.format(Locale.ENGLISH, "http://%s:%s/test_no_blobs/default/1",
-            randomNode.getHostName(), randomNode.getPort()));
-        String blobData = String.format(Locale.ENGLISH, "{\"content\": \"%s\"}", StringUtils.repeat("a", 1024 * 64));
-        httpPut.setEntity(new StringEntity(blobData, ContentType.APPLICATION_JSON));
-        CloseableHttpResponse res = httpClient.execute(httpPut);
-        assertThat(EntityUtils.toString(res.getEntity()),
-            is("{\"_index\":\"test_no_blobs\",\"_type\":\"default\"," +
-               "\"_id\":\"1\",\"_version\":1,\"result\":\"created\"," +
-               "\"_shards\":{\"total\":2,\"successful\":2,\"failed\":0}," +
-               "\"_seq_no\":0,\"_primary_term\":1}"));
-        assertThat(res.getStatusLine().getReasonPhrase(), is("Created"));
-        assertThat(res.getStatusLine().getStatusCode(), is(201));
     }
 
     @Test

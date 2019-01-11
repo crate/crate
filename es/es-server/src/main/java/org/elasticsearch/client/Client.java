@@ -21,27 +21,6 @@ package org.elasticsearch.client;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.delete.DeleteRequestBuilder;
-import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.explain.ExplainRequest;
-import org.elasticsearch.action.explain.ExplainRequestBuilder;
-import org.elasticsearch.action.explain.ExplainResponse;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequest;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequestBuilder;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesResponse;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetRequestBuilder;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.get.MultiGetRequest;
-import org.elasticsearch.action.get.MultiGetRequestBuilder;
-import org.elasticsearch.action.get.MultiGetResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.ClearScrollRequest;
 import org.elasticsearch.action.search.ClearScrollRequestBuilder;
 import org.elasticsearch.action.search.ClearScrollResponse;
@@ -53,15 +32,6 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.search.SearchScrollRequestBuilder;
-import org.elasticsearch.action.termvectors.MultiTermVectorsRequest;
-import org.elasticsearch.action.termvectors.MultiTermVectorsRequestBuilder;
-import org.elasticsearch.action.termvectors.MultiTermVectorsResponse;
-import org.elasticsearch.action.termvectors.TermVectorsRequest;
-import org.elasticsearch.action.termvectors.TermVectorsRequestBuilder;
-import org.elasticsearch.action.termvectors.TermVectorsResponse;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateRequestBuilder;
-import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Setting;
@@ -77,11 +47,9 @@ import java.util.Map;
  * simply returns an {@link org.elasticsearch.action.ActionFuture}, while the second accepts an
  * {@link org.elasticsearch.action.ActionListener}.
  * <p>
- * A client can either be retrieved from a {@link org.elasticsearch.node.Node} started, or connected remotely
- * to one or more nodes using {@link org.elasticsearch.client.transport.TransportClient}.
+ * A client can either be retrieved from a {@link org.elasticsearch.node.Node} started
  *
  * @see org.elasticsearch.node.Node#client()
- * @see org.elasticsearch.client.transport.TransportClient
  */
 public interface Client extends ElasticsearchClient, Releasable {
 
@@ -99,181 +67,6 @@ public interface Client extends ElasticsearchClient, Releasable {
      * The admin client that can be used to perform administrative operations.
      */
     AdminClient admin();
-
-
-    /**
-     * Index a JSON source associated with a given index and type.
-     * <p>
-     * The id is optional, if it is not provided, one will be generated automatically.
-     *
-     * @param request The index request
-     * @return The result future
-     * @see Requests#indexRequest(String)
-     */
-    ActionFuture<IndexResponse> index(IndexRequest request);
-
-    /**
-     * Index a document associated with a given index and type.
-     * <p>
-     * The id is optional, if it is not provided, one will be generated automatically.
-     *
-     * @param request  The index request
-     * @param listener A listener to be notified with a result
-     * @see Requests#indexRequest(String)
-     */
-    void index(IndexRequest request, ActionListener<IndexResponse> listener);
-
-    /**
-     * Index a document associated with a given index and type.
-     * <p>
-     * The id is optional, if it is not provided, one will be generated automatically.
-     */
-    IndexRequestBuilder prepareIndex();
-
-    /**
-     * Updates a document based on a script.
-     *
-     * @param request The update request
-     * @return The result future
-     */
-    ActionFuture<UpdateResponse> update(UpdateRequest request);
-
-    /**
-     * Updates a document based on a script.
-     *
-     * @param request  The update request
-     * @param listener A listener to be notified with a result
-     */
-    void update(UpdateRequest request, ActionListener<UpdateResponse> listener);
-
-    /**
-     * Updates a document based on a script.
-     */
-    UpdateRequestBuilder prepareUpdate();
-
-    /**
-     * Updates a document based on a script.
-     */
-    UpdateRequestBuilder prepareUpdate(String index, String type, String id);
-
-    /**
-     * Index a document associated with a given index and type.
-     * <p>
-     * The id is optional, if it is not provided, one will be generated automatically.
-     *
-     * @param index The index to index the document to
-     * @param type  The type to index the document to
-     */
-    IndexRequestBuilder prepareIndex(String index, String type);
-
-    /**
-     * Index a document associated with a given index and type.
-     * <p>
-     * The id is optional, if it is not provided, one will be generated automatically.
-     *
-     * @param index The index to index the document to
-     * @param type  The type to index the document to
-     * @param id    The id of the document
-     */
-    IndexRequestBuilder prepareIndex(String index, String type, @Nullable String id);
-
-    /**
-     * Deletes a document from the index based on the index, type and id.
-     *
-     * @param request The delete request
-     * @return The result future
-     * @see Requests#deleteRequest(String)
-     */
-    ActionFuture<DeleteResponse> delete(DeleteRequest request);
-
-    /**
-     * Deletes a document from the index based on the index, type and id.
-     *
-     * @param request  The delete request
-     * @param listener A listener to be notified with a result
-     * @see Requests#deleteRequest(String)
-     */
-    void delete(DeleteRequest request, ActionListener<DeleteResponse> listener);
-
-    /**
-     * Deletes a document from the index based on the index, type and id.
-     */
-    DeleteRequestBuilder prepareDelete();
-
-    /**
-     * Deletes a document from the index based on the index, type and id.
-     *
-     * @param index The index to delete the document from
-     * @param type  The type of the document to delete
-     * @param id    The id of the document to delete
-     */
-    DeleteRequestBuilder prepareDelete(String index, String type, String id);
-
-    /**
-     * Executes a bulk of index / delete operations.
-     *
-     * @param request The bulk request
-     * @return The result future
-     * @see org.elasticsearch.client.Requests#bulkRequest()
-     */
-    ActionFuture<BulkResponse> bulk(BulkRequest request);
-
-    /**
-     * Executes a bulk of index / delete operations.
-     *
-     * @param request  The bulk request
-     * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#bulkRequest()
-     */
-    void bulk(BulkRequest request, ActionListener<BulkResponse> listener);
-
-    /**
-     * Executes a bulk of index / delete operations.
-     */
-    BulkRequestBuilder prepareBulk();
-
-    /**
-     * Gets the document that was indexed from an index with a type and id.
-     *
-     * @param request The get request
-     * @return The result future
-     * @see Requests#getRequest(String)
-     */
-    ActionFuture<GetResponse> get(GetRequest request);
-
-    /**
-     * Gets the document that was indexed from an index with a type and id.
-     *
-     * @param request  The get request
-     * @param listener A listener to be notified with a result
-     * @see Requests#getRequest(String)
-     */
-    void get(GetRequest request, ActionListener<GetResponse> listener);
-
-    /**
-     * Gets the document that was indexed from an index with a type and id.
-     */
-    GetRequestBuilder prepareGet();
-
-    /**
-     * Gets the document that was indexed from an index with a type (optional) and id.
-     */
-    GetRequestBuilder prepareGet(String index, @Nullable String type, String id);
-
-    /**
-     * Multi get documents.
-     */
-    ActionFuture<MultiGetResponse> multiGet(MultiGetRequest request);
-
-    /**
-     * Multi get documents.
-     */
-    void multiGet(MultiGetRequest request, ActionListener<MultiGetResponse> listener);
-
-    /**
-     * Multi get documents.
-     */
-    MultiGetRequestBuilder prepareMultiGet();
 
     /**
      * Search across one or more indices and one or more types with a query.
@@ -337,107 +130,6 @@ public interface Client extends ElasticsearchClient, Releasable {
     MultiSearchRequestBuilder prepareMultiSearch();
 
     /**
-     * An action that returns the term vectors for a specific document.
-     *
-     * @param request The term vector request
-     * @return The response future
-     */
-    ActionFuture<TermVectorsResponse> termVectors(TermVectorsRequest request);
-
-    /**
-     * An action that returns the term vectors for a specific document.
-     *
-     * @param request The term vector request
-     */
-    void termVectors(TermVectorsRequest request, ActionListener<TermVectorsResponse> listener);
-
-    /**
-     * Builder for the term vector request.
-     */
-    TermVectorsRequestBuilder prepareTermVectors();
-
-    /**
-     * Builder for the term vector request.
-     *
-     * @param index The index to load the document from
-     * @param type  The type of the document
-     * @param id    The id of the document
-     */
-    TermVectorsRequestBuilder prepareTermVectors(String index, String type, String id);
-
-    /**
-     * An action that returns the term vectors for a specific document.
-     *
-     * @param request The term vector request
-     * @return The response future
-     */
-    @Deprecated
-    ActionFuture<TermVectorsResponse> termVector(TermVectorsRequest request);
-
-    /**
-     * An action that returns the term vectors for a specific document.
-     *
-     * @param request The term vector request
-     */
-    @Deprecated
-    void termVector(TermVectorsRequest request, ActionListener<TermVectorsResponse> listener);
-
-    /**
-     * Builder for the term vector request.
-     */
-    @Deprecated
-    TermVectorsRequestBuilder prepareTermVector();
-
-    /**
-     * Builder for the term vector request.
-     *
-     * @param index The index to load the document from
-     * @param type  The type of the document
-     * @param id    The id of the document
-     */
-    @Deprecated
-    TermVectorsRequestBuilder prepareTermVector(String index, String type, String id);
-
-    /**
-     * Multi get term vectors.
-     */
-    ActionFuture<MultiTermVectorsResponse> multiTermVectors(MultiTermVectorsRequest request);
-
-    /**
-     * Multi get term vectors.
-     */
-    void multiTermVectors(MultiTermVectorsRequest request, ActionListener<MultiTermVectorsResponse> listener);
-
-    /**
-     * Multi get term vectors.
-     */
-    MultiTermVectorsRequestBuilder prepareMultiTermVectors();
-
-    /**
-     * Computes a score explanation for the specified request.
-     *
-     * @param index The index this explain is targeted for
-     * @param type  The type this explain is targeted for
-     * @param id    The document identifier this explain is targeted for
-     */
-    ExplainRequestBuilder prepareExplain(String index, String type, String id);
-
-    /**
-     * Computes a score explanation for the specified request.
-     *
-     * @param request The request encapsulating the query and document identifier to compute a score explanation for
-     */
-    ActionFuture<ExplainResponse> explain(ExplainRequest request);
-
-    /**
-     * Computes a score explanation for the specified request.
-     *
-     * @param request  The request encapsulating the query and document identifier to compute a score explanation for
-     * @param listener A listener to be notified of the result
-     */
-    void explain(ExplainRequest request, ActionListener<ExplainResponse> listener);
-
-    /**
      * Clears the search contexts associated with specified scroll ids.
      */
     ClearScrollRequestBuilder prepareClearScroll();
@@ -451,21 +143,6 @@ public interface Client extends ElasticsearchClient, Releasable {
      * Clears the search contexts associated with specified scroll ids.
      */
     void clearScroll(ClearScrollRequest request, ActionListener<ClearScrollResponse> listener);
-
-    /**
-     * Builder for the field capabilities request.
-     */
-    FieldCapabilitiesRequestBuilder prepareFieldCaps(String... indices);
-
-    /**
-     * An action that returns the field capabilities from the provided request
-     */
-    ActionFuture<FieldCapabilitiesResponse> fieldCaps(FieldCapabilitiesRequest request);
-
-    /**
-     * An action that returns the field capabilities from the provided request
-     */
-    void fieldCaps(FieldCapabilitiesRequest request, ActionListener<FieldCapabilitiesResponse> listener);
 
     /**
      * Returns this clients settings

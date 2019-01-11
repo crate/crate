@@ -25,44 +25,12 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplainAction;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplainRequest;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplainRequestBuilder;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplainResponse;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.node.hotthreads.NodesHotThreadsAction;
-import org.elasticsearch.action.admin.cluster.node.hotthreads.NodesHotThreadsRequest;
-import org.elasticsearch.action.admin.cluster.node.hotthreads.NodesHotThreadsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.hotthreads.NodesHotThreadsResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoAction;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
-import org.elasticsearch.action.admin.cluster.node.reload.NodesReloadSecureSettingsAction;
-import org.elasticsearch.action.admin.cluster.node.reload.NodesReloadSecureSettingsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsAction;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksAction;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequest;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksResponse;
-import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskAction;
-import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskRequest;
-import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskResponse;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksAction;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksRequest;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksResponse;
-import org.elasticsearch.action.admin.cluster.node.usage.NodesUsageAction;
-import org.elasticsearch.action.admin.cluster.node.usage.NodesUsageRequest;
-import org.elasticsearch.action.admin.cluster.node.usage.NodesUsageRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.usage.NodesUsageResponse;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequestBuilder;
@@ -73,10 +41,6 @@ import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRe
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryAction;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryRequestBuilder;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryResponse;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
@@ -112,35 +76,10 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsAction;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequest;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequestBuilder;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequestBuilder;
-import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistAction;
-import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistRequestBuilder;
-import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesAction;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequestBuilder;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesResponse;
-import org.elasticsearch.action.admin.indices.analyze.AnalyzeAction;
-import org.elasticsearch.action.admin.indices.analyze.AnalyzeRequest;
-import org.elasticsearch.action.admin.indices.analyze.AnalyzeRequestBuilder;
-import org.elasticsearch.action.admin.indices.analyze.AnalyzeResponse;
-import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheAction;
-import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheRequest;
-import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheRequestBuilder;
-import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheResponse;
-import org.elasticsearch.action.admin.indices.close.CloseIndexAction;
-import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
-import org.elasticsearch.action.admin.indices.close.CloseIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
@@ -172,21 +111,9 @@ import org.elasticsearch.action.admin.indices.get.GetIndexAction;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsAction;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequestBuilder;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsAction;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequestBuilder;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
-import org.elasticsearch.action.admin.indices.open.OpenIndexAction;
-import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
-import org.elasticsearch.action.admin.indices.open.OpenIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.open.OpenIndexResponse;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryAction;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequestBuilder;
@@ -195,14 +122,6 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequestBuilder;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.rollover.RolloverAction;
-import org.elasticsearch.action.admin.indices.rollover.RolloverRequest;
-import org.elasticsearch.action.admin.indices.rollover.RolloverRequestBuilder;
-import org.elasticsearch.action.admin.indices.rollover.RolloverResponse;
-import org.elasticsearch.action.admin.indices.segments.IndicesSegmentResponse;
-import org.elasticsearch.action.admin.indices.segments.IndicesSegmentsAction;
-import org.elasticsearch.action.admin.indices.segments.IndicesSegmentsRequest;
-import org.elasticsearch.action.admin.indices.segments.IndicesSegmentsRequestBuilder;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequestBuilder;
@@ -210,10 +129,6 @@ import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
-import org.elasticsearch.action.admin.indices.shards.IndicesShardStoreRequestBuilder;
-import org.elasticsearch.action.admin.indices.shards.IndicesShardStoresAction;
-import org.elasticsearch.action.admin.indices.shards.IndicesShardStoresRequest;
-import org.elasticsearch.action.admin.indices.shards.IndicesShardStoresResponse;
 import org.elasticsearch.action.admin.indices.shrink.ResizeAction;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequestBuilder;
@@ -240,52 +155,6 @@ import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequestBuilder;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
-import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryAction;
-import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequest;
-import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequestBuilder;
-import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryResponse;
-import org.elasticsearch.action.bulk.BulkAction;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.delete.DeleteAction;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.delete.DeleteRequestBuilder;
-import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.explain.ExplainAction;
-import org.elasticsearch.action.explain.ExplainRequest;
-import org.elasticsearch.action.explain.ExplainRequestBuilder;
-import org.elasticsearch.action.explain.ExplainResponse;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesAction;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequest;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequestBuilder;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesResponse;
-import org.elasticsearch.action.get.GetAction;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetRequestBuilder;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.get.MultiGetAction;
-import org.elasticsearch.action.get.MultiGetRequest;
-import org.elasticsearch.action.get.MultiGetRequestBuilder;
-import org.elasticsearch.action.get.MultiGetResponse;
-import org.elasticsearch.action.index.IndexAction;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.ingest.DeletePipelineAction;
-import org.elasticsearch.action.ingest.DeletePipelineRequest;
-import org.elasticsearch.action.ingest.DeletePipelineRequestBuilder;
-import org.elasticsearch.action.ingest.GetPipelineAction;
-import org.elasticsearch.action.ingest.GetPipelineRequest;
-import org.elasticsearch.action.ingest.GetPipelineRequestBuilder;
-import org.elasticsearch.action.ingest.GetPipelineResponse;
-import org.elasticsearch.action.ingest.PutPipelineAction;
-import org.elasticsearch.action.ingest.PutPipelineRequest;
-import org.elasticsearch.action.ingest.PutPipelineRequestBuilder;
-import org.elasticsearch.action.ingest.SimulatePipelineAction;
-import org.elasticsearch.action.ingest.SimulatePipelineRequest;
-import org.elasticsearch.action.ingest.SimulatePipelineRequestBuilder;
-import org.elasticsearch.action.ingest.SimulatePipelineResponse;
 import org.elasticsearch.action.search.ClearScrollAction;
 import org.elasticsearch.action.search.ClearScrollRequest;
 import org.elasticsearch.action.search.ClearScrollRequestBuilder;
@@ -302,32 +171,16 @@ import org.elasticsearch.action.search.SearchScrollAction;
 import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.search.SearchScrollRequestBuilder;
 import org.elasticsearch.action.support.PlainActionFuture;
-import org.elasticsearch.action.support.ThreadedActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.action.termvectors.MultiTermVectorsAction;
-import org.elasticsearch.action.termvectors.MultiTermVectorsRequest;
-import org.elasticsearch.action.termvectors.MultiTermVectorsRequestBuilder;
-import org.elasticsearch.action.termvectors.MultiTermVectorsResponse;
-import org.elasticsearch.action.termvectors.TermVectorsAction;
-import org.elasticsearch.action.termvectors.TermVectorsRequest;
-import org.elasticsearch.action.termvectors.TermVectorsRequestBuilder;
-import org.elasticsearch.action.termvectors.TermVectorsResponse;
-import org.elasticsearch.action.update.UpdateAction;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateRequestBuilder;
-import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.client.FilterClient;
 import org.elasticsearch.client.IndicesAdminClient;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -337,13 +190,11 @@ public abstract class AbstractClient extends AbstractComponent implements Client
 
     private final ThreadPool threadPool;
     private final Admin admin;
-    private final ThreadedActionListener.Wrapper threadedWrapper;
 
     public AbstractClient(Settings settings, ThreadPool threadPool) {
         super(settings);
         this.threadPool = threadPool;
         this.admin = new Admin(this);
-        this.threadedWrapper = new ThreadedActionListener.Wrapper(logger, settings, threadPool);
     }
 
     @Override
@@ -381,126 +232,10 @@ public abstract class AbstractClient extends AbstractComponent implements Client
     @Override
     public final <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void execute(
             Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener) {
-        listener = threadedWrapper.wrap(listener);
         doExecute(action, request, listener);
     }
 
     protected abstract <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void doExecute(Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener);
-
-    @Override
-    public ActionFuture<IndexResponse> index(final IndexRequest request) {
-        return execute(IndexAction.INSTANCE, request);
-    }
-
-    @Override
-    public void index(final IndexRequest request, final ActionListener<IndexResponse> listener) {
-        execute(IndexAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public IndexRequestBuilder prepareIndex() {
-        return new IndexRequestBuilder(this, IndexAction.INSTANCE, null);
-    }
-
-    @Override
-    public IndexRequestBuilder prepareIndex(String index, String type) {
-        return prepareIndex(index, type, null);
-    }
-
-    @Override
-    public IndexRequestBuilder prepareIndex(String index, String type, @Nullable String id) {
-        return prepareIndex().setIndex(index).setType(type).setId(id);
-    }
-
-    @Override
-    public ActionFuture<UpdateResponse> update(final UpdateRequest request) {
-        return execute(UpdateAction.INSTANCE, request);
-    }
-
-    @Override
-    public void update(final UpdateRequest request, final ActionListener<UpdateResponse> listener) {
-        execute(UpdateAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public UpdateRequestBuilder prepareUpdate() {
-        return new UpdateRequestBuilder(this, UpdateAction.INSTANCE, null, null, null);
-    }
-
-    @Override
-    public UpdateRequestBuilder prepareUpdate(String index, String type, String id) {
-        return new UpdateRequestBuilder(this, UpdateAction.INSTANCE, index, type, id);
-    }
-
-    @Override
-    public ActionFuture<DeleteResponse> delete(final DeleteRequest request) {
-        return execute(DeleteAction.INSTANCE, request);
-    }
-
-    @Override
-    public void delete(final DeleteRequest request, final ActionListener<DeleteResponse> listener) {
-        execute(DeleteAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public DeleteRequestBuilder prepareDelete() {
-        return new DeleteRequestBuilder(this, DeleteAction.INSTANCE, null);
-    }
-
-    @Override
-    public DeleteRequestBuilder prepareDelete(String index, String type, String id) {
-        return prepareDelete().setIndex(index).setType(type).setId(id);
-    }
-
-    @Override
-    public ActionFuture<BulkResponse> bulk(final BulkRequest request) {
-        return execute(BulkAction.INSTANCE, request);
-    }
-
-    @Override
-    public void bulk(final BulkRequest request, final ActionListener<BulkResponse> listener) {
-        execute(BulkAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public BulkRequestBuilder prepareBulk() {
-        return new BulkRequestBuilder(this, BulkAction.INSTANCE);
-    }
-
-    @Override
-    public ActionFuture<GetResponse> get(final GetRequest request) {
-        return execute(GetAction.INSTANCE, request);
-    }
-
-    @Override
-    public void get(final GetRequest request, final ActionListener<GetResponse> listener) {
-        execute(GetAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public GetRequestBuilder prepareGet() {
-        return new GetRequestBuilder(this, GetAction.INSTANCE, null);
-    }
-
-    @Override
-    public GetRequestBuilder prepareGet(String index, String type, String id) {
-        return prepareGet().setIndex(index).setType(type).setId(id);
-    }
-
-    @Override
-    public ActionFuture<MultiGetResponse> multiGet(final MultiGetRequest request) {
-        return execute(MultiGetAction.INSTANCE, request);
-    }
-
-    @Override
-    public void multiGet(final MultiGetRequest request, final ActionListener<MultiGetResponse> listener) {
-        execute(MultiGetAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public MultiGetRequestBuilder prepareMultiGet() {
-        return new MultiGetRequestBuilder(this, MultiGetAction.INSTANCE);
-    }
 
     @Override
     public ActionFuture<SearchResponse> search(final SearchRequest request) {
@@ -548,80 +283,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
     }
 
     @Override
-    public ActionFuture<TermVectorsResponse> termVectors(final TermVectorsRequest request) {
-        return execute(TermVectorsAction.INSTANCE, request);
-    }
-
-    @Override
-    public void termVectors(final TermVectorsRequest request, final ActionListener<TermVectorsResponse> listener) {
-        execute(TermVectorsAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public TermVectorsRequestBuilder prepareTermVectors() {
-        return new TermVectorsRequestBuilder(this, TermVectorsAction.INSTANCE);
-    }
-
-    @Override
-    public TermVectorsRequestBuilder prepareTermVectors(String index, String type, String id) {
-        return new TermVectorsRequestBuilder(this, TermVectorsAction.INSTANCE, index, type, id);
-    }
-
-    @Deprecated
-    @Override
-    public ActionFuture<TermVectorsResponse> termVector(final TermVectorsRequest request) {
-        return termVectors(request);
-    }
-
-    @Deprecated
-    @Override
-    public void termVector(final TermVectorsRequest request, final ActionListener<TermVectorsResponse> listener) {
-        termVectors(request, listener);
-    }
-
-    @Deprecated
-    @Override
-    public TermVectorsRequestBuilder prepareTermVector() {
-        return prepareTermVectors();
-    }
-
-    @Deprecated
-    @Override
-    public TermVectorsRequestBuilder prepareTermVector(String index, String type, String id) {
-        return prepareTermVectors(index, type, id);
-    }
-
-    @Override
-    public ActionFuture<MultiTermVectorsResponse> multiTermVectors(final MultiTermVectorsRequest request) {
-        return execute(MultiTermVectorsAction.INSTANCE, request);
-    }
-
-    @Override
-    public void multiTermVectors(final MultiTermVectorsRequest request, final ActionListener<MultiTermVectorsResponse> listener) {
-        execute(MultiTermVectorsAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public MultiTermVectorsRequestBuilder prepareMultiTermVectors() {
-        return new MultiTermVectorsRequestBuilder(this, MultiTermVectorsAction.INSTANCE);
-    }
-
-    @Override
-    public ExplainRequestBuilder prepareExplain(String index, String type, String id) {
-        return new ExplainRequestBuilder(this, ExplainAction.INSTANCE, index, type, id);
-    }
-
-    @Override
-    public ActionFuture<ExplainResponse> explain(ExplainRequest request) {
-        return execute(ExplainAction.INSTANCE, request);
-    }
-
-    @Override
-    public void explain(ExplainRequest request, ActionListener<ExplainResponse> listener) {
-        execute(ExplainAction.INSTANCE, request, listener);
-    }
-
-    @Override
     public void clearScroll(ClearScrollRequest request, ActionListener<ClearScrollResponse> listener) {
         execute(ClearScrollAction.INSTANCE, request, listener);
     }
@@ -634,21 +295,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
     @Override
     public ClearScrollRequestBuilder prepareClearScroll() {
         return new ClearScrollRequestBuilder(this, ClearScrollAction.INSTANCE);
-    }
-
-    @Override
-    public void fieldCaps(FieldCapabilitiesRequest request, ActionListener<FieldCapabilitiesResponse> listener) {
-        execute(FieldCapabilitiesAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public ActionFuture<FieldCapabilitiesResponse> fieldCaps(FieldCapabilitiesRequest request) {
-        return execute(FieldCapabilitiesAction.INSTANCE, request);
-    }
-
-    @Override
-    public FieldCapabilitiesRequestBuilder prepareFieldCaps(String... indices) {
-        return new FieldCapabilitiesRequestBuilder(this, FieldCapabilitiesAction.INSTANCE, indices);
     }
 
     static class Admin implements AdminClient {
@@ -764,133 +410,8 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         }
 
         @Override
-        public NodesReloadSecureSettingsRequestBuilder prepareReloadSecureSettings() {
-            return new NodesReloadSecureSettingsRequestBuilder(this, NodesReloadSecureSettingsAction.INSTANCE);
-        }
-
-        @Override
-        public ActionFuture<NodesInfoResponse> nodesInfo(final NodesInfoRequest request) {
-            return execute(NodesInfoAction.INSTANCE, request);
-        }
-
-        @Override
-        public void nodesInfo(final NodesInfoRequest request, final ActionListener<NodesInfoResponse> listener) {
-            execute(NodesInfoAction.INSTANCE, request, listener);
-        }
-
-        @Override
         public NodesInfoRequestBuilder prepareNodesInfo(String... nodesIds) {
             return new NodesInfoRequestBuilder(this, NodesInfoAction.INSTANCE).setNodesIds(nodesIds);
-        }
-
-        @Override
-        public ActionFuture<NodesStatsResponse> nodesStats(final NodesStatsRequest request) {
-            return execute(NodesStatsAction.INSTANCE, request);
-        }
-
-        @Override
-        public void nodesStats(final NodesStatsRequest request, final ActionListener<NodesStatsResponse> listener) {
-            execute(NodesStatsAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public NodesStatsRequestBuilder prepareNodesStats(String... nodesIds) {
-            return new NodesStatsRequestBuilder(this, NodesStatsAction.INSTANCE).setNodesIds(nodesIds);
-        }
-
-        @Override
-        public ActionFuture<NodesUsageResponse> nodesUsage(final NodesUsageRequest request) {
-            return execute(NodesUsageAction.INSTANCE, request);
-        }
-
-        @Override
-        public void nodesUsage(final NodesUsageRequest request, final ActionListener<NodesUsageResponse> listener) {
-            execute(NodesUsageAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public NodesUsageRequestBuilder prepareNodesUsage(String... nodesIds) {
-            return new NodesUsageRequestBuilder(this, NodesUsageAction.INSTANCE).setNodesIds(nodesIds);
-        }
-
-        @Override
-        public ActionFuture<ClusterStatsResponse> clusterStats(ClusterStatsRequest request) {
-            return execute(ClusterStatsAction.INSTANCE, request);
-        }
-
-        @Override
-        public void clusterStats(ClusterStatsRequest request, ActionListener<ClusterStatsResponse> listener) {
-            execute(ClusterStatsAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ClusterStatsRequestBuilder prepareClusterStats() {
-            return new ClusterStatsRequestBuilder(this, ClusterStatsAction.INSTANCE);
-        }
-
-        @Override
-        public ActionFuture<NodesHotThreadsResponse> nodesHotThreads(NodesHotThreadsRequest request) {
-            return execute(NodesHotThreadsAction.INSTANCE, request);
-        }
-
-        @Override
-        public void nodesHotThreads(NodesHotThreadsRequest request, ActionListener<NodesHotThreadsResponse> listener) {
-            execute(NodesHotThreadsAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public NodesHotThreadsRequestBuilder prepareNodesHotThreads(String... nodesIds) {
-            return new NodesHotThreadsRequestBuilder(this, NodesHotThreadsAction.INSTANCE).setNodesIds(nodesIds);
-        }
-
-        @Override
-        public ActionFuture<ListTasksResponse> listTasks(final ListTasksRequest request) {
-            return execute(ListTasksAction.INSTANCE, request);
-        }
-
-        @Override
-        public void listTasks(final ListTasksRequest request, final ActionListener<ListTasksResponse> listener) {
-            execute(ListTasksAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ListTasksRequestBuilder prepareListTasks(String... nodesIds) {
-            return new ListTasksRequestBuilder(this, ListTasksAction.INSTANCE).setNodesIds(nodesIds);
-        }
-
-        @Override
-        public ActionFuture<GetTaskResponse> getTask(final GetTaskRequest request) {
-            return execute(GetTaskAction.INSTANCE, request);
-        }
-
-        @Override
-        public void getTask(final GetTaskRequest request, final ActionListener<GetTaskResponse> listener) {
-            execute(GetTaskAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public GetTaskRequestBuilder prepareGetTask(String taskId) {
-            return prepareGetTask(new TaskId(taskId));
-        }
-
-        @Override
-        public GetTaskRequestBuilder prepareGetTask(TaskId taskId) {
-            return new GetTaskRequestBuilder(this, GetTaskAction.INSTANCE).setTaskId(taskId);
-        }
-
-        @Override
-        public ActionFuture<CancelTasksResponse> cancelTasks(CancelTasksRequest request) {
-            return execute(CancelTasksAction.INSTANCE, request);
-        }
-
-        @Override
-        public void cancelTasks(CancelTasksRequest request, ActionListener<CancelTasksResponse> listener) {
-            execute(CancelTasksAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public CancelTasksRequestBuilder prepareCancelTasks(String... nodesIds) {
-            return new CancelTasksRequestBuilder(this, CancelTasksAction.INSTANCE).setNodesIds(nodesIds);
         }
 
         @Override
@@ -1006,21 +527,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         }
 
         @Override
-        public ActionFuture<VerifyRepositoryResponse> verifyRepository(VerifyRepositoryRequest request) {
-            return execute(VerifyRepositoryAction.INSTANCE, request);
-        }
-
-        @Override
-        public void verifyRepository(VerifyRepositoryRequest request, ActionListener<VerifyRepositoryResponse> listener) {
-            execute(VerifyRepositoryAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public VerifyRepositoryRequestBuilder prepareVerifyRepository(String name) {
-            return new VerifyRepositoryRequestBuilder(this, VerifyRepositoryAction.INSTANCE, name);
-        }
-
-        @Override
         public ActionFuture<GetRepositoriesResponse> getRepositories(GetRepositoriesRequest request) {
             return execute(GetRepositoriesAction.INSTANCE, request);
         }
@@ -1069,96 +575,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public SnapshotsStatusRequestBuilder prepareSnapshotStatus() {
             return new SnapshotsStatusRequestBuilder(this, SnapshotsStatusAction.INSTANCE);
-        }
-
-        @Override
-        public void putPipeline(PutPipelineRequest request, ActionListener<AcknowledgedResponse> listener) {
-            execute(PutPipelineAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ActionFuture<AcknowledgedResponse> putPipeline(PutPipelineRequest request) {
-            return execute(PutPipelineAction.INSTANCE, request);
-        }
-
-        @Override
-        public PutPipelineRequestBuilder preparePutPipeline(String id, BytesReference source) {
-            return new PutPipelineRequestBuilder(this, PutPipelineAction.INSTANCE, id, source);
-        }
-
-        @Override
-        public PutPipelineRequestBuilder preparePutPipeline(String id, BytesReference source, XContentType xContentType) {
-            return new PutPipelineRequestBuilder(this, PutPipelineAction.INSTANCE, id, source, xContentType);
-        }
-
-        @Override
-        public void deletePipeline(DeletePipelineRequest request, ActionListener<AcknowledgedResponse> listener) {
-            execute(DeletePipelineAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ActionFuture<AcknowledgedResponse> deletePipeline(DeletePipelineRequest request) {
-            return execute(DeletePipelineAction.INSTANCE, request);
-        }
-
-        @Override
-        public DeletePipelineRequestBuilder prepareDeletePipeline() {
-            return new DeletePipelineRequestBuilder(this, DeletePipelineAction.INSTANCE);
-        }
-
-        @Override
-        public DeletePipelineRequestBuilder prepareDeletePipeline(String id) {
-            return new DeletePipelineRequestBuilder(this, DeletePipelineAction.INSTANCE, id);
-        }
-
-        @Override
-        public void getPipeline(GetPipelineRequest request, ActionListener<GetPipelineResponse> listener) {
-            execute(GetPipelineAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ActionFuture<GetPipelineResponse> getPipeline(GetPipelineRequest request) {
-            return execute(GetPipelineAction.INSTANCE, request);
-        }
-
-        @Override
-        public GetPipelineRequestBuilder prepareGetPipeline(String... ids) {
-            return new GetPipelineRequestBuilder(this, GetPipelineAction.INSTANCE, ids);
-        }
-
-        @Override
-        public void simulatePipeline(SimulatePipelineRequest request, ActionListener<SimulatePipelineResponse> listener) {
-            execute(SimulatePipelineAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ActionFuture<SimulatePipelineResponse> simulatePipeline(SimulatePipelineRequest request) {
-            return execute(SimulatePipelineAction.INSTANCE, request);
-        }
-
-        @Override
-        public SimulatePipelineRequestBuilder prepareSimulatePipeline(BytesReference source) {
-            return new SimulatePipelineRequestBuilder(this, SimulatePipelineAction.INSTANCE, source);
-        }
-
-        @Override
-        public SimulatePipelineRequestBuilder prepareSimulatePipeline(BytesReference source, XContentType xContentType) {
-            return new SimulatePipelineRequestBuilder(this, SimulatePipelineAction.INSTANCE, source, xContentType);
-        }
-
-        @Override
-        public void allocationExplain(ClusterAllocationExplainRequest request, ActionListener<ClusterAllocationExplainResponse> listener) {
-            execute(ClusterAllocationExplainAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ActionFuture<ClusterAllocationExplainResponse> allocationExplain(ClusterAllocationExplainRequest request) {
-            return execute(ClusterAllocationExplainAction.INSTANCE, request);
-        }
-
-        @Override
-        public ClusterAllocationExplainRequestBuilder prepareAllocationExplain() {
-            return new ClusterAllocationExplainRequestBuilder(this, ClusterAllocationExplainAction.INSTANCE);
         }
     }
 
@@ -1224,56 +640,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         }
 
         @Override
-        public ActionFuture<AcknowledgedResponse> aliases(final IndicesAliasesRequest request) {
-            return execute(IndicesAliasesAction.INSTANCE, request);
-        }
-
-        @Override
-        public void aliases(final IndicesAliasesRequest request, final ActionListener<AcknowledgedResponse> listener) {
-            execute(IndicesAliasesAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public IndicesAliasesRequestBuilder prepareAliases() {
-            return new IndicesAliasesRequestBuilder(this, IndicesAliasesAction.INSTANCE);
-        }
-
-        @Override
-        public ActionFuture<GetAliasesResponse> getAliases(GetAliasesRequest request) {
-            return execute(GetAliasesAction.INSTANCE, request);
-        }
-
-        @Override
-        public void getAliases(GetAliasesRequest request, ActionListener<GetAliasesResponse> listener) {
-            execute(GetAliasesAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public GetAliasesRequestBuilder prepareGetAliases(String... aliases) {
-            return new GetAliasesRequestBuilder(this, GetAliasesAction.INSTANCE, aliases);
-        }
-
-        @Override
-        public ActionFuture<ClearIndicesCacheResponse> clearCache(final ClearIndicesCacheRequest request) {
-            return execute(ClearIndicesCacheAction.INSTANCE, request);
-        }
-
-        @Override
-        public void aliasesExist(GetAliasesRequest request, ActionListener<AliasesExistResponse> listener) {
-            execute(AliasesExistAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ActionFuture<AliasesExistResponse> aliasesExist(GetAliasesRequest request) {
-            return execute(AliasesExistAction.INSTANCE, request);
-        }
-
-        @Override
-        public AliasesExistRequestBuilder prepareAliasesExist(String... aliases) {
-            return new AliasesExistRequestBuilder(this, AliasesExistAction.INSTANCE, aliases);
-        }
-
-        @Override
         public ActionFuture<GetIndexResponse> getIndex(GetIndexRequest request) {
             return execute(GetIndexAction.INSTANCE, request);
         }
@@ -1286,16 +652,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public GetIndexRequestBuilder prepareGetIndex() {
             return new GetIndexRequestBuilder(this, GetIndexAction.INSTANCE);
-        }
-
-        @Override
-        public void clearCache(final ClearIndicesCacheRequest request, final ActionListener<ClearIndicesCacheResponse> listener) {
-            execute(ClearIndicesCacheAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ClearIndicesCacheRequestBuilder prepareClearCache(String... indices) {
-            return new ClearIndicesCacheRequestBuilder(this, ClearIndicesCacheAction.INSTANCE).setIndices(indices);
         }
 
         @Override
@@ -1329,36 +685,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         }
 
         @Override
-        public ActionFuture<AcknowledgedResponse> close(final CloseIndexRequest request) {
-            return execute(CloseIndexAction.INSTANCE, request);
-        }
-
-        @Override
-        public void close(final CloseIndexRequest request, final ActionListener<AcknowledgedResponse> listener) {
-            execute(CloseIndexAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public CloseIndexRequestBuilder prepareClose(String... indices) {
-            return new CloseIndexRequestBuilder(this, CloseIndexAction.INSTANCE, indices);
-        }
-
-        @Override
-        public ActionFuture<OpenIndexResponse> open(final OpenIndexRequest request) {
-            return execute(OpenIndexAction.INSTANCE, request);
-        }
-
-        @Override
-        public void open(final OpenIndexRequest request, final ActionListener<OpenIndexResponse> listener) {
-            execute(OpenIndexAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public OpenIndexRequestBuilder prepareOpen(String... indices) {
-            return new OpenIndexRequestBuilder(this, OpenIndexAction.INSTANCE, indices);
-        }
-
-        @Override
         public ActionFuture<FlushResponse> flush(final FlushRequest request) {
             return execute(FlushAction.INSTANCE, request);
         }
@@ -1386,36 +712,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public SyncedFlushRequestBuilder prepareSyncedFlush(String... indices) {
             return new SyncedFlushRequestBuilder(this, SyncedFlushAction.INSTANCE).setIndices(indices);
-        }
-
-        @Override
-        public void getMappings(GetMappingsRequest request, ActionListener<GetMappingsResponse> listener) {
-            execute(GetMappingsAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public void getFieldMappings(GetFieldMappingsRequest request, ActionListener<GetFieldMappingsResponse> listener) {
-            execute(GetFieldMappingsAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public GetMappingsRequestBuilder prepareGetMappings(String... indices) {
-            return new GetMappingsRequestBuilder(this, GetMappingsAction.INSTANCE, indices);
-        }
-
-        @Override
-        public ActionFuture<GetMappingsResponse> getMappings(GetMappingsRequest request) {
-            return execute(GetMappingsAction.INSTANCE, request);
-        }
-
-        @Override
-        public GetFieldMappingsRequestBuilder prepareGetFieldMappings(String... indices) {
-            return new GetFieldMappingsRequestBuilder(this, GetFieldMappingsAction.INSTANCE, indices);
-        }
-
-        @Override
-        public ActionFuture<GetFieldMappingsResponse> getFieldMappings(GetFieldMappingsRequest request) {
-            return execute(GetFieldMappingsAction.INSTANCE, request);
         }
 
         @Override
@@ -1524,36 +820,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         }
 
         @Override
-        public ActionFuture<IndicesSegmentResponse> segments(final IndicesSegmentsRequest request) {
-            return execute(IndicesSegmentsAction.INSTANCE, request);
-        }
-
-        @Override
-        public void segments(final IndicesSegmentsRequest request, final ActionListener<IndicesSegmentResponse> listener) {
-            execute(IndicesSegmentsAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public IndicesSegmentsRequestBuilder prepareSegments(String... indices) {
-            return new IndicesSegmentsRequestBuilder(this, IndicesSegmentsAction.INSTANCE).setIndices(indices);
-        }
-
-        @Override
-        public ActionFuture<IndicesShardStoresResponse> shardStores(IndicesShardStoresRequest request) {
-            return execute(IndicesShardStoresAction.INSTANCE, request);
-        }
-
-        @Override
-        public void shardStores(IndicesShardStoresRequest request, ActionListener<IndicesShardStoresResponse> listener) {
-            execute(IndicesShardStoresAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public IndicesShardStoreRequestBuilder prepareShardStores(String... indices) {
-            return new IndicesShardStoreRequestBuilder(this, IndicesShardStoresAction.INSTANCE, indices);
-        }
-
-        @Override
         public ActionFuture<AcknowledgedResponse> updateSettings(final UpdateSettingsRequest request) {
             return execute(UpdateSettingsAction.INSTANCE, request);
         }
@@ -1566,31 +832,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public UpdateSettingsRequestBuilder prepareUpdateSettings(String... indices) {
             return new UpdateSettingsRequestBuilder(this, UpdateSettingsAction.INSTANCE).setIndices(indices);
-        }
-
-        @Override
-        public ActionFuture<AnalyzeResponse> analyze(final AnalyzeRequest request) {
-            return execute(AnalyzeAction.INSTANCE, request);
-        }
-
-        @Override
-        public void analyze(final AnalyzeRequest request, final ActionListener<AnalyzeResponse> listener) {
-            execute(AnalyzeAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public AnalyzeRequestBuilder prepareAnalyze(@Nullable String index, String text) {
-            return new AnalyzeRequestBuilder(this, AnalyzeAction.INSTANCE, index, text);
-        }
-
-        @Override
-        public AnalyzeRequestBuilder prepareAnalyze(String text) {
-            return new AnalyzeRequestBuilder(this, AnalyzeAction.INSTANCE, null, text);
-        }
-
-        @Override
-        public AnalyzeRequestBuilder prepareAnalyze() {
-            return new AnalyzeRequestBuilder(this, AnalyzeAction.INSTANCE);
         }
 
         @Override
@@ -1639,21 +880,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         }
 
         @Override
-        public ActionFuture<ValidateQueryResponse> validateQuery(final ValidateQueryRequest request) {
-            return execute(ValidateQueryAction.INSTANCE, request);
-        }
-
-        @Override
-        public void validateQuery(final ValidateQueryRequest request, final ActionListener<ValidateQueryResponse> listener) {
-            execute(ValidateQueryAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ValidateQueryRequestBuilder prepareValidateQuery(String... indices) {
-            return new ValidateQueryRequestBuilder(this, ValidateQueryAction.INSTANCE).setIndices(indices);
-        }
-
-        @Override
         public GetSettingsRequestBuilder prepareGetSettings(String... indices) {
             return new GetSettingsRequestBuilder(this, GetSettingsAction.INSTANCE, indices);
         }
@@ -1672,21 +898,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public void resizeIndex(ResizeRequest request, ActionListener<ResizeResponse> listener) {
             execute(ResizeAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public RolloverRequestBuilder prepareRolloverIndex(String alias) {
-            return new RolloverRequestBuilder(this, RolloverAction.INSTANCE).setAlias(alias);
-        }
-
-        @Override
-        public ActionFuture<RolloverResponse> rolloversIndex(RolloverRequest request) {
-            return execute(RolloverAction.INSTANCE, request);
-        }
-
-        @Override
-        public void rolloverIndex(RolloverRequest request, ActionListener<RolloverResponse> listener) {
-            execute(RolloverAction.INSTANCE, request, listener);
         }
 
         @Override

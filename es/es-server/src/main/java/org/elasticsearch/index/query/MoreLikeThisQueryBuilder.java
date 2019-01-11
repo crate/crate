@@ -28,11 +28,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.termvectors.MultiTermVectorsItemResponse;
-import org.elasticsearch.action.termvectors.MultiTermVectorsRequest;
-import org.elasticsearch.action.termvectors.MultiTermVectorsResponse;
-import org.elasticsearch.action.termvectors.TermVectorsRequest;
-import org.elasticsearch.action.termvectors.TermVectorsResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.ParseField;
@@ -337,29 +332,6 @@ public class MoreLikeThisQueryBuilder extends AbstractQueryBuilder<MoreLikeThisQ
         }
 
         /**
-         * Convert this to a {@link TermVectorsRequest} for fetching the terms of the document.
-         */
-        TermVectorsRequest toTermVectorsRequest() {
-            TermVectorsRequest termVectorsRequest = new TermVectorsRequest(index, type, id)
-                    .selectedFields(fields)
-                    .routing(routing)
-                    .version(version)
-                    .versionType(versionType)
-                    .perFieldAnalyzer(perFieldAnalyzer)
-                    .positions(false)  // ensures these following parameters are never set
-                    .offsets(false)
-                    .payloads(false)
-                    .fieldStatistics(false)
-                    .termStatistics(false);
-            // for artificial docs to make sure that the id has changed in the item too
-            if (doc != null) {
-                termVectorsRequest.doc(doc, true, xContentType);
-                this.id = termVectorsRequest.id();
-            }
-            return termVectorsRequest;
-        }
-
-        /**
          * Parses and returns the given item.
          */
         public static Item parse(XContentParser parser, Item item) throws IOException {
@@ -389,8 +361,6 @@ public class MoreLikeThisQueryBuilder extends AbstractQueryBuilder<MoreLikeThisQ
                             throw new ElasticsearchParseException(
                                     "failed to parse More Like This item. field [fields] must be an array");
                         }
-                    } else if (PER_FIELD_ANALYZER.match(currentFieldName, parser.getDeprecationHandler())) {
-                        item.perFieldAnalyzer(TermVectorsRequest.readPerFieldAnalyzer(parser.map()));
                     } else if (ROUTING.match(currentFieldName, parser.getDeprecationHandler())) {
                         item.routing = parser.text();
                     } else if (VERSION.match(currentFieldName, parser.getDeprecationHandler())) {
@@ -981,9 +951,6 @@ public class MoreLikeThisQueryBuilder extends AbstractQueryBuilder<MoreLikeThisQ
 
         MoreLikeThisQuery mltQuery = new MoreLikeThisQuery();
 
-        // set similarity
-        mltQuery.setSimilarity(context.getSearchSimilarity());
-
         // set query parameters
         mltQuery.setMaxQueryTerms(maxQueryTerms);
         mltQuery.setMinTermFrequency(minTermFreq);
@@ -1060,20 +1027,6 @@ public class MoreLikeThisQueryBuilder extends AbstractQueryBuilder<MoreLikeThisQ
             setDefaultIndexTypeFields(context, item, moreLikeFields, useDefaultField);
         }
 
-        // fetching the items with multi-termvectors API
-        MultiTermVectorsResponse likeItemsResponse = fetchResponse(context.getClient(), likeItems);
-        // getting the Fields for liked items
-        mltQuery.setLikeFields(getFieldsFor(likeItemsResponse));
-
-        // getting the Fields for unliked items
-        if (unlikeItems.length > 0) {
-            MultiTermVectorsResponse unlikeItemsResponse = fetchResponse(context.getClient(), unlikeItems);
-            org.apache.lucene.index.Fields[] unlikeFields = getFieldsFor(unlikeItemsResponse);
-            if (unlikeFields.length > 0) {
-                mltQuery.setUnlikeFields(unlikeFields);
-            }
-        }
-
         BooleanQuery.Builder boolQuery = new BooleanQuery.Builder();
         boolQuery.add(mltQuery, BooleanClause.Occur.SHOULD);
 
@@ -1105,31 +1058,6 @@ public class MoreLikeThisQueryBuilder extends AbstractQueryBuilder<MoreLikeThisQ
                 item.fields(moreLikeFields.toArray(new String[moreLikeFields.size()]));
             }
         }
-    }
-
-    private MultiTermVectorsResponse fetchResponse(Client client, Item[] items) throws IOException {
-        MultiTermVectorsRequest request = new MultiTermVectorsRequest();
-        for (Item item : items) {
-            request.add(item.toTermVectorsRequest());
-        }
-
-        return client.multiTermVectors(request).actionGet();
-    }
-
-    private static Fields[] getFieldsFor(MultiTermVectorsResponse responses) throws IOException {
-        List<Fields> likeFields = new ArrayList<>();
-
-        for (MultiTermVectorsItemResponse response : responses) {
-            if (response.isFailed()) {
-                continue;
-            }
-            TermVectorsResponse getResponse = response.getResponse();
-            if (!getResponse.isExists()) {
-                continue;
-            }
-            likeFields.add(getResponse.getFields());
-        }
-        return likeFields.toArray(Fields.EMPTY_ARRAY);
     }
 
     private static void handleExclude(BooleanQuery.Builder boolQuery, Item[] likeItems, QueryShardContext context) {

@@ -21,34 +21,10 @@ package org.elasticsearch.client;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplainRequest;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplainRequestBuilder;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplainResponse;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.node.hotthreads.NodesHotThreadsRequest;
-import org.elasticsearch.action.admin.cluster.node.hotthreads.NodesHotThreadsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.hotthreads.NodesHotThreadsResponse;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
-import org.elasticsearch.action.admin.cluster.node.reload.NodesReloadSecureSettingsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequest;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksResponse;
-import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskRequest;
-import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskResponse;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksRequest;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksResponse;
-import org.elasticsearch.action.admin.cluster.node.usage.NodesUsageRequest;
-import org.elasticsearch.action.admin.cluster.node.usage.NodesUsageRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.usage.NodesUsageResponse;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRequest;
@@ -56,9 +32,6 @@ import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRe
 import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesResponse;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryRequestBuilder;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryResponse;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteResponse;
@@ -85,25 +58,10 @@ import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusRe
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequest;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequestBuilder;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
-import org.elasticsearch.action.ingest.DeletePipelineRequest;
-import org.elasticsearch.action.ingest.DeletePipelineRequestBuilder;
-import org.elasticsearch.action.ingest.GetPipelineRequest;
-import org.elasticsearch.action.ingest.GetPipelineRequestBuilder;
-import org.elasticsearch.action.ingest.GetPipelineResponse;
-import org.elasticsearch.action.ingest.PutPipelineRequest;
-import org.elasticsearch.action.ingest.PutPipelineRequestBuilder;
-import org.elasticsearch.action.ingest.SimulatePipelineRequest;
-import org.elasticsearch.action.ingest.SimulatePipelineRequestBuilder;
-import org.elasticsearch.action.ingest.SimulatePipelineResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.tasks.TaskId;
 
 /**
@@ -118,7 +76,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      *
      * @param request The cluster state request
      * @return The result future
-     * @see Requests#clusterHealthRequest(String...)
      */
     ActionFuture<ClusterHealthResponse> health(ClusterHealthRequest request);
 
@@ -127,7 +84,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      *
      * @param request  The cluster state request
      * @param listener A listener to be notified with a result
-     * @see Requests#clusterHealthRequest(String...)
      */
     void health(ClusterHealthRequest request, ActionListener<ClusterHealthResponse> listener);
 
@@ -141,7 +97,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      *
      * @param request The cluster state request.
      * @return The result future
-     * @see Requests#clusterStateRequest()
      */
     ActionFuture<ClusterStateResponse> state(ClusterStateRequest request);
 
@@ -150,7 +105,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      *
      * @param request  The cluster state request.
      * @param listener A listener to be notified with a result
-     * @see Requests#clusterStateRequest()
      */
     void state(ClusterStateRequest request, ActionListener<ClusterStateResponse> listener);
 
@@ -175,11 +129,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
     ClusterUpdateSettingsRequestBuilder prepareUpdateSettings();
 
     /**
-     * Re initialize each cluster node and pass them the secret store password.
-     */
-    NodesReloadSecureSettingsRequestBuilder prepareReloadSecureSettings();
-
-    /**
      * Reroutes allocation of shards. Advance API.
      */
     ActionFuture<ClusterRerouteResponse> reroute(ClusterRerouteRequest request);
@@ -196,190 +145,8 @@ public interface ClusterAdminClient extends ElasticsearchClient {
 
     /**
      * Nodes info of the cluster.
-     *
-     * @param request The nodes info request
-     * @return The result future
-     * @see org.elasticsearch.client.Requests#nodesInfoRequest(String...)
-     */
-    ActionFuture<NodesInfoResponse> nodesInfo(NodesInfoRequest request);
-
-    /**
-     * Nodes info of the cluster.
-     *
-     * @param request  The nodes info request
-     * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#nodesInfoRequest(String...)
-     */
-    void nodesInfo(NodesInfoRequest request, ActionListener<NodesInfoResponse> listener);
-
-    /**
-     * Nodes info of the cluster.
      */
     NodesInfoRequestBuilder prepareNodesInfo(String... nodesIds);
-
-    /**
-     * Cluster wide aggregated stats.
-     *
-     * @param request The cluster stats request
-     * @return The result future
-     * @see org.elasticsearch.client.Requests#clusterStatsRequest
-     */
-    ActionFuture<ClusterStatsResponse> clusterStats(ClusterStatsRequest request);
-
-    /**
-     * Cluster wide aggregated stats
-     *
-     * @param request  The cluster stats request
-     * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#clusterStatsRequest()
-     */
-    void clusterStats(ClusterStatsRequest request, ActionListener<ClusterStatsResponse> listener);
-
-    ClusterStatsRequestBuilder prepareClusterStats();
-
-    /**
-     * Nodes stats of the cluster.
-     *
-     * @param request The nodes stats request
-     * @return The result future
-     * @see org.elasticsearch.client.Requests#nodesStatsRequest(String...)
-     */
-    ActionFuture<NodesStatsResponse> nodesStats(NodesStatsRequest request);
-
-    /**
-     * Nodes stats of the cluster.
-     *
-     * @param request  The nodes info request
-     * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#nodesStatsRequest(String...)
-     */
-    void nodesStats(NodesStatsRequest request, ActionListener<NodesStatsResponse> listener);
-
-    /**
-     * Nodes stats of the cluster.
-     */
-    NodesStatsRequestBuilder prepareNodesStats(String... nodesIds);
-
-    /**
-     * Returns top N hot-threads samples per node. The hot-threads are only
-     * sampled for the node ids specified in the request. Nodes usage of the
-     * cluster.
-     *
-     * @param request
-     *            The nodes usage request
-     * @return The result future
-     * @see org.elasticsearch.client.Requests#nodesUsageRequest(String...)
-     */
-    ActionFuture<NodesUsageResponse> nodesUsage(NodesUsageRequest request);
-
-    /**
-     * Nodes usage of the cluster.
-     *
-     * @param request
-     *            The nodes usage request
-     * @param listener
-     *            A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#nodesUsageRequest(String...)
-     */
-    void nodesUsage(NodesUsageRequest request, ActionListener<NodesUsageResponse> listener);
-
-    /**
-     * Nodes usage of the cluster.
-     */
-    NodesUsageRequestBuilder prepareNodesUsage(String... nodesIds);
-
-    /**
-     * Returns top N hot-threads samples per node. The hot-threads are only
-     * sampled for the node ids specified in the request.
-     *
-     */
-    ActionFuture<NodesHotThreadsResponse> nodesHotThreads(NodesHotThreadsRequest request);
-
-    /**
-     * Returns top N hot-threads samples per node. The hot-threads are only sampled
-     * for the node ids specified in the request.
-     */
-    void nodesHotThreads(NodesHotThreadsRequest request, ActionListener<NodesHotThreadsResponse> listener);
-
-    /**
-     * Returns a request builder to fetch top N hot-threads samples per node. The hot-threads are only sampled
-     * for the node ids provided. Note: Use {@code *} to fetch samples for all nodes
-     */
-    NodesHotThreadsRequestBuilder prepareNodesHotThreads(String... nodesIds);
-
-    /**
-     * List tasks
-     *
-     * @param request The nodes tasks request
-     * @return The result future
-     * @see org.elasticsearch.client.Requests#listTasksRequest()
-     */
-    ActionFuture<ListTasksResponse> listTasks(ListTasksRequest request);
-
-    /**
-     * List active tasks
-     *
-     * @param request  The nodes tasks request
-     * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#listTasksRequest()
-     */
-    void listTasks(ListTasksRequest request, ActionListener<ListTasksResponse> listener);
-
-    /**
-     * List active tasks
-     */
-    ListTasksRequestBuilder prepareListTasks(String... nodesIds);
-
-    /**
-     * Get a task.
-     *
-     * @param request the request
-     * @return the result future
-     * @see org.elasticsearch.client.Requests#getTaskRequest()
-     */
-    ActionFuture<GetTaskResponse> getTask(GetTaskRequest request);
-
-    /**
-     * Get a task.
-     *
-     * @param request the request
-     * @param listener A listener to be notified with the result
-     * @see org.elasticsearch.client.Requests#getTaskRequest()
-     */
-    void getTask(GetTaskRequest request, ActionListener<GetTaskResponse> listener);
-
-    /**
-     * Fetch a task by id.
-     */
-    GetTaskRequestBuilder prepareGetTask(String taskId);
-
-    /**
-     * Fetch a task by id.
-     */
-    GetTaskRequestBuilder prepareGetTask(TaskId taskId);
-
-    /**
-     * Cancel tasks
-     *
-     * @param request The nodes tasks request
-     * @return The result future
-     * @see org.elasticsearch.client.Requests#cancelTasksRequest()
-     */
-    ActionFuture<CancelTasksResponse> cancelTasks(CancelTasksRequest request);
-
-    /**
-     * Cancel active tasks
-     *
-     * @param request  The nodes tasks request
-     * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#cancelTasksRequest()
-     */
-    void cancelTasks(CancelTasksRequest request, ActionListener<CancelTasksResponse> listener);
-
-    /**
-     * Cancel active tasks
-     */
-    CancelTasksRequestBuilder prepareCancelTasks(String... nodesIds);
 
     /**
      * Returns list of shards the given search would be executed on.
@@ -445,21 +212,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Gets repositories.
      */
     GetRepositoriesRequestBuilder prepareGetRepositories(String... name);
-
-    /**
-     * Verifies a repository.
-     */
-    ActionFuture<VerifyRepositoryResponse> verifyRepository(VerifyRepositoryRequest request);
-
-    /**
-     * Verifies a repository.
-     */
-    void verifyRepository(VerifyRepositoryRequest request, ActionListener<VerifyRepositoryResponse> listener);
-
-    /**
-     * Verifies a repository.
-     */
-    VerifyRepositoryRequestBuilder prepareVerifyRepository(String name);
 
     /**
      * Creates a new snapshot.
@@ -558,97 +310,4 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Get snapshot status.
      */
     SnapshotsStatusRequestBuilder prepareSnapshotStatus();
-
-    /**
-     * Stores an ingest pipeline
-     */
-    void putPipeline(PutPipelineRequest request, ActionListener<AcknowledgedResponse> listener);
-
-    /**
-     * Stores an ingest pipeline
-     */
-    ActionFuture<AcknowledgedResponse> putPipeline(PutPipelineRequest request);
-
-    /**
-     * Stores an ingest pipeline
-     * @deprecated use {@link #preparePutPipeline(String, BytesReference, XContentType)}
-     */
-    @Deprecated
-    PutPipelineRequestBuilder preparePutPipeline(String id, BytesReference source);
-
-    /**
-     * Stores an ingest pipeline
-     */
-    PutPipelineRequestBuilder preparePutPipeline(String id, BytesReference source, XContentType xContentType);
-
-    /**
-     * Deletes a stored ingest pipeline
-     */
-    void deletePipeline(DeletePipelineRequest request, ActionListener<AcknowledgedResponse> listener);
-
-    /**
-     * Deletes a stored ingest pipeline
-     */
-    ActionFuture<AcknowledgedResponse> deletePipeline(DeletePipelineRequest request);
-
-    /**
-     * Deletes a stored ingest pipeline
-     */
-    DeletePipelineRequestBuilder prepareDeletePipeline();
-
-    /**
-     * Deletes a stored ingest pipeline
-     */
-    DeletePipelineRequestBuilder prepareDeletePipeline(String id);
-
-    /**
-     * Returns a stored ingest pipeline
-     */
-    void getPipeline(GetPipelineRequest request, ActionListener<GetPipelineResponse> listener);
-
-    /**
-     * Returns a stored ingest pipeline
-     */
-    ActionFuture<GetPipelineResponse> getPipeline(GetPipelineRequest request);
-
-    /**
-     * Returns a stored ingest pipeline
-     */
-    GetPipelineRequestBuilder prepareGetPipeline(String... ids);
-
-    /**
-     * Simulates an ingest pipeline
-     */
-    void simulatePipeline(SimulatePipelineRequest request, ActionListener<SimulatePipelineResponse> listener);
-
-    /**
-     * Simulates an ingest pipeline
-     */
-    ActionFuture<SimulatePipelineResponse> simulatePipeline(SimulatePipelineRequest request);
-
-    /**
-     * Simulates an ingest pipeline
-     */
-    @Deprecated
-    SimulatePipelineRequestBuilder prepareSimulatePipeline(BytesReference source);
-
-    /**
-     * Simulates an ingest pipeline
-     */
-    SimulatePipelineRequestBuilder prepareSimulatePipeline(BytesReference source, XContentType xContentType);
-
-    /**
-     * Explain the allocation of a shard
-     */
-    void allocationExplain(ClusterAllocationExplainRequest request, ActionListener<ClusterAllocationExplainResponse> listener);
-
-    /**
-     * Explain the allocation of a shard
-     */
-    ActionFuture<ClusterAllocationExplainResponse> allocationExplain(ClusterAllocationExplainRequest request);
-
-    /**
-     * Explain the allocation of a shard
-     */
-    ClusterAllocationExplainRequestBuilder prepareAllocationExplain();
 }

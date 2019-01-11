@@ -51,7 +51,6 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.search.NestedHelper;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.search.collapse.CollapseContext;
 import org.elasticsearch.search.dfs.DfsSearchResult;
 import org.elasticsearch.search.fetch.FetchPhase;
@@ -455,11 +454,6 @@ final class DefaultSearchContext extends SearchContext {
     @Override
     public MapperService mapperService() {
         return indexService.mapperService();
-    }
-
-    @Override
-    public SimilarityService similarityService() {
-        return indexService.similarityService();
     }
 
     @Override

@@ -31,7 +31,6 @@ import org.elasticsearch.index.analysis.AnalyzerScope;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
 import java.util.AbstractMap;
@@ -40,6 +39,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 /**
@@ -143,27 +143,6 @@ public class MetaDataIndexUpgradeService extends AbstractComponent {
 
             IndexSettings indexSettings = new IndexSettings(indexMetaData, this.settings);
 
-            final Map<String, BiFunction<Settings, Version, Similarity>> similarityMap
-                    = new AbstractMap<String, BiFunction<Settings, Version, Similarity>>() {
-                @Override
-                public boolean containsKey(Object key) {
-                    return true;
-                }
-
-                @Override
-                public BiFunction<Settings, Version, Similarity> get(Object key) {
-                    assert key instanceof String : "key must be a string but was: " + key.getClass();
-                    return SimilarityService.BUILT_IN.get(SimilarityService.DEFAULT_SIMILARITY);
-                }
-
-                // this entrySet impl isn't fully correct but necessary as SimilarityService will iterate
-                // over all similarities
-                @Override
-                public Set<Entry<String, BiFunction<Settings, Version, Similarity>>> entrySet() {
-                    return Collections.emptySet();
-                }
-            };
-            SimilarityService similarityService = new SimilarityService(indexSettings, similarityMap);
             final NamedAnalyzer fakeDefault = new NamedAnalyzer("fake_default", AnalyzerScope.INDEX, new Analyzer() {
                 @Override
                 protected TokenStreamComponents createComponents(String fieldName) {
@@ -186,7 +165,7 @@ public class MetaDataIndexUpgradeService extends AbstractComponent {
                 }
             };
             try (IndexAnalyzers fakeIndexAnalzyers = new IndexAnalyzers(indexSettings, fakeDefault, fakeDefault, fakeDefault, analyzerMap, analyzerMap, analyzerMap)) {
-                MapperService mapperService = new MapperService(indexSettings, fakeIndexAnalzyers, xContentRegistry, similarityService,
+                MapperService mapperService = new MapperService(indexSettings, fakeIndexAnalzyers, xContentRegistry,
                         mapperRegistry, () -> null);
                 mapperService.merge(indexMetaData, MapperService.MergeReason.MAPPING_RECOVERY, false);
             }
