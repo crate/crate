@@ -62,7 +62,7 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
         NamedAnalyzer defaultAnalyzer = new NamedAnalyzer("default", AnalyzerScope.INDEX, new StandardAnalyzer());
         IndexAnalyzers indexAnalyzers =
                 new IndexAnalyzers(indexSettings, defaultAnalyzer, defaultAnalyzer, defaultAnalyzer, emptyMap(), emptyMap(), emptyMap());
-        SimilarityService similarityService = new SimilarityService(indexSettings, null, emptyMap());
+        SimilarityService similarityService = new SimilarityService(indexSettings, emptyMap());
         MapperRegistry mapperRegistry = new IndicesModule(emptyList()).getMapperRegistry();
         mapperService = new MapperService(indexSettings, indexAnalyzers, xContentRegistry, similarityService, mapperRegistry,
                 () -> null);

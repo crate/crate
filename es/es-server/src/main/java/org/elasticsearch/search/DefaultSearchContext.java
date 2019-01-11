@@ -59,7 +59,6 @@ import org.elasticsearch.search.fetch.FetchSearchResult;
 import org.elasticsearch.search.fetch.StoredFieldsContext;
 import org.elasticsearch.search.fetch.subphase.DocValueFieldsContext;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
-import org.elasticsearch.search.fetch.subphase.ScriptFieldsContext;
 import org.elasticsearch.search.fetch.subphase.highlight.SearchContextHighlight;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
 import org.elasticsearch.search.internal.ScrollContext;
@@ -107,7 +106,6 @@ final class DefaultSearchContext extends SearchContext {
     private boolean explain;
     private boolean version = false; // by default, we don't return versions
     private StoredFieldsContext storedFields;
-    private ScriptFieldsContext scriptFields;
     private FetchSourceContext fetchSourceContext;
     private DocValueFieldsContext docValueFieldsContext;
     private int from = -1;
@@ -407,19 +405,6 @@ final class DefaultSearchContext extends SearchContext {
             this.rescore = new ArrayList<>();
         }
         this.rescore.add(rescore);
-    }
-
-    @Override
-    public boolean hasScriptFields() {
-        return scriptFields != null;
-    }
-
-    @Override
-    public ScriptFieldsContext scriptFields() {
-        if (scriptFields == null) {
-            scriptFields = new ScriptFieldsContext();
-        }
-        return this.scriptFields;
     }
 
     /**

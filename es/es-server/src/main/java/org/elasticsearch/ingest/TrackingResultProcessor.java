@@ -44,15 +44,6 @@ public final class TrackingResultProcessor implements Processor {
     public IngestDocument execute(IngestDocument ingestDocument) throws Exception {
         Processor processor = actualProcessor;
         try {
-            if (processor instanceof ConditionalProcessor) {
-                ConditionalProcessor conditionalProcessor = (ConditionalProcessor) processor;
-                if (conditionalProcessor.evaluate(ingestDocument) == false) {
-                    return ingestDocument;
-                }
-                if (conditionalProcessor.getProcessor() instanceof PipelineProcessor) {
-                    processor = conditionalProcessor.getProcessor();
-                }
-            }
             if (processor instanceof PipelineProcessor) {
                 PipelineProcessor pipelineProcessor = ((PipelineProcessor) processor);
                 Pipeline pipeline = pipelineProcessor.getPipeline();

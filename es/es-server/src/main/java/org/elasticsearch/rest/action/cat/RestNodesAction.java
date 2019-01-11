@@ -58,7 +58,6 @@ import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestResponse;
 import org.elasticsearch.rest.action.RestActionListener;
 import org.elasticsearch.rest.action.RestResponseListener;
-import org.elasticsearch.script.ScriptStats;
 import org.elasticsearch.search.suggest.completion.CompletionStats;
 
 import java.util.Locale;
@@ -293,7 +292,7 @@ public class RestNodesAction extends AbstractCatAction {
             table.addCell(diskUsed);
             table.addCell(diskAvailable);
             table.addCell(diskUsedPercent);
-            
+
             table.addCell(jvmStats == null ? null : jvmStats.getMem().getHeapUsed());
             table.addCell(jvmStats == null ? null : jvmStats.getMem().getHeapUsedPercent());
             table.addCell(jvmInfo == null ? null : jvmInfo.getMem().getHeapMax());
@@ -377,10 +376,6 @@ public class RestNodesAction extends AbstractCatAction {
             table.addCell(refreshStats == null ? null : refreshStats.getTotal());
             table.addCell(refreshStats == null ? null : refreshStats.getTotalTime());
             table.addCell(refreshStats == null ? null : refreshStats.getListeners());
-
-            ScriptStats scriptStats = stats == null ? null : stats.getScriptStats();
-            table.addCell(scriptStats == null ? null : scriptStats.getCompilations());
-            table.addCell(scriptStats == null ? null : scriptStats.getCacheEvictions());
 
             SearchStats searchStats = indicesStats == null ? null : indicesStats.getSearch();
             table.addCell(searchStats == null ? null : searchStats.getTotal().getFetchCurrent());

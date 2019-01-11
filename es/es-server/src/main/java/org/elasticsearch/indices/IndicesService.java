@@ -111,7 +111,6 @@ import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.internal.AliasFilter;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
@@ -185,7 +184,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private final ThreadPool threadPool;
     private final CircuitBreakerService circuitBreakerService;
     private final BigArrays bigArrays;
-    private final ScriptService scriptService;
     private final Client client;
     private volatile Map<String, IndexService> indices = emptyMap();
     private final Map<Index, List<PendingDelete>> pendingDeletes = new HashMap<>();
@@ -211,7 +209,7 @@ public class IndicesService extends AbstractLifecycleComponent
                           AnalysisRegistry analysisRegistry, IndexNameExpressionResolver indexNameExpressionResolver,
                           MapperRegistry mapperRegistry, NamedWriteableRegistry namedWriteableRegistry, ThreadPool threadPool,
                           IndexScopedSettings indexScopedSettings, CircuitBreakerService circuitBreakerService, BigArrays bigArrays,
-                          ScriptService scriptService, Client client, MetaStateService metaStateService,
+                          Client client, MetaStateService metaStateService,
                           Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
                           Map<String, Function<IndexSettings, IndexStore>> indexStoreFactories) {
         super(settings);
@@ -232,7 +230,6 @@ public class IndicesService extends AbstractLifecycleComponent
         this.indexScopedSettings = indexScopedSettings;
         this.circuitBreakerService = circuitBreakerService;
         this.bigArrays = bigArrays;
-        this.scriptService = scriptService;
         this.client = client;
         this.indicesFieldDataCache = new IndicesFieldDataCache(settings, new IndexFieldDataCache.Listener() {
             @Override
@@ -507,7 +504,6 @@ public class IndicesService extends AbstractLifecycleComponent
                 circuitBreakerService,
                 bigArrays,
                 threadPool,
-                scriptService,
                 client,
                 indicesQueryCache,
                 mapperRegistry,
@@ -554,7 +550,7 @@ public class IndicesService extends AbstractLifecycleComponent
         final IndexSettings idxSettings = new IndexSettings(indexMetaData, this.settings, indexScopedSettings);
         final IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, getEngineFactory(idxSettings), indexStoreFactories);
         pluginsService.onIndexModule(indexModule);
-        return indexModule.newIndexMapperService(xContentRegistry, mapperRegistry, scriptService);
+        return indexModule.newIndexMapperService(xContentRegistry, mapperRegistry);
     }
 
     /**

@@ -56,7 +56,6 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.index.query.RegexpQueryBuilder;
-import org.elasticsearch.index.query.ScriptQueryBuilder;
 import org.elasticsearch.index.query.SimpleQueryStringBuilder;
 import org.elasticsearch.index.query.SpanContainingQueryBuilder;
 import org.elasticsearch.index.query.SpanFirstQueryBuilder;
@@ -79,7 +78,6 @@ import org.elasticsearch.index.query.functionscore.GaussDecayFunctionBuilder;
 import org.elasticsearch.index.query.functionscore.LinearDecayFunctionBuilder;
 import org.elasticsearch.index.query.functionscore.RandomScoreFunctionBuilder;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilder;
-import org.elasticsearch.index.query.functionscore.ScriptScoreFunctionBuilder;
 import org.elasticsearch.index.query.functionscore.WeightBuilder;
 import org.elasticsearch.plugins.SearchPlugin;
 import org.elasticsearch.plugins.SearchPlugin.FetchPhaseConstructionContext;
@@ -95,7 +93,6 @@ import org.elasticsearch.search.fetch.subphase.ExplainFetchSubPhase;
 import org.elasticsearch.search.fetch.subphase.FetchSourceSubPhase;
 import org.elasticsearch.search.fetch.subphase.MatchedQueriesFetchSubPhase;
 import org.elasticsearch.search.fetch.subphase.ParentFieldSubFetchPhase;
-import org.elasticsearch.search.fetch.subphase.ScriptFieldsFetchSubPhase;
 import org.elasticsearch.search.fetch.subphase.VersionFetchSubPhase;
 import org.elasticsearch.search.fetch.subphase.highlight.FastVectorHighlighter;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightPhase;
@@ -107,7 +104,6 @@ import org.elasticsearch.search.rescore.RescorerBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.GeoDistanceSortBuilder;
 import org.elasticsearch.search.sort.ScoreSortBuilder;
-import org.elasticsearch.search.sort.ScriptSortBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.suggest.SuggestionBuilder;
 import org.elasticsearch.search.suggest.completion.CompletionSuggestionBuilder;
@@ -195,7 +191,6 @@ public class SearchModule {
     private void registerSorts() {
         namedWriteables.add(new NamedWriteableRegistry.Entry(SortBuilder.class, GeoDistanceSortBuilder.NAME, GeoDistanceSortBuilder::new));
         namedWriteables.add(new NamedWriteableRegistry.Entry(SortBuilder.class, ScoreSortBuilder.NAME, ScoreSortBuilder::new));
-        namedWriteables.add(new NamedWriteableRegistry.Entry(SortBuilder.class, ScriptSortBuilder.NAME, ScriptSortBuilder::new));
         namedWriteables.add(new NamedWriteableRegistry.Entry(SortBuilder.class, FieldSortBuilder.NAME, FieldSortBuilder::new));
     }
 
@@ -241,8 +236,6 @@ public class SearchModule {
     }
 
     private void registerScoreFunctions(List<SearchPlugin> plugins) {
-        registerScoreFunction(new ScoreFunctionSpec<>(ScriptScoreFunctionBuilder.NAME, ScriptScoreFunctionBuilder::new,
-                ScriptScoreFunctionBuilder::fromXContent));
         registerScoreFunction(
                 new ScoreFunctionSpec<>(GaussDecayFunctionBuilder.NAME, GaussDecayFunctionBuilder::new, GaussDecayFunctionBuilder.PARSER));
         registerScoreFunction(new ScoreFunctionSpec<>(LinearDecayFunctionBuilder.NAME, LinearDecayFunctionBuilder::new,
@@ -290,7 +283,6 @@ public class SearchModule {
     private void registerFetchSubPhases(List<SearchPlugin> plugins) {
         registerFetchSubPhase(new ExplainFetchSubPhase());
         registerFetchSubPhase(new DocValueFieldsFetchSubPhase());
-        registerFetchSubPhase(new ScriptFieldsFetchSubPhase());
         registerFetchSubPhase(new FetchSourceSubPhase());
         registerFetchSubPhase(new VersionFetchSubPhase());
         registerFetchSubPhase(new MatchedQueriesFetchSubPhase());
@@ -363,7 +355,6 @@ public class SearchModule {
         registerQuery(
                 new QuerySpec<>(SimpleQueryStringBuilder.NAME, SimpleQueryStringBuilder::new, SimpleQueryStringBuilder::fromXContent));
         registerQuery(new QuerySpec<>(TypeQueryBuilder.NAME, TypeQueryBuilder::new, TypeQueryBuilder::fromXContent));
-        registerQuery(new QuerySpec<>(ScriptQueryBuilder.NAME, ScriptQueryBuilder::new, ScriptQueryBuilder::fromXContent));
         registerQuery(new QuerySpec<>(GeoDistanceQueryBuilder.NAME, GeoDistanceQueryBuilder::new, GeoDistanceQueryBuilder::fromXContent));
         registerQuery(new QuerySpec<>(GeoBoundingBoxQueryBuilder.NAME, GeoBoundingBoxQueryBuilder::new,
                 GeoBoundingBoxQueryBuilder::fromXContent));

@@ -72,7 +72,6 @@ import org.elasticsearch.ingest.IngestMetadata;
 import org.elasticsearch.persistent.PersistentTasksCustomMetaData;
 import org.elasticsearch.persistent.PersistentTasksNodeService;
 import org.elasticsearch.plugins.ClusterPlugin;
-import org.elasticsearch.script.ScriptMetaData;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskResultsService;
 
@@ -142,7 +141,6 @@ public class ClusterModule extends AbstractModule {
         // Metadata
         registerMetaDataCustom(entries, RepositoriesMetaData.TYPE, RepositoriesMetaData::new, RepositoriesMetaData::readDiffFrom);
         registerMetaDataCustom(entries, IngestMetadata.TYPE, IngestMetadata::new, IngestMetadata::readDiffFrom);
-        registerMetaDataCustom(entries, ScriptMetaData.TYPE, ScriptMetaData::new, ScriptMetaData::readDiffFrom);
         registerMetaDataCustom(entries, IndexGraveyard.TYPE, IndexGraveyard::new, IndexGraveyard::readDiffFrom);
         registerMetaDataCustom(entries, PersistentTasksCustomMetaData.TYPE, PersistentTasksCustomMetaData::new,
             PersistentTasksCustomMetaData::readDiffFrom);
@@ -152,7 +150,7 @@ public class ClusterModule extends AbstractModule {
     }
 
     static final Set<String> PRE_6_3_METADATA_CUSTOMS_WHITE_LIST = Collections.unmodifiableSet(Sets.newHashSet(
-        IndexGraveyard.TYPE, IngestMetadata.TYPE, RepositoriesMetaData.TYPE, ScriptMetaData.TYPE));
+        IndexGraveyard.TYPE, IngestMetadata.TYPE, RepositoriesMetaData.TYPE));
 
     static final Set<String> PRE_6_3_CLUSTER_CUSTOMS_WHITE_LIST = Collections.unmodifiableSet(Sets.newHashSet(
         RestoreInProgress.TYPE, SnapshotDeletionsInProgress.TYPE, SnapshotsInProgress.TYPE));
@@ -187,8 +185,6 @@ public class ClusterModule extends AbstractModule {
             RepositoriesMetaData::fromXContent));
         entries.add(new NamedXContentRegistry.Entry(MetaData.Custom.class, new ParseField(IngestMetadata.TYPE),
             IngestMetadata::fromXContent));
-        entries.add(new NamedXContentRegistry.Entry(MetaData.Custom.class, new ParseField(ScriptMetaData.TYPE),
-            ScriptMetaData::fromXContent));
         entries.add(new NamedXContentRegistry.Entry(MetaData.Custom.class, new ParseField(IndexGraveyard.TYPE),
             IndexGraveyard::fromXContent));
         entries.add(new NamedXContentRegistry.Entry(MetaData.Custom.class, new ParseField(PersistentTasksCustomMetaData.TYPE),

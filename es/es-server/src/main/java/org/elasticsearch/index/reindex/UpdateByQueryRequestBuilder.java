@@ -25,7 +25,7 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
 
 public class UpdateByQueryRequestBuilder extends
-        AbstractBulkIndexByScrollRequestBuilder<UpdateByQueryRequest, UpdateByQueryRequestBuilder> {
+        AbstractBulkByScrollRequestBuilder<UpdateByQueryRequest, UpdateByQueryRequestBuilder> {
 
     public UpdateByQueryRequestBuilder(ElasticsearchClient client,
             Action<UpdateByQueryRequest, BulkByScrollResponse, UpdateByQueryRequestBuilder> action) {

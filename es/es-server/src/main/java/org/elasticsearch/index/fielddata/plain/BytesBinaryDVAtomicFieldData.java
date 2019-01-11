@@ -24,7 +24,6 @@ import org.apache.lucene.store.ByteArrayDataInput;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.AtomicFieldData;
-import org.elasticsearch.index.fielddata.ScriptDocValues;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 import java.io.IOException;
@@ -86,11 +85,6 @@ final class BytesBinaryDVAtomicFieldData implements AtomicFieldData {
             }
 
         };
-    }
-
-    @Override
-    public ScriptDocValues getScriptValues() {
-        return new ScriptDocValues.BytesRefs(getBytesValues());
     }
 
     @Override

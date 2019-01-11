@@ -20,8 +20,6 @@
 package org.elasticsearch.index.query;
 
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.script.SearchScript;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.fetch.subphase.DocValueFieldsContext;
 import org.elasticsearch.search.fetch.subphase.InnerHitsContext;
 import org.elasticsearch.search.internal.SearchContext;
@@ -84,15 +82,6 @@ public abstract class InnerHitContextBuilder {
         }
         if (innerHitBuilder.getDocValueFields() != null) {
             innerHitsContext.docValueFieldsContext(new DocValueFieldsContext(innerHitBuilder.getDocValueFields()));
-        }
-        if (innerHitBuilder.getScriptFields() != null) {
-            for (SearchSourceBuilder.ScriptField field : innerHitBuilder.getScriptFields()) {
-                QueryShardContext innerContext = innerHitsContext.getQueryShardContext();
-                SearchScript.Factory factory = innerContext.getScriptService().compile(field.script(), SearchScript.CONTEXT);
-                SearchScript.LeafFactory searchScript = factory.newFactory(field.script().getParams(), innerHitsContext.lookup());
-                innerHitsContext.scriptFields().add(new org.elasticsearch.search.fetch.subphase.ScriptFieldsContext.ScriptField(
-                    field.fieldName(), searchScript, field.ignoreFailure()));
-            }
         }
         if (innerHitBuilder.getFetchSourceContext() != null) {
             innerHitsContext.fetchSourceContext(innerHitBuilder.getFetchSourceContext() );
