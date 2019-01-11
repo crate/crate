@@ -57,6 +57,12 @@ dependencies {
     runtime project(':enterprise:functions')
 
     testCompile project(':integration-testing')
+    testCompile project(path: ':sql', configuration: 'testOutput')
+    testCompile("io.crate:crate-jdbc:${versions.crate_jdbc}") {
+        exclude group: 'net.java.dev.jna', module: 'jna'
+        exclude group: 'commons-logging', module: 'commons-logging'
+        exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
+    }
 
     compileNotTransitive project(':common')
     compileNotTransitive project(':es:es-core')
