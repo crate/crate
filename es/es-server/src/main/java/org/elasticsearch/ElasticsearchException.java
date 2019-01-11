@@ -36,7 +36,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.search.aggregations.MultiBucketConsumerService;
 import org.elasticsearch.transport.TcpTransport;
 
 import java.io.IOException;
@@ -914,15 +913,12 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         NODE_DISCONNECTED_EXCEPTION(org.elasticsearch.transport.NodeDisconnectedException.class,
                 org.elasticsearch.transport.NodeDisconnectedException::new, 84, UNKNOWN_VERSION_ADDED),
         // 85 used to be for AlreadyExpiredException
-        AGGREGATION_EXECUTION_EXCEPTION(org.elasticsearch.search.aggregations.AggregationExecutionException.class,
-                org.elasticsearch.search.aggregations.AggregationExecutionException::new, 86, UNKNOWN_VERSION_ADDED),
         // 87 used to be for MergeMappingException
         INVALID_INDEX_TEMPLATE_EXCEPTION(org.elasticsearch.indices.InvalidIndexTemplateException.class,
                 org.elasticsearch.indices.InvalidIndexTemplateException::new, 88, UNKNOWN_VERSION_ADDED),
         REFRESH_FAILED_ENGINE_EXCEPTION(org.elasticsearch.index.engine.RefreshFailedEngineException.class,
                 org.elasticsearch.index.engine.RefreshFailedEngineException::new, 90, UNKNOWN_VERSION_ADDED),
-        AGGREGATION_INITIALIZATION_EXCEPTION(org.elasticsearch.search.aggregations.AggregationInitializationException.class,
-                org.elasticsearch.search.aggregations.AggregationInitializationException::new, 91, UNKNOWN_VERSION_ADDED),
+        // 91 used to be for AggregationInitializationException
         DELAY_RECOVERY_EXCEPTION(org.elasticsearch.indices.recovery.DelayRecoveryException.class,
                 org.elasticsearch.indices.recovery.DelayRecoveryException::new, 92, UNKNOWN_VERSION_ADDED),
         // 93 used to be for IndexWarmerMissingException
@@ -975,8 +971,6 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
                 org.elasticsearch.search.query.QueryPhaseExecutionException::new, 119, UNKNOWN_VERSION_ADDED),
         REPOSITORY_VERIFICATION_EXCEPTION(org.elasticsearch.repositories.RepositoryVerificationException.class,
                 org.elasticsearch.repositories.RepositoryVerificationException::new, 120, UNKNOWN_VERSION_ADDED),
-        INVALID_AGGREGATION_PATH_EXCEPTION(org.elasticsearch.search.aggregations.InvalidAggregationPathException.class,
-                org.elasticsearch.search.aggregations.InvalidAggregationPathException::new, 121, UNKNOWN_VERSION_ADDED),
         // 123 used to be IndexAlreadyExistsException and was renamed
         RESOURCE_ALREADY_EXISTS_EXCEPTION(ResourceAlreadyExistsException.class,
             ResourceAlreadyExistsException::new, 123, UNKNOWN_VERSION_ADDED),
@@ -1024,10 +1018,8 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         SHARD_LOCK_OBTAIN_FAILED_EXCEPTION(org.elasticsearch.env.ShardLockObtainFailedException.class,
                                            org.elasticsearch.env.ShardLockObtainFailedException::new, 147, Version.V_5_0_2),
         UNKNOWN_NAMED_OBJECT_EXCEPTION(org.elasticsearch.common.xcontent.UnknownNamedObjectException.class,
-                org.elasticsearch.common.xcontent.UnknownNamedObjectException::new, 148, Version.V_5_2_0),
-        TOO_MANY_BUCKETS_EXCEPTION(MultiBucketConsumerService.TooManyBucketsException.class,
-                                   MultiBucketConsumerService.TooManyBucketsException::new, 149,
-            Version.V_6_2_0);
+                org.elasticsearch.common.xcontent.UnknownNamedObjectException::new, 148, Version.V_5_2_0);
+        // 149 used to be MultiBucketConsumerService.TooManyBucketsException
 
         final Class<? extends ElasticsearchException> exceptionClass;
         final CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException> constructor;

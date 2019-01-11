@@ -34,7 +34,6 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
@@ -333,9 +332,6 @@ public class RandomSearchRequestGenerator {
             for (int i = 0; i < numRescores; i++) {
                 builder.addRescorer(randomRescoreBuilder.get());
             }
-        }
-        if (randomBoolean()) {
-            builder.aggregation(AggregationBuilders.avg(randomAlphaOfLengthBetween(5, 20)));
         }
         if (randomBoolean()) {
             builder.ext(randomExtBuilders.get());

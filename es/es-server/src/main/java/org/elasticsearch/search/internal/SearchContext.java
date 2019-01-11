@@ -45,7 +45,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.search.SearchExtBuilder;
 import org.elasticsearch.search.SearchShardTarget;
-import org.elasticsearch.search.aggregations.SearchContextAggregations;
 import org.elasticsearch.search.dfs.DfsSearchResult;
 import org.elasticsearch.search.fetch.FetchPhase;
 import org.elasticsearch.search.fetch.FetchSearchResult;
@@ -148,10 +147,6 @@ public abstract class SearchContext extends AbstractRefCounted implements Releas
     public abstract ScrollContext scrollContext();
 
     public abstract SearchContext scrollContext(ScrollContext scroll);
-
-    public abstract SearchContextAggregations aggregations();
-
-    public abstract SearchContext aggregations(SearchContextAggregations aggregations);
 
     public abstract void addSearchExt(SearchExtBuilder searchExtBuilder);
 
