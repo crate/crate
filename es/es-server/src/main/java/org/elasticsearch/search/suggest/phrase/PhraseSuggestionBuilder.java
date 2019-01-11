@@ -37,16 +37,12 @@ import org.elasticsearch.index.analysis.ShingleTokenFilterFactory;
 import org.elasticsearch.index.analysis.TokenFilterFactory;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.script.Script;
-import org.elasticsearch.script.ScriptType;
-import org.elasticsearch.script.TemplateScript;
 import org.elasticsearch.search.suggest.SuggestionBuilder;
 import org.elasticsearch.search.suggest.SuggestionSearchContext.SuggestionContext;
 import org.elasticsearch.search.suggest.phrase.PhraseSuggestionContext.DirectCandidateGenerator;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,10 +68,6 @@ public class PhraseSuggestionBuilder extends SuggestionBuilder<PhraseSuggestionB
     protected static final ParseField HIGHLIGHT_FIELD = new ParseField("highlight");
     protected static final ParseField PRE_TAG_FIELD = new ParseField("pre_tag");
     protected static final ParseField POST_TAG_FIELD = new ParseField("post_tag");
-    protected static final ParseField COLLATE_FIELD = new ParseField("collate");
-    protected static final ParseField COLLATE_QUERY_FIELD = new ParseField("query");
-    protected static final ParseField COLLATE_QUERY_PARAMS = new ParseField("params");
-    protected static final ParseField COLLATE_QUERY_PRUNE = new ParseField("prune");
 
     private float maxErrors = PhraseSuggestionContext.DEFAULT_MAX_ERRORS;
     private String separator = PhraseSuggestionContext.DEFAULT_SEPARATOR;
@@ -87,9 +79,6 @@ public class PhraseSuggestionBuilder extends SuggestionBuilder<PhraseSuggestionB
     private int tokenLimit = NoisyChannelSpellChecker.DEFAULT_TOKEN_LIMIT;
     private String preTag;
     private String postTag;
-    private Script collateQuery;
-    private Map<String, Object> collateParams;
-    private boolean collatePrune = PhraseSuggestionContext.DEFAULT_COLLATE_PRUNE;
     private SmoothingModel model;
     private final Map<String, List<CandidateGenerator>> generators = new HashMap<>();
 
@@ -112,9 +101,6 @@ public class PhraseSuggestionBuilder extends SuggestionBuilder<PhraseSuggestionB
         tokenLimit = in.tokenLimit;
         preTag = in.preTag;
         postTag = in.postTag;
-        collateQuery = in.collateQuery;
-        collateParams = in.collateParams;
-        collatePrune = in.collatePrune;
         model = in.model;
         generators.putAll(in.generators);
     }
@@ -134,11 +120,6 @@ public class PhraseSuggestionBuilder extends SuggestionBuilder<PhraseSuggestionB
         preTag = in.readOptionalString();
         postTag = in.readOptionalString();
         separator = in.readString();
-        if (in.readBoolean()) {
-            collateQuery = new Script(in);
-        }
-        collateParams = in.readMap();
-        collatePrune = in.readOptionalBoolean();
         int generatorsEntries = in.readVInt();
         for (int i = 0; i < generatorsEntries; i++) {
             String type = in.readString();
@@ -164,14 +145,6 @@ public class PhraseSuggestionBuilder extends SuggestionBuilder<PhraseSuggestionB
         out.writeOptionalString(preTag);
         out.writeOptionalString(postTag);
         out.writeString(separator);
-        if (collateQuery != null) {
-            out.writeBoolean(true);
-            collateQuery.writeTo(out);
-        } else {
-            out.writeBoolean(false);
-        }
-        out.writeMapWithConsistentOrder(collateParams);
-        out.writeOptionalBoolean(collatePrune);
         out.writeVInt(this.generators.size());
         for (Entry<String, List<CandidateGenerator>> entry : this.generators.entrySet()) {
             out.writeString(entry.getKey());
@@ -392,61 +365,6 @@ public class PhraseSuggestionBuilder extends SuggestionBuilder<PhraseSuggestionB
         return this.postTag;
     }
 
-    /**
-     * Sets a query used for filtering out suggested phrases (collation).
-     */
-    public PhraseSuggestionBuilder collateQuery(String collateQuery) {
-        this.collateQuery = new Script(ScriptType.INLINE, "mustache", collateQuery, Collections.emptyMap());
-        return this;
-    }
-
-    /**
-     * Sets a query used for filtering out suggested phrases (collation).
-     */
-    public PhraseSuggestionBuilder collateQuery(Script collateQueryTemplate) {
-        this.collateQuery = collateQueryTemplate;
-        return this;
-    }
-
-    /**
-     * gets the query used for filtering out suggested phrases (collation).
-     */
-    public Script collateQuery() {
-        return this.collateQuery;
-    }
-
-    /**
-     * Adds additional parameters for collate scripts. Previously added parameters on the
-     * same builder will be overwritten.
-     */
-    public PhraseSuggestionBuilder collateParams(Map<String, Object> collateParams) {
-        Objects.requireNonNull(collateParams, "collate parameters cannot be null.");
-        this.collateParams = new HashMap<>(collateParams);
-        return this;
-    }
-
-    /**
-     * gets additional params for collate script
-     */
-    public Map<String, Object> collateParams() {
-        return this.collateParams;
-    }
-
-    /**
-     * Sets whether to prune suggestions after collation
-     */
-    public PhraseSuggestionBuilder collatePrune(boolean collatePrune) {
-        this.collatePrune = collatePrune;
-        return this;
-    }
-
-    /**
-     * Gets whether to prune suggestions after collation
-     */
-    public Boolean collatePrune() {
-        return this.collatePrune;
-    }
-
     @Override
     public XContentBuilder innerToXContent(XContentBuilder builder, Params params) throws IOException {
         builder.field(RWE_LIKELIHOOD_FIELD.getPreferredName(), realWordErrorLikelihood);
@@ -477,15 +395,6 @@ public class PhraseSuggestionBuilder extends SuggestionBuilder<PhraseSuggestionB
             builder.startObject(HIGHLIGHT_FIELD.getPreferredName());
             builder.field(PRE_TAG_FIELD.getPreferredName(), preTag);
             builder.field(POST_TAG_FIELD.getPreferredName(), postTag);
-            builder.endObject();
-        }
-        if (collateQuery != null) {
-            builder.startObject(COLLATE_FIELD.getPreferredName());
-            builder.field(COLLATE_QUERY_FIELD.getPreferredName(), collateQuery);
-            if (collateParams != null) {
-                builder.field(COLLATE_QUERY_PARAMS.getPreferredName(), collateParams);
-            }
-            builder.field(COLLATE_QUERY_PRUNE.getPreferredName(), collatePrune);
             builder.endObject();
         }
         return builder;
@@ -558,32 +467,6 @@ public class PhraseSuggestionBuilder extends SuggestionBuilder<PhraseSuggestionB
                         }
                     }
                     tmpSuggestion.highlight(preTag, postTag);
-                } else if (PhraseSuggestionBuilder.COLLATE_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
-                    while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-                        if (token == XContentParser.Token.FIELD_NAME) {
-                            currentFieldName = parser.currentName();
-                        } else if (PhraseSuggestionBuilder.COLLATE_QUERY_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
-                            if (tmpSuggestion.collateQuery() != null) {
-                                throw new ParsingException(parser.getTokenLocation(),
-                                        "suggester[phrase][collate] query already set, doesn't support additional ["
-                                        + currentFieldName + "]");
-                            }
-                            Script template = Script.parse(parser, Script.DEFAULT_TEMPLATE_LANG);
-                            tmpSuggestion.collateQuery(template);
-                        } else if (PhraseSuggestionBuilder.COLLATE_QUERY_PARAMS.match(currentFieldName, parser.getDeprecationHandler())) {
-                            tmpSuggestion.collateParams(parser.map());
-                        } else if (PhraseSuggestionBuilder.COLLATE_QUERY_PRUNE.match(currentFieldName, parser.getDeprecationHandler())) {
-                            if (parser.isBooleanValue()) {
-                                tmpSuggestion.collatePrune(parser.booleanValue());
-                            } else {
-                                throw new ParsingException(parser.getTokenLocation(),
-                                        "suggester[phrase][collate] prune must be either 'true' or 'false'");
-                            }
-                        } else {
-                            throw new ParsingException(parser.getTokenLocation(),
-                                    "suggester[phrase][collate] doesn't support field [" + currentFieldName + "]");
-                        }
-                    }
                 } else {
                     throw new ParsingException(parser.getTokenLocation(),
                             "suggester[phrase]  doesn't support array field [" + currentFieldName + "]");
@@ -631,15 +514,6 @@ public class PhraseSuggestionBuilder extends SuggestionBuilder<PhraseSuggestionB
 
         if (this.model != null) {
             suggestionContext.setModel(this.model.buildWordScorerFactory());
-        }
-
-        if (this.collateQuery != null) {
-            TemplateScript.Factory scriptFactory = context.getScriptService().compile(this.collateQuery, TemplateScript.CONTEXT);
-            suggestionContext.setCollateQueryScript(scriptFactory);
-            if (this.collateParams != null) {
-                suggestionContext.setCollateScriptParams(this.collateParams);
-            }
-            suggestionContext.setCollatePrune(this.collatePrune);
         }
 
         if (this.gramSize == null || suggestionContext.generators().isEmpty()) {
@@ -712,17 +586,13 @@ public class PhraseSuggestionBuilder extends SuggestionBuilder<PhraseSuggestionB
                 Objects.equals(forceUnigrams, other.forceUnigrams) &&
                 Objects.equals(tokenLimit, other.tokenLimit) &&
                 Objects.equals(preTag, other.preTag) &&
-                Objects.equals(postTag, other.postTag) &&
-                Objects.equals(collateQuery, other.collateQuery) &&
-                Objects.equals(collateParams, other.collateParams) &&
-                Objects.equals(collatePrune, other.collatePrune);
+                Objects.equals(postTag, other.postTag);
     }
 
     @Override
     protected int doHashCode() {
         return Objects.hash(maxErrors, separator, realWordErrorLikelihood, confidence,
-                generators, gramSize, model, forceUnigrams, tokenLimit, preTag, postTag,
-                collateQuery, collateParams, collatePrune);
+                generators, gramSize, model, forceUnigrams, tokenLimit, preTag, postTag);
     }
 
     /**

@@ -23,7 +23,6 @@ import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.index.fielddata.AtomicNumericFieldData;
 import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.ScriptDocValues;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 
@@ -48,11 +47,6 @@ abstract class AtomicDoubleFieldData implements AtomicNumericFieldData {
     }
 
     @Override
-    public final ScriptDocValues getScriptValues() {
-        return new ScriptDocValues.Doubles(getDoubleValues());
-    }
-
-    @Override
     public final SortedBinaryDocValues getBytesValues() {
         return FieldData.toString(getDoubleValues());
     }
@@ -69,7 +63,7 @@ abstract class AtomicDoubleFieldData implements AtomicNumericFieldData {
             public SortedNumericDoubleValues getDoubleValues() {
                 return FieldData.emptySortedNumericDoubles();
             }
-            
+
             @Override
             public Collection<Accountable> getChildResources() {
                 return Collections.emptyList();

@@ -25,7 +25,6 @@ import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.script.Script;
 import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -306,18 +305,6 @@ public class SearchRequestBuilder extends ActionRequestBuilder<SearchRequest, Se
      */
     public SearchRequestBuilder addStoredField(String field) {
         sourceBuilder().storedField(field);
-        return this;
-    }
-
-    /**
-     * Adds a script based field to load and return. The field does not have to be stored,
-     * but its recommended to use non analyzed or numeric fields.
-     *
-     * @param name   The name that will represent this value in the return hit
-     * @param script The script to use
-     */
-    public SearchRequestBuilder addScriptField(String name, Script script) {
-        sourceBuilder().scriptField(name, script);
         return this;
     }
 

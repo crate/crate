@@ -45,7 +45,6 @@ import org.elasticsearch.search.fetch.FetchSearchResult;
 import org.elasticsearch.search.fetch.StoredFieldsContext;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.elasticsearch.search.fetch.subphase.InnerHitsContext;
-import org.elasticsearch.search.fetch.subphase.ScriptFieldsContext;
 import org.elasticsearch.search.fetch.subphase.highlight.SearchContextHighlight;
 import org.elasticsearch.search.lookup.SearchLookup;
 import org.elasticsearch.search.profile.Profilers;
@@ -188,16 +187,6 @@ public abstract class FilteredSearchContext extends SearchContext {
     @Override
     public void addRescore(RescoreContext rescore) {
         in.addRescore(rescore);
-    }
-
-    @Override
-    public boolean hasScriptFields() {
-        return in.hasScriptFields();
-    }
-
-    @Override
-    public ScriptFieldsContext scriptFields() {
-        return in.scriptFields();
     }
 
     @Override

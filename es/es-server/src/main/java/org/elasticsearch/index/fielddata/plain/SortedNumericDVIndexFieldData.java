@@ -135,7 +135,7 @@ public class SortedNumericDVIndexFieldData extends DocValuesIndexFieldData imple
             case DOUBLE:
                 return new SortedNumericDoubleFieldData(reader, field);
             default:
-                return new SortedNumericLongFieldData(reader, field, numericType);
+                return new SortedNumericLongFieldData(reader, field);
         }
     }
 
@@ -154,8 +154,8 @@ public class SortedNumericDVIndexFieldData extends DocValuesIndexFieldData imple
         final LeafReader reader;
         final String field;
 
-        SortedNumericLongFieldData(LeafReader reader, String field, NumericType numericType) {
-            super(0L, numericType);
+        SortedNumericLongFieldData(LeafReader reader, String field) {
+            super(0L);
             this.reader = reader;
             this.field = field;
         }
