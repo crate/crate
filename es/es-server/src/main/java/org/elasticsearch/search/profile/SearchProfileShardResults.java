@@ -22,12 +22,9 @@ package org.elasticsearch.search.profile;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent.Params;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.search.profile.aggregation.AggregationProfileShardResult;
-import org.elasticsearch.search.profile.aggregation.AggregationProfiler;
 import org.elasticsearch.search.profile.query.QueryProfileShardResult;
 import org.elasticsearch.search.profile.query.QueryProfiler;
 
@@ -98,7 +95,6 @@ public final class SearchProfileShardResults implements Writeable, ToXContentFra
                 result.toXContent(builder, params);
             }
             builder.endArray();
-            profileShardResult.getAggregationProfileResults().toXContent(builder, params);
             builder.endObject();
         }
         builder.endArray().endObject();
@@ -130,7 +126,6 @@ public final class SearchProfileShardResults implements Writeable, ToXContentFra
         XContentParser.Token token = parser.currentToken();
         ensureExpectedToken(XContentParser.Token.START_OBJECT, token, parser::getTokenLocation);
         List<QueryProfileShardResult> queryProfileResults = new ArrayList<>();
-        AggregationProfileShardResult aggProfileShardResult = null;
         String id = null;
         String currentFieldName = null;
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
@@ -147,8 +142,6 @@ public final class SearchProfileShardResults implements Writeable, ToXContentFra
                     while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
                         queryProfileResults.add(QueryProfileShardResult.fromXContent(parser));
                     }
-                } else if (AggregationProfileShardResult.AGGREGATIONS.equals(currentFieldName)) {
-                    aggProfileShardResult = AggregationProfileShardResult.fromXContent(parser);
                 } else {
                     parser.skipChildren();
                 }
@@ -156,7 +149,7 @@ public final class SearchProfileShardResults implements Writeable, ToXContentFra
                 parser.skipChildren();
             }
         }
-        searchProfileResults.put(id, new ProfileShardResult(queryProfileResults, aggProfileShardResult));
+        searchProfileResults.put(id, new ProfileShardResult(queryProfileResults));
     }
 
     /**
@@ -170,14 +163,12 @@ public final class SearchProfileShardResults implements Writeable, ToXContentFra
      */
     public static ProfileShardResult buildShardResults(Profilers profilers) {
         List<QueryProfiler> queryProfilers = profilers.getQueryProfilers();
-        AggregationProfiler aggProfiler = profilers.getAggregationProfiler();
         List<QueryProfileShardResult> queryResults = new ArrayList<>(queryProfilers.size());
         for (QueryProfiler queryProfiler : queryProfilers) {
             QueryProfileShardResult result = new QueryProfileShardResult(queryProfiler.getTree(), queryProfiler.getRewriteTime(),
                     queryProfiler.getCollector());
             queryResults.add(result);
         }
-        AggregationProfileShardResult aggResults = new AggregationProfileShardResult(aggProfiler.getTree());
-        return new ProfileShardResult(queryResults, aggResults);
+        return new ProfileShardResult(queryResults);
     }
 }
