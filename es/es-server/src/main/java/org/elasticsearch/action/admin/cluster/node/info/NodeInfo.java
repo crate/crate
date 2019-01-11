@@ -29,7 +29,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.http.HttpInfo;
-import org.elasticsearch.ingest.IngestInfo;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.monitor.os.OsInfo;
 import org.elasticsearch.monitor.process.ProcessInfo;
@@ -71,9 +70,6 @@ public class NodeInfo extends BaseNodeResponse {
     private PluginsAndModules plugins;
 
     @Nullable
-    private IngestInfo ingest;
-
-    @Nullable
     private ByteSizeValue totalIndexingBuffer;
 
     public NodeInfo() {
@@ -82,7 +78,7 @@ public class NodeInfo extends BaseNodeResponse {
     public NodeInfo(Version version, Build build, DiscoveryNode node, @Nullable Settings settings,
                     @Nullable OsInfo os, @Nullable ProcessInfo process, @Nullable JvmInfo jvm, @Nullable ThreadPoolInfo threadPool,
                     @Nullable TransportInfo transport, @Nullable HttpInfo http, @Nullable PluginsAndModules plugins,
-                    @Nullable IngestInfo ingest, @Nullable ByteSizeValue totalIndexingBuffer) {
+                    @Nullable ByteSizeValue totalIndexingBuffer) {
         super(node);
         this.version = version;
         this.build = build;
@@ -94,7 +90,6 @@ public class NodeInfo extends BaseNodeResponse {
         this.transport = transport;
         this.http = http;
         this.plugins = plugins;
-        this.ingest = ingest;
         this.totalIndexingBuffer = totalIndexingBuffer;
     }
 
@@ -173,11 +168,6 @@ public class NodeInfo extends BaseNodeResponse {
     }
 
     @Nullable
-    public IngestInfo getIngest() {
-        return ingest;
-    }
-
-    @Nullable
     public ByteSizeValue getTotalIndexingBuffer() {
         return totalIndexingBuffer;
     }
@@ -208,7 +198,6 @@ public class NodeInfo extends BaseNodeResponse {
         transport = in.readOptionalWriteable(TransportInfo::new);
         http = in.readOptionalWriteable(HttpInfo::new);
         plugins = in.readOptionalWriteable(PluginsAndModules::new);
-        ingest = in.readOptionalWriteable(IngestInfo::new);
     }
 
     @Override
@@ -235,6 +224,5 @@ public class NodeInfo extends BaseNodeResponse {
         out.writeOptionalWriteable(transport);
         out.writeOptionalWriteable(http);
         out.writeOptionalWriteable(plugins);
-        out.writeOptionalWriteable(ingest);
     }
 }
