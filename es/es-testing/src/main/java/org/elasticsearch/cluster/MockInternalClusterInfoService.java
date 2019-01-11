@@ -67,7 +67,7 @@ public class MockInternalClusterInfoService extends InternalClusterInfoService {
             System.currentTimeMillis(),
             null, null, null, null, null,
             fsInfo,
-            null, null, null,
+            null, null,
             null, null, null);
     }
 

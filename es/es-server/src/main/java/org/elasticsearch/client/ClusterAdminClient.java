@@ -91,16 +91,6 @@ import org.elasticsearch.action.admin.cluster.stats.ClusterStatsResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequestBuilder;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
-import org.elasticsearch.action.ingest.DeletePipelineRequest;
-import org.elasticsearch.action.ingest.DeletePipelineRequestBuilder;
-import org.elasticsearch.action.ingest.GetPipelineRequest;
-import org.elasticsearch.action.ingest.GetPipelineRequestBuilder;
-import org.elasticsearch.action.ingest.GetPipelineResponse;
-import org.elasticsearch.action.ingest.PutPipelineRequest;
-import org.elasticsearch.action.ingest.PutPipelineRequestBuilder;
-import org.elasticsearch.action.ingest.SimulatePipelineRequest;
-import org.elasticsearch.action.ingest.SimulatePipelineRequestBuilder;
-import org.elasticsearch.action.ingest.SimulatePipelineResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -558,84 +548,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Get snapshot status.
      */
     SnapshotsStatusRequestBuilder prepareSnapshotStatus();
-
-    /**
-     * Stores an ingest pipeline
-     */
-    void putPipeline(PutPipelineRequest request, ActionListener<AcknowledgedResponse> listener);
-
-    /**
-     * Stores an ingest pipeline
-     */
-    ActionFuture<AcknowledgedResponse> putPipeline(PutPipelineRequest request);
-
-    /**
-     * Stores an ingest pipeline
-     * @deprecated use {@link #preparePutPipeline(String, BytesReference, XContentType)}
-     */
-    @Deprecated
-    PutPipelineRequestBuilder preparePutPipeline(String id, BytesReference source);
-
-    /**
-     * Stores an ingest pipeline
-     */
-    PutPipelineRequestBuilder preparePutPipeline(String id, BytesReference source, XContentType xContentType);
-
-    /**
-     * Deletes a stored ingest pipeline
-     */
-    void deletePipeline(DeletePipelineRequest request, ActionListener<AcknowledgedResponse> listener);
-
-    /**
-     * Deletes a stored ingest pipeline
-     */
-    ActionFuture<AcknowledgedResponse> deletePipeline(DeletePipelineRequest request);
-
-    /**
-     * Deletes a stored ingest pipeline
-     */
-    DeletePipelineRequestBuilder prepareDeletePipeline();
-
-    /**
-     * Deletes a stored ingest pipeline
-     */
-    DeletePipelineRequestBuilder prepareDeletePipeline(String id);
-
-    /**
-     * Returns a stored ingest pipeline
-     */
-    void getPipeline(GetPipelineRequest request, ActionListener<GetPipelineResponse> listener);
-
-    /**
-     * Returns a stored ingest pipeline
-     */
-    ActionFuture<GetPipelineResponse> getPipeline(GetPipelineRequest request);
-
-    /**
-     * Returns a stored ingest pipeline
-     */
-    GetPipelineRequestBuilder prepareGetPipeline(String... ids);
-
-    /**
-     * Simulates an ingest pipeline
-     */
-    void simulatePipeline(SimulatePipelineRequest request, ActionListener<SimulatePipelineResponse> listener);
-
-    /**
-     * Simulates an ingest pipeline
-     */
-    ActionFuture<SimulatePipelineResponse> simulatePipeline(SimulatePipelineRequest request);
-
-    /**
-     * Simulates an ingest pipeline
-     */
-    @Deprecated
-    SimulatePipelineRequestBuilder prepareSimulatePipeline(BytesReference source);
-
-    /**
-     * Simulates an ingest pipeline
-     */
-    SimulatePipelineRequestBuilder prepareSimulatePipeline(BytesReference source, XContentType xContentType);
 
     /**
      * Explain the allocation of a shard

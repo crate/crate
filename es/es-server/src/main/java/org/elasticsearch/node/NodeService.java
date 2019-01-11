@@ -35,7 +35,6 @@ import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.ingest.IngestService;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -52,7 +51,6 @@ public class NodeService extends AbstractComponent implements Closeable {
     private final IndicesService indicesService;
     private final PluginsService pluginService;
     private final CircuitBreakerService circuitBreakerService;
-    private final IngestService ingestService;
     private final SettingsFilter settingsFilter;
     private final HttpServerTransport httpServerTransport;
     private final ResponseCollectorService responseCollectorService;
@@ -63,7 +61,7 @@ public class NodeService extends AbstractComponent implements Closeable {
     NodeService(Settings settings, ThreadPool threadPool, MonitorService monitorService, Discovery discovery,
                 TransportService transportService, IndicesService indicesService, PluginsService pluginService,
                 CircuitBreakerService circuitBreakerService,
-                @Nullable HttpServerTransport httpServerTransport, IngestService ingestService, ClusterService clusterService,
+                @Nullable HttpServerTransport httpServerTransport, ClusterService clusterService,
                 SettingsFilter settingsFilter, ResponseCollectorService responseCollectorService,
                 SearchTransportService searchTransportService) {
         super(settings);
@@ -75,11 +73,9 @@ public class NodeService extends AbstractComponent implements Closeable {
         this.pluginService = pluginService;
         this.circuitBreakerService = circuitBreakerService;
         this.httpServerTransport = httpServerTransport;
-        this.ingestService = ingestService;
         this.settingsFilter = settingsFilter;
         this.responseCollectorService = responseCollectorService;
         this.searchTransportService = searchTransportService;
-        clusterService.addStateApplier(ingestService);
     }
 
     public NodeInfo info(boolean settings, boolean os, boolean process, boolean jvm, boolean threadPool,
@@ -93,7 +89,6 @@ public class NodeService extends AbstractComponent implements Closeable {
                 transport ? transportService.info() : null,
                 http ? (httpServerTransport == null ? null : httpServerTransport.info()) : null,
                 plugin ? (pluginService == null ? null : pluginService.info()) : null,
-                ingest ? (ingestService == null ? null : ingestService.info()) : null,
                 indices ? indicesService.getTotalIndexingBufferBytes() : null
         );
     }
@@ -114,13 +109,8 @@ public class NodeService extends AbstractComponent implements Closeable {
                 http ? (httpServerTransport == null ? null : httpServerTransport.stats()) : null,
                 circuitBreaker ? circuitBreakerService.stats() : null,
                 discoveryStats ? discovery.stats() : null,
-                ingest ? ingestService.stats() : null,
                 adaptiveSelection ? responseCollectorService.getAdaptiveStats(searchTransportService.getPendingSearchRequests()) : null
         );
-    }
-
-    public IngestService getIngestService() {
-        return ingestService;
     }
 
     public MonitorService getMonitorService() {
