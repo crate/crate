@@ -149,7 +149,6 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.usage.UsageService;
-import org.elasticsearch.watcher.ResourceWatcherService;
 
 import javax.net.ssl.SNIHostName;
 import java.io.BufferedWriter;
@@ -343,7 +342,6 @@ public abstract class Node implements Closeable {
                 additionalSettings.addAll(builder.getRegisteredSettings());
             }
             client = new NodeClient(settings, threadPool);
-            final ResourceWatcherService resourceWatcherService = new ResourceWatcherService(settings, threadPool);
             AnalysisModule analysisModule = new AnalysisModule(this.environment, pluginsService.filterPlugins(AnalysisPlugin.class));
             // this is as early as we can validate settings at this point. we already pass them to ScriptModule as well as ThreadPool
             // so we might be late here already
@@ -356,7 +354,6 @@ public abstract class Node implements Closeable {
 
             final SettingsModule settingsModule =
                     new SettingsModule(this.settings, additionalSettings, additionalSettingsFilter, settingsUpgraders);
-            resourcesToClose.add(resourceWatcherService);
             final NetworkService networkService = new NetworkService(
                 getCustomNameResolvers(pluginsService.filterPlugins(DiscoveryPlugin.class)));
 
@@ -451,7 +448,7 @@ public abstract class Node implements Closeable {
                     forbidPrivateIndexSettings);
 
             Collection<Object> pluginComponents = pluginsService.filterPlugins(Plugin.class).stream()
-                .flatMap(p -> p.createComponents(client, clusterService, threadPool, resourceWatcherService,
+                .flatMap(p -> p.createComponents(client, clusterService, threadPool,
                                                  xContentRegistry, environment, nodeEnvironment,
                                                  namedWriteableRegistry).stream())
                 .collect(Collectors.toList());
@@ -539,7 +536,6 @@ public abstract class Node implements Closeable {
                     b.bind(Environment.class).toInstance(this.environment);
                     b.bind(ThreadPool.class).toInstance(threadPool);
                     b.bind(NodeEnvironment.class).toInstance(nodeEnvironment);
-                    b.bind(ResourceWatcherService.class).toInstance(resourceWatcherService);
                     b.bind(CircuitBreakerService.class).toInstance(circuitBreakerService);
                     b.bind(BigArrays.class).toInstance(bigArrays);
                     b.bind(AnalysisRegistry.class).toInstance(analysisModule.getAnalysisRegistry());
@@ -708,7 +704,6 @@ public abstract class Node implements Closeable {
         nodeConnectionsService.start();
         clusterService.setNodeConnectionsService(nodeConnectionsService);
 
-        injector.getInstance(ResourceWatcherService.class).start();
         injector.getInstance(GatewayService.class).start();
         Discovery discovery = injector.getInstance(Discovery.class);
         clusterService.getMasterService().setClusterStatePublisher(discovery::publish);
@@ -814,7 +809,6 @@ public abstract class Node implements Closeable {
         }
         logger.info("stopping ...");
 
-        injector.getInstance(ResourceWatcherService.class).stop();
         if (NetworkModule.HTTP_ENABLED.get(settings)) {
             injector.getInstance(HttpServerTransport.class).stop();
         }

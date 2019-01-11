@@ -48,7 +48,6 @@ import org.elasticsearch.repositories.RepositoriesModule;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.watcher.ResourceWatcherService;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -116,14 +115,12 @@ public abstract class Plugin implements Closeable {
      * @param client A client to make requests to the system
      * @param clusterService A service to allow watching and updating cluster state
      * @param threadPool A service to allow retrieving an executor to run an async action
-     * @param resourceWatcherService A service to watch for changes to node local files
      * @param xContentRegistry the registry for extensible xContent parsing
      * @param environment the environment for path and setting configurations
      * @param nodeEnvironment the node environment used coordinate access to the data paths
      * @param namedWriteableRegistry the registry for {@link NamedWriteable} object parsing
      */
     public Collection<Object> createComponents(Client client, ClusterService clusterService, ThreadPool threadPool,
-                                               ResourceWatcherService resourceWatcherService,
                                                NamedXContentRegistry xContentRegistry, Environment environment,
                                                NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry) {
         return Collections.emptyList();
