@@ -24,30 +24,13 @@ import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.index.fielddata.AtomicOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.ScriptDocValues;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.function.Function;
 
 
 public abstract class AbstractAtomicOrdinalsFieldData implements AtomicOrdinalsFieldData {
-
-    public static final Function<SortedSetDocValues, ScriptDocValues<?>> DEFAULT_SCRIPT_FUNCTION =
-            ((Function<SortedSetDocValues, SortedBinaryDocValues>) FieldData::toString)
-            .andThen(ScriptDocValues.Strings::new);
-
-    private final Function<SortedSetDocValues, ScriptDocValues<?>> scriptFunction;
-
-    protected AbstractAtomicOrdinalsFieldData(Function<SortedSetDocValues, ScriptDocValues<?>> scriptFunction) {
-        this.scriptFunction = scriptFunction;
-    }
-
-    @Override
-    public final ScriptDocValues<?> getScriptValues() {
-        return scriptFunction.apply(getOrdinalsValues());
-    }
 
     @Override
     public final SortedBinaryDocValues getBytesValues() {
@@ -55,13 +38,13 @@ public abstract class AbstractAtomicOrdinalsFieldData implements AtomicOrdinalsF
     }
 
     public static AtomicOrdinalsFieldData empty() {
-        return new AbstractAtomicOrdinalsFieldData(DEFAULT_SCRIPT_FUNCTION) {
+        return new AbstractAtomicOrdinalsFieldData() {
 
             @Override
             public long ramBytesUsed() {
                 return 0;
             }
-            
+
             @Override
             public Collection<Accountable> getChildResources() {
                 return Collections.emptyList();

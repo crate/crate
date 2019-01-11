@@ -24,13 +24,11 @@ import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Explicit;
 import org.elasticsearch.common.Nullable;
@@ -39,7 +37,6 @@ import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.ScriptDocValues;
 import org.elasticsearch.index.fielddata.plain.DocValuesIndexFieldData;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.search.DocValueFormat;
@@ -47,7 +44,6 @@ import org.joda.time.DateTimeZone;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -240,57 +236,10 @@ public class IpFieldMapper extends FieldMapper {
             return InetAddressPoint.newRangeQuery(name(), lower, upper);
         }
 
-        public static final class IpScriptDocValues extends ScriptDocValues<String> {
-
-            private final SortedSetDocValues in;
-            private long[] ords = new long[0];
-            private int count;
-
-            public IpScriptDocValues(SortedSetDocValues in) {
-                this.in = in;
-            }
-
-            @Override
-            public void setNextDocId(int docId) throws IOException {
-                count = 0;
-                if (in.advanceExact(docId)) {
-                    for (long ord = in.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = in.nextOrd()) {
-                        ords = ArrayUtil.grow(ords, count + 1);
-                        ords[count++] = ord;
-                    }
-                }
-            }
-
-            public String getValue() {
-                if (count == 0) {
-                    return null;
-                } else {
-                    return get(0);
-                }
-            }
-
-            @Override
-            public String get(int index) {
-                try {
-                    BytesRef encoded = in.lookupOrd(ords[index]);
-                    InetAddress address = InetAddressPoint.decode(
-                            Arrays.copyOfRange(encoded.bytes, encoded.offset, encoded.offset + encoded.length));
-                    return InetAddresses.toAddrString(address);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public int size() {
-                return count;
-            }
-        }
-
         @Override
         public IndexFieldData.Builder fielddataBuilder(String fullyQualifiedIndexName) {
             failIfNoDocValues();
-            return new DocValuesIndexFieldData.Builder().scriptFunction(IpScriptDocValues::new);
+            return new DocValuesIndexFieldData.Builder();
         }
 
         @Override

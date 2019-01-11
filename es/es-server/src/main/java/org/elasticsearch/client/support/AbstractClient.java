@@ -116,16 +116,6 @@ import org.elasticsearch.action.admin.cluster.stats.ClusterStatsAction;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequest;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsResponse;
-import org.elasticsearch.action.admin.cluster.storedscripts.DeleteStoredScriptAction;
-import org.elasticsearch.action.admin.cluster.storedscripts.DeleteStoredScriptRequest;
-import org.elasticsearch.action.admin.cluster.storedscripts.DeleteStoredScriptRequestBuilder;
-import org.elasticsearch.action.admin.cluster.storedscripts.GetStoredScriptAction;
-import org.elasticsearch.action.admin.cluster.storedscripts.GetStoredScriptRequest;
-import org.elasticsearch.action.admin.cluster.storedscripts.GetStoredScriptRequestBuilder;
-import org.elasticsearch.action.admin.cluster.storedscripts.GetStoredScriptResponse;
-import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptAction;
-import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptRequest;
-import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptRequestBuilder;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequestBuilder;
@@ -1169,62 +1159,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public ClusterAllocationExplainRequestBuilder prepareAllocationExplain() {
             return new ClusterAllocationExplainRequestBuilder(this, ClusterAllocationExplainAction.INSTANCE);
-        }
-
-        @Override
-        public ActionFuture<GetStoredScriptResponse> getStoredScript(final GetStoredScriptRequest request) {
-            return execute(GetStoredScriptAction.INSTANCE, request);
-        }
-
-        @Override
-        public void getStoredScript(final GetStoredScriptRequest request, final ActionListener<GetStoredScriptResponse> listener) {
-            execute(GetStoredScriptAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public GetStoredScriptRequestBuilder prepareGetStoredScript() {
-            return new GetStoredScriptRequestBuilder(this, GetStoredScriptAction.INSTANCE);
-        }
-
-        @Override
-        public GetStoredScriptRequestBuilder prepareGetStoredScript(String id) {
-            return prepareGetStoredScript().setId(id);
-        }
-
-        @Override
-        public PutStoredScriptRequestBuilder preparePutStoredScript() {
-            return new PutStoredScriptRequestBuilder(this, PutStoredScriptAction.INSTANCE);
-        }
-
-        @Override
-        public void putStoredScript(final PutStoredScriptRequest request, ActionListener<AcknowledgedResponse> listener){
-            execute(PutStoredScriptAction.INSTANCE, request, listener);
-
-        }
-
-        @Override
-        public ActionFuture<AcknowledgedResponse> putStoredScript(final PutStoredScriptRequest request){
-            return execute(PutStoredScriptAction.INSTANCE, request);
-        }
-
-        @Override
-        public void deleteStoredScript(DeleteStoredScriptRequest request, ActionListener<AcknowledgedResponse> listener){
-            execute(DeleteStoredScriptAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ActionFuture<AcknowledgedResponse> deleteStoredScript(DeleteStoredScriptRequest request){
-            return execute(DeleteStoredScriptAction.INSTANCE, request);
-        }
-
-        @Override
-        public DeleteStoredScriptRequestBuilder prepareDeleteStoredScript(){
-            return DeleteStoredScriptAction.INSTANCE.newRequestBuilder(this);
-        }
-
-        @Override
-        public DeleteStoredScriptRequestBuilder prepareDeleteStoredScript(String id){
-            return prepareDeleteStoredScript().setId(id);
         }
     }
 

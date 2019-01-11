@@ -69,7 +69,6 @@ public class ConstantIndexFieldData extends AbstractIndexOrdinalsFieldData {
         private final String value;
 
         ConstantAtomicFieldData(String value) {
-            super(DEFAULT_SCRIPT_FUNCTION);
             this.value = value;
         }
 

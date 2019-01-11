@@ -28,18 +28,6 @@ import org.elasticsearch.common.lease.Releasable;
 public interface AtomicFieldData extends Accountable, Releasable {
 
     /**
-     * Returns field values for use in scripting.
-     */
-    ScriptDocValues<?> getScriptValues();
-
-    /**
-     * Returns field values for use by returned hits.
-     */
-    default ScriptDocValues<?> getLegacyFieldValues() {
-        return getScriptValues();
-    }
-
-    /**
      * Return a String representation of the values.
      */
     SortedBinaryDocValues getBytesValues();

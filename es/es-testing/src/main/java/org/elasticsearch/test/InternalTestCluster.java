@@ -98,7 +98,6 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeService;
 import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.SearchService;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.transport.MockTransportService;
@@ -375,7 +374,6 @@ public final class InternalTestCluster extends TestCluster {
         builder.put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING.getKey(), "1b");
         builder.put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING.getKey(), "1b");
         // Some tests make use of scripting quite a bit, so increase the limit for integration tests
-        builder.put(ScriptService.SCRIPT_MAX_COMPILATIONS_RATE.getKey(), "1000/1m");
         builder.put(OperationRouting.USE_ADAPTIVE_REPLICA_SELECTION_SETTING.getKey(), random.nextBoolean());
         if (TEST_NIGHTLY) {
             builder.put(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_INCOMING_RECOVERIES_SETTING.getKey(),
@@ -487,14 +485,6 @@ public final class InternalTestCluster extends TestCluster {
 
         if (random.nextBoolean()) {
             builder.put(TcpTransport.PING_SCHEDULE.getKey(), RandomNumbers.randomIntBetween(random, 100, 2000) + "ms");
-        }
-
-        if (random.nextBoolean()) {
-            builder.put(ScriptService.SCRIPT_CACHE_SIZE_SETTING.getKey(), RandomNumbers.randomIntBetween(random, 0, 2000));
-        }
-        if (random.nextBoolean()) {
-            builder.put(ScriptService.SCRIPT_CACHE_EXPIRE_SETTING.getKey(),
-                    timeValueMillis(RandomNumbers.randomIntBetween(random, 750, 10000000)).getStringRep());
         }
 
         return builder.build();

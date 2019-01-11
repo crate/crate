@@ -103,13 +103,6 @@ import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.plugins.AnalysisPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.plugins.ScriptPlugin;
-import org.elasticsearch.script.MockScriptEngine;
-import org.elasticsearch.script.Script;
-import org.elasticsearch.script.ScriptContext;
-import org.elasticsearch.script.ScriptEngine;
-import org.elasticsearch.script.ScriptModule;
-import org.elasticsearch.script.ScriptType;
 import org.elasticsearch.search.MockSearchService;
 import org.elasticsearch.test.junit.listeners.LoggingListener;
 import org.elasticsearch.test.junit.listeners.ReproduceInfoPrinter;
@@ -156,8 +149,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS;
 import static org.elasticsearch.common.util.CollectionUtils.arrayAsArrayList;
 import static org.hamcrest.Matchers.empty;
@@ -1301,14 +1292,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         return new NamedWriteableRegistry(ClusterModule.getNamedWriteables());
     }
 
-    /**
-     * Create a "mock" script for use either with {@link MockScriptEngine} or anywhere where you need a script but don't really care about
-     * its contents.
-     */
-    public static final Script mockScript(String id) {
-        return new Script(ScriptType.INLINE, MockScriptEngine.NAME, id, emptyMap());
-    }
-
     /** Returns the suite failure marker: internal use only! */
     public static TestRuleMarkFailure getSuiteFailureMarker() {
         return suiteFailureMarker;
@@ -1381,15 +1364,6 @@ public abstract class ESTestCase extends LuceneTestCase {
             analysisRegistry.buildTokenFilterFactories(indexSettings),
             analysisRegistry.buildTokenizerFactories(indexSettings),
             analysisRegistry.buildCharFilterFactories(indexSettings));
-    }
-
-    public static ScriptModule newTestScriptModule() {
-        return new ScriptModule(Settings.EMPTY, singletonList(new ScriptPlugin() {
-            @Override
-            public ScriptEngine getScriptEngine(Settings settings, Collection<ScriptContext<?>> contexts) {
-                return new MockScriptEngine(MockScriptEngine.NAME, Collections.singletonMap("1", script -> "1"), Collections.emptyMap());
-            }
-        }));
     }
 
     /** Creates an IndicesModule for testing with the given mappers and metadata mappers. */

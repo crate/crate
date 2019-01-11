@@ -19,20 +19,12 @@
 
 package org.elasticsearch.ingest;
 
-import org.elasticsearch.script.Script;
-import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.script.ScriptType;
-import org.elasticsearch.script.TemplateScript;
-
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import static org.elasticsearch.script.Script.DEFAULT_TEMPLATE_LANG;
 
 /**
  * Holds a value. If the value is requested a copy is made and optionally template snippets are resolved too.
@@ -49,14 +41,14 @@ public interface ValueSource {
      */
     Object copyAndResolve(Map<String, Object> model);
 
-    static ValueSource wrap(Object value, ScriptService scriptService) {
+    static ValueSource wrap(Object value) {
 
         if (value instanceof Map) {
             @SuppressWarnings("unchecked")
             Map<Object, Object> mapValue = (Map) value;
             Map<ValueSource, ValueSource> valueTypeMap = new HashMap<>(mapValue.size());
             for (Map.Entry<Object, Object> entry : mapValue.entrySet()) {
-                valueTypeMap.put(wrap(entry.getKey(), scriptService), wrap(entry.getValue(), scriptService));
+                valueTypeMap.put(wrap(entry.getKey()), wrap(entry.getValue()));
             }
             return new MapValue(valueTypeMap);
         } else if (value instanceof List) {
@@ -64,7 +56,7 @@ public interface ValueSource {
             List<Object> listValue = (List) value;
             List<ValueSource> valueSourceList = new ArrayList<>(listValue.size());
             for (Object item : listValue) {
-                valueSourceList.add(wrap(item, scriptService));
+                valueSourceList.add(wrap(item));
             }
             return new ListValue(valueSourceList);
         } else if (value == null || value instanceof Number || value instanceof Boolean) {
@@ -72,15 +64,7 @@ public interface ValueSource {
         } else if (value instanceof byte[]) {
             return new ByteValue((byte[]) value);
         } else if (value instanceof String) {
-            // This check is here because the DEFAULT_TEMPLATE_LANG(mustache) is not
-            // installed for use by REST tests. `value` will not be
-            // modified if templating is not available
-            if (scriptService.isLangSupported(DEFAULT_TEMPLATE_LANG)) {
-                Script script = new Script(ScriptType.INLINE, DEFAULT_TEMPLATE_LANG, (String) value, Collections.emptyMap());
-                return new TemplatedValue(scriptService.compile(script, TemplateScript.CONTEXT));
-            } else {
-                return new ObjectValue(value);
-            }
+            return new ObjectValue(value);
         } else {
             throw new IllegalArgumentException("unexpected value type [" + value.getClass() + "]");
         }
@@ -208,33 +192,4 @@ public interface ValueSource {
         }
 
     }
-
-    final class TemplatedValue implements ValueSource {
-
-        private final TemplateScript.Factory template;
-
-        TemplatedValue(TemplateScript.Factory template) {
-            this.template = template;
-        }
-
-        @Override
-        public Object copyAndResolve(Map<String, Object> model) {
-            return template.newInstance(model).execute();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            TemplatedValue templatedValue = (TemplatedValue) o;
-            return Objects.equals(template, templatedValue.template);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(template);
-        }
-    }
-
 }
