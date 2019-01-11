@@ -35,15 +35,15 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
     private Setup setup = new Setup(sqlExecutor);
 
     @Test
-    public void testDelete() throws Exception {
-        String fqn = getFqn("test");
-        createIndex(fqn);
-        ensureYellow();
-        client().prepareIndex(fqn, "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
-        refresh();
+    public void testDeleteTableWithoutWhere() throws Exception {
+        execute("create table test (x int)");
+        execute("insert into test (x) values (1)");
+        execute("refresh table test");
+
         execute("delete from test");
         assertEquals(1, response.rowCount());
-        refresh();
+
+        execute("refresh table test");
         execute("select \"_id\" from test");
         assertEquals(0, response.rowCount());
     }
@@ -56,18 +56,16 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testDeleteWithWhere() throws Exception {
-        String fqn = getFqn("test");
-        createIndex(fqn);
-        ensureYellow();
-        client().prepareIndex(fqn, "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
-        client().prepareIndex(fqn, "default", "id2").setSource("{}", XContentType.JSON).execute().actionGet();
-        client().prepareIndex(fqn, "default", "id3").setSource("{}", XContentType.JSON).execute().actionGet();
-        refresh();
-        execute("delete from test where \"_id\" = 'id1'");
+    public void testDeleteWithWhereDeletesCorrectRecord() throws Exception {
+        execute("create table test (id int primary key)");
+        execute("insert into test (id) values (1), (2), (3)");
+        execute("refresh table test");
+
+        execute("delete from test where id = 1");
         assertEquals(1, response.rowCount());
-        refresh();
-        execute("select \"_id\" from test");
+
+        execute("refresh table test");
+        execute("select id from test");
         assertEquals(2, response.rowCount());
     }
 

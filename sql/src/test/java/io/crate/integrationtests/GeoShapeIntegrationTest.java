@@ -88,32 +88,6 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testIndexWithES() throws Exception {
-        execute("create table test (shape geo_shape)");
-        ensureYellow();
-        client().prepareIndex(getFqn("test"), "default", "test").setSource(jsonBuilder().startObject()
-            .startObject("shape")
-            .field("type", "polygon")
-            .startArray("coordinates").startArray()
-            .startArray().value(-122.83).value(48.57).endArray()
-            .startArray().value(-122.77).value(48.56).endArray()
-            .startArray().value(-122.79).value(48.53).endArray()
-            .startArray().value(-122.83).value(48.57).endArray() // close the polygon
-            .endArray().endArray()
-            .endObject()
-            .endObject()).execute().actionGet();
-        execute("refresh table test");
-        execute("select shape from test");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "{coordinates=[[[-122.83, 48.57], [-122.77, 48.56], [-122.79, 48.53], [-122.83, 48.57]]], type=polygon}\n"));
-//TODO: Re-enable once SQLResponse also includes the data types for the columns
-//        assertThat(response.columnTypes()[0], is((DataType) DataTypes.GEO_SHAPE));
-        assertThat(response.rows()[0][0], instanceOf(Map.class));
-
-    }
-
-    @Test
     @UseRandomizedSchema(random = false)
     public void testShowCreateTable() throws Exception {
         execute("create table test (" +
