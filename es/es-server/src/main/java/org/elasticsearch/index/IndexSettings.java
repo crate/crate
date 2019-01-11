@@ -32,7 +32,6 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.mapper.AllFieldMapper;
 import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.ingest.IngestService;
 import org.elasticsearch.node.Node;
 
 import java.util.Collections;
@@ -291,14 +290,6 @@ public final class IndexSettings {
             Property.Final);
     }
 
-    public static final Setting<String> DEFAULT_PIPELINE =
-       new Setting<>("index.default_pipeline", IngestService.NOOP_PIPELINE_NAME, s -> {
-           if (s == null || s.isEmpty()) {
-               throw new IllegalArgumentException("Value for [index.default_pipeline] must be a non-empty string.");
-           }
-        return s;
-       }, Property.Dynamic, Property.IndexScope);
-
     /**
      * Marks an index to be searched throttled. This means that never more than one shard of such an index will be searched concurrently
      */
@@ -344,7 +335,6 @@ public final class IndexSettings {
     private volatile int maxShingleDiff;
     private volatile int maxAnalyzedOffset;
     private volatile int maxTermsCount;
-    private volatile String defaultPipeline;
     private volatile boolean searchThrottled;
 
     /**
@@ -472,7 +462,6 @@ public final class IndexSettings {
             throw new AssertionError(index.toString()  + "multiple types are only allowed on pre 6.x indices but version is: ["
                 + version + "]");
         }
-        defaultPipeline = scopedSettings.get(DEFAULT_PIPELINE);
 
         scopedSettings.addSettingsUpdateConsumer(MergePolicyConfig.INDEX_COMPOUND_FORMAT_SETTING, mergePolicyConfig::setNoCFSRatio);
         scopedSettings.addSettingsUpdateConsumer(MergePolicyConfig.INDEX_MERGE_POLICY_DELETES_PCT_ALLOWED_SETTING, mergePolicyConfig::setDeletesPctAllowed);
@@ -510,7 +499,6 @@ public final class IndexSettings {
         scopedSettings.addSettingsUpdateConsumer(MAX_SLICES_PER_SCROLL, this::setMaxSlicesPerScroll);
         scopedSettings.addSettingsUpdateConsumer(DEFAULT_FIELD_SETTING, this::setDefaultFields);
         scopedSettings.addSettingsUpdateConsumer(MAX_REGEX_LENGTH_SETTING, this::setMaxRegexLength);
-        scopedSettings.addSettingsUpdateConsumer(DEFAULT_PIPELINE, this::setDefaultPipeline);
         scopedSettings.addSettingsUpdateConsumer(INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING, this::setSoftDeleteRetentionOperations);
         scopedSettings.addSettingsUpdateConsumer(INDEX_SEARCH_THROTTLED, this::setSearchThrottled);
     }
@@ -884,14 +872,6 @@ public final class IndexSettings {
     }
 
     public IndexScopedSettings getScopedSettings() { return scopedSettings;}
-
-    public String getDefaultPipeline() {
-        return defaultPipeline;
-    }
-
-    public void setDefaultPipeline(String defaultPipeline) {
-        this.defaultPipeline = defaultPipeline;
-    }
 
     /**
      * Returns <code>true</code> if soft-delete is enabled.
