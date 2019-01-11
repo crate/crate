@@ -31,7 +31,6 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.AtomicOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
-import org.elasticsearch.index.fielddata.ScriptDocValues;
 import org.elasticsearch.index.fielddata.plain.AbstractAtomicOrdinalsFieldData;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
@@ -39,7 +38,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 /**
  * Utility class to build global ordinals.
@@ -51,8 +49,7 @@ public enum GlobalOrdinalsBuilder {
      * Build global ordinals for the provided {@link IndexReader}.
      */
     public static IndexOrdinalsFieldData build(final IndexReader indexReader, IndexOrdinalsFieldData indexFieldData,
-            IndexSettings indexSettings, CircuitBreakerService breakerService, Logger logger,
-            Function<SortedSetDocValues, ScriptDocValues<?>> scriptFunction) throws IOException {
+            IndexSettings indexSettings, CircuitBreakerService breakerService, Logger logger) throws IOException {
         assert indexReader.leaves().size() > 1;
         long startTimeNS = System.nanoTime();
 
@@ -75,7 +72,7 @@ public enum GlobalOrdinalsBuilder {
             );
         }
         return new GlobalOrdinalsIndexFieldData(indexSettings, indexFieldData.getFieldName(),
-                atomicFD, ordinalMap, memorySizeInBytes, scriptFunction
+                atomicFD, ordinalMap, memorySizeInBytes
         );
     }
 
@@ -85,7 +82,7 @@ public enum GlobalOrdinalsBuilder {
         final AtomicOrdinalsFieldData[] atomicFD = new AtomicOrdinalsFieldData[indexReader.leaves().size()];
         final SortedSetDocValues[] subs = new SortedSetDocValues[indexReader.leaves().size()];
         for (int i = 0; i < indexReader.leaves().size(); ++i) {
-            atomicFD[i] = new AbstractAtomicOrdinalsFieldData(AbstractAtomicOrdinalsFieldData.DEFAULT_SCRIPT_FUNCTION) {
+            atomicFD[i] = new AbstractAtomicOrdinalsFieldData() {
                 @Override
                 public SortedSetDocValues getOrdinalsValues() {
                     return DocValues.emptySortedSet();
@@ -109,7 +106,7 @@ public enum GlobalOrdinalsBuilder {
         }
         final OrdinalMap ordinalMap = OrdinalMap.build(null, subs, PackedInts.DEFAULT);
         return new GlobalOrdinalsIndexFieldData(indexSettings, indexFieldData.getFieldName(),
-                atomicFD, ordinalMap, 0, AbstractAtomicOrdinalsFieldData.DEFAULT_SCRIPT_FUNCTION
+                atomicFD, ordinalMap, 0
         );
     }
 

@@ -85,7 +85,6 @@ import org.elasticsearch.persistent.decider.EnableAssignmentDecider;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.rest.BaseRestHandler;
-import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.search.SearchService;
 import org.elasticsearch.search.fetch.subphase.highlight.FastVectorHighlighter;
@@ -340,12 +339,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     NetworkService.TCP_CONNECT_TIMEOUT,
                     IndexSettings.QUERY_STRING_ANALYZE_WILDCARD,
                     IndexSettings.QUERY_STRING_ALLOW_LEADING_WILDCARD,
-                    ScriptService.SCRIPT_CACHE_SIZE_SETTING,
-                    ScriptService.SCRIPT_CACHE_EXPIRE_SETTING,
-                    ScriptService.SCRIPT_MAX_SIZE_IN_BYTES,
-                    ScriptService.SCRIPT_MAX_COMPILATIONS_RATE,
-                    ScriptService.TYPES_ALLOWED_SETTING,
-                    ScriptService.CONTEXTS_ALLOWED_SETTING,
                     IndicesService.INDICES_CACHE_CLEAN_INTERVAL_SETTING,
                     IndicesFieldDataCache.INDICES_FIELDDATA_CACHE_SIZE_KEY,
                     IndicesRequestCache.INDICES_CACHE_QUERY_SIZE,

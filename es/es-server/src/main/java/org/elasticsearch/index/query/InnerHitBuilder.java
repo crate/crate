@@ -29,27 +29,19 @@ import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.script.Script;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.builder.SearchSourceBuilder.ScriptField;
+import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.fetch.StoredFieldsContext;
 import org.elasticsearch.search.fetch.subphase.DocValueFieldsContext.FieldAndFormat;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
-import org.elasticsearch.search.collapse.CollapseBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
-
-import static org.elasticsearch.common.xcontent.XContentParser.Token.END_OBJECT;
 
 public final class InnerHitBuilder implements Writeable, ToXContentObject {
 
@@ -72,17 +64,6 @@ public final class InnerHitBuilder implements Writeable, ToXContentObject {
         PARSER.declareStringArray(InnerHitBuilder::setStoredFieldNames, SearchSourceBuilder.STORED_FIELDS_FIELD);
         PARSER.declareObjectArray(InnerHitBuilder::setDocValueFields,
                 (p,c) -> FieldAndFormat.fromXContent(p), SearchSourceBuilder.DOCVALUE_FIELDS_FIELD);
-        PARSER.declareField((p, i, c) -> {
-            try {
-                Set<ScriptField> scriptFields = new HashSet<>();
-                for (XContentParser.Token token = p.nextToken(); token != END_OBJECT; token = p.nextToken()) {
-                    scriptFields.add(new ScriptField(p));
-                }
-                i.setScriptFields(scriptFields);
-            } catch (IOException e) {
-                throw new ParsingException(p.getTokenLocation(), "Could not parse inner script definition", e);
-            }
-        }, SearchSourceBuilder.SCRIPT_FIELDS_FIELD, ObjectParser.ValueType.OBJECT);
         PARSER.declareField((p, i, c) -> i.setSorts(SortBuilder.fromXContent(p)), SearchSourceBuilder.SORT_FIELD,
                 ObjectParser.ValueType.OBJECT_ARRAY);
         PARSER.declareField((p, i, c) -> {
@@ -131,7 +112,6 @@ public final class InnerHitBuilder implements Writeable, ToXContentObject {
     private QueryBuilder query = DEFAULT_INNER_HIT_QUERY;
     private List<SortBuilder<?>> sorts;
     private List<FieldAndFormat> docValueFields;
-    private Set<ScriptField> scriptFields;
     private HighlightBuilder highlightBuilder;
     private FetchSourceContext fetchSourceContext;
     private CollapseBuilder innerCollapseBuilder = null;
@@ -174,13 +154,6 @@ public final class InnerHitBuilder implements Writeable, ToXContentObject {
             }
         } else {
             docValueFields = in.readBoolean() ? in.readList(FieldAndFormat::new) : null;
-        }
-        if (in.readBoolean()) {
-            int size = in.readVInt();
-            scriptFields = new HashSet<>(size);
-            for (int i = 0; i < size; i++) {
-                scriptFields.add(new ScriptField(in));
-            }
         }
         fetchSourceContext = in.readOptionalWriteable(FetchSourceContext::new);
         if (in.readBoolean()) {
@@ -225,16 +198,6 @@ public final class InnerHitBuilder implements Writeable, ToXContentObject {
             out.writeBoolean(docValueFields != null);
             if (docValueFields != null) {
                 out.writeList(docValueFields);
-            }
-        }
-        boolean hasScriptFields = scriptFields != null;
-        out.writeBoolean(hasScriptFields);
-        if (hasScriptFields) {
-            out.writeVInt(scriptFields.size());
-            Iterator<ScriptField> iterator = scriptFields.stream()
-                    .sorted(Comparator.comparing(ScriptField::fieldName)).iterator();
-            while (iterator.hasNext()) {
-                iterator.next().writeTo(out);
             }
         }
         out.writeOptionalWriteable(fetchSourceContext);
@@ -306,16 +269,6 @@ public final class InnerHitBuilder implements Writeable, ToXContentObject {
         out.writeGenericValue(docValueFields == null
                 ? null
                 : docValueFields.stream().map(ff -> ff.field).collect(Collectors.toList()));
-        boolean hasScriptFields = scriptFields != null;
-        out.writeBoolean(hasScriptFields);
-        if (hasScriptFields) {
-            out.writeVInt(scriptFields.size());
-            Iterator<ScriptField> iterator = scriptFields.stream()
-                .sorted(Comparator.comparing(ScriptField::fieldName)).iterator();
-            while (iterator.hasNext()) {
-                iterator.next().writeTo(out);
-            }
-        }
         out.writeOptionalWriteable(fetchSourceContext);
         boolean hasSorts = sorts != null;
         out.writeBoolean(hasSorts);
@@ -477,23 +430,6 @@ public final class InnerHitBuilder implements Writeable, ToXContentObject {
         return addDocValueField(field, null);
     }
 
-    public Set<ScriptField> getScriptFields() {
-        return scriptFields;
-    }
-
-    public InnerHitBuilder setScriptFields(Set<ScriptField> scriptFields) {
-        this.scriptFields = scriptFields;
-        return this;
-    }
-
-    public InnerHitBuilder addScriptField(String name, Script script) {
-        if (scriptFields == null) {
-            scriptFields = new HashSet<>();
-        }
-        scriptFields.add(new ScriptField(name, script, false));
-        return this;
-    }
-
     public FetchSourceContext getFetchSourceContext() {
         return fetchSourceContext;
     }
@@ -574,13 +510,6 @@ public final class InnerHitBuilder implements Writeable, ToXContentObject {
             }
             builder.endArray();
         }
-        if (scriptFields != null) {
-            builder.startObject(SearchSourceBuilder.SCRIPT_FIELDS_FIELD.getPreferredName());
-            for (ScriptField scriptField : scriptFields) {
-                scriptField.toXContent(builder, params);
-            }
-            builder.endObject();
-        }
         if (sorts != null) {
             builder.startArray(SearchSourceBuilder.SORT_FIELD.getPreferredName());
             for (SortBuilder<?> sort : sorts) {
@@ -613,7 +542,6 @@ public final class InnerHitBuilder implements Writeable, ToXContentObject {
                 Objects.equals(trackScores, that.trackScores) &&
                 Objects.equals(storedFieldsContext, that.storedFieldsContext) &&
                 Objects.equals(docValueFields, that.docValueFields) &&
-                Objects.equals(scriptFields, that.scriptFields) &&
                 Objects.equals(fetchSourceContext, that.fetchSourceContext) &&
                 Objects.equals(sorts, that.sorts) &&
                 Objects.equals(highlightBuilder, that.highlightBuilder) &&
@@ -623,7 +551,7 @@ public final class InnerHitBuilder implements Writeable, ToXContentObject {
     @Override
     public int hashCode() {
         return Objects.hash(name, ignoreUnmapped, from, size, explain, version, trackScores,
-                storedFieldsContext, docValueFields, scriptFields, fetchSourceContext, sorts, highlightBuilder, innerCollapseBuilder);
+                storedFieldsContext, docValueFields, fetchSourceContext, sorts, highlightBuilder, innerCollapseBuilder);
     }
 
     public static InnerHitBuilder fromXContent(XContentParser parser) throws IOException {

@@ -801,8 +801,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
                 org.elasticsearch.index.shard.IndexShardStartedException::new, 23, UNKNOWN_VERSION_ADDED),
         SEARCH_CONTEXT_MISSING_EXCEPTION(org.elasticsearch.search.SearchContextMissingException.class,
                 org.elasticsearch.search.SearchContextMissingException::new, 24, UNKNOWN_VERSION_ADDED),
-        GENERAL_SCRIPT_EXCEPTION(org.elasticsearch.script.GeneralScriptException.class,
-                org.elasticsearch.script.GeneralScriptException::new, 25, UNKNOWN_VERSION_ADDED),
+        // 25 was GeneralScriptException
         // 26 was BatchOperationException
         SNAPSHOT_CREATION_EXCEPTION(org.elasticsearch.snapshots.SnapshotCreationException.class,
                 org.elasticsearch.snapshots.SnapshotCreationException::new, 27, UNKNOWN_VERSION_ADDED),
@@ -1007,8 +1006,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
                 org.elasticsearch.index.query.QueryShardException::new, 141, UNKNOWN_VERSION_ADDED),
         NO_LONGER_PRIMARY_SHARD_EXCEPTION(ShardStateAction.NoLongerPrimaryShardException.class,
                 ShardStateAction.NoLongerPrimaryShardException::new, 142, UNKNOWN_VERSION_ADDED),
-        SCRIPT_EXCEPTION(org.elasticsearch.script.ScriptException.class, org.elasticsearch.script.ScriptException::new, 143,
-            UNKNOWN_VERSION_ADDED),
+        // 143 was ScriptException
         NOT_MASTER_EXCEPTION(org.elasticsearch.cluster.NotMasterException.class, org.elasticsearch.cluster.NotMasterException::new, 144,
             UNKNOWN_VERSION_ADDED),
         STATUS_EXCEPTION(org.elasticsearch.ElasticsearchStatusException.class, org.elasticsearch.ElasticsearchStatusException::new, 145,

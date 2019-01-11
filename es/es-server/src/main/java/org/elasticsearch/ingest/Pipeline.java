@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 
-import org.elasticsearch.script.ScriptService;
-
 /**
  * A pipeline is a list of {@link Processor} instances grouped under a unique id.
  */
@@ -66,15 +64,15 @@ public final class Pipeline {
     }
 
     public static Pipeline create(String id, Map<String, Object> config,
-        Map<String, Processor.Factory> processorFactories, ScriptService scriptService) throws Exception {
+        Map<String, Processor.Factory> processorFactories) throws Exception {
         String description = ConfigurationUtils.readOptionalStringProperty(null, null, config, DESCRIPTION_KEY);
         Integer version = ConfigurationUtils.readIntProperty(null, null, config, VERSION_KEY, null);
         List<Map<String, Object>> processorConfigs = ConfigurationUtils.readList(null, null, config, PROCESSORS_KEY);
-        List<Processor> processors = ConfigurationUtils.readProcessorConfigs(processorConfigs, scriptService, processorFactories);
+        List<Processor> processors = ConfigurationUtils.readProcessorConfigs(processorConfigs, processorFactories);
         List<Map<String, Object>> onFailureProcessorConfigs =
                 ConfigurationUtils.readOptionalList(null, null, config, ON_FAILURE_KEY);
         List<Processor> onFailureProcessors =
-            ConfigurationUtils.readProcessorConfigs(onFailureProcessorConfigs, scriptService, processorFactories);
+            ConfigurationUtils.readProcessorConfigs(onFailureProcessorConfigs, processorFactories);
         if (config.isEmpty() == false) {
             throw new ElasticsearchParseException("pipeline [" + id +
                     "] doesn't support one or more provided configuration parameters " + Arrays.toString(config.keySet().toArray()));

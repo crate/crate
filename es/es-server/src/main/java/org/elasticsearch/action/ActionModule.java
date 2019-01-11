@@ -19,8 +19,8 @@
 
 package org.elasticsearch.action;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplainAction;
 import org.elasticsearch.action.admin.cluster.allocation.TransportClusterAllocationExplainAction;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
@@ -72,12 +72,6 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsAction;
 import org.elasticsearch.action.admin.cluster.stats.TransportClusterStatsAction;
-import org.elasticsearch.action.admin.cluster.storedscripts.DeleteStoredScriptAction;
-import org.elasticsearch.action.admin.cluster.storedscripts.GetStoredScriptAction;
-import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptAction;
-import org.elasticsearch.action.admin.cluster.storedscripts.TransportDeleteStoredScriptAction;
-import org.elasticsearch.action.admin.cluster.storedscripts.TransportGetStoredScriptAction;
-import org.elasticsearch.action.admin.cluster.storedscripts.TransportPutStoredScriptAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.TransportPendingClusterTasksAction;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
@@ -230,10 +224,8 @@ import org.elasticsearch.rest.action.admin.cluster.RestClusterUpdateSettingsActi
 import org.elasticsearch.rest.action.admin.cluster.RestCreateSnapshotAction;
 import org.elasticsearch.rest.action.admin.cluster.RestDeleteRepositoryAction;
 import org.elasticsearch.rest.action.admin.cluster.RestDeleteSnapshotAction;
-import org.elasticsearch.rest.action.admin.cluster.RestDeleteStoredScriptAction;
 import org.elasticsearch.rest.action.admin.cluster.RestGetRepositoriesAction;
 import org.elasticsearch.rest.action.admin.cluster.RestGetSnapshotsAction;
-import org.elasticsearch.rest.action.admin.cluster.RestGetStoredScriptAction;
 import org.elasticsearch.rest.action.admin.cluster.RestGetTaskAction;
 import org.elasticsearch.rest.action.admin.cluster.RestListTasksAction;
 import org.elasticsearch.rest.action.admin.cluster.RestNodesHotThreadsAction;
@@ -242,7 +234,6 @@ import org.elasticsearch.rest.action.admin.cluster.RestNodesStatsAction;
 import org.elasticsearch.rest.action.admin.cluster.RestNodesUsageAction;
 import org.elasticsearch.rest.action.admin.cluster.RestPendingClusterTasksAction;
 import org.elasticsearch.rest.action.admin.cluster.RestPutRepositoryAction;
-import org.elasticsearch.rest.action.admin.cluster.RestPutStoredScriptAction;
 import org.elasticsearch.rest.action.admin.cluster.RestReloadSecureSettingsAction;
 import org.elasticsearch.rest.action.admin.cluster.RestRemoteClusterInfoAction;
 import org.elasticsearch.rest.action.admin.cluster.RestRestoreSnapshotAction;
@@ -498,11 +489,6 @@ public class ActionModule extends AbstractModule {
         actions.register(RecoveryAction.INSTANCE, TransportRecoveryAction.class);
         actions.register(NodesReloadSecureSettingsAction.INSTANCE, TransportNodesReloadSecureSettingsAction.class);
 
-        //Indexed scripts
-        actions.register(PutStoredScriptAction.INSTANCE, TransportPutStoredScriptAction.class);
-        actions.register(GetStoredScriptAction.INSTANCE, TransportGetStoredScriptAction.class);
-        actions.register(DeleteStoredScriptAction.INSTANCE, TransportDeleteStoredScriptAction.class);
-
         actions.register(FieldCapabilitiesAction.INSTANCE, TransportFieldCapabilitiesAction.class,
             TransportFieldCapabilitiesIndexAction.class);
 
@@ -618,11 +604,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestRecoveryAction(settings, restController));
 
         registerHandler.accept(new RestReloadSecureSettingsAction(settings, restController));
-
-        // Scripts API
-        registerHandler.accept(new RestGetStoredScriptAction(settings, restController));
-        registerHandler.accept(new RestPutStoredScriptAction(settings, restController));
-        registerHandler.accept(new RestDeleteStoredScriptAction(settings, restController));
 
         registerHandler.accept(new RestFieldCapabilitiesAction(settings, restController));
 

@@ -52,7 +52,6 @@ import org.elasticsearch.search.fetch.StoredFieldsContext;
 import org.elasticsearch.search.fetch.subphase.DocValueFieldsContext;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.elasticsearch.search.fetch.subphase.InnerHitsContext;
-import org.elasticsearch.search.fetch.subphase.ScriptFieldsContext;
 import org.elasticsearch.search.fetch.subphase.highlight.SearchContextHighlight;
 import org.elasticsearch.search.lookup.SearchLookup;
 import org.elasticsearch.search.profile.Profilers;
@@ -173,10 +172,6 @@ public abstract class SearchContext extends AbstractRefCounted implements Releas
     public abstract List<RescoreContext> rescore();
 
     public abstract void addRescore(RescoreContext rescore);
-
-    public abstract boolean hasScriptFields();
-
-    public abstract ScriptFieldsContext scriptFields();
 
     /**
      * A shortcut function to see whether there is a fetchSourceContext and it says the source is requested.

@@ -28,7 +28,6 @@ import org.elasticsearch.index.query.MoreLikeThisQueryBuilder.Item;
 import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilder;
 import org.elasticsearch.indices.TermsLookup;
-import org.elasticsearch.script.Script;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -582,16 +581,6 @@ public final class QueryBuilders {
     public static TermsQueryBuilder termsLookupQuery(String name, TermsLookup termsLookup) {
         return new TermsQueryBuilder(name, termsLookup);
     }
-
-    /**
-     * A builder for filter based on a script.
-     *
-     * @param script The script to filter by.
-     */
-    public static ScriptQueryBuilder scriptQuery(Script script) {
-        return new ScriptQueryBuilder(script);
-    }
-
 
     /**
      * A filter to filter based on a specific distance from a specific geo location / point.

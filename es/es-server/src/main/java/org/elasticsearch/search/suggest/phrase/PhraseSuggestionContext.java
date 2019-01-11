@@ -23,17 +23,13 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.script.TemplateScript;
 import org.elasticsearch.search.suggest.DirectSpellcheckerSettings;
 import org.elasticsearch.search.suggest.SuggestionSearchContext.SuggestionContext;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 class PhraseSuggestionContext extends SuggestionContext {
-    static final boolean DEFAULT_COLLATE_PRUNE = false;
     static final boolean DEFAULT_REQUIRE_UNIGRAM = true;
     static final float DEFAULT_CONFIDENCE = 1.0f;
     static final int DEFAULT_GRAM_SIZE = 1;
@@ -52,10 +48,7 @@ class PhraseSuggestionContext extends SuggestionContext {
     private boolean requireUnigram = DEFAULT_REQUIRE_UNIGRAM;
     private BytesRef preTag;
     private BytesRef postTag;
-    private TemplateScript.Factory scriptFactory;
-    private boolean prune = DEFAULT_COLLATE_PRUNE;
     private List<DirectCandidateGenerator> generators = new ArrayList<>();
-    private Map<String, Object> collateScriptParams = new HashMap<>(1);
     private WordScorer.WordScorerFactory scorer = DEFAULT_SCORER;
 
     PhraseSuggestionContext(QueryShardContext shardContext) {
@@ -190,29 +183,5 @@ class PhraseSuggestionContext extends SuggestionContext {
 
     public BytesRef getPostTag() {
         return postTag;
-    }
-
-    TemplateScript.Factory getCollateQueryScript() {
-        return scriptFactory;
-    }
-
-    void setCollateQueryScript(TemplateScript.Factory scriptFactory) {
-        this.scriptFactory = scriptFactory;
-    }
-
-    Map<String, Object> getCollateScriptParams() {
-        return collateScriptParams;
-    }
-
-    void setCollateScriptParams(Map<String, Object> collateScriptParams) {
-        this.collateScriptParams = new HashMap<>(collateScriptParams);
-    }
-
-    void setCollatePrune(boolean prune) {
-        this.prune = prune;
-    }
-
-    boolean collatePrune() {
-        return prune;
     }
 }
