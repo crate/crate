@@ -100,3 +100,23 @@ Example::
    +----------+----------------------------------------+
    SELECT 4 rows in set (... sec)
 
+
+General-Purpose Window Functions
+================================
+
+``row_number()``
+----------------
+
+Returns the number of the current row within its window.
+
+Example::
+
+   cr> select col1, row_number() over(order by col1) from unnest(['x','y','z']);
+   +------+-----------------------------------------+
+   | col1 | row_number() OVER (ORDER BY "col1" ASC) |
+   +------+-----------------------------------------+
+   | x    |                                       1 |
+   | y    |                                       2 |
+   | z    |                                       3 |
+   +------+-----------------------------------------+
+   SELECT 3 rows in set (... sec)

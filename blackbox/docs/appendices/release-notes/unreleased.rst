@@ -41,11 +41,20 @@ Breaking Changes
 Changes
 =======
 
+- Added a ``pg_description`` table to the ``pg_catalog`` schema for improved
+  postgresql compatibility.
+
+- Added support for window function ``row_number()``.
+
+- Added support to use any expression in the operand of a ``CASE`` clause.
+
 - Buffer the file output of ``COPY TO`` operations to improve performance by not
   writing to disk on every row.
 
 Fixes
 =====
+
+- Fixed a ``NullPointerException`` that could occur using ``array_difference``.
 
 - Fixed a race condition that could lead to stuck queries. One case this could
   occur is if a node was being stopped or crashed.

@@ -22,18 +22,12 @@
 
 package io.crate.execution.engine.window;
 
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.AbstractFunctionModule;
 
-public interface WindowFunction extends FunctionImplementation {
+public class WindowFunctionModule extends AbstractFunctionModule<WindowFunction> {
 
-    /**
-     * Computes the window function for the row identified by the provided {@param rowIdx}.
-     * This method should be called sequentially for all the rows in a window, with each's row corresponding window
-     * frame state {@link WindowFrameState}.
-     *
-     * @param rowIdx       the 0-indexed id of the current window row.
-     * @param currentFrame the frame the row identified by {@param rowIdx} is part of.
-     */
-    Object execute(int rowIdx, WindowFrameState currentFrame);
-
+    @Override
+    public void configureFunctions() {
+        RowNumberWindowFunction.register(this);
+    }
 }

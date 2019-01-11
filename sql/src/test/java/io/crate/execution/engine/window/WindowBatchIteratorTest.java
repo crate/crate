@@ -24,6 +24,8 @@ package io.crate.execution.engine.window;
 
 import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
@@ -85,22 +87,15 @@ public class WindowBatchIteratorTest {
         tester.verifyResultAndEdgeCaseBehaviour(expectedRowNumberResult);
     }
 
-    private WindowFunction rowNumberWindowFunction() {
-        return (rowIdx, frame) -> rowIdx + 1; // sql row numbers are 1-indexed
-    }
-
     @Test
     public void testFrameBounds() throws Exception {
-        WindowFunction frameBoundsWindowFunction =
-            (rowIdx, currentFrame) -> tuple(currentFrame.lowerBound(), currentFrame.upperBoundExclusive());
-
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(new WindowBatchIterator(
             emptyWindow(),
             Collections.emptyList(),
             Collections.emptyList(),
             TestingBatchIterators.range(0, 10),
-            Collections.singletonList(frameBoundsWindowFunction),
+            Collections.singletonList(frameBoundsWindowFunction()),
             Collections.singletonList(DataTypes.INTEGER),
             RAM_ACCOUNTING_CONTEXT,
             null), null);
@@ -132,6 +127,38 @@ public class WindowBatchIteratorTest {
 
     private static WindowDefinition emptyWindow() {
         return new WindowDefinition(Collections.emptyList(), null, null);
+    }
+
+    private static WindowFunction rowNumberWindowFunction() {
+        return new WindowFunction() {
+            @Override
+            public Object execute(int rowIdx, WindowFrameState currentFrame) {
+                return rowIdx + 1; // sql row numbers are 1-indexed;
+            }
+
+            @Override
+            public FunctionInfo info() {
+                return new FunctionInfo(
+                    new FunctionIdent("row_number", Collections.emptyList()),
+                    DataTypes.INTEGER);
+            }
+        };
+    }
+
+    private static WindowFunction frameBoundsWindowFunction() {
+        return new WindowFunction() {
+            @Override
+            public Object execute(int rowIdx, WindowFrameState currentFrame) {
+                return tuple(currentFrame.lowerBound(), currentFrame.upperBoundExclusive());
+            }
+
+            @Override
+            public FunctionInfo info() {
+                return new FunctionInfo(
+                    new FunctionIdent("a_frame_bounded_window_function", Collections.emptyList()),
+                    DataTypes.INTEGER);
+            }
+        };
     }
 
 }

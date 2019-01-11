@@ -83,6 +83,10 @@ The password can be reset (cleared) if specified as ``NULL``::
     cr> ALTER USER user_a SET (password = NULL);
     ALTER OK, 1 row affected (... sec)
 
+.. NOTE::
+
+    The built-in superuser ``crate`` has no password and it is not possible to set a new password for this user.
+
 
 ``DROP USER``
 =============
@@ -104,7 +108,9 @@ statement returns an error::
     cr> DROP USER user_c;
     SQLActionException[UserUnknownException: User 'user_c' does not exist]
 
-It is not possible to drop the built-in superuser ``crate``.
+.. NOTE::
+
+    It is not possible to drop the built-in superuser ``crate``.
 
 List Users
 ==========

@@ -32,7 +32,7 @@ import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
-import io.crate.module.HyperLogLogModule;
+import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -74,7 +74,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
         hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION, BigArrays.NON_RECYCLING_INSTANCE, 1);
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
         Functions functions = new ModulesBuilder()
-            .add(new HyperLogLogModule())
+            .add(new EnterpriseFunctionsModule())
             .createInjector().getInstance(Functions.class);
         HyperLogLogDistinctAggregation hllAggregation = ((HyperLogLogDistinctAggregation) functions.getQualified(
             new FunctionIdent(HyperLogLogDistinctAggregation.NAME, Collections.singletonList(DataTypes.STRING))));

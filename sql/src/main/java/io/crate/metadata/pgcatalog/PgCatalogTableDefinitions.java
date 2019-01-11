@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
@@ -83,6 +84,11 @@ public class PgCatalogTableDefinitions {
             (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.relationName().fqn()),
             PgConstraintTable.expressions()
         ));
+
+        tableDefinitions.put(PgDescriptionTable.NAME, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgDescriptionTable.expressions())
+        );
     }
 
     public StaticTableDefinition<?> get(RelationName relationName) {

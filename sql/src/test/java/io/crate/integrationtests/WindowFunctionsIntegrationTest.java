@@ -80,4 +80,32 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
                                                      "2| 1.5| 4\n" +
                                                      "NULL| 1.5| 5\n"));
     }
+
+    @Test
+    public void testRowNumberOnEmptyOver() {
+        execute("select col1, row_number() OVER() from unnest(['a', 'c', 'd', 'b'])");
+        assertThat(printedTable(response.rows()), is("a| 1\n" +
+                                                     "c| 2\n" +
+                                                     "d| 3\n" +
+                                                     "b| 4\n"));
+    }
+
+    @Test
+    public void testRowNumberWithOrderByClauseNoPeers() {
+        execute("select col1, row_number() OVER(ORDER BY col1) from unnest(['a', 'c', 'd', 'b'])");
+        assertThat(printedTable(response.rows()), is("a| 1\n" +
+                                                     "b| 2\n" +
+                                                     "c| 3\n" +
+                                                     "d| 4\n"));
+    }
+
+    @Test
+    public void testRowNumberWithOrderByClauseHavingPeers() {
+        execute("select col1, row_number() OVER(ORDER BY col1) from unnest(['a', 'c', 'c', 'd', 'b'])");
+        assertThat(printedTable(response.rows()), is("a| 1\n" +
+                                                     "b| 2\n" +
+                                                     "c| 3\n" +
+                                                     "c| 4\n" +
+                                                     "d| 5\n"));
+    }
 }

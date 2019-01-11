@@ -22,7 +22,7 @@ import io.crate.expression.AbstractFunctionModule;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.HyperLogLogDistinctAggregation;
 
-public class HyperLogLogModule extends AbstractFunctionModule<AggregationFunction> {
+public class EnterpriseFunctionsModule extends AbstractFunctionModule<AggregationFunction> {
 
     @Override
     public void configureFunctions() {

@@ -33,6 +33,7 @@ import io.crate.execution.TransportExecutorModule;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.collect.CollectOperationModule;
 import io.crate.execution.engine.collect.files.FileCollectModule;
+import io.crate.execution.engine.window.WindowFunctionModule;
 import io.crate.execution.jobs.JobModule;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.transport.NodeDisconnectJobMonitorService;
@@ -212,6 +213,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new AggregationImplModule());
         modules.add(new ScalarFunctionModule());
         modules.add(new TableFunctionModule());
+        modules.add(new WindowFunctionModule());
         modules.add(new BulkModule());
         modules.add(new SysChecksModule());
         modules.add(new SysNodeChecksModule());

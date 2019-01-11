@@ -23,9 +23,9 @@
 package io.crate.expression.scalar.conditional;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.symbol.Literal;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -86,6 +86,13 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("The number of arguments is incorrect");
         assertEvaluate("nullif(1, 2, 3)", null);
+    }
+
+    @Test
+    public void testOperatorCanBeUsedWithinOperandOfCaseExpression() {
+        assertEvaluate("CASE name ~ 'A.*' OR name = 'Trillian' WHEN true THEN 'YES' ELSE 'NO' END",
+            "YES",
+            Literal.of("Arthur"), Literal.of("Arthur"));
     }
 
     @Test
