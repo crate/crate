@@ -19,7 +19,6 @@
 
 package org.elasticsearch.common.xcontent;
 
-import org.elasticsearch.common.xcontent.cbor.CborXContent;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.common.xcontent.smile.SmileXContent;
 import org.elasticsearch.common.xcontent.yaml.YamlXContent;
@@ -92,25 +91,6 @@ public enum XContentType {
         @Override
         public XContent xContent() {
             return YamlXContent.yamlXContent;
-        }
-    },
-    /**
-     * A CBOR based content type.
-     */
-    CBOR(3) {
-        @Override
-        public String mediaTypeWithoutParameters() {
-            return "application/cbor";
-        }
-
-        @Override
-        public String shortName() {
-            return "cbor";
-        }
-
-        @Override
-        public XContent xContent() {
-            return CborXContent.cborXContent;
         }
     };
 

@@ -24,7 +24,6 @@ package org.elasticsearch.common.xcontent;
 
 import com.fasterxml.jackson.dataformat.cbor.CBORConstants;
 import com.fasterxml.jackson.dataformat.smile.SmileConstants;
-import org.elasticsearch.common.xcontent.cbor.CborXContent;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.common.xcontent.smile.SmileXContent;
 import org.elasticsearch.common.xcontent.yaml.YamlXContent;
@@ -83,20 +82,6 @@ public class XContentFactory {
     }
 
     /**
-     * Returns a content builder using CBOR format ({@link org.elasticsearch.common.xcontent.XContentType#CBOR}.
-     */
-    public static XContentBuilder cborBuilder() throws IOException {
-        return contentBuilder(XContentType.CBOR);
-    }
-
-    /**
-     * Constructs a new cbor builder that will output the result into the provided output stream.
-     */
-    public static XContentBuilder cborBuilder(OutputStream os) throws IOException {
-        return new XContentBuilder(CborXContent.cborXContent, os);
-    }
-
-    /**
      * Constructs a xcontent builder that will output the result into the provided output stream.
      */
     public static XContentBuilder contentBuilder(XContentType type, OutputStream outputStream) throws IOException {
@@ -106,8 +91,6 @@ public class XContentFactory {
             return smileBuilder(outputStream);
         } else if (type == XContentType.YAML) {
             return yamlBuilder(outputStream);
-        } else if (type == XContentType.CBOR) {
-            return cborBuilder(outputStream);
         }
         throw new IllegalArgumentException("No matching content type for " + type);
     }
@@ -122,8 +105,6 @@ public class XContentFactory {
             return SmileXContent.contentBuilder();
         } else if (type == XContentType.YAML) {
             return YamlXContent.contentBuilder();
-        } else if (type == XContentType.CBOR) {
-            return CborXContent.contentBuilder();
         }
         throw new IllegalArgumentException("No matching content type for " + type);
     }
@@ -308,21 +289,6 @@ public class XContentFactory {
         }
         if (length > 2 && first == '-' && bytes[offset + 1] == '-' && bytes[offset + 2] == '-') {
             return XContentType.YAML;
-        }
-        // CBOR logic similar to CBORFactory#hasCBORFormat
-        if (first == CBORConstants.BYTE_OBJECT_INDEFINITE && length > 1) {
-            return XContentType.CBOR;
-        }
-        if (CBORConstants.hasMajorType(CBORConstants.MAJOR_TYPE_TAG, first) && length > 2) {
-            // Actually, specific "self-describe tag" is a very good indicator
-            if (first == (byte) 0xD9 && bytes[offset + 1] == (byte) 0xD9 && bytes[offset + 2] == (byte) 0xF7) {
-                return XContentType.CBOR;
-            }
-        }
-        // for small objects, some encoders just encode as major type object, we can safely
-        // say its CBOR since it doesn't contradict SMILE or JSON, and its a last resort
-        if (CBORConstants.hasMajorType(CBORConstants.MAJOR_TYPE_OBJECT, first)) {
-            return XContentType.CBOR;
         }
 
         int jsonStart = 0;
