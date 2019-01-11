@@ -21,11 +21,13 @@ package io.crate.module;
 import io.crate.expression.AbstractFunctionModule;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.HyperLogLogDistinctAggregation;
+import io.crate.window.LastValueFunction;
 
 public class EnterpriseFunctionsModule extends AbstractFunctionModule<AggregationFunction> {
 
     @Override
     public void configureFunctions() {
         HyperLogLogDistinctAggregation.register(this);
+        LastValueFunction.register(this);
     }
 }

@@ -24,6 +24,9 @@ package io.crate.execution.engine.window;
 
 import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.testing.BatchIteratorTester;
@@ -61,9 +64,11 @@ public class WindowBatchIteratorTest {
                 Collections.emptyList(),
                 TestingBatchIterators.range(0, 10),
                 Collections.singletonList(rowNumberWindowFunction()),
+                Collections.emptyList(),
                 Collections.singletonList(DataTypes.INTEGER),
                 RAM_ACCOUNTING_CONTEXT,
-                null)
+                null,
+                new Input[0])
         );
 
         tester.verifyResultAndEdgeCaseBehaviour(expectedRowNumberResult);
@@ -79,9 +84,11 @@ public class WindowBatchIteratorTest {
                 new BatchSimulatingIterator<>(
                     TestingBatchIterators.range(0, 10), 4, 2, null),
                 Collections.singletonList(rowNumberWindowFunction()),
+                Collections.emptyList(),
                 Collections.singletonList(DataTypes.INTEGER),
                 RAM_ACCOUNTING_CONTEXT,
-                null)
+                null,
+                new Input[0])
         );
 
         tester.verifyResultAndEdgeCaseBehaviour(expectedRowNumberResult);
@@ -96,9 +103,11 @@ public class WindowBatchIteratorTest {
             Collections.emptyList(),
             TestingBatchIterators.range(0, 10),
             Collections.singletonList(frameBoundsWindowFunction()),
+            Collections.emptyList(),
             Collections.singletonList(DataTypes.INTEGER),
             RAM_ACCOUNTING_CONTEXT,
-            null), null);
+            null,
+            new Input[0]), null);
 
         Object[] expectedBounds = {tuple(0, 10)};
         List<Object[]> result = consumer.getResult();
@@ -114,9 +123,11 @@ public class WindowBatchIteratorTest {
             Collections.emptyList(),
             TestingBatchIterators.range(0, 10),
             Collections.singletonList(rowNumberWindowFunction()),
+            Collections.emptyList(),
             Collections.singletonList(DataTypes.INTEGER),
             RAM_ACCOUNTING_CONTEXT,
-            null);
+            null,
+            new Input[0]);
         RAM_ACCOUNTING_CONTEXT.release();
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(windowBatchIterator, null);
@@ -132,7 +143,7 @@ public class WindowBatchIteratorTest {
     private static WindowFunction rowNumberWindowFunction() {
         return new WindowFunction() {
             @Override
-            public Object execute(int rowIdx, WindowFrameState currentFrame) {
+            public Object execute(int rowIdx, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
                 return rowIdx + 1; // sql row numbers are 1-indexed;
             }
 
@@ -148,7 +159,7 @@ public class WindowBatchIteratorTest {
     private static WindowFunction frameBoundsWindowFunction() {
         return new WindowFunction() {
             @Override
-            public Object execute(int rowIdx, WindowFrameState currentFrame) {
+            public Object execute(int rowIdx, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
                 return tuple(currentFrame.lowerBound(), currentFrame.upperBoundExclusive());
             }
 

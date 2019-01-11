@@ -76,6 +76,8 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
     private final LinkedList<Object[]> resultsForCurrentFrame;
     private final List<CollectExpression<Row, ?>> standaloneExpressions;
     private final BiPredicate<Object[], Object[]> arePeerCellsPredicate;
+    private final List<? extends CollectExpression<Row, ?>> windowFuncArgsExpressions;
+    private final Input[][] windowFuncArgsInputs;
 
     private Row currentWindowRow;
     /**
@@ -96,9 +98,11 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
                         List<CollectExpression<Row, ?>> standaloneExpressions,
                         BatchIterator<Row> source,
                         List<WindowFunction> functions,
+                        List<? extends CollectExpression<Row, ?>> windowFuncArgsExpressions,
                         List<DataType> outputTypes,
                         RamAccountingContext ramAccountingContext,
-                        int[] orderByIndexes) {
+                        int[] orderByIndexes,
+                        Input[]... windowFuncArgsInputs) {
         assert windowDefinition.partitions().size() == 0 : "Window partitions are not supported.";
         assert windowDefinition.windowFrameDefinition().equals(WindowDefinition.DEFAULT_WINDOW_FRAME) : "Custom window frame definitions are not supported";
         assert windowDefinition.orderBy() == null || orderByIndexes.length > 0 : "Window is ordered but the IC indexes are not specified";
@@ -121,6 +125,8 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         this.standaloneOutgoingCells = new LinkedList<>();
         this.resultsForCurrentFrame = new LinkedList<>();
         this.functions = functions;
+        this.windowFuncArgsExpressions = windowFuncArgsExpressions;
+        this.windowFuncArgsInputs = windowFuncArgsInputs;
 
         arePeerCellsPredicate = (prevRowCells, currentRowCells) -> {
             for (int i = 0; i < orderByIndexes.length; i++) {
@@ -253,7 +259,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         for (int i = 0; i < windowForCurrentRow.size(); i++) {
             for (int funcIdx = 0; funcIdx < functions.size(); funcIdx++) {
                 WindowFunction function = functions.get(funcIdx);
-                Object result = function.execute(windowRowPosition + i, currentFrame);
+                Object result = function.execute(windowRowPosition + i, currentFrame, windowFuncArgsExpressions, windowFuncArgsInputs[funcIdx]);
                 cellsForCurrentFrame[i][funcIdx] = result;
             }
         }

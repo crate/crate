@@ -22,6 +22,9 @@
 
 package io.crate.execution.engine.window;
 
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -43,7 +46,7 @@ public class RowNumberWindowFunction implements WindowFunction {
     }
 
     @Override
-    public Object execute(int rowIdx, WindowFrameState currentFrame) {
+    public Object execute(int rowIdx, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
         return rowIdx + 1;
     }
 

@@ -120,3 +120,30 @@ Example::
    | z    |                                       3 |
    +------+-----------------------------------------+
    SELECT 3 rows in set (... sec)
+
+.. _window-function-lastvalue:
+
+``last_value(arg)``
+========================
+
+.. note::
+
+   The ``last_value`` window function is an :ref:`enterprise
+   feature <enterprise_features>`.
+
+Returns the argument value evaluated at the last row within the window.
+
+Its return type is the type of its argument.
+
+Example::
+
+   cr> select col1, last_value(col1) over(order by col1) from unnest(['x','y', 'y', 'z']);
+   +------+---------------------------------------------+
+   | col1 | last_value(col1) OVER (ORDER BY "col1" ASC) |
+   +------+---------------------------------------------+
+   | x    | x                                           |
+   | y    | y                                           |
+   | y    | y                                           |
+   | z    | z                                           |
+   +------+---------------------------------------------+
+   SELECT 4 rows in set (... sec)

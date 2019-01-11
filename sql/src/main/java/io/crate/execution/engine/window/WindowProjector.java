@@ -39,21 +39,27 @@ public class WindowProjector implements Projector {
     private final List<Input<?>> standaloneInputs;
     private final List<CollectExpression<Row, ?>> standaloneExpressions;
     private final List<WindowFunction> windowFunctions;
+    private final List<? extends CollectExpression<Row, ?>> windowFuncArgsExpressions;
     private final int[] orderByIndexes;
     private final List<DataType> outputTypes;
     private final RamAccountingContext ramAccountingContext;
+    private final Input[][] windowFuncArgsInputs;
 
     public WindowProjector(WindowDefinition windowDefinition,
                            List<WindowFunction> windowFunctions,
+                           List<? extends CollectExpression<Row, ?>> windowFuncArgsExpressions,
                            List<Input<?>> standaloneInputs,
                            List<CollectExpression<Row, ?>> standaloneExpressions,
                            List<DataType> outputTypes,
                            RamAccountingContext ramAccountingContext,
-                           int[] orderByIndexes) {
+                           int[] orderByIndexes,
+                           Input[]... windowFuncArgsInputs) {
         this.windowDefinition = windowDefinition;
         this.standaloneInputs = standaloneInputs;
         this.standaloneExpressions = standaloneExpressions;
         this.windowFunctions = windowFunctions;
+        this.windowFuncArgsExpressions = windowFuncArgsExpressions;
+        this.windowFuncArgsInputs = windowFuncArgsInputs;
         this.orderByIndexes = orderByIndexes;
         this.outputTypes = outputTypes;
         this.ramAccountingContext = ramAccountingContext;
@@ -67,8 +73,10 @@ public class WindowProjector implements Projector {
             standaloneExpressions,
             batchIterator,
             windowFunctions,
+            windowFuncArgsExpressions,
             outputTypes,
             ramAccountingContext,
-            orderByIndexes);
+            orderByIndexes,
+            windowFuncArgsInputs);
     }
 }
