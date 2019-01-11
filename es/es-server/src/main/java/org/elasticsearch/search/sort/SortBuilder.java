@@ -61,7 +61,6 @@ public abstract class SortBuilder<T extends SortBuilder<T>> implements NamedWrit
     private static final Map<String, Parser<?>> PARSERS;
     static {
         Map<String, Parser<?>> parsers = new HashMap<>();
-        parsers.put(ScriptSortBuilder.NAME, ScriptSortBuilder::fromXContent);
         parsers.put(GeoDistanceSortBuilder.NAME, GeoDistanceSortBuilder::fromXContent);
         parsers.put(GeoDistanceSortBuilder.ALTERNATIVE_NAME, GeoDistanceSortBuilder::fromXContent);
         parsers.put(ScoreSortBuilder.NAME, ScoreSortBuilder::fromXContent);

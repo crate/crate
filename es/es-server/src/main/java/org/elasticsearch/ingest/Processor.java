@@ -22,7 +22,6 @@ package org.elasticsearch.ingest;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
-import org.elasticsearch.script.ScriptService;
 
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
@@ -83,11 +82,6 @@ public interface Processor {
         public final Environment env;
 
         /**
-         * Provides processors script support.
-         */
-        public final ScriptService scriptService;
-
-        /**
          * Provide analyzer support
          */
         public final AnalysisRegistry analysisRegistry;
@@ -107,11 +101,10 @@ public interface Processor {
          */
         public final BiFunction<Long, Runnable, ScheduledFuture<?>> scheduler;
 
-        public Parameters(Environment env, ScriptService scriptService, AnalysisRegistry analysisRegistry,  ThreadContext threadContext,
+        public Parameters(Environment env, AnalysisRegistry analysisRegistry,  ThreadContext threadContext,
                           LongSupplier relativeTimeSupplier, BiFunction<Long, Runnable, ScheduledFuture<?>> scheduler,
             IngestService ingestService) {
             this.env = env;
-            this.scriptService = scriptService;
             this.threadContext = threadContext;
             this.analysisRegistry = analysisRegistry;
             this.relativeTimeSupplier = relativeTimeSupplier;

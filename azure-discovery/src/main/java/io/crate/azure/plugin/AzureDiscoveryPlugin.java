@@ -40,7 +40,6 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.plugins.DiscoveryPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.watcher.ResourceWatcherService;
@@ -103,7 +102,6 @@ public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
                                                ClusterService clusterService,
                                                ThreadPool threadPool,
                                                ResourceWatcherService resourceWatcherService,
-                                               ScriptService scriptService,
                                                NamedXContentRegistry xContentRegistry,
                                                Environment environment,
                                                NodeEnvironment nodeEnvironment,

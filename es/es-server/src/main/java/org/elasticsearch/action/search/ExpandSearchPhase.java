@@ -159,11 +159,6 @@ final class ExpandSearchPhase extends SearchPhase {
         if (options.getStoredFieldsContext() != null && options.getStoredFieldsContext().fieldNames() != null) {
             options.getStoredFieldsContext().fieldNames().forEach(groupSource::storedField);
         }
-        if (options.getScriptFields() != null) {
-            for (SearchSourceBuilder.ScriptField field : options.getScriptFields()) {
-                groupSource.scriptField(field.fieldName(), field.script());
-            }
-        }
         if (options.getHighlightBuilder() != null) {
             groupSource.highlighter(options.getHighlightBuilder());
         }

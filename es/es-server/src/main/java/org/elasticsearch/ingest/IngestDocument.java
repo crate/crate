@@ -19,9 +19,6 @@
 
 package org.elasticsearch.ingest;
 
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.Set;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.mapper.IdFieldMapper;
@@ -31,19 +28,21 @@ import org.elasticsearch.index.mapper.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.TypeFieldMapper;
 import org.elasticsearch.index.mapper.VersionFieldMapper;
-import org.elasticsearch.script.TemplateScript;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Represents a single document being captured before indexing and holds the source and metadata (like id, type and index).
@@ -143,18 +142,6 @@ public final class IngestDocument {
     }
 
     /**
-     * Returns the value contained in the document with the provided templated path
-     * @param pathTemplate The path within the document in dot-notation
-     * @param clazz The expected class fo the field value
-     * @return the value fro the provided path if existing, null otherwise
-     * @throws IllegalArgumentException if the pathTemplate is null, empty, invalid, if the field doesn't exist,
-     * or if the field that is found at the provided path is not of the expected type.
-     */
-    public <T> T getFieldValue(TemplateScript.Factory pathTemplate, Class<T> clazz) {
-        return getFieldValue(renderTemplate(pathTemplate), clazz);
-    }
-
-    /**
      * Returns the value contained in the document for the provided path as a byte array.
      * If the path value is a string, a base64 decode operation will happen.
      * If the path value is a byte array, it is just returned
@@ -189,16 +176,6 @@ public final class IngestDocument {
             throw new IllegalArgumentException("Content field [" + path + "] of unknown type [" + object.getClass().getName() +
                 "], must be string or byte array");
         }
-    }
-
-    /**
-     * Checks whether the document contains a value for the provided templated path
-     * @param fieldPathTemplate the template for the path within the document in dot-notation
-     * @return true if the document contains a value for the field, false otherwise
-     * @throws IllegalArgumentException if the path is null, empty or invalid
-     */
-    public boolean hasField(TemplateScript.Factory fieldPathTemplate) {
-        return hasField(renderTemplate(fieldPathTemplate));
     }
 
     /**
@@ -279,15 +256,6 @@ public final class IngestDocument {
             }
         }
         return false;
-    }
-
-    /**
-     * Removes the field identified by the provided path.
-     * @param fieldPathTemplate Resolves to the path with dot-notation within the document
-     * @throws IllegalArgumentException if the path is null, empty, invalid or if the field doesn't exist.
-     */
-    public void removeField(TemplateScript.Factory fieldPathTemplate) {
-        removeField(renderTemplate(fieldPathTemplate));
     }
 
     /**
@@ -386,23 +354,6 @@ public final class IngestDocument {
     }
 
     /**
-     * Appends the provided value to the provided path in the document.
-     * Any non existing path element will be created.
-     * If the path identifies a list, the value will be appended to the existing list.
-     * If the path identifies a scalar, the scalar will be converted to a list and
-     * the provided value will be added to the newly created list.
-     * Supports multiple values too provided in forms of list, in that case all the values will be appended to the
-     * existing (or newly created) list.
-     * @param fieldPathTemplate Resolves to the path with dot-notation within the document
-     * @param valueSource The value source that will produce the value or values to append to the existing ones
-     * @throws IllegalArgumentException if the path is null, empty or invalid.
-     */
-    public void appendFieldValue(TemplateScript.Factory fieldPathTemplate, ValueSource valueSource) {
-        Map<String, Object> model = createTemplateModel();
-        appendFieldValue(fieldPathTemplate.newInstance(model).execute(), valueSource.copyAndResolve(model));
-    }
-
-    /**
      * Sets the provided value to the provided path in the document.
      * Any non existing path element will be created.
      * If the last item in the path is a list, the value will replace the existing list as a whole.
@@ -414,20 +365,6 @@ public final class IngestDocument {
      */
     public void setFieldValue(String path, Object value) {
         setFieldValue(path, value, false);
-    }
-
-    /**
-     * Sets the provided value to the provided path in the document.
-     * Any non existing path element will be created. If the last element is a list,
-     * the value will replace the existing list.
-     * @param fieldPathTemplate Resolves to the path with dot-notation within the document
-     * @param valueSource The value source that will produce the value to put in for the path key
-     * @throws IllegalArgumentException if the path is null, empty, invalid or if the value cannot be set to the
-     * item identified by the provided path.
-     */
-    public void setFieldValue(TemplateScript.Factory fieldPathTemplate, ValueSource valueSource) {
-        Map<String, Object> model = createTemplateModel();
-        setFieldValue(fieldPathTemplate.newInstance(model).execute(), valueSource.copyAndResolve(model), false);
     }
 
     private void setFieldValue(String path, Object value, boolean append) {
@@ -552,10 +489,6 @@ public final class IngestDocument {
         }
         throw new IllegalArgumentException("field [" + path + "] of type [" + object.getClass().getName() + "] cannot be cast to [" +
                 clazz.getName() + "]");
-    }
-
-    public String renderTemplate(TemplateScript.Factory template) {
-        return template.newInstance(createTemplateModel()).execute();
     }
 
     private Map<String, Object> createTemplateModel() {
