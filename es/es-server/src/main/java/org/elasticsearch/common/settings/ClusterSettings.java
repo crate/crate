@@ -94,7 +94,6 @@ import org.elasticsearch.transport.RemoteClusterService;
 import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
-import org.elasticsearch.watcher.ResourceWatcherService;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -425,10 +424,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     IndexingMemoryController.MAX_INDEX_BUFFER_SIZE_SETTING,
                     IndexingMemoryController.SHARD_INACTIVE_TIME_SETTING,
                     IndexingMemoryController.SHARD_MEMORY_INTERVAL_TIME_SETTING,
-                    ResourceWatcherService.ENABLED,
-                    ResourceWatcherService.RELOAD_INTERVAL_HIGH,
-                    ResourceWatcherService.RELOAD_INTERVAL_MEDIUM,
-                    ResourceWatcherService.RELOAD_INTERVAL_LOW,
                     SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING,
                     ThreadPool.ESTIMATED_TIME_INTERVAL_SETTING,
                     FastVectorHighlighter.SETTING_TV_HIGHLIGHT_MULTI_VALUE,
