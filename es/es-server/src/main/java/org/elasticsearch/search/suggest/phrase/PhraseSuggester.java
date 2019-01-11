@@ -28,16 +28,7 @@ import org.apache.lucene.search.spell.DirectSpellChecker;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.CharsRefBuilder;
-import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.text.Text;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.index.query.AbstractQueryBuilder;
-import org.elasticsearch.index.query.ParsedQuery;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.script.TemplateScript;
 import org.elasticsearch.search.suggest.Suggest.Suggestion;
 import org.elasticsearch.search.suggest.Suggest.Suggestion.Entry;
 import org.elasticsearch.search.suggest.Suggest.Suggestion.Entry.Option;
@@ -48,7 +39,6 @@ import org.elasticsearch.search.suggest.phrase.NoisyChannelSpellChecker.Result;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public final class PhraseSuggester extends Suggester<PhraseSuggestionContext> {
     private final BytesRef SEPARATOR = new BytesRef(" ");
@@ -103,40 +93,16 @@ public final class PhraseSuggester extends Suggester<PhraseSuggestionContext> {
             response.addTerm(resultEntry);
 
             final BytesRefBuilder byteSpare = new BytesRefBuilder();
-            final TemplateScript.Factory scriptFactory = suggestion.getCollateQueryScript();
-            final boolean collatePrune = (scriptFactory != null) && suggestion.collatePrune();
             for (int i = 0; i < checkerResult.corrections.length; i++) {
                 Correction correction = checkerResult.corrections[i];
                 spare.copyUTF8Bytes(correction.join(SEPARATOR, byteSpare, null, null));
-                boolean collateMatch = true;
-                if (scriptFactory != null) {
-                    // Checks if the template query collateScript yields any documents
-                    // from the index for a correction, collateMatch is updated
-                    final Map<String, Object> vars = suggestion.getCollateScriptParams();
-                    vars.put(SUGGESTION_TEMPLATE_VAR_NAME, spare.toString());
-                    QueryShardContext shardContext = suggestion.getShardContext();
-                    final String querySource = scriptFactory.newInstance(vars).execute();
-                    try (XContentParser parser = XContentFactory.xContent(querySource)
-                            .createParser(shardContext.getXContentRegistry(), LoggingDeprecationHandler.INSTANCE, querySource)) {
-                        QueryBuilder innerQueryBuilder = AbstractQueryBuilder.parseInnerQueryBuilder(parser);
-                        final ParsedQuery parsedQuery = shardContext.toQuery(innerQueryBuilder);
-                        collateMatch = Lucene.exists(searcher, parsedQuery.query());
-                    }
-                }
-                if (!collateMatch && !collatePrune) {
-                    continue;
-                }
                 Text phrase = new Text(spare.toString());
                 Text highlighted = null;
                 if (suggestion.getPreTag() != null) {
                     spare.copyUTF8Bytes(correction.join(SEPARATOR, byteSpare, suggestion.getPreTag(), suggestion.getPostTag()));
                     highlighted = new Text(spare.toString());
                 }
-                if (collatePrune) {
-                    resultEntry.addOption(new Suggestion.Entry.Option(phrase, highlighted, (float) (correction.score), collateMatch));
-                } else {
-                    resultEntry.addOption(new Suggestion.Entry.Option(phrase, highlighted, (float) (correction.score)));
-                }
+                resultEntry.addOption(new Suggestion.Entry.Option(phrase, highlighted, (float) (correction.score)));
             }
         } else {
             response.addTerm(buildResultEntry(suggestion, spare, Double.MIN_VALUE));

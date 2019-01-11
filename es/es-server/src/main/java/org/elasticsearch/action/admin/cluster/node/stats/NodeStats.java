@@ -25,7 +25,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ToXContent.Params;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.discovery.DiscoveryStats;
@@ -38,7 +37,6 @@ import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.monitor.process.ProcessStats;
 import org.elasticsearch.node.AdaptiveSelectionStats;
-import org.elasticsearch.script.ScriptStats;
 import org.elasticsearch.threadpool.ThreadPoolStats;
 import org.elasticsearch.transport.TransportStats;
 
@@ -80,9 +78,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
     private AllCircuitBreakerStats breaker;
 
     @Nullable
-    private ScriptStats scriptStats;
-
-    @Nullable
     private DiscoveryStats discoveryStats;
 
     @Nullable
@@ -98,7 +93,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
                      @Nullable OsStats os, @Nullable ProcessStats process, @Nullable JvmStats jvm, @Nullable ThreadPoolStats threadPool,
                      @Nullable FsInfo fs, @Nullable TransportStats transport, @Nullable HttpStats http,
                      @Nullable AllCircuitBreakerStats breaker,
-                     @Nullable ScriptStats scriptStats,
                      @Nullable DiscoveryStats discoveryStats,
                      @Nullable IngestStats ingestStats,
                      @Nullable AdaptiveSelectionStats adaptiveSelectionStats) {
@@ -113,7 +107,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
         this.transport = transport;
         this.http = http;
         this.breaker = breaker;
-        this.scriptStats = scriptStats;
         this.discoveryStats = discoveryStats;
         this.ingestStats = ingestStats;
         this.adaptiveSelectionStats = adaptiveSelectionStats;
@@ -192,11 +185,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
     }
 
     @Nullable
-    public ScriptStats getScriptStats() {
-        return this.scriptStats;
-    }
-
-    @Nullable
     public DiscoveryStats getDiscoveryStats() {
         return this.discoveryStats;
     }
@@ -232,7 +220,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
         transport = in.readOptionalWriteable(TransportStats::new);
         http = in.readOptionalWriteable(HttpStats::new);
         breaker = in.readOptionalWriteable(AllCircuitBreakerStats::new);
-        scriptStats = in.readOptionalWriteable(ScriptStats::new);
         discoveryStats = in.readOptionalWriteable(DiscoveryStats::new);
         ingestStats = in.readOptionalWriteable(IngestStats::new);
         if (in.getVersion().onOrAfter(Version.V_6_1_0)) {
@@ -260,7 +247,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
         out.writeOptionalWriteable(transport);
         out.writeOptionalWriteable(http);
         out.writeOptionalWriteable(breaker);
-        out.writeOptionalWriteable(scriptStats);
         out.writeOptionalWriteable(discoveryStats);
         out.writeOptionalWriteable(ingestStats);
         if (out.getVersion().onOrAfter(Version.V_6_1_0)) {
@@ -316,9 +302,6 @@ public class NodeStats extends BaseNodeResponse implements ToXContentFragment {
         }
         if (getBreaker() != null) {
             getBreaker().toXContent(builder, params);
-        }
-        if (getScriptStats() != null) {
-            getScriptStats().toXContent(builder, params);
         }
         if (getDiscoveryStats() != null) {
             getDiscoveryStats().toXContent(builder, params);

@@ -22,7 +22,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.search.similarities.Similarity;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.TriFunction;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -34,13 +33,13 @@ import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.indices.mapper.MapperRegistry;
-import org.elasticsearch.script.ScriptService;
 
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 
 /**
@@ -144,15 +143,15 @@ public class MetaDataIndexUpgradeService extends AbstractComponent {
 
             IndexSettings indexSettings = new IndexSettings(indexMetaData, this.settings);
 
-            final Map<String, TriFunction<Settings, Version, ScriptService, Similarity>> similarityMap
-                    = new AbstractMap<String, TriFunction<Settings, Version, ScriptService, Similarity>>() {
+            final Map<String, BiFunction<Settings, Version, Similarity>> similarityMap
+                    = new AbstractMap<String, BiFunction<Settings, Version, Similarity>>() {
                 @Override
                 public boolean containsKey(Object key) {
                     return true;
                 }
 
                 @Override
-                public TriFunction<Settings, Version, ScriptService, Similarity> get(Object key) {
+                public BiFunction<Settings, Version, Similarity> get(Object key) {
                     assert key instanceof String : "key must be a string but was: " + key.getClass();
                     return SimilarityService.BUILT_IN.get(SimilarityService.DEFAULT_SIMILARITY);
                 }
@@ -160,11 +159,11 @@ public class MetaDataIndexUpgradeService extends AbstractComponent {
                 // this entrySet impl isn't fully correct but necessary as SimilarityService will iterate
                 // over all similarities
                 @Override
-                public Set<Entry<String, TriFunction<Settings, Version, ScriptService, Similarity>>> entrySet() {
+                public Set<Entry<String, BiFunction<Settings, Version, Similarity>>> entrySet() {
                     return Collections.emptySet();
                 }
             };
-            SimilarityService similarityService = new SimilarityService(indexSettings, null, similarityMap);
+            SimilarityService similarityService = new SimilarityService(indexSettings, similarityMap);
             final NamedAnalyzer fakeDefault = new NamedAnalyzer("fake_default", AnalyzerScope.INDEX, new Analyzer() {
                 @Override
                 protected TokenStreamComponents createComponents(String fieldName) {

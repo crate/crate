@@ -20,8 +20,6 @@
 package org.elasticsearch.search.sort;
 
 import org.elasticsearch.common.geo.GeoPoint;
-import org.elasticsearch.script.Script;
-import org.elasticsearch.search.sort.ScriptSortBuilder.ScriptSortType;
 
 /**
  * A set of static factory methods for {@link SortBuilder}s.
@@ -44,16 +42,6 @@ public class SortBuilders {
      */
     public static FieldSortBuilder fieldSort(String field) {
         return new FieldSortBuilder(field);
-    }
-
-    /**
-     * Constructs a new script based sort.
-     *
-     * @param script The script to use.
-     * @param type   The type, can either be "string" or "number".
-     */
-    public static ScriptSortBuilder scriptSort(Script script, ScriptSortType type) {
-        return new ScriptSortBuilder(script, type);
     }
 
     /**

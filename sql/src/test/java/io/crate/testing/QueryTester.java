@@ -96,7 +96,6 @@ import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.indices.fielddata.cache.IndicesFieldDataCache;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.plugins.MapperPlugin;
-import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -160,9 +159,8 @@ public final class QueryTester implements AutoCloseable {
             IndexSettings idxSettings = IndexSettingsModule.newIndexSettings(index, nodeSettings);
             AnalysisRegistry analysisRegistry = new AnalysisModule(env, Collections.emptyList()).getAnalysisRegistry();
             IndexAnalyzers indexAnalyzers = analysisRegistry.build(idxSettings);
-            ScriptService scriptService = mock(ScriptService.class);
             SimilarityService similarityService = new SimilarityService(
-                idxSettings, scriptService, Collections.emptyMap());
+                idxSettings, Collections.emptyMap());
             MapperRegistry mapperRegistry = new IndicesModule(Collections.singletonList(new MapperPlugin() {
                 @Override
                 public Map<String, Mapper.TypeParser> getMappers() {
@@ -219,7 +217,6 @@ public final class QueryTester implements AutoCloseable {
                 new NoneCircuitBreakerService(),
                 BigArrays.NON_RECYCLING_INSTANCE,
                 threadPool,
-                scriptService,
                 client,
                 new IndicesQueryCache(Settings.EMPTY),
                 mapperRegistry,
@@ -243,7 +240,6 @@ public final class QueryTester implements AutoCloseable {
                 indexFieldDataService::getForField,
                 Builder.this.mapperService,
                 similarityService,
-                scriptService,
                 NamedXContentRegistry.EMPTY,
                 namedWriteableRegistry,
                 client,

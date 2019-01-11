@@ -90,7 +90,7 @@ public class FetchPhase implements SearchPhase {
 
         if (storedFieldsContext == null) {
             // no fields specified, default to return source if no explicit indication
-            if (!context.hasScriptFields() && !context.hasFetchSourceContext()) {
+            if (!context.hasFetchSourceContext()) {
                 context.fetchSourceContext(new FetchSourceContext(true));
             }
             fieldsVisitor = new FieldsVisitor(context.sourceRequested());

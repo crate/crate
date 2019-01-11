@@ -73,7 +73,6 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.indices.fielddata.cache.IndicesFieldDataCache;
 import org.elasticsearch.indices.mapper.MapperRegistry;
-import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.Closeable;
@@ -129,7 +128,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final AsyncTrimTranslogTask trimTranslogTask;
     private final ThreadPool threadPool;
     private final BigArrays bigArrays;
-    private final ScriptService scriptService;
     private final Client client;
     private final CircuitBreakerService circuitBreakerService;
     private Supplier<Sort> indexSortSupplier;
@@ -145,7 +143,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             CircuitBreakerService circuitBreakerService,
             BigArrays bigArrays,
             ThreadPool threadPool,
-            ScriptService scriptService,
             Client client,
             QueryCache queryCache,
             IndexStore indexStore,
@@ -180,7 +177,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.shardStoreDeleter = shardStoreDeleter;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
-        this.scriptService = scriptService;
         this.client = client;
         this.eventListener = eventListener;
         this.nodeEnv = nodeEnv;
@@ -491,7 +487,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     public QueryShardContext newQueryShardContext(int shardId, IndexReader indexReader, LongSupplier nowInMillis, String clusterAlias) {
         return new QueryShardContext(
             shardId, indexSettings, indexCache.bitsetFilterCache(), indexFieldData::getForField, mapperService(),
-                similarityService(), scriptService, xContentRegistry,
+                similarityService(), xContentRegistry,
                namedWriteableRegistry, client, indexReader,
             nowInMillis, clusterAlias);
     }
@@ -508,13 +504,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
      */
     public BigArrays getBigArrays() {
         return bigArrays;
-    }
-
-    /**
-     * The {@link ScriptService} to use for this index.
-     */
-    public ScriptService getScriptService() {
-        return scriptService;
     }
 
     List<IndexingOperationListener> getIndexOperationListeners() { // pkg private for testing

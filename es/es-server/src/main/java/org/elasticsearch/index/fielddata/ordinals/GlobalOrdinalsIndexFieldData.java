@@ -31,13 +31,11 @@ import org.elasticsearch.index.fielddata.AtomicOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource.Nested;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
-import org.elasticsearch.index.fielddata.ScriptDocValues;
 import org.elasticsearch.index.fielddata.plain.AbstractAtomicOrdinalsFieldData;
 import org.elasticsearch.search.MultiValueMode;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.function.Function;
 
 /**
  * {@link IndexFieldData} base class for concrete global ordinals implementations.
@@ -49,12 +47,10 @@ public class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent impleme
 
     private final OrdinalMap ordinalMap;
     private final Atomic[] atomicReaders;
-    private final Function<SortedSetDocValues, ScriptDocValues<?>> scriptFunction;
 
 
     protected GlobalOrdinalsIndexFieldData(IndexSettings indexSettings, String fieldName, AtomicOrdinalsFieldData[] segmentAfd,
-                                           OrdinalMap ordinalMap, long memorySizeInBytes, Function<SortedSetDocValues,
-                                           ScriptDocValues<?>> scriptFunction) {
+                                           OrdinalMap ordinalMap, long memorySizeInBytes) {
         super(indexSettings);
         this.fieldName = fieldName;
         this.memorySizeInBytes = memorySizeInBytes;
@@ -63,7 +59,6 @@ public class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent impleme
         for (int i = 0; i < segmentAfd.length; i++) {
             atomicReaders[i] = new Atomic(segmentAfd[i], ordinalMap, i);
         }
-        this.scriptFunction = scriptFunction;
     }
 
     @Override
@@ -124,7 +119,6 @@ public class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent impleme
         private final int segmentIndex;
 
         private Atomic(AtomicOrdinalsFieldData afd, OrdinalMap ordinalMap, int segmentIndex) {
-            super(scriptFunction);
             this.afd = afd;
             this.ordinalMap = ordinalMap;
             this.segmentIndex = segmentIndex;

@@ -32,7 +32,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.rest.action.document.RestUpdateAction;
-import org.elasticsearch.script.Script;
 
 import java.util.Map;
 
@@ -76,19 +75,6 @@ public class UpdateRequestBuilder extends InstanceShardOperationRequestBuilder<U
 
     public UpdateRequestBuilder setParent(String parent) {
         request.parent(parent);
-        return this;
-    }
-
-    /**
-     * The script to execute. Note, make sure not to send different script each times and instead
-     * use script params if possible with the same (automatically compiled) script.
-     * <p>
-     * The script works with the variable <code>ctx</code>, which is bound to the entry,
-     * e.g. <code>ctx._source.mycounter += 1</code>.
-     *
-     */
-    public UpdateRequestBuilder setScript(Script script) {
-        request.script(script);
         return this;
     }
 
@@ -354,14 +340,4 @@ public class UpdateRequestBuilder extends InstanceShardOperationRequestBuilder<U
         request.detectNoop(detectNoop);
         return this;
     }
-
-
-    /**
-     * Sets whether the script should be run in the case of an insert
-     */
-    public UpdateRequestBuilder setScriptedUpsert(boolean scriptedUpsert) {
-        request.scriptedUpsert(scriptedUpsert);
-        return this;
-    }
-
 }

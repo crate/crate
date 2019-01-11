@@ -39,15 +39,11 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.script.Script;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import org.elasticsearch.script.TermsSetQueryScript;
 
 public final class TermsSetQueryBuilder extends AbstractQueryBuilder<TermsSetQueryBuilder> {
 
@@ -61,7 +57,6 @@ public final class TermsSetQueryBuilder extends AbstractQueryBuilder<TermsSetQue
     private final List<?> values;
 
     private String minimumShouldMatchField;
-    private Script minimumShouldMatchScript;
 
     public TermsSetQueryBuilder(String fieldName, List<?> values) {
         this.fieldName = Objects.requireNonNull(fieldName);
@@ -73,7 +68,6 @@ public final class TermsSetQueryBuilder extends AbstractQueryBuilder<TermsSetQue
         this.fieldName = in.readString();
         this.values = (List<?>) in.readGenericValue();
         this.minimumShouldMatchField = in.readOptionalString();
-        this.minimumShouldMatchScript = in.readOptionalWriteable(Script::new);
     }
 
     @Override
@@ -81,7 +75,6 @@ public final class TermsSetQueryBuilder extends AbstractQueryBuilder<TermsSetQue
         out.writeString(fieldName);
         out.writeGenericValue(values);
         out.writeOptionalString(minimumShouldMatchField);
-        out.writeOptionalWriteable(minimumShouldMatchScript);
     }
 
     // package protected for testing purpose
@@ -98,22 +91,7 @@ public final class TermsSetQueryBuilder extends AbstractQueryBuilder<TermsSetQue
     }
 
     public TermsSetQueryBuilder setMinimumShouldMatchField(String minimumShouldMatchField) {
-        if (minimumShouldMatchScript != null) {
-            throw new IllegalArgumentException("A script has already been specified. Cannot specify both a field and script");
-        }
         this.minimumShouldMatchField = minimumShouldMatchField;
-        return this;
-    }
-
-    public Script getMinimumShouldMatchScript() {
-        return minimumShouldMatchScript;
-    }
-
-    public TermsSetQueryBuilder setMinimumShouldMatchScript(Script minimumShouldMatchScript) {
-        if (minimumShouldMatchField != null) {
-            throw new IllegalArgumentException("A field has already been specified. Cannot specify both a field and script");
-        }
-        this.minimumShouldMatchScript = minimumShouldMatchScript;
         return this;
     }
 
@@ -121,13 +99,12 @@ public final class TermsSetQueryBuilder extends AbstractQueryBuilder<TermsSetQue
     protected boolean doEquals(TermsSetQueryBuilder other) {
         return Objects.equals(fieldName, other.fieldName)
             && Objects.equals(values, other.values)
-            && Objects.equals(minimumShouldMatchField, other.minimumShouldMatchField)
-            && Objects.equals(minimumShouldMatchScript, other.minimumShouldMatchScript);
+            && Objects.equals(minimumShouldMatchField, other.minimumShouldMatchField);
     }
 
     @Override
     protected int doHashCode() {
-        return Objects.hash(fieldName, values, minimumShouldMatchField, minimumShouldMatchScript);
+        return Objects.hash(fieldName, values, minimumShouldMatchField);
     }
 
     @Override
@@ -142,9 +119,6 @@ public final class TermsSetQueryBuilder extends AbstractQueryBuilder<TermsSetQue
         builder.field(TERMS_FIELD.getPreferredName(), TermsQueryBuilder.convertBack(values));
         if (minimumShouldMatchField != null) {
             builder.field(MINIMUM_SHOULD_MATCH_FIELD.getPreferredName(), minimumShouldMatchField);
-        }
-        if (minimumShouldMatchScript != null) {
-            builder.field(MINIMUM_SHOULD_MATCH_SCRIPT.getPreferredName(), minimumShouldMatchScript);
         }
         printBoostAndQueryName(builder);
         builder.endObject();
@@ -166,7 +140,6 @@ public final class TermsSetQueryBuilder extends AbstractQueryBuilder<TermsSetQue
 
         List<Object> values = new ArrayList<>();
         String minimumShouldMatchField = null;
-        Script minimumShouldMatchScript = null;
         String queryName = null;
         float boost = AbstractQueryBuilder.DEFAULT_BOOST;
 
@@ -181,12 +154,8 @@ public final class TermsSetQueryBuilder extends AbstractQueryBuilder<TermsSetQue
                             + currentFieldName + "]");
                 }
             } else if (token == XContentParser.Token.START_OBJECT) {
-                if (MINIMUM_SHOULD_MATCH_SCRIPT.match(currentFieldName, parser.getDeprecationHandler())) {
-                    minimumShouldMatchScript = Script.parse(parser);
-                } else {
-                    throw new ParsingException(parser.getTokenLocation(), "[" + NAME + "] query does not support ["
-                            + currentFieldName + "]");
-                }
+                throw new ParsingException(parser.getTokenLocation(), "[" + NAME + "] query does not support ["
+                        + currentFieldName + "]");
             } else if (token.isValue()) {
                 if (MINIMUM_SHOULD_MATCH_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     minimumShouldMatchField = parser.text();
@@ -213,9 +182,6 @@ public final class TermsSetQueryBuilder extends AbstractQueryBuilder<TermsSetQue
                 .queryName(queryName).boost(boost);
         if (minimumShouldMatchField != null) {
             queryBuilder.setMinimumShouldMatchField(minimumShouldMatchField);
-        }
-        if (minimumShouldMatchScript != null) {
-            queryBuilder.setMinimumShouldMatchScript(minimumShouldMatchScript);
         }
         return queryBuilder;
     }
@@ -261,85 +227,10 @@ public final class TermsSetQueryBuilder extends AbstractQueryBuilder<TermsSetQue
 
             IndexNumericFieldData fieldData = context.getForField(msmFieldType);
             longValuesSource = new FieldValuesSource(fieldData);
-        } else if (minimumShouldMatchScript != null) {
-            TermsSetQueryScript.Factory factory = context.getScriptService().compile(minimumShouldMatchScript,
-                TermsSetQueryScript.CONTEXT);
-            Map<String, Object> params = new HashMap<>();
-            params.putAll(minimumShouldMatchScript.getParams());
-            params.put("num_terms", values.size());
-            longValuesSource = new ScriptLongValueSource(minimumShouldMatchScript, factory.newFactory(params, context.lookup()));
         } else {
             throw new IllegalStateException("No minimum should match has been specified");
         }
         return longValuesSource;
-    }
-
-    static final class ScriptLongValueSource extends LongValuesSource {
-
-        private final Script script;
-        private final TermsSetQueryScript.LeafFactory leafFactory;
-
-        ScriptLongValueSource(Script script, TermsSetQueryScript.LeafFactory leafFactory) {
-            this.script = script;
-            this.leafFactory = leafFactory;
-        }
-
-        @Override
-        public LongValues getValues(LeafReaderContext ctx, DoubleValues scores) throws IOException {
-            TermsSetQueryScript script = leafFactory.newInstance(ctx);
-            return new LongValues() {
-                @Override
-                public long longValue() throws IOException {
-                    return script.runAsLong();
-                }
-
-                @Override
-                public boolean advanceExact(int doc) throws IOException {
-                    script.setDocument(doc);
-                    return script.execute() != null;
-                }
-            };
-        }
-
-        @Override
-        public boolean needsScores() {
-            return false;
-        }
-
-        @Override
-        public int hashCode() {
-            int h = getClass().hashCode();
-            h = 31 * h + script.hashCode();
-            return h;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null || getClass() != obj.getClass()) {
-                return false;
-            }
-            ScriptLongValueSource that = (ScriptLongValueSource) obj;
-            return Objects.equals(script, that.script);
-        }
-
-        @Override
-        public String toString() {
-            return "script(" + script.toString() + ")";
-        }
-
-        @Override
-        public boolean isCacheable(LeafReaderContext ctx) {
-            // TODO: Change this to true when we can assume that scripts are pure functions
-            // ie. the return value is always the same given the same conditions and may not
-            // depend on the current timestamp, other documents, etc.
-            return false;
-        }
-
-        @Override
-        public LongValuesSource rewrite(IndexSearcher searcher) throws IOException {
-            return this;
-        }
-
     }
 
     // Forked from LongValuesSource.FieldValuesSource and changed getValues() method to always use sorted numeric

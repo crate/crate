@@ -95,11 +95,6 @@ public final class UidIndexFieldData implements IndexFieldData<AtomicFieldData> 
         }
 
         @Override
-        public ScriptDocValues<?> getScriptValues() {
-            return new ScriptDocValues.Strings(getBytesValues());
-        }
-
-        @Override
         public long ramBytesUsed() {
             return 0; // simple wrapper
         }
