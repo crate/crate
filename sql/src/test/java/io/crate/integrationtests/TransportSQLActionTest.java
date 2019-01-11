@@ -82,11 +82,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectKeepsOrder() throws Exception {
-        createIndex(getFqn("test"));
-        ensureYellow();
-        client().prepareIndex(getFqn("test"), "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
-        refresh();
+    public void testSelectResultContainsColumnsInTheOrderOfTheSelectListInTheQuery() throws Exception {
+        execute("create table test (id string primary key)");
+        execute("insert into test (id) values ('id1')");
+        execute("refresh table test");
+
         execute("select \"_id\" as b, \"_version\" as a from test");
         assertArrayEquals(new String[]{"b", "a"}, response.cols());
         assertEquals(1, response.rowCount());
@@ -202,33 +202,26 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select count(col1) from test1 group by col1");
     }
 
-
     @Test
     public void testSelectStarWithOther() throws Exception {
-        prepareCreate(getFqn("test"))
-            .addMapping("default",
-                "firstName", "type=keyword",
-                "lastName", "type=keyword")
-            .execute().actionGet();
-        ensureYellow();
-        client().prepareIndex(getFqn("test"), "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-            .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}", XContentType.JSON)
-            .execute().actionGet();
+        execute("create table test (id string primary key, first_name string, last_name string)");
+        execute("insert into test (id, first_name, last_name) values ('id1', 'Youri', 'Zoon')");
+        execute("refresh table test");
+
         execute("select \"_version\", *, \"_id\" from test");
-        assertArrayEquals(new String[]{"_version", "firstName", "lastName", "_id"},
-            response.cols());
+        assertArrayEquals(new String[]{"_version", "first_name", "id", "last_name", "_id"}, response.cols());
         assertEquals(1, response.rowCount());
-        assertArrayEquals(new Object[]{1L, "Youri", "Zoon", "id1"}, response.rows()[0]);
+        assertArrayEquals(new Object[]{1L, "Youri", "id1", "Zoon", "id1"}, response.rows()[0]);
     }
 
     @Test
     @UseJdbc(0) // $1 style parameter substitution not supported
     public void testSelectWithParams() throws Exception {
-        execute("create table test (first_name string, last_name string, age double) with (number_of_replicas = 0)");
-        ensureYellow();
-        client().prepareIndex(getFqn("test"), "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-            .setSource("{\"first_name\":\"Youri\",\"last_name\":\"Zoon\", \"age\": 38}", XContentType.JSON)
-            .execute().actionGet();
+        execute("create table test (id string primary key, first_name string, last_name string, age double) " +
+                "with (number_of_replicas = 0)");
+
+        execute("insert into test (id, first_name, last_name, age) values ('id1', 'Youri', 'Zoon', 38)");
+        execute("refresh table test");
 
         Object[] args = new Object[]{"id1"};
         execute("select first_name, last_name from test where \"_id\" = $1", args);
@@ -249,34 +242,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarWithOtherAndAlias() throws Exception {
-        prepareCreate(getFqn("test"))
-            .addMapping("default",
-                "firstName", "type=keyword",
-                "lastName", "type=keyword")
-            .execute().actionGet();
-        ensureYellow();
-        client().prepareIndex(getFqn("test"), "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-            .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}", XContentType.JSON)
-            .execute().actionGet();
+        execute("create table test (first_name string, last_name string)");
+        execute("insert into test (first_name, last_name) values ('Youri', 'Zoon')");
+        execute("refresh table test");
         execute("select *, \"_version\", \"_version\" as v from test");
-        assertArrayEquals(new String[]{"firstName", "lastName", "_version", "v"},
-            response.cols());
+        assertArrayEquals(new String[]{"first_name", "last_name", "_version", "v"}, response.cols());
         assertEquals(1, response.rowCount());
         assertArrayEquals(new Object[]{"Youri", "Zoon", 1L, 1L}, response.rows()[0]);
     }
 
     @Test
     public void testFilterByEmptyString() throws Exception {
-        prepareCreate(getFqn("test"))
-            .addMapping("default", "name", "type=keyword")
-            .execute().actionGet();
-        ensureYellow();
-        client().prepareIndex(getFqn("test"), "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-            .setSource("{\"name\":\"\"}", XContentType.JSON)
-            .execute().actionGet();
-        client().prepareIndex(getFqn("test"), "default", "id2").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-            .setSource("{\"name\":\"Ruben Lenten\"}", XContentType.JSON)
-            .execute().actionGet();
+        execute("create table test (name string)");
+        execute("insert into test (name) values (''), ('Ruben Lenten')");
+        execute("refresh table test");
 
         execute("select name from test where name = ''");
         assertEquals(1, response.rowCount());
@@ -362,10 +341,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testIdSelectWithResult() throws Exception {
-        createIndex(getFqn("test"));
-        ensureYellow();
-        client().prepareIndex(getFqn("test"), "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
-        refresh();
+        execute("create table test (id string primary key)");
+        execute("insert into test (id) values ('id1')");
+        execute("refresh table test");
+
         execute("select \"_id\" from test");
         assertArrayEquals(new String[]{"_id"}, response.cols());
         assertEquals(1, response.rowCount());
@@ -375,11 +354,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSqlRequestWithLimit() throws Exception {
-        createIndex(getFqn("test"));
-        ensureYellow();
-        client().prepareIndex(getFqn("test"), "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
-        client().prepareIndex(getFqn("test"), "default", "id2").setSource("{}", XContentType.JSON).execute().actionGet();
-        refresh();
+        execute("create table test (id string primary key)");
+        execute("insert into test (id) values ('id1'), ('id2')");
+        execute("refresh table test");
         execute("select \"_id\" from test limit 1");
         assertEquals(1, response.rowCount());
     }
@@ -399,12 +376,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSqlRequestWithFilter() throws Exception {
-        createIndex(getFqn("test"));
-        ensureYellow();
-        client().prepareIndex(getFqn("test"), "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
-        client().prepareIndex(getFqn("test"), "default", "id2").setSource("{}", XContentType.JSON).execute().actionGet();
-        refresh();
-        execute("select _id from test where _id='id1'");
+        execute("create table test (id string primary key)");
+        execute("insert into test (id) values ('id1'), ('id2')");
+        execute("select _id from test where id = 'id1'");
         assertEquals(1, response.rowCount());
         assertEquals("id1", response.rows()[0][0]);
     }
@@ -449,45 +423,19 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSqlRequestWithDateFilter() throws Exception {
-        prepareCreate(getFqn("test"))
-            .addMapping("default", XContentFactory.jsonBuilder()
-                .startObject()
-                .startObject("default")
-                .startObject("properties")
-                .startObject("date")
-                .field("type", "date")
-                .endObject()
-                .endObject()
-                .endObject().endObject())
-            .execute().actionGet();
-        ensureYellow();
-        client().prepareIndex(getFqn("test"), "default", "id1")
-            .setSource("{\"date\": " + TimestampFormat.parseTimestampString("2013-10-01") + "}", XContentType.JSON)
-            .execute().actionGet();
-        client().prepareIndex(getFqn("test"), "default", "id2")
-            .setSource("{\"date\": " + TimestampFormat.parseTimestampString("2013-10-02") + "}", XContentType.JSON)
-            .execute().actionGet();
-        refresh();
-        execute(
-            "select date from test where date = '2013-10-01'");
+        execute("create table test (date timestamp)");
+        execute("insert into test (date) values ('2013-10-01'), ('2013-10-02')");
+        execute("refresh table test");
+        execute("select date from test where date = '2013-10-01'");
         assertEquals(1, response.rowCount());
         assertEquals(1380585600000L, response.rows()[0][0]);
     }
 
     @Test
     public void testSqlRequestWithDateGtFilter() throws Exception {
-        prepareCreate(getFqn("test"))
-            .addMapping("default",
-                "date", "type=date")
-            .execute().actionGet();
-        ensureYellow();
-        client().prepareIndex(getFqn("test"), "default", "id1")
-            .setSource("{\"date\": " + TimestampFormat.parseTimestampString("2013-10-01") + "}", XContentType.JSON)
-            .execute().actionGet();
-        client().prepareIndex(getFqn("test"), "default", "id2")
-            .setSource("{\"date\":" + TimestampFormat.parseTimestampString("2013-10-02") + "}", XContentType.JSON)
-            .execute().actionGet();
-        refresh();
+        execute("create table test (date timestamp)");
+        execute("insert into test (date) values ('2013-10-01'), ('2013-10-02')");
+        execute("refresh table test");
         execute(
             "select date from test where date > '2013-10-01'");
         assertEquals(1, response.rowCount());
@@ -496,18 +444,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSqlRequestWithNumericGtFilter() throws Exception {
-        prepareCreate(getFqn("test"))
-            .addMapping("default",
-                "i", "type=long")
-            .execute().actionGet();
-        ensureYellow();
-        client().prepareIndex(getFqn("test"), "default", "id1")
-            .setSource("{\"i\":10}", XContentType.JSON)
-            .execute().actionGet();
-        client().prepareIndex(getFqn("test"), "default", "id2")
-            .setSource("{\"i\":20}", XContentType.JSON)
-            .execute().actionGet();
-        refresh();
+        execute("create table test (i long)");
+        execute("insert into test (i) values (10), (20)");
+        execute("refresh table test");
         execute(
             "select i from test where i > 10");
         assertEquals(1, response.rowCount());
