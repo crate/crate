@@ -38,7 +38,6 @@ import org.elasticsearch.index.fielddata.AtomicFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource.Nested;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
-import org.elasticsearch.index.fielddata.ScriptDocValues;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.index.fielddata.fieldcomparator.BytesRefFieldComparatorSource;
 import org.elasticsearch.index.fielddata.plain.PagedBytesIndexFieldData;
@@ -226,11 +225,6 @@ public class IdFieldMapper extends MetadataFieldMapper {
             @Override
             public long ramBytesUsed() {
                 return in.ramBytesUsed();
-            }
-
-            @Override
-            public ScriptDocValues<?> getScriptValues() {
-                return new ScriptDocValues.Strings(getBytesValues());
             }
 
             @Override
