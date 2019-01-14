@@ -27,9 +27,6 @@ import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplai
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.node.hotthreads.NodesHotThreadsRequest;
-import org.elasticsearch.action.admin.cluster.node.hotthreads.NodesHotThreadsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.hotthreads.NodesHotThreadsResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequestBuilder;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
@@ -246,25 +243,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Nodes stats of the cluster.
      */
     NodesStatsRequestBuilder prepareNodesStats(String... nodesIds);
-
-    /**
-     * Returns top N hot-threads samples per node. The hot-threads are only
-     * sampled for the node ids specified in the request.
-     *
-     */
-    ActionFuture<NodesHotThreadsResponse> nodesHotThreads(NodesHotThreadsRequest request);
-
-    /**
-     * Returns top N hot-threads samples per node. The hot-threads are only sampled
-     * for the node ids specified in the request.
-     */
-    void nodesHotThreads(NodesHotThreadsRequest request, ActionListener<NodesHotThreadsResponse> listener);
-
-    /**
-     * Returns a request builder to fetch top N hot-threads samples per node. The hot-threads are only sampled
-     * for the node ids provided. Note: Use {@code *} to fetch samples for all nodes
-     */
-    NodesHotThreadsRequestBuilder prepareNodesHotThreads(String... nodesIds);
 
     /**
      * List tasks
