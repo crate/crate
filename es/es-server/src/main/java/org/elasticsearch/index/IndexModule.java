@@ -43,7 +43,6 @@ import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
 import org.elasticsearch.index.shard.IndexingOperationListener;
 import org.elasticsearch.index.shard.SearchOperationListener;
-import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.index.store.IndexStore;
 import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -253,25 +252,6 @@ public final class IndexModule {
     }
 
     /**
-     * Registers the given {@link Similarity} with the given name.
-     * The function takes as parameters:<ul>
-     *   <li>settings for this similarity
-     *   <li>version of Elasticsearch when the index was created
-     *   <li>ScriptService, for script-based similarities
-     * </ul>
-     *
-     * @param name Name of the SimilarityProvider
-     * @param similarity SimilarityProvider to register
-     */
-    public void addSimilarity(String name, BiFunction<Settings, Version, Similarity> similarity) {
-        ensureNotFrozen();
-        if (similarities.containsKey(name) || SimilarityService.BUILT_IN.containsKey(name)) {
-            throw new IllegalArgumentException("similarity for name: [" + name + " is already registered");
-        }
-        similarities.put(name, similarity);
-    }
-
-    /**
      * Sets a {@link org.elasticsearch.index.IndexModule.IndexSearcherWrapperFactory} that is called once the IndexService
      * is fully constructed.
      * Note: this method can only be called once per index. Multiple wrappers are not supported.
@@ -392,7 +372,6 @@ public final class IndexModule {
             queryCache = new DisabledQueryCache(indexSettings);
         }
         return new IndexService(indexSettings, environment, xContentRegistry,
-                new SimilarityService(indexSettings, similarities),
                 shardStoreDeleter, analysisRegistry, engineFactory, circuitBreakerService, bigArrays, threadPool,
                 client, queryCache, store, eventListener, searcherWrapperFactory, mapperRegistry,
                 indicesFieldDataCache, searchOperationListeners, indexOperationListeners, namedWriteableRegistry);
@@ -438,7 +417,7 @@ public final class IndexModule {
     public MapperService newIndexMapperService(NamedXContentRegistry xContentRegistry, MapperRegistry mapperRegistry)
         throws IOException {
         return new MapperService(indexSettings, analysisRegistry.build(indexSettings), xContentRegistry,
-            new SimilarityService(indexSettings, similarities), mapperRegistry,
+            mapperRegistry,
             () -> { throw new UnsupportedOperationException("no index query shard context available"); });
     }
 

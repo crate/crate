@@ -39,7 +39,6 @@ import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.query.ParsedQuery;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.search.SearchExtBuilder;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.collapse.CollapseContext;
@@ -262,11 +261,6 @@ public class TestSearchContext extends SearchContext {
         if (indexService != null) {
             return indexService.mapperService();
         }
-        return null;
-    }
-
-    @Override
-    public SimilarityService similarityService() {
         return null;
     }
 

@@ -48,7 +48,6 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.elasticsearch.index.query.support.NestedScope;
-import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.search.lookup.SearchLookup;
 import org.elasticsearch.transport.RemoteClusterAware;
 
@@ -71,7 +70,6 @@ public class QueryShardContext extends QueryRewriteContext {
 
     private final IndexSettings indexSettings;
     private final MapperService mapperService;
-    private final SimilarityService similarityService;
     private final BitsetFilterCache bitsetFilterCache;
     private final BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataService;
     private final int shardId;
@@ -98,12 +96,11 @@ public class QueryShardContext extends QueryRewriteContext {
 
     public QueryShardContext(int shardId, IndexSettings indexSettings, BitsetFilterCache bitsetFilterCache,
                              BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataLookup, MapperService mapperService,
-                             SimilarityService similarityService, NamedXContentRegistry xContentRegistry,
+                             NamedXContentRegistry xContentRegistry,
                              NamedWriteableRegistry namedWriteableRegistry, Client client, IndexReader reader, LongSupplier nowInMillis,
                              String clusterAlias) {
         super(xContentRegistry, namedWriteableRegistry,client, nowInMillis);
         this.shardId = shardId;
-        this.similarityService = similarityService;
         this.mapperService = mapperService;
         this.bitsetFilterCache = bitsetFilterCache;
         this.indexFieldDataService = indexFieldDataLookup;
@@ -118,7 +115,7 @@ public class QueryShardContext extends QueryRewriteContext {
 
     public QueryShardContext(QueryShardContext source) {
         this(source.shardId, source.indexSettings, source.bitsetFilterCache, source.indexFieldDataService, source.mapperService,
-                source.similarityService, source.getXContentRegistry(), source.getWriteableRegistry(),
+                source.getXContentRegistry(), source.getWriteableRegistry(),
                 source.client, source.reader, source.nowInMillis, source.clusterAlias);
         this.types = source.getTypes();
     }
@@ -133,10 +130,6 @@ public class QueryShardContext extends QueryRewriteContext {
 
     public IndexAnalyzers getIndexAnalyzers() {
         return mapperService.getIndexAnalyzers();
-    }
-
-    public Similarity getSearchSimilarity() {
-        return similarityService != null ? similarityService.similarity(mapperService) : null;
     }
 
     public List<String> defaultFields() {
