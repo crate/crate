@@ -122,41 +122,6 @@ import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ActionPlugin.ActionHandler;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
-import org.elasticsearch.rest.action.admin.cluster.RestClusterGetSettingsAction;
-import org.elasticsearch.rest.action.admin.cluster.RestClusterHealthAction;
-import org.elasticsearch.rest.action.admin.cluster.RestClusterRerouteAction;
-import org.elasticsearch.rest.action.admin.cluster.RestClusterSearchShardsAction;
-import org.elasticsearch.rest.action.admin.cluster.RestClusterUpdateSettingsAction;
-import org.elasticsearch.rest.action.admin.cluster.RestDeleteRepositoryAction;
-import org.elasticsearch.rest.action.admin.cluster.RestDeleteSnapshotAction;
-import org.elasticsearch.rest.action.admin.cluster.RestGetRepositoriesAction;
-import org.elasticsearch.rest.action.admin.cluster.RestGetSnapshotsAction;
-import org.elasticsearch.rest.action.admin.cluster.RestPendingClusterTasksAction;
-import org.elasticsearch.rest.action.admin.cluster.RestPutRepositoryAction;
-import org.elasticsearch.rest.action.admin.cluster.RestRestoreSnapshotAction;
-import org.elasticsearch.rest.action.admin.cluster.RestSnapshotsStatusAction;
-import org.elasticsearch.rest.action.admin.indices.RestCreateIndexAction;
-import org.elasticsearch.rest.action.admin.indices.RestDeleteIndexAction;
-import org.elasticsearch.rest.action.admin.indices.RestDeleteIndexTemplateAction;
-import org.elasticsearch.rest.action.admin.indices.RestFlushAction;
-import org.elasticsearch.rest.action.admin.indices.RestForceMergeAction;
-import org.elasticsearch.rest.action.admin.indices.RestGetAllAliasesAction;
-import org.elasticsearch.rest.action.admin.indices.RestGetIndexTemplateAction;
-import org.elasticsearch.rest.action.admin.indices.RestGetIndicesAction;
-import org.elasticsearch.rest.action.admin.indices.RestGetSettingsAction;
-import org.elasticsearch.rest.action.admin.indices.RestIndicesStatsAction;
-import org.elasticsearch.rest.action.admin.indices.RestPutIndexTemplateAction;
-import org.elasticsearch.rest.action.admin.indices.RestPutMappingAction;
-import org.elasticsearch.rest.action.admin.indices.RestRecoveryAction;
-import org.elasticsearch.rest.action.admin.indices.RestRefreshAction;
-import org.elasticsearch.rest.action.admin.indices.RestResizeHandler;
-import org.elasticsearch.rest.action.admin.indices.RestSyncedFlushAction;
-import org.elasticsearch.rest.action.admin.indices.RestUpgradeAction;
-import org.elasticsearch.rest.action.admin.indices.RestUpgradeStatusAction;
-import org.elasticsearch.rest.action.search.RestClearScrollAction;
-import org.elasticsearch.rest.action.search.RestMultiSearchAction;
-import org.elasticsearch.rest.action.search.RestSearchAction;
-import org.elasticsearch.rest.action.search.RestSearchScrollAction;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -311,50 +276,6 @@ public class ActionModule extends AbstractModule {
     public void initRestHandlers(Supplier<DiscoveryNodes> nodesInCluster) {
         Consumer<RestHandler> registerHandler = a -> {
         };
-        registerHandler.accept(new RestClusterHealthAction(settings, restController));
-        registerHandler.accept(new RestClusterUpdateSettingsAction(settings, restController));
-        registerHandler.accept(new RestClusterGetSettingsAction(settings, restController, clusterSettings, settingsFilter));
-        registerHandler.accept(new RestClusterRerouteAction(settings, restController, settingsFilter));
-        registerHandler.accept(new RestClusterSearchShardsAction(settings, restController));
-        registerHandler.accept(new RestPendingClusterTasksAction(settings, restController));
-        registerHandler.accept(new RestPutRepositoryAction(settings, restController));
-        registerHandler.accept(new RestGetRepositoriesAction(settings, restController, settingsFilter));
-        registerHandler.accept(new RestDeleteRepositoryAction(settings, restController));
-        registerHandler.accept(new RestGetSnapshotsAction(settings, restController));
-        registerHandler.accept(new RestRestoreSnapshotAction(settings, restController));
-        registerHandler.accept(new RestDeleteSnapshotAction(settings, restController));
-        registerHandler.accept(new RestSnapshotsStatusAction(settings, restController));
-        registerHandler.accept(new RestGetAllAliasesAction(settings, restController));
-        registerHandler.accept(new RestGetIndicesAction(settings, restController));
-        registerHandler.accept(new RestIndicesStatsAction(settings, restController));
-        registerHandler.accept(new RestCreateIndexAction(settings, restController));
-        registerHandler.accept(new RestResizeHandler.RestShrinkIndexAction(settings, restController));
-        registerHandler.accept(new RestResizeHandler.RestSplitIndexAction(settings, restController));
-        registerHandler.accept(new RestDeleteIndexAction(settings, restController));
-
-        registerHandler.accept(new RestGetSettingsAction(settings, restController));
-
-        registerHandler.accept(new RestGetIndexTemplateAction(settings, restController));
-        registerHandler.accept(new RestPutIndexTemplateAction(settings, restController));
-        registerHandler.accept(new RestDeleteIndexTemplateAction(settings, restController));
-
-        registerHandler.accept(new RestPutMappingAction(settings, restController));
-
-        registerHandler.accept(new RestRefreshAction(settings, restController));
-        registerHandler.accept(new RestFlushAction(settings, restController));
-        registerHandler.accept(new RestSyncedFlushAction(settings, restController));
-        registerHandler.accept(new RestForceMergeAction(settings, restController));
-        registerHandler.accept(new RestUpgradeAction(settings, restController));
-        registerHandler.accept(new RestUpgradeStatusAction(settings, restController));
-
-        registerHandler.accept(new org.elasticsearch.rest.action.document.RestCountAction(settings, restController));
-
-        registerHandler.accept(new RestSearchAction(settings, restController));
-        registerHandler.accept(new RestSearchScrollAction(settings, restController));
-        registerHandler.accept(new RestClearScrollAction(settings, restController));
-        registerHandler.accept(new RestMultiSearchAction(settings, restController));
-
-        registerHandler.accept(new RestRecoveryAction(settings, restController));
 
         for (ActionPlugin plugin : actionPlugins) {
             for (RestHandler handler : plugin.getRestHandlers(settings, restController, clusterSettings, indexScopedSettings,
