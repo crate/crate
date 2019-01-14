@@ -256,10 +256,6 @@ import org.elasticsearch.action.explain.ExplainAction;
 import org.elasticsearch.action.explain.ExplainRequest;
 import org.elasticsearch.action.explain.ExplainRequestBuilder;
 import org.elasticsearch.action.explain.ExplainResponse;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesAction;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequest;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequestBuilder;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesResponse;
 import org.elasticsearch.action.get.GetAction;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetRequestBuilder;
@@ -551,21 +547,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
     @Override
     public ClearScrollRequestBuilder prepareClearScroll() {
         return new ClearScrollRequestBuilder(this, ClearScrollAction.INSTANCE);
-    }
-
-    @Override
-    public void fieldCaps(FieldCapabilitiesRequest request, ActionListener<FieldCapabilitiesResponse> listener) {
-        execute(FieldCapabilitiesAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public ActionFuture<FieldCapabilitiesResponse> fieldCaps(FieldCapabilitiesRequest request) {
-        return execute(FieldCapabilitiesAction.INSTANCE, request);
-    }
-
-    @Override
-    public FieldCapabilitiesRequestBuilder prepareFieldCaps(String... indices) {
-        return new FieldCapabilitiesRequestBuilder(this, FieldCapabilitiesAction.INSTANCE, indices);
     }
 
     static class Admin implements AdminClient {
