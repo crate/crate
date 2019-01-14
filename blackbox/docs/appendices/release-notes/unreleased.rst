@@ -43,24 +43,3 @@ Changes
 
 Fixes
 =====
-
-- Fixed an issue that caused incorrectness in the navigation of the Admin UI.
-
-- Fixed a ``NullPointerException`` that could occur using ``array_difference``.
-
-- Fixed a race condition that could lead to stuck queries. One case this could
-  occur is if a node was being stopped or crashed.
-
-- Casts to nested arrays are now properly supported.
-
-- The type of parameter placeholders in sub-queries in the FROM clause of a
-  query can now be resolved to support postgresql clients relying on the
-  ``ParameterDescription`` message.
-  This enables queries like ``select * from (select $1::int + $2) t``
-
-- Fixed error readability of certain ``ALTER TABLE`` operations.
-
-- Fixed sql parser to not allow repeated ``PARTITION BY`` or ``CLUSTERED BY |
-  INTO`` tokens on ``CREATE TABLE`` statements.
-
-- Support ECS Task IAM profile credentials on AWS S3 repositories.
