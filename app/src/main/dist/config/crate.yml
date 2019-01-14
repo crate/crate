@@ -797,17 +797,6 @@ auth:
 #udc.url: https://udc.crate.io/
 
 
-######################### ELASTICSEARCH HTTP REST API ########################
-
-# by default the elasticsearch HTTP REST API is disabled
-
-# WARNING: if you index data via elasticsearch and not
-# insert it via SQL you might get inconsistent data when querying
-
-# enable/disable elasticsearch HTTP REST API
-#es.api.enabled: false
-
-
 ############################# BACKUP / RESTORE ###############################
 
 # Paths where Repositories of type fs may be created:

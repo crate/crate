@@ -57,7 +57,6 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
-import static io.crate.rest.CrateRestMainAction.ES_API_ENABLED_SETTING;
 import static org.elasticsearch.common.network.NetworkModule.HTTP_TYPE_KEY;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
@@ -97,7 +96,7 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
 
     @Override
     public List<Setting<?>> getSettings() {
-        return Collections.singletonList(ES_API_ENABLED_SETTING);
+        return Collections.emptyList();
     }
 
     @Override
