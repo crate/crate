@@ -43,11 +43,11 @@ public class RoutineInfo {
     public RoutineInfo(String name,
                        String type,
                        @Nullable String schema,
-                       @Nullable  String specificName,
+                       @Nullable String specificName,
                        @Nullable String definition,
                        @Nullable String body,
                        @Nullable String dataType,
-                       @Nullable boolean isDeterministic) {
+                       boolean isDeterministic) {
         assert name != null : "name must not be null";
         assert type != null : "type must not be null";
         this.specificName = specificName;
@@ -61,16 +61,11 @@ public class RoutineInfo {
     }
 
     public RoutineInfo(String name, String type) {
-        assert name != null : "name must not be null";
-        assert type != null : "type must not be null";
-        this.name = name;
-        this.type = type;
-        this.specificName = null;
-        this.schema = null;
-        this.body = null;
-        this.dataType = null;
-        this.definition = null;
-        this.isDeterministic = false;
+        this(name, type, null, null, null, null, null, false);
+    }
+
+    public RoutineInfo(String name, String type, @Nullable String definition) {
+        this(name, type, null, null, definition, null, null, false);
     }
 
     @Nonnull

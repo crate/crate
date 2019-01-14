@@ -42,6 +42,9 @@ None
 Changes
 =======
 
+- Output the custom analyzer/tokenizer/token_filter/char_filter definition inside
+  the ``information_schema.routines.routine_definition`` column.
+
 - Added support for the ``last_value`` window function as an enterprise
   feature.
 
