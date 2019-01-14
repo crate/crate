@@ -169,11 +169,6 @@ import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.action.support.DestructiveOperations;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.action.termvectors.MultiTermVectorsAction;
-import org.elasticsearch.action.termvectors.TermVectorsAction;
-import org.elasticsearch.action.termvectors.TransportMultiTermVectorsAction;
-import org.elasticsearch.action.termvectors.TransportShardMultiTermsVectorAction;
-import org.elasticsearch.action.termvectors.TransportTermVectorsAction;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -279,8 +274,6 @@ import org.elasticsearch.rest.action.document.RestGetAction;
 import org.elasticsearch.rest.action.document.RestGetSourceAction;
 import org.elasticsearch.rest.action.document.RestIndexAction;
 import org.elasticsearch.rest.action.document.RestMultiGetAction;
-import org.elasticsearch.rest.action.document.RestMultiTermVectorsAction;
-import org.elasticsearch.rest.action.document.RestTermVectorsAction;
 import org.elasticsearch.rest.action.document.RestUpdateAction;
 import org.elasticsearch.rest.action.search.RestClearScrollAction;
 import org.elasticsearch.rest.action.search.RestExplainAction;
@@ -450,9 +443,6 @@ public class ActionModule extends AbstractModule {
         actions.register(GetSettingsAction.INSTANCE, TransportGetSettingsAction.class);
 
         actions.register(GetAction.INSTANCE, TransportGetAction.class);
-        actions.register(TermVectorsAction.INSTANCE, TransportTermVectorsAction.class);
-        actions.register(MultiTermVectorsAction.INSTANCE, TransportMultiTermVectorsAction.class,
-                TransportShardMultiTermsVectorAction.class);
         actions.register(MultiGetAction.INSTANCE, TransportMultiGetAction.class,
                 TransportShardMultiGetAction.class);
         actions.register(SearchAction.INSTANCE, TransportSearchAction.class);
@@ -556,8 +546,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestMultiGetAction(settings, restController));
         registerHandler.accept(new RestDeleteAction(settings, restController));
         registerHandler.accept(new org.elasticsearch.rest.action.document.RestCountAction(settings, restController));
-        registerHandler.accept(new RestTermVectorsAction(settings, restController));
-        registerHandler.accept(new RestMultiTermVectorsAction(settings, restController));
         registerHandler.accept(new RestBulkAction(settings, restController));
         registerHandler.accept(new RestUpdateAction(settings, restController));
 
