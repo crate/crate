@@ -42,7 +42,6 @@ public class EngineSearcherFactory extends SearcherFactory {
         IndexSearcher searcher = super.newSearcher(reader, previousReader);
         searcher.setQueryCache(engineConfig.getQueryCache());
         searcher.setQueryCachingPolicy(engineConfig.getQueryCachingPolicy());
-        searcher.setSimilarity(engineConfig.getSimilarity());
         return searcher;
     }
 }

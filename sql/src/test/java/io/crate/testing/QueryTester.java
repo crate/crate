@@ -88,7 +88,6 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.analysis.AnalysisModule;
@@ -159,8 +158,6 @@ public final class QueryTester implements AutoCloseable {
             IndexSettings idxSettings = IndexSettingsModule.newIndexSettings(index, nodeSettings);
             AnalysisRegistry analysisRegistry = new AnalysisModule(env, Collections.emptyList()).getAnalysisRegistry();
             IndexAnalyzers indexAnalyzers = analysisRegistry.build(idxSettings);
-            SimilarityService similarityService = new SimilarityService(
-                idxSettings, Collections.emptyMap());
             MapperRegistry mapperRegistry = new IndicesModule(Collections.singletonList(new MapperPlugin() {
                 @Override
                 public Map<String, Mapper.TypeParser> getMappers() {
@@ -171,7 +168,6 @@ public final class QueryTester implements AutoCloseable {
                 idxSettings,
                 indexAnalyzers,
                 NamedXContentRegistry.EMPTY,
-                similarityService,
                 mapperRegistry,
                 queryShardContext::get
             );
@@ -239,7 +235,6 @@ public final class QueryTester implements AutoCloseable {
                 bitsetFilterCache,
                 indexFieldDataService::getForField,
                 Builder.this.mapperService,
-                similarityService,
                 NamedXContentRegistry.EMPTY,
                 namedWriteableRegistry,
                 client,
