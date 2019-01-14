@@ -526,24 +526,6 @@ Layer Security (TLS).
   The password used to decrypt the truststore file defined with
   ``ssl.truststore_filepath``.
 
-.. _es_api_setting:
-
-Elasticsearch HTTP REST API
-===========================
-
-**es.api.enabled**
-  | *Default:* ``false``
-  | *Runtime:* ``no``
-
-  Enable or disable elasticsearch HTTP REST API.
-
-  .. WARNING::
-
-    This setting is deprecated and will be removed in the future.
-
-    Manipulating your data via elasticsearch API and not via SQL might result
-    in inconsistent data. You have been warned!
-
 Cross-Origin Resource Sharing (CORS)
 ====================================
 

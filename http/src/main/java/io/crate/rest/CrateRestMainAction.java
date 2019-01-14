@@ -25,8 +25,6 @@ package io.crate.rest;
 import com.google.common.collect.ImmutableList;
 import io.crate.Build;
 import io.crate.Version;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
@@ -35,9 +33,7 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.SecureString;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.BytesRestResponse;
@@ -75,8 +71,6 @@ import static org.elasticsearch.rest.RestStatus.OK;
 public class CrateRestMainAction implements RestHandler {
 
     public static final String PATH = "/";
-    public static final Setting<Boolean> ES_API_ENABLED_SETTING = Setting.boolSetting(
-        "es.api.enabled", false, Setting.Property.NodeScope);
 
     private static final Pattern USER_AGENT_BROWSER_PATTERN = Pattern.compile("(Mozilla|Chrome|Safari|Opera|Android|AppleWebKit)+?[/\\s][\\d.]+");
     private static final List<String> SUPPORTED_ENDPOINTS = ImmutableList.of(
@@ -100,16 +94,6 @@ public class CrateRestMainAction implements RestHandler {
         this.version = Version.CURRENT;
         this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
         this.siteDirectory = siteDirectory;
-        Boolean esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
-        Logger logger = LogManager.getLogger(getClass().getPackage().getName());
-        if (esApiEnabled) {
-            logger.warn("Unofficial Elasticsearch HTTP REST API is enabled");
-            DeprecationLogger deprecationLogger = new DeprecationLogger(logger);
-            deprecationLogger.deprecated(
-                "\"es.api.enabled\" is deprecated and will be removed in a future version." +
-                "Please use SQL instead and if that is not possible create a feature request " +
-                "on https://github.com/crate/crate/issues explaining your use-case.");
-        }
         controller.registerHandler(GET, PATH, this);
         controller.registerHandler(HEAD, PATH, this);
         controller.registerHandler(GET, "/admin", (req, channel, client) -> redirectToRoot(channel));
@@ -244,17 +228,15 @@ public class CrateRestMainAction implements RestHandler {
 
     public static class RestFilter implements RestHandler {
         private final RestHandler delegate;
-        private final Boolean esApiEnabled;
 
         public RestFilter(Settings settings, RestHandler delegate) {
-            this.esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
             this.delegate = delegate;
         }
 
         @Override
         public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
             String rawPath = request.rawPath();
-            if (esApiEnabled || endpointAllowed(rawPath)) {
+            if (endpointAllowed(rawPath)) {
                 delegate.handleRequest(request, channel, client);
             } else {
                 channel.sendResponse(new BytesRestResponse(
