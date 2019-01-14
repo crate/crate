@@ -36,6 +36,7 @@ import io.crate.auth.user.User;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
+import io.crate.execution.engine.window.WindowFunctionModule;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.predicate.PredicateModule;
@@ -82,6 +83,7 @@ public class SqlExpressions {
             .add(new OperatorModule())
             .add(new AggregationImplModule())
             .add(new ScalarFunctionModule())
+            .add(new WindowFunctionModule())
             .add(new TableFunctionModule())
             .add(new PredicateModule());
         if (additionalModules != null) {
