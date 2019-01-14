@@ -24,8 +24,9 @@ package io.crate.metadata;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -136,28 +137,28 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
         try {
             Iterator<RoutineInfo> cAnalyzersIterator = Iterators.transform(
                 ftResolver.getCustomAnalyzers().entrySet().iterator(),
-                input -> {
-                    assert input != null : "input must not be null";
-                    return new RoutineInfo(input.getKey(), RoutineType.ANALYZER.getName());
-                });
+                input -> new RoutineInfo(
+                    input.getKey(),
+                    RoutineType.ANALYZER.getName(),
+                    routineSettingsToDefinition(input.getKey(), input.getValue(), RoutineType.ANALYZER)));
             Iterator<RoutineInfo> cCharFiltersIterator = Iterators.transform(
                 ftResolver.getCustomCharFilters().entrySet().iterator(),
-                input -> {
-                    assert input != null : "input must not be null";
-                    return new RoutineInfo(input.getKey(), RoutineType.CHAR_FILTER.getName());
-                });
+                input -> new RoutineInfo(
+                    input.getKey(),
+                    RoutineType.CHAR_FILTER.getName(),
+                    routineSettingsToDefinition(input.getKey(), input.getValue(), RoutineType.CHAR_FILTER)));
             Iterator<RoutineInfo> cTokenFiltersIterator = Iterators.transform(
                 ftResolver.getCustomTokenFilters().entrySet().iterator(),
-                input -> {
-                    assert input != null : "input must not be null";
-                    return new RoutineInfo(input.getKey(), RoutineType.TOKEN_FILTER.getName());
-                });
+                input -> new RoutineInfo(
+                    input.getKey(),
+                    RoutineType.TOKEN_FILTER.getName(),
+                    routineSettingsToDefinition(input.getKey(), input.getValue(), RoutineType.TOKEN_FILTER)));
             Iterator<RoutineInfo> cTokenizersIterator = Iterators.transform(
                 ftResolver.getCustomTokenizers().entrySet().iterator(),
-                input -> {
-                    assert input != null : "input must not be null";
-                    return new RoutineInfo(input.getKey(), RoutineType.TOKENIZER.getName());
-                });
+                input -> new RoutineInfo(
+                    input.getKey(),
+                    RoutineType.TOKENIZER.getName(),
+                    routineSettingsToDefinition(input.getKey(), input.getValue(), RoutineType.TOKENIZER)));
             return Iterators.concat(cAnalyzersIterator, cCharFiltersIterator, cTokenFiltersIterator, cTokenizersIterator);
         } catch (IOException e) {
             logger.error("Could not retrieve custom routines", e);
@@ -175,5 +176,10 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
             customIterators(),
             userDefinedFunctions()
         );
+    }
+
+    private static String routineSettingsToDefinition(String name, Settings settings, RoutineType type) {
+        String prefix = "index.analysis." + type.getName().toLowerCase(Locale.ENGLISH) + "." + name + ".";
+        return settings.getByPrefix(prefix).toString();
     }
 }
