@@ -981,9 +981,6 @@ public class MoreLikeThisQueryBuilder extends AbstractQueryBuilder<MoreLikeThisQ
 
         MoreLikeThisQuery mltQuery = new MoreLikeThisQuery();
 
-        // set similarity
-        mltQuery.setSimilarity(context.getSearchSimilarity());
-
         // set query parameters
         mltQuery.setMaxQueryTerms(maxQueryTerms);
         mltQuery.setMinTermFrequency(minTermFreq);

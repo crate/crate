@@ -59,7 +59,6 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
@@ -345,7 +344,6 @@ public abstract class AbstractBuilderTestCase extends ESTestCase {
         private final NamedXContentRegistry xContentRegistry;
         private final ClientInvocationHandler clientInvocationHandler = new ClientInvocationHandler();
         private final IndexSettings idxSettings;
-        private final SimilarityService similarityService;
         private final MapperService mapperService;
         private final BitsetFilterCache bitsetFilterCache;
         private final Client client;
@@ -378,9 +376,8 @@ public abstract class AbstractBuilderTestCase extends ESTestCase {
             idxSettings = IndexSettingsModule.newIndexSettings(index, indexSettings, indexScopedSettings);
             AnalysisModule analysisModule = new AnalysisModule(TestEnvironment.newEnvironment(nodeSettings), emptyList());
             IndexAnalyzers indexAnalyzers = analysisModule.getAnalysisRegistry().build(idxSettings);
-            similarityService = new SimilarityService(idxSettings, Collections.emptyMap());
             MapperRegistry mapperRegistry = indicesModule.getMapperRegistry();
-            mapperService = new MapperService(idxSettings, indexAnalyzers, xContentRegistry, similarityService, mapperRegistry,
+            mapperService = new MapperService(idxSettings, indexAnalyzers, xContentRegistry, mapperRegistry,
                     () -> createShardContext(null));
             IndicesFieldDataCache indicesFieldDataCache = new IndicesFieldDataCache(nodeSettings, new IndexFieldDataCache.Listener() {
             });
@@ -448,7 +445,7 @@ public abstract class AbstractBuilderTestCase extends ESTestCase {
 
         QueryShardContext createShardContext(IndexReader reader) {
             return new QueryShardContext(0, idxSettings, bitsetFilterCache, indexFieldDataService::getForField, mapperService,
-                similarityService, xContentRegistry, namedWriteableRegistry, this.client, reader, () -> nowInMillis, null);
+                xContentRegistry, namedWriteableRegistry, this.client, reader, () -> nowInMillis, null);
         }
     }
 
