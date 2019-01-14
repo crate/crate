@@ -60,7 +60,6 @@ import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.analysis.AnalysisModule;
@@ -107,8 +106,6 @@ public final class IndexEnv implements AutoCloseable {
         IndexSettings idxSettings = IndexSettingsModule.newIndexSettings(index, nodeSettings);
         AnalysisRegistry analysisRegistry = new AnalysisModule(env, Collections.emptyList()).getAnalysisRegistry();
         IndexAnalyzers indexAnalyzers = analysisRegistry.build(idxSettings);
-        SimilarityService similarityService = new SimilarityService(
-            idxSettings, Collections.emptyMap());
         MapperRegistry mapperRegistry = new IndicesModule(Collections.singletonList(new MapperPlugin() {
             @Override
             public Map<String, Mapper.TypeParser> getMappers() {
@@ -120,7 +117,6 @@ public final class IndexEnv implements AutoCloseable {
             idxSettings,
             indexAnalyzers,
             NamedXContentRegistry.EMPTY,
-            similarityService,
             mapperRegistry,
             queryShardContext::get
         );
@@ -182,7 +178,6 @@ public final class IndexEnv implements AutoCloseable {
             bitsetFilterCache,
             indexFieldDataService::getForField,
             mapperService,
-            similarityService,
             NamedXContentRegistry.EMPTY,
             namedWriteableRegistry,
             client,

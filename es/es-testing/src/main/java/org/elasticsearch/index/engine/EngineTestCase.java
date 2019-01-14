@@ -218,7 +218,7 @@ public abstract class EngineTestCase extends ESTestCase {
 
     public EngineConfig copy(EngineConfig config, LongSupplier globalCheckpointSupplier) {
         return new EngineConfig(config.getShardId(), config.getAllocationId(), config.getThreadPool(), config.getIndexSettings(),
-            config.getWarmer(), config.getStore(), config.getMergePolicy(), config.getAnalyzer(), config.getSimilarity(),
+            config.getWarmer(), config.getStore(), config.getMergePolicy(), config.getAnalyzer(),
             new CodecService(null, logger), config.getEventListener(), config.getQueryCache(), config.getQueryCachingPolicy(),
             config.getTranslogConfig(), config.getFlushMergesAfter(),
             config.getExternalRefreshListener(), Collections.emptyList(), config.getIndexSort(),
@@ -227,7 +227,7 @@ public abstract class EngineTestCase extends ESTestCase {
 
     public EngineConfig copy(EngineConfig config, Analyzer analyzer) {
         return new EngineConfig(config.getShardId(), config.getAllocationId(), config.getThreadPool(), config.getIndexSettings(),
-                config.getWarmer(), config.getStore(), config.getMergePolicy(), analyzer, config.getSimilarity(),
+                config.getWarmer(), config.getStore(), config.getMergePolicy(), analyzer,
                 new CodecService(null, logger), config.getEventListener(), config.getQueryCache(), config.getQueryCachingPolicy(),
                 config.getTranslogConfig(), config.getFlushMergesAfter(),
                 config.getExternalRefreshListener(), Collections.emptyList(), config.getIndexSort(),
@@ -237,7 +237,7 @@ public abstract class EngineTestCase extends ESTestCase {
 
     public EngineConfig copy(EngineConfig config, MergePolicy mergePolicy) {
         return new EngineConfig(config.getShardId(), config.getAllocationId(), config.getThreadPool(), config.getIndexSettings(),
-            config.getWarmer(), config.getStore(), mergePolicy, config.getAnalyzer(), config.getSimilarity(),
+            config.getWarmer(), config.getStore(), mergePolicy, config.getAnalyzer(),
             new CodecService(null, logger), config.getEventListener(), config.getQueryCache(), config.getQueryCachingPolicy(),
             config.getTranslogConfig(), config.getFlushMergesAfter(),
             config.getExternalRefreshListener(), Collections.emptyList(), config.getIndexSort(),
@@ -593,7 +593,7 @@ public abstract class EngineTestCase extends ESTestCase {
         final List<ReferenceManager.RefreshListener> intRefreshListenerList =
             internalRefreshListener == null ? emptyList() : Collections.singletonList(internalRefreshListener);
         EngineConfig config = new EngineConfig(shardId, allocationId.getId(), threadPool, indexSettings, null, store,
-                mergePolicy, iwc.getAnalyzer(), iwc.getSimilarity(), new CodecService(null, logger), listener,
+                mergePolicy, iwc.getAnalyzer(), new CodecService(null, logger), listener,
                 IndexSearcher.getDefaultQueryCache(), IndexSearcher.getDefaultQueryCachingPolicy(), translogConfig,
                 TimeValue.timeValueMinutes(5), extRefreshListenerList, intRefreshListenerList, indexSort,
                 new NoneCircuitBreakerService(),
