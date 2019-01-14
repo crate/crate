@@ -19,6 +19,7 @@
 
 package org.elasticsearch;
 
+import org.elasticsearch.action.admin.indices.alias.AliasesNotFoundException;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.common.CheckedFunction;
@@ -954,8 +955,8 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
                 org.elasticsearch.common.settings.NoClassSettingsException::new, 111, UNKNOWN_VERSION_ADDED),
         BIND_TRANSPORT_EXCEPTION(org.elasticsearch.transport.BindTransportException.class,
                 org.elasticsearch.transport.BindTransportException::new, 112, UNKNOWN_VERSION_ADDED),
-        ALIASES_NOT_FOUND_EXCEPTION(org.elasticsearch.rest.action.admin.indices.AliasesNotFoundException.class,
-                org.elasticsearch.rest.action.admin.indices.AliasesNotFoundException::new, 113, UNKNOWN_VERSION_ADDED),
+        ALIASES_NOT_FOUND_EXCEPTION(AliasesNotFoundException.class,
+                AliasesNotFoundException::new, 113, UNKNOWN_VERSION_ADDED),
         INDEX_SHARD_RECOVERING_EXCEPTION(org.elasticsearch.index.shard.IndexShardRecoveringException.class,
                 org.elasticsearch.index.shard.IndexShardRecoveringException::new, 114, UNKNOWN_VERSION_ADDED),
         TRANSLOG_EXCEPTION(org.elasticsearch.index.translog.TranslogException.class,
