@@ -37,7 +37,7 @@ Unreleased Changes
 Breaking Changes
 ================
 
-None
+- The Elasticsearch REST API has been removed.
 
 Changes
 =======
