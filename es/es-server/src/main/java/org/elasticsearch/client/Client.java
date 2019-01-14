@@ -30,9 +30,6 @@ import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.explain.ExplainRequest;
 import org.elasticsearch.action.explain.ExplainRequestBuilder;
 import org.elasticsearch.action.explain.ExplainResponse;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequest;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequestBuilder;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
@@ -368,21 +365,6 @@ public interface Client extends ElasticsearchClient, Releasable {
      * Clears the search contexts associated with specified scroll ids.
      */
     void clearScroll(ClearScrollRequest request, ActionListener<ClearScrollResponse> listener);
-
-    /**
-     * Builder for the field capabilities request.
-     */
-    FieldCapabilitiesRequestBuilder prepareFieldCaps(String... indices);
-
-    /**
-     * An action that returns the field capabilities from the provided request
-     */
-    ActionFuture<FieldCapabilitiesResponse> fieldCaps(FieldCapabilitiesRequest request);
-
-    /**
-     * An action that returns the field capabilities from the provided request
-     */
-    void fieldCaps(FieldCapabilitiesRequest request, ActionListener<FieldCapabilitiesResponse> listener);
 
     /**
      * Returns this clients settings

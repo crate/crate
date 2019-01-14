@@ -147,9 +147,6 @@ import org.elasticsearch.action.admin.indices.validate.query.TransportValidateQu
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryAction;
 import org.elasticsearch.action.explain.ExplainAction;
 import org.elasticsearch.action.explain.TransportExplainAction;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesAction;
-import org.elasticsearch.action.fieldcaps.TransportFieldCapabilitiesAction;
-import org.elasticsearch.action.fieldcaps.TransportFieldCapabilitiesIndexAction;
 import org.elasticsearch.action.get.GetAction;
 import org.elasticsearch.action.get.MultiGetAction;
 import org.elasticsearch.action.get.TransportGetAction;
@@ -188,7 +185,6 @@ import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ActionPlugin.ActionHandler;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
-import org.elasticsearch.rest.action.RestFieldCapabilitiesAction;
 import org.elasticsearch.rest.action.RestMainAction;
 import org.elasticsearch.rest.action.admin.cluster.RestCancelTasksAction;
 import org.elasticsearch.rest.action.admin.cluster.RestClusterAllocationExplainAction;
@@ -453,9 +449,6 @@ public class ActionModule extends AbstractModule {
         actions.register(RecoveryAction.INSTANCE, TransportRecoveryAction.class);
         actions.register(NodesReloadSecureSettingsAction.INSTANCE, TransportNodesReloadSecureSettingsAction.class);
 
-        actions.register(FieldCapabilitiesAction.INSTANCE, TransportFieldCapabilitiesAction.class,
-            TransportFieldCapabilitiesIndexAction.class);
-
         actionPlugins.stream().flatMap(p -> p.getActions().stream()).forEach(actions::register);
 
         // Persistent tasks:
@@ -561,8 +554,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestRecoveryAction(settings, restController));
 
         registerHandler.accept(new RestReloadSecureSettingsAction(settings, restController));
-
-        registerHandler.accept(new RestFieldCapabilitiesAction(settings, restController));
 
         // Tasks API
         registerHandler.accept(new RestListTasksAction(settings, restController, nodesInCluster));
