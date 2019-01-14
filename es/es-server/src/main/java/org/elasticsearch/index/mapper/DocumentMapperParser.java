@@ -31,7 +31,6 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
 import java.util.HashMap;
@@ -46,7 +45,6 @@ public class DocumentMapperParser {
     final MapperService mapperService;
     final IndexAnalyzers indexAnalyzers;
     private final NamedXContentRegistry xContentRegistry;
-    private final SimilarityService similarityService;
     private final Supplier<QueryShardContext> queryShardContextSupplier;
 
     private final RootObjectMapper.TypeParser rootObjectTypeParser = new RootObjectMapper.TypeParser();
@@ -57,12 +55,11 @@ public class DocumentMapperParser {
     private final Map<String, MetadataFieldMapper.TypeParser> rootTypeParsers;
 
     public DocumentMapperParser(IndexSettings indexSettings, MapperService mapperService, IndexAnalyzers indexAnalyzers,
-                                NamedXContentRegistry xContentRegistry, SimilarityService similarityService, MapperRegistry mapperRegistry,
+                                NamedXContentRegistry xContentRegistry, MapperRegistry mapperRegistry,
                                 Supplier<QueryShardContext> queryShardContextSupplier) {
         this.mapperService = mapperService;
         this.indexAnalyzers = indexAnalyzers;
         this.xContentRegistry = xContentRegistry;
-        this.similarityService = similarityService;
         this.queryShardContextSupplier = queryShardContextSupplier;
         this.typeParsers = mapperRegistry.getMapperParsers();
         this.rootTypeParsers = mapperRegistry.getMetadataMapperParsers();
@@ -70,7 +67,7 @@ public class DocumentMapperParser {
     }
 
     public Mapper.TypeParser.ParserContext parserContext(String type) {
-        return new Mapper.TypeParser.ParserContext(type, indexAnalyzers, similarityService::getSimilarity, mapperService,
+        return new Mapper.TypeParser.ParserContext(type, indexAnalyzers, mapperService,
                 typeParsers::get, indexVersionCreated, queryShardContextSupplier);
     }
 

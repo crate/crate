@@ -29,7 +29,6 @@ import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
-import org.elasticsearch.index.similarity.SimilarityProvider;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -261,10 +260,6 @@ public class TypeParsers {
                     builder.includeInAll(nodeBooleanValue(name, "include_in_all", propNode, parserContext));
                 }
                 iterator.remove();
-            } else if (propName.equals("similarity")) {
-                SimilarityProvider similarityProvider = resolveSimilarity(parserContext, name, propNode.toString());
-                builder.similarity(similarityProvider);
-                iterator.remove();
             } else if (propName.equals("fielddata")
                     && propNode instanceof Map
                     && parserContext.indexVersionCreated().before(Version.V_5_0_0_alpha1)) {
@@ -395,17 +390,5 @@ public class TypeParsers {
             copyToBuilder.add(nodeStringValue(propNode, null));
         }
         builder.copyTo(copyToBuilder.build());
-    }
-
-    private static SimilarityProvider resolveSimilarity(Mapper.TypeParser.ParserContext parserContext, String name, String value) {
-        if (parserContext.indexVersionCreated().before(Version.V_5_0_0_alpha1) && "default".equals(value)) {
-            // "default" similarity has been renamed into "classic" in 3.x.
-            value = "classic";
-        }
-        SimilarityProvider similarityProvider = parserContext.getSimilarity(value);
-        if (similarityProvider == null) {
-            throw new MapperParsingException("Unknown Similarity type [" + value + "] for field [" + name + "]");
-        }
-        return similarityProvider;
     }
 }

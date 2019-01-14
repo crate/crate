@@ -30,7 +30,6 @@ import org.elasticsearch.common.time.DateMathParser;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.similarity.SimilarityProvider;
 import org.joda.time.DateTimeZone;
 
 import java.util.List;
@@ -109,16 +108,6 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     @Override
     public void setSearchQuoteAnalyzer(NamedAnalyzer analyzer) {
         innerFieldType.setSearchQuoteAnalyzer(analyzer);
-    }
-
-    @Override
-    public SimilarityProvider similarity() {
-        return innerFieldType.similarity();
-    }
-
-    @Override
-    public void setSimilarity(SimilarityProvider similarity) {
-        innerFieldType.setSimilarity(similarity);
     }
 
     @Override

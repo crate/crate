@@ -64,7 +64,6 @@ import org.elasticsearch.index.shard.SearchOperationListener;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.index.shard.ShardPath;
-import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.index.store.DirectoryService;
 import org.elasticsearch.index.store.IndexStore;
 import org.elasticsearch.index.store.Store;
@@ -109,7 +108,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final MapperService mapperService;
     private final NamedXContentRegistry xContentRegistry;
     private final NamedWriteableRegistry namedWriteableRegistry;
-    private final SimilarityService similarityService;
     private final EngineFactory engineFactory;
     private final IndexWarmer warmer;
     private volatile Map<Integer, IndexShard> shards = emptyMap();
@@ -136,7 +134,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             IndexSettings indexSettings,
             NodeEnvironment nodeEnv,
             NamedXContentRegistry xContentRegistry,
-            SimilarityService similarityService,
             ShardStoreDeleter shardStoreDeleter,
             AnalysisRegistry registry,
             EngineFactory engineFactory,
@@ -156,10 +153,9 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         super(indexSettings);
         this.indexSettings = indexSettings;
         this.xContentRegistry = xContentRegistry;
-        this.similarityService = similarityService;
         this.namedWriteableRegistry = namedWriteableRegistry;
         this.circuitBreakerService = circuitBreakerService;
-        this.mapperService = new MapperService(indexSettings, registry.build(indexSettings), xContentRegistry, similarityService,
+        this.mapperService = new MapperService(indexSettings, registry.build(indexSettings), xContentRegistry,
             mapperRegistry,
             // we parse all percolator queries as they would be parsed on shard 0
             () -> newQueryShardContext(0, null, System::currentTimeMillis, null));
@@ -253,10 +249,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
 
     public NamedXContentRegistry xContentRegistry() {
         return xContentRegistry;
-    }
-
-    public SimilarityService similarityService() {
-        return similarityService;
     }
 
     public Supplier<Sort> getIndexSortSupplier() {
@@ -380,7 +372,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             store = new Store(shardId, this.indexSettings, directoryService.newDirectory(), lock,
                     new StoreCloseListener(shardId, () -> eventListener.onStoreClosed(shardId)));
             indexShard = new IndexShard(routing, this.indexSettings, path, store, indexSortSupplier,
-                indexCache, mapperService, similarityService, engineFactory,
+                indexCache, mapperService, engineFactory,
                 eventListener, searcherWrapper, threadPool, bigArrays, engineWarmer,
                 searchOperationListeners, indexingOperationListeners, () -> globalCheckpointSyncer.accept(shardId),
                 circuitBreakerService);
@@ -487,7 +479,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     public QueryShardContext newQueryShardContext(int shardId, IndexReader indexReader, LongSupplier nowInMillis, String clusterAlias) {
         return new QueryShardContext(
             shardId, indexSettings, indexCache.bitsetFilterCache(), indexFieldData::getForField, mapperService(),
-                similarityService(), xContentRegistry,
+                xContentRegistry,
                namedWriteableRegistry, client, indexReader,
             nowInMillis, clusterAlias);
     }
