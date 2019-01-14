@@ -53,12 +53,6 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.search.SearchScrollRequestBuilder;
-import org.elasticsearch.action.termvectors.MultiTermVectorsRequest;
-import org.elasticsearch.action.termvectors.MultiTermVectorsRequestBuilder;
-import org.elasticsearch.action.termvectors.MultiTermVectorsResponse;
-import org.elasticsearch.action.termvectors.TermVectorsRequest;
-import org.elasticsearch.action.termvectors.TermVectorsRequestBuilder;
-import org.elasticsearch.action.termvectors.TermVectorsResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateRequestBuilder;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -335,83 +329,6 @@ public interface Client extends ElasticsearchClient, Releasable {
      * Performs multiple search requests.
      */
     MultiSearchRequestBuilder prepareMultiSearch();
-
-    /**
-     * An action that returns the term vectors for a specific document.
-     *
-     * @param request The term vector request
-     * @return The response future
-     */
-    ActionFuture<TermVectorsResponse> termVectors(TermVectorsRequest request);
-
-    /**
-     * An action that returns the term vectors for a specific document.
-     *
-     * @param request The term vector request
-     */
-    void termVectors(TermVectorsRequest request, ActionListener<TermVectorsResponse> listener);
-
-    /**
-     * Builder for the term vector request.
-     */
-    TermVectorsRequestBuilder prepareTermVectors();
-
-    /**
-     * Builder for the term vector request.
-     *
-     * @param index The index to load the document from
-     * @param type  The type of the document
-     * @param id    The id of the document
-     */
-    TermVectorsRequestBuilder prepareTermVectors(String index, String type, String id);
-
-    /**
-     * An action that returns the term vectors for a specific document.
-     *
-     * @param request The term vector request
-     * @return The response future
-     */
-    @Deprecated
-    ActionFuture<TermVectorsResponse> termVector(TermVectorsRequest request);
-
-    /**
-     * An action that returns the term vectors for a specific document.
-     *
-     * @param request The term vector request
-     */
-    @Deprecated
-    void termVector(TermVectorsRequest request, ActionListener<TermVectorsResponse> listener);
-
-    /**
-     * Builder for the term vector request.
-     */
-    @Deprecated
-    TermVectorsRequestBuilder prepareTermVector();
-
-    /**
-     * Builder for the term vector request.
-     *
-     * @param index The index to load the document from
-     * @param type  The type of the document
-     * @param id    The id of the document
-     */
-    @Deprecated
-    TermVectorsRequestBuilder prepareTermVector(String index, String type, String id);
-
-    /**
-     * Multi get term vectors.
-     */
-    ActionFuture<MultiTermVectorsResponse> multiTermVectors(MultiTermVectorsRequest request);
-
-    /**
-     * Multi get term vectors.
-     */
-    void multiTermVectors(MultiTermVectorsRequest request, ActionListener<MultiTermVectorsResponse> listener);
-
-    /**
-     * Multi get term vectors.
-     */
-    MultiTermVectorsRequestBuilder prepareMultiTermVectors();
 
     /**
      * Computes a score explanation for the specified request.
