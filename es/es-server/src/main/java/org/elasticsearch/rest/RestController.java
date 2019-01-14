@@ -37,7 +37,6 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.core.internal.io.Streams;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.usage.UsageService;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -73,13 +72,11 @@ public class RestController extends AbstractComponent implements HttpServerTrans
 
     /** Rest headers that are copied to internal requests made during a rest request. */
     private final Set<String> headersToCopy;
-    private UsageService usageService;
 
     public RestController(Settings settings, Set<String> headersToCopy, UnaryOperator<RestHandler> handlerWrapper,
-            NodeClient client, CircuitBreakerService circuitBreakerService, UsageService usageService) {
+            NodeClient client, CircuitBreakerService circuitBreakerService) {
         super(settings);
         this.headersToCopy = headersToCopy;
-        this.usageService = usageService;
         if (handlerWrapper == null) {
             handlerWrapper = h -> h; // passthrough if no wrapper set
         }
@@ -148,9 +145,6 @@ public class RestController extends AbstractComponent implements HttpServerTrans
      * @param method GET, POST, etc.
      */
     public void registerHandler(RestRequest.Method method, String path, RestHandler handler) {
-        if (handler instanceof BaseRestHandler) {
-            usageService.addRestHandler((BaseRestHandler) handler);
-        }
         handlers.insertOrUpdate(path, new MethodHandlers(path, handler, method), (mHandlers, newMHandler) -> {
             return mHandlers.addMethods(handler, method);
         });
