@@ -36,7 +36,6 @@ import org.elasticsearch.index.engine.EngineConfig;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.index.store.FsDirectoryService;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.IndicesRequestCache;
@@ -158,16 +157,6 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         EngineConfig.INDEX_CODEC_SETTING,
         EngineConfig.INDEX_OPTIMIZE_AUTO_GENERATED_IDS,
         IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS,
-        // validate that built-in similarities don't get redefined
-        Setting.groupSetting("index.similarity.", (s) -> {
-            Map<String, Settings> groups = s.getAsGroups();
-            for (String key : SimilarityService.BUILT_IN.keySet()) {
-                if (groups.containsKey(key)) {
-                    throw new IllegalArgumentException("illegal value for [index.similarity." + key +
-                            "] cannot redefine built-in similarity");
-                }
-            }
-        }, Property.IndexScope), // this allows similarity settings to be passed
         Setting.groupSetting("index.analysis.", Property.IndexScope) // this allows analysis settings to be passed
 
     )));

@@ -25,7 +25,6 @@ import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.Sort;
-import org.apache.lucene.search.similarities.Similarity;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -63,7 +62,6 @@ public final class EngineConfig {
     private final Store store;
     private final MergePolicy mergePolicy;
     private final Analyzer analyzer;
-    private final Similarity similarity;
     private final CodecService codecService;
     private final Engine.EventListener eventListener;
     private final QueryCache queryCache;
@@ -119,7 +117,7 @@ public final class EngineConfig {
     public EngineConfig(ShardId shardId, String allocationId, ThreadPool threadPool,
                         IndexSettings indexSettings, Engine.Warmer warmer, Store store,
                         MergePolicy mergePolicy, Analyzer analyzer,
-                        Similarity similarity, CodecService codecService, Engine.EventListener eventListener,
+                        CodecService codecService, Engine.EventListener eventListener,
                         QueryCache queryCache, QueryCachingPolicy queryCachingPolicy,
                         TranslogConfig translogConfig, TimeValue flushMergesAfter,
                         List<ReferenceManager.RefreshListener> externalRefreshListener,
@@ -134,7 +132,6 @@ public final class EngineConfig {
         this.store = store;
         this.mergePolicy = mergePolicy;
         this.analyzer = analyzer;
-        this.similarity = similarity;
         this.codecService = codecService;
         this.eventListener = eventListener;
         codecName = indexSettings.getValue(INDEX_CODEC_SETTING);
@@ -282,13 +279,6 @@ public final class EngineConfig {
      */
     public Analyzer getAnalyzer() {
         return analyzer;
-    }
-
-    /**
-     * Returns the {@link org.apache.lucene.search.similarities.Similarity} used for indexing and searching.
-     */
-    public Similarity getSimilarity() {
-        return similarity;
     }
 
     /**

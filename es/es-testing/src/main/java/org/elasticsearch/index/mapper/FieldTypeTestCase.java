@@ -27,7 +27,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.analysis.AnalyzerScope;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.similarity.SimilarityProvider;
 import org.elasticsearch.test.ESTestCase;
 
 import java.util.ArrayList;
@@ -132,33 +131,6 @@ public abstract class FieldTypeTestCase extends ESTestCase {
                 other.setSearchQuoteAnalyzer(new NamedAnalyzer("foo", AnalyzerScope.INDEX, new StandardAnalyzer()));
             }
         },
-        new Modifier("similarity", false) {
-            @Override
-            public void modify(MappedFieldType ft) {
-                ft.setSimilarity(new SimilarityProvider("foo", new BM25Similarity()));
-            }
-        },
-        new Modifier("similarity", false) {
-            @Override
-            public void modify(MappedFieldType ft) {
-                ft.setSimilarity(new SimilarityProvider("foo", new BM25Similarity()));
-            }
-            @Override
-            public void normalizeOther(MappedFieldType other) {
-                other.setSimilarity(new SimilarityProvider("bar", new BM25Similarity()));
-            }
-        },
-        // check that we can update if the similarity is unchanged
-        new Modifier("similarity", true) {
-            @Override
-            public void modify(MappedFieldType ft) {
-                ft.setSimilarity(new SimilarityProvider("foo", new BM25Similarity()));
-            }
-            @Override
-            public void normalizeOther(MappedFieldType other) {
-                other.setSimilarity(new SimilarityProvider("foo", new BM25Similarity()));
-            }
-        },
         new Modifier("eager_global_ordinals", true) {
             @Override
             public void modify(MappedFieldType ft) {
@@ -241,7 +213,6 @@ public abstract class FieldTypeTestCase extends ESTestCase {
             ", indexAnalyzer=" + ft.indexAnalyzer() +
             ", searchAnalyzer=" + ft.searchAnalyzer() +
             ", searchQuoteAnalyzer=" + ft.searchQuoteAnalyzer() +
-            ", similarity=" + ft.similarity() +
             ", eagerGlobalOrdinals=" + ft.eagerGlobalOrdinals() +
             ", nullValue=" + ft.nullValue() +
             ", nullValueAsString='" + ft.nullValueAsString() + "'" +
