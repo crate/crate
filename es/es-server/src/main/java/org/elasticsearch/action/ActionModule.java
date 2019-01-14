@@ -25,8 +25,6 @@ import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplai
 import org.elasticsearch.action.admin.cluster.allocation.TransportClusterAllocationExplainAction;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
-import org.elasticsearch.action.admin.cluster.node.hotthreads.NodesHotThreadsAction;
-import org.elasticsearch.action.admin.cluster.node.hotthreads.TransportNodesHotThreadsAction;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoAction;
 import org.elasticsearch.action.admin.cluster.node.info.TransportNodesInfoAction;
 import org.elasticsearch.action.admin.cluster.node.liveness.TransportLivenessAction;
@@ -200,7 +198,6 @@ import org.elasticsearch.rest.action.admin.cluster.RestGetRepositoriesAction;
 import org.elasticsearch.rest.action.admin.cluster.RestGetSnapshotsAction;
 import org.elasticsearch.rest.action.admin.cluster.RestGetTaskAction;
 import org.elasticsearch.rest.action.admin.cluster.RestListTasksAction;
-import org.elasticsearch.rest.action.admin.cluster.RestNodesHotThreadsAction;
 import org.elasticsearch.rest.action.admin.cluster.RestNodesInfoAction;
 import org.elasticsearch.rest.action.admin.cluster.RestNodesStatsAction;
 import org.elasticsearch.rest.action.admin.cluster.RestPendingClusterTasksAction;
@@ -374,7 +371,6 @@ public class ActionModule extends AbstractModule {
         actions.register(NodesInfoAction.INSTANCE, TransportNodesInfoAction.class);
         actions.register(RemoteInfoAction.INSTANCE, TransportRemoteInfoAction.class);
         actions.register(NodesStatsAction.INSTANCE, TransportNodesStatsAction.class);
-        actions.register(NodesHotThreadsAction.INSTANCE, TransportNodesHotThreadsAction.class);
         actions.register(ListTasksAction.INSTANCE, TransportListTasksAction.class);
         actions.register(GetTaskAction.INSTANCE, TransportGetTaskAction.class);
         actions.register(CancelTasksAction.INSTANCE, TransportCancelTasksAction.class);
@@ -471,7 +467,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestNodesInfoAction(settings, restController, settingsFilter));
         registerHandler.accept(new RestRemoteClusterInfoAction(settings, restController));
         registerHandler.accept(new RestNodesStatsAction(settings, restController));
-        registerHandler.accept(new RestNodesHotThreadsAction(settings, restController));
         registerHandler.accept(new RestClusterAllocationExplainAction(settings, restController));
         registerHandler.accept(new RestClusterStatsAction(settings, restController));
         registerHandler.accept(new RestClusterStateAction(settings, restController, settingsFilter));
