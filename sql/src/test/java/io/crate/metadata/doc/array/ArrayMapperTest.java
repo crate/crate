@@ -21,50 +21,45 @@
 
 package io.crate.metadata.doc.array;
 
-import com.google.common.base.Joiner;
 import io.crate.Constants;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.test.CauseMatcher;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.mapper.ArrayMapper;
+import org.elasticsearch.index.mapper.ArrayTypeParser;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.DocumentMapperParser;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
+import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ObjectArrayMapper;
 import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.TermsQueryBuilder;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.indices.IndicesModule;
+import org.elasticsearch.plugins.MapperPlugin;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -77,8 +72,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
-public class ArrayMapperTest extends SQLTransportIntegrationTest {
+public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
 
     public static final String INDEX = "my_index";
     public static final String TYPE = Constants.DEFAULT_MAPPING_TYPE;
@@ -87,21 +81,20 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
      * create index with type and mapping and validate DocumentMapper serialization
      */
     private DocumentMapper mapper(String indexName, String type, String mapping) throws IOException {
-        // we serialize and deserialize the mapping to make sure serialization works just fine
-        client().admin().indices().prepareCreate(indexName)
-            .setWaitForActiveShards(1)
-            .addMapping(type, mapping, XContentType.JSON)
-            .setSettings(Settings.builder()
-                .put("number_of_replicas", 0)
-                .put("number_of_shards", 1).build()).execute().actionGet();
-        String[] nodeNames = internalCluster().getNodeNames();
-        assert nodeNames.length == 1 : "must have only 1 node, got: " + Arrays.toString(nodeNames);
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
-        Index index = clusterService.state().getMetaData().index(indexName).getIndex();
-        IndicesService instanceFromNode = internalCluster().getInstance(IndicesService.class);
-        IndexService indexService = instanceFromNode.indexServiceSafe(index);
-
-        DocumentMapperParser parser = indexService.mapperService().documentMapperParser();
+        IndicesModule indicesModule = new IndicesModule(Collections.singletonList(new MapperPlugin() {
+            @Override
+            public Map<String, Mapper.TypeParser> getMappers() {
+                return Collections.singletonMap(ArrayMapper.CONTENT_TYPE, new ArrayTypeParser());
+            }
+        }));
+        MapperService mapperService = MapperTestUtils.newMapperService(
+            NamedXContentRegistry.EMPTY,
+            createTempDir(),
+            Settings.EMPTY,
+            indicesModule,
+            indexName
+        );
+        DocumentMapperParser parser = mapperService.documentMapperParser();
 
         DocumentMapper defaultMapper = parser.parse(type, new CompressedXContent(mapping));
         XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
@@ -336,124 +329,6 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertGetArray() throws Exception {
-        // @formatter:off
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
-            .startObject()
-                .startObject(TYPE)
-                    .startObject("properties")
-                        .startObject("array_field")
-                            .field("type", ArrayMapper.CONTENT_TYPE)
-                            .startObject(ArrayMapper.INNER_TYPE)
-                                .field("type", "double")
-                            .endObject()
-                        .endObject()
-                    .endObject()
-                .endObject()
-            .endObject());
-        // @formatter:on
-        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
-        IndexResponse response = client()
-            .prepareIndex(INDEX, TYPE)
-            .setId("123")
-            .setSource("{\"array_field\":[0.0, 99.9, -100.5678]}", XContentType.JSON)
-            .execute().actionGet();
-        assertThat(response.getVersion(), is(1L));
-
-        client().admin().indices().prepareRefresh(INDEX).execute().actionGet();
-
-        // realtime
-        GetResponse rtGetResponse = client().prepareGet(INDEX, TYPE, "123")
-            .setFetchSource(true)
-            .setStoredFields("array_field").setRealtime(true).execute().actionGet();
-        assertThat(rtGetResponse.getId(), is("123"));
-        assertThat(Joiner.on(',').withKeyValueSeparator(":").join(rtGetResponse.getSource()), is("array_field:[0.0, 99.9, -100.5678]"));
-
-        // non-realtime
-        GetResponse getResponse = client().prepareGet(INDEX, TYPE, "123")
-            .setFetchSource(true).setStoredFields("array_field").setRealtime(false).execute().actionGet();
-        assertThat(getResponse.getId(), is("123"));
-        assertThat(Joiner.on(',').withKeyValueSeparator(":").join(getResponse.getSource()), is("array_field:[0.0, 99.9, -100.5678]"));
-    }
-
-    @Test
-    public void testInsertSearchArray() throws Exception {
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
-            .startObject().startObject(TYPE).startObject("properties")
-            .startObject("array_field")
-            .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER_TYPE)
-            .field("type", "double")
-            .endObject()
-            .endObject()
-            .endObject().endObject().endObject());
-        mapper(INDEX, TYPE, mapping);
-        IndexResponse response = client()
-            .prepareIndex(INDEX, TYPE)
-            .setId("123")
-            .setSource("{\"array_field\":[0.0, 99.9, -100.5678]}", XContentType.JSON)
-            .execute().actionGet();
-        assertThat(response.getVersion(), is(1L));
-
-        client().admin().indices().prepareRefresh(INDEX).execute().actionGet();
-
-        SearchResponse searchResponse = client().prepareSearch(INDEX).setTypes(TYPE)
-            .setFetchSource(true)
-            .setQuery(QueryBuilders.termQuery("array_field", 0.0d)).execute().actionGet();
-        assertThat(searchResponse.getHits().getTotalHits(), is(1L));
-        assertThat(Joiner.on(',').withKeyValueSeparator(":").join(
-            searchResponse.getHits().getAt(0).getSourceAsMap()),
-            is("array_field:[0.0, 99.9, -100.5678]"));
-
-        Object values = searchResponse.getHits().getAt(0).getSourceAsMap().get("array_field");
-        assertThat((List<Double>) values, Matchers.hasItems(0.0D, 99.9D, -100.5678D));
-    }
-
-    @Test
-    public void testEmptyArray() throws Exception {
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
-            .startObject().startObject(TYPE).startObject("properties")
-            .startObject("array_field")
-            .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER_TYPE)
-            .field("type", "double")
-            .endObject()
-            .endObject()
-            .endObject().endObject().endObject());
-        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
-
-        // parse source with empty array
-        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
-            .startObject()
-            .array("array_field")
-            .endObject());
-        SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
-        ParsedDocument doc = mapper.parse(sourceToParse);
-        assertThat(doc.dynamicMappingsUpdate() == null, is(true));
-        assertThat(doc.docs().size(), is(1));
-        assertThat(doc.docs().get(0).get("array_field"), is(nullValue())); // no lucene field generated
-
-        // insert
-        IndexResponse response = client()
-            .prepareIndex(INDEX, TYPE, "123")
-            .setSource("{\"array_field\":[]}", XContentType.JSON)
-            .execute().actionGet();
-        assertThat(response.getVersion(), is(1L));
-
-        client().admin().indices().prepareRefresh(INDEX).execute().actionGet();
-
-        SearchResponse searchResponse = client().prepareSearch(INDEX).setTypes(TYPE)
-            .setFetchSource(true).addStoredField("array_field")
-            .setQuery(new TermsQueryBuilder("_id", new int[]{123}))
-            .execute().actionGet();
-        assertThat(searchResponse.getHits().getTotalHits(), is(1L));
-        assertThat(Joiner.on(',').withKeyValueSeparator(":").join(
-            searchResponse.getHits().getAt(0).getSourceAsMap()),
-            is("array_field:[]"));
-        assertThat(searchResponse.getHits().getAt(0).getFields().containsKey("array_field"), is(false));
-    }
-
-    @Test
     public void testNestedArrayMapping() throws Exception {
         expectedException.expect(MapperParsingException.class);
         expectedException.expectMessage("nested arrays are not supported");
@@ -471,34 +346,6 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .endObject()
             .endObject().endObject().endObject());
         mapper(INDEX, TYPE, mapping);
-    }
-
-    @Test
-    public void testParseDynamicNestedArray() throws Exception {
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
-            .startObject().startObject(TYPE).startObject("properties")
-            .startObject("array_field")
-            .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER_TYPE)
-            .field("type", "double")
-            .endObject()
-            .endObject()
-            .endObject().endObject().endObject());
-        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
-
-        expectedException.expect(MapperParsingException.class);
-        expectedException.expectMessage("failed to parse");
-        expectedException.expectCause(CauseMatcher.cause(ElasticsearchParseException.class, "nested arrays are not supported"));
-        // parse source with empty array
-        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
-            .startObject()
-            .startArray("new_array_field")
-            .startArray().value("a").value("b").endArray()
-            .endArray()
-            .endObject());
-        SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
-        mapper.parse(sourceToParse);
-
     }
 
     @Test
