@@ -51,21 +51,17 @@ public class NthValueFunctionIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    public void testFirstValue() {
-        execute("select col1, first_value(col1) OVER(order by col2, col1) from unnest([1, 1, 3, 2], [1, 2, 2, 3]) order by col1, col2");
-        assertThat(printedTable(response.rows()), is("1| 1\n" +
-                                                     "1| 1\n" +
-                                                     "2| 1\n" +
-                                                     "3| 1\n"));
-    }
-
-    @Test
-    public void testLastValue() {
-        execute("select col1, last_value(col1) OVER(order by col2, col1) from unnest([1, 1, 3, 2], [1, 2, 2, 3]) order by col1, col2");
-        assertThat(printedTable(response.rows()), is("1| 1\n" +
-                                                     "1| 1\n" +
-                                                     "2| 2\n" +
-                                                     "3| 3\n"));
+    public void testGeneralPurposeWindowFunctionsWithStandaloneValues() {
+        execute("select col1, col2, " +
+                "first_value(col1) OVER(order by col2, col1), " +
+                "last_value(col1) OVER(order by col2, col1), " +
+                "nth_value(col1, 3) OVER(order by col2, col1) " +
+                "from unnest([1, 1, 3, 2], [1, 2, 2, 3]) " +
+                "order by col1, col2");
+        assertThat(printedTable(response.rows()), is("1| 1| 1| 1| NULL\n" +
+                                                     "1| 2| 1| 1| NULL\n" +
+                                                     "2| 3| 1| 2| 3\n" +
+                                                     "3| 2| 1| 3| 3\n"));
     }
 
     @Test
@@ -79,25 +75,4 @@ public class NthValueFunctionIntegrationTest extends SQLTransportIntegrationTest
                                                      "cc| cc| 2\n" +
                                                      "d| d| 1\n"));
     }
-
-    @Test
-    public void testNthValue() {
-        execute("select col1, col2, nth_value(col1, 4) OVER(order by col2, col1) from unnest([1, 1, 1, 3, 2], [1, 2, 2, 2, 3]) order by col1");
-        assertThat(printedTable(response.rows()), is("1| 1| NULL\n" +
-                                                     "1| 2| NULL\n" +
-                                                     "1| 2| NULL\n" +
-                                                     "2| 3| 3\n" +
-                                                     "3| 2| 3\n"));
-    }
-
-    @Test
-    public void testNtvValueWithNullPositionReturnsNull() {
-        execute("select nth_value(col1, null) OVER(order by col2, col1) from unnest([1, 1, 1, 3, 2], [1, 2, 2, 2, 3]) order by col1");
-        assertThat(printedTable(response.rows()), is("NULL\n" +
-                                                     "NULL\n" +
-                                                     "NULL\n" +
-                                                     "NULL\n" +
-                                                     "NULL\n"));
-    }
-
 }
