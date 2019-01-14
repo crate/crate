@@ -290,14 +290,6 @@ import org.elasticsearch.action.search.SearchScrollRequestBuilder;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.ThreadedActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.action.termvectors.MultiTermVectorsAction;
-import org.elasticsearch.action.termvectors.MultiTermVectorsRequest;
-import org.elasticsearch.action.termvectors.MultiTermVectorsRequestBuilder;
-import org.elasticsearch.action.termvectors.MultiTermVectorsResponse;
-import org.elasticsearch.action.termvectors.TermVectorsAction;
-import org.elasticsearch.action.termvectors.TermVectorsRequest;
-import org.elasticsearch.action.termvectors.TermVectorsRequestBuilder;
-import org.elasticsearch.action.termvectors.TermVectorsResponse;
 import org.elasticsearch.action.update.UpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateRequestBuilder;
@@ -309,11 +301,9 @@ import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.client.FilterClient;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -531,65 +521,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
     @Override
     public MultiSearchRequestBuilder prepareMultiSearch() {
         return new MultiSearchRequestBuilder(this, MultiSearchAction.INSTANCE);
-    }
-
-    @Override
-    public ActionFuture<TermVectorsResponse> termVectors(final TermVectorsRequest request) {
-        return execute(TermVectorsAction.INSTANCE, request);
-    }
-
-    @Override
-    public void termVectors(final TermVectorsRequest request, final ActionListener<TermVectorsResponse> listener) {
-        execute(TermVectorsAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public TermVectorsRequestBuilder prepareTermVectors() {
-        return new TermVectorsRequestBuilder(this, TermVectorsAction.INSTANCE);
-    }
-
-    @Override
-    public TermVectorsRequestBuilder prepareTermVectors(String index, String type, String id) {
-        return new TermVectorsRequestBuilder(this, TermVectorsAction.INSTANCE, index, type, id);
-    }
-
-    @Deprecated
-    @Override
-    public ActionFuture<TermVectorsResponse> termVector(final TermVectorsRequest request) {
-        return termVectors(request);
-    }
-
-    @Deprecated
-    @Override
-    public void termVector(final TermVectorsRequest request, final ActionListener<TermVectorsResponse> listener) {
-        termVectors(request, listener);
-    }
-
-    @Deprecated
-    @Override
-    public TermVectorsRequestBuilder prepareTermVector() {
-        return prepareTermVectors();
-    }
-
-    @Deprecated
-    @Override
-    public TermVectorsRequestBuilder prepareTermVector(String index, String type, String id) {
-        return prepareTermVectors(index, type, id);
-    }
-
-    @Override
-    public ActionFuture<MultiTermVectorsResponse> multiTermVectors(final MultiTermVectorsRequest request) {
-        return execute(MultiTermVectorsAction.INSTANCE, request);
-    }
-
-    @Override
-    public void multiTermVectors(final MultiTermVectorsRequest request, final ActionListener<MultiTermVectorsResponse> listener) {
-        execute(MultiTermVectorsAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public MultiTermVectorsRequestBuilder prepareMultiTermVectors() {
-        return new MultiTermVectorsRequestBuilder(this, MultiTermVectorsAction.INSTANCE);
     }
 
     @Override
