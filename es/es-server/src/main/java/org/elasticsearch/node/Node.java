@@ -146,7 +146,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportInterceptor;
 import org.elasticsearch.transport.TransportService;
-import org.elasticsearch.usage.UsageService;
 
 import javax.net.ssl.SNIHostName;
 import java.io.BufferedWriter;
@@ -363,7 +362,6 @@ public abstract class Node implements Closeable {
                 clusterService.getClusterSettings(), client);
             final ClusterInfoService clusterInfoService = newClusterInfoService(settings, clusterService, threadPool, client,
                 listener::onNewInfo);
-            final UsageService usageService = new UsageService(settings);
 
             ModulesBuilder modules = new ModulesBuilder();
             // plugin modules must be added here, before others or we can get crazy injection errors...
@@ -451,7 +449,7 @@ public abstract class Node implements Closeable {
 
             ActionModule actionModule = new ActionModule(false, settings, clusterModule.getIndexNameExpressionResolver(),
                 settingsModule.getIndexScopedSettings(), settingsModule.getClusterSettings(), settingsModule.getSettingsFilter(),
-                threadPool, pluginsService.filterPlugins(ActionPlugin.class), client, circuitBreakerService, usageService);
+                threadPool, pluginsService.filterPlugins(ActionPlugin.class), client, circuitBreakerService);
             modules.add(actionModule);
 
             final RestController restController = actionModule.getRestController();
@@ -535,7 +533,6 @@ public abstract class Node implements Closeable {
                     b.bind(CircuitBreakerService.class).toInstance(circuitBreakerService);
                     b.bind(BigArrays.class).toInstance(bigArrays);
                     b.bind(AnalysisRegistry.class).toInstance(analysisModule.getAnalysisRegistry());
-                    b.bind(UsageService.class).toInstance(usageService);
                     b.bind(NamedWriteableRegistry.class).toInstance(namedWriteableRegistry);
                     b.bind(MetaDataUpgrader.class).toInstance(metaDataUpgrader);
                     b.bind(MetaStateService.class).toInstance(metaStateService);
