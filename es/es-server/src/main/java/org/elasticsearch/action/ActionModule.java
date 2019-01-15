@@ -254,7 +254,6 @@ import org.elasticsearch.rest.action.cat.RestSnapshotAction;
 import org.elasticsearch.rest.action.cat.RestTasksAction;
 import org.elasticsearch.rest.action.cat.RestTemplatesAction;
 import org.elasticsearch.rest.action.cat.RestThreadPoolAction;
-import org.elasticsearch.rest.action.document.RestBulkAction;
 import org.elasticsearch.rest.action.document.RestDeleteAction;
 import org.elasticsearch.rest.action.document.RestGetAction;
 import org.elasticsearch.rest.action.document.RestGetSourceAction;
@@ -523,7 +522,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestMultiGetAction(settings, restController));
         registerHandler.accept(new RestDeleteAction(settings, restController));
         registerHandler.accept(new org.elasticsearch.rest.action.document.RestCountAction(settings, restController));
-        registerHandler.accept(new RestBulkAction(settings, restController));
         registerHandler.accept(new RestUpdateAction(settings, restController));
 
         registerHandler.accept(new RestSearchAction(settings, restController));

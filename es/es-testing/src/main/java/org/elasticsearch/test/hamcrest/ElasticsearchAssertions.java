@@ -31,7 +31,6 @@ import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.action.search.SearchRequestBuilder;
@@ -280,11 +279,6 @@ public class ElasticsearchAssertions {
     public static void assertFailures(SearchResponse searchResponse) {
         assertThat("Expected at least one shard failure, got none",
                 searchResponse.getShardFailures().length, greaterThan(0));
-    }
-
-    public static void assertNoFailures(BulkResponse response) {
-        assertThat("Unexpected ShardFailures: " + response.buildFailureMessage(),
-                response.hasFailures(), is(false));
     }
 
     public static void assertFailures(SearchRequestBuilder searchRequestBuilder, RestStatus restStatus, Matcher<String> reasonMatcher) {
