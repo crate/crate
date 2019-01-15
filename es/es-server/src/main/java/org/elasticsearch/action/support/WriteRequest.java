@@ -22,7 +22,6 @@ package org.elasticsearch.action.support;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
-import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -31,7 +30,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 import java.io.IOException;
 
 /**
- * Interface implemented by requests that modify the documents in an index like {@link IndexRequest}, {@link UpdateRequest}.
+ * Interface implemented by requests that modify the documents in an index like {@link IndexRequest}.
  * Rather than implement this directly most implementers should extend {@link ReplicatedWriteRequest}.
  */
 public interface WriteRequest<R extends WriteRequest<R>> extends Streamable {
