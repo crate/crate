@@ -55,7 +55,6 @@ import org.elasticsearch.action.admin.indices.segments.IndicesSegmentsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.shards.IndicesShardStoresRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
-import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.index.IndexRequest;
@@ -104,13 +103,6 @@ public class Requests {
      */
     public static DeleteRequest deleteRequest(String index) {
         return new DeleteRequest(index);
-    }
-
-    /**
-     * Creates a new bulk request.
-     */
-    public static BulkRequest bulkRequest() {
-        return new BulkRequest();
     }
 
     /**
