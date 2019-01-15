@@ -229,11 +229,11 @@ public class InternalTestClusterTests extends ESTestCase {
         try {
             {
                 Random random = new Random(seed);
-                cluster0.beforeTest(random, random.nextDouble());
+                cluster0.beforeTest(random);
             }
             {
                 Random random = new Random(seed);
-                cluster1.beforeTest(random, random.nextDouble());
+                cluster1.beforeTest(random);
             }
             assertArrayEquals(cluster0.getNodeNames(), cluster1.getNodeNames());
             if (cluster0.getNodeNames().length > 0) {
@@ -297,7 +297,7 @@ public class InternalTestClusterTests extends ESTestCase {
             enableHttpPipelining, nodePrefix, Arrays.asList(getTestTransportPlugin(), TestZenDiscovery.TestPlugin.class),
             Function.identity());
         try {
-            cluster.beforeTest(random(), 0.0);
+            cluster.beforeTest(random());
             final int originalMasterCount = cluster.numMasterNodes();
             assertMMNinNodeSetting(cluster, originalMasterCount);
             final Map<String,Path[]> shardNodePaths = new HashMap<>();
@@ -341,7 +341,7 @@ public class InternalTestClusterTests extends ESTestCase {
             final Path newTestMarker = newDataPath.resolve("newTestMarker");
             assertThat(newDataPath, not(dataPath));
             Files.createDirectories(newTestMarker);
-            cluster.beforeTest(random(), 0.0);
+            cluster.beforeTest(random());
             assertFileNotExists(newTestMarker); // the cluster should be reset for a new test, cleaning up the extra path we made
             assertFileNotExists(testMarker); // a new unknown node used this path, it should be cleaned
             assertFileExists(stableTestMarker); // but leaving the structure of existing, reused nodes
@@ -349,7 +349,7 @@ public class InternalTestClusterTests extends ESTestCase {
                 assertThat("data paths for " + name + " changed", getNodePaths(cluster, name), equalTo(shardNodePaths.get(name)));
             }
 
-            cluster.beforeTest(random(), 0.0);
+            cluster.beforeTest(random());
             assertFileExists(stableTestMarker); // but leaving the structure of existing, reused nodes
             for (String name: cluster.getNodeNames()) {
                 assertThat("data paths for " + name + " changed", getNodePaths(cluster, name),
@@ -403,7 +403,7 @@ public class InternalTestClusterTests extends ESTestCase {
                         .put(NetworkModule.TRANSPORT_TYPE_KEY, transportClient).build();
             }
         }, 0, randomBoolean(), "", Arrays.asList(getTestTransportPlugin(), TestZenDiscovery.TestPlugin.class), Function.identity());
-        cluster.beforeTest(random(), 0.0);
+        cluster.beforeTest(random());
         List<DiscoveryNode.Role> roles = new ArrayList<>();
         for (int i = 0; i < numNodes; i++) {
             final DiscoveryNode.Role role = i == numNodes - 1 && roles.contains(MASTER) == false ?
@@ -495,7 +495,7 @@ public class InternalTestClusterTests extends ESTestCase {
             "test", nodeConfigurationSource, 0, enableHttpPipelining, nodePrefix,
             plugins, Function.identity());
         try {
-            cluster.beforeTest(random(), 0.0);
+            cluster.beforeTest(random());
             assertMMNinNodeSetting(cluster, 2);
             switch (randomInt(2)) {
                 case 0:
