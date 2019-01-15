@@ -47,4 +47,5 @@ None
 Fixes
 =====
 
-None
+- Fixed a ``NullPointerException`` that occurs on ``OUTER`` joins which can
+  be rewritten to ``INNER`` joins and uses a function as a select item.
