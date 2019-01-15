@@ -28,8 +28,6 @@ import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthActio
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoAction;
 import org.elasticsearch.action.admin.cluster.node.info.TransportNodesInfoAction;
 import org.elasticsearch.action.admin.cluster.node.liveness.TransportLivenessAction;
-import org.elasticsearch.action.admin.cluster.node.reload.NodesReloadSecureSettingsAction;
-import org.elasticsearch.action.admin.cluster.node.reload.TransportNodesReloadSecureSettingsAction;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsAction;
 import org.elasticsearch.action.admin.cluster.node.stats.TransportNodesStatsAction;
 import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksAction;
@@ -202,7 +200,6 @@ import org.elasticsearch.rest.action.admin.cluster.RestNodesInfoAction;
 import org.elasticsearch.rest.action.admin.cluster.RestNodesStatsAction;
 import org.elasticsearch.rest.action.admin.cluster.RestPendingClusterTasksAction;
 import org.elasticsearch.rest.action.admin.cluster.RestPutRepositoryAction;
-import org.elasticsearch.rest.action.admin.cluster.RestReloadSecureSettingsAction;
 import org.elasticsearch.rest.action.admin.cluster.RestRemoteClusterInfoAction;
 import org.elasticsearch.rest.action.admin.cluster.RestRestoreSnapshotAction;
 import org.elasticsearch.rest.action.admin.cluster.RestSnapshotsStatusAction;
@@ -438,7 +435,6 @@ public class ActionModule extends AbstractModule {
         actions.register(ExplainAction.INSTANCE, TransportExplainAction.class);
         actions.register(ClearScrollAction.INSTANCE, TransportClearScrollAction.class);
         actions.register(RecoveryAction.INSTANCE, TransportRecoveryAction.class);
-        actions.register(NodesReloadSecureSettingsAction.INSTANCE, TransportNodesReloadSecureSettingsAction.class);
 
         actionPlugins.stream().flatMap(p -> p.getActions().stream()).forEach(actions::register);
 
@@ -542,7 +538,6 @@ public class ActionModule extends AbstractModule {
 
         registerHandler.accept(new RestRecoveryAction(settings, restController));
 
-        registerHandler.accept(new RestReloadSecureSettingsAction(settings, restController));
 
         // Tasks API
         registerHandler.accept(new RestListTasksAction(settings, restController, nodesInCluster));
