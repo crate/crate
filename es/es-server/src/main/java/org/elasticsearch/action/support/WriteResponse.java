@@ -22,11 +22,10 @@ package org.elasticsearch.action.support;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
-import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.index.IndexSettings;
 
 /**
- * Interface implemented by responses for actions that modify the documents in an index like {@link IndexResponse} and {@link UpdateResponse}.
+ * Interface implemented by responses for actions that modify the documents in an index like {@link IndexResponse}.
  * Rather than implement this directly most implementers should extend {@link DocWriteResponse}.
  */
 public interface WriteResponse {
