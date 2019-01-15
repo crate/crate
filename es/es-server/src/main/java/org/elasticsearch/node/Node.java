@@ -32,7 +32,6 @@ import org.elasticsearch.action.search.SearchExecutionStatsCollector;
 import org.elasticsearch.action.search.SearchPhaseController;
 import org.elasticsearch.action.search.SearchTransportService;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.action.update.UpdateHelper;
 import org.elasticsearch.bootstrap.BootstrapCheck;
 import org.elasticsearch.bootstrap.BootstrapContext;
 import org.elasticsearch.client.Client;
@@ -545,7 +544,6 @@ public abstract class Node implements Closeable {
                     b.bind(Transport.class).toInstance(transport);
                     b.bind(TransportService.class).toInstance(transportService);
                     b.bind(NetworkService.class).toInstance(networkService);
-                    b.bind(UpdateHelper.class).toInstance(new UpdateHelper(settings));
                     b.bind(MetaDataIndexUpgradeService.class).toInstance(metaDataIndexUpgradeService);
                     b.bind(ClusterInfoService.class).toInstance(clusterInfoService);
                     b.bind(GatewayMetaState.class).toInstance(gatewayMetaState);

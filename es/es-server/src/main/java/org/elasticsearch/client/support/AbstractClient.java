@@ -270,12 +270,7 @@ import org.elasticsearch.action.search.SearchScrollAction;
 import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.search.SearchScrollRequestBuilder;
 import org.elasticsearch.action.support.PlainActionFuture;
-import org.elasticsearch.action.support.ThreadedActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.action.update.UpdateAction;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateRequestBuilder;
-import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.ClusterAdminClient;
@@ -365,26 +360,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
     @Override
     public IndexRequestBuilder prepareIndex(String index, String type, @Nullable String id) {
         return prepareIndex().setIndex(index).setType(type).setId(id);
-    }
-
-    @Override
-    public ActionFuture<UpdateResponse> update(final UpdateRequest request) {
-        return execute(UpdateAction.INSTANCE, request);
-    }
-
-    @Override
-    public void update(final UpdateRequest request, final ActionListener<UpdateResponse> listener) {
-        execute(UpdateAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public UpdateRequestBuilder prepareUpdate() {
-        return new UpdateRequestBuilder(this, UpdateAction.INSTANCE, null, null, null);
-    }
-
-    @Override
-    public UpdateRequestBuilder prepareUpdate(String index, String type, String id) {
-        return new UpdateRequestBuilder(this, UpdateAction.INSTANCE, index, type, id);
     }
 
     @Override
