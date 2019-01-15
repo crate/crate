@@ -251,7 +251,7 @@ public class Rewriter {
 
             // if the column was only added to the outerSpec outputs because of the whereClause
             // it's possible to not collect it as long is it isn't used somewhere else
-            if (!mssOutputSymbols.contains(input) &&
+            if (!SymbolVisitors.any(symbol -> Objects.equals(input, symbol), mssOutputSymbols) &&
                 !SymbolVisitors.any(symbol -> Objects.equals(input, symbol), joinCondition)) {
                 fieldsToNotCollect.add(input);
             }
