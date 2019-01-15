@@ -47,9 +47,6 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.search.SearchScrollRequestBuilder;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateRequestBuilder;
-import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Setting;
@@ -115,32 +112,6 @@ public interface Client extends ElasticsearchClient, Releasable {
      * The id is optional, if it is not provided, one will be generated automatically.
      */
     IndexRequestBuilder prepareIndex();
-
-    /**
-     * Updates a document based on a script.
-     *
-     * @param request The update request
-     * @return The result future
-     */
-    ActionFuture<UpdateResponse> update(UpdateRequest request);
-
-    /**
-     * Updates a document based on a script.
-     *
-     * @param request  The update request
-     * @param listener A listener to be notified with a result
-     */
-    void update(UpdateRequest request, ActionListener<UpdateResponse> listener);
-
-    /**
-     * Updates a document based on a script.
-     */
-    UpdateRequestBuilder prepareUpdate();
-
-    /**
-     * Updates a document based on a script.
-     */
-    UpdateRequestBuilder prepareUpdate(String index, String type, String id);
 
     /**
      * Index a document associated with a given index and type.
