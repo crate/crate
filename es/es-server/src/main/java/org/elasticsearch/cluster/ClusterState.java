@@ -22,7 +22,6 @@ package org.elasticsearch.cluster;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -129,7 +128,7 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
             if (custom.getRequiredFeature().isPresent()) {
                 final String requiredFeature = custom.getRequiredFeature().get();
                 // if it is a transport client we are lenient yet for a connected node it must have the required feature
-                return out.hasFeature(requiredFeature) || out.hasFeature(TransportClient.TRANSPORT_CLIENT_FEATURE) == false;
+                return out.hasFeature(requiredFeature);
             }
             return true;
         }
