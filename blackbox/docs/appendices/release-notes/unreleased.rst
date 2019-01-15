@@ -54,6 +54,9 @@ Changes
 Fixes
 =====
 
+- Fixed a ``NullPointerException`` that occurs on ``OUTER`` joins which can
+  be rewritten to ``INNER`` joins and uses a function as a select item.
+
 - Fixed a ``NullPointerException`` that could occur using ``array_difference``.
 
 - Fixed a race condition that could lead to stuck queries. One case this could
