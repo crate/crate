@@ -66,7 +66,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
-import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.RestoreInProgress;
@@ -393,7 +392,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
             default:
                 fail("Unknown Scope: [" + currentClusterScope + "]");
         }
-        cluster().beforeTest(random(), getPerTestTransportClientRatio());
+        cluster().beforeTest(random());
         cluster().wipe(excludeTemplates());
         randomIndexTemplate();
     }
@@ -1155,28 +1154,12 @@ public abstract class ESIntegTestCase extends ESTestCase {
                         && masterId.equals(localClusterState.nodes().getMasterNodeId())) {
                     try {
                         assertEquals("cluster state UUID does not match", masterClusterState.stateUUID(), localClusterState.stateUUID());
-                        /*
-                         * The cluster state received by the transport client can miss customs that the client does not understand. This
-                         * means that we only expect equality in the cluster state including customs if the master client and the local
-                         * client are of the same type (both or neither are transport clients). Otherwise, we can only assert equality
-                         * modulo non-core customs.
-                         */
-                        if (isTransportClient(masterClient) == isTransportClient(client)) {
-                            // We cannot compare serialization bytes since serialization order of maps is not guaranteed
-                            // but we can compare serialization sizes - they should be the same
-                            assertEquals("cluster state size does not match", masterClusterStateSize, localClusterStateSize);
-                            // Compare JSON serialization
-                            assertNull(
-                                    "cluster state JSON serialization does not match",
-                                    differenceBetweenMapsIgnoringArrayOrder(masterStateMap, localStateMap));
-                        } else {
-                            // remove non-core customs and compare the cluster states
-                            assertNull(
-                                    "cluster state JSON serialization does not match (after removing some customs)",
-                                    differenceBetweenMapsIgnoringArrayOrder(
-                                            convertToMap(removePluginCustoms(masterClusterState)),
-                                            convertToMap(removePluginCustoms(localClusterState))));
-                        }
+                        // remove non-core customs and compare the cluster states
+                        assertNull(
+                                "cluster state JSON serialization does not match (after removing some customs)",
+                                differenceBetweenMapsIgnoringArrayOrder(
+                                        convertToMap(removePluginCustoms(masterClusterState)),
+                                        convertToMap(removePluginCustoms(localClusterState))));
                     } catch (final AssertionError error) {
                         logger.error(
                                 "Cluster state from master:\n{}\nLocal cluster state:\n{}",
@@ -1188,21 +1171,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
             }
         }
 
-    }
-
-    /**
-     * Tests if the client is a transport client or wraps a transport client.
-     *
-     * @param client the client to test
-     * @return true if the client is a transport client or a wrapped transport client
-     */
-    private boolean isTransportClient(final Client client) {
-        if (TransportClient.class.isAssignableFrom(client.getClass())) {
-            return true;
-        } else if (client instanceof RandomizingClient) {
-            return isTransportClient(((RandomizingClient) client).in());
-        }
-        return false;
     }
 
     private static final Set<String> SAFE_METADATA_CUSTOMS =
@@ -1868,35 +1836,11 @@ public abstract class ESIntegTestCase extends ESTestCase {
         return Settings.EMPTY;
     }
 
-    private ExternalTestCluster buildExternalCluster(String clusterAddresses) throws IOException {
-        String[] stringAddresses = clusterAddresses.split(",");
-        TransportAddress[] transportAddresses = new TransportAddress[stringAddresses.length];
-        int i = 0;
-        for (String stringAddress : stringAddresses) {
-            URL url = new URL("http://" + stringAddress);
-            InetAddress inetAddress = InetAddress.getByName(url.getHost());
-            transportAddresses[i++] = new TransportAddress(new InetSocketAddress(inetAddress, url.getPort()));
-        }
-        return new ExternalTestCluster(createTempDir(), externalClusterClientSettings(), transportClientPlugins(), transportAddresses);
-    }
-
-    protected Settings externalClusterClientSettings() {
-        return Settings.EMPTY;
-    }
-
     protected boolean ignoreExternalCluster() {
         return false;
     }
 
     protected TestCluster buildTestCluster(Scope scope, long seed) throws IOException {
-        String clusterAddresses = System.getProperty(TESTS_CLUSTER);
-        if (Strings.hasLength(clusterAddresses) && ignoreExternalCluster() == false) {
-            if (scope == Scope.TEST) {
-                throw new IllegalArgumentException("Cannot run TEST scope test with " + TESTS_CLUSTER);
-            }
-            return buildExternalCluster(clusterAddresses);
-        }
-
         final String nodePrefix;
         switch (scope) {
             case TEST:

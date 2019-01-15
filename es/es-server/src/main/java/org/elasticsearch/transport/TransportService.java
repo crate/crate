@@ -23,9 +23,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.node.liveness.TransportLivenessAction;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.CheckedBiConsumer;
@@ -125,7 +123,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     public static final Setting<List<String>> TRACE_LOG_INCLUDE_SETTING =
         listSetting("transport.tracer.include", emptyList(), Function.identity(), Property.Dynamic, Property.NodeScope);
     public static final Setting<List<String>> TRACE_LOG_EXCLUDE_SETTING =
-        listSetting("transport.tracer.exclude", Arrays.asList("internal:discovery/zen/fd*", TransportLivenessAction.NAME),
+        listSetting("transport.tracer.exclude", Arrays.asList("internal:discovery/zen/fd*"),
             Function.identity(), Property.Dynamic, Property.NodeScope);
 
     private final Logger tracerLog;
@@ -134,8 +132,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     volatile String[] tracerLogExclude;
 
     private final RemoteClusterService remoteClusterService;
-
-    private final boolean validateConnections;
 
     /** if set will call requests sent to this id to shortcut and executed locally */
     volatile DiscoveryNode localNode = null;
@@ -182,9 +178,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                             Function<BoundTransportAddress, DiscoveryNode> localNodeFactory, @Nullable ClusterSettings clusterSettings,
                             Set<String> taskHeaders, ConnectionManager connectionManager) {
         super(settings);
-        // The only time we do not want to validate node connections is when this is a transport client using the simple node sampler
-        this.validateConnections = TransportClient.CLIENT_TYPE.equals(settings.get(Client.CLIENT_TYPE_SETTING_S.getKey())) == false ||
-            TransportClient.CLIENT_TRANSPORT_SNIFF.get(settings);
         this.transport = transport;
         this.threadPool = threadPool;
         this.localNodeFactory = localNodeFactory;
@@ -373,7 +366,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         return (newConnection, actualProfile) -> {
             // We don't validate cluster names to allow for CCS connections.
             final DiscoveryNode remote = handshake(newConnection, actualProfile.getHandshakeTimeout().millis(), cn -> true).discoveryNode;
-            if (validateConnections && node.equals(remote) == false) {
+            if (node.equals(remote) == false) {
                 throw new ConnectTransportException(node, "handshake failed. unexpected remote node " + remote);
             }
         };

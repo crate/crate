@@ -27,7 +27,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoAction;
 import org.elasticsearch.action.admin.cluster.node.info.TransportNodesInfoAction;
-import org.elasticsearch.action.admin.cluster.node.liveness.TransportLivenessAction;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsAction;
 import org.elasticsearch.action.admin.cluster.node.stats.TransportNodesStatsAction;
 import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksAction;
@@ -587,7 +586,6 @@ public class ActionModule extends AbstractModule {
         if (false == transportClient) {
             // Supporting classes only used when not a transport client
             bind(AutoCreateIndex.class).toInstance(autoCreateIndex);
-            bind(TransportLivenessAction.class).asEagerSingleton();
 
             // register GenericAction -> transportAction Map used by NodeClient
             @SuppressWarnings("rawtypes")
