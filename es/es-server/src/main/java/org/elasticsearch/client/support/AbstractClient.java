@@ -234,10 +234,6 @@ import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryAction
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequest;
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequestBuilder;
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryResponse;
-import org.elasticsearch.action.bulk.BulkAction;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteAction;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteRequestBuilder;
@@ -409,21 +405,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
     @Override
     public DeleteRequestBuilder prepareDelete(String index, String type, String id) {
         return prepareDelete().setIndex(index).setType(type).setId(id);
-    }
-
-    @Override
-    public ActionFuture<BulkResponse> bulk(final BulkRequest request) {
-        return execute(BulkAction.INSTANCE, request);
-    }
-
-    @Override
-    public void bulk(final BulkRequest request, final ActionListener<BulkResponse> listener) {
-        execute(BulkAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public BulkRequestBuilder prepareBulk() {
-        return new BulkRequestBuilder(this, BulkAction.INSTANCE);
     }
 
     @Override

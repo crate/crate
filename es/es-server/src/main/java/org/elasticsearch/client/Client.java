@@ -21,9 +21,6 @@ package org.elasticsearch.client;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteRequestBuilder;
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -68,11 +65,9 @@ import java.util.Map;
  * simply returns an {@link org.elasticsearch.action.ActionFuture}, while the second accepts an
  * {@link org.elasticsearch.action.ActionListener}.
  * <p>
- * A client can either be retrieved from a {@link org.elasticsearch.node.Node} started, or connected remotely
- * to one or more nodes using {@link org.elasticsearch.client.transport.TransportClient}.
+ * A client can either be retrieved from a {@link org.elasticsearch.node.Node} started
  *
  * @see org.elasticsearch.node.Node#client()
- * @see org.elasticsearch.client.transport.TransportClient
  */
 public interface Client extends ElasticsearchClient, Releasable {
 
@@ -199,29 +194,6 @@ public interface Client extends ElasticsearchClient, Releasable {
      * @param id    The id of the document to delete
      */
     DeleteRequestBuilder prepareDelete(String index, String type, String id);
-
-    /**
-     * Executes a bulk of index / delete operations.
-     *
-     * @param request The bulk request
-     * @return The result future
-     * @see org.elasticsearch.client.Requests#bulkRequest()
-     */
-    ActionFuture<BulkResponse> bulk(BulkRequest request);
-
-    /**
-     * Executes a bulk of index / delete operations.
-     *
-     * @param request  The bulk request
-     * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#bulkRequest()
-     */
-    void bulk(BulkRequest request, ActionListener<BulkResponse> listener);
-
-    /**
-     * Executes a bulk of index / delete operations.
-     */
-    BulkRequestBuilder prepareBulk();
 
     /**
      * Gets the document that was indexed from an index with a type and id.
