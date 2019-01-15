@@ -577,7 +577,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testOuterJoinToInnerJoinRewrite() throws Exception {
         // disable hash joins otherwise it will be a distributed join and the plan differs
         e.getSessionContext().setHashJoinEnabled(false);
-        QueryThenFetch qtf = e.plan("select u1.text, u2.text " +
+        QueryThenFetch qtf = e.plan("select u1.text, concat(u2.text, '_foo') " +
                                     "from users u1 left join users u2 on u1.id = u2.id " +
                                     "where u2.name = 'Arthur'" +
                                     "and u2.id > 1 ");
@@ -590,6 +590,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         // doesn't contain "name" because whereClause is pushed down,
         // but still contains "id" because it is in the joinCondition
         assertThat(rightCM.collectPhase().toCollect(), contains(isReference("_fetchid"), isReference("id")));
+
+        Collect left = (Collect) nl.left();
+        assertThat(left.collectPhase().toCollect(), contains(isReference("_fetchid"), isReference("id")));
     }
 
     @Test
