@@ -52,8 +52,6 @@ import org.elasticsearch.action.admin.indices.segments.IndicesSegmentResponse;
 import org.elasticsearch.action.admin.indices.segments.ShardSegments;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.ClearScrollResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
@@ -1184,25 +1182,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         NetworkDisruption.ensureFullyConnectedCluster(internalCluster());
     }
 
-    /**
-     * Syntactic sugar for:
-     * <pre>
-     *   client().prepareIndex(index, type).setSource(source).execute().actionGet();
-     * </pre>
-     */
-    protected final IndexResponse index(String index, String type, XContentBuilder source) {
-        return client().prepareIndex(index, type).setSource(source).execute().actionGet();
-    }
-
-    /**
-     * Syntactic sugar for:
-     * <pre>
-     *   client().prepareIndex(index, type).setSource(source).execute().actionGet();
-     * </pre>
-     */
-    protected final IndexResponse index(String index, String type, String id, Map<String, Object> source) {
-        return client().prepareIndex(index, type, id).setWaitForActiveShards(1).setSource(source).execute().actionGet();
-    }
 
     /**
      * Syntactic sugar for:
@@ -1212,38 +1191,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
      */
     protected final GetResponse get(String index, String type, String id) {
         return client().prepareGet(index, type, id).execute().actionGet();
-    }
-
-    /**
-     * Syntactic sugar for:
-     * <pre>
-     *   return client().prepareIndex(index, type, id).setSource(source).execute().actionGet();
-     * </pre>
-     */
-    protected final IndexResponse index(String index, String type, String id, XContentBuilder source) {
-        return client().prepareIndex(index, type, id).setSource(source).execute().actionGet();
-    }
-
-    /**
-     * Syntactic sugar for:
-     * <pre>
-     *   return client().prepareIndex(index, type, id).setSource(source).execute().actionGet();
-     * </pre>
-     */
-    protected final IndexResponse index(String index, String type, String id, Object... source) {
-        return client().prepareIndex(index, type, id).setSource(source).execute().actionGet();
-    }
-
-    /**
-     * Syntactic sugar for:
-     * <pre>
-     *   return client().prepareIndex(index, type, id).setSource(source).execute().actionGet();
-     * </pre>
-     * <p>
-     * where source is a JSON String.
-     */
-    protected final IndexResponse index(String index, String type, String id, String source) {
-        return client().prepareIndex(index, type, id).setSource(source, XContentType.JSON).execute().actionGet();
     }
 
     /**

@@ -23,7 +23,6 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.admin.indices.refresh.TransportShardRefreshAction;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.Nullable;
@@ -41,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 import static org.elasticsearch.action.ValidateActions.addValidationError;
 
 /**
- * Requests that are run on a particular replica, first on the primary and then on the replicas like {@link IndexRequest} or
+ * Requests that are run on a particular replica, first on the primary and then on the replicas like
  * {@link TransportShardRefreshAction}.
  */
 public abstract class ReplicationRequest<Request extends ReplicationRequest<Request>> extends ActionRequest

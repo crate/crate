@@ -242,10 +242,6 @@ import org.elasticsearch.action.get.MultiGetAction;
 import org.elasticsearch.action.get.MultiGetRequest;
 import org.elasticsearch.action.get.MultiGetRequestBuilder;
 import org.elasticsearch.action.get.MultiGetResponse;
-import org.elasticsearch.action.index.IndexAction;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.ClearScrollAction;
 import org.elasticsearch.action.search.ClearScrollRequest;
 import org.elasticsearch.action.search.ClearScrollRequestBuilder;
@@ -328,31 +324,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
     }
 
     protected abstract <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void doExecute(Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener);
-
-    @Override
-    public ActionFuture<IndexResponse> index(final IndexRequest request) {
-        return execute(IndexAction.INSTANCE, request);
-    }
-
-    @Override
-    public void index(final IndexRequest request, final ActionListener<IndexResponse> listener) {
-        execute(IndexAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public IndexRequestBuilder prepareIndex() {
-        return new IndexRequestBuilder(this, IndexAction.INSTANCE, null);
-    }
-
-    @Override
-    public IndexRequestBuilder prepareIndex(String index, String type) {
-        return prepareIndex(index, type, null);
-    }
-
-    @Override
-    public IndexRequestBuilder prepareIndex(String index, String type, @Nullable String id) {
-        return prepareIndex().setIndex(index).setType(type).setId(id);
-    }
 
     @Override
     public ActionFuture<GetResponse> get(final GetRequest request) {

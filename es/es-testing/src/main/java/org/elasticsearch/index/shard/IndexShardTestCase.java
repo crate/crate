@@ -25,7 +25,6 @@ import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -668,45 +667,6 @@ public abstract class IndexShardTestCase extends ESTestCase {
         if (engine != null) {
             EngineTestCase.assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, shard.mapperService());
         }
-    }
-
-    protected Engine.IndexResult indexDoc(IndexShard shard, String type, String id) throws IOException {
-        return indexDoc(shard, type, id, "{}");
-    }
-
-    protected Engine.IndexResult indexDoc(IndexShard shard, String type, String id, String source) throws IOException {
-        return indexDoc(shard, type, id, source, XContentType.JSON, null, null);
-    }
-
-    protected Engine.IndexResult indexDoc(IndexShard shard, String type, String id, String source, XContentType xContentType,
-                                          String routing, String parentId)
-        throws IOException {
-        SourceToParse sourceToParse = SourceToParse.source(shard.shardId().getIndexName(), type, id, new BytesArray(source), xContentType);
-        sourceToParse.routing(routing);
-        sourceToParse.parent(parentId);
-        Engine.IndexResult result;
-        if (shard.routingEntry().primary()) {
-            result = shard.applyIndexOperationOnPrimary(Versions.MATCH_ANY, VersionType.INTERNAL, sourceToParse,
-                IndexRequest.UNSET_AUTO_GENERATED_TIMESTAMP, false);
-            if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                updateMappings(shard, IndexMetaData.builder(shard.indexSettings().getIndexMetaData())
-                    .putMapping(type, result.getRequiredMappingUpdate().toString()).build());
-                result = shard.applyIndexOperationOnPrimary(Versions.MATCH_ANY, VersionType.INTERNAL, sourceToParse,
-                    IndexRequest.UNSET_AUTO_GENERATED_TIMESTAMP, false);
-            }
-            shard.updateLocalCheckpointForShard(shard.routingEntry().allocationId().getId(),
-                shard.getLocalCheckpoint());
-        } else {
-            final long seqNo = shard.seqNoStats().getMaxSeqNo() + 1;
-            shard.advanceMaxSeqNoOfUpdatesOrDeletes(seqNo); // manually replicate max_seq_no_of_updates
-            result = shard.applyIndexOperationOnReplica(seqNo, 0, VersionType.EXTERNAL,
-                IndexRequest.UNSET_AUTO_GENERATED_TIMESTAMP, false, sourceToParse);
-            if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                throw new TransportReplicationAction.RetryOnReplicaException(shard.shardId,
-                    "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
-            }
-        }
-        return result;
     }
 
     protected void updateMappings(IndexShard shard, IndexMetaData indexMetadata) {

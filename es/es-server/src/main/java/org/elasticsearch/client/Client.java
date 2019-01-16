@@ -27,9 +27,6 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.get.MultiGetRequest;
 import org.elasticsearch.action.get.MultiGetRequestBuilder;
 import org.elasticsearch.action.get.MultiGetResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.ClearScrollRequest;
 import org.elasticsearch.action.search.ClearScrollRequestBuilder;
 import org.elasticsearch.action.search.ClearScrollResponse;
@@ -76,57 +73,6 @@ public interface Client extends ElasticsearchClient, Releasable {
      * The admin client that can be used to perform administrative operations.
      */
     AdminClient admin();
-
-
-    /**
-     * Index a JSON source associated with a given index and type.
-     * <p>
-     * The id is optional, if it is not provided, one will be generated automatically.
-     *
-     * @param request The index request
-     * @return The result future
-     * @see Requests#indexRequest(String)
-     */
-    ActionFuture<IndexResponse> index(IndexRequest request);
-
-    /**
-     * Index a document associated with a given index and type.
-     * <p>
-     * The id is optional, if it is not provided, one will be generated automatically.
-     *
-     * @param request  The index request
-     * @param listener A listener to be notified with a result
-     * @see Requests#indexRequest(String)
-     */
-    void index(IndexRequest request, ActionListener<IndexResponse> listener);
-
-    /**
-     * Index a document associated with a given index and type.
-     * <p>
-     * The id is optional, if it is not provided, one will be generated automatically.
-     */
-    IndexRequestBuilder prepareIndex();
-
-    /**
-     * Index a document associated with a given index and type.
-     * <p>
-     * The id is optional, if it is not provided, one will be generated automatically.
-     *
-     * @param index The index to index the document to
-     * @param type  The type to index the document to
-     */
-    IndexRequestBuilder prepareIndex(String index, String type);
-
-    /**
-     * Index a document associated with a given index and type.
-     * <p>
-     * The id is optional, if it is not provided, one will be generated automatically.
-     *
-     * @param index The index to index the document to
-     * @param type  The type to index the document to
-     * @param id    The id of the document
-     */
-    IndexRequestBuilder prepareIndex(String index, String type, @Nullable String id);
 
     /**
      * Gets the document that was indexed from an index with a type and id.
