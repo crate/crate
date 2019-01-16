@@ -35,10 +35,10 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -1118,11 +1118,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             .prepareGetTemplates(PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes")).execute().get();
         assertThat(getIndexTemplatesResponse.getIndexTemplates().size(), is(0));
 
-        assertThat(internalCluster().clusterService().state().metaData().indices().size(), is(0));
-
-        AliasesExistResponse aliasesExistResponse = client().admin().indices()
-            .prepareAliasesExist("quotes").execute().get();
-        assertFalse(aliasesExistResponse.exists());
+        ClusterState state = internalCluster().clusterService().state();
+        assertThat(state.metaData().indices().size(), is(0));
+        assertThat(state.metaData().hasAlias("quotes"), is(false));
     }
 
     @Test

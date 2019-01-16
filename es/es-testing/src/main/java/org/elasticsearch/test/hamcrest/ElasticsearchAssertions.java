@@ -27,7 +27,6 @@ import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
@@ -422,20 +421,6 @@ public class ElasticsearchAssertions {
             templateNames.add(indexTemplateMetaData.name());
         }
         assertThat(templateNames, hasItem(name));
-    }
-
-    /**
-     * Assert that aliases are missing
-     */
-    public static void assertAliasesMissing(AliasesExistResponse aliasesExistResponse) {
-        assertFalse("Aliases shouldn't exist", aliasesExistResponse.exists());
-    }
-
-    /**
-     * Assert that aliases exist
-     */
-    public static void assertAliasesExist(AliasesExistResponse aliasesExistResponse) {
-        assertTrue("Aliases should exist", aliasesExistResponse.exists());
     }
 
     /*
