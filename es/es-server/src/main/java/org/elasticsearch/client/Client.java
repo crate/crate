@@ -21,9 +21,6 @@ package org.elasticsearch.client;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.explain.ExplainRequest;
-import org.elasticsearch.action.explain.ExplainRequestBuilder;
-import org.elasticsearch.action.explain.ExplainResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
@@ -234,30 +231,6 @@ public interface Client extends ElasticsearchClient, Releasable {
      * Performs multiple search requests.
      */
     MultiSearchRequestBuilder prepareMultiSearch();
-
-    /**
-     * Computes a score explanation for the specified request.
-     *
-     * @param index The index this explain is targeted for
-     * @param type  The type this explain is targeted for
-     * @param id    The document identifier this explain is targeted for
-     */
-    ExplainRequestBuilder prepareExplain(String index, String type, String id);
-
-    /**
-     * Computes a score explanation for the specified request.
-     *
-     * @param request The request encapsulating the query and document identifier to compute a score explanation for
-     */
-    ActionFuture<ExplainResponse> explain(ExplainRequest request);
-
-    /**
-     * Computes a score explanation for the specified request.
-     *
-     * @param request  The request encapsulating the query and document identifier to compute a score explanation for
-     * @param listener A listener to be notified of the result
-     */
-    void explain(ExplainRequest request, ActionListener<ExplainResponse> listener);
 
     /**
      * Clears the search contexts associated with specified scroll ids.
