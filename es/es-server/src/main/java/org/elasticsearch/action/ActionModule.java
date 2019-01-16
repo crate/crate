@@ -138,8 +138,6 @@ import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeSettingsAction;
 import org.elasticsearch.action.admin.indices.validate.query.TransportValidateQueryAction;
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryAction;
-import org.elasticsearch.action.explain.ExplainAction;
-import org.elasticsearch.action.explain.TransportExplainAction;
 import org.elasticsearch.action.get.GetAction;
 import org.elasticsearch.action.get.MultiGetAction;
 import org.elasticsearch.action.get.TransportGetAction;
@@ -259,7 +257,6 @@ import org.elasticsearch.rest.action.document.RestGetSourceAction;
 import org.elasticsearch.rest.action.document.RestIndexAction;
 import org.elasticsearch.rest.action.document.RestMultiGetAction;
 import org.elasticsearch.rest.action.search.RestClearScrollAction;
-import org.elasticsearch.rest.action.search.RestExplainAction;
 import org.elasticsearch.rest.action.search.RestMultiSearchAction;
 import org.elasticsearch.rest.action.search.RestSearchAction;
 import org.elasticsearch.rest.action.search.RestSearchScrollAction;
@@ -428,7 +425,6 @@ public class ActionModule extends AbstractModule {
         actions.register(SearchAction.INSTANCE, TransportSearchAction.class);
         actions.register(SearchScrollAction.INSTANCE, TransportSearchScrollAction.class);
         actions.register(MultiSearchAction.INSTANCE, TransportMultiSearchAction.class);
-        actions.register(ExplainAction.INSTANCE, TransportExplainAction.class);
         actions.register(ClearScrollAction.INSTANCE, TransportClearScrollAction.class);
         actions.register(RecoveryAction.INSTANCE, TransportRecoveryAction.class);
 
@@ -526,8 +522,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestMultiSearchAction(settings, restController));
 
         registerHandler.accept(new RestValidateQueryAction(settings, restController));
-
-        registerHandler.accept(new RestExplainAction(settings, restController));
 
         registerHandler.accept(new RestRecoveryAction(settings, restController));
 
