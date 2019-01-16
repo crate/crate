@@ -31,7 +31,6 @@ import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
-import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
@@ -236,12 +235,6 @@ public class ElasticsearchAssertions {
             fail("Count is " + countResponse.getHits().getTotalHits() + " but " + expectedHitCount
                     + " was expected. " + formatShardStatus(countResponse));
         }
-    }
-
-    public static void assertExists(GetResponse response) {
-        String message = String.format(Locale.ROOT, "Expected %s/%s/%s to exist, but does not",
-                response.getIndex(), response.getType(), response.getId());
-        assertThat(message, response.isExists(), is(true));
     }
 
     public static void assertFirstHit(SearchResponse searchResponse, Matcher<SearchHit> matcher) {

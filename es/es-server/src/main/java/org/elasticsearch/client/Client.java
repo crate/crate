@@ -21,12 +21,6 @@ package org.elasticsearch.client;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetRequestBuilder;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.get.MultiGetRequest;
-import org.elasticsearch.action.get.MultiGetRequestBuilder;
-import org.elasticsearch.action.get.MultiGetResponse;
 import org.elasticsearch.action.search.ClearScrollRequest;
 import org.elasticsearch.action.search.ClearScrollRequestBuilder;
 import org.elasticsearch.action.search.ClearScrollResponse;
@@ -73,49 +67,6 @@ public interface Client extends ElasticsearchClient, Releasable {
      * The admin client that can be used to perform administrative operations.
      */
     AdminClient admin();
-
-    /**
-     * Gets the document that was indexed from an index with a type and id.
-     *
-     * @param request The get request
-     * @return The result future
-     * @see Requests#getRequest(String)
-     */
-    ActionFuture<GetResponse> get(GetRequest request);
-
-    /**
-     * Gets the document that was indexed from an index with a type and id.
-     *
-     * @param request  The get request
-     * @param listener A listener to be notified with a result
-     * @see Requests#getRequest(String)
-     */
-    void get(GetRequest request, ActionListener<GetResponse> listener);
-
-    /**
-     * Gets the document that was indexed from an index with a type and id.
-     */
-    GetRequestBuilder prepareGet();
-
-    /**
-     * Gets the document that was indexed from an index with a type (optional) and id.
-     */
-    GetRequestBuilder prepareGet(String index, @Nullable String type, String id);
-
-    /**
-     * Multi get documents.
-     */
-    ActionFuture<MultiGetResponse> multiGet(MultiGetRequest request);
-
-    /**
-     * Multi get documents.
-     */
-    void multiGet(MultiGetRequest request, ActionListener<MultiGetResponse> listener);
-
-    /**
-     * Multi get documents.
-     */
-    MultiGetRequestBuilder prepareMultiGet();
 
     /**
      * Search across one or more indices and one or more types with a query.
