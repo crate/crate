@@ -56,7 +56,6 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest
 import org.elasticsearch.action.admin.indices.shards.IndicesShardStoresRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
 import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -75,23 +74,6 @@ public class Requests {
      * The default content type to use to generate source documents when indexing.
      */
     public static XContentType INDEX_CONTENT_TYPE = XContentType.JSON;
-
-    public static IndexRequest indexRequest() {
-        return new IndexRequest();
-    }
-
-    /**
-     * Create an index request against a specific index. Note the {@link IndexRequest#type(String)} must be
-     * set as well and optionally the {@link IndexRequest#id(String)}.
-     *
-     * @param index The index name to index the request against
-     * @return The index request
-     * @see org.elasticsearch.client.Client#index(org.elasticsearch.action.index.IndexRequest)
-     */
-    public static IndexRequest indexRequest(String index) {
-        return new IndexRequest(index);
-    }
-
 
     /**
      * Creates a get request to get the JSON source from an index based on a type and id. Note, the
