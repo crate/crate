@@ -230,14 +230,6 @@ import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryAction
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequest;
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequestBuilder;
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryResponse;
-import org.elasticsearch.action.get.GetAction;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetRequestBuilder;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.get.MultiGetAction;
-import org.elasticsearch.action.get.MultiGetRequest;
-import org.elasticsearch.action.get.MultiGetRequestBuilder;
-import org.elasticsearch.action.get.MultiGetResponse;
 import org.elasticsearch.action.search.ClearScrollAction;
 import org.elasticsearch.action.search.ClearScrollRequest;
 import org.elasticsearch.action.search.ClearScrollRequestBuilder;
@@ -320,41 +312,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
     }
 
     protected abstract <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void doExecute(Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener);
-
-    @Override
-    public ActionFuture<GetResponse> get(final GetRequest request) {
-        return execute(GetAction.INSTANCE, request);
-    }
-
-    @Override
-    public void get(final GetRequest request, final ActionListener<GetResponse> listener) {
-        execute(GetAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public GetRequestBuilder prepareGet() {
-        return new GetRequestBuilder(this, GetAction.INSTANCE, null);
-    }
-
-    @Override
-    public GetRequestBuilder prepareGet(String index, String type, String id) {
-        return prepareGet().setIndex(index).setType(type).setId(id);
-    }
-
-    @Override
-    public ActionFuture<MultiGetResponse> multiGet(final MultiGetRequest request) {
-        return execute(MultiGetAction.INSTANCE, request);
-    }
-
-    @Override
-    public void multiGet(final MultiGetRequest request, final ActionListener<MultiGetResponse> listener) {
-        execute(MultiGetAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public MultiGetRequestBuilder prepareMultiGet() {
-        return new MultiGetRequestBuilder(this, MultiGetAction.INSTANCE);
-    }
 
     @Override
     public ActionFuture<SearchResponse> search(final SearchRequest request) {
