@@ -98,8 +98,6 @@ import org.elasticsearch.action.admin.indices.recovery.RecoveryAction;
 import org.elasticsearch.action.admin.indices.recovery.TransportRecoveryAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
-import org.elasticsearch.action.admin.indices.segments.IndicesSegmentsAction;
-import org.elasticsearch.action.admin.indices.segments.TransportIndicesSegmentsAction;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.get.TransportGetSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
@@ -194,7 +192,6 @@ import org.elasticsearch.rest.action.admin.indices.RestGetSettingsAction;
 import org.elasticsearch.rest.action.admin.indices.RestIndexDeleteAliasesAction;
 import org.elasticsearch.rest.action.admin.indices.RestIndexPutAliasAction;
 import org.elasticsearch.rest.action.admin.indices.RestIndicesAliasesAction;
-import org.elasticsearch.rest.action.admin.indices.RestIndicesSegmentsAction;
 import org.elasticsearch.rest.action.admin.indices.RestIndicesStatsAction;
 import org.elasticsearch.rest.action.admin.indices.RestOpenIndexAction;
 import org.elasticsearch.rest.action.admin.indices.RestPutIndexTemplateAction;
@@ -328,7 +325,6 @@ public class ActionModule extends AbstractModule {
         actions.register(SnapshotsStatusAction.INSTANCE, TransportSnapshotsStatusAction.class);
 
         actions.register(IndicesStatsAction.INSTANCE, TransportIndicesStatsAction.class);
-        actions.register(IndicesSegmentsAction.INSTANCE, TransportIndicesSegmentsAction.class);
         actions.register(CreateIndexAction.INSTANCE, TransportCreateIndexAction.class);
         actions.register(ShrinkAction.INSTANCE, TransportShrinkAction.class);
         actions.register(ResizeAction.INSTANCE, TransportResizeAction.class);
@@ -406,7 +402,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestGetAllAliasesAction(settings, restController));
         registerHandler.accept(new RestGetIndicesAction(settings, restController));
         registerHandler.accept(new RestIndicesStatsAction(settings, restController));
-        registerHandler.accept(new RestIndicesSegmentsAction(settings, restController));
         registerHandler.accept(new RestGetAliasesAction(settings, restController));
         registerHandler.accept(new RestIndexDeleteAliasesAction(settings, restController));
         registerHandler.accept(new RestIndexPutAliasAction(settings, restController));
