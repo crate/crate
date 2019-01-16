@@ -30,10 +30,8 @@ import io.crate.metadata.Schemas;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -679,10 +677,12 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into quotes (id, quote, date) values (?, ?, ?)",
             new Object[]{3, "Time is a illusion. Lunchtime doubles so", 1495961200000L}
         );
-        String partition = new PartitionName(
-            new RelationName("doc", "quotes"), Arrays.asList("1495961200000")).asIndexName();
-        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(partition).execute().get();
-        assertThat(settingsResponse.getSetting(partition, IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("5"));
+        PartitionName partitionName = new PartitionName(
+            new RelationName("doc", "quotes"), Arrays.asList("1495961200000"));
+
+        execute("select number_of_shards from information_schema.table_partitions where partition_ident = ? and table_name = ?",
+            $(partitionName.ident(), partitionName.relationName().name()));
+        assertThat(response.rows()[0][0], is(5));
     }
 
     @Test

@@ -36,7 +36,6 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
-import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -1369,15 +1368,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 Collections.singletonList("1395961200000")).asIndexName()
         );
 
-        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
-            partitions.get(0), partitions.get(1)
-        ).execute().get();
-
-        for (String index : partitions) {
-            Settings partitionSetting = settingsResponse.getIndexToSettings().get(index);
-            assertThat(partitionSetting.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1), is(0));
-            assertThat(partitionSetting.getAsBoolean(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, true), is(false));
-        }
+        execute("select number_of_replicas from information_schema.table_partitions");
+        assertThat(
+            printedTable(response.rows()),
+            is("0\n" +
+               "0\n"));
 
         execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'quotes'");
         assertEquals("0", response.rows()[0][0]);
@@ -1394,13 +1389,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
         assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
 
-        settingsResponse = client().admin().indices().prepareGetSettings(
-            partitions.get(0), partitions.get(1)
-        ).execute().get();
 
-        for (String index : partitions) {
-            assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
-        }
+        execute("select number_of_replicas from information_schema.table_partitions");
+        assertThat(
+            printedTable(response.rows()),
+            is("1-all\n" +
+               "1-all\n"));
     }
 
     @Test
@@ -1450,25 +1444,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
         assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
         assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-1"));
-
-        List<String> partitions = ImmutableList.of(
-            new PartitionName(
-                new RelationName(sqlExecutor.getCurrentSchema(), "quotes"),
-                Collections.singletonList("1395874800000")).asIndexName(),
-            new PartitionName(
-                new RelationName(sqlExecutor.getCurrentSchema(), "quotes"),
-                Collections.singletonList("1395961200000")).asIndexName()
-        );
-        Thread.sleep(1000);
-        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
-            partitions.get(0), partitions.get(1)
-        ).execute().get();
-
-        for (String index : partitions) {
-            assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
-            assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-1"));
-        }
-
+        assertBusy(() -> {
+            execute("select number_of_replicas from information_schema.table_partitions");
+            assertThat(
+                printedTable(response.rows()),
+                is("0-1\n" +
+                   "0-1\n"));
+        });
     }
 
     @Test
@@ -1487,20 +1469,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("alter table quotes partition (date=1395874800000) set (number_of_replicas=1)");
         ensureYellow();
-        List<String> partitions = ImmutableList.of(
-            new PartitionName(
-                new RelationName(sqlExecutor.getCurrentSchema(), "quotes"),
-                Collections.singletonList("1395874800000")).asIndexName(),
-            new PartitionName(
-                new RelationName(sqlExecutor.getCurrentSchema(), "quotes"),
-                Collections.singletonList("1395961200000")).asIndexName()
-        );
 
-        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
-            partitions.get(0), partitions.get(1)
-        ).execute().get();
-        assertThat(settingsResponse.getSetting(partitions.get(0), IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
-        assertThat(settingsResponse.getSetting(partitions.get(1), IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("0"));
+        execute("select partition_ident, number_of_replicas from information_schema.table_partitions order by 1");
+        assertThat(
+            printedTable(response.rows()),
+            is("04732cpp6ks3ed1o60o30c1g| 1\n" +
+               "04732cpp6ksjcc9i60o30c1g| 0\n")
+        );
 
         String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
@@ -1885,34 +1860,17 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertEquals("0-all", response.rows()[0][0]);
         assertEquals(2, response.rows()[0][1]);
 
-        execute("select number_of_shards from information_schema.table_partitions where table_name='quotes' order by number_of_shards ASC");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((Integer) response.rows()[0][0], is(2));
-        assertThat((Integer) response.rows()[1][0], is(6));
-
+        execute("select partition_ident, number_of_shards from information_schema.table_partitions " +
+                "where table_name = 'quotes' order by number_of_shards ASC");
+        assertThat(
+            printedTable(response.rows()),
+            is("04732cpp6ksjcc9i60o30c1g| 2\n" +
+               "04732cpp6ks3ed1o60o30c1g| 6\n")
+        );
         templatesResponse = client().admin().indices()
             .prepareGetTemplates(templateName).execute().actionGet();
         templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
         assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(2));
-
-        List<String> partitions = ImmutableList.of(
-            new PartitionName(
-                new RelationName(sqlExecutor.getCurrentSchema(), "quotes"),
-                Collections.singletonList("1395874800000")).asIndexName(),
-            new PartitionName(
-                new RelationName(sqlExecutor.getCurrentSchema(), "quotes"),
-                Collections.singletonList("1395961200000")).asIndexName()
-        );
-        Thread.sleep(1000);
-        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
-            partitions.get(0), partitions.get(1)
-        ).execute().get();
-
-        String index = partitions.get(0);
-        assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("6"));
-
-        index = partitions.get(1);
-        assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("2"));
     }
 
     @Test
