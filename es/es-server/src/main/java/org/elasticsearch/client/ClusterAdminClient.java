@@ -21,9 +21,6 @@ package org.elasticsearch.client;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplainRequest;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplainRequestBuilder;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplainResponse;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -487,19 +484,4 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Get snapshot status.
      */
     SnapshotsStatusRequestBuilder prepareSnapshotStatus();
-
-    /**
-     * Explain the allocation of a shard
-     */
-    void allocationExplain(ClusterAllocationExplainRequest request, ActionListener<ClusterAllocationExplainResponse> listener);
-
-    /**
-     * Explain the allocation of a shard
-     */
-    ActionFuture<ClusterAllocationExplainResponse> allocationExplain(ClusterAllocationExplainRequest request);
-
-    /**
-     * Explain the allocation of a shard
-     */
-    ClusterAllocationExplainRequestBuilder prepareAllocationExplain();
 }
