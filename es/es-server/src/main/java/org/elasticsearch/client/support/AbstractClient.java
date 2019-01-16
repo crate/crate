@@ -234,10 +234,6 @@ import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryAction
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequest;
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequestBuilder;
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryResponse;
-import org.elasticsearch.action.explain.ExplainAction;
-import org.elasticsearch.action.explain.ExplainRequest;
-import org.elasticsearch.action.explain.ExplainRequestBuilder;
-import org.elasticsearch.action.explain.ExplainResponse;
 import org.elasticsearch.action.get.GetAction;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetRequestBuilder;
@@ -436,21 +432,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
     @Override
     public MultiSearchRequestBuilder prepareMultiSearch() {
         return new MultiSearchRequestBuilder(this, MultiSearchAction.INSTANCE);
-    }
-
-    @Override
-    public ExplainRequestBuilder prepareExplain(String index, String type, String id) {
-        return new ExplainRequestBuilder(this, ExplainAction.INSTANCE, index, type, id);
-    }
-
-    @Override
-    public ActionFuture<ExplainResponse> explain(ExplainRequest request) {
-        return execute(ExplainAction.INSTANCE, request);
-    }
-
-    @Override
-    public void explain(ExplainRequest request, ActionListener<ExplainResponse> listener) {
-        execute(ExplainAction.INSTANCE, request, listener);
     }
 
     @Override
