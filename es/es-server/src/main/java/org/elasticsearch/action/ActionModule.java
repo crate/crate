@@ -104,8 +104,6 @@ import org.elasticsearch.action.admin.indices.settings.get.GetSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.get.TransportGetSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsAction;
-import org.elasticsearch.action.admin.indices.shards.IndicesShardStoresAction;
-import org.elasticsearch.action.admin.indices.shards.TransportIndicesShardStoresAction;
 import org.elasticsearch.action.admin.indices.shrink.ResizeAction;
 import org.elasticsearch.action.admin.indices.shrink.ShrinkAction;
 import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
@@ -197,7 +195,6 @@ import org.elasticsearch.rest.action.admin.indices.RestIndexDeleteAliasesAction;
 import org.elasticsearch.rest.action.admin.indices.RestIndexPutAliasAction;
 import org.elasticsearch.rest.action.admin.indices.RestIndicesAliasesAction;
 import org.elasticsearch.rest.action.admin.indices.RestIndicesSegmentsAction;
-import org.elasticsearch.rest.action.admin.indices.RestIndicesShardStoresAction;
 import org.elasticsearch.rest.action.admin.indices.RestIndicesStatsAction;
 import org.elasticsearch.rest.action.admin.indices.RestOpenIndexAction;
 import org.elasticsearch.rest.action.admin.indices.RestPutIndexTemplateAction;
@@ -332,7 +329,6 @@ public class ActionModule extends AbstractModule {
 
         actions.register(IndicesStatsAction.INSTANCE, TransportIndicesStatsAction.class);
         actions.register(IndicesSegmentsAction.INSTANCE, TransportIndicesSegmentsAction.class);
-        actions.register(IndicesShardStoresAction.INSTANCE, TransportIndicesShardStoresAction.class);
         actions.register(CreateIndexAction.INSTANCE, TransportCreateIndexAction.class);
         actions.register(ShrinkAction.INSTANCE, TransportShrinkAction.class);
         actions.register(ResizeAction.INSTANCE, TransportResizeAction.class);
@@ -411,7 +407,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestGetIndicesAction(settings, restController));
         registerHandler.accept(new RestIndicesStatsAction(settings, restController));
         registerHandler.accept(new RestIndicesSegmentsAction(settings, restController));
-        registerHandler.accept(new RestIndicesShardStoresAction(settings, restController));
         registerHandler.accept(new RestGetAliasesAction(settings, restController));
         registerHandler.accept(new RestIndexDeleteAliasesAction(settings, restController));
         registerHandler.accept(new RestIndexPutAliasAction(settings, restController));
