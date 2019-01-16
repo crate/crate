@@ -234,10 +234,6 @@ import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryAction
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequest;
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequestBuilder;
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryResponse;
-import org.elasticsearch.action.delete.DeleteAction;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.delete.DeleteRequestBuilder;
-import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.explain.ExplainAction;
 import org.elasticsearch.action.explain.ExplainRequest;
 import org.elasticsearch.action.explain.ExplainRequestBuilder;
@@ -360,26 +356,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
     @Override
     public IndexRequestBuilder prepareIndex(String index, String type, @Nullable String id) {
         return prepareIndex().setIndex(index).setType(type).setId(id);
-    }
-
-    @Override
-    public ActionFuture<DeleteResponse> delete(final DeleteRequest request) {
-        return execute(DeleteAction.INSTANCE, request);
-    }
-
-    @Override
-    public void delete(final DeleteRequest request, final ActionListener<DeleteResponse> listener) {
-        execute(DeleteAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public DeleteRequestBuilder prepareDelete() {
-        return new DeleteRequestBuilder(this, DeleteAction.INSTANCE, null);
-    }
-
-    @Override
-    public DeleteRequestBuilder prepareDelete(String index, String type, String id) {
-        return prepareDelete().setIndex(index).setType(type).setId(id);
     }
 
     @Override

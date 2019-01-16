@@ -18,7 +18,6 @@
  */
 package org.elasticsearch.action;
 
-import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -169,10 +168,6 @@ public interface DocWriteRequest<T> extends IndicesRequest {
             IndexRequest indexRequest = new IndexRequest();
             indexRequest.readFrom(in);
             docWriteRequest = indexRequest;
-        } else if (type == 1) {
-            DeleteRequest deleteRequest = new DeleteRequest();
-            deleteRequest.readFrom(in);
-            docWriteRequest = deleteRequest;
         } else {
             throw new IllegalStateException("invalid request type [" + type+ " ]");
         }
@@ -184,9 +179,6 @@ public interface DocWriteRequest<T> extends IndicesRequest {
         if (request instanceof IndexRequest) {
             out.writeByte((byte) 0);
             ((IndexRequest) request).writeTo(out);
-        } else if (request instanceof DeleteRequest) {
-            out.writeByte((byte) 1);
-            ((DeleteRequest) request).writeTo(out);
         } else {
             throw new IllegalStateException("invalid request [" + request.getClass().getSimpleName() + " ]");
         }
