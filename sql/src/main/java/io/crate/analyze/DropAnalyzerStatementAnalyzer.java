@@ -26,7 +26,10 @@ import io.crate.exceptions.AnalyzerUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.common.settings.Settings;
 
-import static io.crate.metadata.settings.AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
 
 public class DropAnalyzerStatementAnalyzer {
 
@@ -44,25 +47,25 @@ public class DropAnalyzerStatementAnalyzer {
             throw new AnalyzerUnknownException(analyzerName);
         }
         Settings.Builder builder = Settings.builder();
-        builder.putNull(CUSTOM_ANALYSIS_SETTINGS_PREFIX + "analyzer." + analyzerName);
+        builder.putNull(ANALYZER.buildSettingName(analyzerName));
 
         Settings settings = ftResolver.getCustomAnalyzer(analyzerName);
 
-        String tokenizerName = settings.get("index.analysis.analyzer." + analyzerName + ".tokenizer");
+        String tokenizerName = settings.get(ANALYZER.buildSettingChildName(analyzerName, TOKENIZER.getName()));
         if (tokenizerName != null
             && ftResolver.hasCustomThingy(tokenizerName, FulltextAnalyzerResolver.CustomType.TOKENIZER)) {
-            builder.putNull(CUSTOM_ANALYSIS_SETTINGS_PREFIX + "tokenizer." + tokenizerName);
+            builder.putNull(TOKENIZER.buildSettingName(tokenizerName));
         }
 
-        for (String tokenFilterName : settings.getAsList("index.analysis.analyzer." + analyzerName + ".filter")) {
+        for (String tokenFilterName : settings.getAsList(ANALYZER.buildSettingChildName(analyzerName, TOKEN_FILTER.getName()))) {
             if (ftResolver.hasCustomThingy(tokenFilterName, FulltextAnalyzerResolver.CustomType.TOKEN_FILTER)) {
-                builder.putNull(CUSTOM_ANALYSIS_SETTINGS_PREFIX + "filter." + tokenFilterName);
+                builder.putNull(TOKEN_FILTER.buildSettingName(tokenFilterName));
             }
         }
 
-        for (String charFilterName : settings.getAsList("index.analysis.analyzer." + analyzerName + ".char_filter")) {
+        for (String charFilterName : settings.getAsList(ANALYZER.buildSettingChildName(analyzerName, CHAR_FILTER.getName()))) {
             if (ftResolver.hasCustomThingy(charFilterName, FulltextAnalyzerResolver.CustomType.CHAR_FILTER)) {
-                builder.putNull(CUSTOM_ANALYSIS_SETTINGS_PREFIX + "char_filter." + charFilterName);
+                builder.putNull(CHAR_FILTER.buildSettingName(charFilterName));
             }
         }
 
