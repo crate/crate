@@ -132,11 +132,6 @@ import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeSettingsAction;
 import org.elasticsearch.action.admin.indices.validate.query.TransportValidateQueryAction;
 import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryAction;
-import org.elasticsearch.action.get.GetAction;
-import org.elasticsearch.action.get.MultiGetAction;
-import org.elasticsearch.action.get.TransportGetAction;
-import org.elasticsearch.action.get.TransportMultiGetAction;
-import org.elasticsearch.action.get.TransportShardMultiGetAction;
 import org.elasticsearch.action.main.MainAction;
 import org.elasticsearch.action.main.TransportMainAction;
 import org.elasticsearch.action.search.ClearScrollAction;
@@ -244,9 +239,6 @@ import org.elasticsearch.rest.action.cat.RestSnapshotAction;
 import org.elasticsearch.rest.action.cat.RestTasksAction;
 import org.elasticsearch.rest.action.cat.RestTemplatesAction;
 import org.elasticsearch.rest.action.cat.RestThreadPoolAction;
-import org.elasticsearch.rest.action.document.RestGetAction;
-import org.elasticsearch.rest.action.document.RestGetSourceAction;
-import org.elasticsearch.rest.action.document.RestMultiGetAction;
 import org.elasticsearch.rest.action.search.RestClearScrollAction;
 import org.elasticsearch.rest.action.search.RestMultiSearchAction;
 import org.elasticsearch.rest.action.search.RestSearchAction;
@@ -407,9 +399,6 @@ public class ActionModule extends AbstractModule {
         actions.register(AliasesExistAction.INSTANCE, TransportAliasesExistAction.class);
         actions.register(GetSettingsAction.INSTANCE, TransportGetSettingsAction.class);
 
-        actions.register(GetAction.INSTANCE, TransportGetAction.class);
-        actions.register(MultiGetAction.INSTANCE, TransportMultiGetAction.class,
-                TransportShardMultiGetAction.class);
         actions.register(SearchAction.INSTANCE, TransportSearchAction.class);
         actions.register(SearchScrollAction.INSTANCE, TransportSearchScrollAction.class);
         actions.register(MultiSearchAction.INSTANCE, TransportMultiSearchAction.class);
@@ -496,9 +485,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestUpgradeStatusAction(settings, restController));
         registerHandler.accept(new RestClearIndicesCacheAction(settings, restController));
 
-        registerHandler.accept(new RestGetAction(settings, restController));
-        registerHandler.accept(new RestGetSourceAction(settings, restController));
-        registerHandler.accept(new RestMultiGetAction(settings, restController));
         registerHandler.accept(new org.elasticsearch.rest.action.document.RestCountAction(settings, restController));
 
         registerHandler.accept(new RestSearchAction(settings, restController));
