@@ -32,7 +32,6 @@ import org.elasticsearch.action.admin.cluster.node.stats.TransportNodesStatsActi
 import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksAction;
 import org.elasticsearch.action.admin.cluster.node.tasks.cancel.TransportCancelTasksAction;
 import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskAction;
-import org.elasticsearch.action.admin.cluster.node.tasks.get.TransportGetTaskAction;
 import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksAction;
 import org.elasticsearch.action.admin.cluster.node.tasks.list.TransportListTasksAction;
 import org.elasticsearch.action.admin.cluster.remote.RemoteInfoAction;
@@ -254,7 +253,6 @@ import org.elasticsearch.rest.action.cat.RestTemplatesAction;
 import org.elasticsearch.rest.action.cat.RestThreadPoolAction;
 import org.elasticsearch.rest.action.document.RestGetAction;
 import org.elasticsearch.rest.action.document.RestGetSourceAction;
-import org.elasticsearch.rest.action.document.RestIndexAction;
 import org.elasticsearch.rest.action.document.RestMultiGetAction;
 import org.elasticsearch.rest.action.search.RestClearScrollAction;
 import org.elasticsearch.rest.action.search.RestMultiSearchAction;
@@ -362,7 +360,6 @@ public class ActionModule extends AbstractModule {
         actions.register(RemoteInfoAction.INSTANCE, TransportRemoteInfoAction.class);
         actions.register(NodesStatsAction.INSTANCE, TransportNodesStatsAction.class);
         actions.register(ListTasksAction.INSTANCE, TransportListTasksAction.class);
-        actions.register(GetTaskAction.INSTANCE, TransportGetTaskAction.class);
         actions.register(CancelTasksAction.INSTANCE, TransportCancelTasksAction.class);
 
         actions.register(ClusterAllocationExplainAction.INSTANCE, TransportClusterAllocationExplainAction.class);
@@ -510,7 +507,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestUpgradeStatusAction(settings, restController));
         registerHandler.accept(new RestClearIndicesCacheAction(settings, restController));
 
-        registerHandler.accept(new RestIndexAction(settings, restController));
         registerHandler.accept(new RestGetAction(settings, restController));
         registerHandler.accept(new RestGetSourceAction(settings, restController));
         registerHandler.accept(new RestMultiGetAction(settings, restController));
