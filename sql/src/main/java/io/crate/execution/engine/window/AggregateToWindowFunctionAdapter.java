@@ -82,15 +82,23 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     }
 
     private void executeAggregateForFrame(WindowFrameState frame, List<? extends CollectExpression<Row, ?>> expressions, Input... inputs) {
-        seenFrameUpperBound = frame.upperBoundExclusive();
-        for (Object[] cells : frame.getRows()) {
-            for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
-                expressions.get(i).setNextRow(new RowN(cells));
+        /*
+         * The successive frames have overlapping rows (especially now as we currently only support UNBOUNDED PRECEDING - CURRENT_ROW frames).
+         * We want to accumulate the rows we haven't processed yet (the difference between the rows in the current frame to the rows in the previous frame, if any).
+         */
+        int unseenRowsInCurrentFrameStart = seenFrameUpperBound > 0 ? seenFrameUpperBound : 0;
+        for (int i = unseenRowsInCurrentFrameStart; i < frame.size(); i++) {
+            Object[] cells = frame.getRowAtIndexOrNull(i);
+            assert cells != null : "Requested row for invalid index in the current frame";
+            RowN row = new RowN(cells);
+            for (int j = 0, expressionsSize = expressions.size(); j < expressionsSize; j++) {
+                expressions.get(j).setNextRow(row);
             }
             accumulatedState = aggregationFunction.iterate(ramAccountingContext, accumulatedState, inputs);
         }
-
+        
         resultForCurrentFrame = aggregationFunction.terminatePartial(ramAccountingContext, accumulatedState);
+        seenFrameUpperBound = frame.upperBoundExclusive();
     }
 
     private boolean isReiteratingWindow(WindowFrameState frame) {

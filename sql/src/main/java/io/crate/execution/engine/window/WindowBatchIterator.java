@@ -73,7 +73,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
     private final List<WindowFunction> functions;
     private final Object[] outgoingCells;
     private final LinkedList<Object[]> standaloneOutgoingCells;
-    private final LinkedList<Object[]> resultsForCurrentFrame;
+    private final LinkedList<Object[]> outstandingResults;
     private final List<CollectExpression<Row, ?>> standaloneExpressions;
     private final BiPredicate<Object[], Object[]> arePeerCellsPredicate;
     private final List<? extends CollectExpression<Row, ?>> windowFuncArgsExpressions;
@@ -89,6 +89,11 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
     private int sourceRowsConsumed;
     private int windowRowPosition;
     private final List<Object[]> windowForCurrentRow = new ArrayList<>();
+    /**
+     * Represents the start index of the new rows that were added in the current frame (compared to the previous frame)
+     * in the list of rows that define the window {@link #windowForCurrentRow}
+     */
+    private int newRowsInCurrentFrameStartIdx = -1;
     private boolean foundCurrentRowsLastPeer = false;
     private int windowFunctionsCount;
     private final OrderBy order;
@@ -123,7 +128,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         this.windowFunctionsCount = functions.size();
         this.outgoingCells = new Object[windowFunctionsCount + standaloneInputs.size()];
         this.standaloneOutgoingCells = new LinkedList<>();
-        this.resultsForCurrentFrame = new LinkedList<>();
+        this.outstandingResults = new LinkedList<>();
         this.functions = functions;
         this.windowFuncArgsExpressions = windowFuncArgsExpressions;
         this.windowFuncArgsInputs = windowFuncArgsInputs;
@@ -164,6 +169,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         sourceRowsConsumed = 0;
         windowRowPosition = 0;
         windowForCurrentRow.clear();
+        newRowsInCurrentFrameStartIdx = -1;
         currentRowCells = null;
         currentWindowRow = null;
     }
@@ -186,6 +192,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
             if (sourceRowsConsumed == 1) {
                 // first row in the source is the "current window row" we start with
                 currentRowCells = sourceRowCells;
+                newRowsInCurrentFrameStartIdx = 0;
             }
 
             if (arePeers(currentRowCells, sourceRowCells)) {
@@ -198,6 +205,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
                 // on the next source iteration, we'll start building the window for the next window row
                 currentRowCells = sourceRowCells;
                 windowForCurrentRow.add(currentRowCells);
+                newRowsInCurrentFrameStartIdx = windowForCurrentRow.size() - 1;
                 windowRowPosition++;
                 computeCurrentElement();
                 return true;
@@ -205,7 +213,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         }
 
         if (source.allLoaded()) {
-            if (!windowForCurrentRow.isEmpty()) {
+            if (newRowsInCurrentFrameStartIdx != -1) {
                 // we're done with consuming the source iterator, but were still in the process of building up the
                 // window for the current window row. As there are no more rows to process, execute the function against
                 // what we currently accumulated in the window and emit the result.
@@ -223,8 +231,8 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
     }
 
     private void computeCurrentElement() {
-        if (resultsForCurrentFrame.size() > 0) {
-            Object[] windowFunctionsResult = resultsForCurrentFrame.removeFirst();
+        if (outstandingResults.size() > 0) {
+            Object[] windowFunctionsResult = outstandingResults.removeFirst();
             System.arraycopy(windowFunctionsResult, 0, outgoingCells, 0, windowFunctionsResult.length);
         }
         if (standaloneOutgoingCells.size() > 0) {
@@ -247,27 +255,28 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
     }
 
     private void executeWindowFunctions() {
-        int startPosition = windowRowPosition;
+        int rowCountInCurrentFrame = windowForCurrentRow.size() - newRowsInCurrentFrameStartIdx;
         WindowFrameState currentFrame = new WindowFrameState(
-            startPosition,
-            startPosition + windowForCurrentRow.size(),
+            // lower bound is always 0 as we currently only support the UNBOUNDED_PRECEDING -> CURRENT_ROW frame definition.
+            0,
+            windowRowPosition + rowCountInCurrentFrame,
             windowForCurrentRow
         );
 
-        Object[][] cellsForCurrentFrame = new Object[windowForCurrentRow.size()][windowFunctionsCount];
+        Object[][] newRowsInCurrentFrameCells = new Object[rowCountInCurrentFrame][windowFunctionsCount];
 
-        for (int i = 0; i < windowForCurrentRow.size(); i++) {
+        for (int i = 0; i < rowCountInCurrentFrame; i++) {
             for (int funcIdx = 0; funcIdx < functions.size(); funcIdx++) {
                 WindowFunction function = functions.get(funcIdx);
                 Object result = function.execute(windowRowPosition + i, currentFrame, windowFuncArgsExpressions, windowFuncArgsInputs[funcIdx]);
-                cellsForCurrentFrame[i][funcIdx] = result;
+                newRowsInCurrentFrameCells[i][funcIdx] = result;
             }
         }
 
-        for (Object[] outgoingCells : cellsForCurrentFrame) {
-            resultsForCurrentFrame.add(outgoingCells);
+        for (Object[] outgoingCells : newRowsInCurrentFrameCells) {
+            outstandingResults.add(outgoingCells);
         }
 
-        windowForCurrentRow.clear();
+        newRowsInCurrentFrameStartIdx = -1;
     }
 }
