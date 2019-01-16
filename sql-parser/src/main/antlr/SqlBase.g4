@@ -82,6 +82,7 @@ statement
     | DROP USER (IF EXISTS)? name=ident                                              #dropUser
     | DROP INGEST RULE (IF EXISTS)? rule_name=ident                                  #dropIngestRule
     | DROP VIEW (IF EXISTS)? names=qnames                                            #dropView
+    | DROP ANALYZER name=ident                                                       #dropAnalyzer
     | GRANT (priviliges=idents | ALL PRIVILEGES?)
         (ON clazz qnames)? TO users=idents                                           #grantPrivilege
     | DENY (priviliges=idents | ALL PRIVILEGES?)

@@ -386,23 +386,6 @@ def tearDown(test):
             except Exception as e:
                 print('Failed to drop table {}.{}: {}'.format(schema, table, e))
 
-    # at the moment it is not possible to reset custom analyzers, char_filters,
-    # and tokenizers via SQL
-    # that's why we do a PUT request to the ES api
-    reset_custom_analysis = {
-        'persistent': {
-            'crate.analysis.custom.analyzer.*': None,
-            'crate.analysis.custom.char_filter.*': None,
-            'crate.analysis.custom.tokenizer.*': None,
-        }
-    }
-    request = Request('http://' + CRATE_DSN + '/_cluster/settings',
-                      data=json.dumps(reset_custom_analysis).encode('utf-8'),
-                      headers={'Content-Type': 'application/json'},
-                      method='PUT')
-    with urlopen(request) as response:
-        assert response.status == 200
-
 
 docsuite = partial(doctest.DocFileSuite,
                    tearDown=tearDown,

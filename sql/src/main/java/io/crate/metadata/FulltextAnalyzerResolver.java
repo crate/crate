@@ -252,7 +252,7 @@ public class FulltextAnalyzerResolver {
      * @param type
      * @return true if exists, false otherwise
      */
-    private boolean hasCustomThingy(String name, CustomType type) {
+    public boolean hasCustomThingy(String name, CustomType type) {
         return clusterService.state().metaData().persistentSettings().hasValue(
             String.format(Locale.ROOT, "%s%s.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name));
     }
