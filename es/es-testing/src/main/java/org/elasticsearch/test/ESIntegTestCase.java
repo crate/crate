@@ -51,7 +51,6 @@ import org.elasticsearch.action.admin.indices.segments.IndexShardSegments;
 import org.elasticsearch.action.admin.indices.segments.IndicesSegmentResponse;
 import org.elasticsearch.action.admin.indices.segments.ShardSegments;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
-import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.ClearScrollResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
@@ -1180,17 +1179,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
      */
     protected void ensureFullyConnectedCluster() {
         NetworkDisruption.ensureFullyConnectedCluster(internalCluster());
-    }
-
-
-    /**
-     * Syntactic sugar for:
-     * <pre>
-     *   client().prepareGet(index, type, id).execute().actionGet();
-     * </pre>
-     */
-    protected final GetResponse get(String index, String type, String id) {
-        return client().prepareGet(index, type, id).execute().actionGet();
     }
 
     /**
