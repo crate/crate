@@ -108,10 +108,6 @@ import org.elasticsearch.action.admin.indices.alias.get.GetAliasesAction;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequestBuilder;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesResponse;
-import org.elasticsearch.action.admin.indices.analyze.AnalyzeAction;
-import org.elasticsearch.action.admin.indices.analyze.AnalyzeRequest;
-import org.elasticsearch.action.admin.indices.analyze.AnalyzeRequestBuilder;
-import org.elasticsearch.action.admin.indices.analyze.AnalyzeResponse;
 import org.elasticsearch.action.admin.indices.close.CloseIndexAction;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequestBuilder;
@@ -1041,31 +1037,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public UpdateSettingsRequestBuilder prepareUpdateSettings(String... indices) {
             return new UpdateSettingsRequestBuilder(this, UpdateSettingsAction.INSTANCE).setIndices(indices);
-        }
-
-        @Override
-        public ActionFuture<AnalyzeResponse> analyze(final AnalyzeRequest request) {
-            return execute(AnalyzeAction.INSTANCE, request);
-        }
-
-        @Override
-        public void analyze(final AnalyzeRequest request, final ActionListener<AnalyzeResponse> listener) {
-            execute(AnalyzeAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public AnalyzeRequestBuilder prepareAnalyze(@Nullable String index, String text) {
-            return new AnalyzeRequestBuilder(this, AnalyzeAction.INSTANCE, index, text);
-        }
-
-        @Override
-        public AnalyzeRequestBuilder prepareAnalyze(String text) {
-            return new AnalyzeRequestBuilder(this, AnalyzeAction.INSTANCE, null, text);
-        }
-
-        @Override
-        public AnalyzeRequestBuilder prepareAnalyze() {
-            return new AnalyzeRequestBuilder(this, AnalyzeAction.INSTANCE);
         }
 
         @Override

@@ -28,9 +28,6 @@ import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequestBuilder;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesResponse;
-import org.elasticsearch.action.admin.indices.analyze.AnalyzeRequest;
-import org.elasticsearch.action.admin.indices.analyze.AnalyzeRequestBuilder;
-import org.elasticsearch.action.admin.indices.analyze.AnalyzeResponse;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -548,37 +545,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Update indices settings.
      */
     UpdateSettingsRequestBuilder prepareUpdateSettings(String... indices);
-
-    /**
-     * Analyze text under the provided index.
-     */
-    ActionFuture<AnalyzeResponse> analyze(AnalyzeRequest request);
-
-    /**
-     * Analyze text under the provided index.
-     */
-    void analyze(AnalyzeRequest request, ActionListener<AnalyzeResponse> listener);
-
-    /**
-     * Analyze text under the provided index.
-     *
-     * @param index The index name
-     * @param text  The text to analyze
-     */
-    AnalyzeRequestBuilder prepareAnalyze(@Nullable String index, String text);
-
-    /**
-     * Analyze text.
-     *
-     * @param text The text to analyze
-     */
-    AnalyzeRequestBuilder prepareAnalyze(String text);
-
-    /**
-     * Analyze text/texts.
-     *
-     */
-    AnalyzeRequestBuilder prepareAnalyze();
 
     /**
      * Puts an index template.
