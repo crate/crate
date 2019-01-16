@@ -25,7 +25,6 @@ import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.index.get.GetResult;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.search.SearchHit;
 
@@ -39,10 +38,9 @@ import static org.elasticsearch.common.xcontent.XContentParserUtils.ensureExpect
 import static org.elasticsearch.common.xcontent.XContentParserUtils.parseFieldsValue;
 
 /**
- * A single field name and values part of {@link SearchHit} and {@link GetResult}.
+ * A single field name and values part of {@link SearchHit}.
  *
  * @see SearchHit
- * @see GetResult
  */
 public class DocumentField implements Streamable, ToXContentFragment, Iterable<Object> {
 
