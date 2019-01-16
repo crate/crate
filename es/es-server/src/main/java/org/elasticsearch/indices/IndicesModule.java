@@ -19,10 +19,6 @@
 
 package org.elasticsearch.indices;
 
-import org.elasticsearch.action.admin.indices.rollover.Condition;
-import org.elasticsearch.action.admin.indices.rollover.MaxAgeCondition;
-import org.elasticsearch.action.admin.indices.rollover.MaxDocsCondition;
-import org.elasticsearch.action.admin.indices.rollover.MaxSizeCondition;
 import org.elasticsearch.action.resync.TransportResyncReplicationAction;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.geo.ShapesAvailability;
@@ -94,9 +90,6 @@ public class IndicesModule extends AbstractModule {
     }
 
     private void registerBuiltinWritables() {
-        namedWritables.add(new NamedWriteableRegistry.Entry(Condition.class, MaxAgeCondition.NAME, MaxAgeCondition::new));
-        namedWritables.add(new NamedWriteableRegistry.Entry(Condition.class, MaxDocsCondition.NAME, MaxDocsCondition::new));
-        namedWritables.add(new NamedWriteableRegistry.Entry(Condition.class, MaxSizeCondition.NAME, MaxSizeCondition::new));
     }
 
     public List<NamedWriteableRegistry.Entry> getNamedWriteables() {
@@ -104,14 +97,7 @@ public class IndicesModule extends AbstractModule {
     }
 
     public List<NamedXContentRegistry.Entry> getNamedXContents() {
-        return Arrays.asList(
-            new NamedXContentRegistry.Entry(Condition.class, new ParseField(MaxAgeCondition.NAME), (p, c) ->
-                MaxAgeCondition.fromXContent(p)),
-            new NamedXContentRegistry.Entry(Condition.class, new ParseField(MaxDocsCondition.NAME), (p, c) ->
-                MaxDocsCondition.fromXContent(p)),
-            new NamedXContentRegistry.Entry(Condition.class, new ParseField(MaxSizeCondition.NAME), (p, c) ->
-                MaxSizeCondition.fromXContent(p))
-        );
+        return Collections.emptyList();
     }
 
     private Map<String, Mapper.TypeParser> getMappers(List<MapperPlugin> mapperPlugins) {
