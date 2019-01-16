@@ -24,7 +24,6 @@ package io.crate.execution.dml;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
-import io.crate.Constants;
 import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -67,10 +66,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     @Override
     public Iterator<I> iterator() {
         return Iterators.unmodifiableIterator(items.iterator());
-    }
-
-    public String type() {
-        return Constants.DEFAULT_MAPPING_TYPE;
     }
 
     public UUID jobId() {
