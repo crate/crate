@@ -76,9 +76,6 @@ import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequestBuilder;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.segments.IndicesSegmentResponse;
-import org.elasticsearch.action.admin.indices.segments.IndicesSegmentsRequest;
-import org.elasticsearch.action.admin.indices.segments.IndicesSegmentsRequestBuilder;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequestBuilder;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
@@ -187,29 +184,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Indices recoveries
      */
     RecoveryRequestBuilder prepareRecoveries(String... indices);
-
-    /**
-     * The segments of one or more indices.
-     *
-     * @param request The indices segments request
-     * @return The result future
-     * @see Requests#indicesSegmentsRequest(String...)
-     */
-    ActionFuture<IndicesSegmentResponse> segments(IndicesSegmentsRequest request);
-
-    /**
-     * The segments of one or more indices.
-     *
-     * @param request  The indices segments request
-     * @param listener A listener to be notified with a result
-     * @see Requests#indicesSegmentsRequest(String...)
-     */
-    void segments(IndicesSegmentsRequest request, ActionListener<IndicesSegmentResponse> listener);
-
-    /**
-     * The segments of one or more indices.
-     */
-    IndicesSegmentsRequestBuilder prepareSegments(String... indices);
 
     /**
      * Creates an index using an explicit request allowing to specify the settings of the index.

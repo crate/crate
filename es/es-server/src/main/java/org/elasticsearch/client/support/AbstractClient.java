@@ -173,10 +173,6 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequestBuilder;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.segments.IndicesSegmentResponse;
-import org.elasticsearch.action.admin.indices.segments.IndicesSegmentsAction;
-import org.elasticsearch.action.admin.indices.segments.IndicesSegmentsRequest;
-import org.elasticsearch.action.admin.indices.segments.IndicesSegmentsRequestBuilder;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequestBuilder;
@@ -1068,21 +1064,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public RecoveryRequestBuilder prepareRecoveries(String... indices) {
             return new RecoveryRequestBuilder(this, RecoveryAction.INSTANCE).setIndices(indices);
-        }
-
-        @Override
-        public ActionFuture<IndicesSegmentResponse> segments(final IndicesSegmentsRequest request) {
-            return execute(IndicesSegmentsAction.INSTANCE, request);
-        }
-
-        @Override
-        public void segments(final IndicesSegmentsRequest request, final ActionListener<IndicesSegmentResponse> listener) {
-            execute(IndicesSegmentsAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public IndicesSegmentsRequestBuilder prepareSegments(String... indices) {
-            return new IndicesSegmentsRequestBuilder(this, IndicesSegmentsAction.INSTANCE).setIndices(indices);
         }
 
         @Override
