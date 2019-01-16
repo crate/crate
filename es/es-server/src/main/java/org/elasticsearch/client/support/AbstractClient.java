@@ -112,10 +112,6 @@ import org.elasticsearch.action.admin.indices.analyze.AnalyzeAction;
 import org.elasticsearch.action.admin.indices.analyze.AnalyzeRequest;
 import org.elasticsearch.action.admin.indices.analyze.AnalyzeRequestBuilder;
 import org.elasticsearch.action.admin.indices.analyze.AnalyzeResponse;
-import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheAction;
-import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheRequest;
-import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheRequestBuilder;
-import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheResponse;
 import org.elasticsearch.action.admin.indices.close.CloseIndexAction;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequestBuilder;
@@ -793,11 +789,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         }
 
         @Override
-        public ActionFuture<ClearIndicesCacheResponse> clearCache(final ClearIndicesCacheRequest request) {
-            return execute(ClearIndicesCacheAction.INSTANCE, request);
-        }
-
-        @Override
         public void aliasesExist(GetAliasesRequest request, ActionListener<AliasesExistResponse> listener) {
             execute(AliasesExistAction.INSTANCE, request, listener);
         }
@@ -825,16 +816,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public GetIndexRequestBuilder prepareGetIndex() {
             return new GetIndexRequestBuilder(this, GetIndexAction.INSTANCE);
-        }
-
-        @Override
-        public void clearCache(final ClearIndicesCacheRequest request, final ActionListener<ClearIndicesCacheResponse> listener) {
-            execute(ClearIndicesCacheAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ClearIndicesCacheRequestBuilder prepareClearCache(String... indices) {
-            return new ClearIndicesCacheRequestBuilder(this, ClearIndicesCacheAction.INSTANCE).setIndices(indices);
         }
 
         @Override
