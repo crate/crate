@@ -21,9 +21,6 @@ package org.elasticsearch.client;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.delete.DeleteRequestBuilder;
-import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.explain.ExplainRequest;
 import org.elasticsearch.action.explain.ExplainRequestBuilder;
 import org.elasticsearch.action.explain.ExplainResponse;
@@ -133,38 +130,6 @@ public interface Client extends ElasticsearchClient, Releasable {
      * @param id    The id of the document
      */
     IndexRequestBuilder prepareIndex(String index, String type, @Nullable String id);
-
-    /**
-     * Deletes a document from the index based on the index, type and id.
-     *
-     * @param request The delete request
-     * @return The result future
-     * @see Requests#deleteRequest(String)
-     */
-    ActionFuture<DeleteResponse> delete(DeleteRequest request);
-
-    /**
-     * Deletes a document from the index based on the index, type and id.
-     *
-     * @param request  The delete request
-     * @param listener A listener to be notified with a result
-     * @see Requests#deleteRequest(String)
-     */
-    void delete(DeleteRequest request, ActionListener<DeleteResponse> listener);
-
-    /**
-     * Deletes a document from the index based on the index, type and id.
-     */
-    DeleteRequestBuilder prepareDelete();
-
-    /**
-     * Deletes a document from the index based on the index, type and id.
-     *
-     * @param index The index to delete the document from
-     * @param type  The type of the document to delete
-     * @param id    The id of the document to delete
-     */
-    DeleteRequestBuilder prepareDelete(String index, String type, String id);
 
     /**
      * Gets the document that was indexed from an index with a type and id.
