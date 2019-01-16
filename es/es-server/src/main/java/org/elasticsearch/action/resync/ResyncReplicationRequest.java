@@ -19,7 +19,6 @@
 package org.elasticsearch.action.resync;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -82,7 +81,7 @@ public final class ResyncReplicationRequest extends ReplicatedWriteRequest<Resyn
         if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
             maxSeenAutoIdTimestampOnPrimary = in.readZLong();
         } else {
-            maxSeenAutoIdTimestampOnPrimary = IndexRequest.UNSET_AUTO_GENERATED_TIMESTAMP;
+            maxSeenAutoIdTimestampOnPrimary = Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
         }
         operations = in.readArray(Translog.Operation::readOperation, Translog.Operation[]::new);
     }

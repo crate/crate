@@ -130,11 +130,6 @@ public abstract class TransportAction<Request extends ActionRequest, Response ex
             listener.onFailure(validationException);
             return;
         }
-
-        if (task != null && request.getShouldStoreResult()) {
-            listener = new TaskResultStoringActionListener<>(taskManager, task, listener);
-        }
-
         RequestFilterChain<Request, Response> requestFilterChain = new RequestFilterChain<>(this, logger);
         requestFilterChain.proceed(task, actionName, request, listener);
     }
@@ -171,41 +166,6 @@ public abstract class TransportAction<Request extends ActionRequest, Response ex
             } catch(Exception e) {
                 logger.trace("Error during transport action execution.", e);
                 listener.onFailure(e);
-            }
-        }
-
-    }
-
-    /**
-     * Wrapper for an action listener that stores the result at the end of the execution
-     */
-    private static class TaskResultStoringActionListener<Response extends ActionResponse> implements ActionListener<Response> {
-        private final ActionListener<Response> delegate;
-        private final Task task;
-        private final TaskManager taskManager;
-
-        private TaskResultStoringActionListener(TaskManager taskManager, Task task, ActionListener<Response> delegate) {
-            this.taskManager = taskManager;
-            this.task = task;
-            this.delegate = delegate;
-        }
-
-        @Override
-        public void onResponse(Response response) {
-            try {
-                taskManager.storeResult(task, response, delegate);
-            } catch (Exception e) {
-                delegate.onFailure(e);
-            }
-        }
-
-        @Override
-        public void onFailure(Exception e) {
-            try {
-                taskManager.storeResult(task, e, delegate);
-            } catch (Exception inner) {
-                inner.addSuppressed(e);
-                delegate.onFailure(inner);
             }
         }
     }

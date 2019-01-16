@@ -72,7 +72,6 @@ import org.elasticsearch.persistent.PersistentTasksCustomMetaData;
 import org.elasticsearch.persistent.PersistentTasksNodeService;
 import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.tasks.Task;
-import org.elasticsearch.tasks.TaskResultsService;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -288,7 +287,6 @@ public class ClusterModule extends AbstractModule {
         bind(ShardStateAction.class).asEagerSingleton();
         bind(NodeMappingRefreshAction.class).asEagerSingleton();
         bind(MappingUpdatedAction.class).asEagerSingleton();
-        bind(TaskResultsService.class).asEagerSingleton();
         bind(AllocationDeciders.class).toInstance(allocationDeciders);
         bind(ShardsAllocator.class).toInstance(shardsAllocator);
     }
