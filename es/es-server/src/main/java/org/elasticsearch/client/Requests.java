@@ -21,7 +21,6 @@ package org.elasticsearch.client;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequest;
 import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskRequest;
 import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksRequest;
@@ -38,7 +37,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
@@ -312,38 +310,6 @@ public class Requests {
      */
     public static NodesInfoRequest nodesInfoRequest() {
         return new NodesInfoRequest();
-    }
-
-    /**
-     * Creates a nodes info request against one or more nodes. Pass {@code null} or an empty array for all nodes.
-     *
-     * @param nodesIds The nodes ids to get the status for
-     * @return The nodes info request
-     * @see org.elasticsearch.client.ClusterAdminClient#nodesStats(org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest)
-     */
-    public static NodesInfoRequest nodesInfoRequest(String... nodesIds) {
-        return new NodesInfoRequest(nodesIds);
-    }
-
-    /**
-     * Creates a nodes stats request against one or more nodes. Pass {@code null} or an empty array for all nodes.
-     *
-     * @param nodesIds The nodes ids to get the stats for
-     * @return The nodes info request
-     * @see org.elasticsearch.client.ClusterAdminClient#nodesStats(org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest)
-     */
-    public static NodesStatsRequest nodesStatsRequest(String... nodesIds) {
-        return new NodesStatsRequest(nodesIds);
-    }
-
-    /**
-     * Creates a cluster stats request.
-     *
-     * @return The cluster stats request
-     * @see org.elasticsearch.client.ClusterAdminClient#clusterStats(org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequest)
-     */
-    public static ClusterStatsRequest clusterStatsRequest() {
-        return new ClusterStatsRequest();
     }
 
     /**
