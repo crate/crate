@@ -23,6 +23,7 @@
 package io.crate.execution.dml.upsert;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.Constants;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
@@ -160,8 +161,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     }
                     throw new RuntimeException(e);
                 }
-                logger.debug("{} failed to execute upsert for [{}]/[{}]",
-                    e, request.shardId(), request.type(), item.id());
+                if (logger.isDebugEnabled()) {
+                    logger.debug("shardId={} failed to execute upsert for id={}", e, request.shardId(), item.id());
+                }
 
                 // *mark* the item as failed by setting the source to null
                 // to prevent the replica operation from processing this concrete item
@@ -193,7 +195,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 continue;
             }
             SourceToParse sourceToParse = SourceToParse.source(request.index(),
-                request.type(), item.id(), item.source(), XContentType.JSON);
+                Constants.DEFAULT_MAPPING_TYPE, item.id(), item.source(), XContentType.JSON);
 
             Engine.IndexResult indexResult = indexShard.applyIndexOperationOnReplica(
                 item.seqNo(),
@@ -304,7 +306,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         long finalVersion = version;
         SourceToParse sourceToParse = SourceToParse.source(
-            request.index(), request.type(), item.id(), item.source(), XContentType.JSON);
+            request.index(), Constants.DEFAULT_MAPPING_TYPE, item.id(), item.source(), XContentType.JSON);
         Engine.IndexResult indexResult = executeOnPrimaryHandlingMappingUpdate(
             indexShard.shardId(),
             () -> indexShard.applyIndexOperationOnPrimary(
@@ -338,7 +340,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                          ShardUpsertRequest request,
                                          ShardUpsertRequest.Item item) {
         GetResult getResult = indexShard.getService().get(
-            request.type(),
+            Constants.DEFAULT_MAPPING_TYPE,
             item.id(),
             new String[]{RoutingFieldMapper.NAME, ParentFieldMapper.NAME},
             true,
@@ -348,12 +350,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         );
 
         if (!getResult.isExists()) {
-            throw new DocumentMissingException(request.shardId(), request.type(), item.id());
+            throw new DocumentMissingException(request.shardId(), Constants.DEFAULT_MAPPING_TYPE, item.id());
         }
 
         if (getResult.internalSourceRef() == null) {
             // no source, we can't do nothing, through a failure...
-            throw new DocumentSourceMissingException(request.shardId(), request.type(), item.id());
+            throw new DocumentSourceMissingException(request.shardId(), Constants.DEFAULT_MAPPING_TYPE, item.id());
         }
 
         if (item.version() != Versions.MATCH_ANY && item.version() != getResult.getVersion()) {
