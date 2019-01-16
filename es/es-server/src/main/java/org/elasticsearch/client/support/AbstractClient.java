@@ -33,10 +33,6 @@ import org.elasticsearch.action.admin.cluster.node.info.NodesInfoAction;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequestBuilder;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsAction;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksAction;
 import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequest;
 import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequestBuilder;
@@ -98,10 +94,6 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsAction;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequest;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequestBuilder;
@@ -498,36 +490,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public NodesInfoRequestBuilder prepareNodesInfo(String... nodesIds) {
             return new NodesInfoRequestBuilder(this, NodesInfoAction.INSTANCE).setNodesIds(nodesIds);
-        }
-
-        @Override
-        public ActionFuture<NodesStatsResponse> nodesStats(final NodesStatsRequest request) {
-            return execute(NodesStatsAction.INSTANCE, request);
-        }
-
-        @Override
-        public void nodesStats(final NodesStatsRequest request, final ActionListener<NodesStatsResponse> listener) {
-            execute(NodesStatsAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public NodesStatsRequestBuilder prepareNodesStats(String... nodesIds) {
-            return new NodesStatsRequestBuilder(this, NodesStatsAction.INSTANCE).setNodesIds(nodesIds);
-        }
-
-        @Override
-        public ActionFuture<ClusterStatsResponse> clusterStats(ClusterStatsRequest request) {
-            return execute(ClusterStatsAction.INSTANCE, request);
-        }
-
-        @Override
-        public void clusterStats(ClusterStatsRequest request, ActionListener<ClusterStatsResponse> listener) {
-            execute(ClusterStatsAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ClusterStatsRequestBuilder prepareClusterStats() {
-            return new ClusterStatsRequestBuilder(this, ClusterStatsAction.INSTANCE);
         }
 
         @Override

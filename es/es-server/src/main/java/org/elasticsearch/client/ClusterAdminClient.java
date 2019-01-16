@@ -27,9 +27,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequestBuilder;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequest;
 import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequestBuilder;
 import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksResponse;
@@ -75,9 +72,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusRe
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequest;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequestBuilder;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
@@ -189,49 +183,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Nodes info of the cluster.
      */
     NodesInfoRequestBuilder prepareNodesInfo(String... nodesIds);
-
-    /**
-     * Cluster wide aggregated stats.
-     *
-     * @param request The cluster stats request
-     * @return The result future
-     * @see org.elasticsearch.client.Requests#clusterStatsRequest
-     */
-    ActionFuture<ClusterStatsResponse> clusterStats(ClusterStatsRequest request);
-
-    /**
-     * Cluster wide aggregated stats
-     *
-     * @param request  The cluster stats request
-     * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#clusterStatsRequest()
-     */
-    void clusterStats(ClusterStatsRequest request, ActionListener<ClusterStatsResponse> listener);
-
-    ClusterStatsRequestBuilder prepareClusterStats();
-
-    /**
-     * Nodes stats of the cluster.
-     *
-     * @param request The nodes stats request
-     * @return The result future
-     * @see org.elasticsearch.client.Requests#nodesStatsRequest(String...)
-     */
-    ActionFuture<NodesStatsResponse> nodesStats(NodesStatsRequest request);
-
-    /**
-     * Nodes stats of the cluster.
-     *
-     * @param request  The nodes info request
-     * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#nodesStatsRequest(String...)
-     */
-    void nodesStats(NodesStatsRequest request, ActionListener<NodesStatsResponse> listener);
-
-    /**
-     * Nodes stats of the cluster.
-     */
-    NodesStatsRequestBuilder prepareNodesStats(String... nodesIds);
 
     /**
      * List tasks

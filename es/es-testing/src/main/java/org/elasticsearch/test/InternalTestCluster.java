@@ -30,9 +30,6 @@ import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
-import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
-import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags.Flag;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -92,7 +89,6 @@ import org.elasticsearch.indices.fielddata.cache.IndicesFieldDataCache;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.node.MockNode;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.node.NodeService;
 import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.search.SearchService;
@@ -2202,17 +2198,6 @@ public final class InternalTestCluster extends TestCluster {
                 } catch (Exception e) {
                     fail("Exception during check for request breaker reset to 0: " + e);
                 }
-
-                NodeService nodeService = getInstanceFromNode(NodeService.class, nodeAndClient.node);
-                CommonStatsFlags flags = new CommonStatsFlags(Flag.FieldData, Flag.QueryCache, Flag.Segments);
-                NodeStats stats = nodeService.stats(flags,
-                        false, false, false, false, false, false, false, false, false, false, false, false);
-                assertThat("Fielddata size must be 0 on node: " + stats.getNode(),
-                        stats.getIndices().getFieldData().getMemorySizeInBytes(), equalTo(0L));
-                assertThat("Query cache size must be 0 on node: " + stats.getNode(),
-                        stats.getIndices().getQueryCache().getMemorySizeInBytes(), equalTo(0L));
-                assertThat("FixedBitSet cache size must be 0 on node: " + stats.getNode(),
-                        stats.getIndices().getSegments().getBitsetMemoryInBytes(), equalTo(0L));
             }
         }
     }

@@ -1037,13 +1037,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
             Strings.toString(segsRsp.toXContent(JsonXContent.contentBuilder().prettyPrint(), ToXContent.EMPTY_PARAMS)));
     }
 
-    /**
-     * Prints current memory stats as info logging.
-     */
-    public void logMemoryStats() {
-        logger.info("memory: {}", Strings.toString(client().admin().cluster().prepareNodesStats().clear().setJvm(true).get(), true, true));
-    }
-
     protected void ensureClusterSizeConsistency() {
         if (cluster() != null && cluster().size() > 0) { // if static init fails the cluster can be null
             logger.trace("Check consistency for [{}] nodes", cluster().size());
