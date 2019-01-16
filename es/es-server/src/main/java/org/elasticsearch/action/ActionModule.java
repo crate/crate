@@ -63,8 +63,6 @@ import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistAction;
 import org.elasticsearch.action.admin.indices.alias.exists.TransportAliasesExistAction;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesAction;
 import org.elasticsearch.action.admin.indices.alias.get.TransportGetAliasesAction;
-import org.elasticsearch.action.admin.indices.analyze.AnalyzeAction;
-import org.elasticsearch.action.admin.indices.analyze.TransportAnalyzeAction;
 import org.elasticsearch.action.admin.indices.close.CloseIndexAction;
 import org.elasticsearch.action.admin.indices.close.TransportCloseIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
@@ -167,7 +165,6 @@ import org.elasticsearch.rest.action.admin.cluster.RestPutRepositoryAction;
 import org.elasticsearch.rest.action.admin.cluster.RestRestoreSnapshotAction;
 import org.elasticsearch.rest.action.admin.cluster.RestSnapshotsStatusAction;
 import org.elasticsearch.rest.action.admin.cluster.RestVerifyRepositoryAction;
-import org.elasticsearch.rest.action.admin.indices.RestAnalyzeAction;
 import org.elasticsearch.rest.action.admin.indices.RestCloseIndexAction;
 import org.elasticsearch.rest.action.admin.indices.RestCreateIndexAction;
 import org.elasticsearch.rest.action.admin.indices.RestDeleteIndexAction;
@@ -329,7 +326,6 @@ public class ActionModule extends AbstractModule {
         actions.register(PutMappingAction.INSTANCE, TransportPutMappingAction.class);
         actions.register(IndicesAliasesAction.INSTANCE, TransportIndicesAliasesAction.class);
         actions.register(UpdateSettingsAction.INSTANCE, TransportUpdateSettingsAction.class);
-        actions.register(AnalyzeAction.INSTANCE, TransportAnalyzeAction.class);
         actions.register(PutIndexTemplateAction.INSTANCE, TransportPutIndexTemplateAction.class);
         actions.register(GetIndexTemplatesAction.INSTANCE, TransportGetIndexTemplatesAction.class);
         actions.register(DeleteIndexTemplateAction.INSTANCE, TransportDeleteIndexTemplateAction.class);
@@ -402,7 +398,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestUpdateSettingsAction(settings, restController));
         registerHandler.accept(new RestGetSettingsAction(settings, restController));
 
-        registerHandler.accept(new RestAnalyzeAction(settings, restController));
         registerHandler.accept(new RestGetIndexTemplateAction(settings, restController));
         registerHandler.accept(new RestPutIndexTemplateAction(settings, restController));
         registerHandler.accept(new RestDeleteIndexTemplateAction(settings, restController));
