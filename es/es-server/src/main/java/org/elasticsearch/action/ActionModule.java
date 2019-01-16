@@ -126,8 +126,6 @@ import org.elasticsearch.action.admin.indices.upgrade.post.TransportUpgradeActio
 import org.elasticsearch.action.admin.indices.upgrade.post.TransportUpgradeSettingsAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeSettingsAction;
-import org.elasticsearch.action.admin.indices.validate.query.TransportValidateQueryAction;
-import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryAction;
 import org.elasticsearch.action.main.MainAction;
 import org.elasticsearch.action.main.TransportMainAction;
 import org.elasticsearch.action.search.ClearScrollAction;
@@ -214,7 +212,6 @@ import org.elasticsearch.rest.action.admin.indices.RestSyncedFlushAction;
 import org.elasticsearch.rest.action.admin.indices.RestUpdateSettingsAction;
 import org.elasticsearch.rest.action.admin.indices.RestUpgradeAction;
 import org.elasticsearch.rest.action.admin.indices.RestUpgradeStatusAction;
-import org.elasticsearch.rest.action.admin.indices.RestValidateQueryAction;
 import org.elasticsearch.rest.action.search.RestClearScrollAction;
 import org.elasticsearch.rest.action.search.RestMultiSearchAction;
 import org.elasticsearch.rest.action.search.RestSearchAction;
@@ -360,7 +357,6 @@ public class ActionModule extends AbstractModule {
         actions.register(PutIndexTemplateAction.INSTANCE, TransportPutIndexTemplateAction.class);
         actions.register(GetIndexTemplatesAction.INSTANCE, TransportGetIndexTemplatesAction.class);
         actions.register(DeleteIndexTemplateAction.INSTANCE, TransportDeleteIndexTemplateAction.class);
-        actions.register(ValidateQueryAction.INSTANCE, TransportValidateQueryAction.class);
         actions.register(RefreshAction.INSTANCE, TransportRefreshAction.class);
         actions.register(FlushAction.INSTANCE, TransportFlushAction.class);
         actions.register(SyncedFlushAction.INSTANCE, TransportSyncedFlushAction.class);
@@ -459,8 +455,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestSearchScrollAction(settings, restController));
         registerHandler.accept(new RestClearScrollAction(settings, restController));
         registerHandler.accept(new RestMultiSearchAction(settings, restController));
-
-        registerHandler.accept(new RestValidateQueryAction(settings, restController));
 
         registerHandler.accept(new RestRecoveryAction(settings, restController));
 
