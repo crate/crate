@@ -23,14 +23,10 @@
 package io.crate.expression.reference.doc.lucene;
 
 
-import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.StoredFieldVisitor;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.mapper.SourceFieldMapper;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,7 +36,7 @@ import java.util.RandomAccess;
 
 public final class SourceLookup {
 
-    private final Visitor fieldsVisitor = new Visitor();
+    private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
     private LeafReader reader;
     private int doc;
     private Map<String, Object> source;
@@ -72,7 +68,7 @@ public final class SourceLookup {
 
     private Map<String, Object> loadSource() throws IOException {
         reader.document(doc, fieldsVisitor);
-        return XContentHelper.convertToMap(fieldsVisitor.source, false, XContentType.JSON).v2();
+        return XContentHelper.convertToMap(fieldsVisitor.source(), false, XContentType.JSON).v2();
     }
 
     @SuppressWarnings("unchecked")
@@ -103,31 +99,5 @@ public final class SourceLookup {
             }
         }
         return tmp;
-    }
-
-    private static class Visitor extends StoredFieldVisitor {
-
-        private boolean done = false;
-        private BytesArray source;
-
-        @Override
-        public Status needsField(FieldInfo fieldInfo) {
-            if (fieldInfo.name.equals(SourceFieldMapper.NAME)) {
-                done = true;
-                return Status.YES;
-            }
-            return done ? Status.STOP : Status.NO;
-        }
-
-        @Override
-        public void binaryField(FieldInfo fieldInfo, byte[] value) {
-            assert SourceFieldMapper.NAME.equals(fieldInfo.name) : "Must only receive a source field";
-            source = new BytesArray(value);
-        }
-
-        public void reset() {
-            done = false;
-            source = null;
-        }
     }
 }

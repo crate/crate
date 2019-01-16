@@ -23,20 +23,22 @@
 package io.crate.execution.dml.upsert;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.Constants;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
+import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import org.elasticsearch.ExceptionsHelper;
@@ -57,14 +59,10 @@ import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.DocumentSourceMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.get.GetResult;
-import org.elasticsearch.index.mapper.ParentFieldMapper;
-import org.elasticsearch.index.mapper.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -160,8 +158,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     }
                     throw new RuntimeException(e);
                 }
-                logger.debug("{} failed to execute upsert for [{}]/[{}]",
-                    e, request.shardId(), request.type(), item.id());
+                if (logger.isDebugEnabled()) {
+                    logger.debug("shardId={} failed to execute upsert for id={}", e, request.shardId(), item.id());
+                }
 
                 // *mark* the item as failed by setting the source to null
                 // to prevent the replica operation from processing this concrete item
@@ -193,7 +192,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 continue;
             }
             SourceToParse sourceToParse = SourceToParse.source(request.index(),
-                request.type(), item.id(), item.source(), XContentType.JSON);
+                Constants.DEFAULT_MAPPING_TYPE, item.id(), item.source(), XContentType.JSON);
 
             Engine.IndexResult indexResult = indexShard.applyIndexOperationOnReplica(
                 item.seqNo(),
@@ -292,7 +291,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 version = Versions.MATCH_ANY;
             }
         } else {
-            Doc currentDoc = Doc.fromGetResult(getDocument(indexShard, request, item));
+            Doc currentDoc = getDocument(indexShard, item.id(), item.version());
             BytesReference updatedSource = updateSourceGen.generateSource(
                 currentDoc,
                 item.updateAssignments(),
@@ -304,7 +303,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         long finalVersion = version;
         SourceToParse sourceToParse = SourceToParse.source(
-            request.index(), request.type(), item.id(), item.source(), XContentType.JSON);
+            request.index(), Constants.DEFAULT_MAPPING_TYPE, item.id(), item.source(), XContentType.JSON);
         Engine.IndexResult indexResult = executeOnPrimaryHandlingMappingUpdate(
             indexShard.shardId(),
             () -> indexShard.applyIndexOperationOnPrimary(
@@ -334,35 +333,22 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
     }
 
-    private static GetResult getDocument(IndexShard indexShard,
-                                         ShardUpsertRequest request,
-                                         ShardUpsertRequest.Item item) {
-        GetResult getResult = indexShard.getService().get(
-            request.type(),
-            item.id(),
-            new String[]{RoutingFieldMapper.NAME, ParentFieldMapper.NAME},
-            true,
-            Versions.MATCH_ANY,
-            VersionType.INTERNAL,
-            FetchSourceContext.FETCH_SOURCE
-        );
-
-        if (!getResult.isExists()) {
-            throw new DocumentMissingException(request.shardId(), request.type(), item.id());
+    private static Doc getDocument(IndexShard indexShard, String id, long version) {
+        Doc doc = PKLookupOperation.lookupDoc(indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL);
+        if (doc == null) {
+            throw new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
         }
-
-        if (getResult.internalSourceRef() == null) {
-            // no source, we can't do nothing, through a failure...
-            throw new DocumentSourceMissingException(request.shardId(), request.type(), item.id());
+        if (doc.getSource() == null) {
+            throw new DocumentSourceMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
         }
-
-        if (item.version() != Versions.MATCH_ANY && item.version() != getResult.getVersion()) {
+        if (version != Versions.MATCH_ANY && version != doc.getVersion()) {
             throw new VersionConflictEngineException(
-                indexShard.shardId(), getResult.getType(), item.id(),
-                "Requested version: " + item.version() + " but got version: " + getResult.getVersion());
+                indexShard.shardId(),
+                Constants.DEFAULT_MAPPING_TYPE,
+                id,
+                "Requested version: " + version + " but got version: " + doc.getVersion());
         }
-
-        return getResult;
+        return doc;
     }
 
     public static Collection<ColumnIdent> getNotUsedNonGeneratedColumns(Reference[] targetColumns,

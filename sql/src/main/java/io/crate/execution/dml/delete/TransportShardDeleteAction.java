@@ -22,6 +22,7 @@
 
 package io.crate.execution.dml.delete;
 
+import io.crate.Constants;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
@@ -75,6 +76,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                                                                                         AtomicBoolean killed) throws IOException {
         ShardResponse shardResponse = new ShardResponse();
         Translog.Location translogLocation = null;
+        boolean debugEnabled = logger.isDebugEnabled();
         for (ShardDeleteRequest.Item item : request.items()) {
             int location = item.location();
             if (killed.get()) {
@@ -86,16 +88,20 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                 break;
             }
             try {
-                Engine.DeleteResult deleteResult = shardDeleteOperationOnPrimary(request, item, indexShard);
+                Engine.DeleteResult deleteResult = shardDeleteOperationOnPrimary(item, indexShard);
                 translogLocation = deleteResult.getTranslogLocation();
                 Exception failure = deleteResult.getFailure();
                 if (failure == null) {
                     if (deleteResult.isFound()) {
-                        logger.debug("{} successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
+                        if (debugEnabled) {
+                            logger.debug("shardId={} successfully deleted id={}", request.shardId(), item.id());
+                        }
                         shardResponse.add(location);
                     } else {
-                        logger.debug("{} failed to execute delete for [{}]/[{}], doc not found",
-                            request.shardId(), request.type(), item.id());
+                        if (debugEnabled) {
+                            logger.debug("shardId={} failed to execute delete for id={}, doc not found",
+                                request.shardId(), item.id());
+                        }
                         shardResponse.add(location,
                             new ShardResponse.Failure(
                                 item.id(),
@@ -103,8 +109,10 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                                 false));
                     }
                 } else {
-                    logger.debug("{} failed to execute delete for [{}]/[{}]",
-                        failure, request.shardId(), request.type(), item.id());
+                    if (debugEnabled) {
+                        logger.debug("shardId={} failed to execute delete for id={}",
+                            failure, request.shardId(), item.id());
+                    }
                     shardResponse.add(location,
                         new ShardResponse.Failure(
                             item.id(),
@@ -115,8 +123,9 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                 if (!TransportActions.isShardNotAvailableException(e)) {
                     throw e;
                 } else {
-                    logger.debug("{} failed to execute delete for [{}]/[{}]",
-                        e, request.shardId(), request.type(), item.id());
+                    if (debugEnabled) {
+                        logger.debug("shardId={} failed to execute delete for id={}", e, request.shardId(), item.id());
+                    }
                     shardResponse.add(location,
                         new ShardResponse.Failure(
                             item.id(),
@@ -144,20 +153,20 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             // process the other items in case of a bulk request.
             if (item.seqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO) {
                 Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnReplica(
-                    item.seqNo(), item.version(), request.type(), item.id(), VersionType.EXTERNAL);
+                    item.seqNo(), item.version(), Constants.DEFAULT_MAPPING_TYPE, item.id(), VersionType.EXTERNAL);
 
                 translogLocation = deleteResult.getTranslogLocation();
                 if (logger.isTraceEnabled()) {
-                    logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
+                    logger.trace("shardId={} REPLICA: successfully deleted id={}", request.shardId(), item.id());
                 }
             }
         }
         return new WriteReplicaResult<>(request, translogLocation, null, indexShard, logger);
     }
 
-    private Engine.DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest request, ShardDeleteRequest.Item item, IndexShard indexShard) throws IOException {
+    private Engine.DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest.Item item, IndexShard indexShard) throws IOException {
         Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnPrimary(
-            item.version(), request.type(), item.id(), VersionType.INTERNAL);
+            item.version(), Constants.DEFAULT_MAPPING_TYPE, item.id(), VersionType.INTERNAL);
 
         // set version and sequence number for replica
         item.version(deleteResult.getVersion());

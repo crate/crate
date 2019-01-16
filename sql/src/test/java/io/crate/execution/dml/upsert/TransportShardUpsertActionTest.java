@@ -22,6 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
+import io.crate.Constants;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
@@ -126,7 +127,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                               boolean isRetry) throws Exception {
              throw new VersionConflictEngineException(
                 indexShard.shardId(),
-                request.type(),
+                 Constants.DEFAULT_MAPPING_TYPE,
                 item.id(),
                 "document with id: " + item.id() + " already exists in '" + request.shardId().getIndexName() + '\'');
         }

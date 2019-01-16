@@ -36,25 +36,34 @@ import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.engine.pipeline.Projectors;
 import io.crate.expression.reference.Doc;
+import io.crate.expression.reference.doc.lucene.SourceFieldVisitor;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
+import org.apache.lucene.index.Term;
+import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 
+import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.elasticsearch.common.xcontent.XContentHelper.convertToMap;
 
 public final class PKLookupOperation {
 
@@ -87,16 +96,8 @@ public final class PKLookupOperation {
                     throw new ShardNotFoundException(shardId);
                 }
                 return entry.getValue().stream()
-                    .map(pkAndVersion -> Doc.fromGetResult(shard.getService().get(
-                        Constants.DEFAULT_MAPPING_TYPE,
-                        pkAndVersion.id(),
-                        new String[0],
-                        true,
-                        pkAndVersion.version(),
-                        VersionType.EXTERNAL,
-                        FetchSourceContext.FETCH_SOURCE
-                    )))
-                    .filter(Doc::isExists);
+                    .map(pkAndVersion -> lookupDoc(shard, pkAndVersion.id(), pkAndVersion.version()))
+                    .filter(Objects::nonNull);
             });
         final Iterable<Doc> getResultIterable;
         if (consumerRequiresRepeat) {
@@ -107,6 +108,42 @@ public final class PKLookupOperation {
         return InMemoryBatchIterator.of(getResultIterable, null);
     }
 
+    @Nullable
+    public static Doc lookupDoc(IndexShard shard, String id, long version) {
+        return lookupDoc(shard, id, version, VersionType.EXTERNAL);
+    }
+
+    @Nullable
+    public static Doc lookupDoc(IndexShard shard, String id, long version, VersionType versionType) {
+        Term uidTerm = shard.mapperService().createUidTerm(Constants.DEFAULT_MAPPING_TYPE, id);
+        Engine.Get get = new Engine.Get(true, true, Constants.DEFAULT_MAPPING_TYPE, id, uidTerm)
+            .version(version)
+            .versionType(versionType);
+
+        Engine.GetResult getResult = shard.get(get);
+        if (getResult.exists()) {
+            try {
+                VersionsAndSeqNoResolver.DocIdAndVersion docIdAndVersion = getResult.docIdAndVersion();
+                SourceFieldVisitor visitor = new SourceFieldVisitor();
+                try {
+                    docIdAndVersion.reader.document(docIdAndVersion.docId, visitor);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return new Doc(
+                    shard.shardId().getIndexName(),
+                    id,
+                    docIdAndVersion.version,
+                    convertToMap(visitor.source(), false, XContentType.JSON).v2(),
+                    () -> visitor.source().utf8ToString()
+                );
+            } finally {
+                getResult.release();
+            }
+        } else {
+            return null;
+        }
+    }
 
     public void runWithShardProjections(UUID jobId,
                                         TransactionContext txnCtx,
@@ -151,15 +188,7 @@ public final class PKLookupOperation {
         ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(shardAndIdsList.size());
         for (ShardAndIds shardAndIds : shardAndIdsList) {
             Stream<Row> rowStream = shardAndIds.value.stream()
-                .map(pkAndVersion -> Doc.fromGetResult(shardAndIds.shard.getService().get(
-                    Constants.DEFAULT_MAPPING_TYPE,
-                    pkAndVersion.id(),
-                    emptyFields,
-                    true,
-                    pkAndVersion.version(),
-                    VersionType.EXTERNAL,
-                    FetchSourceContext.FETCH_SOURCE
-                )))
+                .map(pkAndVersion -> lookupDoc(shardAndIds.shard, pkAndVersion.id(), pkAndVersion.version()))
                 .map(resultToRow);
 
             Projectors projectors = new Projectors(
