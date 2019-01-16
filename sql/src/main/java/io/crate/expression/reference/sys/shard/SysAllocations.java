@@ -23,12 +23,16 @@
 package io.crate.expression.reference.sys.shard;
 
 import io.crate.metadata.IndexParts;
-import org.elasticsearch.action.admin.cluster.allocation.TransportClusterAllocationExplainAction;
+import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplanation;
 import org.elasticsearch.cluster.ClusterInfo;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.RoutingNodes;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.routing.allocation.AllocateUnassignedDecision;
+import org.elasticsearch.cluster.routing.allocation.MoveDecision;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
+import org.elasticsearch.cluster.routing.allocation.ShardAllocationDecision;
 import org.elasticsearch.cluster.routing.allocation.allocator.ShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -70,10 +74,34 @@ public class SysAllocations implements Iterable<SysAllocation> {
             allocationDeciders, routingNodes, state, clusterInfo, System.nanoTime());
         return allocation.routingTable().allShards().stream()
             .filter(shardRouting -> !IndexParts.isDangling(shardRouting.getIndexName()))
-            .map(shardRouting -> {
-                return new SysAllocation(
-                    TransportClusterAllocationExplainAction.explainShard(
-                        shardRouting, allocation, null, false, gatewayAllocator, shardAllocator));
-            }).iterator();
+            .map(shardRouting -> new SysAllocation(
+                explainShard(shardRouting, allocation, gatewayAllocator, shardAllocator))).iterator();
+    }
+
+    private static ClusterAllocationExplanation explainShard(ShardRouting shardRouting,
+                                                             RoutingAllocation allocation,
+                                                             GatewayAllocator gatewayAllocator,
+                                                             ShardsAllocator shardAllocator) {
+        allocation.setDebugMode(RoutingAllocation.DebugMode.EXCLUDE_YES_DECISIONS);
+
+        ShardAllocationDecision shardDecision;
+        if (shardRouting.initializing() || shardRouting.relocating()) {
+            shardDecision = ShardAllocationDecision.NOT_TAKEN;
+        } else {
+            AllocateUnassignedDecision allocateDecision = shardRouting.unassigned() ?
+                gatewayAllocator.decideUnassignedShardAllocation(shardRouting, allocation) : AllocateUnassignedDecision.NOT_TAKEN;
+            if (allocateDecision.isDecisionTaken() == false) {
+                shardDecision = shardAllocator.decideShardAllocation(shardRouting, allocation);
+            } else {
+                shardDecision = new ShardAllocationDecision(allocateDecision, MoveDecision.NOT_TAKEN);
+            }
+        }
+        return new ClusterAllocationExplanation(
+            shardRouting,
+            shardRouting.currentNodeId() != null ? allocation.nodes().get(shardRouting.currentNodeId()) : null,
+            shardRouting.relocatingNodeId() != null ? allocation.nodes().get(shardRouting.relocatingNodeId()) : null,
+            null,
+            shardDecision
+        );
     }
 }
