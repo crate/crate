@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.support.replication;
 
-import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -30,7 +29,7 @@ import java.io.IOException;
 
 /**
  * Requests that are both {@linkplain ReplicationRequest}s (run on a shard's primary first, then the replica) and {@linkplain WriteRequest}
- * (modify documents on a shard), for example {@link IndexRequest}, and {@link DeleteRequest}.
+ * (modify documents on a shard), for example {@link IndexRequest}.
  */
 public abstract class ReplicatedWriteRequest<R extends ReplicatedWriteRequest<R>> extends ReplicationRequest<R> implements WriteRequest<R> {
     private RefreshPolicy refreshPolicy = RefreshPolicy.NONE;
