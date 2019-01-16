@@ -40,6 +40,7 @@ import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DCLStatement;
 import io.crate.analyze.DDLStatement;
 import io.crate.analyze.DeallocateAnalyzedStatement;
+import io.crate.analyze.DropAnalyzerStatement;
 import io.crate.analyze.DropBlobTableAnalyzedStatement;
 import io.crate.analyze.DropTableAnalyzedStatement;
 import io.crate.analyze.DropViewStmt;
@@ -62,7 +63,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
-import io.crate.planner.node.ddl.CreateAnalyzerPlan;
+import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
@@ -291,7 +292,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         } catch (IOException ioe) {
             throw new UnhandledServerException("Could not build analyzer Settings", ioe);
         }
-        return new CreateAnalyzerPlan(analyzerSettings);
+        return new CreateDropAnalyzerPlan(analyzerSettings);
+    }
+
+    @Override
+    protected Plan visitDropAnalyzerStatement(DropAnalyzerStatement analysis, PlannerContext context) {
+        return new CreateDropAnalyzerPlan(analysis.settingsForRemoval());
     }
 
     @Override

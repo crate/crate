@@ -494,20 +494,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("ANALYZER", response.rows()[0][1]);
         assertEquals("myotheranalyzer", response.rows()[1][0]);
         assertEquals("ANALYZER", response.rows()[1][1]);
-        client().admin().cluster().prepareUpdateSettings()
-            .setPersistentSettings(
-                MapBuilder.<String, Object>newMapBuilder()
-                    .put("crate.analysis.custom.analyzer.myanalyzer", null)
-                    .put("crate.analysis.custom.analyzer.myotheranalyzer", null)
-                    .put("crate.analysis.custom.filter.myanalyzer_mytokenfilter", null)
-                    .map())
-            .setTransientSettings(
-                MapBuilder.<String, Object>newMapBuilder()
-                    .put("crate.analysis.custom.analyzer.myanalyzer", null)
-                    .put("crate.analysis.custom.analyzer.myotheranalyzer", null)
-                    .put("crate.analysis.custom.filter.myanalyzer_mytokenfilter", null)
-                    .map())
-            .execute().actionGet();
+
+        execute("drop analyzer myanalyzer");
+        execute("drop analyzer myotheranalyzer");
     }
 
     @Test

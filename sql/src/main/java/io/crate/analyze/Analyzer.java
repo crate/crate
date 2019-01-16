@@ -58,6 +58,7 @@ import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
+import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropIngestRule;
@@ -114,6 +115,7 @@ public class Analyzer {
     private final ShowStatementAnalyzer showStatementAnalyzer;
     private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
     private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
+    private final DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer;
     private final DropBlobTableAnalyzer dropBlobTableAnalyzer;
     private final RefreshTableAnalyzer refreshTableAnalyzer;
     private final OptimizeTableAnalyzer optimizeTableAnalyzer;
@@ -191,6 +193,7 @@ public class Analyzer {
         );
         this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, numberOfShards);
         this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
+        this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.refreshTableAnalyzer = new RefreshTableAnalyzer(schemas);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas);
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas);
@@ -318,6 +321,11 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitCreateAnalyzer(CreateAnalyzer node, Analysis context) {
             return createAnalyzerStatementAnalyzer.analyze(node, context);
+        }
+
+        @Override
+        public AnalyzedStatement visitDropAnalyzer(DropAnalyzer node, Analysis context) {
+            return dropAnalyzerStatementAnalyzer.analyze(node.name());
         }
 
         @Override

@@ -27,7 +27,6 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
@@ -216,10 +215,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         try {
             assertResponseWithTypes("create ANALYZER \"german_snowball\" extends snowball WITH (language='german')");
         } finally {
-            client().admin().cluster().prepareUpdateSettings()
-                .setPersistentSettings(MapBuilder.newMapBuilder().put("crate.analysis.custom.analyzer.german_snowball", null).map())
-                .setTransientSettings(MapBuilder.newMapBuilder().put("crate.analysis.custom.analyzer.german_snowball", null).map())
-                .execute().actionGet();
+            execute("drop analyzer german_snowball");
         }
     }
 

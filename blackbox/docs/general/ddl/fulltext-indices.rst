@@ -302,3 +302,15 @@ and will override the tokenizer with ``mypattern``.
 
    See the reference documentation of the :ref:`builtin-analyzer` to get
    detailed information on the available analyzers.
+
+
+.. hide: Drop created custom analyzers::
+
+    cr> drop ANALYZER myanalyzer;
+    DROP OK, 1 row affected (... sec)
+    cr> drop ANALYZER myanalyzer_customized;
+    DROP OK, 1 row affected (... sec)
+    cr> drop ANALYZER german_snowball;
+    DROP OK, 1 row affected (... sec)
+    cr> drop ANALYZER e2;
+    DROP OK, 1 row affected (... sec)

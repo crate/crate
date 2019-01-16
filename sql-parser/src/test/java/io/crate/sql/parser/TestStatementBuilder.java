@@ -556,6 +556,11 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testDropAnalyzer() {
+        printStatement("drop analyzer my_analyzer");
+    }
+
+    @Test
     public void testCreateUserStmtBuilder() {
         printStatement("create user \"Günter\"");
         printStatement("create user root");
