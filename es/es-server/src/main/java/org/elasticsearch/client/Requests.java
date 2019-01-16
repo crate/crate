@@ -38,7 +38,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotR
 import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -209,16 +208,6 @@ public class Requests {
      */
     public static UpgradeRequest upgradeRequest(String... indices) {
         return new UpgradeRequest(indices);
-    }
-
-    /**
-     * Creates a clean indices cache request.
-     *
-     * @param indices The indices to clean their caches. Use {@code null} or {@code _all} to execute against all indices
-     * @return The request
-     */
-    public static ClearIndicesCacheRequest clearIndicesCacheRequest(String... indices) {
-        return new ClearIndicesCacheRequest(indices);
     }
 
     /**
