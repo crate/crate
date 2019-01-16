@@ -55,7 +55,6 @@ import org.elasticsearch.action.admin.indices.segments.IndicesSegmentsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.shards.IndicesShardStoresRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
-import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
@@ -93,17 +92,6 @@ public class Requests {
         return new IndexRequest(index);
     }
 
-    /**
-     * Creates a delete request against a specific index. Note the {@link DeleteRequest#type(String)} and
-     * {@link DeleteRequest#id(String)} must be set.
-     *
-     * @param index The index name to delete from
-     * @return The delete request
-     * @see org.elasticsearch.client.Client#delete(org.elasticsearch.action.delete.DeleteRequest)
-     */
-    public static DeleteRequest deleteRequest(String index) {
-        return new DeleteRequest(index);
-    }
 
     /**
      * Creates a get request to get the JSON source from an index based on a type and id. Note, the
