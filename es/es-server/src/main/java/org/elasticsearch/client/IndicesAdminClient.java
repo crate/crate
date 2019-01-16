@@ -31,9 +31,6 @@ import org.elasticsearch.action.admin.indices.alias.get.GetAliasesResponse;
 import org.elasticsearch.action.admin.indices.analyze.AnalyzeRequest;
 import org.elasticsearch.action.admin.indices.analyze.AnalyzeRequestBuilder;
 import org.elasticsearch.action.admin.indices.analyze.AnalyzeResponse;
-import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheRequest;
-import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheRequestBuilder;
-import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheResponse;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -530,29 +527,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Get index metadata for particular indices.
      */
     GetIndexRequestBuilder prepareGetIndex();
-
-    /**
-     * Clear indices cache.
-     *
-     * @param request The clear indices cache request
-     * @return The result future
-     * @see Requests#clearIndicesCacheRequest(String...)
-     */
-    ActionFuture<ClearIndicesCacheResponse> clearCache(ClearIndicesCacheRequest request);
-
-    /**
-     * Clear indices cache.
-     *
-     * @param request  The clear indices cache request
-     * @param listener A listener to be notified with a result
-     * @see Requests#clearIndicesCacheRequest(String...)
-     */
-    void clearCache(ClearIndicesCacheRequest request, ActionListener<ClearIndicesCacheResponse> listener);
-
-    /**
-     * Clear indices cache.
-     */
-    ClearIndicesCacheRequestBuilder prepareClearCache(String... indices);
 
     /**
      * Updates settings of one or more indices.
