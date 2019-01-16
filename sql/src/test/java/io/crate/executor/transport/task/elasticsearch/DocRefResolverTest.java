@@ -48,7 +48,7 @@ public class DocRefResolverTest extends CrateUnitTest {
     private static final DocRefResolver REF_RESOLVER =
         new DocRefResolver(Collections.emptyList());
     private static final Doc GET_RESULT =
-        new Doc("t1", "abc", 1L, SourceLookup.sourceAsMap(SOURCE), SOURCE::utf8ToString, true);
+        new Doc("t1", "abc", 1L, SourceLookup.sourceAsMap(SOURCE), SOURCE::utf8ToString);
 
     @Test
     public void testSystemColumnsCollectExpressions() throws Exception {

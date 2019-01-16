@@ -24,7 +24,6 @@ package io.crate.expression.reference;
 
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.get.GetResult;
 
 import java.io.IOException;
 import java.util.Map;
@@ -34,34 +33,20 @@ public final class Doc {
 
     private final Map<String, Object> source;
     private final Supplier<String> raw;
-    private final boolean exists;
     private final String index;
     private final String id;
     private final long version;
-
-    public static Doc fromGetResult(GetResult result) {
-        return new Doc(
-            result.getIndex(),
-            result.getId(),
-            result.getVersion(),
-            result.getSource(),
-            () -> result.sourceRef().utf8ToString(),
-            result.isExists()
-        );
-    }
 
     public Doc(String index,
                String id,
                long version,
                Map<String, Object> source,
-               Supplier<String> raw,
-               boolean exists) {
+               Supplier<String> raw) {
         this.index = index;
         this.id = id;
         this.version = version;
         this.source = source;
         this.raw = raw;
-        this.exists = exists;
     }
 
     public long getVersion() {
@@ -84,10 +69,6 @@ public final class Doc {
         return index;
     }
 
-    public boolean isExists() {
-        return exists;
-    }
-
     public Doc withUpdatedSource(Map<String, Object> updatedSource) {
         return new Doc(
             index,
@@ -100,8 +81,7 @@ public final class Doc {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-            },
-            exists
+            }
         );
     }
 }
