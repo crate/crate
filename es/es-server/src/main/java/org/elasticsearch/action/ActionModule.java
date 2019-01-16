@@ -59,8 +59,6 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.TransportPendingClusterTasksAction;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.alias.TransportIndicesAliasesAction;
-import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistAction;
-import org.elasticsearch.action.admin.indices.alias.exists.TransportAliasesExistAction;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesAction;
 import org.elasticsearch.action.admin.indices.alias.get.TransportGetAliasesAction;
 import org.elasticsearch.action.admin.indices.close.CloseIndexAction;
@@ -337,7 +335,6 @@ public class ActionModule extends AbstractModule {
         actions.register(UpgradeStatusAction.INSTANCE, TransportUpgradeStatusAction.class);
         actions.register(UpgradeSettingsAction.INSTANCE, TransportUpgradeSettingsAction.class);
         actions.register(GetAliasesAction.INSTANCE, TransportGetAliasesAction.class);
-        actions.register(AliasesExistAction.INSTANCE, TransportAliasesExistAction.class);
         actions.register(GetSettingsAction.INSTANCE, TransportGetSettingsAction.class);
 
         actions.register(SearchAction.INSTANCE, TransportSearchAction.class);
