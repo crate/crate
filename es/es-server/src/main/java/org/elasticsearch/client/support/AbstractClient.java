@@ -218,10 +218,6 @@ import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequestBuilder;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
-import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryAction;
-import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequest;
-import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequestBuilder;
-import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryResponse;
 import org.elasticsearch.action.search.ClearScrollAction;
 import org.elasticsearch.action.search.ClearScrollRequest;
 import org.elasticsearch.action.search.ClearScrollRequestBuilder;
@@ -1195,21 +1191,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public DeleteIndexTemplateRequestBuilder prepareDeleteTemplate(String name) {
             return new DeleteIndexTemplateRequestBuilder(this, DeleteIndexTemplateAction.INSTANCE, name);
-        }
-
-        @Override
-        public ActionFuture<ValidateQueryResponse> validateQuery(final ValidateQueryRequest request) {
-            return execute(ValidateQueryAction.INSTANCE, request);
-        }
-
-        @Override
-        public void validateQuery(final ValidateQueryRequest request, final ActionListener<ValidateQueryResponse> listener) {
-            execute(ValidateQueryAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ValidateQueryRequestBuilder prepareValidateQuery(String... indices) {
-            return new ValidateQueryRequestBuilder(this, ValidateQueryAction.INSTANCE).setIndices(indices);
         }
 
         @Override

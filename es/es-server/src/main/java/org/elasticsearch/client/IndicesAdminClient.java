@@ -109,9 +109,6 @@ import org.elasticsearch.action.admin.indices.upgrade.get.UpgradeStatusResponse;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequestBuilder;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
-import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequest;
-import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryRequestBuilder;
-import org.elasticsearch.action.admin.indices.validate.query.ValidateQueryResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.Nullable;
 
@@ -740,27 +737,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Gets an index template (optional).
      */
     GetIndexTemplatesRequestBuilder prepareGetTemplates(String... name);
-
-    /**
-     * Validate a query for correctness.
-     *
-     * @param request The count request
-     * @return The result future
-     */
-    ActionFuture<ValidateQueryResponse> validateQuery(ValidateQueryRequest request);
-
-    /**
-     * Validate a query for correctness.
-     *
-     * @param request  The count request
-     * @param listener A listener to be notified of the result
-     */
-    void validateQuery(ValidateQueryRequest request, ActionListener<ValidateQueryResponse> listener);
-
-    /**
-     * Validate a query for correctness.
-     */
-    ValidateQueryRequestBuilder prepareValidateQuery(String... indices);
 
     /**
      * Executed a per index settings get request and returns the settings for the indices specified.
