@@ -43,7 +43,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -199,7 +198,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 item.seqNo(),
                 item.version(),
                 VersionType.EXTERNAL,
-                IndexRequest.UNSET_AUTO_GENERATED_TIMESTAMP,
+                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 false,
                 sourceToParse
             );
@@ -311,7 +310,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 finalVersion,
                 VersionType.INTERNAL,
                 sourceToParse,
-                IndexRequest.UNSET_AUTO_GENERATED_TIMESTAMP,
+                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 isRetry
             ),
             e -> indexShard.getFailedIndexResult(e, finalVersion)

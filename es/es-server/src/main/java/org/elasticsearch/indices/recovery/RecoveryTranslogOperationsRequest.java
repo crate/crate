@@ -20,7 +20,6 @@
 package org.elasticsearch.indices.recovery;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -87,7 +86,7 @@ public class RecoveryTranslogOperationsRequest extends TransportRequest {
         if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
             maxSeenAutoIdTimestampOnPrimary = in.readZLong();
         } else {
-            maxSeenAutoIdTimestampOnPrimary = IndexRequest.UNSET_AUTO_GENERATED_TIMESTAMP;
+            maxSeenAutoIdTimestampOnPrimary = Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
         }
         if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
             maxSeqNoOfUpdatesOrDeletesOnPrimary = in.readZLong();
