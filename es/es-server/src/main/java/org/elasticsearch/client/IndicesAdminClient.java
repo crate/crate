@@ -67,9 +67,6 @@ import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequestBuil
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
-import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
-import org.elasticsearch.action.admin.indices.open.OpenIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.open.OpenIndexResponse;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequestBuilder;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
@@ -259,31 +256,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @param indices The name of the indices to close
      */
     CloseIndexRequestBuilder prepareClose(String... indices);
-
-    /**
-     * Open an index based on the index name.
-     *
-     * @param request The close index request
-     * @return The result future
-     * @see org.elasticsearch.client.Requests#openIndexRequest(String)
-     */
-    ActionFuture<OpenIndexResponse> open(OpenIndexRequest request);
-
-    /**
-     * Open an index based on the index name.
-     *
-     * @param request  The close index request
-     * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#openIndexRequest(String)
-     */
-    void open(OpenIndexRequest request, ActionListener<OpenIndexResponse> listener);
-
-    /**
-     * Opens one or more indices based on their index name.
-     *
-     * @param indices The name of the indices to close
-     */
-    OpenIndexRequestBuilder prepareOpen(String... indices);
 
     /**
      * Explicitly refresh one or more indices (making the content indexed since the last refresh searchable).

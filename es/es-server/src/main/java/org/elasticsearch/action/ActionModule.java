@@ -92,8 +92,6 @@ import org.elasticsearch.action.admin.indices.mapping.get.TransportGetFieldMappi
 import org.elasticsearch.action.admin.indices.mapping.get.TransportGetMappingsAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
-import org.elasticsearch.action.admin.indices.open.OpenIndexAction;
-import org.elasticsearch.action.admin.indices.open.TransportOpenIndexAction;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryAction;
 import org.elasticsearch.action.admin.indices.recovery.TransportRecoveryAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
@@ -193,7 +191,6 @@ import org.elasticsearch.rest.action.admin.indices.RestIndexDeleteAliasesAction;
 import org.elasticsearch.rest.action.admin.indices.RestIndexPutAliasAction;
 import org.elasticsearch.rest.action.admin.indices.RestIndicesAliasesAction;
 import org.elasticsearch.rest.action.admin.indices.RestIndicesStatsAction;
-import org.elasticsearch.rest.action.admin.indices.RestOpenIndexAction;
 import org.elasticsearch.rest.action.admin.indices.RestPutIndexTemplateAction;
 import org.elasticsearch.rest.action.admin.indices.RestPutMappingAction;
 import org.elasticsearch.rest.action.admin.indices.RestRecoveryAction;
@@ -330,7 +327,6 @@ public class ActionModule extends AbstractModule {
         actions.register(ResizeAction.INSTANCE, TransportResizeAction.class);
         actions.register(DeleteIndexAction.INSTANCE, TransportDeleteIndexAction.class);
         actions.register(GetIndexAction.INSTANCE, TransportGetIndexAction.class);
-        actions.register(OpenIndexAction.INSTANCE, TransportOpenIndexAction.class);
         actions.register(CloseIndexAction.INSTANCE, TransportCloseIndexAction.class);
         actions.register(IndicesExistsAction.INSTANCE, TransportIndicesExistsAction.class);
         actions.register(TypesExistsAction.INSTANCE, TransportTypesExistsAction.class);
@@ -411,7 +407,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestResizeHandler.RestSplitIndexAction(settings, restController));
         registerHandler.accept(new RestDeleteIndexAction(settings, restController));
         registerHandler.accept(new RestCloseIndexAction(settings, restController));
-        registerHandler.accept(new RestOpenIndexAction(settings, restController));
 
         registerHandler.accept(new RestUpdateSettingsAction(settings, restController));
         registerHandler.accept(new RestGetSettingsAction(settings, restController));
