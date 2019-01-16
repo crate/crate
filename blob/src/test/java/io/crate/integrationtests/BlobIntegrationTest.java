@@ -325,17 +325,6 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     }
 
     @Test
-    public void testIndexOnNonBlobTable() throws IOException {
-        // this test works only if ES API is enabled
-        HttpPut httpPut = new HttpPut(String.format(Locale.ENGLISH, "http://%s:%s/test_no_blobs/default/1",
-            randomNode.getHostName(), randomNode.getPort()));
-        String blobData = String.format(Locale.ENGLISH, "{\"content\": \"%s\"}", StringUtils.repeat("a", 1024 * 64));
-        httpPut.setEntity(new StringEntity(blobData, ContentType.APPLICATION_JSON));
-        CloseableHttpResponse res = httpClient.execute(httpPut);
-        assertThat(EntityUtils.toString(res.getEntity()), containsString("Incorrect HTTP method for uri"));
-    }
-
-    @Test
     public void testBlobShardIncrementalStatsUpdate() throws IOException {
         String digest = uploadSmallBlob();
         BlobShard blobShard = getBlobShard(digest);
