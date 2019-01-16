@@ -47,7 +47,6 @@ import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
@@ -135,17 +134,6 @@ public class Requests {
      */
     public static CloseIndexRequest closeIndexRequest(String index) {
         return new CloseIndexRequest(index);
-    }
-
-    /**
-     * Creates an open index request.
-     *
-     * @param index The index to open
-     * @return The delete index request
-     * @see org.elasticsearch.client.IndicesAdminClient#open(org.elasticsearch.action.admin.indices.open.OpenIndexRequest)
-     */
-    public static OpenIndexRequest openIndexRequest(String index) {
-        return new OpenIndexRequest(index);
     }
 
     /**

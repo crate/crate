@@ -161,10 +161,6 @@ import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
-import org.elasticsearch.action.admin.indices.open.OpenIndexAction;
-import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
-import org.elasticsearch.action.admin.indices.open.OpenIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.open.OpenIndexResponse;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryAction;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequestBuilder;
@@ -884,21 +880,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public CloseIndexRequestBuilder prepareClose(String... indices) {
             return new CloseIndexRequestBuilder(this, CloseIndexAction.INSTANCE, indices);
-        }
-
-        @Override
-        public ActionFuture<OpenIndexResponse> open(final OpenIndexRequest request) {
-            return execute(OpenIndexAction.INSTANCE, request);
-        }
-
-        @Override
-        public void open(final OpenIndexRequest request, final ActionListener<OpenIndexResponse> listener) {
-            execute(OpenIndexAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public OpenIndexRequestBuilder prepareOpen(String... indices) {
-            return new OpenIndexRequestBuilder(this, OpenIndexAction.INSTANCE, indices);
         }
 
         @Override
