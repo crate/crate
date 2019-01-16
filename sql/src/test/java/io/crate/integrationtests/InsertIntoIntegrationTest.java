@@ -27,7 +27,6 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.core.IsNull;
@@ -317,8 +316,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test (pk_col, message) values (?, ?)", args);
         refresh();
 
-        GetResponse response = client().prepareGet(getFqn("test"), "default", "1").execute().actionGet();
-        assertTrue(response.getSourceAsMap().containsKey("message"));
+        execute("select message from test where pk_col = '1'");
+        assertThat((String) response.rows()[0][0], containsString("A towel is about the most"));
     }
 
     @Test
@@ -348,8 +347,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test (pk_col, message) values (?, ?), (?, ?)", args);
         refresh();
 
-        GetResponse response = client().prepareGet(getFqn("test"), "default", "1").execute().actionGet();
-        assertTrue(response.getSourceAsMap().containsKey("message"));
+        execute("select message from test where pk_col = '1'");
+        assertThat((String) response.rows()[0][0], containsString("All the doors"));
     }
 
     @Test
