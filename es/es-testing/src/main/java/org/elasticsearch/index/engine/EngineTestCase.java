@@ -45,7 +45,6 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.AllocationId;
@@ -620,25 +619,6 @@ public abstract class EngineTestCase extends ESTestCase {
         return newUid(doc.id());
     }
 
-    protected Engine.Get newGet(boolean realtime, ParsedDocument doc) {
-        return new Engine.Get(realtime, false, doc.type(), doc.id(), newUid(doc));
-    }
-
-    protected Engine.Index indexForDoc(ParsedDocument doc) {
-        return new Engine.Index(newUid(doc), primaryTerm.get(), doc);
-    }
-
-    protected Engine.Index replicaIndexForDoc(ParsedDocument doc, long version, long seqNo,
-                                            boolean isRetry) {
-        return new Engine.Index(newUid(doc), doc, seqNo, primaryTerm.get(), version, VersionType.EXTERNAL,
-                Engine.Operation.Origin.REPLICA, System.nanoTime(),
-                IndexRequest.UNSET_AUTO_GENERATED_TIMESTAMP, isRetry);
-    }
-
-    protected Engine.Delete replicaDeleteForDoc(String id, long version, long seqNo, long startTime) {
-        return new Engine.Delete("test", id, newUid(id), seqNo, primaryTerm.get(), version, VersionType.EXTERNAL,
-            Engine.Operation.Origin.REPLICA, startTime);
-    }
     protected static void assertVisibleCount(InternalEngine engine, int numDocs) throws IOException {
         assertVisibleCount(engine, numDocs, true);
     }
