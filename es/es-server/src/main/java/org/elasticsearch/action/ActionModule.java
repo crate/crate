@@ -21,8 +21,6 @@ package org.elasticsearch.action;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplainAction;
-import org.elasticsearch.action.admin.cluster.allocation.TransportClusterAllocationExplainAction;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoAction;
@@ -177,7 +175,6 @@ import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.rest.action.RestMainAction;
 import org.elasticsearch.rest.action.admin.cluster.RestCancelTasksAction;
-import org.elasticsearch.rest.action.admin.cluster.RestClusterAllocationExplainAction;
 import org.elasticsearch.rest.action.admin.cluster.RestClusterGetSettingsAction;
 import org.elasticsearch.rest.action.admin.cluster.RestClusterHealthAction;
 import org.elasticsearch.rest.action.admin.cluster.RestClusterRerouteAction;
@@ -362,7 +359,6 @@ public class ActionModule extends AbstractModule {
         actions.register(ListTasksAction.INSTANCE, TransportListTasksAction.class);
         actions.register(CancelTasksAction.INSTANCE, TransportCancelTasksAction.class);
 
-        actions.register(ClusterAllocationExplainAction.INSTANCE, TransportClusterAllocationExplainAction.class);
         actions.register(ClusterStatsAction.INSTANCE, TransportClusterStatsAction.class);
         actions.register(ClusterStateAction.INSTANCE, TransportClusterStateAction.class);
         actions.register(ClusterHealthAction.INSTANCE, TransportClusterHealthAction.class);
@@ -452,7 +448,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestNodesInfoAction(settings, restController, settingsFilter));
         registerHandler.accept(new RestRemoteClusterInfoAction(settings, restController));
         registerHandler.accept(new RestNodesStatsAction(settings, restController));
-        registerHandler.accept(new RestClusterAllocationExplainAction(settings, restController));
         registerHandler.accept(new RestClusterStatsAction(settings, restController));
         registerHandler.accept(new RestClusterStateAction(settings, restController, settingsFilter));
         registerHandler.accept(new RestClusterHealthAction(settings, restController));
