@@ -45,6 +45,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
@@ -63,7 +64,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         MetaData metaData = MetaData.builder()
                                     .persistentSettings(
                                         Settings.builder()
-                                                .put("crate.analysis.custom.analyzer.ft_search", analyzerSettings)
+                                                .put(ANALYZER.buildSettingName("ft_search"), analyzerSettings)
                                                 .build())
                                     .build();
         ClusterState state =

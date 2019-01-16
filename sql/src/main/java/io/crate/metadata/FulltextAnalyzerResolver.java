@@ -24,12 +24,9 @@ package io.crate.metadata;
 import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.AnalyzerInvalidException;
 import io.crate.exceptions.AnalyzerUnknownException;
-import io.crate.metadata.settings.AnalyzerSettings;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -44,6 +41,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
+import static io.crate.metadata.settings.AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX;
 
 /**
  * Service to get builtin and custom analyzers, tokenizers, token_filters, char_filters
@@ -68,8 +71,6 @@ public class FulltextAnalyzerResolver {
     // used for saving the creation statement
     public static final String SQL_STATEMENT_KEY = "_sql_stmt";
 
-    private static final Logger logger = LogManager.getLogger(FulltextAnalyzerResolver.class);
-
 
     public enum CustomType {
         ANALYZER("analyzer"),
@@ -77,14 +78,41 @@ public class FulltextAnalyzerResolver {
         TOKEN_FILTER("filter"),
         CHAR_FILTER("char_filter");
 
-        private String name;
+        private static final String INDEX_ANALYSIS_PREFIX = "index.analysis.";
+
+        private final String name;
+        private final String settingNamePrefix;
+        private final String settingChildNamePrefix;
 
         CustomType(String name) {
             this.name = name;
+            settingNamePrefix = CUSTOM_ANALYSIS_SETTINGS_PREFIX + name + ".";
+            settingChildNamePrefix = INDEX_ANALYSIS_PREFIX + name + ".";
         }
 
         public String getName() {
             return this.name;
+        }
+
+        /**
+         * Build the setting name this custom type definition will be stored under.
+         */
+        public String buildSettingName(String customName) {
+            return settingNamePrefix + customName;
+        }
+
+        /**
+         * Build the child setting name for a custom type definition.
+         */
+        public String buildSettingChildName(String customName, String settingName) {
+            return buildSettingChildNamePrefix(customName) + "." + settingName;
+        }
+
+        /**
+         * Build the child setting prefix for a custom type definition.
+         */
+        public String buildSettingChildNamePrefix(String customName) {
+            return settingChildNamePrefix + customName;
         }
     }
 
@@ -125,13 +153,13 @@ public class FulltextAnalyzerResolver {
      * @return Settings defining a custom Analyzer
      */
     public Settings getCustomAnalyzer(String name) {
-        return getCustomThingy(name, CustomType.ANALYZER);
+        return getCustomThingy(name, ANALYZER);
     }
 
 
     public Map<String, Settings> getCustomAnalyzers() throws IOException {
         Map<String, Settings> result = new HashMap<>();
-        Settings analyzer = getCustomThingies(CustomType.ANALYZER);
+        Settings analyzer = getCustomThingies(ANALYZER);
         for (String settingName : analyzer.keySet()) {
             if (!settingName.endsWith("." + SQL_STATEMENT_KEY)) {
                 result.put(settingName, decodeSettings(analyzer.get(settingName)));
@@ -141,7 +169,7 @@ public class FulltextAnalyzerResolver {
     }
 
     public boolean hasCustomAnalyzer(String name) {
-        return hasCustomThingy(name, CustomType.ANALYZER);
+        return hasCustomThingy(name, ANALYZER);
     }
 
 
@@ -225,9 +253,7 @@ public class FulltextAnalyzerResolver {
         if (name == null) {
             return null;
         }
-        String encodedSettings = clusterService.state().metaData().persistentSettings().get(
-            String.format(Locale.ENGLISH, "%s%s.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name)
-        );
+        String encodedSettings = clusterService.state().metaData().persistentSettings().get(type.buildSettingName(name));
         if (encodedSettings == null) {
             return null;
         }
@@ -240,7 +266,7 @@ public class FulltextAnalyzerResolver {
 
     private Settings getCustomThingies(CustomType type) {
         Map<String, Settings> settingsMap = clusterService.state().metaData().persistentSettings()
-            .getGroups(AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
+            .getGroups(CUSTOM_ANALYSIS_SETTINGS_PREFIX);
         Settings result = settingsMap.get(type.getName());
         return result != null ? result : Settings.EMPTY;
     }
@@ -253,8 +279,7 @@ public class FulltextAnalyzerResolver {
      * @return true if exists, false otherwise
      */
     public boolean hasCustomThingy(String name, CustomType type) {
-        return clusterService.state().metaData().persistentSettings().hasValue(
-            String.format(Locale.ROOT, "%s%s.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name));
+        return clusterService.state().metaData().persistentSettings().hasValue(type.buildSettingName(name));
     }
 
     /**
@@ -274,33 +299,36 @@ public class FulltextAnalyzerResolver {
 
             builder.put(analyzerSettings);
 
-            String tokenizerName = analyzerSettings.get(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s.tokenizer", name));
+            String tokenizerName = analyzerSettings.get(ANALYZER.buildSettingChildName(name, TOKENIZER.getName()));
             if (tokenizerName != null) {
                 Settings customTokenizerSettings = getCustomTokenizer(tokenizerName);
                 if (customTokenizerSettings != null) {
                     builder.put(customTokenizerSettings);
                 } else if (!hasBuiltInTokenizer(tokenizerName)) {
-                    throw new AnalyzerInvalidException(String.format(Locale.ENGLISH, "Invalid Analyzer: could not resolve tokenizer '%s'", tokenizerName));
+                    throw new AnalyzerInvalidException(
+                        String.format(Locale.ENGLISH, "Invalid Analyzer: could not resolve tokenizer '%s'", tokenizerName));
                 }
             }
 
-            List<String> tokenFilterNames = analyzerSettings.getAsList(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s.filter", name));
+            List<String> tokenFilterNames = analyzerSettings.getAsList(ANALYZER.buildSettingChildName(name, TOKEN_FILTER.getName()));
             for (String tokenFilterName : tokenFilterNames) {
                 Settings customTokenFilterSettings = getCustomTokenFilter(tokenFilterName);
                 if (customTokenFilterSettings != null) {
                     builder.put(customTokenFilterSettings);
                 } else if (!hasBuiltInTokenFilter(tokenFilterName)) {
-                    throw new AnalyzerInvalidException(String.format(Locale.ENGLISH, "Invalid Analyzer: could not resolve token-filter '%s'", tokenFilterName));
+                    throw new AnalyzerInvalidException(
+                        String.format(Locale.ENGLISH, "Invalid Analyzer: could not resolve token-filter '%s'", tokenFilterName));
                 }
             }
 
-            List<String> charFilterNames = analyzerSettings.getAsList(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s.char_filter", name));
+            List<String> charFilterNames = analyzerSettings.getAsList(ANALYZER.buildSettingChildName(name, CHAR_FILTER.getName()));
             for (String charFilterName : charFilterNames) {
                 Settings customCharFilterSettings = getCustomCharFilter(charFilterName);
                 if (customCharFilterSettings != null) {
                     builder.put(customCharFilterSettings);
                 } else if (!hasBuiltInCharFilter(charFilterName)) {
-                    throw new AnalyzerInvalidException(String.format(Locale.ENGLISH, "Invalid Analyzer: could not resolve char-filter '%s'", charFilterName));
+                    throw new AnalyzerInvalidException(
+                        String.format(Locale.ENGLISH, "Invalid Analyzer: could not resolve char-filter '%s'", charFilterName));
                 }
             }
         } else {

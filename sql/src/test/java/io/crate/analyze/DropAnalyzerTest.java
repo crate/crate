@@ -31,6 +31,10 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -41,29 +45,44 @@ public class DropAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setUpExecutor() throws Exception {
         Settings settings = Settings.builder()
-            .put("crate.analysis.custom.analyzer.a1", "{\"index\":{\"analysis\":{\"analyzer\":{\"a1\":{\"type\":\"custom\",\"tokenizer\":\"lowercase\"}}}}}")
+            .put(ANALYZER.buildSettingName("a1"),
+                Settings.builder()
+                    .put(ANALYZER.buildSettingChildName("a1", "type"), "custom")
+                    .put(ANALYZER.buildSettingChildName("a1", TOKENIZER.getName()), "lowercase")
+                    .build().toString())
 
-            .put("crate.analysis.custom.analyzer.a2",
-                "{\"index\":{\"analysis\":{\"analyzer\":{\"a2\":{" +
-                "\"tokenizer\":\"a2_mypattern\"," +
-                "\"type\":\"custom\"}}}}}")
-            .put("crate.analysis.custom.tokenizer.a2_mypattern",
-                "{\"index\":{\"analysis\":{\"tokenizer\":{\"a2_mypattern\":{\"pattern\":\".*\",\"type\":\"pattern\"}}}}}")
+            .put(ANALYZER.buildSettingName("a2"),
+                Settings.builder()
+                    .put(ANALYZER.buildSettingChildName("a2", "type"), "custom")
+                    .put(ANALYZER.buildSettingChildName("a2", TOKENIZER.getName()), "a2_mypattern")
+                    .build().toString())
+            .put(TOKENIZER.buildSettingName("a2_mypattern"),
+                Settings.builder()
+                    .put(TOKENIZER.buildSettingChildName("a2_mypattern", "type"), "pattern")
+                    .put(TOKENIZER.buildSettingChildName("a2_mypattern", "pattern"), ".*")
+                    .build().toString())
 
-            .put("crate.analysis.custom.analyzer.a3",
-                "{\"index\":{\"analysis\":{\"analyzer\":{\"a3\":{" +
-                "\"filter\":[\"a3_lowercase_german\",\"kstem\"]," +
-                "\"type\":\"custom\"}}}}}")
-            .put("crate.analysis.custom.filter.a3_lowercase_german",
-                "{\"index\":{\"analysis\":{\"filter\":{\"a3_lowercase_german\":{\"type\":\"lowercase\",\"language\":\"german\"}}}}}")
+            .put(ANALYZER.buildSettingName("a3"),
+                Settings.builder()
+                    .put(ANALYZER.buildSettingChildName("a3", "type"), "custom")
+                    .put(ANALYZER.buildSettingChildName("a3", TOKEN_FILTER.getName()), "a3_lowercase_german, kstem")
+                    .build().toString())
+            .put(TOKEN_FILTER.buildSettingName("a3_lowercase_german"),
+                Settings.builder()
+                    .put(TOKEN_FILTER.buildSettingChildName("a3_lowercase_german", "type"), "lowercase")
+                    .put(TOKEN_FILTER.buildSettingChildName("a3_lowercase_german", "language"), "german")
+                    .build().toString())
 
-            .put("crate.analysis.custom.analyzer.a4",
-                "{\"index\":{\"analysis\":{\"analyzer\":{\"a4\":{" +
-                "\"char_filter\":[\"html_strip\",\"a4_mymapping\"]," +
-                "\"type\":\"custom\"}}}}}")
-            .put("crate.analysis.custom.char_filter.a4_mymapping",
-                "{\"index\":{\"analysis\":{\"char_filter\":{\"a4_mymapping\":{\"type\":\"mapping\",\"mappings\":[\"foo=>bar\"]}}}}}")
-
+            .put(ANALYZER.buildSettingName("a4"),
+                Settings.builder()
+                    .put(ANALYZER.buildSettingChildName("a4", "type"), "custom")
+                    .put(ANALYZER.buildSettingChildName("a4", CHAR_FILTER.getName()), "a4_mymapping, html_strip]")
+                    .build().toString())
+            .put(CHAR_FILTER.buildSettingName("a4_mymapping"),
+                Settings.builder()
+                    .put(CHAR_FILTER.buildSettingChildName("a4_mymapping", "type"), "mapping")
+                    .put(CHAR_FILTER.buildSettingChildName("a4_mymapping", "mappings"), "\"foo=>bar\"")
+                    .build().toString())
             .build();
 
         ClusterState clusterState = ClusterState.builder(clusterService.state())
@@ -83,27 +102,27 @@ public class DropAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropAnalyzer() {
         DropAnalyzerStatement analyzedStatement = e.analyze("drop analyzer a1");
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), "crate.analysis.custom.analyzer.a1");
+        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), ANALYZER.buildSettingName("a1"));
     }
 
     @Test
     public void testDropAnalyzerWithCustomTokenizer() {
         DropAnalyzerStatement analyzedStatement = e.analyze("drop analyzer a2");
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), "crate.analysis.custom.analyzer.a2");
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), "crate.analysis.custom.tokenizer.a2_mypattern");
+        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), ANALYZER.buildSettingName("a2"));
+        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), TOKENIZER.buildSettingName("a2_mypattern"));
     }
 
     @Test
     public void testDropAnalyzerWithCustomTokenFilter() {
         DropAnalyzerStatement analyzedStatement = e.analyze("drop analyzer a3");
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), "crate.analysis.custom.analyzer.a3");
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), "crate.analysis.custom.filter.a3_lowercase_german");
+        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), ANALYZER.buildSettingName("a3"));
+        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), TOKEN_FILTER.buildSettingName("a3_lowercase_german"));
     }
 
     @Test
     public void testDropAnalyzerWithCustomCharFilter() {
         DropAnalyzerStatement analyzedStatement = e.analyze("drop analyzer a4");
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), "crate.analysis.custom.analyzer.a4");
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), "crate.analysis.custom.char_filter.a4_mymapping");
+        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), ANALYZER.buildSettingName("a4"));
+        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), CHAR_FILTER.buildSettingName("a4_mymapping"));
     }
 }

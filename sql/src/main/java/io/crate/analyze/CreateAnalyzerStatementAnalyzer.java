@@ -41,7 +41,10 @@ import org.elasticsearch.common.settings.Settings;
 import java.util.Locale;
 import java.util.Map;
 
-import static io.crate.analyze.CreateAnalyzerAnalyzedStatement.getSettingsKey;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
 
 
 class CreateAnalyzerStatementAnalyzer
@@ -117,7 +120,7 @@ class CreateAnalyzerStatementAnalyzer
             Settings.Builder builder = Settings.builder();
             for (Map.Entry<String, Expression> tokenizerProperty : properties.properties().entrySet()) {
                 GenericPropertiesConverter.genericPropertyToSetting(builder,
-                    getSettingsKey("index.analysis.tokenizer.%s.%s", name, tokenizerProperty.getKey()),
+                    TOKENIZER.buildSettingChildName(name, tokenizerProperty.getKey()),
                     tokenizerProperty.getValue(),
                     context.analysis.parameterContext().parameters());
             }
@@ -130,7 +133,7 @@ class CreateAnalyzerStatementAnalyzer
     @Override
     public CreateAnalyzerAnalyzedStatement visitGenericProperty(GenericProperty property, Context context) {
         GenericPropertiesConverter.genericPropertyToSetting(context.statement.genericAnalyzerSettingsBuilder(),
-            getSettingsKey("index.analysis.analyzer.%s.%s", context.statement.ident(), property.key()),
+            ANALYZER.buildSettingChildName(context.statement.ident(), property.key()),
             property.value(),
             context.analysis.parameterContext().parameters()
         );
@@ -176,7 +179,7 @@ class CreateAnalyzerStatementAnalyzer
                 Settings.Builder builder = Settings.builder();
                 for (Map.Entry<String, Expression> tokenFilterProperty : properties.properties().entrySet()) {
                     GenericPropertiesConverter.genericPropertyToSetting(builder,
-                        getSettingsKey("index.analysis.filter.%s.%s", name, tokenFilterProperty.getKey()),
+                        TOKEN_FILTER.buildSettingChildName(name, tokenFilterProperty.getKey()),
                         tokenFilterProperty.getValue(),
                         context.analysis.parameterContext().parameters());
                 }
@@ -219,7 +222,7 @@ class CreateAnalyzerStatementAnalyzer
                 Settings.Builder builder = Settings.builder();
                 for (Map.Entry<String, Expression> charFilterProperty : properties.properties().entrySet()) {
                     GenericPropertiesConverter.genericPropertyToSetting(builder,
-                        getSettingsKey("index.analysis.char_filter.%s.%s", name, charFilterProperty.getKey()),
+                        CHAR_FILTER.buildSettingChildName(name, charFilterProperty.getKey()),
                         charFilterProperty.getValue(),
                         context.analysis.parameterContext().parameters());
                 }
