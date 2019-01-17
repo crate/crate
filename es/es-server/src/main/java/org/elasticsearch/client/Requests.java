@@ -20,10 +20,6 @@
 package org.elasticsearch.client;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequest;
-import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskRequest;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
@@ -261,36 +257,6 @@ public class Requests {
      */
     public static ClusterSearchShardsRequest clusterSearchShardsRequest(String... indices) {
         return new ClusterSearchShardsRequest(indices);
-    }
-
-    /**
-     * Creates a nodes tasks request against all the nodes.
-     *
-     * @return The nodes tasks request
-     * @see org.elasticsearch.client.ClusterAdminClient#listTasks(ListTasksRequest)
-     */
-    public static ListTasksRequest listTasksRequest() {
-        return new ListTasksRequest();
-    }
-
-    /**
-     * Creates a get task request.
-     *
-     * @return The nodes tasks request
-     * @see org.elasticsearch.client.ClusterAdminClient#getTask(GetTaskRequest)
-     */
-    public static GetTaskRequest getTaskRequest() {
-        return new GetTaskRequest();
-    }
-
-    /**
-     * Creates a nodes tasks request against one or more nodes. Pass {@code null} or an empty array for all nodes.
-     *
-     * @return The nodes tasks request
-     * @see org.elasticsearch.client.ClusterAdminClient#cancelTasks(CancelTasksRequest)
-     */
-    public static CancelTasksRequest cancelTasksRequest() {
-        return new CancelTasksRequest();
     }
 
     /**
