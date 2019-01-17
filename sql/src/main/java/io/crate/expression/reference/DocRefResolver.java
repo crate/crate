@@ -29,15 +29,14 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import org.elasticsearch.index.get.GetResult;
 
 import java.util.List;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 /**
- * ReferenceResolver implementation which can be used to retrieve {@link CollectExpression}s to extract values from
- * {@link GetResult}s
+ * ReferenceResolver implementation which can be used to retrieve {@link CollectExpression}s to extract values from {@link Doc}
+ *
  */
 public final class DocRefResolver implements ReferenceResolver<CollectExpression<Doc, ?>> {
 

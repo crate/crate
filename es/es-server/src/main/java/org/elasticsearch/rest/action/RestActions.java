@@ -32,10 +32,7 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContent.Params;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
@@ -186,23 +183,6 @@ public class RestActions {
         builder.endObject();
 
         return new BytesRestResponse(RestStatus.OK, builder);
-    }
-
-    public static QueryBuilder urlParamsToQueryBuilder(RestRequest request) {
-        String queryString = request.param("q");
-        if (queryString == null) {
-            return null;
-        }
-        QueryStringQueryBuilder queryBuilder = QueryBuilders.queryStringQuery(queryString);
-        queryBuilder.defaultField(request.param("df"));
-        queryBuilder.analyzer(request.param("analyzer"));
-        queryBuilder.analyzeWildcard(request.paramAsBoolean("analyze_wildcard", false));
-        queryBuilder.lenient(request.paramAsBoolean("lenient", null));
-        String defaultOperator = request.param("default_operator");
-        if (defaultOperator != null) {
-            queryBuilder.defaultOperator(Operator.fromString(defaultOperator));
-        }
-        return queryBuilder;
     }
 
     public static QueryBuilder getQueryContent(XContentParser requestParser) {

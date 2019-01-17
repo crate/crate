@@ -25,9 +25,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.cache.query.QueryCacheStats;
 import org.elasticsearch.index.cache.request.RequestCacheStats;
 import org.elasticsearch.index.engine.SegmentsStats;
@@ -45,14 +42,10 @@ import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.index.translog.TranslogStats;
 import org.elasticsearch.index.warmer.WarmerStats;
 import org.elasticsearch.indices.IndicesQueryCache;
-import org.elasticsearch.search.suggest.completion.CompletionStats;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.stream.Stream;
 
-public class CommonStats implements Writeable, ToXContentFragment {
+public class CommonStats implements Writeable {
 
     @Nullable
     public DocsStats docs;
@@ -86,9 +79,6 @@ public class CommonStats implements Writeable, ToXContentFragment {
 
     @Nullable
     public FieldDataStats fieldData;
-
-    @Nullable
-    public CompletionStats completion;
 
     @Nullable
     public SegmentsStats segments;
@@ -144,9 +134,6 @@ public class CommonStats implements Writeable, ToXContentFragment {
                 case FieldData:
                     fieldData = new FieldDataStats();
                     break;
-                case Completion:
-                    completion = new CompletionStats();
-                    break;
                 case Segments:
                     segments = new SegmentsStats();
                     break;
@@ -182,12 +169,6 @@ public class CommonStats implements Writeable, ToXContentFragment {
                     case Indexing:
                         indexing = indexShard.indexingStats(flags.types());
                         break;
-                    case Get:
-                        get = indexShard.getStats();
-                        break;
-                    case Search:
-                        search = indexShard.searchStats(flags.groups());
-                        break;
                     case Merge:
                         merge = indexShard.mergeStats();
                         break;
@@ -205,9 +186,6 @@ public class CommonStats implements Writeable, ToXContentFragment {
                         break;
                     case FieldData:
                         fieldData = indexShard.fieldDataStats(flags.fieldDataFields());
-                        break;
-                    case Completion:
-                        completion = indexShard.completionStats(flags.completionDataFields());
                         break;
                     case Segments:
                         segments = indexShard.segmentStats(flags.includeSegmentFileSizes());
@@ -245,7 +223,6 @@ public class CommonStats implements Writeable, ToXContentFragment {
         warmer =  in.readOptionalStreamable(WarmerStats::new);
         queryCache = in.readOptionalStreamable(QueryCacheStats::new);
         fieldData =  in.readOptionalStreamable(FieldDataStats::new);
-        completion =  in.readOptionalStreamable(CompletionStats::new);
         segments =  in.readOptionalStreamable(SegmentsStats::new);
         translog = in.readOptionalStreamable(TranslogStats::new);
         requestCache = in.readOptionalStreamable(RequestCacheStats::new);
@@ -265,7 +242,6 @@ public class CommonStats implements Writeable, ToXContentFragment {
         out.writeOptionalStreamable(warmer);
         out.writeOptionalStreamable(queryCache);
         out.writeOptionalStreamable(fieldData);
-        out.writeOptionalStreamable(completion);
         out.writeOptionalStreamable(segments);
         out.writeOptionalStreamable(translog);
         out.writeOptionalStreamable(requestCache);
@@ -362,14 +338,6 @@ public class CommonStats implements Writeable, ToXContentFragment {
         } else {
             fieldData.add(stats.getFieldData());
         }
-        if (completion == null) {
-            if (stats.getCompletion() != null) {
-                completion = new CompletionStats();
-                completion.add(stats.getCompletion());
-            }
-        } else {
-            completion.add(stats.getCompletion());
-        }
         if (segments == null) {
             if (stats.getSegments() != null) {
                 segments = new SegmentsStats();
@@ -460,11 +428,6 @@ public class CommonStats implements Writeable, ToXContentFragment {
     }
 
     @Nullable
-    public CompletionStats getCompletion() {
-        return completion;
-    }
-
-    @Nullable
     public SegmentsStats getSegments() {
         return segments;
     }
@@ -503,18 +466,5 @@ public class CommonStats implements Writeable, ToXContentFragment {
         }
 
         return new ByteSizeValue(size);
-    }
-
-    // note, requires a wrapping object
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        final Stream<ToXContent> stream = Arrays.stream(new ToXContent[] {
-            docs, store, indexing, get, search, merge, refresh, flush, warmer, queryCache,
-            fieldData, completion, segments, translog, requestCache, recoveryStats})
-            .filter(Objects::nonNull);
-        for (ToXContent toXContent : ((Iterable<ToXContent>)stream::iterator)) {
-            toXContent.toXContent(builder, params);
-        }
-        return builder;
     }
 }

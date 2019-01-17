@@ -60,7 +60,6 @@ import org.elasticsearch.index.shard.IndexSearcherWrapper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.IndexingOperationListener;
-import org.elasticsearch.index.shard.SearchOperationListener;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.index.shard.ShardPath;
@@ -114,7 +113,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicBoolean deleted = new AtomicBoolean(false);
     private final IndexSettings indexSettings;
-    private final List<SearchOperationListener> searchOperationListeners;
     private final List<IndexingOperationListener> indexingOperationListeners;
     private volatile AsyncRefreshTask refreshTask;
     private volatile AsyncTranslogFSync fsyncTask;
@@ -147,7 +145,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             IndexModule.IndexSearcherWrapperFactory wrapperFactory,
             MapperRegistry mapperRegistry,
             IndicesFieldDataCache indicesFieldDataCache,
-            List<SearchOperationListener> searchOperationListeners,
             List<IndexingOperationListener> indexingOperationListeners,
             NamedWriteableRegistry namedWriteableRegistry) throws IOException {
         super(indexSettings);
@@ -185,7 +182,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.engineFactory = Objects.requireNonNull(engineFactory);
         // initialize this last -- otherwise if the wrapper requires any other member to be non-null we fail with an NPE
         this.searcherWrapper = wrapperFactory.newWrapper(this);
-        this.searchOperationListeners = Collections.unmodifiableList(searchOperationListeners);
         this.indexingOperationListeners = Collections.unmodifiableList(indexingOperationListeners);
         // kick off async ops for the first shard in this index
         this.refreshTask = new AsyncRefreshTask(this);
@@ -374,7 +370,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             indexShard = new IndexShard(routing, this.indexSettings, path, store, indexSortSupplier,
                 indexCache, mapperService, engineFactory,
                 eventListener, searcherWrapper, threadPool, bigArrays, engineWarmer,
-                searchOperationListeners, indexingOperationListeners, () -> globalCheckpointSyncer.accept(shardId),
+                indexingOperationListeners, () -> globalCheckpointSyncer.accept(shardId),
                 circuitBreakerService);
             eventListener.indexShardStateChanged(indexShard, null, indexShard.state(), "shard created");
             eventListener.afterIndexShardCreated(indexShard);
@@ -500,10 +496,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
 
     List<IndexingOperationListener> getIndexOperationListeners() { // pkg private for testing
         return indexingOperationListeners;
-    }
-
-    List<SearchOperationListener> getSearchOperationListener() { // pkg private for testing
-        return searchOperationListeners;
     }
 
     @Override
