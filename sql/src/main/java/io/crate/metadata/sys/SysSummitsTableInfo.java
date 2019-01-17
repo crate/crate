@@ -83,7 +83,7 @@ public class SysSummitsTableInfo extends StaticTableInfo {
             .build();
     }
 
-    SysSummitsTableInfo() {
+    public SysSummitsTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
             .register(Columns.MOUNTAIN, DataTypes.STRING)
             .register(Columns.HEIGHT, DataTypes.INTEGER)

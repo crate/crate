@@ -44,5 +44,8 @@ Changes
 Fixes
 =====
 
+- Fixed a ``NullPointerException`` that could occur on queries on the
+  ``information_schema.tables`` table.
+
 - Fixed a ``NullPointerException`` that occurs on ``OUTER`` joins which can
   be rewritten to ``INNER`` joins and uses a function as a select item.

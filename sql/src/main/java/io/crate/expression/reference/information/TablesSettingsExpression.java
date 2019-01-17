@@ -82,9 +82,17 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         @Override
         public void setNextRow(RelationInfo row) {
+<<<<<<< HEAD
             value = null;
             if (row instanceof DocTableInfo) {
                 value = BytesRefs.toBytesRef(row.parameters().get(paramName));
+=======
+            Object o = row.parameters().get(paramName);
+            if (o == null) {
+                value = null;
+            } else {
+                value = o.toString();
+>>>>>>> 2ec73ed184... Fix a NPE in TablesSettingsExpression
             }
         }
 
