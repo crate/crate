@@ -22,7 +22,6 @@ package org.elasticsearch.node;
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.action.search.SearchTransportService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractComponent;
@@ -52,7 +51,6 @@ public class NodeService extends AbstractComponent implements Closeable {
     private final SettingsFilter settingsFilter;
     private final HttpServerTransport httpServerTransport;
     private final ResponseCollectorService responseCollectorService;
-    private final SearchTransportService searchTransportService;
 
     private final Discovery discovery;
 
@@ -60,8 +58,7 @@ public class NodeService extends AbstractComponent implements Closeable {
                 TransportService transportService, IndicesService indicesService, PluginsService pluginService,
                 CircuitBreakerService circuitBreakerService,
                 @Nullable HttpServerTransport httpServerTransport, ClusterService clusterService,
-                SettingsFilter settingsFilter, ResponseCollectorService responseCollectorService,
-                SearchTransportService searchTransportService) {
+                SettingsFilter settingsFilter, ResponseCollectorService responseCollectorService) {
         super(settings);
         this.threadPool = threadPool;
         this.monitorService = monitorService;
@@ -73,7 +70,6 @@ public class NodeService extends AbstractComponent implements Closeable {
         this.httpServerTransport = httpServerTransport;
         this.settingsFilter = settingsFilter;
         this.responseCollectorService = responseCollectorService;
-        this.searchTransportService = searchTransportService;
     }
 
     public NodeInfo info(boolean settings, boolean os, boolean process, boolean jvm, boolean threadPool,

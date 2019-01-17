@@ -25,7 +25,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.Index;
 
 import java.io.IOException;
@@ -45,7 +44,6 @@ public class IndicesStatsResponse extends BroadcastResponse {
     private Map<ShardRouting, ShardStats> shardStatsMap;
 
     IndicesStatsResponse() {
-
     }
 
     IndicesStatsResponse(ShardStats[] shards, int totalShards, int successfulShards, int failedShards,
@@ -106,36 +104,6 @@ public class IndicesStatsResponse extends BroadcastResponse {
         return indicesStats;
     }
 
-    private CommonStats total = null;
-
-    public CommonStats getTotal() {
-        if (total != null) {
-            return total;
-        }
-        CommonStats stats = new CommonStats();
-        for (ShardStats shard : shards) {
-            stats.add(shard.getStats());
-        }
-        total = stats;
-        return stats;
-    }
-
-    private CommonStats primary = null;
-
-    public CommonStats getPrimaries() {
-        if (primary != null) {
-            return primary;
-        }
-        CommonStats stats = new CommonStats();
-        for (ShardStats shard : shards) {
-            if (shard.getShardRouting().primary()) {
-                stats.add(shard.getStats());
-            }
-        }
-        primary = stats;
-        return stats;
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
@@ -146,64 +114,6 @@ public class IndicesStatsResponse extends BroadcastResponse {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeArray(shards);
-    }
-
-    @Override
-    protected void addCustomXContentFields(XContentBuilder builder, Params params) throws IOException {
-        final String level = params.param("level", "indices");
-        final boolean isLevelValid =
-            "cluster".equalsIgnoreCase(level) || "indices".equalsIgnoreCase(level) || "shards".equalsIgnoreCase(level);
-        if (!isLevelValid) {
-            throw new IllegalArgumentException("level parameter must be one of [cluster] or [indices] or [shards] but was [" + level + "]");
-        }
-
-        builder.startObject("_all");
-
-        builder.startObject("primaries");
-        getPrimaries().toXContent(builder, params);
-        builder.endObject();
-
-        builder.startObject("total");
-        getTotal().toXContent(builder, params);
-        builder.endObject();
-
-        builder.endObject();
-
-        if ("indices".equalsIgnoreCase(level) || "shards".equalsIgnoreCase(level)) {
-            builder.startObject(Fields.INDICES);
-            for (IndexStats indexStats : getIndices().values()) {
-                builder.startObject(indexStats.getIndex());
-                builder.field("uuid", indexStats.getUuid());
-                builder.startObject("primaries");
-                indexStats.getPrimaries().toXContent(builder, params);
-                builder.endObject();
-
-                builder.startObject("total");
-                indexStats.getTotal().toXContent(builder, params);
-                builder.endObject();
-
-                if ("shards".equalsIgnoreCase(level)) {
-                    builder.startObject(Fields.SHARDS);
-                    for (IndexShardStats indexShardStats : indexStats) {
-                        builder.startArray(Integer.toString(indexShardStats.getShardId().id()));
-                        for (ShardStats shardStats : indexShardStats) {
-                            builder.startObject();
-                            shardStats.toXContent(builder, params);
-                            builder.endObject();
-                        }
-                        builder.endArray();
-                    }
-                    builder.endObject();
-                }
-                builder.endObject();
-            }
-            builder.endObject();
-        }
-    }
-
-    static final class Fields {
-        static final String INDICES = "indices";
-        static final String SHARDS = "shards";
     }
 
     @Override

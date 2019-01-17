@@ -29,13 +29,11 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContent.Params;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.query.QueryBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -111,25 +109,6 @@ public class Alias implements Streamable, ToXContentFragment {
             return this;
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + filter + "]", e);
-        }
-    }
-
-    /**
-     * Associates a filter to the alias
-     */
-    public Alias filter(QueryBuilder filterBuilder) {
-        if (filterBuilder == null) {
-            this.filter = null;
-            return this;
-        }
-        try {
-            XContentBuilder builder = XContentFactory.jsonBuilder();
-            filterBuilder.toXContent(builder, ToXContent.EMPTY_PARAMS);
-            builder.close();
-            this.filter = Strings.toString(builder);
-            return this;
-        } catch (IOException e) {
-            throw new ElasticsearchGenerationException("Failed to build json for alias request", e);
         }
     }
 

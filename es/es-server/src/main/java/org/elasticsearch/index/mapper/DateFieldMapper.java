@@ -320,56 +320,6 @@ public class DateFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Relation isFieldWithinQuery(IndexReader reader, Object from, Object to, boolean includeLower, boolean includeUpper,
-                                           DateTimeZone timeZone, DateMathParser dateParser,
-                                           QueryRewriteContext context) throws IOException {
-            if (dateParser == null) {
-                dateParser = this.dateMathParser;
-            }
-
-            long fromInclusive = Long.MIN_VALUE;
-            if (from != null) {
-                fromInclusive = parseToMilliseconds(from, !includeLower, timeZone, dateParser, context);
-                if (includeLower == false) {
-                    if (fromInclusive == Long.MAX_VALUE) {
-                        return Relation.DISJOINT;
-                    }
-                    ++fromInclusive;
-                }
-            }
-
-            long toInclusive = Long.MAX_VALUE;
-            if (to != null) {
-                toInclusive = parseToMilliseconds(to, includeUpper, timeZone, dateParser, context);
-                if (includeUpper == false) {
-                    if (toInclusive == Long.MIN_VALUE) {
-                        return Relation.DISJOINT;
-                    }
-                    --toInclusive;
-                }
-            }
-
-            // This check needs to be done after fromInclusive and toInclusive
-            // are resolved so we can throw an exception if they are invalid
-            // even if there are no points in the shard
-            if (PointValues.size(reader, name()) == 0) {
-                // no points, so nothing matches
-                return Relation.DISJOINT;
-            }
-
-            long minValue = LongPoint.decodeDimension(PointValues.getMinPackedValue(reader, name()), 0);
-            long maxValue = LongPoint.decodeDimension(PointValues.getMaxPackedValue(reader, name()), 0);
-
-            if (minValue >= fromInclusive && maxValue <= toInclusive) {
-                return Relation.WITHIN;
-            } else if (maxValue < fromInclusive || minValue > toInclusive) {
-                return Relation.DISJOINT;
-            } else {
-                return Relation.INTERSECTS;
-            }
-        }
-
-        @Override
         public IndexFieldData.Builder fielddataBuilder(String fullyQualifiedIndexName) {
             failIfNoDocValues();
             return new DocValuesIndexFieldData.Builder().numericType(NumericType.DATE);

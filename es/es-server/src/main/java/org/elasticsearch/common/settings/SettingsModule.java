@@ -77,11 +77,6 @@ public class SettingsModule implements Module {
             registerSettingsFilter(filter);
         }
         final Set<SettingUpgrader<?>> clusterSettingUpgraders = new HashSet<>();
-        for (final SettingUpgrader<?> settingUpgrader : ClusterSettings.BUILT_IN_SETTING_UPGRADERS) {
-            assert settingUpgrader.getSetting().hasNodeScope() : settingUpgrader.getSetting().getKey();
-            final boolean added = clusterSettingUpgraders.add(settingUpgrader);
-            assert added : settingUpgrader.getSetting().getKey();
-        }
         for (final SettingUpgrader<?> settingUpgrader : settingUpgraders) {
             assert settingUpgrader.getSetting().hasNodeScope() : settingUpgrader.getSetting().getKey();
             final boolean added = clusterSettingUpgraders.add(settingUpgrader);

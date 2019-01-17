@@ -203,9 +203,4 @@ public class WordDelimiterTokenFilterFactory extends AbstractTokenFilterFactory 
         }
         return new String(out, 0, writePos);
     }
-
-    @Override
-    public boolean breaksFastVectorHighlighter() {
-        return true;
-    }
 }

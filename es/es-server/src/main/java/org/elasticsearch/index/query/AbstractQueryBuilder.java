@@ -44,7 +44,6 @@ import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -173,10 +172,6 @@ public abstract class AbstractQueryBuilder<QB extends AbstractQueryBuilder<QB>> 
         return (QB) this;
     }
 
-    protected final QueryValidationException addValidationError(String validationError, QueryValidationException validationException) {
-        return QueryValidationException.addValidationError(getName(), validationError, validationException);
-    }
-
     @Override
     public final boolean equals(Object obj) {
         if (this == obj) {
@@ -294,15 +289,6 @@ public abstract class AbstractQueryBuilder<QB extends AbstractQueryBuilder<QB>> 
     }
 
     /**
-     * For internal usage only!
-     *
-     * Extracts the inner hits from the query tree.
-     * While it extracts inner hits, child inner hits are inlined into the inner hit builder they belong to.
-     */
-    protected void extractInnerHitBuilders(Map<String, InnerHitContextBuilder> innerHits) {
-    }
-
-    /**
      * Parses a query excluding the query element that wraps it
      */
     public static QueryBuilder parseInnerQueryBuilder(XContentParser parser) throws IOException {
@@ -359,17 +345,6 @@ public abstract class AbstractQueryBuilder<QB extends AbstractQueryBuilder<QB>> 
             throw new ParsingException(contentLocation, "[" + queryName + "] query doesn't support multiple fields, found ["
                     + processedFieldName + "] and [" + currentFieldName + "]");
         }
-    }
-
-    /**
-     * Adds {@code boost} and {@code query_name} parsing to the
-     * {@link AbstractObjectParser} passed in. All query builders except
-     * {@link MatchAllQueryBuilder} and {@link MatchNoneQueryBuilder} support these fields so they
-     * should use this method.
-     */
-    protected static void declareStandardFields(AbstractObjectParser<? extends QueryBuilder, ?> parser) {
-        parser.declareFloat(QueryBuilder::boost, AbstractQueryBuilder.BOOST_FIELD);
-        parser.declareString(QueryBuilder::queryName, AbstractQueryBuilder.NAME_FIELD);
     }
 
     @Override

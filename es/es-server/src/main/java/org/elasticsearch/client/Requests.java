@@ -25,7 +25,6 @@ import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRe
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
@@ -42,8 +41,6 @@ import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.common.xcontent.XContentType;
 
 /**
@@ -60,29 +57,6 @@ public class Requests {
      * The default content type to use to generate source documents when indexing.
      */
     public static XContentType INDEX_CONTENT_TYPE = XContentType.JSON;
-
-    /**
-     * Creates a search request against one or more indices. Note, the search source must be set either using the
-     * actual JSON search source, or the {@link org.elasticsearch.search.builder.SearchSourceBuilder}.
-     *
-     * @param indices The indices to search against. Use {@code null} or {@code _all} to execute against all indices
-     * @return The search request
-     * @see org.elasticsearch.client.Client#search(org.elasticsearch.action.search.SearchRequest)
-     */
-    public static SearchRequest searchRequest(String... indices) {
-        return new SearchRequest(indices);
-    }
-
-    /**
-     * Creates a search scroll request allowing to continue searching a previous search request.
-     *
-     * @param scrollId The scroll id representing the scrollable search
-     * @return The search scroll request
-     * @see org.elasticsearch.client.Client#searchScroll(org.elasticsearch.action.search.SearchScrollRequest)
-     */
-    public static SearchScrollRequest searchScrollRequest(String scrollId) {
-        return new SearchScrollRequest(scrollId);
-    }
 
     /**
      * Creates an indices exists request.
@@ -221,20 +195,6 @@ public class Requests {
      */
     public static ClusterHealthRequest clusterHealthRequest(String... indices) {
         return new ClusterHealthRequest(indices);
-    }
-
-    /**
-     * List all shards for the give search
-     */
-    public static ClusterSearchShardsRequest clusterSearchShardsRequest() {
-        return new ClusterSearchShardsRequest();
-    }
-
-    /**
-     * List all shards for the give search
-     */
-    public static ClusterSearchShardsRequest clusterSearchShardsRequest(String... indices) {
-        return new ClusterSearchShardsRequest(indices);
     }
 
     /**

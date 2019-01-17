@@ -21,22 +21,16 @@ package org.elasticsearch.test.client;
 
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import org.apache.lucene.util.TestUtil;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.FilterClient;
 import org.elasticsearch.cluster.routing.Preference;
-import org.elasticsearch.common.unit.TimeValue;
 
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 /** A {@link Client} that randomizes request parameters. */
 public class RandomizingClient extends FilterClient {
 
-    private final SearchType defaultSearchType;
     private final String defaultPreference;
     private final int batchedReduceSize;
     private final int maxConcurrentShardRequests;
@@ -48,9 +42,6 @@ public class RandomizingClient extends FilterClient {
         super(client);
         // we don't use the QUERY_AND_FETCH types that break quite a lot of tests
         // given that they return `size*num_shards` hits instead of `size`
-        defaultSearchType = RandomPicks.randomFrom(random, Arrays.asList(
-                SearchType.DFS_QUERY_THEN_FETCH,
-                SearchType.QUERY_THEN_FETCH));
         if (random.nextInt(10) == 0) {
             defaultPreference = RandomPicks.randomFrom(random, EnumSet.of(Preference.PRIMARY_FIRST, Preference.LOCAL)).type();
         } else if (random.nextInt(10) == 0) {
@@ -71,22 +62,6 @@ public class RandomizingClient extends FilterClient {
             preFilterShardSize = -1;
         }
         doTimeout = random.nextBoolean();
-    }
-
-    @Override
-    public SearchRequestBuilder prepareSearch(String... indices) {
-        SearchRequestBuilder searchRequestBuilder = in.prepareSearch(indices).setSearchType(defaultSearchType)
-            .setPreference(defaultPreference).setBatchedReduceSize(batchedReduceSize);
-        if (maxConcurrentShardRequests != -1) {
-            searchRequestBuilder.setMaxConcurrentShardRequests(maxConcurrentShardRequests);
-        }
-        if (preFilterShardSize != -1) {
-            searchRequestBuilder.setPreFilterShardSize(preFilterShardSize);
-        }
-        if (doTimeout) {
-            searchRequestBuilder.setTimeout(new TimeValue(1, TimeUnit.DAYS));
-        }
-        return searchRequestBuilder;
     }
 
     @Override

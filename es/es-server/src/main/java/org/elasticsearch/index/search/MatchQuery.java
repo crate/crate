@@ -71,6 +71,7 @@ import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQue
 public class MatchQuery {
 
     private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(Loggers.getLogger(MappedFieldType.class));
+    public static final float DEFAULT_BOOST = 1.0f;
 
     public enum Type implements Writeable {
         /**
