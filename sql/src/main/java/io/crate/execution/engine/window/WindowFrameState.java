@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.window;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -52,7 +53,7 @@ public final class WindowFrameState {
     }
 
     /**
-     * Retunrs the number of rows that are part of this frame.
+     * Returns the number of rows that are part of this frame.
      */
     public int size() {
         return rows.size();
@@ -61,6 +62,7 @@ public final class WindowFrameState {
     /**
      * Return the row at the given index in the frame or null if the index is out of bounds.
      */
+    @Nullable
     public Object[] getRowAtIndexOrNull(int index) {
         if (index < 0 || index >= rows.size()) {
             return null;
