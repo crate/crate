@@ -32,7 +32,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -139,15 +138,6 @@ public class Requests {
      */
     public static PutMappingRequest putMappingRequest(String... indices) {
         return new PutMappingRequest(indices);
-    }
-
-    /**
-     * Creates an index aliases request allowing to add and remove aliases.
-     *
-     * @return The index aliases request
-     */
-    public static IndicesAliasesRequest indexAliasesRequest() {
-        return new IndicesAliasesRequest();
     }
 
     /**
