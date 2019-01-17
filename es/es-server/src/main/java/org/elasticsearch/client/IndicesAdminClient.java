@@ -44,12 +44,6 @@ import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequestBuilder;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequestBuilder;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
@@ -353,36 +347,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Check upgrade status of one or more indices
      */
     UpgradeRequestBuilder prepareUpgrade(String... indices);
-
-    /**
-     * Get the complete mappings of one or more types
-     */
-    void getMappings(GetMappingsRequest request, ActionListener<GetMappingsResponse> listener);
-
-    /**
-     * Get the complete mappings of one or more types
-     */
-    ActionFuture<GetMappingsResponse> getMappings(GetMappingsRequest request);
-
-    /**
-     * Get the complete mappings of one or more types
-     */
-    GetMappingsRequestBuilder prepareGetMappings(String... indices);
-
-    /**
-     * Get the mappings of specific fields
-     */
-    void getFieldMappings(GetFieldMappingsRequest request, ActionListener<GetFieldMappingsResponse> listener);
-
-    /**
-     * Get the mappings of specific fields
-     */
-    GetFieldMappingsRequestBuilder prepareGetFieldMappings(String... indices);
-
-    /**
-     * Get the mappings of specific fields
-     */
-    ActionFuture<GetFieldMappingsResponse> getFieldMappings(GetFieldMappingsRequest request);
 
     /**
      * Add mapping definition for a type into one or more indices.
