@@ -43,9 +43,6 @@ import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRe
 import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesResponse;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryRequestBuilder;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryResponse;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteResponse;
@@ -160,24 +157,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Update settings in the cluster.
      */
     ClusterRerouteRequestBuilder prepareReroute();
-
-    /**
-     * Nodes info of the cluster.
-     *
-     * @param request The nodes info request
-     * @return The result future
-     * @see org.elasticsearch.client.Requests#nodesInfoRequest(String...)
-     */
-    ActionFuture<NodesInfoResponse> nodesInfo(NodesInfoRequest request);
-
-    /**
-     * Nodes info of the cluster.
-     *
-     * @param request  The nodes info request
-     * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#nodesInfoRequest(String...)
-     */
-    void nodesInfo(NodesInfoRequest request, ActionListener<NodesInfoResponse> listener);
 
     /**
      * Nodes info of the cluster.
@@ -322,21 +301,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Gets repositories.
      */
     GetRepositoriesRequestBuilder prepareGetRepositories(String... name);
-
-    /**
-     * Verifies a repository.
-     */
-    ActionFuture<VerifyRepositoryResponse> verifyRepository(VerifyRepositoryRequest request);
-
-    /**
-     * Verifies a repository.
-     */
-    void verifyRepository(VerifyRepositoryRequest request, ActionListener<VerifyRepositoryResponse> listener);
-
-    /**
-     * Verifies a repository.
-     */
-    VerifyRepositoryRequestBuilder prepareVerifyRepository(String name);
 
     /**
      * Creates a new snapshot.
