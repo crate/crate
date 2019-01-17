@@ -80,9 +80,6 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequestBuilder;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
-import org.elasticsearch.action.admin.indices.close.CloseIndexAction;
-import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
-import org.elasticsearch.action.admin.indices.close.CloseIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
@@ -693,21 +690,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public DeleteIndexRequestBuilder prepareDelete(String... indices) {
             return new DeleteIndexRequestBuilder(this, DeleteIndexAction.INSTANCE, indices);
-        }
-
-        @Override
-        public ActionFuture<AcknowledgedResponse> close(final CloseIndexRequest request) {
-            return execute(CloseIndexAction.INSTANCE, request);
-        }
-
-        @Override
-        public void close(final CloseIndexRequest request, final ActionListener<AcknowledgedResponse> listener) {
-            execute(CloseIndexAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public CloseIndexRequestBuilder prepareClose(String... indices) {
-            return new CloseIndexRequestBuilder(this, CloseIndexAction.INSTANCE, indices);
         }
 
         @Override

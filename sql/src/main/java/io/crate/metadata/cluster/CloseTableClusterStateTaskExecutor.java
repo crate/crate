@@ -36,7 +36,8 @@ import org.elasticsearch.snapshots.SnapshotsService;
 
 import java.util.Set;
 
-import static org.elasticsearch.cluster.metadata.MetaDataIndexStateService.INDEX_CLOSED_BLOCK;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_CLOSED_BLOCK;
+
 
 public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableClusterStateTaskExecutor {
 

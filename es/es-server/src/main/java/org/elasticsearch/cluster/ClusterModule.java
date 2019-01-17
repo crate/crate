@@ -26,7 +26,6 @@ import org.elasticsearch.cluster.metadata.IndexGraveyard;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.MetaDataDeleteIndexService;
-import org.elasticsearch.cluster.metadata.MetaDataIndexStateService;
 import org.elasticsearch.cluster.metadata.MetaDataIndexTemplateService;
 import org.elasticsearch.cluster.metadata.MetaDataMappingService;
 import org.elasticsearch.cluster.metadata.MetaDataUpdateSettingsService;
@@ -267,7 +266,6 @@ public class ClusterModule extends AbstractModule {
         bind(ClusterService.class).toInstance(clusterService);
         bind(NodeConnectionsService.class).asEagerSingleton();
         bind(MetaDataDeleteIndexService.class).asEagerSingleton();
-        bind(MetaDataIndexStateService.class).asEagerSingleton();
         bind(MetaDataMappingService.class).asEagerSingleton();
         bind(MetaDataUpdateSettingsService.class).asEagerSingleton();
         bind(MetaDataIndexTemplateService.class).asEagerSingleton();
