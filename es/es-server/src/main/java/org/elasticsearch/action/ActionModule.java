@@ -67,11 +67,6 @@ import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
 import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
 import org.elasticsearch.action.admin.indices.get.GetIndexAction;
 import org.elasticsearch.action.admin.indices.get.TransportGetIndexAction;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsAction;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsAction;
-import org.elasticsearch.action.admin.indices.mapping.get.TransportGetFieldMappingsAction;
-import org.elasticsearch.action.admin.indices.mapping.get.TransportGetFieldMappingsIndexAction;
-import org.elasticsearch.action.admin.indices.mapping.get.TransportGetMappingsAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryAction;
@@ -146,10 +141,8 @@ import org.elasticsearch.rest.action.admin.indices.RestDeleteIndexTemplateAction
 import org.elasticsearch.rest.action.admin.indices.RestFlushAction;
 import org.elasticsearch.rest.action.admin.indices.RestForceMergeAction;
 import org.elasticsearch.rest.action.admin.indices.RestGetAllAliasesAction;
-import org.elasticsearch.rest.action.admin.indices.RestGetFieldMappingAction;
 import org.elasticsearch.rest.action.admin.indices.RestGetIndexTemplateAction;
 import org.elasticsearch.rest.action.admin.indices.RestGetIndicesAction;
-import org.elasticsearch.rest.action.admin.indices.RestGetMappingAction;
 import org.elasticsearch.rest.action.admin.indices.RestGetSettingsAction;
 import org.elasticsearch.rest.action.admin.indices.RestIndicesStatsAction;
 import org.elasticsearch.rest.action.admin.indices.RestPutIndexTemplateAction;
@@ -285,9 +278,6 @@ public class ActionModule extends AbstractModule {
         actions.register(GetIndexAction.INSTANCE, TransportGetIndexAction.class);
         actions.register(IndicesExistsAction.INSTANCE, TransportIndicesExistsAction.class);
         actions.register(TypesExistsAction.INSTANCE, TransportTypesExistsAction.class);
-        actions.register(GetMappingsAction.INSTANCE, TransportGetMappingsAction.class);
-        actions.register(GetFieldMappingsAction.INSTANCE, TransportGetFieldMappingsAction.class,
-                TransportGetFieldMappingsIndexAction.class);
         actions.register(PutMappingAction.INSTANCE, TransportPutMappingAction.class);
         actions.register(UpdateSettingsAction.INSTANCE, TransportUpdateSettingsAction.class);
         actions.register(PutIndexTemplateAction.INSTANCE, TransportPutIndexTemplateAction.class);
@@ -349,8 +339,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestDeleteIndexTemplateAction(settings, restController));
 
         registerHandler.accept(new RestPutMappingAction(settings, restController));
-        registerHandler.accept(new RestGetMappingAction(settings, restController));
-        registerHandler.accept(new RestGetFieldMappingAction(settings, restController));
 
         registerHandler.accept(new RestRefreshAction(settings, restController));
         registerHandler.accept(new RestFlushAction(settings, restController));
