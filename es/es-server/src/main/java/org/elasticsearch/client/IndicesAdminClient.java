@@ -23,9 +23,6 @@ import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequestBuilder;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequestBuilder;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesResponse;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -461,26 +458,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Allows to add/remove aliases from indices.
      */
     IndicesAliasesRequestBuilder prepareAliases();
-
-    /**
-     * Get specific index aliases that exists in particular indices and / or by name.
-     *
-     * @param request The result future
-     */
-    ActionFuture<GetAliasesResponse> getAliases(GetAliasesRequest request);
-
-    /**
-     * Get specific index aliases that exists in particular indices and / or by name.
-     *
-     * @param request  The index aliases request
-     * @param listener A listener to be notified with a result
-     */
-    void getAliases(GetAliasesRequest request, ActionListener<GetAliasesResponse> listener);
-
-    /**
-     * Get specific index aliases that exists in particular indices and / or by name.
-     */
-    GetAliasesRequestBuilder prepareGetAliases(String... aliases);
 
     /**
      * Get index metadata for particular indices.

@@ -83,10 +83,6 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequestBuilder;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesAction;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequestBuilder;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesResponse;
 import org.elasticsearch.action.admin.indices.close.CloseIndexAction;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequestBuilder;
@@ -670,21 +666,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public IndicesAliasesRequestBuilder prepareAliases() {
             return new IndicesAliasesRequestBuilder(this, IndicesAliasesAction.INSTANCE);
-        }
-
-        @Override
-        public ActionFuture<GetAliasesResponse> getAliases(GetAliasesRequest request) {
-            return execute(GetAliasesAction.INSTANCE, request);
-        }
-
-        @Override
-        public void getAliases(GetAliasesRequest request, ActionListener<GetAliasesResponse> listener) {
-            execute(GetAliasesAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public GetAliasesRequestBuilder prepareGetAliases(String... aliases) {
-            return new GetAliasesRequestBuilder(this, GetAliasesAction.INSTANCE, aliases);
         }
 
         @Override
