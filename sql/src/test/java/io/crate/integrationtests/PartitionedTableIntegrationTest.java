@@ -49,7 +49,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.query.MatchAllQueryBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
@@ -74,6 +73,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.Constants.DEFAULT_MAPPING_TYPE;
 import static io.crate.Version.CRATEDB_VERSION_KEY;
 import static io.crate.Version.ES_VERSION_KEY;
@@ -309,12 +309,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         MetaData metaData = client().admin().cluster().prepareState().execute().actionGet()
             .getState().metaData();
         assertNotNull(metaData.indices().get(partitionName).getAliases().get(getFqn("parted")));
-        assertThat(
-            client().prepareSearch(partitionName).setTypes(DEFAULT_MAPPING_TYPE)
-                .setSize(0).setQuery(new MatchAllQueryBuilder())
-                .execute().actionGet().getHits().getTotalHits(),
-            is(1L)
-        );
 
         execute("select id, name, date from parted");
         assertThat(response.rowCount(), is(1L));
@@ -324,54 +318,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     private void validateInsertPartitionedTable() {
-        Set<String> indexUUIDs = new HashSet<>(3);
-
-        String partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
-            Collections.singletonList(String.valueOf(13959981214861L))
-        ).asIndexName();
-        assertThat(internalCluster().clusterService().state().metaData().hasIndex(partitionName), is(true));
-        IndexMetaData indexMetaData = client().admin().cluster().prepareState().execute().actionGet()
-            .getState().metaData().indices().get(partitionName);
-        indexUUIDs.add(indexMetaData.getIndexUUID());
-        assertThat(indexMetaData.getAliases().get(getFqn("parted")), notNullValue());
+        execute("select table_name, partition_ident from information_schema.table_partitions order by 2 ");
         assertThat(
-            client().prepareSearch(partitionName).setTypes(DEFAULT_MAPPING_TYPE)
-                .setSize(0).setQuery(new MatchAllQueryBuilder())
-                .execute().actionGet().getHits().getTotalHits(),
-            is(1L)
-        );
-
-        partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
-            Collections.singletonList(String.valueOf(0L))).asIndexName();
-        assertThat(internalCluster().clusterService().state().metaData().hasIndex(partitionName), is(true));
-        indexMetaData = client().admin().cluster().prepareState().execute().actionGet()
-            .getState().metaData().indices().get(partitionName);
-        indexUUIDs.add(indexMetaData.getIndexUUID());
-        assertThat(indexMetaData.getAliases().get(getFqn("parted")), notNullValue());
-        assertThat(
-            client().prepareSearch(partitionName).setTypes(DEFAULT_MAPPING_TYPE)
-                .setSize(0).setQuery(new MatchAllQueryBuilder())
-                .execute().actionGet().getHits().getTotalHits(),
-            is(1L)
-        );
-
-        partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "parted"), Collections.singletonList(null)).asIndexName();
-        assertThat(internalCluster().clusterService().state().metaData().hasIndex(partitionName), is(true));
-        indexMetaData = client().admin().cluster().prepareState().execute().actionGet()
-            .getState().metaData().indices().get(partitionName);
-        indexUUIDs.add(indexMetaData.getIndexUUID());
-        assertThat(indexMetaData.getAliases().get(getFqn("parted")), notNullValue());
-        assertThat(
-            client().prepareSearch(partitionName).setTypes(DEFAULT_MAPPING_TYPE)
-                .setSize(0).setQuery(new MatchAllQueryBuilder())
-                .execute().actionGet().getHits().getTotalHits(),
-            is(1L)
-        );
-
-        assertThat(indexUUIDs.size(), is(3));
+            printedTable(response.rows()),
+            is("parted| 0400\n" +
+               "parted| 04130\n" +
+               "parted| 047j2cpp6ksjie1h68oj8e1m64\n"));
     }
 
     @Test
@@ -417,25 +369,23 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into parted (name, date) values (?, ?)",
             new Object[]{"Ford", 13959981214861L});
         assertThat(response.rowCount(), is(1L));
-        ensureYellow();
-        refresh();
-        String partitionName = new PartitionName(
+
+        execute("refresh table parted");
+
+        PartitionName partitionName = new PartitionName(
             new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
             Arrays.asList("Ford", String.valueOf(13959981214861L))
-        ).asIndexName();
-        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-            .getState().metaData().indices().get(partitionName).getAliases().get(getFqn("parted")));
-        assertThat(
-            client().prepareSearch(partitionName).setTypes(DEFAULT_MAPPING_TYPE)
-                .setSize(0).setQuery(new MatchAllQueryBuilder())
-                .execute().actionGet().getHits().getTotalHits(),
-            is(1L)
         );
+
+        execute(
+            "select count(*) from information_schema.table_partitions where partition_ident = ?",
+            $(partitionName.ident()));
+        assertThat(response.rows()[0][0], is(1L));
+
         execute("select * from parted");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), arrayContaining("date", "name"));
-        assertThat((Long) response.rows()[0][0], is(13959981214861L));
-        assertThat((String) response.rows()[0][1], is("Ford"));
+        assertThat(
+            printedTable(response.rows()),
+            is("13959981214861| Ford\n"));
     }
 
     @Test

@@ -358,7 +358,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(nodeSettings, clusterSettings);
             indexShard = new IndexShard(routing, indexSettings, shardPath, store, () -> null, indexCache, mapperService,
                 engineFactory, indexEventListener, indexSearcherWrapper, threadPool,
-                BigArrays.NON_RECYCLING_INSTANCE, warmer, Collections.emptyList(), Arrays.asList(listeners), globalCheckpointSyncer,
+                BigArrays.NON_RECYCLING_INSTANCE, warmer, Arrays.asList(listeners), globalCheckpointSyncer,
                 breakerService);
             indexShard.addShardFailureCallback(DEFAULT_SHARD_FAILURE_HANDLER);
             success = true;

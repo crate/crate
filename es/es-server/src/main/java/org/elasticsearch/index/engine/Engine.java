@@ -77,7 +77,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogStats;
-import org.elasticsearch.search.suggest.completion.CompletionStats;
 
 import java.io.Closeable;
 import java.io.FileNotFoundException;
@@ -195,34 +194,6 @@ public abstract class Engine implements Closeable {
 
     /** Returns how many bytes we are currently moving from heap to disk */
     public abstract long getWritingBytes();
-
-    /**
-     * Returns the {@link CompletionStats} for this engine
-     */
-    public CompletionStats completionStats(String... fieldNamePatterns) throws IOException {
-        try (Engine.Searcher currentSearcher = acquireSearcher("completion_stats", SearcherScope.INTERNAL)) {
-            long sizeInBytes = 0;
-            ObjectLongHashMap<String> completionFields = null;
-            if (fieldNamePatterns != null && fieldNamePatterns.length > 0) {
-                completionFields = new ObjectLongHashMap<>(fieldNamePatterns.length);
-            }
-            for (LeafReaderContext atomicReaderContext : currentSearcher.reader().leaves()) {
-                LeafReader atomicReader = atomicReaderContext.reader();
-                for (FieldInfo info : atomicReader.getFieldInfos()) {
-                    Terms terms = atomicReader.terms(info.name);
-                    if (terms instanceof CompletionTerms) {
-                        // TODO: currently we load up the suggester for reporting its size
-                        long fstSize = ((CompletionTerms) terms).suggester().ramBytesUsed();
-                        if (Regex.simpleMatch(fieldNamePatterns, info.name)) {
-                            completionFields.addTo(info.name, fstSize);
-                        }
-                        sizeInBytes += fstSize;
-                    }
-                }
-            }
-            return new CompletionStats(sizeInBytes, completionFields == null ? null : new FieldMemoryStats(completionFields));
-        }
-    }
 
     /**
      * Returns the {@link DocsStats} for this engine

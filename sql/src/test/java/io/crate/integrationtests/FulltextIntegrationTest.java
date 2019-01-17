@@ -25,10 +25,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -258,21 +255,14 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
         this.setup.setUpLocations();
         refresh();
 
-        SearchResponse searchResponse = client().prepareSearch(getFqn("locations"))
-            .setTypes("default")
-            .setQuery(QueryBuilders.multiMatchQuery("planet earth", "kind^0.8", "name_description_ft^0.6"))
-            .get(TimeValue.timeValueSeconds(1));
-
         execute("select name, _score from locations where match((kind 0.8, name_description_ft 0.6), 'planet earth') " +
                 "using best_fields order by _score desc");
-
-        SearchHit[] hits = searchResponse.getHits().getHits();
-        for (int i = 0; i < hits.length; i++) {
-            assertThat(hits[i].getScore(), is(((float) response.rows()[i][1])));
-        }
-
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 1.3665153\nBartledan| 1.008085\n| 0.4665413\nAllosimanius Syneca| 0.35026485\nGalactic Sector QQ7 Active J Gamma| 0.28038445\n"));
+            is("Alpha Centauri| 1.3665153\n" +
+               "Bartledan| 1.008085\n" +
+               "| 0.4665413\n" +
+               "Allosimanius Syneca| 0.35026485\n" +
+               "Galactic Sector QQ7 Active J Gamma| 0.28038445\n"));
 
         execute("select name, _score from locations where match((kind 0.6, name_description_ft 0.8), 'planet earth') using most_fields order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),

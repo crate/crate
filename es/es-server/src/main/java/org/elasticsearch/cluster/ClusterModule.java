@@ -19,6 +19,7 @@
 
 package org.elasticsearch.cluster;
 
+import org.elasticsearch.action.admin.indices.stats.TransportIndicesStatsAction;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.index.NodeMappingRefreshAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -67,7 +68,6 @@ import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.gateway.GatewayAllocator;
 import org.elasticsearch.plugins.ClusterPlugin;
-import org.elasticsearch.tasks.Task;
 
 import java.util.ArrayList;
 import java.util.Collection;

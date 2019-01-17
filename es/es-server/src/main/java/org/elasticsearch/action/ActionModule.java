@@ -35,8 +35,6 @@ import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsAction;
-import org.elasticsearch.action.admin.cluster.shards.TransportClusterSearchShardsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotAction;
@@ -95,14 +93,6 @@ import org.elasticsearch.action.admin.indices.upgrade.post.TransportUpgradeActio
 import org.elasticsearch.action.admin.indices.upgrade.post.TransportUpgradeSettingsAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeSettingsAction;
-import org.elasticsearch.action.search.ClearScrollAction;
-import org.elasticsearch.action.search.MultiSearchAction;
-import org.elasticsearch.action.search.SearchAction;
-import org.elasticsearch.action.search.SearchScrollAction;
-import org.elasticsearch.action.search.TransportClearScrollAction;
-import org.elasticsearch.action.search.TransportMultiSearchAction;
-import org.elasticsearch.action.search.TransportSearchAction;
-import org.elasticsearch.action.search.TransportSearchScrollAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.action.support.DestructiveOperations;
@@ -224,7 +214,6 @@ public class ActionModule extends AbstractModule {
         actions.register(ClusterHealthAction.INSTANCE, TransportClusterHealthAction.class);
         actions.register(ClusterUpdateSettingsAction.INSTANCE, TransportClusterUpdateSettingsAction.class);
         actions.register(ClusterRerouteAction.INSTANCE, TransportClusterRerouteAction.class);
-        actions.register(ClusterSearchShardsAction.INSTANCE, TransportClusterSearchShardsAction.class);
         actions.register(PendingClusterTasksAction.INSTANCE, TransportPendingClusterTasksAction.class);
         actions.register(PutRepositoryAction.INSTANCE, TransportPutRepositoryAction.class);
         actions.register(GetRepositoriesAction.INSTANCE, TransportGetRepositoriesAction.class);
@@ -234,7 +223,6 @@ public class ActionModule extends AbstractModule {
         actions.register(CreateSnapshotAction.INSTANCE, TransportCreateSnapshotAction.class);
         actions.register(RestoreSnapshotAction.INSTANCE, TransportRestoreSnapshotAction.class);
         actions.register(SnapshotsStatusAction.INSTANCE, TransportSnapshotsStatusAction.class);
-
         actions.register(IndicesStatsAction.INSTANCE, TransportIndicesStatsAction.class);
         actions.register(CreateIndexAction.INSTANCE, TransportCreateIndexAction.class);
         actions.register(ShrinkAction.INSTANCE, TransportShrinkAction.class);
@@ -257,10 +245,6 @@ public class ActionModule extends AbstractModule {
         actions.register(UpgradeSettingsAction.INSTANCE, TransportUpgradeSettingsAction.class);
         actions.register(GetSettingsAction.INSTANCE, TransportGetSettingsAction.class);
 
-        actions.register(SearchAction.INSTANCE, TransportSearchAction.class);
-        actions.register(SearchScrollAction.INSTANCE, TransportSearchScrollAction.class);
-        actions.register(MultiSearchAction.INSTANCE, TransportMultiSearchAction.class);
-        actions.register(ClearScrollAction.INSTANCE, TransportClearScrollAction.class);
         actions.register(RecoveryAction.INSTANCE, TransportRecoveryAction.class);
 
         actionPlugins.stream().flatMap(p -> p.getActions().stream()).forEach(actions::register);
@@ -276,7 +260,6 @@ public class ActionModule extends AbstractModule {
     public void initRestHandlers(Supplier<DiscoveryNodes> nodesInCluster) {
         Consumer<RestHandler> registerHandler = a -> {
         };
-
         for (ActionPlugin plugin : actionPlugins) {
             for (RestHandler handler : plugin.getRestHandlers(settings, restController, clusterSettings, indexScopedSettings,
                     settingsFilter, indexNameExpressionResolver, nodesInCluster)) {

@@ -245,7 +245,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
         @Override
         public Query termQuery(Object value, QueryShardContext context) {
             throw new QueryShardException(context, "Geo fields do not support exact searching, use dedicated geo queries instead: ["
-                + name() + "]");
+                                                   + name() + "]");
         }
     }
 
