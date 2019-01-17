@@ -53,8 +53,6 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.TransportPendingClusterTasksAction;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.alias.TransportIndicesAliasesAction;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesAction;
-import org.elasticsearch.action.admin.indices.alias.get.TransportGetAliasesAction;
 import org.elasticsearch.action.admin.indices.close.CloseIndexAction;
 import org.elasticsearch.action.admin.indices.close.TransportCloseIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
@@ -152,7 +150,6 @@ import org.elasticsearch.rest.action.admin.indices.RestDeleteIndexAction;
 import org.elasticsearch.rest.action.admin.indices.RestDeleteIndexTemplateAction;
 import org.elasticsearch.rest.action.admin.indices.RestFlushAction;
 import org.elasticsearch.rest.action.admin.indices.RestForceMergeAction;
-import org.elasticsearch.rest.action.admin.indices.RestGetAliasesAction;
 import org.elasticsearch.rest.action.admin.indices.RestGetAllAliasesAction;
 import org.elasticsearch.rest.action.admin.indices.RestGetFieldMappingAction;
 import org.elasticsearch.rest.action.admin.indices.RestGetIndexTemplateAction;
@@ -313,7 +310,6 @@ public class ActionModule extends AbstractModule {
         actions.register(UpgradeAction.INSTANCE, TransportUpgradeAction.class);
         actions.register(UpgradeStatusAction.INSTANCE, TransportUpgradeStatusAction.class);
         actions.register(UpgradeSettingsAction.INSTANCE, TransportUpgradeSettingsAction.class);
-        actions.register(GetAliasesAction.INSTANCE, TransportGetAliasesAction.class);
         actions.register(GetSettingsAction.INSTANCE, TransportGetSettingsAction.class);
 
         actions.register(SearchAction.INSTANCE, TransportSearchAction.class);
@@ -351,7 +347,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestGetAllAliasesAction(settings, restController));
         registerHandler.accept(new RestGetIndicesAction(settings, restController));
         registerHandler.accept(new RestIndicesStatsAction(settings, restController));
-        registerHandler.accept(new RestGetAliasesAction(settings, restController));
         registerHandler.accept(new RestIndexDeleteAliasesAction(settings, restController));
         registerHandler.accept(new RestIndexPutAliasAction(settings, restController));
         registerHandler.accept(new RestIndicesAliasesAction(settings, restController));
