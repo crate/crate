@@ -111,14 +111,6 @@ import org.elasticsearch.action.admin.indices.get.GetIndexAction;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsAction;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequestBuilder;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsAction;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequestBuilder;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
@@ -720,36 +712,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public SyncedFlushRequestBuilder prepareSyncedFlush(String... indices) {
             return new SyncedFlushRequestBuilder(this, SyncedFlushAction.INSTANCE).setIndices(indices);
-        }
-
-        @Override
-        public void getMappings(GetMappingsRequest request, ActionListener<GetMappingsResponse> listener) {
-            execute(GetMappingsAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public void getFieldMappings(GetFieldMappingsRequest request, ActionListener<GetFieldMappingsResponse> listener) {
-            execute(GetFieldMappingsAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public GetMappingsRequestBuilder prepareGetMappings(String... indices) {
-            return new GetMappingsRequestBuilder(this, GetMappingsAction.INSTANCE, indices);
-        }
-
-        @Override
-        public ActionFuture<GetMappingsResponse> getMappings(GetMappingsRequest request) {
-            return execute(GetMappingsAction.INSTANCE, request);
-        }
-
-        @Override
-        public GetFieldMappingsRequestBuilder prepareGetFieldMappings(String... indices) {
-            return new GetFieldMappingsRequestBuilder(this, GetFieldMappingsAction.INSTANCE, indices);
-        }
-
-        @Override
-        public ActionFuture<GetFieldMappingsResponse> getFieldMappings(GetFieldMappingsRequest request) {
-            return execute(GetFieldMappingsAction.INSTANCE, request);
         }
 
         @Override
