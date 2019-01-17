@@ -32,7 +32,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -116,17 +115,6 @@ public class Requests {
      */
     public static DeleteIndexRequest deleteIndexRequest(String index) {
         return new DeleteIndexRequest(index);
-    }
-
-    /**
-     * Creates a close index request.
-     *
-     * @param index The index to close
-     * @return The delete index request
-     * @see org.elasticsearch.client.IndicesAdminClient#close(org.elasticsearch.action.admin.indices.close.CloseIndexRequest)
-     */
-    public static CloseIndexRequest closeIndexRequest(String index) {
-        return new CloseIndexRequest(index);
     }
 
     /**

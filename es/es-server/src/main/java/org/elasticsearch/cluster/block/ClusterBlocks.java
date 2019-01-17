@@ -20,11 +20,9 @@
 package org.elasticsearch.cluster.block;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaDataIndexStateService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -335,7 +333,7 @@ public class ClusterBlocks extends AbstractDiffable<ClusterBlocks> {
         public Builder addBlocks(IndexMetaData indexMetaData) {
             String indexName = indexMetaData.getIndex().getName();
             if (indexMetaData.getState() == IndexMetaData.State.CLOSE) {
-                addIndexBlock(indexName, MetaDataIndexStateService.INDEX_CLOSED_BLOCK);
+                addIndexBlock(indexName, IndexMetaData.INDEX_CLOSED_BLOCK);
             }
             if (IndexMetaData.INDEX_READ_ONLY_SETTING.get(indexMetaData.getSettings())) {
                 addIndexBlock(indexName, IndexMetaData.INDEX_READ_ONLY_BLOCK);
