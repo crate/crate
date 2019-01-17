@@ -25,10 +25,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoAction;
 import org.elasticsearch.action.admin.cluster.node.info.TransportNodesInfoAction;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksAction;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.TransportCancelTasksAction;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksAction;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.TransportListTasksAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesAction;
@@ -133,28 +129,19 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.persistent.CompletionPersistentTaskAction;
-import org.elasticsearch.persistent.RemovePersistentTaskAction;
-import org.elasticsearch.persistent.StartPersistentTaskAction;
-import org.elasticsearch.persistent.UpdatePersistentTaskStatusAction;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ActionPlugin.ActionHandler;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
-import org.elasticsearch.rest.action.admin.cluster.RestCancelTasksAction;
 import org.elasticsearch.rest.action.admin.cluster.RestClusterGetSettingsAction;
 import org.elasticsearch.rest.action.admin.cluster.RestClusterHealthAction;
 import org.elasticsearch.rest.action.admin.cluster.RestClusterRerouteAction;
 import org.elasticsearch.rest.action.admin.cluster.RestClusterSearchShardsAction;
-import org.elasticsearch.rest.action.admin.cluster.RestClusterStateAction;
 import org.elasticsearch.rest.action.admin.cluster.RestClusterUpdateSettingsAction;
-import org.elasticsearch.rest.action.admin.cluster.RestCreateSnapshotAction;
 import org.elasticsearch.rest.action.admin.cluster.RestDeleteRepositoryAction;
 import org.elasticsearch.rest.action.admin.cluster.RestDeleteSnapshotAction;
 import org.elasticsearch.rest.action.admin.cluster.RestGetRepositoriesAction;
 import org.elasticsearch.rest.action.admin.cluster.RestGetSnapshotsAction;
-import org.elasticsearch.rest.action.admin.cluster.RestGetTaskAction;
-import org.elasticsearch.rest.action.admin.cluster.RestListTasksAction;
 import org.elasticsearch.rest.action.admin.cluster.RestPendingClusterTasksAction;
 import org.elasticsearch.rest.action.admin.cluster.RestPutRepositoryAction;
 import org.elasticsearch.rest.action.admin.cluster.RestRestoreSnapshotAction;
@@ -182,7 +169,6 @@ import org.elasticsearch.rest.action.admin.indices.RestRecoveryAction;
 import org.elasticsearch.rest.action.admin.indices.RestRefreshAction;
 import org.elasticsearch.rest.action.admin.indices.RestResizeHandler;
 import org.elasticsearch.rest.action.admin.indices.RestSyncedFlushAction;
-import org.elasticsearch.rest.action.admin.indices.RestUpdateSettingsAction;
 import org.elasticsearch.rest.action.admin.indices.RestUpgradeAction;
 import org.elasticsearch.rest.action.admin.indices.RestUpgradeStatusAction;
 import org.elasticsearch.rest.action.search.RestClearScrollAction;
@@ -286,8 +272,6 @@ public class ActionModule extends AbstractModule {
         ActionRegistry actions = new ActionRegistry();
 
         actions.register(NodesInfoAction.INSTANCE, TransportNodesInfoAction.class);
-        actions.register(ListTasksAction.INSTANCE, TransportListTasksAction.class);
-        actions.register(CancelTasksAction.INSTANCE, TransportCancelTasksAction.class);
 
         actions.register(ClusterStateAction.INSTANCE, TransportClusterStateAction.class);
         actions.register(ClusterHealthAction.INSTANCE, TransportClusterHealthAction.class);
@@ -340,12 +324,6 @@ public class ActionModule extends AbstractModule {
 
         actionPlugins.stream().flatMap(p -> p.getActions().stream()).forEach(actions::register);
 
-        // Persistent tasks:
-        actions.register(StartPersistentTaskAction.INSTANCE, StartPersistentTaskAction.TransportAction.class);
-        actions.register(UpdatePersistentTaskStatusAction.INSTANCE, UpdatePersistentTaskStatusAction.TransportAction.class);
-        actions.register(CompletionPersistentTaskAction.INSTANCE, CompletionPersistentTaskAction.TransportAction.class);
-        actions.register(RemovePersistentTaskAction.INSTANCE, RemovePersistentTaskAction.TransportAction.class);
-
         return unmodifiableMap(actions.getRegistry());
     }
 
@@ -357,7 +335,6 @@ public class ActionModule extends AbstractModule {
     public void initRestHandlers(Supplier<DiscoveryNodes> nodesInCluster) {
         Consumer<RestHandler> registerHandler = a -> {
         };
-        registerHandler.accept(new RestClusterStateAction(settings, restController, settingsFilter));
         registerHandler.accept(new RestClusterHealthAction(settings, restController));
         registerHandler.accept(new RestClusterUpdateSettingsAction(settings, restController));
         registerHandler.accept(new RestClusterGetSettingsAction(settings, restController, clusterSettings, settingsFilter));
@@ -368,7 +345,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestGetRepositoriesAction(settings, restController, settingsFilter));
         registerHandler.accept(new RestDeleteRepositoryAction(settings, restController));
         registerHandler.accept(new RestGetSnapshotsAction(settings, restController));
-        registerHandler.accept(new RestCreateSnapshotAction(settings, restController));
         registerHandler.accept(new RestRestoreSnapshotAction(settings, restController));
         registerHandler.accept(new RestDeleteSnapshotAction(settings, restController));
         registerHandler.accept(new RestSnapshotsStatusAction(settings, restController));
@@ -385,7 +361,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestDeleteIndexAction(settings, restController));
         registerHandler.accept(new RestCloseIndexAction(settings, restController));
 
-        registerHandler.accept(new RestUpdateSettingsAction(settings, restController));
         registerHandler.accept(new RestGetSettingsAction(settings, restController));
 
         registerHandler.accept(new RestGetIndexTemplateAction(settings, restController));
@@ -411,12 +386,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestMultiSearchAction(settings, restController));
 
         registerHandler.accept(new RestRecoveryAction(settings, restController));
-
-
-        // Tasks API
-        registerHandler.accept(new RestListTasksAction(settings, restController, nodesInCluster));
-        registerHandler.accept(new RestGetTaskAction(settings, restController));
-        registerHandler.accept(new RestCancelTasksAction(settings, restController, nodesInCluster));
 
         for (ActionPlugin plugin : actionPlugins) {
             for (RestHandler handler : plugin.getRestHandlers(settings, restController, clusterSettings, indexScopedSettings,

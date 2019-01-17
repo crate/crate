@@ -30,21 +30,7 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoAction;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksAction;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequest;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksResponse;
-import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskAction;
-import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskRequest;
-import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.tasks.get.GetTaskResponse;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksAction;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksRequest;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksRequestBuilder;
-import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksResponse;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequestBuilder;
@@ -444,56 +430,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public NodesInfoRequestBuilder prepareNodesInfo(String... nodesIds) {
             return new NodesInfoRequestBuilder(this, NodesInfoAction.INSTANCE).setNodesIds(nodesIds);
-        }
-
-        @Override
-        public ActionFuture<ListTasksResponse> listTasks(final ListTasksRequest request) {
-            return execute(ListTasksAction.INSTANCE, request);
-        }
-
-        @Override
-        public void listTasks(final ListTasksRequest request, final ActionListener<ListTasksResponse> listener) {
-            execute(ListTasksAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ListTasksRequestBuilder prepareListTasks(String... nodesIds) {
-            return new ListTasksRequestBuilder(this, ListTasksAction.INSTANCE).setNodesIds(nodesIds);
-        }
-
-        @Override
-        public ActionFuture<GetTaskResponse> getTask(final GetTaskRequest request) {
-            return execute(GetTaskAction.INSTANCE, request);
-        }
-
-        @Override
-        public void getTask(final GetTaskRequest request, final ActionListener<GetTaskResponse> listener) {
-            execute(GetTaskAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public GetTaskRequestBuilder prepareGetTask(String taskId) {
-            return prepareGetTask(new TaskId(taskId));
-        }
-
-        @Override
-        public GetTaskRequestBuilder prepareGetTask(TaskId taskId) {
-            return new GetTaskRequestBuilder(this, GetTaskAction.INSTANCE).setTaskId(taskId);
-        }
-
-        @Override
-        public ActionFuture<CancelTasksResponse> cancelTasks(CancelTasksRequest request) {
-            return execute(CancelTasksAction.INSTANCE, request);
-        }
-
-        @Override
-        public void cancelTasks(CancelTasksRequest request, ActionListener<CancelTasksResponse> listener) {
-            execute(CancelTasksAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public CancelTasksRequestBuilder prepareCancelTasks(String... nodesIds) {
-            return new CancelTasksRequestBuilder(this, CancelTasksAction.INSTANCE).setNodesIds(nodesIds);
         }
 
         @Override
