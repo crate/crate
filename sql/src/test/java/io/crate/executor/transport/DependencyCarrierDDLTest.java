@@ -160,12 +160,9 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         ensureYellow();
 
-        String schema= sqlExecutor.getCurrentSchema();
-        String partitionName = IndexParts.toIndexName(
-            schema, "t", PartitionName.encodeIdent(ImmutableList.of("1")));
         PlanForNode plan = plan("delete from t where id = ?");
 
-        assertTrue(client().admin().indices().prepareClose(partitionName).execute().actionGet().isAcknowledged());
+        execute("alter table t partition (id = 1) close");
 
         Bucket bucket = executePlan(plan.plan, plan.plannerContext, new Row1(1));
         assertThat(bucket, contains(isRow(-1L)));
