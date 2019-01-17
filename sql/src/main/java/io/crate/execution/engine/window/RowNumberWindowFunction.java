@@ -46,7 +46,10 @@ public class RowNumberWindowFunction implements WindowFunction {
     }
 
     @Override
-    public Object execute(int rowIdx, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
+    public Object execute(int rowIdx,
+                          WindowFrameState currentFrame,
+                          List<? extends CollectExpression<Row, ?>> expressions,
+                          Input... args) {
         return rowIdx + 1;
     }
 
