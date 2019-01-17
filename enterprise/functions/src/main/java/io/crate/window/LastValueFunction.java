@@ -52,11 +52,16 @@ public class LastValueFunction implements WindowFunction {
     }
 
     @Override
-    public Object execute(int rowIdx, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
+    public Object execute(int rowIdx,
+                          WindowFrameState currentFrame,
+                          List<? extends CollectExpression<Row, ?>> expressions,
+                          Input... args) {
         if (isNewFrame(seenFrameUpperBound, currentFrame)) {
             seenFrameUpperBound = currentFrame.upperBoundExclusive();
             int frameSize = currentFrame.size();
-            Row lastRowInFrame = new RowN(currentFrame.getRowAtIndexOrNull(frameSize - 1));
+            Object[] lastRowCells = currentFrame.getRowAtIndexOrNull(frameSize - 1);
+            assert lastRowCells != null : "Last row must exist";
+            Row lastRowInFrame = new RowN(lastRowCells);
             for (CollectExpression<Row, ?> expression : expressions) {
                 expression.setNextRow(lastRowInFrame);
             }
