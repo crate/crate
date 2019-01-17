@@ -80,9 +80,6 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequestBuilder;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequestBuilder;
 import org.elasticsearch.action.admin.indices.close.CloseIndexAction;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequestBuilder;
@@ -651,21 +648,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public TypesExistsRequestBuilder prepareTypesExists(String... index) {
             return new TypesExistsRequestBuilder(this, TypesExistsAction.INSTANCE, index);
-        }
-
-        @Override
-        public ActionFuture<AcknowledgedResponse> aliases(final IndicesAliasesRequest request) {
-            return execute(IndicesAliasesAction.INSTANCE, request);
-        }
-
-        @Override
-        public void aliases(final IndicesAliasesRequest request, final ActionListener<AcknowledgedResponse> listener) {
-            execute(IndicesAliasesAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public IndicesAliasesRequestBuilder prepareAliases() {
-            return new IndicesAliasesRequestBuilder(this, IndicesAliasesAction.INSTANCE);
         }
 
         @Override

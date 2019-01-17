@@ -21,8 +21,6 @@ package org.elasticsearch.client;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequestBuilder;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -435,29 +433,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Add mapping definition for a type into one or more indices.
      */
     PutMappingRequestBuilder preparePutMapping(String... indices);
-
-    /**
-     * Allows to add/remove aliases from indices.
-     *
-     * @param request The index aliases request
-     * @return The result future
-     * @see Requests#indexAliasesRequest()
-     */
-    ActionFuture<AcknowledgedResponse> aliases(IndicesAliasesRequest request);
-
-    /**
-     * Allows to add/remove aliases from indices.
-     *
-     * @param request  The index aliases request
-     * @param listener A listener to be notified with a result
-     * @see Requests#indexAliasesRequest()
-     */
-    void aliases(IndicesAliasesRequest request, ActionListener<AcknowledgedResponse> listener);
-
-    /**
-     * Allows to add/remove aliases from indices.
-     */
-    IndicesAliasesRequestBuilder prepareAliases();
 
     /**
      * Get index metadata for particular indices.
