@@ -55,10 +55,6 @@ import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRe
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryAction;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryRequestBuilder;
-import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryResponse;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
@@ -214,7 +210,6 @@ import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.client.FilterClient;
 import org.elasticsearch.client.IndicesAdminClient;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -447,16 +442,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         }
 
         @Override
-        public ActionFuture<NodesInfoResponse> nodesInfo(final NodesInfoRequest request) {
-            return execute(NodesInfoAction.INSTANCE, request);
-        }
-
-        @Override
-        public void nodesInfo(final NodesInfoRequest request, final ActionListener<NodesInfoResponse> listener) {
-            execute(NodesInfoAction.INSTANCE, request, listener);
-        }
-
-        @Override
         public NodesInfoRequestBuilder prepareNodesInfo(String... nodesIds) {
             return new NodesInfoRequestBuilder(this, NodesInfoAction.INSTANCE).setNodesIds(nodesIds);
         }
@@ -621,21 +606,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public DeleteRepositoryRequestBuilder prepareDeleteRepository(String name) {
             return new DeleteRepositoryRequestBuilder(this, DeleteRepositoryAction.INSTANCE, name);
-        }
-
-        @Override
-        public ActionFuture<VerifyRepositoryResponse> verifyRepository(VerifyRepositoryRequest request) {
-            return execute(VerifyRepositoryAction.INSTANCE, request);
-        }
-
-        @Override
-        public void verifyRepository(VerifyRepositoryRequest request, ActionListener<VerifyRepositoryResponse> listener) {
-            execute(VerifyRepositoryAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public VerifyRepositoryRequestBuilder prepareVerifyRepository(String name) {
-            return new VerifyRepositoryRequestBuilder(this, VerifyRepositoryAction.INSTANCE, name);
         }
 
         @Override
