@@ -218,8 +218,7 @@ public final class XContentTestUtils {
      * possible paths to where a new object or array starts. This can be used in tests that add random
      * xContent values to test parsing code for errors or to check their robustness against new fields.
      *
-     * The path uses dot separated fieldnames and numbers for array indices, similar to what we do in
-     * {@link ObjectPath}.
+     * The path uses dot separated fieldnames and numbers for array indices.
      *
      * The {@link Stack} passed in should initially be empty, it gets pushed to by recursive calls
      *

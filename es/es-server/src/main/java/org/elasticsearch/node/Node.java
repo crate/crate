@@ -113,10 +113,6 @@ import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.indices.store.IndicesStore;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.jvm.JvmInfo;
-import org.elasticsearch.persistent.PersistentTasksClusterService;
-import org.elasticsearch.persistent.PersistentTasksExecutor;
-import org.elasticsearch.persistent.PersistentTasksExecutorRegistry;
-import org.elasticsearch.persistent.PersistentTasksService;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.AnalysisPlugin;
 import org.elasticsearch.plugins.ClusterPlugin;
@@ -126,7 +122,6 @@ import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.MetaDataUpgrader;
 import org.elasticsearch.plugins.NetworkPlugin;
-import org.elasticsearch.plugins.PersistentTaskPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.plugins.RepositoryPlugin;
@@ -507,17 +502,6 @@ public abstract class Node implements Closeable {
                 threadPool, bigArrays, searchModule.getFetchPhase(),
                 responseCollectorService);
 
-            final List<PersistentTasksExecutor<?>> tasksExecutors = pluginsService
-                .filterPlugins(PersistentTaskPlugin.class).stream()
-                .map(p -> p.getPersistentTasksExecutor(clusterService, threadPool, client, settingsModule))
-                .flatMap(List::stream)
-                .collect(toList());
-
-            final PersistentTasksExecutorRegistry registry = new PersistentTasksExecutorRegistry(settings, tasksExecutors);
-            final PersistentTasksClusterService persistentTasksClusterService =
-                new PersistentTasksClusterService(settings, registry, clusterService);
-            final PersistentTasksService persistentTasksService = new PersistentTasksService(settings, clusterService, threadPool, client);
-
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);
                     b.bind(NodeService.class).toInstance(nodeService);
@@ -557,9 +541,6 @@ public abstract class Node implements Closeable {
                     }
                     httpBind.accept(b);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
-                    b.bind(PersistentTasksService.class).toInstance(persistentTasksService);
-                    b.bind(PersistentTasksClusterService.class).toInstance(persistentTasksClusterService);
-                    b.bind(PersistentTasksExecutorRegistry.class).toInstance(registry);
                 }
             );
             injector = modules.createInjector();
