@@ -84,9 +84,11 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         @Override
         public void setNextRow(RelationInfo row) {
-            value = null;
-            if (row instanceof DocTableInfo) {
-                value = row.parameters().get(paramName).toString();
+            Object o = row.parameters().get(paramName);
+            if (o == null) {
+                value = null;
+            } else {
+                value = o.toString();
             }
         }
 
