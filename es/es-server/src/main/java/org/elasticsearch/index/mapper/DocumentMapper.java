@@ -20,16 +20,11 @@
 package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.document.StoredField;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.text.Text;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -37,8 +32,6 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.mapper.MetadataFieldMapper.TypeParser;
-import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.search.internal.SearchContext;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -114,7 +107,6 @@ public class DocumentMapper implements ToXContentFragment {
     private final MapperService mapperService;
 
     private final String type;
-    private final Text typeText;
 
     private final CompressedXContent mappingSource;
 
@@ -126,22 +118,15 @@ public class DocumentMapper implements ToXContentFragment {
 
     private final Map<String, ObjectMapper> objectMappers;
 
-    private final boolean hasNestedObjects;
     private final MetadataFieldMapper[] deleteTombstoneMetadataFieldMappers;
     private final MetadataFieldMapper[] noopTombstoneMetadataFieldMappers;
 
     public DocumentMapper(MapperService mapperService, Mapping mapping) {
         this.mapperService = mapperService;
         this.type = mapping.root().name();
-        this.typeText = new Text(this.type);
         final IndexSettings indexSettings = mapperService.getIndexSettings();
         this.mapping = mapping;
         this.documentParser = new DocumentParser(indexSettings, mapperService.documentMapperParser(), this);
-
-        if (metadataMapper(ParentFieldMapper.class).active()) {
-            // mark the routing field mapper as required
-            metadataMapper(RoutingFieldMapper.class).markAsRequired();
-        }
 
         // collect all the mappers for this type
         List<ObjectMapper> newObjectMappers = new ArrayList<>();
@@ -170,14 +155,7 @@ public class DocumentMapper implements ToXContentFragment {
             }
         }
 
-        boolean hasNestedObjects = false;
         this.objectMappers = Collections.unmodifiableMap(builder);
-        for (ObjectMapper objectMapper : newObjectMappers) {
-            if (objectMapper.nested().isNested()) {
-                hasNestedObjects = true;
-            }
-        }
-        this.hasNestedObjects = hasNestedObjects;
 
         try {
             mappingSource = new CompressedXContent(this, XContentType.JSON, ToXContent.EMPTY_PARAMS);
@@ -203,10 +181,6 @@ public class DocumentMapper implements ToXContentFragment {
         return this.type;
     }
 
-    public Text typeText() {
-        return this.typeText;
-    }
-
     public Map<String, Object> meta() {
         return mapping.meta;
     }
@@ -219,29 +193,9 @@ public class DocumentMapper implements ToXContentFragment {
         return mapping.root;
     }
 
-    public UidFieldMapper uidMapper() {
-        return metadataMapper(UidFieldMapper.class);
-    }
-
     @SuppressWarnings({"unchecked"})
     public <T extends MetadataFieldMapper> T metadataMapper(Class<T> type) {
         return mapping.metadataMapper(type);
-    }
-
-    public IndexFieldMapper indexMapper() {
-        return metadataMapper(IndexFieldMapper.class);
-    }
-
-    public TypeFieldMapper typeMapper() {
-        return metadataMapper(TypeFieldMapper.class);
-    }
-
-    public SourceFieldMapper sourceMapper() {
-        return metadataMapper(SourceFieldMapper.class);
-    }
-
-    public AllFieldMapper allFieldMapper() {
-        return metadataMapper(AllFieldMapper.class);
     }
 
     public IdFieldMapper idFieldMapper() {
@@ -250,22 +204,7 @@ public class DocumentMapper implements ToXContentFragment {
 
     public RoutingFieldMapper routingFieldMapper() {
         return metadataMapper(RoutingFieldMapper.class);
-    }
 
-    public ParentFieldMapper parentFieldMapper() {
-        return metadataMapper(ParentFieldMapper.class);
-    }
-
-    public IndexFieldMapper IndexFieldMapper() {
-        return metadataMapper(IndexFieldMapper.class);
-    }
-
-    public Query typeFilter(QueryShardContext context) {
-        return typeMapper().fieldType().termQuery(type, context);
-    }
-
-    public boolean hasNestedObjects() {
-        return hasNestedObjects;
     }
 
     public DocumentFieldMappers mappers() {
@@ -293,41 +232,6 @@ public class DocumentMapper implements ToXContentFragment {
         final BytesRef byteRef = new BytesRef(reason);
         parsedDoc.rootDoc().add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
         return parsedDoc;
-    }
-
-    /**
-     * Returns the best nested {@link ObjectMapper} instances that is in the scope of the specified nested docId.
-     */
-    public ObjectMapper findNestedObjectMapper(int nestedDocId, SearchContext sc, LeafReaderContext context) throws IOException {
-        ObjectMapper nestedObjectMapper = null;
-        for (ObjectMapper objectMapper : objectMappers().values()) {
-            if (!objectMapper.nested().isNested()) {
-                continue;
-            }
-
-            Query filter = objectMapper.nestedTypeFilter();
-            if (filter == null) {
-                continue;
-            }
-            // We can pass down 'null' as acceptedDocs, because nestedDocId is a doc to be fetched and
-            // therefor is guaranteed to be a live doc.
-            final Weight nestedWeight = filter.createWeight(sc.searcher(), false, 1f);
-            Scorer scorer = nestedWeight.scorer(context);
-            if (scorer == null) {
-                continue;
-            }
-
-            if (scorer.iterator().advance(nestedDocId) == nestedDocId) {
-                if (nestedObjectMapper == null) {
-                    nestedObjectMapper = objectMapper;
-                } else {
-                    if (nestedObjectMapper.fullPath().length() < objectMapper.fullPath().length()) {
-                        nestedObjectMapper = objectMapper;
-                    }
-                }
-            }
-        }
-        return nestedObjectMapper;
     }
 
     public boolean isParent(String type) {

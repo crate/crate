@@ -27,7 +27,6 @@
 package io.crate.expression.udf;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -52,10 +51,9 @@ public class TransportDropUserDefinedFunctionAction
                                                   ClusterService clusterService,
                                                   ThreadPool threadPool,
                                                   UserDefinedFunctionService udfService,
-                                                  ActionFilters actionFilters,
                                                   IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, "internal:crate:sql/udf/drop", transportService, clusterService, threadPool,
-            actionFilters, indexNameExpressionResolver, DropUserDefinedFunctionRequest::new);
+            indexNameExpressionResolver, DropUserDefinedFunctionRequest::new);
         this.udfService = udfService;
     }
 

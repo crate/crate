@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.indices.stats;
 
 import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.node.TransportBroadcastByNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -52,8 +51,8 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
     @Inject
     public TransportIndicesStatsAction(Settings settings, ThreadPool threadPool, ClusterService clusterService,
                                        TransportService transportService, IndicesService indicesService,
-                                       ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, IndicesStatsAction.NAME, threadPool, clusterService, transportService, actionFilters, indexNameExpressionResolver,
+                                        IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, IndicesStatsAction.NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
                 IndicesStatsRequest::new, ThreadPool.Names.MANAGEMENT);
         this.indicesService = indicesService;
     }
@@ -114,13 +113,6 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
             flags.set(CommonStatsFlags.Flag.Indexing);
             flags.types(request.types());
         }
-        if (request.get()) {
-            flags.set(CommonStatsFlags.Flag.Get);
-        }
-        if (request.search()) {
-            flags.set(CommonStatsFlags.Flag.Search);
-            flags.groups(request.groups());
-        }
         if (request.merge()) {
             flags.set(CommonStatsFlags.Flag.Merge);
         }
@@ -150,9 +142,6 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
         }
         if (request.translog()) {
             flags.set(CommonStatsFlags.Flag.Translog);
-        }
-        if (request.suggest()) {
-            flags.set(CommonStatsFlags.Flag.Suggest);
         }
         if (request.requestCache()) {
             flags.set(CommonStatsFlags.Flag.RequestCache);

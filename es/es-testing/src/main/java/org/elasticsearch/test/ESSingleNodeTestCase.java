@@ -24,7 +24,6 @@ package org.elasticsearch.test;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterName;
@@ -51,7 +50,6 @@ import org.elasticsearch.node.MockNode;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.test.discovery.TestZenDiscovery;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.AfterClass;
@@ -232,71 +230,6 @@ public abstract class ESSingleNodeTestCase extends ESTestCase {
      */
     protected <T> T getInstanceFromNode(Class<T> clazz) {
         return NODE.injector().getInstance(clazz);
-    }
-
-    /**
-     * Create a new index on the singleton node with empty index settings.
-     */
-    protected IndexService createIndex(String index) {
-        return createIndex(index, Settings.EMPTY);
-    }
-
-    /**
-     * Create a new index on the singleton node with the provided index settings.
-     */
-    protected IndexService createIndex(String index, Settings settings) {
-        return createIndex(index, settings, null, (XContentBuilder) null);
-    }
-
-    /**
-     * Create a new index on the singleton node with the provided index settings.
-     */
-    protected IndexService createIndex(String index, Settings settings, String type, XContentBuilder mappings) {
-        CreateIndexRequestBuilder createIndexRequestBuilder = client().admin().indices().prepareCreate(index).setSettings(settings);
-        if (type != null && mappings != null) {
-            createIndexRequestBuilder.addMapping(type, mappings);
-        }
-        return createIndex(index, createIndexRequestBuilder);
-    }
-
-    /**
-     * Create a new index on the singleton node with the provided index settings.
-     */
-    protected IndexService createIndex(String index, Settings settings, String type, Object... mappings) {
-        CreateIndexRequestBuilder createIndexRequestBuilder = client().admin().indices().prepareCreate(index).setSettings(settings);
-        if (type != null) {
-            createIndexRequestBuilder.addMapping(type, mappings);
-        }
-        return createIndex(index, createIndexRequestBuilder);
-    }
-
-    protected IndexService createIndex(String index, CreateIndexRequestBuilder createIndexRequestBuilder) {
-        assertAcked(createIndexRequestBuilder.get());
-        // Wait for the index to be allocated so that cluster state updates don't override
-        // changes that would have been done locally
-        ClusterHealthResponse health = client().admin().cluster()
-                .health(Requests.clusterHealthRequest(index).waitForYellowStatus().waitForEvents(Priority.LANGUID)
-                        .waitForNoRelocatingShards(true)).actionGet();
-        assertThat(health.getStatus(), lessThanOrEqualTo(ClusterHealthStatus.YELLOW));
-        assertThat("Cluster must be a single node cluster", health.getNumberOfDataNodes(), equalTo(1));
-        IndicesService instanceFromNode = getInstanceFromNode(IndicesService.class);
-        return instanceFromNode.indexServiceSafe(resolveIndex(index));
-    }
-
-    public Index resolveIndex(String index) {
-        GetIndexResponse getIndexResponse = client().admin().indices().prepareGetIndex().setIndices(index).get();
-        assertTrue("index " + index + " not found", getIndexResponse.getSettings().containsKey(index));
-        String uuid = getIndexResponse.getSettings().get(index).get(IndexMetaData.SETTING_INDEX_UUID);
-        return new Index(index, uuid);
-    }
-
-    /**
-     * Create a new search context.
-     */
-    protected SearchContext createSearchContext(IndexService indexService) {
-        BigArrays bigArrays = indexService.getBigArrays();
-        ThreadPool threadPool = indexService.getThreadPool();
-        return new TestSearchContext(threadPool, bigArrays, indexService);
     }
 
     /**

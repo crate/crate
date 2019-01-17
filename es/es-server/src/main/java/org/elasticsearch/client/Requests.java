@@ -20,30 +20,15 @@
 package org.elasticsearch.client;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRequest;
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.common.xcontent.XContentType;
 
 /**
@@ -60,40 +45,6 @@ public class Requests {
      * The default content type to use to generate source documents when indexing.
      */
     public static XContentType INDEX_CONTENT_TYPE = XContentType.JSON;
-
-    /**
-     * Creates a search request against one or more indices. Note, the search source must be set either using the
-     * actual JSON search source, or the {@link org.elasticsearch.search.builder.SearchSourceBuilder}.
-     *
-     * @param indices The indices to search against. Use {@code null} or {@code _all} to execute against all indices
-     * @return The search request
-     * @see org.elasticsearch.client.Client#search(org.elasticsearch.action.search.SearchRequest)
-     */
-    public static SearchRequest searchRequest(String... indices) {
-        return new SearchRequest(indices);
-    }
-
-    /**
-     * Creates a search scroll request allowing to continue searching a previous search request.
-     *
-     * @param scrollId The scroll id representing the scrollable search
-     * @return The search scroll request
-     * @see org.elasticsearch.client.Client#searchScroll(org.elasticsearch.action.search.SearchScrollRequest)
-     */
-    public static SearchScrollRequest searchScrollRequest(String scrollId) {
-        return new SearchScrollRequest(scrollId);
-    }
-
-    /**
-     * Creates an indices exists request.
-     *
-     * @param indices The indices to check if they exists or not.
-     * @return The indices exists request
-     * @see org.elasticsearch.client.IndicesAdminClient#exists(org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest)
-     */
-    public static IndicesExistsRequest indicesExistsRequest(String... indices) {
-        return new IndicesExistsRequest(indices);
-    }
 
     /**
      * Creates a create index request.
@@ -184,16 +135,6 @@ public class Requests {
     }
 
     /**
-     * A request to update indices settings.
-     *
-     * @param indices The indices to update the settings for. Use {@code null} or {@code _all} to executed against all indices.
-     * @return The request
-     */
-    public static UpdateSettingsRequest updateSettingsRequest(String... indices) {
-        return new UpdateSettingsRequest(indices);
-    }
-
-    /**
      * Creates a cluster state request.
      *
      * @return The cluster state request.
@@ -201,14 +142,6 @@ public class Requests {
      */
     public static ClusterStateRequest clusterStateRequest() {
         return new ClusterStateRequest();
-    }
-
-    public static ClusterRerouteRequest clusterRerouteRequest() {
-        return new ClusterRerouteRequest();
-    }
-
-    public static ClusterUpdateSettingsRequest clusterUpdateSettingsRequest() {
-        return new ClusterUpdateSettingsRequest();
     }
 
     /**
@@ -222,103 +155,5 @@ public class Requests {
     public static ClusterHealthRequest clusterHealthRequest(String... indices) {
         return new ClusterHealthRequest(indices);
     }
-
-    /**
-     * List all shards for the give search
-     */
-    public static ClusterSearchShardsRequest clusterSearchShardsRequest() {
-        return new ClusterSearchShardsRequest();
-    }
-
-    /**
-     * List all shards for the give search
-     */
-    public static ClusterSearchShardsRequest clusterSearchShardsRequest(String... indices) {
-        return new ClusterSearchShardsRequest(indices);
-    }
-
-    /**
-     * Registers snapshot repository
-     *
-     * @param name repository name
-     * @return repository registration request
-     */
-    public static PutRepositoryRequest putRepositoryRequest(String name) {
-        return new PutRepositoryRequest(name);
-    }
-
-    /**
-     * Gets snapshot repository
-     *
-     * @param repositories names of repositories
-     * @return get repository request
-     */
-    public static GetRepositoriesRequest getRepositoryRequest(String... repositories) {
-        return new GetRepositoriesRequest(repositories);
-    }
-
-    /**
-     * Deletes registration for snapshot repository
-     *
-     * @param name repository name
-     * @return delete repository request
-     */
-    public static DeleteRepositoryRequest deleteRepositoryRequest(String name) {
-        return new DeleteRepositoryRequest(name);
-    }
-
-
-    /**
-     * Creates new snapshot
-     *
-     * @param repository repository name
-     * @param snapshot   snapshot name
-     * @return create snapshot request
-     */
-    public static CreateSnapshotRequest createSnapshotRequest(String repository, String snapshot) {
-        return new CreateSnapshotRequest(repository, snapshot);
-    }
-
-    /**
-     * Gets snapshots from repository
-     *
-     * @param repository repository name
-     * @return get snapshot  request
-     */
-    public static GetSnapshotsRequest getSnapshotsRequest(String repository) {
-        return new GetSnapshotsRequest(repository);
-    }
-
-    /**
-     * Restores new snapshot
-     *
-     * @param repository repository name
-     * @param snapshot   snapshot name
-     * @return snapshot creation request
-     */
-    public static RestoreSnapshotRequest restoreSnapshotRequest(String repository, String snapshot) {
-        return new RestoreSnapshotRequest(repository, snapshot);
-    }
-
-    /**
-     * Deletes a snapshot
-     *
-     * @param snapshot   snapshot name
-     * @param repository repository name
-     * @return delete snapshot request
-     */
-    public static DeleteSnapshotRequest deleteSnapshotRequest(String repository, String snapshot) {
-        return new DeleteSnapshotRequest(repository, snapshot);
-    }
-
-    /**
-     *  Get status of snapshots
-     *
-     * @param repository repository name
-     * @return snapshot status request
-     */
-    public static SnapshotsStatusRequest snapshotsStatusRequest(String repository) {
-        return new SnapshotsStatusRequest(repository);
-    }
-
 }
+

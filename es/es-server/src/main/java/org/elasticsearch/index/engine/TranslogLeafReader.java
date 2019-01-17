@@ -36,9 +36,7 @@ import org.apache.lucene.index.Terms;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
-import org.elasticsearch.index.fielddata.AbstractSortedDocValues;
 import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.ParentFieldMapper;
 import org.elasticsearch.index.mapper.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
@@ -95,44 +93,6 @@ final class TranslogLeafReader extends LeafReader {
 
     @Override
     public SortedDocValues getSortedDocValues(String field) {
-        // TODO this can be removed in 7.0 and upwards we don't support the parent field anymore
-        if (field.startsWith(ParentFieldMapper.NAME + "#") && operation.parent() != null) {
-            return new AbstractSortedDocValues() {
-                @Override
-                public int docID() {
-                    return 0;
-                }
-
-                private final BytesRef term = new BytesRef(operation.parent());
-                private int ord;
-                @Override
-                public boolean advanceExact(int docID) {
-                    if (docID != 0) {
-                        throw new IndexOutOfBoundsException("do such doc ID: " + docID);
-                    }
-                    ord = 0;
-                    return true;
-                }
-
-                @Override
-                public int ordValue() {
-                    return ord;
-                }
-
-                @Override
-                public BytesRef lookupOrd(int ord) {
-                    if (ord == 0) {
-                        return term;
-                    }
-                    return null;
-                }
-
-                @Override
-                public int getValueCount() {
-                    return 1;
-                }
-            };
-        }
         if (operation.parent() == null) {
             return null;
         }

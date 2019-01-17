@@ -22,7 +22,6 @@ package org.elasticsearch.action.admin.indices.upgrade.post;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.PrimaryMissingActionException;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.node.TransportBroadcastByNodeAction;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -64,9 +63,9 @@ public class TransportUpgradeAction extends TransportBroadcastByNodeAction<Upgra
 
     @Inject
     public TransportUpgradeAction(Settings settings, ThreadPool threadPool, ClusterService clusterService,
-                                  TransportService transportService, IndicesService indicesService, ActionFilters actionFilters,
+                                  TransportService transportService, IndicesService indicesService,
                                   IndexNameExpressionResolver indexNameExpressionResolver, TransportUpgradeSettingsAction upgradeSettingsAction) {
-        super(settings, UpgradeAction.NAME, threadPool, clusterService, transportService, actionFilters, indexNameExpressionResolver, UpgradeRequest::new, ThreadPool.Names.FORCE_MERGE);
+        super(settings, UpgradeAction.NAME, threadPool, clusterService, transportService, indexNameExpressionResolver, UpgradeRequest::new, ThreadPool.Names.FORCE_MERGE);
         this.indicesService = indicesService;
         this.upgradeSettingsAction = upgradeSettingsAction;
     }

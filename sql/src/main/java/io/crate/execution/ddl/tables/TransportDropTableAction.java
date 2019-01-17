@@ -25,7 +25,6 @@ package io.crate.execution.ddl.tables;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.DropTableClusterStateTaskExecutor;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -54,11 +53,10 @@ public class TransportDropTableAction extends AbstractDDLTransportAction<DropTab
                                     TransportService transportService,
                                     ClusterService clusterService,
                                     ThreadPool threadPool,
-                                    ActionFilters actionFilters,
                                     IndexNameExpressionResolver indexNameExpressionResolver,
                                     MetaDataDeleteIndexService deleteIndexService,
                                     DDLClusterStateService ddlClusterStateService) {
-        super(settings, ACTION_NAME, transportService, clusterService, threadPool, actionFilters,
+        super(settings, ACTION_NAME, transportService, clusterService, threadPool,
             indexNameExpressionResolver, DropTableRequest::new, DropTableResponse::new, DropTableResponse::new, "drop-table");
         executor = new DropTableClusterStateTaskExecutor(indexNameExpressionResolver, deleteIndexService,
             ddlClusterStateService);

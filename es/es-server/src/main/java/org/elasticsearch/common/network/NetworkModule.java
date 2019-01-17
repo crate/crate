@@ -19,7 +19,6 @@
 
 package org.elasticsearch.common.network;
 
-import org.elasticsearch.action.support.replication.ReplicationTask;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateEmptyPrimaryAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimaryAllocationCommand;
@@ -40,8 +39,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.NetworkPlugin;
-import org.elasticsearch.tasks.RawTaskStatus;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportInterceptor;
@@ -76,7 +73,6 @@ public final class NetworkModule {
     public static final Setting<String> TRANSPORT_TYPE_SETTING = Setting.simpleString(TRANSPORT_TYPE_KEY, Property.NodeScope);
 
     private final Settings settings;
-    private final boolean transportClient;
 
     private static final List<NamedWriteableRegistry.Entry> namedWriteables = new ArrayList<>();
     private static final List<NamedXContentRegistry.Entry> namedXContents = new ArrayList<>();
@@ -92,10 +88,6 @@ public final class NetworkModule {
             AllocateEmptyPrimaryAllocationCommand.COMMAND_NAME_FIELD);
         registerAllocationCommand(AllocateStalePrimaryAllocationCommand::new, AllocateStalePrimaryAllocationCommand::fromXContent,
             AllocateStalePrimaryAllocationCommand.COMMAND_NAME_FIELD);
-        namedWriteables.add(
-            new NamedWriteableRegistry.Entry(Task.Status.class, ReplicationTask.Status.NAME, ReplicationTask.Status::new));
-        namedWriteables.add(
-            new NamedWriteableRegistry.Entry(Task.Status.class, RawTaskStatus.NAME, RawTaskStatus::new));
     }
 
     private final Map<String, Supplier<Transport>> transportFactories = new HashMap<>();
@@ -105,9 +97,8 @@ public final class NetworkModule {
     /**
      * Creates a network module that custom networking classes can be plugged into.
      * @param settings The settings for the node
-     * @param transportClient True if only transport classes should be allowed to be registered, false otherwise.
      */
-    public NetworkModule(Settings settings, boolean transportClient, List<NetworkPlugin> plugins, ThreadPool threadPool,
+    public NetworkModule(Settings settings, List<NetworkPlugin> plugins, ThreadPool threadPool,
                          BigArrays bigArrays,
                          PageCacheRecycler pageCacheRecycler,
                          CircuitBreakerService circuitBreakerService,
@@ -115,9 +106,8 @@ public final class NetworkModule {
                          NamedXContentRegistry xContentRegistry,
                          NetworkService networkService, HttpServerTransport.Dispatcher dispatcher) {
         this.settings = settings;
-        this.transportClient = transportClient;
         for (NetworkPlugin plugin : plugins) {
-            if (transportClient == false && HTTP_ENABLED.get(settings)) {
+            if (HTTP_ENABLED.get(settings)) {
                 Map<String, Supplier<HttpServerTransport>> httpTransportFactory = plugin.getHttpTransports(settings, threadPool, bigArrays,
                     circuitBreakerService, namedWriteableRegistry, xContentRegistry, networkService, dispatcher);
                 for (Map.Entry<String, Supplier<HttpServerTransport>> entry : httpTransportFactory.entrySet()) {
@@ -137,10 +127,6 @@ public final class NetworkModule {
         }
     }
 
-    public boolean isTransportClient() {
-        return transportClient;
-    }
-
     /** Adds a transport implementation that can be selected by setting {@link #TRANSPORT_TYPE_KEY}. */
     private void registerTransport(String key, Supplier<Transport> factory) {
         if (transportFactories.putIfAbsent(key, factory) != null) {
@@ -151,9 +137,6 @@ public final class NetworkModule {
     /** Adds an http transport implementation that can be selected by setting {@link #HTTP_TYPE_KEY}. */
     // TODO: we need another name than "http transport"....so confusing with transportClient...
     private void registerHttpTransport(String key, Supplier<HttpServerTransport> factory) {
-        if (transportClient) {
-            throw new IllegalArgumentException("Cannot register http transport " + key + " for transport client");
-        }
         if (transportHttpFactories.putIfAbsent(key, factory) != null) {
             throw new IllegalArgumentException("transport for name: " + key + " is already registered");
         }
@@ -198,7 +181,7 @@ public final class NetworkModule {
     }
 
     public boolean isHttpEnabled() {
-        return transportClient == false && HTTP_ENABLED.get(settings);
+        return HTTP_ENABLED.get(settings);
     }
 
     public Supplier<Transport> getTransportSupplier() {

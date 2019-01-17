@@ -23,7 +23,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.NoSuchNodeException;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -62,12 +61,12 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
     final String transportNodeAction;
 
     protected TransportNodesAction(Settings settings, String actionName, ThreadPool threadPool,
-                                   ClusterService clusterService, TransportService transportService, ActionFilters actionFilters,
+                                   ClusterService clusterService, TransportService transportService,
                                    IndexNameExpressionResolver indexNameExpressionResolver,
                                    Supplier<NodesRequest> request, Supplier<NodeRequest> nodeRequest,
                                    String nodeExecutor,
                                    Class<NodeResponse> nodeResponseClass) {
-        super(settings, actionName, threadPool, transportService, actionFilters, indexNameExpressionResolver, request);
+        super(settings, actionName, threadPool, transportService, indexNameExpressionResolver, request);
         this.clusterService = Objects.requireNonNull(clusterService);
         this.transportService = Objects.requireNonNull(transportService);
         this.nodeResponseClass = Objects.requireNonNull(nodeResponseClass);

@@ -22,16 +22,13 @@ package org.elasticsearch.threadpool;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent.Params;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-public class ThreadPoolInfo implements Writeable, Iterable<ThreadPool.Info>, ToXContentFragment {
+public class ThreadPoolInfo implements Writeable, Iterable<ThreadPool.Info> {
 
     private final List<ThreadPool.Info> infos;
 
@@ -51,19 +48,5 @@ public class ThreadPoolInfo implements Writeable, Iterable<ThreadPool.Info>, ToX
     @Override
     public Iterator<ThreadPool.Info> iterator() {
         return infos.iterator();
-    }
-
-    static final class Fields {
-        static final String THREAD_POOL = "thread_pool";
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Fields.THREAD_POOL);
-        for (ThreadPool.Info info : infos) {
-            info.toXContent(builder, params);
-        }
-        builder.endObject();
-        return builder;
     }
 }

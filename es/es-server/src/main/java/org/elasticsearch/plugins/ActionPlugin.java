@@ -22,7 +22,6 @@ package org.elasticsearch.plugins;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.GenericAction;
-import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -72,12 +71,6 @@ public interface ActionPlugin {
         return getActions().stream().map(a -> a.action).collect(Collectors.toList());
     }
 
-    /**
-     * Action filters added by this plugin.
-     */
-    default List<ActionFilter> getActionFilters() {
-        return Collections.emptyList();
-    }
     /**
      * Rest handlers added by this plugin.
      */

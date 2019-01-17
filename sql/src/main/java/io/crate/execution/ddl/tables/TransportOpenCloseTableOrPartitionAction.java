@@ -26,7 +26,6 @@ import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.cluster.CloseTableClusterStateTaskExecutor;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.OpenTableClusterStateTaskExecutor;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -57,13 +56,12 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
                                                     TransportService transportService,
                                                     ClusterService clusterService,
                                                     ThreadPool threadPool,
-                                                    ActionFilters actionFilters,
                                                     IndexNameExpressionResolver indexNameExpressionResolver,
                                                     AllocationService allocationService,
                                                     DDLClusterStateService ddlClusterStateService,
                                                     MetaDataIndexUpgradeService metaDataIndexUpgradeService,
                                                     IndicesService indexServices) {
-        super(settings, ACTION_NAME, transportService, clusterService, threadPool, actionFilters,
+        super(settings, ACTION_NAME, transportService, clusterService, threadPool,
             indexNameExpressionResolver, OpenCloseTableOrPartitionRequest::new,
             OpenCloseTableOrPartitionResponse::new, OpenCloseTableOrPartitionResponse::new,
             "open-table-or-partition");

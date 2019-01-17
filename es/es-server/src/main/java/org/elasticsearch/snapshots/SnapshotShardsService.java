@@ -27,7 +27,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -122,7 +121,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
     @Inject
     public SnapshotShardsService(Settings settings, ClusterService clusterService, SnapshotsService snapshotsService, ThreadPool threadPool,
                                  TransportService transportService, IndicesService indicesService,
-                                 ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver) {
+                                 IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings);
         this.indicesService = indicesService;
         this.snapshotsService = snapshotsService;
@@ -136,7 +135,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
 
         // The constructor of UpdateSnapshotStatusAction will register itself to the TransportService.
         this.updateSnapshotStatusHandler = new UpdateSnapshotStatusAction(settings, UPDATE_SNAPSHOT_STATUS_ACTION_NAME,
-            transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver);
+            transportService, clusterService, threadPool, indexNameExpressionResolver);
 
         if (DiscoveryNode.isMasterNode(settings)) {
             // This needs to run only on nodes that can become masters
@@ -652,8 +651,8 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
 
     class UpdateSnapshotStatusAction extends TransportMasterNodeAction<UpdateIndexShardSnapshotStatusRequest, UpdateIndexShardSnapshotStatusResponse> {
         UpdateSnapshotStatusAction(Settings settings, String actionName, TransportService transportService, ClusterService clusterService,
-                                   ThreadPool threadPool, ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver) {
-            super(settings, actionName, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, UpdateIndexShardSnapshotStatusRequest::new);
+                                   ThreadPool threadPool, IndexNameExpressionResolver indexNameExpressionResolver) {
+            super(settings, actionName, transportService, clusterService, threadPool, indexNameExpressionResolver, UpdateIndexShardSnapshotStatusRequest::new);
         }
 
         @Override

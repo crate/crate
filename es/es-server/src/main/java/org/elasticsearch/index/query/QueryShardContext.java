@@ -22,46 +22,30 @@ package org.elasticsearch.index.query;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.join.BitSetProducer;
-import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.CheckedFunction;
-import org.elasticsearch.common.ParsingException;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.bitset.BitsetFilterCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.ContentPath;
-import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.mapper.TextFieldMapper;
-import org.elasticsearch.index.query.support.NestedScope;
-import org.elasticsearch.search.lookup.SearchLookup;
-import org.elasticsearch.transport.RemoteClusterAware;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.LongSupplier;
-
-import static java.util.Collections.unmodifiableMap;
 
 /**
  * Context object used to create lucene queries on the shard level.
@@ -76,7 +60,6 @@ public class QueryShardContext extends QueryRewriteContext {
     private final IndexReader reader;
     private final String clusterAlias;
     private String[] types = Strings.EMPTY_ARRAY;
-    private boolean cachable = true;
     private final SetOnce<Boolean> frozen = new SetOnce<>();
     private final Index fullyQualifiedIndex;
 
@@ -91,41 +74,34 @@ public class QueryShardContext extends QueryRewriteContext {
     private final Map<String, Query> namedQueries = new HashMap<>();
     private boolean allowUnmappedFields;
     private boolean mapUnmappedFieldAsString;
-    private NestedScope nestedScope;
-    private boolean isFilter;
 
-    public QueryShardContext(int shardId, IndexSettings indexSettings, BitsetFilterCache bitsetFilterCache,
-                             BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataLookup, MapperService mapperService,
+    public QueryShardContext(int shardId,
+                             IndexSettings indexSettings,
+                             BitsetFilterCache bitsetFilterCache,
+                             BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataLookup,
+                             MapperService mapperService,
                              NamedXContentRegistry xContentRegistry,
-                             NamedWriteableRegistry namedWriteableRegistry, Client client, IndexReader reader, LongSupplier nowInMillis,
+                             NamedWriteableRegistry namedWriteableRegistry,
+                             IndexReader reader,
+                             LongSupplier nowInMillis,
                              String clusterAlias) {
-        super(xContentRegistry, namedWriteableRegistry,client, nowInMillis);
+        super(xContentRegistry, namedWriteableRegistry, nowInMillis);
         this.shardId = shardId;
         this.mapperService = mapperService;
         this.bitsetFilterCache = bitsetFilterCache;
         this.indexFieldDataService = indexFieldDataLookup;
         this.allowUnmappedFields = indexSettings.isDefaultAllowUnmappedFields();
-        this.nestedScope = new NestedScope();
         this.indexSettings = indexSettings;
         this.reader = reader;
         this.clusterAlias = clusterAlias;
-        this.fullyQualifiedIndex = new Index(RemoteClusterAware.buildRemoteIndexName(clusterAlias, indexSettings.getIndex().getName()),
-            indexSettings.getIndex().getUUID());
+        this.fullyQualifiedIndex = indexSettings.getIndex();
     }
 
     public QueryShardContext(QueryShardContext source) {
         this(source.shardId, source.indexSettings, source.bitsetFilterCache, source.indexFieldDataService, source.mapperService,
                 source.getXContentRegistry(), source.getWriteableRegistry(),
-                source.client, source.reader, source.nowInMillis, source.clusterAlias);
+                source.reader, source.nowInMillis, source.clusterAlias);
         this.types = source.getTypes();
-    }
-
-    private void reset() {
-        allowUnmappedFields = indexSettings.isDefaultAllowUnmappedFields();
-        this.lookup = null;
-        this.namedQueries.clear();
-        this.nestedScope = new NestedScope();
-        this.isFilter = false;
     }
 
     public IndexAnalyzers getIndexAnalyzers() {
@@ -136,22 +112,6 @@ public class QueryShardContext extends QueryRewriteContext {
         return indexSettings.getDefaultFields();
     }
 
-    public boolean queryStringLenient() {
-        return indexSettings.isQueryStringLenient();
-    }
-
-    public boolean queryStringAnalyzeWildcard() {
-        return indexSettings.isQueryStringAnalyzeWildcard();
-    }
-
-    public boolean queryStringAllowLeadingWildcard() {
-        return indexSettings.isQueryStringAllowLeadingWildcard();
-    }
-
-    public BitSetProducer bitsetFilter(Query filter) {
-        return bitsetFilterCache.getBitSetProducer(filter);
-    }
-
     public <IFD extends IndexFieldData<?>> IFD getForField(MappedFieldType fieldType) {
         return (IFD) indexFieldDataService.apply(fieldType, fullyQualifiedIndex.getName());
     }
@@ -160,27 +120,6 @@ public class QueryShardContext extends QueryRewriteContext {
         if (query != null) {
             namedQueries.put(name, query);
         }
-    }
-
-    public Map<String, Query> copyNamedQueries() {
-        // This might be a good use case for CopyOnWriteHashMap
-        return unmodifiableMap(new HashMap<>(namedQueries));
-    }
-
-    /**
-     * Return whether we are currently parsing a filter or a query.
-     */
-    public boolean isFilter() {
-        return isFilter;
-    }
-
-    /**
-     * Public for testing only!
-     *
-     * Sets whether we are currently parsing a filter or a query
-     */
-    public void setIsFilter(boolean isFilter) {
-        this.isFilter = isFilter;
     }
 
     /**
@@ -197,14 +136,6 @@ public class QueryShardContext extends QueryRewriteContext {
 
     public ObjectMapper getObjectMapper(String name) {
         return mapperService.getObjectMapper(name);
-    }
-
-    /**
-     * Returns s {@link DocumentMapper} instance for the given type.
-     * Delegates to {@link MapperService#documentMapper(String)}
-     */
-    public DocumentMapper documentMapper(String type) {
-        return mapperService.documentMapper(type);
     }
 
     /**
@@ -227,14 +158,6 @@ public class QueryShardContext extends QueryRewriteContext {
             return fieldType.searchQuoteAnalyzer();
         }
         return getMapperService().searchQuoteAnalyzer();
-    }
-
-    public void setAllowUnmappedFields(boolean allowUnmappedFields) {
-        this.allowUnmappedFields = allowUnmappedFields;
-    }
-
-    public void setMapUnmappedFieldAsString(boolean mapUnmappedFieldAsString) {
-        this.mapUnmappedFieldAsString = mapUnmappedFieldAsString;
     }
 
     MappedFieldType failIfFieldMappingNotFound(String name, MappedFieldType fieldMapping) {
@@ -262,56 +185,8 @@ public class QueryShardContext extends QueryRewriteContext {
         return Arrays.asList(types);
     }
 
-    private SearchLookup lookup = null;
-
-    public SearchLookup lookup() {
-        if (lookup == null) {
-            lookup = new SearchLookup(getMapperService(),
-                mappedFieldType -> indexFieldDataService.apply(mappedFieldType, fullyQualifiedIndex.getName()), types);
-        }
-        return lookup;
-    }
-
-    public NestedScope nestedScope() {
-        return nestedScope;
-    }
-
     public Version indexVersionCreated() {
         return indexSettings.getIndexVersionCreated();
-    }
-
-    public ParsedQuery toFilter(QueryBuilder queryBuilder) {
-        return toQuery(queryBuilder, q -> {
-            Query filter = q.toFilter(this);
-            if (filter == null) {
-                return null;
-            }
-            return filter;
-        });
-    }
-
-    public ParsedQuery toQuery(QueryBuilder queryBuilder) {
-        return toQuery(queryBuilder, q -> {
-            Query query = q.toQuery(this);
-            if (query == null) {
-                query = Queries.newMatchNoDocsQuery("No query left after rewrite.");
-            }
-            return query;
-        });
-    }
-
-    private ParsedQuery toQuery(QueryBuilder queryBuilder, CheckedFunction<QueryBuilder, Query, IOException> filterOrQuery) {
-        reset();
-        try {
-            QueryBuilder rewriteQuery = Rewriteable.rewrite(queryBuilder, this, true);
-            return new ParsedQuery(filterOrQuery.apply(rewriteQuery), copyNamedQueries());
-        } catch(QueryShardException | ParsingException e ) {
-            throw e;
-        } catch(Exception e) {
-            throw new QueryShardException(this, "failed to create query: {}", e, queryBuilder);
-        } finally {
-            reset();
-        }
     }
 
     public Index index() {
@@ -319,48 +194,17 @@ public class QueryShardContext extends QueryRewriteContext {
     }
 
     /**
-     * if this method is called the query context will throw exception if methods are accessed
-     * that could yield different results across executions like {@link #getClient()}
-     */
-    public final void freezeContext() {
-        this.frozen.set(Boolean.TRUE);
-    }
-
-    /**
-     * This method fails if {@link #freezeContext()} is called before on this
-     * context. This is used to <i>seal</i>.
-     *
      * This methods and all methods that call it should be final to ensure that
      * setting the request as not cacheable and the freezing behaviour of this
      * class cannot be bypassed. This is important so we can trust when this
      * class says a request can be cached.
      */
     protected final void failIfFrozen() {
-        this.cachable = false;
         if (frozen.get() == Boolean.TRUE) {
             throw new IllegalArgumentException("features that prevent cachability are disabled on this context");
         } else {
             assert frozen.get() == null : frozen.get();
         }
-    }
-
-    @Override
-    public void registerAsyncAction(BiConsumer<Client, ActionListener<?>> asyncAction) {
-        failIfFrozen();
-        super.registerAsyncAction(asyncAction);
-    }
-
-    @Override
-    public void executeAsyncActions(ActionListener listener) {
-        failIfFrozen();
-        super.executeAsyncActions(listener);
-    }
-
-    /**
-     * Returns <code>true</code> iff the result of the processed search request is cachable. Otherwise <code>false</code>
-     */
-    public final boolean isCachable() {
-        return cachable;
     }
 
     /**
@@ -374,20 +218,6 @@ public class QueryShardContext extends QueryRewriteContext {
     public final long nowInMillis() {
         failIfFrozen();
         return super.nowInMillis();
-    }
-
-    public Client getClient() {
-        failIfFrozen(); // we somebody uses a terms filter with lookup for instance can't be cached...
-        return client;
-    }
-
-    public QueryBuilder parseInnerQueryBuilder(XContentParser parser) throws IOException {
-        return AbstractQueryBuilder.parseInnerQueryBuilder(parser);
-    }
-
-    @Override
-    public final QueryShardContext convertToShardContext() {
-        return this;
     }
 
     /**

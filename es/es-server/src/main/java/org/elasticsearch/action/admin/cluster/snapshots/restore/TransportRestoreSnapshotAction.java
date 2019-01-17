@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -51,9 +50,9 @@ public class TransportRestoreSnapshotAction extends TransportMasterNodeAction<Re
 
     @Inject
     public TransportRestoreSnapshotAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                          ThreadPool threadPool, RestoreService restoreService, ActionFilters actionFilters,
+                                          ThreadPool threadPool, RestoreService restoreService,
                                           IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, RestoreSnapshotAction.NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, RestoreSnapshotRequest::new);
+        super(settings, RestoreSnapshotAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, RestoreSnapshotRequest::new);
         this.restoreService = restoreService;
     }
 

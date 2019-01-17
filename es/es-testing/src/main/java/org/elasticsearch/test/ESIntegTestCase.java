@@ -27,7 +27,6 @@ import com.carrotsearch.randomizedtesting.annotations.TestGroup;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import org.apache.http.HttpHost;
-import org.apache.lucene.search.Sort;
 import org.apache.lucene.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
@@ -38,14 +37,10 @@ import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.action.admin.indices.flush.FlushResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
-import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
-import org.elasticsearch.action.search.ClearScrollResponse;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -62,7 +57,6 @@ import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexGraveyard;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -75,7 +69,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkAddress;
@@ -90,9 +83,6 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.discovery.zen.ElectMasterService;
@@ -100,31 +90,21 @@ import org.elasticsearch.discovery.zen.ZenDiscovery;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.TestEnvironment;
-import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexModule;
-import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergePolicyConfig;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.MockEngineFactoryPlugin;
 import org.elasticsearch.index.codec.CodecService;
-import org.elasticsearch.index.engine.Segment;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.MockFieldFilterPlugin;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.IndicesRequestCache;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.store.IndicesStore;
 import org.elasticsearch.node.NodeMocksPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.search.MockSearchService;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchService;
-import org.elasticsearch.test.client.RandomizingClient;
 import org.elasticsearch.test.discovery.TestZenDiscovery;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
@@ -187,7 +167,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsEqual.equalTo;
 
@@ -628,19 +607,11 @@ public abstract class ESIntegTestCase extends ESTestCase {
         if (node != null) {
             return internalCluster().client(node);
         }
-        Client client = cluster().client();
-        if (frequently()) {
-            client = new RandomizingClient(client, random());
-        }
-        return client;
+        return cluster().client();
     }
 
     public static Client dataNodeClient() {
-        Client client = internalCluster().dataNodeClient();
-        if (frequently()) {
-            client = new RandomizingClient(client, random());
-        }
-        return client;
+        return internalCluster().dataNodeClient();
     }
 
     public static Iterable<Client> clients() {
@@ -813,21 +784,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
             }
         });
         assertNoTimeout(client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).get());
-    }
-
-    /** Ensures the result counts are as expected, and logs the results if different */
-    public void assertResultsAndLogOnFailure(long expectedResults, SearchResponse searchResponse) {
-        if (searchResponse.getHits().getTotalHits() != expectedResults) {
-            StringBuilder sb = new StringBuilder("search result contains [");
-            sb.append(searchResponse.getHits().getTotalHits()).append("] results. expected [").append(expectedResults).append("]");
-            String failMsg = sb.toString();
-            for (SearchHit hit : searchResponse.getHits().getHits()) {
-                sb.append("\n-> _index: [").append(hit.getIndex()).append("] type [").append(hit.getType())
-                    .append("] id [").append(hit.getId()).append("]");
-            }
-            logger.warn("{}", sb);
-            fail(failMsg);
-        }
     }
 
     /**
@@ -1146,14 +1102,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     /**
-     * Returns <code>true</code> iff the given index exists otherwise <code>false</code>
-     */
-    protected boolean indexExists(String index) {
-        IndicesExistsResponse actionGet = client().admin().indices().prepareExists(index).execute().actionGet();
-        return actionGet.isExists();
-    }
-
-    /**
      * Syntactic sugar for enabling allocation for <code>indices</code>
      */
     protected final void enableAllocation(String... indices) {
@@ -1354,15 +1302,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
     }
 
-    /**
-     * Clears the given scroll Ids
-     */
-    public void clearScroll(String... scrollIds) {
-        ClearScrollResponse clearResponse = client().prepareClearScroll()
-            .setScrollIds(Arrays.asList(scrollIds)).get();
-        assertThat(clearResponse.isSucceeded(), equalTo(true));
-    }
-
     private static <A extends Annotation> A getAnnotation(Class<?> clazz, Class<A> annotationClass) {
         if (clazz == Object.class || clazz == ESIntegTestCase.class) {
             return null;
@@ -1437,8 +1376,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
             .put(IndicesQueryCache.INDICES_QUERIES_CACHE_ALL_SEGMENTS_SETTING.getKey(), nodeOrdinal % 2 == 0)
             // wait short time for other active shards before actually deleting, default 30s not needed in tests
             .put(IndicesStore.INDICES_STORE_DELETE_SHARD_TIMEOUT.getKey(), new TimeValue(1, TimeUnit.SECONDS))
-            // randomly enable low-level search cancellation to make sure it does not alter results
-            .put(SearchService.LOW_LEVEL_CANCELLATION_SETTING.getKey(), randomBoolean())
             .putList(DISCOVERY_ZEN_PING_UNICAST_HOSTS_SETTING.getKey()) // empty list disables a port scan for other nodes
             .putList(DISCOVERY_HOSTS_PROVIDER_SETTING.getKey(), "file");
         return builder.build();
@@ -1602,9 +1539,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
                 mocks.add(MockEngineFactoryPlugin.class);
             }
             if (randomBoolean()) {
-                mocks.add(MockSearchService.TestPlugin.class);
-            }
-            if (randomBoolean()) {
                 mocks.add(MockFieldFilterPlugin.class);
             }
         }
@@ -1762,7 +1696,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         // Deleting indices is going to clear search contexts implicitly so we
         // need to check that there are no more in-flight search contexts before
         // we remove indices
-        super.ensureAllSearchContextsReleased();
         if (runTestScopeLifecycle()) {
             printTestMessage("cleaning up after");
             afterInternal(false);
@@ -1813,14 +1746,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         } else {
             INSTANCE = null;
         }
-    }
-
-    /**
-     * Compute a routing key that will route documents to the <code>shard</code>-th shard
-     * of the provided index.
-     */
-    protected String routingKeyForShard(String index, int shard) {
-        return internalCluster().routingKeyForShard(resolveIndex(index), shard, random());
     }
 
     @Override
@@ -1901,13 +1826,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
     @Inherited
     @Target(ElementType.TYPE)
     public @interface SuiteScopeTestCase {
-    }
-
-    public static Index resolveIndex(String index) {
-        GetIndexResponse getIndexResponse = client().admin().indices().prepareGetIndex().setIndices(index).get();
-        assertTrue("index " + index + " not found", getIndexResponse.getSettings().containsKey(index));
-        String uuid = getIndexResponse.getSettings().get(index).get(IndexMetaData.SETTING_INDEX_UUID);
-        return new Index(index, uuid);
     }
 
     public static boolean inFipsJvm() {

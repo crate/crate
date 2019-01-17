@@ -22,11 +22,10 @@ package org.elasticsearch.index.mapper;
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.carrotsearch.hppc.ObjectObjectMap;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.all.AllEntries;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.lucene.all.AllEntries;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.IndexSettings;
 
@@ -636,35 +635,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
     public abstract SeqNoFieldMapper.SequenceIDFields seqID();
 
     public abstract void seqID(SeqNoFieldMapper.SequenceIDFields seqID);
-
-    public final boolean includeInAll(Boolean includeInAll, FieldMapper mapper) {
-        return includeInAll(includeInAll, mapper.fieldType().indexOptions() != IndexOptions.NONE);
-    }
-
-    /**
-     * Is all included or not. Will always disable it if {@link org.elasticsearch.index.mapper.AllFieldMapper#enabled()}
-     * is {@code false}. If its enabled, then will return {@code true} only if the specific flag is {@code null} or
-     * its actual value (so, if not set, defaults to "true") and the field is indexed.
-     */
-    private boolean includeInAll(Boolean includeInAll, boolean indexed) {
-        if (isWithinCopyTo()) {
-            return false;
-        }
-        if (isWithinMultiFields()) {
-            return false;
-        }
-        if (!docMapper().allFieldMapper().enabled()) {
-            return false;
-        }
-        if (includeInAll == null) {
-            includeInAll = getIncludeInAllDefault();
-        }
-        // not explicitly set
-        if (includeInAll == null) {
-            return indexed;
-        }
-        return includeInAll;
-    }
 
     public abstract AllEntries allEntries();
 

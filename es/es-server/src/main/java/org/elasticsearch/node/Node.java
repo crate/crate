@@ -20,6 +20,7 @@
 package org.elasticsearch.node;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.Build;
@@ -28,9 +29,6 @@ import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.GenericAction;
-import org.elasticsearch.action.search.SearchExecutionStatsCollector;
-import org.elasticsearch.action.search.SearchPhaseController;
-import org.elasticsearch.action.search.SearchTransportService;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.bootstrap.BootstrapCheck;
 import org.elasticsearch.bootstrap.BootstrapContext;
@@ -125,12 +123,9 @@ import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.plugins.RepositoryPlugin;
-import org.elasticsearch.plugins.SearchPlugin;
 import org.elasticsearch.repositories.RepositoriesModule;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.search.SearchModule;
-import org.elasticsearch.search.SearchService;
-import org.elasticsearch.search.fetch.FetchPhase;
 import org.elasticsearch.snapshots.SnapshotShardsService;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.tasks.Task;
@@ -269,8 +264,7 @@ public abstract class Node implements Closeable {
         boolean success = false;
         try {
             originalSettings = environment.settings();
-            Settings tmpSettings = Settings.builder().put(environment.settings())
-                .put(Client.CLIENT_TYPE_SETTING_S.getKey(), CLIENT_TYPE).build();
+            Settings tmpSettings = environment.settings();
 
             /*
              * Create the node environment as soon as possible so we can
@@ -367,7 +361,7 @@ public abstract class Node implements Closeable {
             IndicesModule indicesModule = new IndicesModule(pluginsService.filterPlugins(MapperPlugin.class));
             modules.add(indicesModule);
 
-            SearchModule searchModule = new SearchModule(settings, false, pluginsService.filterPlugins(SearchPlugin.class));
+            BooleanQuery.setMaxClauseCount(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));
             CircuitBreakerService circuitBreakerService = createCircuitBreakerService(settingsModule.getSettings(),
                 settingsModule.getClusterSettings());
             resourcesToClose.add(circuitBreakerService);
@@ -381,7 +375,6 @@ public abstract class Node implements Closeable {
             List<NamedWriteableRegistry.Entry> namedWriteables = Stream.of(
                 NetworkModule.getNamedWriteables().stream(),
                 indicesModule.getNamedWriteables().stream(),
-                searchModule.getNamedWriteables().stream(),
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .flatMap(p -> p.getNamedWriteables().stream()),
                 ClusterModule.getNamedWriteables().stream())
@@ -390,7 +383,6 @@ public abstract class Node implements Closeable {
             NamedXContentRegistry xContentRegistry = new NamedXContentRegistry(Stream.of(
                 NetworkModule.getNamedXContents().stream(),
                 indicesModule.getNamedXContents().stream(),
-                searchModule.getNamedXContents().stream(),
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .flatMap(p -> p.getNamedXContent().stream()),
                 ClusterModule.getNamedXWriteables().stream())
@@ -440,13 +432,13 @@ public abstract class Node implements Closeable {
                                                  namedWriteableRegistry).stream())
                 .collect(Collectors.toList());
 
-            ActionModule actionModule = new ActionModule(false, settings, clusterModule.getIndexNameExpressionResolver(),
+            ActionModule actionModule = new ActionModule(settings, clusterModule.getIndexNameExpressionResolver(),
                 settingsModule.getIndexScopedSettings(), settingsModule.getClusterSettings(), settingsModule.getSettingsFilter(),
                 threadPool, pluginsService.filterPlugins(ActionPlugin.class), client, circuitBreakerService);
             modules.add(actionModule);
 
             final RestController restController = actionModule.getRestController();
-            final NetworkModule networkModule = new NetworkModule(settings, false, pluginsService.filterPlugins(NetworkPlugin.class),
+            final NetworkModule networkModule = new NetworkModule(settings, pluginsService.filterPlugins(NetworkPlugin.class),
                 threadPool, bigArrays, pageCacheRecycler, circuitBreakerService, namedWriteableRegistry, xContentRegistry,
                 networkService, restController);
             Collection<UnaryOperator<Map<String, MetaData.Custom>>> customMetaDataUpgraders =
@@ -472,9 +464,6 @@ public abstract class Node implements Closeable {
             ).collect(Collectors.toSet());
             final TransportService transportService = newTransportService(settings, transport, threadPool,
                 networkModule.getTransportInterceptor(), localNodeFactory, settingsModule.getClusterSettings(), taskHeaders);
-            final ResponseCollectorService responseCollectorService = new ResponseCollectorService(this.settings, clusterService);
-            final SearchTransportService searchTransportService =  new SearchTransportService(settings, transportService,
-                SearchExecutionStatsCollector.makeWrapper(responseCollectorService));
             final Consumer<Binder> httpBind;
             final HttpServerTransport httpServerTransport;
             if (networkModule.isHttpEnabled()) {
@@ -493,14 +482,16 @@ public abstract class Node implements Closeable {
                 networkService, clusterService.getMasterService(), clusterService.getClusterApplierService(),
                 clusterService.getClusterSettings(), pluginsService.filterPlugins(DiscoveryPlugin.class),
                 clusterModule.getAllocationService(), environment.configFile());
-            this.nodeService = new NodeService(settings, threadPool, monitorService, discoveryModule.getDiscovery(),
-                transportService, indicesService, pluginsService, circuitBreakerService,
-                httpServerTransport, clusterService, settingsModule.getSettingsFilter(), responseCollectorService,
-                searchTransportService);
-
-            final SearchService searchService = newSearchService(clusterService, indicesService,
-                threadPool, bigArrays, searchModule.getFetchPhase(),
-                responseCollectorService);
+            this.nodeService = new NodeService(
+                settings,
+                threadPool,
+                monitorService,
+                transportService,
+                indicesService,
+                pluginsService,
+                httpServerTransport,
+                settingsModule.getSettingsFilter()
+            );
 
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);
@@ -521,9 +512,6 @@ public abstract class Node implements Closeable {
                     b.bind(IndicesService.class).toInstance(indicesService);
                     b.bind(AliasValidator.class).toInstance(aliasValidator);
                     b.bind(MetaDataCreateIndexService.class).toInstance(metaDataCreateIndexService);
-                    b.bind(SearchService.class).toInstance(searchService);
-                    b.bind(SearchTransportService.class).toInstance(searchTransportService);
-                    b.bind(SearchPhaseController.class).toInstance(new SearchPhaseController(settings));
                     b.bind(Transport.class).toInstance(transport);
                     b.bind(TransportService.class).toInstance(transportService);
                     b.bind(NetworkService.class).toInstance(networkService);
@@ -556,7 +544,7 @@ public abstract class Node implements Closeable {
             resourcesToClose.addAll(pluginLifecycleComponents);
             this.pluginLifecycleComponents = Collections.unmodifiableList(pluginLifecycleComponents);
             client.initialize(injector.getInstance(new Key<Map<GenericAction, TransportAction>>() {}),
-                    () -> clusterService.localNode().getId(), transportService.getRemoteClusterService());
+                    () -> clusterService.localNode().getId());
 
             if (NetworkModule.HTTP_ENABLED.get(settings)) {
                 logger.debug("initializing HTTP handlers ...");
@@ -665,7 +653,6 @@ public abstract class Node implements Closeable {
         injector.getInstance(SnapshotsService.class).start();
         injector.getInstance(SnapshotShardsService.class).start();
         injector.getInstance(RoutingService.class).start();
-        injector.getInstance(SearchService.class).start();
         nodeService.getMonitorService().start();
 
         final ClusterService clusterService = injector.getInstance(ClusterService.class);
@@ -795,7 +782,6 @@ public abstract class Node implements Closeable {
         injector.getInstance(NodeConnectionsService.class).stop();
         nodeService.getMonitorService().stop();
         injector.getInstance(GatewayService.class).stop();
-        injector.getInstance(SearchService.class).stop();
         injector.getInstance(TransportService.class).stop();
 
         pluginLifecycleComponents.forEach(LifecycleComponent::stop);
@@ -852,8 +838,6 @@ public abstract class Node implements Closeable {
         toClose.add(nodeService.getMonitorService());
         toClose.add(() -> stopWatch.stop().start("gateway"));
         toClose.add(injector.getInstance(GatewayService.class));
-        toClose.add(() -> stopWatch.stop().start("search"));
-        toClose.add(injector.getInstance(SearchService.class));
         toClose.add(() -> stopWatch.stop().start("transport"));
         toClose.add(injector.getInstance(TransportService.class));
 
@@ -974,16 +958,6 @@ public abstract class Node implements Closeable {
      */
     PageCacheRecycler createPageCacheRecycler(Settings settings) {
         return new PageCacheRecycler(settings);
-    }
-
-    /**
-     * Creates a new the SearchService. This method can be overwritten by tests to inject mock implementations.
-     */
-    protected SearchService newSearchService(ClusterService clusterService, IndicesService indicesService,
-                                             ThreadPool threadPool, BigArrays bigArrays,
-                                             FetchPhase fetchPhase, ResponseCollectorService responseCollectorService) {
-        return new SearchService(clusterService, indicesService, threadPool,
-            bigArrays, fetchPhase, responseCollectorService);
     }
 
     /**

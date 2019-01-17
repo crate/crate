@@ -103,7 +103,6 @@ import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.plugins.AnalysisPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.search.MockSearchService;
 import org.elasticsearch.test.junit.listeners.LoggingListener;
 import org.elasticsearch.test.junit.listeners.ReproduceInfoPrinter;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -347,7 +346,6 @@ public abstract class ESTestCase extends LuceneTestCase {
             ensureNoWarnings();
             assert threadContext == null;
         }
-        ensureAllSearchContextsReleased();
         ensureCheckIndexPassed();
         logger.info("{}after test", getTestParamsForLogging());
     }
@@ -483,11 +481,6 @@ public abstract class ESTestCase extends LuceneTestCase {
                 nettyLoggedLeaks.clear();
             }
         }
-    }
-
-    // this must be a separate method from other ensure checks above so suite scoped integ tests can call...TODO: fix that
-    public final void ensureAllSearchContextsReleased() throws Exception {
-        assertBusy(() -> MockSearchService.assertNoInFlightContext());
     }
 
     // mockdirectorywrappers currently set this boolean if checkindex fails

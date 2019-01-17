@@ -22,18 +22,15 @@ package org.elasticsearch.threadpool;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-public class ThreadPoolStats implements Writeable, ToXContentFragment, Iterable<ThreadPoolStats.Stats> {
+public class ThreadPoolStats implements Writeable, Iterable<ThreadPoolStats.Stats> {
 
-    public static class Stats implements Writeable, ToXContentFragment, Comparable<Stats> {
+    public static class Stats implements Writeable, Comparable<Stats> {
 
         private final String name;
         private final int threads;
@@ -103,31 +100,6 @@ public class ThreadPoolStats implements Writeable, ToXContentFragment, Iterable<
         }
 
         @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.startObject(name);
-            if (threads != -1) {
-                builder.field(Fields.THREADS, threads);
-            }
-            if (queue != -1) {
-                builder.field(Fields.QUEUE, queue);
-            }
-            if (active != -1) {
-                builder.field(Fields.ACTIVE, active);
-            }
-            if (rejected != -1) {
-                builder.field(Fields.REJECTED, rejected);
-            }
-            if (largest != -1) {
-                builder.field(Fields.LARGEST, largest);
-            }
-            if (completed != -1) {
-                builder.field(Fields.COMPLETED, completed);
-            }
-            builder.endObject();
-            return builder;
-        }
-
-        @Override
         public int compareTo(Stats other) {
             if ((getName() == null) && (other.getName() == null)) {
                 return 0;
@@ -164,25 +136,5 @@ public class ThreadPoolStats implements Writeable, ToXContentFragment, Iterable<
     @Override
     public Iterator<Stats> iterator() {
         return stats.iterator();
-    }
-
-    static final class Fields {
-        static final String THREAD_POOL = "thread_pool";
-        static final String THREADS = "threads";
-        static final String QUEUE = "queue";
-        static final String ACTIVE = "active";
-        static final String REJECTED = "rejected";
-        static final String LARGEST = "largest";
-        static final String COMPLETED = "completed";
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startObject(Fields.THREAD_POOL);
-        for (Stats stat : stats) {
-            stat.toXContent(builder, params);
-        }
-        builder.endObject();
-        return builder;
     }
 }

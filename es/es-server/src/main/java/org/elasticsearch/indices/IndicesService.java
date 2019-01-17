@@ -22,18 +22,11 @@ package org.elasticsearch.indices;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.util.CollectionUtil;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
-import org.elasticsearch.action.admin.indices.stats.CommonStats;
-import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
-import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags.Flag;
-import org.elasticsearch.action.admin.indices.stats.IndexShardStats;
-import org.elasticsearch.action.admin.indices.stats.ShardStats;
-import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -41,16 +34,13 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.logging.DeprecationLogger;
@@ -63,10 +53,7 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.iterable.Iterables;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.env.NodeEnvironment;
@@ -81,21 +68,14 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.cache.request.ShardRequestCache;
-import org.elasticsearch.index.engine.CommitStats;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.flush.FlushStats;
-import org.elasticsearch.index.get.GetStats;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.merge.MergeStats;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryRewriteContext;
 import org.elasticsearch.index.recovery.RecoveryStats;
 import org.elasticsearch.index.refresh.RefreshStats;
-import org.elasticsearch.index.search.stats.SearchStats;
-import org.elasticsearch.index.seqno.SeqNoStats;
-import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardState;
@@ -111,11 +91,6 @@ import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.search.internal.AliasFilter;
-import org.elasticsearch.search.internal.SearchContext;
-import org.elasticsearch.search.internal.ShardSearchRequest;
-import org.elasticsearch.search.query.QueryPhase;
-import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.Closeable;
@@ -139,7 +114,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -148,8 +122,6 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
 import static org.elasticsearch.common.collect.MapBuilder.newMapBuilder;
-import static org.elasticsearch.common.util.CollectionUtils.arrayAsArrayList;
-import static org.elasticsearch.index.query.AbstractQueryBuilder.parseInnerQueryBuilder;
 
 public class IndicesService extends AbstractLifecycleComponent
     implements IndicesClusterStateService.AllocatedIndices<IndexShard, IndexService>, IndexService.ShardStoreDeleter {
@@ -286,103 +258,6 @@ public class IndicesService extends AbstractLifecycleComponent
     }
 
     /**
-     * Returns the node stats indices stats. The {@code includePrevious} flag controls
-     * if old shards stats will be aggregated as well (only for relevant stats, such as
-     * refresh and indexing, not for docs/store).
-     */
-    public NodeIndicesStats stats(boolean includePrevious) {
-        return stats(includePrevious, new CommonStatsFlags().all());
-    }
-
-    public NodeIndicesStats stats(boolean includePrevious, CommonStatsFlags flags) {
-        CommonStats oldStats = new CommonStats(flags);
-
-        if (includePrevious) {
-            Flag[] setFlags = flags.getFlags();
-            for (Flag flag : setFlags) {
-                switch (flag) {
-                    case Get:
-                        oldStats.get.add(oldShardsStats.getStats);
-                        break;
-                    case Indexing:
-                        oldStats.indexing.add(oldShardsStats.indexingStats);
-                        break;
-                    case Search:
-                        oldStats.search.add(oldShardsStats.searchStats);
-                        break;
-                    case Merge:
-                        oldStats.merge.add(oldShardsStats.mergeStats);
-                        break;
-                    case Refresh:
-                        oldStats.refresh.add(oldShardsStats.refreshStats);
-                        break;
-                    case Recovery:
-                        oldStats.recoveryStats.add(oldShardsStats.recoveryStats);
-                        break;
-                    case Flush:
-                        oldStats.flush.add(oldShardsStats.flushStats);
-                        break;
-                }
-            }
-        }
-
-        return new NodeIndicesStats(oldStats, statsByShard(this, flags));
-    }
-
-    Map<Index, List<IndexShardStats>> statsByShard(final IndicesService indicesService, final CommonStatsFlags flags) {
-        final Map<Index, List<IndexShardStats>> statsByShard = new HashMap<>();
-
-        for (final IndexService indexService : indicesService) {
-            for (final IndexShard indexShard : indexService) {
-                try {
-                    final IndexShardStats indexShardStats = indicesService.indexShardStats(indicesService, indexShard, flags);
-
-                    if (indexShardStats == null) {
-                        continue;
-                    }
-
-                    if (statsByShard.containsKey(indexService.index()) == false) {
-                        statsByShard.put(indexService.index(), arrayAsArrayList(indexShardStats));
-                    } else {
-                        statsByShard.get(indexService.index()).add(indexShardStats);
-                    }
-                } catch (IllegalIndexShardStateException | AlreadyClosedException e) {
-                    // we can safely ignore illegal state on ones that are closing for example
-                    logger.trace(() -> new ParameterizedMessage("{} ignoring shard stats", indexShard.shardId()), e);
-                }
-            }
-        }
-
-        return statsByShard;
-    }
-
-    IndexShardStats indexShardStats(final IndicesService indicesService, final IndexShard indexShard, final CommonStatsFlags flags) {
-        if (indexShard.routingEntry() == null) {
-            return null;
-        }
-
-        CommitStats commitStats;
-        SeqNoStats seqNoStats;
-        try {
-            commitStats = indexShard.commitStats();
-            seqNoStats = indexShard.seqNoStats();
-        } catch (AlreadyClosedException e) {
-            // shard is closed - no stats is fine
-            commitStats = null;
-            seqNoStats = null;
-        }
-
-        return new IndexShardStats(indexShard.shardId(),
-                                   new ShardStats[] {
-                                       new ShardStats(indexShard.routingEntry(),
-                                                      indexShard.shardPath(),
-                                                      new CommonStats(indicesService.getIndicesQueryCache(), indexShard, flags),
-                                                      commitStats,
-                                                      seqNoStats)
-                                   });
-    }
-
-    /**
      * Checks if changes (adding / removing) indices, shards and so on are allowed.
      *
      * @throws IllegalStateException if no changes allowed.
@@ -504,7 +379,6 @@ public class IndicesService extends AbstractLifecycleComponent
                 circuitBreakerService,
                 bigArrays,
                 threadPool,
-                client,
                 indicesQueryCache,
                 mapperRegistry,
                 indicesFieldDataCache,
@@ -653,8 +527,6 @@ public class IndicesService extends AbstractLifecycleComponent
 
     static class OldShardsStats implements IndexEventListener {
 
-        final SearchStats searchStats = new SearchStats();
-        final GetStats getStats = new GetStats();
         final IndexingStats indexingStats = new IndexingStats();
         final MergeStats mergeStats = new MergeStats();
         final RefreshStats refreshStats = new RefreshStats();
@@ -664,9 +536,7 @@ public class IndicesService extends AbstractLifecycleComponent
         @Override
         public synchronized void beforeIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard, Settings indexSettings) {
             if (indexShard != null) {
-                getStats.addTotals(indexShard.getStats());
                 indexingStats.addTotals(indexShard.indexingStats());
-                searchStats.addTotals(indexShard.searchStats());
                 mergeStats.addTotals(indexShard.mergeStats());
                 refreshStats.addTotals(indexShard.refreshStats());
                 flushStats.addTotals(indexShard.flushStats());
@@ -1146,92 +1016,6 @@ public class IndicesService extends AbstractLifecycleComponent
         }
     }
 
-
-    /**
-     * Can the shard request be cached at all?
-     */
-    public boolean canCache(ShardSearchRequest request, SearchContext context) {
-        // Queries that create a scroll context cannot use the cache.
-        // They modify the search context during their execution so using the cache
-        // may invalidate the scroll for the next query.
-        if (request.scroll() != null) {
-            return false;
-        }
-
-        // We cannot cache with DFS because results depend not only on the content of the index but also
-        // on the overridden statistics. So if you ran two queries on the same index with different stats
-        // (because an other shard was updated) you would get wrong results because of the scores
-        // (think about top_hits aggs or scripts using the score)
-        if (SearchType.QUERY_THEN_FETCH != context.searchType()) {
-            return false;
-        }
-
-        IndexSettings settings = context.indexShard().indexSettings();
-        // if not explicitly set in the request, use the index setting, if not, use the request
-        if (request.requestCache() == null) {
-            if (settings.getValue(IndicesRequestCache.INDEX_CACHE_REQUEST_ENABLED_SETTING) == false) {
-                return false;
-            } else if (context.size() != 0) {
-                // If no request cache query parameter and shard request cache
-                // is enabled in settings don't cache for requests with size > 0
-                return false;
-            }
-        } else if (request.requestCache() == false) {
-            return false;
-        }
-        // We use the cacheKey of the index reader as a part of a key of the IndicesRequestCache.
-        assert context.searcher().getIndexReader().getReaderCacheHelper() != null;
-
-        // if now in millis is used (or in the future, a more generic "isDeterministic" flag
-        // then we can't cache based on "now" key within the search request, as it is not deterministic
-        if (context.getQueryShardContext().isCachable() == false) {
-            return false;
-        }
-        return true;
-
-    }
-
-
-    /**
-     * Loads the cache result, computing it if needed by executing the query phase and otherwise deserializing the cached
-     * value into the {@link SearchContext#queryResult() context's query result}. The combination of load + compute allows
-     * to have a single load operation that will cause other requests with the same key to wait till its loaded an reuse
-     * the same cache.
-     */
-    public void loadIntoContext(ShardSearchRequest request, SearchContext context, QueryPhase queryPhase) throws Exception {
-        assert canCache(request, context);
-        final DirectoryReader directoryReader = context.searcher().getDirectoryReader();
-
-        boolean[] loadedFromCache = new boolean[] { true };
-        BytesReference bytesReference = cacheShardLevelResult(context.indexShard(), directoryReader, request.cacheKey(), out -> {
-            queryPhase.execute(context);
-            try {
-                context.queryResult().writeToNoId(out);
-
-            } catch (IOException e) {
-                throw new AssertionError("Could not serialize response", e);
-            }
-            loadedFromCache[0] = false;
-        });
-
-        if (loadedFromCache[0]) {
-            // restore the cached query result into the context
-            final QuerySearchResult result = context.queryResult();
-            StreamInput in = new NamedWriteableAwareStreamInput(bytesReference.streamInput(), namedWriteableRegistry);
-            result.readFromWithId(context.id(), in);
-            result.setSearchShardTarget(context.shardTarget());
-        } else if (context.queryResult().searchTimedOut()) {
-            // we have to invalidate the cache entry if we cached a query result form a request that timed out.
-            // we can't really throw exceptions in the loading part to signal a timed out search to the outside world since if there are
-            // multiple requests that wait for the cache entry to be calculated they'd fail all with the same exception.
-            // instead we all caching such a result for the time being, return the timed out result for all other searches with that cache
-            // key invalidate the result in the thread that caused the timeout. This will end up to be simpler and eventually correct since
-            // running a search that times out concurrently will likely timeout again if it's run while we have this `stale` result in the
-            // cache. One other option is to not cache requests with a timeout at all...
-            indicesRequestCache.invalidate(new IndexShardCacheEntity(context.indexShard()), directoryReader, request.cacheKey());
-        }
-    }
-
     public ByteSizeValue getTotalIndexingBufferBytes() {
         return indexingMemoryController.indexingBufferSize();
     }
@@ -1305,42 +1089,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private final IndexDeletionAllowedPredicate DEFAULT_INDEX_DELETION_PREDICATE =
         (Index index, IndexSettings indexSettings) -> canDeleteIndexContents(index, indexSettings);
     private final IndexDeletionAllowedPredicate ALWAYS_TRUE = (Index index, IndexSettings indexSettings) -> true;
-
-    public AliasFilter buildAliasFilter(ClusterState state, String index, String... expressions) {
-        /* Being static, parseAliasFilter doesn't have access to whatever guts it needs to parse a query. Instead of passing in a bunch
-         * of dependencies we pass in a function that can perform the parsing. */
-        CheckedFunction<byte[], QueryBuilder, IOException> filterParser = bytes -> {
-            try (XContentParser parser = XContentFactory.xContent(bytes)
-                    .createParser(xContentRegistry, LoggingDeprecationHandler.INSTANCE, bytes)) {
-                return parseInnerQueryBuilder(parser);
-            }
-        };
-        String[] aliases = indexNameExpressionResolver.filteringAliases(state, index, expressions);
-        IndexMetaData indexMetaData = state.metaData().index(index);
-        return new AliasFilter(ShardSearchRequest.parseAliasFilter(filterParser, indexMetaData, aliases), aliases);
-    }
-
-    /**
-     * Returns a new {@link QueryRewriteContext} with the given {@code now} provider
-     */
-    public QueryRewriteContext getRewriteContext(LongSupplier nowInMillis) {
-        return new QueryRewriteContext(xContentRegistry, namedWriteableRegistry, client, nowInMillis);
-    }
-
-    /**
-     * Clears the caches for the given shard id if the shard is still allocated on this node
-     */
-    public void clearIndexShardCache(ShardId shardId, boolean queryCache, boolean fieldDataCache, boolean requestCache,
-                                     String...fields) {
-        final IndexService service = indexService(shardId.getIndex());
-        if (service != null) {
-            IndexShard shard = service.getShardOrNull(shardId.id());
-            final boolean clearedAtLeastOne = service.clearCaches(queryCache, fieldDataCache, fields);
-            if ((requestCache || (clearedAtLeastOne == false && fields.length == 0)) && shard != null) {
-                indicesRequestCache.clear(new IndexShardCacheEntity(shard));
-            }
-        }
-    }
 
     /**
      * Returns a function which given an index name, returns a predicate which fields must match in order to be returned by get mappings,

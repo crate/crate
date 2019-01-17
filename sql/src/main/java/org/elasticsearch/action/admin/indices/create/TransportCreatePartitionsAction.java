@@ -33,7 +33,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -74,7 +73,6 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -137,9 +135,9 @@ public class TransportCreatePartitionsAction
                                            IndicesService indicesService,
                                            AllocationService allocationService,
                                            NamedXContentRegistry xContentRegistry,
-                                           IndexNameExpressionResolver indexNameExpressionResolver,
-                                           ActionFilters actionFilters) {
-        super(settings, NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, CreatePartitionsRequest::new);
+                                           IndexNameExpressionResolver indexNameExpressionResolver
+                                           ) {
+        super(settings, NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, CreatePartitionsRequest::new);
         this.aliasValidator = aliasValidator;
         this.indicesService = indicesService;
         this.allocationService = allocationService;
@@ -244,16 +242,6 @@ public class TransportCreatePartitionsAction
                 } catch (MapperParsingException mpe) {
                     removalReasons.add("failed on parsing mappings on index creation");
                     throw mpe;
-                }
-
-                // the context is only used for validation so it's fine to pass fake values for the shard id and the current
-                // timestamp
-                QueryShardContext queryShardContext = indexService.newQueryShardContext(0, null, () -> 0L, null);
-                for (AliasMetaData aliasMetaData : templatesAliases.values()) {
-                    if (aliasMetaData.filter() != null) {
-                        aliasValidator.validateAliasFilter(
-                            aliasMetaData.alias(), aliasMetaData.filter().uncompressed(), queryShardContext, xContentRegistry);
-                    }
                 }
 
                 // now, update the mappings with the actual source

@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.indices.create;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -43,8 +42,8 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
     @Inject
     public TransportCreateIndexAction(Settings settings, TransportService transportService, ClusterService clusterService,
                                       ThreadPool threadPool, MetaDataCreateIndexService createIndexService,
-                                      ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, CreateIndexAction.NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, CreateIndexRequest::new);
+                                      IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, CreateIndexAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, CreateIndexRequest::new);
         this.createIndexService = createIndexService;
     }
 

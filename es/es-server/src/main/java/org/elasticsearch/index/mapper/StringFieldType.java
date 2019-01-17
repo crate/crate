@@ -39,7 +39,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.query.support.QueryParsers;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -93,9 +92,7 @@ public abstract class StringFieldType extends TermBasedFieldType {
         }
         Term term = MappedFieldType.extractTerm(termQuery);
 
-        WildcardQuery query = new WildcardQuery(term);
-        QueryParsers.setRewriteMethod(query, method);
-        return query;
+        return new WildcardQuery(term);
     }
 
     @Override

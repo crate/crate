@@ -38,20 +38,6 @@ public abstract class EnvironmentAwareCommand extends Command {
 
     private final OptionSpec<KeyValuePair> settingOption;
 
-    /**
-     * Construct the command with the specified command description. This command will have logging configured without reading Elasticsearch
-     * configuration files.
-     *
-     * @param description the command description
-     */
-    public EnvironmentAwareCommand(final String description) {
-        this(description, "E", CommandLoggingConfigurator::configureLoggingWithoutConfig);
-    }
-
-    public EnvironmentAwareCommand(String description, Runnable beforeMain) {
-        this(description, "E", beforeMain);
-    }
-
     public EnvironmentAwareCommand(String description, String settingOptionName, Runnable beforeMain) {
         super(description, beforeMain);
         this.settingOption = parser.accepts(settingOptionName, "Configure a setting")

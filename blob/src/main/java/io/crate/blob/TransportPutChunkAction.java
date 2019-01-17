@@ -21,7 +21,6 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -47,10 +46,9 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
                                    ThreadPool threadPool,
                                    ShardStateAction shardStateAction,
                                    BlobTransferTarget transferTarget,
-                                   ActionFilters actionFilters,
                                    IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, PutChunkAction.NAME, transportService, clusterService,
-            indicesService, threadPool, shardStateAction, actionFilters,
+            indicesService, threadPool, shardStateAction,
             indexNameExpressionResolver, PutChunkRequest::new, PutChunkReplicaRequest::new, ThreadPool.Names.INDEX);
 
         this.transferTarget = transferTarget;

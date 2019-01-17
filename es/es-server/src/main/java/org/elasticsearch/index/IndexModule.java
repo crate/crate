@@ -19,7 +19,6 @@
 
 package org.elasticsearch.index;
 
-import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Constants;
@@ -42,7 +41,6 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
 import org.elasticsearch.index.shard.IndexingOperationListener;
-import org.elasticsearch.index.shard.SearchOperationListener;
 import org.elasticsearch.index.store.IndexStore;
 import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -68,10 +66,6 @@ import java.util.function.Function;
 /**
  * IndexModule represents the central extension point for index level custom implementations like:
  * <ul>
- *     <li>{@link Similarity} - New {@link Similarity} implementations can be registered through
- *     {@link #addSimilarity(String, BiFunction)} while existing Providers can be referenced through Settings under the
- *     {@link IndexModule#SIMILARITY_SETTINGS_PREFIX} prefix along with the "type" value.  For example, to reference the
- *     {@link BM25Similarity}, the configuration {@code "index.similarity.my_similarity.type : "BM25"} can be used.</li>
  *      <li>{@link IndexStore} - Custom {@link IndexStore} instances can be registered via {@link IndexStorePlugin}</li>
  *      <li>{@link IndexEventListener} - Custom {@link IndexEventListener} instances can be registered via
  *      {@link #addIndexEventListener(IndexEventListener)}</li>
@@ -111,7 +105,6 @@ public final class IndexModule {
     private final Map<String, BiFunction<Settings, Version, Similarity>> similarities = new HashMap<>();
     private final Map<String, Function<IndexSettings, IndexStore>> indexStoreFactories;
     private final SetOnce<BiFunction<IndexSettings, IndicesQueryCache, QueryCache>> forceQueryCacheProvider = new SetOnce<>();
-    private final List<SearchOperationListener> searchOperationListeners = new ArrayList<>();
     private final List<IndexingOperationListener> indexOperationListeners = new ArrayList<>();
     private final AtomicBoolean frozen = new AtomicBoolean(false);
 
@@ -132,7 +125,6 @@ public final class IndexModule {
         this.indexSettings = indexSettings;
         this.analysisRegistry = analysisRegistry;
         this.engineFactory = Objects.requireNonNull(engineFactory);
-        this.searchOperationListeners.add(new SearchSlowLog(indexSettings));
         this.indexOperationListeners.add(new IndexingSlowLog(indexSettings));
         this.indexStoreFactories = Collections.unmodifiableMap(indexStoreFactories);
     }
@@ -203,29 +195,6 @@ public final class IndexModule {
         }
 
         this.indexEventListeners.add(listener);
-    }
-
-    /**
-     * Adds an {@link SearchOperationListener} for this index. All listeners added here
-     * are maintained for the entire index lifecycle on this node. Once an index is closed or deleted these
-     * listeners go out of scope.
-     * <p>
-     * Note: an index might be created on a node multiple times. For instance if the last shard from an index is
-     * relocated to another node the internal representation will be destroyed which includes the registered listeners.
-     * Once the node holds at least one shard of an index all modules are reloaded and listeners are registered again.
-     * Listeners can't be unregistered they will stay alive for the entire time the index is allocated on a node.
-     * </p>
-     */
-    public void addSearchOperationListener(SearchOperationListener listener) {
-        ensureNotFrozen();
-        if (listener == null) {
-            throw new IllegalArgumentException("listener must not be null");
-        }
-        if (searchOperationListeners.contains(listener)) {
-            throw new IllegalArgumentException("listener already added");
-        }
-
-        this.searchOperationListeners.add(listener);
     }
 
     /**
@@ -349,7 +318,6 @@ public final class IndexModule {
             CircuitBreakerService circuitBreakerService,
             BigArrays bigArrays,
             ThreadPool threadPool,
-            Client client,
             IndicesQueryCache indicesQueryCache,
             MapperRegistry mapperRegistry,
             IndicesFieldDataCache indicesFieldDataCache,
@@ -371,10 +339,25 @@ public final class IndexModule {
         } else {
             queryCache = new DisabledQueryCache(indexSettings);
         }
-        return new IndexService(indexSettings, environment, xContentRegistry,
-                shardStoreDeleter, analysisRegistry, engineFactory, circuitBreakerService, bigArrays, threadPool,
-                client, queryCache, store, eventListener, searcherWrapperFactory, mapperRegistry,
-                indicesFieldDataCache, searchOperationListeners, indexOperationListeners, namedWriteableRegistry);
+        return new IndexService(
+            indexSettings,
+            environment,
+            xContentRegistry,
+            shardStoreDeleter,
+            analysisRegistry,
+            engineFactory,
+            circuitBreakerService,
+            bigArrays,
+            threadPool,
+            queryCache,
+            store,
+            eventListener,
+            searcherWrapperFactory,
+            mapperRegistry,
+            indicesFieldDataCache,
+            indexOperationListeners,
+            namedWriteableRegistry
+        );
     }
 
     private static IndexStore getIndexStore(

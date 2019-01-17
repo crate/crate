@@ -24,7 +24,6 @@ import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -66,7 +65,6 @@ public class GlobalCheckpointSyncAction extends TransportReplicationAction<
             final IndicesService indicesService,
             final ThreadPool threadPool,
             final ShardStateAction shardStateAction,
-            final ActionFilters actionFilters,
             final IndexNameExpressionResolver indexNameExpressionResolver) {
         super(
                 settings,
@@ -76,7 +74,6 @@ public class GlobalCheckpointSyncAction extends TransportReplicationAction<
                 indicesService,
                 threadPool,
                 shardStateAction,
-                actionFilters,
                 indexNameExpressionResolver,
                 Request::new,
                 Request::new,

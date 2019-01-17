@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.admin.indices.refresh;
 
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.BasicReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
@@ -42,8 +41,8 @@ public class TransportShardRefreshAction
     @Inject
     public TransportShardRefreshAction(Settings settings, TransportService transportService, ClusterService clusterService,
                                        IndicesService indicesService, ThreadPool threadPool, ShardStateAction shardStateAction,
-                                       ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, NAME, transportService, clusterService, indicesService, threadPool, shardStateAction, actionFilters,
+                                       IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, NAME, transportService, clusterService, indicesService, threadPool, shardStateAction,
                 indexNameExpressionResolver, BasicReplicationRequest::new, BasicReplicationRequest::new, ThreadPool.Names.REFRESH);
     }
 
@@ -56,7 +55,7 @@ public class TransportShardRefreshAction
     protected PrimaryResult shardOperationOnPrimary(BasicReplicationRequest shardRequest, IndexShard primary) {
         primary.refresh("api");
         logger.trace("{} refresh request executed on primary", primary.shardId());
-        return new PrimaryResult(shardRequest, new ReplicationResponse());
+        return new PrimaryResult<>(shardRequest, new ReplicationResponse());
     }
 
     @Override

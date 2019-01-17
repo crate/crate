@@ -112,24 +112,6 @@ public class IndicesStatsRequest extends BroadcastRequest<IndicesStatsRequest> {
         return flags.isSet(Flag.Indexing);
     }
 
-    public IndicesStatsRequest get(boolean get) {
-        flags.set(Flag.Get, get);
-        return this;
-    }
-
-    public boolean get() {
-        return flags.isSet(Flag.Get);
-    }
-
-    public IndicesStatsRequest search(boolean search) {
-        flags.set(Flag.Search, search);
-        return this;
-    }
-
-    public boolean search() {
-        return flags.isSet(Flag.Search);
-    }
-
     public IndicesStatsRequest merge(boolean merge) {
         flags.set(Flag.Merge, merge);
         return this;
@@ -227,15 +209,6 @@ public class IndicesStatsRequest extends BroadcastRequest<IndicesStatsRequest> {
 
     public boolean translog() {
         return flags.isSet(Flag.Translog);
-    }
-
-    public IndicesStatsRequest suggest(boolean suggest) {
-        flags.set(Flag.Suggest, suggest);
-        return this;
-    }
-
-    public boolean suggest() {
-        return flags.isSet(Flag.Suggest);
     }
 
     public IndicesStatsRequest requestCache(boolean requestCache) {

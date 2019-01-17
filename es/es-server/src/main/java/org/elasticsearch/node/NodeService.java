@@ -22,17 +22,13 @@ package org.elasticsearch.node;
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.action.search.SearchTransportService;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.core.internal.io.IOUtils;
-import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -48,36 +44,25 @@ public class NodeService extends AbstractComponent implements Closeable {
     private final TransportService transportService;
     private final IndicesService indicesService;
     private final PluginsService pluginService;
-    private final CircuitBreakerService circuitBreakerService;
     private final SettingsFilter settingsFilter;
     private final HttpServerTransport httpServerTransport;
-    private final ResponseCollectorService responseCollectorService;
-    private final SearchTransportService searchTransportService;
 
-    private final Discovery discovery;
-
-    NodeService(Settings settings, ThreadPool threadPool, MonitorService monitorService, Discovery discovery,
+    NodeService(Settings settings, ThreadPool threadPool, MonitorService monitorService,
                 TransportService transportService, IndicesService indicesService, PluginsService pluginService,
-                CircuitBreakerService circuitBreakerService,
-                @Nullable HttpServerTransport httpServerTransport, ClusterService clusterService,
-                SettingsFilter settingsFilter, ResponseCollectorService responseCollectorService,
-                SearchTransportService searchTransportService) {
+                @Nullable HttpServerTransport httpServerTransport,
+                SettingsFilter settingsFilter) {
         super(settings);
         this.threadPool = threadPool;
         this.monitorService = monitorService;
         this.transportService = transportService;
         this.indicesService = indicesService;
-        this.discovery = discovery;
         this.pluginService = pluginService;
-        this.circuitBreakerService = circuitBreakerService;
         this.httpServerTransport = httpServerTransport;
         this.settingsFilter = settingsFilter;
-        this.responseCollectorService = responseCollectorService;
-        this.searchTransportService = searchTransportService;
     }
 
     public NodeInfo info(boolean settings, boolean os, boolean process, boolean jvm, boolean threadPool,
-                boolean transport, boolean http, boolean plugin, boolean ingest, boolean indices) {
+                boolean transport, boolean http, boolean plugin, boolean indices) {
         return new NodeInfo(Version.CURRENT, Build.CURRENT, transportService.getLocalNode(),
                 settings ? settingsFilter.filter(this.settings) : null,
                 os ? monitorService.osService().info() : null,

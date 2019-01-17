@@ -68,7 +68,7 @@ public class FloatValuesComparatorSource extends IndexFieldData.XFieldComparator
                 } else {
                     final BitSet rootDocs = nested.rootDocs(context);
                     final DocIdSetIterator innerDocs = nested.innerDocs(context);
-                    final int maxChildren = nested.getNestedSort() != null ? nested.getNestedSort().getMaxChildren() : Integer.MAX_VALUE;
+                    final int maxChildren = Integer.MAX_VALUE;
                     selectedValues = sortMode.select(values, dMissingValue, rootDocs, innerDocs, context.reader().maxDoc(), maxChildren);
                 }
                 return selectedValues.getRawFloatValues();

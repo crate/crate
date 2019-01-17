@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.cluster.snapshots.create;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -43,9 +42,9 @@ public class TransportCreateSnapshotAction extends TransportMasterNodeAction<Cre
 
     @Inject
     public TransportCreateSnapshotAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                         ThreadPool threadPool, SnapshotsService snapshotsService, ActionFilters actionFilters,
+                                         ThreadPool threadPool, SnapshotsService snapshotsService,
                                          IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, CreateSnapshotAction.NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, CreateSnapshotRequest::new);
+        super(settings, CreateSnapshotAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, CreateSnapshotRequest::new);
         this.snapshotsService = snapshotsService;
     }
 

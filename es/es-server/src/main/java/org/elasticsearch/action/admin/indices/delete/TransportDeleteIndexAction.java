@@ -21,7 +21,6 @@ package org.elasticsearch.action.admin.indices.delete;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.DestructiveOperations;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -52,9 +51,9 @@ public class TransportDeleteIndexAction extends TransportMasterNodeAction<Delete
 
     @Inject
     public TransportDeleteIndexAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                      ThreadPool threadPool, MetaDataDeleteIndexService deleteIndexService, ActionFilters actionFilters,
+                                      ThreadPool threadPool, MetaDataDeleteIndexService deleteIndexService,
                                       IndexNameExpressionResolver indexNameExpressionResolver, DestructiveOperations destructiveOperations) {
-        super(settings, DeleteIndexAction.NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, DeleteIndexRequest::new);
+        super(settings, DeleteIndexAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, DeleteIndexRequest::new);
         this.deleteIndexService = deleteIndexService;
         this.destructiveOperations = destructiveOperations;
     }
