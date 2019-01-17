@@ -21,8 +21,6 @@ package org.elasticsearch.client;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
-import org.elasticsearch.action.admin.indices.close.CloseIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -217,31 +215,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @param indices The indices to delete. Use "_all" to delete all indices.
      */
     DeleteIndexRequestBuilder prepareDelete(String... indices);
-
-    /**
-     * Closes an index based on the index name.
-     *
-     * @param request The close index request
-     * @return The result future
-     * @see org.elasticsearch.client.Requests#closeIndexRequest(String)
-     */
-    ActionFuture<AcknowledgedResponse> close(CloseIndexRequest request);
-
-    /**
-     * Closes an index based on the index name.
-     *
-     * @param request  The close index request
-     * @param listener A listener to be notified with a result
-     * @see org.elasticsearch.client.Requests#closeIndexRequest(String)
-     */
-    void close(CloseIndexRequest request, ActionListener<AcknowledgedResponse> listener);
-
-    /**
-     * Closes one or more indices based on their index name.
-     *
-     * @param indices The name of the indices to close
-     */
-    CloseIndexRequestBuilder prepareClose(String... indices);
 
     /**
      * Explicitly refresh one or more indices (making the content indexed since the last refresh searchable).
