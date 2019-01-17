@@ -77,6 +77,7 @@ import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropIngestRule;
@@ -321,6 +322,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             getIdentText(context.extendedName),
             visitCollection(context.analyzerElement(), AnalyzerElement.class)
         );
+    }
+
+    @Override
+    public Node visitDropAnalyzer(SqlBaseParser.DropAnalyzerContext ctx) {
+        return new DropAnalyzer(getIdentText(ctx.name));
     }
 
     @Override

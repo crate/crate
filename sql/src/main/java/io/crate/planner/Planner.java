@@ -40,6 +40,7 @@ import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DCLStatement;
 import io.crate.analyze.DDLStatement;
 import io.crate.analyze.DeallocateAnalyzedStatement;
+import io.crate.analyze.DropAnalyzerStatement;
 import io.crate.analyze.DropBlobTableAnalyzedStatement;
 import io.crate.analyze.DropTableAnalyzedStatement;
 import io.crate.analyze.DropViewStmt;
@@ -54,7 +55,6 @@ import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.analyze.ShowSessionParameterAnalyzedStatement;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.ExpiredLicenseException;
-import io.crate.exceptions.UnhandledServerException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.license.LicenseService;
 import io.crate.metadata.Functions;
@@ -62,7 +62,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
-import io.crate.planner.node.ddl.CreateAnalyzerPlan;
+import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
@@ -88,7 +88,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -285,13 +284,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     protected Plan visitCreateAnalyzerStatement(CreateAnalyzerAnalyzedStatement analysis, PlannerContext context) {
-        Settings analyzerSettings;
-        try {
-            analyzerSettings = analysis.buildSettings();
-        } catch (IOException ioe) {
-            throw new UnhandledServerException("Could not build analyzer Settings", ioe);
-        }
-        return new CreateAnalyzerPlan(analyzerSettings);
+        return new CreateDropAnalyzerPlan(analysis.buildSettings());
+    }
+
+    @Override
+    protected Plan visitDropAnalyzerStatement(DropAnalyzerStatement analysis, PlannerContext context) {
+        return new CreateDropAnalyzerPlan(analysis.settingsForRemoval());
     }
 
     @Override

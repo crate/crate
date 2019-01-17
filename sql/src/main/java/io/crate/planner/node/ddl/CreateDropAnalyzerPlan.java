@@ -37,12 +37,12 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.function.Function;
 
-public class CreateAnalyzerPlan implements Plan {
+public class CreateDropAnalyzerPlan implements Plan {
 
     private final Settings analyzerSettings;
     private static final Function<Object, Row> TO_ONE_ROW = o -> new Row1(1L);
 
-    public CreateAnalyzerPlan(Settings analyzerSettings) {
+    public CreateDropAnalyzerPlan(Settings analyzerSettings) {
         this.analyzerSettings = analyzerSettings;
     }
 

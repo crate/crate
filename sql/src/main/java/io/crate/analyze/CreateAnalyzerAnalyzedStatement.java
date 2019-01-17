@@ -26,13 +26,15 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static io.crate.metadata.settings.AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
 
 public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
@@ -47,7 +49,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     private Map<String, Settings> charFilters = new HashMap<>();
     private Map<String, Settings> tokenFilters = new HashMap<>();
 
-    public CreateAnalyzerAnalyzedStatement(FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+    CreateAnalyzerAnalyzedStatement(FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
@@ -56,7 +58,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         return analyzedStatementVisitor.visitCreateAnalyzerStatement(this, context);
     }
 
-    public FulltextAnalyzerResolver analyzerService() {
+    FulltextAnalyzerResolver analyzerService() {
         return fulltextAnalyzerResolver;
     }
 
@@ -76,7 +78,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         return ident;
     }
 
-    public void extendedAnalyzer(String name) {
+    void extendedAnalyzer(String name) {
         if (!fulltextAnalyzerResolver.hasAnalyzer(name)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Extended Analyzer '%s' does not exist", name));
@@ -87,59 +89,60 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     }
 
     @Nullable
-    public String extendedAnalyzerName() {
+    String extendedAnalyzerName() {
         return extendedAnalyzerName;
     }
 
-    public void tokenDefinition(String name, Settings settings) {
+    void tokenDefinition(String name, Settings settings) {
         tokenizerDefinition = new Tuple<>(name, settings);
     }
 
     @Nullable
-    public Tuple<String, Settings> tokenizerDefinition() {
+    Tuple<String, Settings> tokenizerDefinition() {
         return tokenizerDefinition;
     }
 
-    public Settings genericAnalyzerSettings() {
+    Settings genericAnalyzerSettings() {
         if (genericAnalyzerSettings == null) {
             genericAnalyzerSettings = genericAnalyzerSettingsBuilder.build();
         }
         return genericAnalyzerSettings;
     }
 
-    public Settings.Builder genericAnalyzerSettingsBuilder() {
+    Settings.Builder genericAnalyzerSettingsBuilder() {
         return genericAnalyzerSettingsBuilder;
     }
 
-    public void addTokenFilter(String name, Settings settings) {
+    void addTokenFilter(String name, Settings settings) {
         tokenFilters.put(name, settings);
     }
 
     @Nullable
-    public Map<String, Settings> tokenFilters() {
+    Map<String, Settings> tokenFilters() {
         return tokenFilters;
     }
 
-    public void addCharFilter(String name, Settings settings) {
+    void addCharFilter(String name, Settings settings) {
         charFilters.put(name, settings);
     }
 
     @Nullable
-    public Map<String, Settings> charFilters() {
+    Map<String, Settings> charFilters() {
         return charFilters;
     }
 
-    public boolean extendsCustomAnalyzer() {
+    private boolean extendsCustomAnalyzer() {
         return extendedAnalyzerName != null
                && extendedCustomAnalyzer != null
-               && extendedCustomAnalyzer.get(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s.type",
-            extendedAnalyzerName)).equals("custom");
+               && extendedCustomAnalyzer.get(ANALYZER.buildSettingChildName(extendedAnalyzerName, "type"))
+                   .equals("custom");
     }
 
-    public boolean extendsBuiltInAnalyzer() {
-        return extendedAnalyzerName != null && (extendedCustomAnalyzer == null ||
-                                                !extendedCustomAnalyzer.get(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s.type",
-                                                    extendedAnalyzerName)).equals("custom"));
+    private boolean extendsBuiltInAnalyzer() {
+        return extendedAnalyzerName != null
+               && (extendedCustomAnalyzer == null
+                   || !extendedCustomAnalyzer.get(ANALYZER.buildSettingChildName(extendedAnalyzerName, "type"))
+                       .equals("custom"));
     }
 
     /**
@@ -152,15 +155,17 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
 
         if (extendsCustomAnalyzer()) {
             // use analyzer-settings from extended analyzer only
-            Settings stripped = extendedCustomAnalyzer.getByPrefix(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s", extendedAnalyzerName));
+            Settings stripped = extendedCustomAnalyzer.getByPrefix(
+                ANALYZER.buildSettingChildNamePrefix(extendedAnalyzerName));
 
             for (String settingName : stripped.keySet()) {
-                builder.put("index.analysis.analyzer." + ident + settingName, stripped.get(settingName));
+                builder.put(ANALYZER.buildSettingChildName(ident, settingName), stripped.get(settingName));
             }
 
             if (tokenizerDefinition == null) {
                 // set tokenizer if not defined in extending analyzer
-                String extendedTokenizerName = extendedCustomAnalyzer.get(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s.tokenizer", extendedAnalyzerName));
+                String extendedTokenizerName = extendedCustomAnalyzer.get(
+                    ANALYZER.buildSettingChildName(extendedAnalyzerName, TOKENIZER.getName()));
                 if (extendedTokenizerName != null) {
                     Settings extendedTokenizerSettings = fulltextAnalyzerResolver.getCustomTokenizer(extendedTokenizerName);
                     if (extendedTokenizerSettings != null) {
@@ -173,7 +178,8 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
 
             if (tokenFilters.isEmpty()) {
                 // only use inherited tokenfilters if none are defined in extending analyzer
-                List<String> extendedTokenFilterNames = extendedCustomAnalyzer.getAsList(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s.filter", extendedAnalyzerName));
+                List<String> extendedTokenFilterNames = extendedCustomAnalyzer.getAsList(
+                    ANALYZER.buildSettingChildName(extendedAnalyzerName, TOKEN_FILTER.getName()));
                 for (String extendedTokenFilterName : extendedTokenFilterNames) {
                     Settings extendedTokenFilterSettings = fulltextAnalyzerResolver.getCustomTokenFilter(extendedTokenFilterName);
                     if (extendedTokenFilterSettings != null) {
@@ -186,7 +192,8 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
 
             if (charFilters.isEmpty()) {
                 // only use inherited charfilters if none are defined in extending analyzer
-                List<String> extendedCustomCharFilterNames = extendedCustomAnalyzer.getAsList(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s.char_filter", extendedAnalyzerName));
+                List<String> extendedCustomCharFilterNames = extendedCustomAnalyzer.getAsList(
+                    ANALYZER.buildSettingChildName(extendedAnalyzerName, CHAR_FILTER.getName()));
                 for (String extendedCustomCharFilterName : extendedCustomCharFilterNames) {
                     Settings extendedCustomCharFilterSettings = fulltextAnalyzerResolver.getCustomCharFilter(extendedCustomCharFilterName);
                     if (extendedCustomCharFilterSettings != null) {
@@ -209,37 +216,36 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         if (extendsBuiltInAnalyzer()) {
             if (extendedCustomAnalyzer != null) {
                 analyzerType = extendedCustomAnalyzer.get(
-                    String.format(Locale.ENGLISH, "index.analysis.analyzer.%s.type", extendedAnalyzerName)
-                );
+                    ANALYZER.buildSettingChildName(extendedAnalyzerName, "type"));
             } else {
                 // direct extending builtin analyzer, use name as type
                 analyzerType = extendedAnalyzerName;
             }
         }
         builder.put(
-            getSettingsKey("index.analysis.analyzer.%s.type", ident),
+            ANALYZER.buildSettingChildName(ident, "type"),
             analyzerType
         );
 
         if (tokenizerDefinition != null) {
             builder.put(
-                getSettingsKey("index.analysis.analyzer.%s.tokenizer", ident),
+                ANALYZER.buildSettingChildName(ident, TOKENIZER.getName()),
                 tokenizerDefinition.v1()
             );
         } else if (!extendsBuiltInAnalyzer()) {
             throw new UnsupportedOperationException("Tokenizer missing from non-extended analyzer");
         }
         if (charFilters.size() > 0) {
-            String[] charFilterNames = charFilters.keySet().toArray(new String[charFilters.size()]);
+            String[] charFilterNames = charFilters.keySet().toArray(new String[0]);
             builder.putList(
-                getSettingsKey("index.analysis.analyzer.%s.char_filter", ident),
+                ANALYZER.buildSettingChildName(ident, CHAR_FILTER.getName()),
                 charFilterNames
             );
         }
         if (tokenFilters.size() > 0) {
-            String[] tokenFilterNames = tokenFilters.keySet().toArray(new String[tokenFilters.size()]);
+            String[] tokenFilterNames = tokenFilters.keySet().toArray(new String[0]);
             builder.putList(
-                getSettingsKey("index.analysis.analyzer.%s.filter", ident),
+                ANALYZER.buildSettingChildName(ident, TOKEN_FILTER.getName()),
                 tokenFilterNames
             );
         }
@@ -252,37 +258,24 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
      * @return the analyzer settings corresponding to the analyzed <tt>CREATE ANALYZER</tt> statement
      * @throws org.elasticsearch.common.settings.SettingsException in case we can't build the settings yet
      */
-    public Settings buildSettings() throws IOException {
-
+    public Settings buildSettings() {
         Settings.Builder builder = Settings.builder();
-
         String encodedAnalyzerSettings = FulltextAnalyzerResolver.encodeSettings(analyzerSettings()).utf8ToString();
         builder.put(
-            CUSTOM_ANALYSIS_SETTINGS_PREFIX + "analyzer." + ident,
+            ANALYZER.buildSettingName(ident),
             encodedAnalyzerSettings
         );
 
-        // TODO: save original SQL statement, so it can be displayed at information_schema.routines
-        // set source
-        /*
-        builder.put(
-                String.format(Locale.ENGLISH, "%s.analyzer.%s.%s",
-                        Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX, ident,
-                        AnalyzerVisitor.SQL_STATEMENT_KEY),
-                sql_stmt
-        );
-        */
-
         if (tokenizerDefinition != null && !tokenizerDefinition.v2().isEmpty()) {
             builder.put(
-                CUSTOM_ANALYSIS_SETTINGS_PREFIX + "tokenizer." + tokenizerDefinition.v1(),
+                TOKENIZER.buildSettingName(tokenizerDefinition.v1()),
                 FulltextAnalyzerResolver.encodeSettings(tokenizerDefinition.v2()).utf8ToString()
             );
         }
         for (Map.Entry<String, Settings> tokenFilterDefinition : tokenFilters.entrySet()) {
             if (!tokenFilterDefinition.getValue().isEmpty()) {
                 builder.put(
-                    CUSTOM_ANALYSIS_SETTINGS_PREFIX + "filter." + tokenFilterDefinition.getKey(),
+                    TOKEN_FILTER.buildSettingName(tokenFilterDefinition.getKey()),
                     FulltextAnalyzerResolver.encodeSettings(tokenFilterDefinition.getValue()).utf8ToString()
                 );
             }
@@ -290,18 +283,11 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         for (Map.Entry<String, Settings> charFilterDefinition : charFilters.entrySet()) {
             if (!charFilterDefinition.getValue().isEmpty()) {
                 builder.put(
-                    CUSTOM_ANALYSIS_SETTINGS_PREFIX + "char_filter." + charFilterDefinition.getKey(),
+                    CHAR_FILTER.buildSettingName(charFilterDefinition.getKey()),
                     FulltextAnalyzerResolver.encodeSettings(charFilterDefinition.getValue()).utf8ToString()
                 );
             }
         }
         return builder.build();
-    }
-
-    public static String getSettingsKey(String suffix, Object... formatArgs) {
-        if (formatArgs != null) {
-            suffix = String.format(Locale.ENGLISH, suffix, formatArgs);
-        }
-        return suffix;
     }
 }

@@ -24,6 +24,7 @@ SQL Statements
     deallocate
     delete
     deny
+    drop-analyzer
     drop-function
     drop-ingest-rule
     drop-repository

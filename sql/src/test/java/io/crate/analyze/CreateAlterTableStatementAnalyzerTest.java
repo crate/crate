@@ -61,6 +61,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.hamcrest.Matchers.hasItem;
@@ -80,7 +81,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             Settings.builder().put("search", "foobar").build()).utf8ToString();
         MetaData metaData = MetaData.builder()
             .persistentSettings(
-                Settings.builder().put("crate.analysis.custom.analyzer.ft_search", analyzerSettings).build())
+                Settings.builder().put(ANALYZER.buildSettingName("ft_search"), analyzerSettings).build())
             .build();
         ClusterState state = ClusterState.builder(ClusterName.DEFAULT)
             .metaData(metaData)
