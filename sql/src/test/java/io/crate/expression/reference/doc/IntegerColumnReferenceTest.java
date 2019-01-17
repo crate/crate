@@ -21,46 +21,30 @@
 
 package io.crate.expression.reference.doc;
 
-import io.crate.expression.reference.doc.lucene.IntegerColumnReference;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.QueryTester;
+import org.elasticsearch.Version;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import static org.hamcrest.core.Is.is;
+import java.util.List;
+import java.util.stream.IntStream;
 
-public class IntegerColumnReferenceTest extends DocLevelExpressionsTest {
-
-   private String column = "i";
-
-    @Override
-    protected void insertValues(IndexWriter writer) throws Exception {
-        for (int i = -10; i < 10; i++) {
-            Document doc = new Document();
-            doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            doc.add(new NumericDocValuesField(column, i));
-            writer.addDocument(doc);
-        }
-    }
+public class IntegerColumnReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testIntegerExpression() throws Exception {
-        IntegerColumnReference integerColumn = new IntegerColumnReference(column);
-        integerColumn.startCollect(ctx);
-        integerColumn.setNextReader(readerContext);
-        IndexSearcher searcher = new IndexSearcher(readerContext.reader());
-        TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
-        int i = -10;
-        for (ScoreDoc doc : topDocs.scoreDocs) {
-            integerColumn.setNextDocId(doc.doc);
-            assertThat(integerColumn.value(), is(i));
-            i++;
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (x int)"
+        );
+        builder.indexValues("x", IntStream.range(-2, 3).boxed().toArray());
+        try (QueryTester tester = builder.build()) {
+            List<Object> objects = tester.runQuery("x", "true");
+            assertThat(objects, Matchers.contains(-2, -1, 0, 1, 2));
         }
     }
 }

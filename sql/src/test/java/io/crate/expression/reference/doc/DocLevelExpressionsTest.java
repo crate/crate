@@ -22,6 +22,11 @@
 package io.crate.expression.reference.doc;
 
 import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.IndexEnv;
+import io.crate.testing.SQLExecutor;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
@@ -29,6 +34,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.LogByteSizeMergePolicy;
 import org.apache.lucene.store.RAMDirectory;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
@@ -36,34 +42,52 @@ import org.elasticsearch.test.ESSingleNodeTestCase;
 import org.junit.After;
 import org.junit.Before;
 
-public abstract class DocLevelExpressionsTest extends ESSingleNodeTestCase {
+import java.util.stream.StreamSupport;
 
+public abstract class DocLevelExpressionsTest extends CrateDummyClusterServiceUnitTest {
+
+    private final String createTableStatement;
     protected CollectorContext ctx;
-    protected IndexFieldDataService ifd;
-    protected LeafReaderContext readerContext;
-    private IndexWriter writer;
+    private IndexFieldDataService ifd;
+    LeafReaderContext readerContext;
+    private IndexEnv indexEnv;
+
+    protected DocLevelExpressionsTest(String createTableStatement) {
+        this.createTableStatement = createTableStatement;
+    }
 
     @Before
     public void prepare() throws Exception {
-        Settings settings = Settings.builder().put("index.fielddata.cache", "none").build();
-        IndexService indexService = createIndex("test", settings);
-        ifd = indexService.fieldData();
-        writer = new IndexWriter(new RAMDirectory(),
-            new IndexWriterConfig(new StandardAnalyzer()).setMergePolicy(new LogByteSizeMergePolicy()));
-
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable(createTableStatement)
+            .build();
+        indexEnv = new IndexEnv(
+            THREAD_POOL,
+            StreamSupport.stream(e.schemas().spliterator(), false)
+                .filter(x -> x instanceof DocSchemaInfo)
+                .map(x -> (DocSchemaInfo) x)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No doc schema found"))
+                .getTables()
+                .iterator()
+                .next()
+                .ident(),
+            clusterService.state(),
+            Version.CURRENT,
+            createTempDir()
+        );
+        ifd = indexEnv.indexService().fieldData();
+        IndexWriter writer = indexEnv.writer();
         insertValues(writer);
-
         DirectoryReader directoryReader = DirectoryReader.open(writer, true, true);
         readerContext = directoryReader.leaves().get(0);
-
         ctx = new CollectorContext(ifd::getForField, null);
     }
 
     @After
     public void cleanUp() throws Exception {
-        writer.close();
-        writer.getDirectory().close();
         ifd.clear();
+        indexEnv.close();
     }
 
     protected abstract void insertValues(IndexWriter writer) throws Exception;

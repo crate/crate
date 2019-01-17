@@ -67,7 +67,6 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
-import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
@@ -123,20 +122,13 @@ public final class QueryTester implements AutoCloseable {
 
     public static class Builder {
 
-        private final LuceneQueryBuilder queryBuilder;
         private final DocTableInfo table;
-        private final MapperService mapperService;
-        private final AtomicReference<QueryShardContext> queryShardContext = new AtomicReference<>();
-        private final IndexCache indexCache;
         private final SQLExecutor sqlExecutor;
-        private final IndexWriter writer;
-        private final IndexFieldDataService indexFieldDataService;
         private final SqlExpressions expressions;
-        private final LuceneReferenceResolver luceneReferenceResolver;
-        private final NodeEnvironment nodeEnvironment;
         private final DocTableRelation docTableRelation;
         private final QualifiedName tableName;
-        private final IndexService indexService;
+        private final IndexEnv indexEnv;
+        private final LuceneQueryBuilder queryBuilder;
 
         public Builder(Path tempDir,
                        ThreadPool threadPool,
@@ -150,107 +142,21 @@ public final class QueryTester implements AutoCloseable {
 
             DocSchemaInfo docSchema = findDocSchema(sqlExecutor.schemas());
             table = (DocTableInfo) docSchema.getTables().iterator().next();
-            Index index = new Index(table.ident().indexNameOrAlias(), UUIDs.randomBase64UUID());
-            queryBuilder = new LuceneQueryBuilder(sqlExecutor.functions());
-            Settings nodeSettings = Settings.builder()
-                .put(IndexMetaData.SETTING_VERSION_CREATED, indexVersion)
-                .put("path.home", tempDir.toAbsolutePath())
-                .build();
-            Environment env = new Environment(nodeSettings, tempDir.resolve("config"));
-            IndexSettings idxSettings = IndexSettingsModule.newIndexSettings(index, nodeSettings);
-            AnalysisRegistry analysisRegistry = new AnalysisModule(env, Collections.emptyList()).getAnalysisRegistry();
-            IndexAnalyzers indexAnalyzers = analysisRegistry.build(idxSettings);
-            ScriptService scriptService = mock(ScriptService.class);
-            SimilarityService similarityService = new SimilarityService(
-                idxSettings, scriptService, Collections.emptyMap());
-            MapperRegistry mapperRegistry = new IndicesModule(Collections.singletonList(new MapperPlugin() {
-                @Override
-                public Map<String, Mapper.TypeParser> getMappers() {
-                    return Collections.singletonMap(ArrayMapper.CONTENT_TYPE, new ArrayTypeParser());
-                }
-            })).getMapperRegistry();
-            mapperService = new MapperService(
-                idxSettings,
-                indexAnalyzers,
-                NamedXContentRegistry.EMPTY,
-                similarityService,
-                mapperRegistry,
-                queryShardContext::get
-            );
-            IndexMetaData indexMetaData = clusterService.state().getMetaData().getIndices().get(table.concreteIndices()[0]);
-            mapperService.merge(
-                "default",
-                indexMetaData.mappingOrDefault("default").source(),
-                MapperService.MergeReason.MAPPING_UPDATE,
-                true
-            );
-            BitsetFilterCache bitsetFilterCache = new BitsetFilterCache(
-                idxSettings,
-                mock(BitsetFilterCache.Listener.class)
-            );
-            DisabledQueryCache queryCache = new DisabledQueryCache(idxSettings);
-            indexCache = new IndexCache(
-                idxSettings,
-                queryCache,
-                bitsetFilterCache
-            );
-            IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, new InternalEngineFactory(), Collections.emptyMap());
-            Client client = mock(Client.class);
-            NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(ClusterModule.getNamedWriteables());
-            nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env, nodeId -> {});
-            luceneReferenceResolver = new LuceneReferenceResolver(
-                mapperService::fullName,
-                idxSettings
-            );
-            indexService = indexModule.newIndexService(
-                nodeEnvironment,
-                NamedXContentRegistry.EMPTY,
-                new IndexService.ShardStoreDeleter() {
-                    @Override
-                    public void deleteShardStore(String reason, ShardLock lock, IndexSettings indexSettings) throws IOException {
 
-                    }
-
-                    @Override
-                    public void addPendingDelete(ShardId shardId, IndexSettings indexSettings) {
-
-                    }
-                },
-                new NoneCircuitBreakerService(),
-                BigArrays.NON_RECYCLING_INSTANCE,
+            indexEnv = new IndexEnv(
                 threadPool,
-                scriptService,
-                client,
-                new IndicesQueryCache(Settings.EMPTY),
-                mapperRegistry,
-                new IndicesFieldDataCache(Settings.EMPTY, mock(IndexFieldDataCache.Listener.class)),
-                namedWriteableRegistry
+                table.ident(),
+                clusterService.state(),
+                indexVersion,
+                tempDir
             );
-            indexFieldDataService = indexService.fieldData();
-            IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());
-            writer = new IndexWriter(new RAMDirectory(), conf);
+            queryBuilder = new LuceneQueryBuilder(sqlExecutor.functions());
             tableName = new QualifiedName(table.ident().name());
             docTableRelation = new DocTableRelation(table);
             expressions = new SqlExpressions(
                 Collections.singletonMap(tableName, docTableRelation),
                 docTableRelation
             );
-            DirectoryReader reader = DirectoryReader.open(writer, true, true);
-            queryShardContext.set(new QueryShardContext(
-                0,
-                idxSettings,
-                bitsetFilterCache,
-                indexFieldDataService::getForField,
-                Builder.this.mapperService,
-                similarityService,
-                scriptService,
-                NamedXContentRegistry.EMPTY,
-                namedWriteableRegistry,
-                client,
-                reader,
-                System::currentTimeMillis,
-                "dummyClusterAlias"
-            ));
         }
 
         private DocSchemaInfo findDocSchema(Schemas schemas) {
@@ -270,7 +176,7 @@ public final class QueryTester implements AutoCloseable {
         }
 
         void indexValue(String column, Object value) throws IOException {
-            DocumentMapper mapper = mapperService.documentMapperWithAutoCreate("default").getDocumentMapper();
+            DocumentMapper mapper = indexEnv.mapperService().documentMapperWithAutoCreate("default").getDocumentMapper();
             InsertSourceGen sourceGen = InsertSourceGen.of(
                 CoordinatorTxnCtx.systemTransactionContext(),
                 sqlExecutor.functions(),
@@ -287,18 +193,18 @@ public final class QueryTester implements AutoCloseable {
                 XContentType.JSON
             );
             ParsedDocument parsedDocument = mapper.parse(sourceToParse);
-            writer.addDocuments(parsedDocument.docs());
+            indexEnv.writer().addDocuments(parsedDocument.docs());
         }
 
         private LuceneBatchIterator getIterator(ColumnIdent column, Query query) {
             InputFactory inputFactory = new InputFactory(sqlExecutor.functions());
             InputFactory.Context<LuceneCollectorExpression<?>> ctx = inputFactory.ctxForRefs(
-                CoordinatorTxnCtx.systemTransactionContext(), luceneReferenceResolver);
+                CoordinatorTxnCtx.systemTransactionContext(), indexEnv.luceneReferenceResolver());
             Input<?> input = ctx.add(requireNonNull(table.getReference(column),
                 "column must exist in created table: " + column));
             IndexSearcher indexSearcher;
             try {
-                indexSearcher = new IndexSearcher(DirectoryReader.open(writer));
+                indexSearcher = new IndexSearcher(DirectoryReader.open(indexEnv.writer()));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -307,7 +213,7 @@ public final class QueryTester implements AutoCloseable {
                 query,
                 null,
                 false,
-                new CollectorContext(queryShardContext.get()::getForField, new CollectorFieldsVisitor(1)),
+                new CollectorContext(indexEnv.queryShardContext()::getForField, new CollectorFieldsVisitor(1)),
                 new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
                 Collections.singletonList(input),
                 ctx.expressions()
@@ -315,7 +221,7 @@ public final class QueryTester implements AutoCloseable {
         }
 
         public QueryTester build() throws IOException {
-            writer.commit();
+            indexEnv.writer().commit();
             CoordinatorTxnCtx systemTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
             return new QueryTester(
                 this::getIterator,
@@ -332,12 +238,14 @@ public final class QueryTester implements AutoCloseable {
                         return sqlExpressions.normalize(sqlExpressions.asSymbol(expr));
                     }
                 },
-                symbol -> queryBuilder.convert(symbol, systemTxnCtx, mapperService, queryShardContext.get(), indexCache).query(),
-                () -> {
-                    indexService.close("stopping", true);
-                    writer.close();
-                    nodeEnvironment.close();
-                }
+                symbol -> queryBuilder.convert(
+                    symbol,
+                    systemTxnCtx,
+                    indexEnv.mapperService(),
+                    indexEnv.queryShardContext(),
+                    indexEnv.indexCache()
+                ).query(),
+                indexEnv
             );
         }
     }

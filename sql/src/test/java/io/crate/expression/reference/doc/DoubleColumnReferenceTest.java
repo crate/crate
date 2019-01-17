@@ -40,6 +40,10 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
 
     private String column = "d";
 
+    public DoubleColumnReferenceTest() {
+        super("create table t (d double)");
+    }
+
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (double d = 0.5; d < 10.0d; d++) {

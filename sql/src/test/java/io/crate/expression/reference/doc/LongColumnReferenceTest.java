@@ -39,6 +39,10 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
 
     private String column = "l";
 
+    public LongColumnReferenceTest() {
+        super("create table t (l long)");
+    }
+
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (long l = Long.MIN_VALUE; l < Long.MIN_VALUE + 10; l++) {

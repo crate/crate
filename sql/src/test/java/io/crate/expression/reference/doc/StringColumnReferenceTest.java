@@ -38,9 +38,13 @@ import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class BytesRefColumnReferenceTest extends DocLevelExpressionsTest {
+public class StringColumnReferenceTest extends DocLevelExpressionsTest {
 
     private String column = "b";
+
+    public StringColumnReferenceTest() {
+        super("create table t (b string)");
+    }
 
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
