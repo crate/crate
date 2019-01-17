@@ -42,14 +42,15 @@ None
 Changes
 =======
 
+- Added support for the ``first_value``, ``last_value`` and ``nth_value``
+  window functions as enterprise features.
+
 - Implemented the ``DROP ANALYZER`` statement to support removal of custom
   analyzer definitions from the cluster.
 
 - Output the custom analyzer/tokenizer/token_filter/char_filter definition inside
   the ``information_schema.routines.routine_definition`` column.
 
-- Added support for the ``last_value`` window function as an enterprise
-  feature.
 
 - Added a ``pg_description`` table to the ``pg_catalog`` schema for improved
   postgresql compatibility.

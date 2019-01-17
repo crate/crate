@@ -34,7 +34,7 @@ import java.util.Collection;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
-public class LastValueFunctionIntegrationTest extends SQLTransportIntegrationTest {
+public class NthValueFunctionIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
@@ -48,6 +48,15 @@ public class LastValueFunctionIntegrationTest extends SQLTransportIntegrationTes
         ArrayList<Class<? extends Plugin>> plugins = new ArrayList<>(super.nodePlugins());
         plugins.add(EnterpriseFunctionsProxyTestPlugin.class);
         return plugins;
+    }
+
+    @Test
+    public void testFirstValue() {
+        execute("select col1, first_value(col1) OVER(order by col2, col1) from unnest([1, 1, 3, 2], [1, 2, 2, 3]) order by col1, col2");
+        assertThat(printedTable(response.rows()), is("1| 1\n" +
+                                                     "1| 1\n" +
+                                                     "2| 1\n" +
+                                                     "3| 1\n"));
     }
 
     @Test
@@ -69,6 +78,26 @@ public class LastValueFunctionIntegrationTest extends SQLTransportIntegrationTes
                                                      "cc| cc| 2\n" +
                                                      "cc| cc| 2\n" +
                                                      "d| d| 1\n"));
+    }
+
+    @Test
+    public void testNthValue() {
+        execute("select col1, col2, nth_value(col1, 4) OVER(order by col2, col1) from unnest([1, 1, 1, 3, 2], [1, 2, 2, 2, 3]) order by col1");
+        assertThat(printedTable(response.rows()), is("1| 1| NULL\n" +
+                                                     "1| 2| NULL\n" +
+                                                     "1| 2| NULL\n" +
+                                                     "2| 3| 3\n" +
+                                                     "3| 2| 3\n"));
+    }
+
+    @Test
+    public void testNtvValueWithNullPositionReturnsNull() {
+        execute("select nth_value(col1, null) OVER(order by col2, col1) from unnest([1, 1, 1, 3, 2], [1, 2, 2, 2, 3]) order by col1");
+        assertThat(printedTable(response.rows()), is("NULL\n" +
+                                                     "NULL\n" +
+                                                     "NULL\n" +
+                                                     "NULL\n" +
+                                                     "NULL\n"));
     }
 
 }
