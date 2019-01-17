@@ -26,7 +26,6 @@ import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.rest.yaml.ESClientYamlSuiteTestCase;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.runner.Description;
 import org.junit.runner.notification.Failure;
@@ -38,8 +37,6 @@ import java.util.TimeZone;
 import static com.carrotsearch.randomizedtesting.SysGlobals.SYSPROP_ITERATIONS;
 import static com.carrotsearch.randomizedtesting.SysGlobals.SYSPROP_PREFIX;
 import static com.carrotsearch.randomizedtesting.SysGlobals.SYSPROP_TESTMETHOD;
-import static org.elasticsearch.test.rest.yaml.ESClientYamlSuiteTestCase.REST_TESTS_BLACKLIST;
-import static org.elasticsearch.test.rest.yaml.ESClientYamlSuiteTestCase.REST_TESTS_SUITE;
 
 /**
  * A {@link RunListener} that emits a command you can use to re-run a failing test with the failing random seed to
@@ -81,11 +78,6 @@ public class ReproduceInfoPrinter extends RunListener {
 
         GradleMessageBuilder gradleMessageBuilder = new GradleMessageBuilder(b);
         gradleMessageBuilder.appendAllOpts(failure.getDescription());
-
-        // Client yaml suite tests are a special case as they allow for additional parameters
-        if (ESClientYamlSuiteTestCase.class.isAssignableFrom(failure.getDescription().getTestClass())) {
-            gradleMessageBuilder.appendClientYamlSuiteProperties();
-        }
 
         printToErr(b.toString());
     }
@@ -161,10 +153,6 @@ public class ReproduceInfoPrinter extends RunListener {
             appendOpt("javax.net.ssl.keyStorePassword", System.getProperty("javax.net.ssl.keyStorePassword"));
             appendOpt("javax.net.ssl.trustStorePassword", System.getProperty("javax.net.ssl.trustStorePassword"));
             return this;
-        }
-
-        public ReproduceErrorMessageBuilder appendClientYamlSuiteProperties() {
-            return appendProperties(REST_TESTS_SUITE, REST_TESTS_BLACKLIST);
         }
 
         protected ReproduceErrorMessageBuilder appendProperties(String... properties) {
