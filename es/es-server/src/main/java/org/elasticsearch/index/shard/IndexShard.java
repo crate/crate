@@ -86,8 +86,6 @@ import org.elasticsearch.index.engine.SegmentsStats;
 import org.elasticsearch.index.fielddata.FieldDataStats;
 import org.elasticsearch.index.fielddata.ShardFieldData;
 import org.elasticsearch.index.flush.FlushStats;
-import org.elasticsearch.index.get.GetStats;
-import org.elasticsearch.index.get.ShardGetService;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.DocumentMapperForType;
 import org.elasticsearch.index.mapper.IdFieldMapper;
@@ -102,8 +100,6 @@ import org.elasticsearch.index.mapper.UidFieldMapper;
 import org.elasticsearch.index.merge.MergeStats;
 import org.elasticsearch.index.recovery.RecoveryStats;
 import org.elasticsearch.index.refresh.RefreshStats;
-import org.elasticsearch.index.search.stats.SearchStats;
-import org.elasticsearch.index.search.stats.ShardSearchStats;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -128,13 +124,11 @@ import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.search.suggest.completion.CompletionStats;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.UncheckedIOException;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -167,8 +161,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     private final IndexCache indexCache;
     private final Store store;
     private final InternalIndexingStats internalIndexingStats;
-    private final ShardSearchStats searchStats = new ShardSearchStats();
-    private final ShardGetService getService;
     private final ShardIndexWarmerService shardWarmerService;
     private final ShardRequestCache requestCacheStats;
     private final ShardFieldData shardFieldData;
@@ -183,8 +175,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     private final Supplier<Sort> indexSortSupplier;
     // Package visible for testing
     final CircuitBreakerService circuitBreakerService;
-
-    private final SearchOperationListener searchOperationListener;
 
     private final GlobalCheckpointListeners globalCheckpointListeners;
     private final ReplicationTracker replicationTracker;
@@ -251,7 +241,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             ThreadPool threadPool,
             BigArrays bigArrays,
             Engine.Warmer warmer,
-            List<SearchOperationListener> searchOperationListener,
             List<IndexingOperationListener> listeners,
             Runnable globalCheckpointSyncer,
             CircuitBreakerService circuitBreakerService) throws IOException {
@@ -274,10 +263,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         listenersList.add(internalIndexingStats);
         this.indexingOperationListeners = new IndexingOperationListener.CompositeListener(listenersList, logger);
         this.globalCheckpointSyncer = globalCheckpointSyncer;
-        final List<SearchOperationListener> searchListenersList = new ArrayList<>(searchOperationListener);
-        searchListenersList.add(searchStats);
-        this.searchOperationListener = new SearchOperationListener.CompositeListener(searchListenersList, logger);
-        this.getService = new ShardGetService(indexSettings, this, mapperService);
         this.shardWarmerService = new ShardIndexWarmerService(shardId, indexSettings);
         this.requestCacheStats = new ShardRequestCache();
         this.shardFieldData = new ShardFieldData();
@@ -339,20 +324,12 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return indexSortSupplier.get();
     }
 
-    public ShardGetService getService() {
-        return this.getService;
-    }
-
     public ShardBitsetFilterCache shardBitsetFilterCache() {
         return shardBitsetFilterCache;
     }
 
     public MapperService mapperService() {
         return mapperService;
-    }
-
-    public SearchOperationListener getSearchOperationListener() {
-        return this.searchOperationListener;
     }
 
     public ShardIndexWarmerService warmerService() {
@@ -954,14 +931,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return internalIndexingStats.stats(throttled, throttleTimeInMillis, types);
     }
 
-    public SearchStats searchStats(String... groups) {
-        return searchStats.stats(groups);
-    }
-
-    public GetStats getStats() {
-        return getService.stats();
-    }
-
     public StoreStats storeStats() {
         try {
             return store.stats();
@@ -995,18 +964,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     public TranslogStats translogStats() {
         return getEngine().getTranslogStats();
-    }
-
-    public CompletionStats completionStats(String... fields) {
-        readAllowed();
-        try {
-            CompletionStats stats = getEngine().completionStats(fields);
-            // we don't wait for a pending refreshes here since it's a stats call instead we mark it as accessed only which will cause
-            // the next scheduled refresh to go through and refresh the stats as well
-            return stats;
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
     }
 
     public Engine.SyncedFlushResult syncFlush(String syncId, Engine.CommitId expectedCommitId) {

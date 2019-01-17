@@ -19,7 +19,6 @@
 package org.elasticsearch.common.settings;
 
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.action.support.DestructiveOperations;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
@@ -27,7 +26,6 @@ import org.elasticsearch.bootstrap.BootstrapSettings;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.InternalClusterInfoService;
 import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.metadata.IndexGraveyard;
@@ -83,11 +81,7 @@ import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.search.SearchModule;
-import org.elasticsearch.search.SearchService;
-import org.elasticsearch.search.fetch.subphase.highlight.FastVectorHighlighter;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.RemoteClusterAware;
-import org.elasticsearch.transport.RemoteClusterService;
 import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
@@ -95,7 +89,6 @@ import org.elasticsearch.transport.TransportService;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -204,8 +197,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_INCLUDE_RELOCATIONS_SETTING,
                     DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING,
                     SameShardAllocationDecider.CLUSTER_ROUTING_ALLOCATION_SAME_HOST_SETTING,
-                    InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING,
-                    InternalClusterInfoService.INTERNAL_CLUSTER_INFO_TIMEOUT_SETTING,
                     DestructiveOperations.REQUIRES_NAME_SETTING,
                     DiscoverySettings.PUBLISH_TIMEOUT_SETTING,
                     DiscoverySettings.PUBLISH_DIFF_ENABLE_SETTING,
@@ -266,24 +257,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     IndexModule.NODE_STORE_ALLOW_MMAPFS,
                     ClusterService.CLUSTER_SERVICE_SLOW_TASK_LOGGING_THRESHOLD_SETTING,
                     ClusterService.USER_DEFINED_META_DATA,
-                    SearchService.DEFAULT_SEARCH_TIMEOUT_SETTING,
-                    SearchService.DEFAULT_ALLOW_PARTIAL_SEARCH_RESULTS,
                     ElectMasterService.DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING,
-                    TransportSearchAction.SHARD_COUNT_LIMIT_SETTING,
-                    RemoteClusterAware.REMOTE_CLUSTERS_SEEDS,
-                    RemoteClusterAware.SEARCH_REMOTE_CLUSTERS_SEEDS,
-                    RemoteClusterAware.REMOTE_CLUSTERS_PROXY,
-                    RemoteClusterAware.SEARCH_REMOTE_CLUSTERS_PROXY,
-                    RemoteClusterService.REMOTE_CLUSTER_SKIP_UNAVAILABLE,
-                    RemoteClusterService.SEARCH_REMOTE_CLUSTER_SKIP_UNAVAILABLE,
-                    RemoteClusterService.REMOTE_CONNECTIONS_PER_CLUSTER,
-                    RemoteClusterService.SEARCH_REMOTE_CONNECTIONS_PER_CLUSTER,
-                    RemoteClusterService.REMOTE_INITIAL_CONNECTION_TIMEOUT_SETTING,
-                    RemoteClusterService.SEARCH_REMOTE_INITIAL_CONNECTION_TIMEOUT_SETTING,
-                    RemoteClusterService.REMOTE_NODE_ATTRIBUTE,
-                    RemoteClusterService.SEARCH_REMOTE_NODE_ATTRIBUTE,
-                    RemoteClusterService.ENABLE_REMOTE_CLUSTERS,
-                    RemoteClusterService.SEARCH_ENABLE_REMOTE_CLUSTERS,
                     TransportService.TRACE_LOG_EXCLUDE_SETTING,
                     TransportService.TRACE_LOG_INCLUDE_SETTING,
                     ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING,
@@ -364,10 +338,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     SettingsBasedHostsProvider.DISCOVERY_ZEN_PING_UNICAST_HOSTS_SETTING,
                     UnicastZenPing.DISCOVERY_ZEN_PING_UNICAST_CONCURRENT_CONNECTS_SETTING,
                     UnicastZenPing.DISCOVERY_ZEN_PING_UNICAST_HOSTS_RESOLVE_TIMEOUT,
-                    SearchService.DEFAULT_KEEPALIVE_SETTING,
-                    SearchService.KEEPALIVE_INTERVAL_SETTING,
-                    SearchService.MAX_KEEPALIVE_SETTING,
-                    SearchService.LOW_LEVEL_CANCELLATION_SETTING,
                     Node.WRITE_PORTS_FILE_SETTING,
                     Node.NODE_NAME_SETTING,
                     Node.NODE_DATA_SETTING,
@@ -417,15 +387,8 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     IndexingMemoryController.SHARD_MEMORY_INTERVAL_TIME_SETTING,
                     SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING,
                     ThreadPool.ESTIMATED_TIME_INTERVAL_SETTING,
-                    FastVectorHighlighter.SETTING_TV_HIGHLIGHT_MULTI_VALUE,
                     Node.BREAKER_TYPE_KEY,
                     OperationRouting.USE_ADAPTIVE_REPLICA_SELECTION_SETTING,
                     IndexGraveyard.SETTING_MAX_TOMBSTONES
             )));
-
-    public static List<SettingUpgrader<?>> BUILT_IN_SETTING_UPGRADERS = Collections.unmodifiableList(Arrays.asList(
-            RemoteClusterAware.SEARCH_REMOTE_CLUSTER_SEEDS_UPGRADER,
-            RemoteClusterAware.SEARCH_REMOTE_CLUSTERS_PROXY_UPGRADER,
-            RemoteClusterService.SEARCH_REMOTE_CLUSTER_SKIP_UNAVAILABLE_UPGRADER));
-
 }

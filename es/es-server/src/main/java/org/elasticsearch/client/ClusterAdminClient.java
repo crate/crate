@@ -38,9 +38,6 @@ import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteResponse;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequestBuilder;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
@@ -147,26 +144,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Nodes info of the cluster.
      */
     NodesInfoRequestBuilder prepareNodesInfo(String... nodesIds);
-
-    /**
-     * Returns list of shards the given search would be executed on.
-     */
-    ActionFuture<ClusterSearchShardsResponse> searchShards(ClusterSearchShardsRequest request);
-
-    /**
-     * Returns list of shards the given search would be executed on.
-     */
-    void searchShards(ClusterSearchShardsRequest request, ActionListener<ClusterSearchShardsResponse> listener);
-
-    /**
-     * Returns list of shards the given search would be executed on.
-     */
-    ClusterSearchShardsRequestBuilder prepareSearchShards();
-
-    /**
-     * Returns list of shards the given search would be executed on.
-     */
-    ClusterSearchShardsRequestBuilder prepareSearchShards(String... indices);
 
     /**
      * Registers a snapshot repository.

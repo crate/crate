@@ -30,10 +30,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
-import org.elasticsearch.action.search.SearchPhaseExecutionException;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
 import org.elasticsearch.action.support.master.AcknowledgedRequestBuilder;
@@ -48,8 +44,6 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.suggest.Suggest;
 import org.elasticsearch.test.NotEqualMessageBuilder;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
@@ -181,120 +175,6 @@ public class ElasticsearchAssertions {
         return msg.toString();
     }
 
-    public static String formatShardStatus(SearchResponse response) {
-        StringBuilder msg = new StringBuilder();
-        msg.append(" Total shards: ").append(response.getTotalShards())
-           .append(" Successful shards: ").append(response.getSuccessfulShards())
-           .append(" & ").append(response.getFailedShards()).append(" shard failures:");
-        for (ShardSearchFailure failure : response.getShardFailures()) {
-            msg.append("\n ").append(failure);
-        }
-        return msg.toString();
-    }
-
-    public static void assertNoSearchHits(SearchResponse searchResponse) {
-        assertEquals(0, searchResponse.getHits().getHits().length);
-    }
-
-    public static void assertSearchHits(SearchResponse searchResponse, String... ids) {
-        String shardStatus = formatShardStatus(searchResponse);
-
-        Set<String> idsSet = new HashSet<>(Arrays.asList(ids));
-        for (SearchHit hit : searchResponse.getHits()) {
-            assertThat(
-                    "id [" + hit.getId() + "] was found in search results but wasn't expected (type [" + hit.getType()
-                        + "], index [" + hit.getIndex() + "])" + shardStatus, idsSet.remove(hit.getId()),
-                    equalTo(true));
-        }
-        assertThat("Some expected ids were not found in search results: " + Arrays.toString(idsSet.toArray(new String[idsSet.size()])) + "."
-                + shardStatus, idsSet.size(), equalTo(0));
-    }
-
-    public static void assertSortValues(SearchResponse searchResponse, Object[]... sortValues) {
-        assertSearchResponse(searchResponse);
-        SearchHit[] hits = searchResponse.getHits().getHits();
-        assertEquals(sortValues.length, hits.length);
-        for (int i = 0; i < sortValues.length; ++i) {
-            final Object[] hitsSortValues = hits[i].getSortValues();
-            assertArrayEquals("Offset " + Integer.toString(i) + ", id " + hits[i].getId(), sortValues[i], hitsSortValues);
-        }
-    }
-
-    public static void assertOrderedSearchHits(SearchResponse searchResponse, String... ids) {
-        String shardStatus = formatShardStatus(searchResponse);
-        assertThat("Expected different hit count. " + shardStatus, searchResponse.getHits().getHits().length, equalTo(ids.length));
-        for (int i = 0; i < ids.length; i++) {
-            SearchHit hit = searchResponse.getHits().getHits()[i];
-            assertThat("Expected id: " + ids[i] + " at position " + i + " but wasn't." + shardStatus, hit.getId(), equalTo(ids[i]));
-        }
-    }
-
-    public static void assertHitCount(SearchResponse countResponse, long expectedHitCount) {
-        if (countResponse.getHits().getTotalHits() != expectedHitCount) {
-            fail("Count is " + countResponse.getHits().getTotalHits() + " but " + expectedHitCount
-                    + " was expected. " + formatShardStatus(countResponse));
-        }
-    }
-
-    public static void assertFirstHit(SearchResponse searchResponse, Matcher<SearchHit> matcher) {
-        assertSearchHit(searchResponse, 1, matcher);
-    }
-
-    public static void assertSecondHit(SearchResponse searchResponse, Matcher<SearchHit> matcher) {
-        assertSearchHit(searchResponse, 2, matcher);
-    }
-
-    public static void assertThirdHit(SearchResponse searchResponse, Matcher<SearchHit> matcher) {
-        assertSearchHit(searchResponse, 3, matcher);
-    }
-
-    public static void assertFourthHit(SearchResponse searchResponse, Matcher<SearchHit> matcher) {
-        assertSearchHit(searchResponse, 4, matcher);
-    }
-
-    public static void assertFifthHit(SearchResponse searchResponse, Matcher<SearchHit> matcher) {
-        assertSearchHit(searchResponse, 5, matcher);
-    }
-
-    public static void assertSearchHit(SearchResponse searchResponse, int number, Matcher<SearchHit> matcher) {
-        assertThat(number, greaterThan(0));
-        assertThat("SearchHit number must be greater than 0", number, greaterThan(0));
-        assertThat(searchResponse.getHits().getTotalHits(), greaterThanOrEqualTo((long) number));
-        assertThat(searchResponse.getHits().getAt(number - 1), matcher);
-    }
-
-    public static void assertNoFailures(SearchResponse searchResponse) {
-        assertThat("Unexpected ShardFailures: " + Arrays.toString(searchResponse.getShardFailures()),
-                searchResponse.getShardFailures().length, equalTo(0));
-    }
-
-    public static void assertFailures(SearchResponse searchResponse) {
-        assertThat("Expected at least one shard failure, got none",
-                searchResponse.getShardFailures().length, greaterThan(0));
-    }
-
-    public static void assertFailures(SearchRequestBuilder searchRequestBuilder, RestStatus restStatus, Matcher<String> reasonMatcher) {
-        //when the number for shards is randomized and we expect failures
-        //we can either run into partial or total failures depending on the current number of shards
-        try {
-            SearchResponse searchResponse = searchRequestBuilder.get();
-            assertThat("Expected shard failures, got none", searchResponse.getShardFailures().length, greaterThan(0));
-            for (ShardSearchFailure shardSearchFailure : searchResponse.getShardFailures()) {
-                assertThat(shardSearchFailure.status(), equalTo(restStatus));
-                assertThat(shardSearchFailure.reason(), reasonMatcher);
-            }
-        } catch (SearchPhaseExecutionException e) {
-            assertThat(e.status(), equalTo(restStatus));
-            assertThat(e.toString(), reasonMatcher);
-            for (ShardSearchFailure shardSearchFailure : e.shardFailures()) {
-                assertThat(shardSearchFailure.status(), equalTo(restStatus));
-                assertThat(shardSearchFailure.reason(), reasonMatcher);
-            }
-        } catch (Exception e) {
-            fail("SearchPhaseExecutionException expected but got " + e.getClass());
-        }
-    }
-
     public static void assertNoFailures(BroadcastResponse response) {
         assertThat("Unexpected ShardFailures: " + Arrays.toString(response.getShardFailures()), response.getFailedShards(), equalTo(0));
     }
@@ -303,102 +183,6 @@ public class ElasticsearchAssertions {
         assertNoFailures(response);
         assertThat("Expected all shards successful",
                 response.getSuccessfulShards(), equalTo(response.getTotalShards()));
-    }
-
-    public static void assertAllSuccessful(SearchResponse response) {
-        assertNoFailures(response);
-        assertThat("Expected all shards successful",
-                response.getSuccessfulShards(), equalTo(response.getTotalShards()));
-    }
-
-    public static void assertHighlight(SearchResponse resp, int hit, String field, int fragment, Matcher<String> matcher) {
-        assertHighlight(resp, hit, field, fragment, greaterThan(fragment), matcher);
-    }
-
-    public static void assertHighlight(SearchResponse resp, int hit, String field, int fragment,
-            int totalFragments, Matcher<String> matcher) {
-        assertHighlight(resp, hit, field, fragment, equalTo(totalFragments), matcher);
-    }
-
-    public static void assertHighlight(SearchHit hit, String field, int fragment, Matcher<String> matcher) {
-        assertHighlight(hit, field, fragment, greaterThan(fragment), matcher);
-    }
-
-    public static void assertHighlight(SearchHit hit, String field, int fragment, int totalFragments, Matcher<String> matcher) {
-        assertHighlight(hit, field, fragment, equalTo(totalFragments), matcher);
-    }
-
-    private static void assertHighlight(SearchResponse resp, int hit, String field, int fragment,
-            Matcher<Integer> fragmentsMatcher, Matcher<String> matcher) {
-        assertNoFailures(resp);
-        assertThat("not enough hits", resp.getHits().getHits().length, greaterThan(hit));
-        assertHighlight(resp.getHits().getHits()[hit], field, fragment, fragmentsMatcher, matcher);
-    }
-
-    private static void assertHighlight(SearchHit hit, String field, int fragment,
-            Matcher<Integer> fragmentsMatcher, Matcher<String> matcher) {
-        assertThat(hit.getHighlightFields(), hasKey(field));
-        assertThat(hit.getHighlightFields().get(field).fragments().length, fragmentsMatcher);
-        assertThat(hit.getHighlightFields().get(field).fragments()[fragment].string(), matcher);
-    }
-
-    public static void assertNotHighlighted(SearchResponse resp, int hit, String field) {
-        assertNoFailures(resp);
-        assertThat("not enough hits", resp.getHits().getHits().length, greaterThan(hit));
-        assertThat(resp.getHits().getHits()[hit].getHighlightFields(), not(hasKey(field)));
-    }
-
-    public static void assertSuggestionSize(Suggest searchSuggest, int entry, int size, String key) {
-        assertThat(searchSuggest, notNullValue());
-        String msg = "Suggest result: " + searchSuggest.toString();
-        assertThat(msg, searchSuggest.size(), greaterThanOrEqualTo(1));
-        assertThat(msg, searchSuggest.getSuggestion(key).getName(), equalTo(key));
-        assertThat(msg, searchSuggest.getSuggestion(key).getEntries().size(), greaterThanOrEqualTo(entry));
-        assertThat(msg, searchSuggest.getSuggestion(key).getEntries().get(entry).getOptions().size(), equalTo(size));
-    }
-
-    public static void assertSuggestionPhraseCollateMatchExists(Suggest searchSuggest, String key, int numberOfPhraseExists) {
-        int counter = 0;
-        assertThat(searchSuggest, notNullValue());
-        String msg = "Suggest result: " + searchSuggest.toString();
-        assertThat(msg, searchSuggest.size(), greaterThanOrEqualTo(1));
-        assertThat(msg, searchSuggest.getSuggestion(key).getName(), equalTo(key));
-
-        for (Suggest.Suggestion.Entry.Option option : searchSuggest.getSuggestion(key).getEntries().get(0).getOptions()) {
-            if (option.collateMatch()) {
-                counter++;
-            }
-        }
-
-        assertThat(counter, equalTo(numberOfPhraseExists));
-    }
-
-    public static void assertSuggestion(Suggest searchSuggest, int entry, int ord, String key, String text) {
-        assertThat(searchSuggest, notNullValue());
-        String msg = "Suggest result: " + searchSuggest.toString();
-        assertThat(msg, searchSuggest.size(), greaterThanOrEqualTo(1));
-        assertThat(msg, searchSuggest.getSuggestion(key).getName(), equalTo(key));
-        assertThat(msg, searchSuggest.getSuggestion(key).getEntries().size(), greaterThanOrEqualTo(entry));
-        assertThat(msg, searchSuggest.getSuggestion(key).getEntries().get(entry).getOptions().size(), greaterThan(ord));
-        assertThat(msg, searchSuggest.getSuggestion(key).getEntries().get(entry).getOptions().get(ord).getText().string(), equalTo(text));
-    }
-
-    /**
-     * Assert suggestion returns exactly the provided text.
-     */
-    public static void assertSuggestion(Suggest searchSuggest, int entry, String key, String... text) {
-        assertSuggestion(searchSuggest, entry, key, text.length, text);
-    }
-
-    /**
-     * Assert suggestion returns size suggestions and the first are the provided
-     * text.
-     */
-    public static void assertSuggestion(Suggest searchSuggest, int entry, String key, int size, String... text) {
-        assertSuggestionSize(searchSuggest, entry, size, key);
-        for (int i = 0; i < text.length; i++) {
-            assertSuggestion(searchSuggest, entry, i, key, text[i]);
-        }
     }
 
     /**
@@ -421,25 +205,6 @@ public class ElasticsearchAssertions {
             templateNames.add(indexTemplateMetaData.name());
         }
         assertThat(templateNames, hasItem(name));
-    }
-
-    /*
-     * matchers
-     */
-    public static Matcher<SearchHit> hasId(final String id) {
-        return new ElasticsearchMatchers.SearchHitHasIdMatcher(id);
-    }
-
-    public static Matcher<SearchHit> hasType(final String type) {
-        return new ElasticsearchMatchers.SearchHitHasTypeMatcher(type);
-    }
-
-    public static Matcher<SearchHit> hasIndex(final String index) {
-        return new ElasticsearchMatchers.SearchHitHasIndexMatcher(index);
-    }
-
-    public static Matcher<SearchHit> hasScore(final float score) {
-        return new ElasticsearchMatchers.SearchHitHasScoreMatcher(score);
     }
 
     public static <T extends Query> T assertBooleanSubQuery(Query query, Class<T> subqueryType, int i) {
@@ -571,23 +336,6 @@ public class ElasticsearchAssertions {
         if (fail) {
             throw new AssertionError(extraInfo);
         }
-    }
-
-    /**
-     * Applies basic assertions on the SearchResponse. This method checks if all shards were successful, if
-     * any of the shards threw an exception and if the response is serializable.
-     */
-    public static SearchResponse assertSearchResponse(SearchRequestBuilder request) {
-        return assertSearchResponse(request.get());
-    }
-
-    /**
-     * Applies basic assertions on the SearchResponse. This method checks if all shards were successful, if
-     * any of the shards threw an exception and if the response is serializable.
-     */
-    public static SearchResponse assertSearchResponse(SearchResponse response) {
-        assertNoFailures(response);
-        return response;
     }
 
     /**

@@ -462,22 +462,6 @@ public class MetaDataCreateIndexService extends AbstractComponent {
                     indexService.getIndexSortSupplier().get();
                 }
 
-                // the context is only used for validation so it's fine to pass fake values for the shard id and the current
-                // timestamp
-                final QueryShardContext queryShardContext = indexService.newQueryShardContext(0, null, () -> 0L, null);
-
-                for (Alias alias : request.aliases()) {
-                    if (Strings.hasLength(alias.filter())) {
-                        aliasValidator.validateAliasFilter(alias.name(), alias.filter(), queryShardContext, xContentRegistry);
-                    }
-                }
-                for (AliasMetaData aliasMetaData : templatesAliases.values()) {
-                    if (aliasMetaData.filter() != null) {
-                        aliasValidator.validateAliasFilter(aliasMetaData.alias(), aliasMetaData.filter().uncompressed(),
-                            queryShardContext, xContentRegistry);
-                    }
-                }
-
                 // now, update the mappings with the actual source
                 Map<String, MappingMetaData> mappingsMetaData = new HashMap<>();
                 for (DocumentMapper mapper : mapperService.docMappers(true)) {

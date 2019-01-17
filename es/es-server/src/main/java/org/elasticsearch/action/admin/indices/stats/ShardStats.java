@@ -26,16 +26,13 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent.Params;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.engine.CommitStats;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.ShardPath;
 
 import java.io.IOException;
 
-public class ShardStats implements Streamable, Writeable, ToXContentFragment {
+public class ShardStats implements Streamable, Writeable {
     private ShardRouting shardRouting;
     private CommonStats commonStats;
     @Nullable
@@ -122,41 +119,5 @@ public class ShardStats implements Streamable, Writeable, ToXContentFragment {
         if (out.getVersion().onOrAfter(Version.V_6_0_0_alpha1)) {
             out.writeOptionalWriteable(seqNoStats);
         }
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Fields.ROUTING)
-                .field(Fields.STATE, shardRouting.state())
-                .field(Fields.PRIMARY, shardRouting.primary())
-                .field(Fields.NODE, shardRouting.currentNodeId())
-                .field(Fields.RELOCATING_NODE, shardRouting.relocatingNodeId())
-                .endObject();
-
-        commonStats.toXContent(builder, params);
-        if (commitStats != null) {
-            commitStats.toXContent(builder, params);
-        }
-        if (seqNoStats != null) {
-            seqNoStats.toXContent(builder, params);
-        }
-        builder.startObject(Fields.SHARD_PATH);
-        builder.field(Fields.STATE_PATH, statePath);
-        builder.field(Fields.DATA_PATH, dataPath);
-        builder.field(Fields.IS_CUSTOM_DATA_PATH, isCustomDataPath);
-        builder.endObject();
-        return builder;
-    }
-
-    static final class Fields {
-        static final String ROUTING = "routing";
-        static final String STATE = "state";
-        static final String STATE_PATH = "state_path";
-        static final String DATA_PATH = "data_path";
-        static final String IS_CUSTOM_DATA_PATH = "is_custom_data_path";
-        static final String SHARD_PATH = "shard_path";
-        static final String PRIMARY = "primary";
-        static final String NODE = "node";
-        static final String RELOCATING_NODE = "relocating_node";
     }
 }
