@@ -72,9 +72,4 @@ public class EdgeNGramTokenFilterFactory extends AbstractTokenFilterFactory {
 
         return result;
     }
-
-    @Override
-    public boolean breaksFastVectorHighlighter() {
-        return true;
-    }
 }

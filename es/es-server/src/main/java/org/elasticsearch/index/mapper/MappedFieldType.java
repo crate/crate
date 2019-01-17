@@ -43,7 +43,6 @@ import org.elasticsearch.common.time.DateMathParser;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.query.QueryRewriteContext;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.QueryShardException;
 import org.elasticsearch.search.DocValueFormat;
@@ -385,18 +384,6 @@ public abstract class MappedFieldType extends FieldType {
         WITHIN,
         INTERSECTS,
         DISJOINT;
-    }
-
-    /** Return whether all values of the given {@link IndexReader} are within the range,
-     *  outside the range or cross the range. The default implementation returns
-     *  {@link Relation#INTERSECTS}, which is always fine to return when there is
-     *  no way to check whether values are actually within bounds. */
-    public Relation isFieldWithinQuery(
-        IndexReader reader,
-        Object from, Object to,
-        boolean includeLower, boolean includeUpper,
-        DateTimeZone timeZone, DateMathParser dateMathParser, QueryRewriteContext context) throws IOException {
-        return Relation.INTERSECTS;
     }
 
     /** A term query to use when parsing a query string. Can return {@code null}. */

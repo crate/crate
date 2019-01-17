@@ -19,20 +19,6 @@
 
 package org.elasticsearch.client;
 
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.search.ClearScrollRequest;
-import org.elasticsearch.action.search.ClearScrollRequestBuilder;
-import org.elasticsearch.action.search.ClearScrollResponse;
-import org.elasticsearch.action.search.MultiSearchRequest;
-import org.elasticsearch.action.search.MultiSearchRequestBuilder;
-import org.elasticsearch.action.search.MultiSearchResponse;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchScrollRequest;
-import org.elasticsearch.action.search.SearchScrollRequestBuilder;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -67,82 +53,6 @@ public interface Client extends ElasticsearchClient, Releasable {
      * The admin client that can be used to perform administrative operations.
      */
     AdminClient admin();
-
-    /**
-     * Search across one or more indices and one or more types with a query.
-     *
-     * @param request The search request
-     * @return The result future
-     * @see Requests#searchRequest(String...)
-     */
-    ActionFuture<SearchResponse> search(SearchRequest request);
-
-    /**
-     * Search across one or more indices and one or more types with a query.
-     *
-     * @param request  The search request
-     * @param listener A listener to be notified of the result
-     * @see Requests#searchRequest(String...)
-     */
-    void search(SearchRequest request, ActionListener<SearchResponse> listener);
-
-    /**
-     * Search across one or more indices and one or more types with a query.
-     */
-    SearchRequestBuilder prepareSearch(String... indices);
-
-    /**
-     * A search scroll request to continue searching a previous scrollable search request.
-     *
-     * @param request The search scroll request
-     * @return The result future
-     * @see Requests#searchScrollRequest(String)
-     */
-    ActionFuture<SearchResponse> searchScroll(SearchScrollRequest request);
-
-    /**
-     * A search scroll request to continue searching a previous scrollable search request.
-     *
-     * @param request  The search scroll request
-     * @param listener A listener to be notified of the result
-     * @see Requests#searchScrollRequest(String)
-     */
-    void searchScroll(SearchScrollRequest request, ActionListener<SearchResponse> listener);
-
-    /**
-     * A search scroll request to continue searching a previous scrollable search request.
-     */
-    SearchScrollRequestBuilder prepareSearchScroll(String scrollId);
-
-    /**
-     * Performs multiple search requests.
-     */
-    ActionFuture<MultiSearchResponse> multiSearch(MultiSearchRequest request);
-
-    /**
-     * Performs multiple search requests.
-     */
-    void multiSearch(MultiSearchRequest request, ActionListener<MultiSearchResponse> listener);
-
-    /**
-     * Performs multiple search requests.
-     */
-    MultiSearchRequestBuilder prepareMultiSearch();
-
-    /**
-     * Clears the search contexts associated with specified scroll ids.
-     */
-    ClearScrollRequestBuilder prepareClearScroll();
-
-    /**
-     * Clears the search contexts associated with specified scroll ids.
-     */
-    ActionFuture<ClearScrollResponse> clearScroll(ClearScrollRequest request);
-
-    /**
-     * Clears the search contexts associated with specified scroll ids.
-     */
-    void clearScroll(ClearScrollRequest request, ActionListener<ClearScrollResponse> listener);
 
     /**
      * Returns this clients settings

@@ -49,10 +49,6 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsActi
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsAction;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequestBuilder;
@@ -155,21 +151,6 @@ import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequestBuilder;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
-import org.elasticsearch.action.search.ClearScrollAction;
-import org.elasticsearch.action.search.ClearScrollRequest;
-import org.elasticsearch.action.search.ClearScrollRequestBuilder;
-import org.elasticsearch.action.search.ClearScrollResponse;
-import org.elasticsearch.action.search.MultiSearchAction;
-import org.elasticsearch.action.search.MultiSearchRequest;
-import org.elasticsearch.action.search.MultiSearchRequestBuilder;
-import org.elasticsearch.action.search.MultiSearchResponse;
-import org.elasticsearch.action.search.SearchAction;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchScrollAction;
-import org.elasticsearch.action.search.SearchScrollRequest;
-import org.elasticsearch.action.search.SearchScrollRequestBuilder;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.AdminClient;
@@ -181,7 +162,6 @@ import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Map;
@@ -236,66 +216,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
     }
 
     protected abstract <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void doExecute(Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener);
-
-    @Override
-    public ActionFuture<SearchResponse> search(final SearchRequest request) {
-        return execute(SearchAction.INSTANCE, request);
-    }
-
-    @Override
-    public void search(final SearchRequest request, final ActionListener<SearchResponse> listener) {
-        execute(SearchAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public SearchRequestBuilder prepareSearch(String... indices) {
-        return new SearchRequestBuilder(this, SearchAction.INSTANCE).setIndices(indices);
-    }
-
-    @Override
-    public ActionFuture<SearchResponse> searchScroll(final SearchScrollRequest request) {
-        return execute(SearchScrollAction.INSTANCE, request);
-    }
-
-    @Override
-    public void searchScroll(final SearchScrollRequest request, final ActionListener<SearchResponse> listener) {
-        execute(SearchScrollAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public SearchScrollRequestBuilder prepareSearchScroll(String scrollId) {
-        return new SearchScrollRequestBuilder(this, SearchScrollAction.INSTANCE, scrollId);
-    }
-
-    @Override
-    public ActionFuture<MultiSearchResponse> multiSearch(MultiSearchRequest request) {
-        return execute(MultiSearchAction.INSTANCE, request);
-    }
-
-    @Override
-    public void multiSearch(MultiSearchRequest request, ActionListener<MultiSearchResponse> listener) {
-        execute(MultiSearchAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public MultiSearchRequestBuilder prepareMultiSearch() {
-        return new MultiSearchRequestBuilder(this, MultiSearchAction.INSTANCE);
-    }
-
-    @Override
-    public void clearScroll(ClearScrollRequest request, ActionListener<ClearScrollResponse> listener) {
-        execute(ClearScrollAction.INSTANCE, request, listener);
-    }
-
-    @Override
-    public ActionFuture<ClearScrollResponse> clearScroll(ClearScrollRequest request) {
-        return execute(ClearScrollAction.INSTANCE, request);
-    }
-
-    @Override
-    public ClearScrollRequestBuilder prepareClearScroll() {
-        return new ClearScrollRequestBuilder(this, ClearScrollAction.INSTANCE);
-    }
 
     static class Admin implements AdminClient {
 
@@ -412,26 +332,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public NodesInfoRequestBuilder prepareNodesInfo(String... nodesIds) {
             return new NodesInfoRequestBuilder(this, NodesInfoAction.INSTANCE).setNodesIds(nodesIds);
-        }
-
-        @Override
-        public ActionFuture<ClusterSearchShardsResponse> searchShards(final ClusterSearchShardsRequest request) {
-            return execute(ClusterSearchShardsAction.INSTANCE, request);
-        }
-
-        @Override
-        public void searchShards(final ClusterSearchShardsRequest request, final ActionListener<ClusterSearchShardsResponse> listener) {
-            execute(ClusterSearchShardsAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public ClusterSearchShardsRequestBuilder prepareSearchShards() {
-            return new ClusterSearchShardsRequestBuilder(this, ClusterSearchShardsAction.INSTANCE);
-        }
-
-        @Override
-        public ClusterSearchShardsRequestBuilder prepareSearchShards(String... indices) {
-            return new ClusterSearchShardsRequestBuilder(this, ClusterSearchShardsAction.INSTANCE).setIndices(indices);
         }
 
         @Override

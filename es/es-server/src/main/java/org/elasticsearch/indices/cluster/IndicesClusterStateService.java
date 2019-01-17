@@ -70,7 +70,6 @@ import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.indices.recovery.RecoveryFailedException;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.search.SearchService;
 import org.elasticsearch.snapshots.SnapshotShardsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -128,7 +127,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                       ShardStateAction shardStateAction,
                                       NodeMappingRefreshAction nodeMappingRefreshAction,
                                       RepositoriesService repositoriesService,
-                                      SearchService searchService,
                                       SyncedFlushService syncedFlushService,
                                       PeerRecoverySourceService peerRecoverySourceService,
                                       SnapshotShardsService snapshotShardsService,
@@ -136,7 +134,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                       GlobalCheckpointSyncAction globalCheckpointSyncAction) {
         this(settings, (AllocatedIndices<? extends Shard, ? extends AllocatedIndex<? extends Shard>>) indicesService,
                 clusterService, threadPool, recoveryTargetService, shardStateAction,
-                nodeMappingRefreshAction, repositoriesService, searchService, syncedFlushService, peerRecoverySourceService,
+                nodeMappingRefreshAction, repositoriesService, syncedFlushService, peerRecoverySourceService,
                 snapshotShardsService, primaryReplicaSyncer, globalCheckpointSyncAction::updateGlobalCheckpointForShard);
     }
 
@@ -149,7 +147,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                ShardStateAction shardStateAction,
                                NodeMappingRefreshAction nodeMappingRefreshAction,
                                RepositoriesService repositoriesService,
-                               SearchService searchService,
                                SyncedFlushService syncedFlushService,
                                PeerRecoverySourceService peerRecoverySourceService,
                                SnapshotShardsService snapshotShardsService,
@@ -160,7 +157,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                 Arrays.asList(
                         peerRecoverySourceService,
                         recoveryTargetService,
-                        searchService,
                         syncedFlushService,
                         snapshotShardsService);
         this.indicesService = indicesService;

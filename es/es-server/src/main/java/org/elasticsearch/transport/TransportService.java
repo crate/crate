@@ -102,7 +102,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     protected final TaskManager taskManager;
     private final TransportInterceptor.AsyncSender asyncSender;
     private final Function<BoundTransportAddress, DiscoveryNode> localNodeFactory;
-    private final boolean connectToRemoteCluster;
     private final Transport.ResponseHandlers responseHandlers;
     private final TransportInterceptor interceptor;
 
@@ -130,8 +129,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
     volatile String[] tracerLogInclude;
     volatile String[] tracerLogExclude;
-
-    private final RemoteClusterService remoteClusterService;
 
     /** if set will call requests sent to this id to shortcut and executed locally */
     volatile DiscoveryNode localNode = null;
@@ -189,15 +186,10 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         taskManager = createTaskManager(settings, threadPool, taskHeaders);
         this.interceptor = transportInterceptor;
         this.asyncSender = interceptor.interceptSender(this::sendRequestInternal);
-        this.connectToRemoteCluster = RemoteClusterService.ENABLE_REMOTE_CLUSTERS.get(settings);
-        remoteClusterService = new RemoteClusterService(settings, this);
         responseHandlers = transport.getResponseHandlers();
         if (clusterSettings != null) {
             clusterSettings.addSettingsUpdateConsumer(TRACE_LOG_INCLUDE_SETTING, this::setTracerLogInclude);
             clusterSettings.addSettingsUpdateConsumer(TRACE_LOG_EXCLUDE_SETTING, this::setTracerLogExclude);
-            if (connectToRemoteCluster) {
-                remoteClusterService.listenForUpdates(clusterSettings);
-            }
         }
         registerRequestHandler(
             HANDSHAKE_ACTION_NAME,
@@ -206,10 +198,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             false, false,
             (request, channel) -> channel.sendResponse(
                 new HandshakeResponse(localNode, clusterName, localNode.getVersion())));
-    }
-
-    public RemoteClusterService getRemoteClusterService() {
-        return remoteClusterService;
     }
 
     public DiscoveryNode getLocalNode() {
@@ -253,16 +241,12 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             }
         }
         localNode = localNodeFactory.apply(transport.boundAddress());
-        if (connectToRemoteCluster) {
-            // here we start to connect to the remote clusters
-            remoteClusterService.initializeRemoteClusters();
-        }
     }
 
     @Override
     protected void doStop() {
         try {
-            IOUtils.close(connectionManager, remoteClusterService, transport::stop);
+            IOUtils.close(connectionManager, transport::stop);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } finally {

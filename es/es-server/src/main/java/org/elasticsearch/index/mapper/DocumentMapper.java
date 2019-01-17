@@ -38,7 +38,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.mapper.MetadataFieldMapper.TypeParser;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.search.internal.SearchContext;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -293,41 +292,6 @@ public class DocumentMapper implements ToXContentFragment {
         final BytesRef byteRef = new BytesRef(reason);
         parsedDoc.rootDoc().add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
         return parsedDoc;
-    }
-
-    /**
-     * Returns the best nested {@link ObjectMapper} instances that is in the scope of the specified nested docId.
-     */
-    public ObjectMapper findNestedObjectMapper(int nestedDocId, SearchContext sc, LeafReaderContext context) throws IOException {
-        ObjectMapper nestedObjectMapper = null;
-        for (ObjectMapper objectMapper : objectMappers().values()) {
-            if (!objectMapper.nested().isNested()) {
-                continue;
-            }
-
-            Query filter = objectMapper.nestedTypeFilter();
-            if (filter == null) {
-                continue;
-            }
-            // We can pass down 'null' as acceptedDocs, because nestedDocId is a doc to be fetched and
-            // therefor is guaranteed to be a live doc.
-            final Weight nestedWeight = filter.createWeight(sc.searcher(), false, 1f);
-            Scorer scorer = nestedWeight.scorer(context);
-            if (scorer == null) {
-                continue;
-            }
-
-            if (scorer.iterator().advance(nestedDocId) == nestedDocId) {
-                if (nestedObjectMapper == null) {
-                    nestedObjectMapper = objectMapper;
-                } else {
-                    if (nestedObjectMapper.fullPath().length() < objectMapper.fullPath().length()) {
-                        nestedObjectMapper = objectMapper;
-                    }
-                }
-            }
-        }
-        return nestedObjectMapper;
     }
 
     public boolean isParent(String type) {
