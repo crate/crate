@@ -42,7 +42,6 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRespon
 import org.elasticsearch.action.admin.indices.flush.FlushResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
 import org.elasticsearch.action.search.ClearScrollResponse;
@@ -814,50 +813,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
             }
         });
         assertNoTimeout(client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).get());
-    }
-
-    /**
-     * Waits until mappings for the provided fields exist on all nodes. Note, this waits for the current
-     * started shards and checks for concrete mappings.
-     */
-    public void assertConcreteMappingsOnAll(final String index, final String type, final String... fieldNames) throws Exception {
-        Set<String> nodes = internalCluster().nodesInclude(index);
-        assertThat(nodes, Matchers.not(Matchers.emptyIterable()));
-        for (String node : nodes) {
-            IndicesService indicesService = internalCluster().getInstance(IndicesService.class, node);
-            IndexService indexService = indicesService.indexService(resolveIndex(index));
-            assertThat("index service doesn't exists on " + node, indexService, notNullValue());
-            MapperService mapperService = indexService.mapperService();
-            for (String fieldName : fieldNames) {
-                MappedFieldType fieldType = mapperService.fullName(fieldName);
-                assertNotNull("field " + fieldName + " doesn't exists on " + node, fieldType);
-            }
-        }
-        assertMappingOnMaster(index, type, fieldNames);
-    }
-
-    /**
-     * Waits for the given mapping type to exists on the master node.
-     */
-    public void assertMappingOnMaster(final String index, final String type, final String... fieldNames) throws Exception {
-        GetMappingsResponse response = client().admin().indices().prepareGetMappings(index).setTypes(type).get();
-        ImmutableOpenMap<String, MappingMetaData> mappings = response.getMappings().get(index);
-        assertThat(mappings, notNullValue());
-        MappingMetaData mappingMetaData = mappings.get(type);
-        assertThat(mappingMetaData, notNullValue());
-
-        Map<String, Object> mappingSource = mappingMetaData.getSourceAsMap();
-        assertFalse(mappingSource.isEmpty());
-        assertTrue(mappingSource.containsKey("properties"));
-
-        for (String fieldName : fieldNames) {
-            Map<String, Object> mappingProperties = (Map<String, Object>) mappingSource.get("properties");
-            if (fieldName.indexOf('.') != -1) {
-                fieldName = fieldName.replace(".", ".properties.");
-            }
-            assertThat("field " + fieldName + " doesn't exists in mapping " + mappingMetaData.source().string(),
-                    XContentMapValues.extractValue(fieldName, mappingProperties), notNullValue());
-        }
     }
 
     /** Ensures the result counts are as expected, and logs the results if different */
