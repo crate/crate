@@ -41,7 +41,7 @@ public class WindowProjector implements Projector {
     private final List<WindowFunction> windowFunctions;
     private final List<? extends CollectExpression<Row, ?>> windowFuncArgsExpressions;
     private final int[] orderByIndexes;
-    private final List<DataType> outputTypes;
+    private final List<DataType> standaloneInputTypes;
     private final RamAccountingContext ramAccountingContext;
     private final Input[][] windowFuncArgsInputs;
 
@@ -50,7 +50,7 @@ public class WindowProjector implements Projector {
                            List<? extends CollectExpression<Row, ?>> windowFuncArgsExpressions,
                            List<Input<?>> standaloneInputs,
                            List<CollectExpression<Row, ?>> standaloneExpressions,
-                           List<DataType> outputTypes,
+                           List<DataType> standaloneInputTypes,
                            RamAccountingContext ramAccountingContext,
                            int[] orderByIndexes,
                            Input[]... windowFuncArgsInputs) {
@@ -61,7 +61,7 @@ public class WindowProjector implements Projector {
         this.windowFuncArgsExpressions = windowFuncArgsExpressions;
         this.windowFuncArgsInputs = windowFuncArgsInputs;
         this.orderByIndexes = orderByIndexes;
-        this.outputTypes = outputTypes;
+        this.standaloneInputTypes = standaloneInputTypes;
         this.ramAccountingContext = ramAccountingContext;
     }
 
@@ -74,7 +74,7 @@ public class WindowProjector implements Projector {
             batchIterator,
             windowFunctions,
             windowFuncArgsExpressions,
-            outputTypes,
+            standaloneInputTypes,
             ramAccountingContext,
             orderByIndexes,
             windowFuncArgsInputs);

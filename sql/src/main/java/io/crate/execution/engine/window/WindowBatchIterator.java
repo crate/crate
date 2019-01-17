@@ -104,7 +104,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
                         BatchIterator<Row> source,
                         List<WindowFunction> functions,
                         List<? extends CollectExpression<Row, ?>> windowFuncArgsExpressions,
-                        List<DataType> outputTypes,
+                        List<DataType> standaloneInputTypes,
                         RamAccountingContext ramAccountingContext,
                         int[] orderByIndexes,
                         Input[]... windowFuncArgsInputs) {
@@ -122,7 +122,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
             extraRowOverhead += 8;
         }
         RowAccountingWithEstimators rowAccounting =
-            new RowAccountingWithEstimators(outputTypes, ramAccountingContext, extraRowOverhead);
+            new RowAccountingWithEstimators(standaloneInputTypes, ramAccountingContext, extraRowOverhead);
         this.source = new RamAccountingBatchIterator<>(source, rowAccounting);
         this.standaloneExpressions = standaloneExpressions;
         this.windowFunctionsCount = functions.size();

@@ -626,9 +626,9 @@ public class ProjectionToProjectorVisitor
             }
         }
 
-        ArrayList<DataType> outputTypes = new ArrayList<>(windowAgg.standalone().size());
+        ArrayList<DataType> standaloneInputTypes = new ArrayList<>(windowAgg.standalone().size());
         for (Symbol symbol : windowAgg.standalone()) {
-            outputTypes.add(symbol.valueType());
+            standaloneInputTypes.add(symbol.valueType());
         }
 
         InputFactory.Context<CollectExpression<Row, ?>> contextForStandaloneInputs = inputFactory.ctxForInputColumns(context.txnCtx);
@@ -640,7 +640,7 @@ public class ProjectionToProjectorVisitor
             windowFuncArgsExpressions,
             contextForStandaloneInputs.topLevelInputs(),
             contextForStandaloneInputs.expressions(),
-            outputTypes,
+            standaloneInputTypes,
             context.ramAccountingContext,
             windowAgg.orderByIndexes(),
             windowFuncArgsInputs);
