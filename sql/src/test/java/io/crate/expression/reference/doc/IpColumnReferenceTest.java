@@ -52,6 +52,10 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
     private static final String IP_COLUMN = "i";
     private static final String IP_ARRAY_COLUMN = "ia";
 
+    public IpColumnReferenceTest() {
+        super("create table t (i ip, ia array(ip))");
+    }
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 

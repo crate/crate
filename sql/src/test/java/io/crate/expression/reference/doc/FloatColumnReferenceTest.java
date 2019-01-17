@@ -40,6 +40,10 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
 
     private String column = "f";
 
+    public FloatColumnReferenceTest() {
+        super("create table t (f float)");
+    }
+
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (float f = -0.5f; f < 10.0f; f++) {

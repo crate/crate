@@ -39,6 +39,10 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
 
     private String column = "b";
 
+    public BooleanColumnReferenceTest() {
+        super("create table t (b boolean)");
+    }
+
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (int i = 0; i < 10; i++) {

@@ -21,46 +21,30 @@
 
 package io.crate.expression.reference.doc;
 
-import io.crate.expression.reference.doc.lucene.ByteColumnReference;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.QueryTester;
+import org.elasticsearch.Version;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import static org.hamcrest.core.Is.is;
+import java.util.List;
+import java.util.stream.IntStream;
 
-public class ByteColumnReferenceTest extends DocLevelExpressionsTest {
-
-    private String column = "b";
-
-    @Override
-    protected void insertValues(IndexWriter writer) throws Exception {
-        for (byte b = -10; b < 10; b++) {
-            Document doc = new Document();
-            doc.add(new StringField("_id", Byte.toString(b), Field.Store.NO));
-            doc.add(new NumericDocValuesField(column, b));
-            writer.addDocument(doc);
-        }
-    }
+public class ByteColumnReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testByteExpression() throws Exception {
-        ByteColumnReference byteColumn = new ByteColumnReference(column);
-        byteColumn.startCollect(ctx);
-        byteColumn.setNextReader(readerContext);
-        IndexSearcher searcher = new IndexSearcher(readerContext.reader());
-        TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
-        byte b = -10;
-        for (ScoreDoc doc : topDocs.scoreDocs) {
-            byteColumn.setNextDocId(doc.doc);
-            assertThat(byteColumn.value(), is(b));
-            b++;
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (x byte)"
+        );
+        builder.indexValues("x", IntStream.range(-2, 3).boxed().toArray());
+        try (QueryTester tester = builder.build()) {
+            List<Object> objects = tester.runQuery("x", "true");
+            assertThat(objects, Matchers.contains((byte) -2, (byte) -1, (byte) 0, (byte) 1, (byte) 2));
         }
     }
 }

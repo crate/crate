@@ -39,6 +39,10 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
 
     private String column = "s";
 
+    public ShortColumnReferenceTest() {
+        super("create table t (l short)");
+    }
+
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (short i = -10; i < 10; i++) {
