@@ -28,7 +28,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -95,26 +94,6 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         }
         assertThat(numShards, is(10));
     }
-
-    @Test
-    public void testAliasPartitions() throws Exception {
-        execute("create table terminator (model string, good boolean, actor object)");
-        execute("create table transformer (model string, good boolean, actor object)");
-        IndicesAliasesRequest request = new IndicesAliasesRequest();
-        request.addAliasAction(
-            IndicesAliasesRequest.AliasActions.add().alias(getFqn("entsafter")).index(getFqn("terminator")));
-        request.addAliasAction(
-            IndicesAliasesRequest.AliasActions.add().alias(getFqn("entsafter")).index(getFqn("transformer")));
-        client().admin().indices().aliases(request).actionGet();
-        ensureYellow();
-
-        DocTableInfo entsafterTable = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "entsafter"));
-
-        assertNotNull(entsafterTable);
-        assertThat(entsafterTable.concreteIndices().length, is(2));
-        assertThat(Arrays.asList(entsafterTable.concreteIndices()), containsInAnyOrder(getFqn("terminator"), getFqn("transformer")));
-    }
-
 
     @Test
     public void testNodesTable() throws Exception {
