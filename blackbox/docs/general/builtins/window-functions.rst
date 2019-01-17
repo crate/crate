@@ -121,10 +121,37 @@ Example::
    +------+-----------------------------------------+
    SELECT 3 rows in set (... sec)
 
+.. _window-function-firstvalue:
+
+``first_value(arg)``
+====================
+
+.. note::
+
+   The ``first_value`` window function is an :ref:`enterprise
+   feature <enterprise_features>`.
+
+Returns the argument value evaluated at the first row within the window.
+
+Its return type is the type of its argument.
+
+Example::
+
+   cr> select col1, first_value(col1) over(order by col1) from unnest(['x','y', 'y', 'z']);
+   +------+----------------------------------------------+
+   | col1 | first_value(col1) OVER (ORDER BY "col1" ASC) |
+   +------+----------------------------------------------+
+   | x    | x                                            |
+   | y    | x                                            |
+   | y    | x                                            |
+   | z    | x                                            |
+   +------+----------------------------------------------+
+   SELECT 4 rows in set (... sec)
+
 .. _window-function-lastvalue:
 
 ``last_value(arg)``
-========================
+===================
 
 .. note::
 
@@ -146,4 +173,32 @@ Example::
    | y    | y                                           |
    | z    | z                                           |
    +------+---------------------------------------------+
+   SELECT 4 rows in set (... sec)
+
+.. _window-function-nthvalue:
+
+``nth_value(arg, number)``
+==========================
+
+.. note::
+
+   The ``nth_value`` window function is an :ref:`enterprise
+   feature <enterprise_features>`.
+
+Returns the argument value evaluated at row that is the nth row within the
+window. Null is returned if the nth row doesn't exist in the window.
+
+Its return type is the type of its first argument.
+
+Example::
+
+   cr> select col1, nth_value(col1, 3) over(order by col1) from unnest(['x','y', 'y', 'z']);
+   +------+-----------------------------------------------+
+   | col1 | nth_value(col1, 3) OVER (ORDER BY "col1" ASC) |
+   +------+-----------------------------------------------+
+   | x    | NULL                                          |
+   | y    | y                                             |
+   | y    | y                                             |
+   | z    | y                                             |
+   +------+-----------------------------------------------+
    SELECT 4 rows in set (... sec)
