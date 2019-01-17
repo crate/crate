@@ -19,7 +19,6 @@
 package org.elasticsearch.common.settings;
 
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.action.admin.indices.close.TransportCloseIndexAction;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.action.support.DestructiveOperations;
@@ -287,7 +286,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     RemoteClusterService.SEARCH_ENABLE_REMOTE_CLUSTERS,
                     TransportService.TRACE_LOG_EXCLUDE_SETTING,
                     TransportService.TRACE_LOG_INCLUDE_SETTING,
-                    TransportCloseIndexAction.CLUSTER_INDICES_CLOSE_ENABLE_SETTING,
                     ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING,
                     NodeConnectionsService.CLUSTER_NODE_RECONNECT_INTERVAL_SETTING,
                     HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_TYPE_SETTING,

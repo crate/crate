@@ -51,8 +51,6 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.TransportPendingClusterTasksAction;
-import org.elasticsearch.action.admin.indices.close.CloseIndexAction;
-import org.elasticsearch.action.admin.indices.close.TransportCloseIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
@@ -142,7 +140,6 @@ import org.elasticsearch.rest.action.admin.cluster.RestPendingClusterTasksAction
 import org.elasticsearch.rest.action.admin.cluster.RestPutRepositoryAction;
 import org.elasticsearch.rest.action.admin.cluster.RestRestoreSnapshotAction;
 import org.elasticsearch.rest.action.admin.cluster.RestSnapshotsStatusAction;
-import org.elasticsearch.rest.action.admin.indices.RestCloseIndexAction;
 import org.elasticsearch.rest.action.admin.indices.RestCreateIndexAction;
 import org.elasticsearch.rest.action.admin.indices.RestDeleteIndexAction;
 import org.elasticsearch.rest.action.admin.indices.RestDeleteIndexTemplateAction;
@@ -286,7 +283,6 @@ public class ActionModule extends AbstractModule {
         actions.register(ResizeAction.INSTANCE, TransportResizeAction.class);
         actions.register(DeleteIndexAction.INSTANCE, TransportDeleteIndexAction.class);
         actions.register(GetIndexAction.INSTANCE, TransportGetIndexAction.class);
-        actions.register(CloseIndexAction.INSTANCE, TransportCloseIndexAction.class);
         actions.register(IndicesExistsAction.INSTANCE, TransportIndicesExistsAction.class);
         actions.register(TypesExistsAction.INSTANCE, TransportTypesExistsAction.class);
         actions.register(GetMappingsAction.INSTANCE, TransportGetMappingsAction.class);
@@ -345,7 +341,6 @@ public class ActionModule extends AbstractModule {
         registerHandler.accept(new RestResizeHandler.RestShrinkIndexAction(settings, restController));
         registerHandler.accept(new RestResizeHandler.RestSplitIndexAction(settings, restController));
         registerHandler.accept(new RestDeleteIndexAction(settings, restController));
-        registerHandler.accept(new RestCloseIndexAction(settings, restController));
 
         registerHandler.accept(new RestGetSettingsAction(settings, restController));
 
