@@ -25,7 +25,6 @@ package io.crate.execution.engine.collect;
 import com.google.common.collect.Lists;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 
@@ -56,7 +55,7 @@ public class ShardCollectorProviderTest extends SQLTransportIntegrationTest {
     public void testClosedIndicesHaveNoShardEntries() throws Exception {
         execute("create table t(i int) with (number_of_replicas='0-all')");
         ensureGreen();
-        client().admin().indices().close(new CloseIndexRequest(getFqn("t"))).actionGet();
+        execute("alter table t close");
         waitUntilShardOperationsFinished();
         assertNoShardEntriesLeftInShardCollectSource();
     }
