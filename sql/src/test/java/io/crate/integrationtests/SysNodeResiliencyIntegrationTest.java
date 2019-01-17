@@ -51,6 +51,9 @@ public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTes
      */
     @Test
     public void testTimingOutNode() throws Exception {
+        // wait until no master cluster state tasks are pending, otherwise this test may fail due to master task timeouts
+        waitNoPendingTasksOnAll();
+
         String[] nodeNames = internalCluster().getNodeNames();
         String n1 = nodeNames[0];
         String n2 = nodeNames[1];

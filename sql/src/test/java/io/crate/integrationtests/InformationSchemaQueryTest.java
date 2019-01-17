@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.SQLResponse;
-import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -40,7 +39,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
                 "with (number_of_replicas=0)");
 
         ensureYellow();
-        client().admin().indices().close(new CloseIndexRequest(getFqn("t3"))).actionGet();
+        execute("alter table t3 close");
 
         execute("select * from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
         assertEquals(2L, response.rowCount());
