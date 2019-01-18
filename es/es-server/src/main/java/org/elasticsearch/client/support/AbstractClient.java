@@ -34,10 +34,6 @@ import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequestBuilder;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequestBuilder;
-import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesAction;
-import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRequest;
-import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRequestBuilder;
-import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesResponse;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
@@ -420,21 +416,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public DeleteRepositoryRequestBuilder prepareDeleteRepository(String name) {
             return new DeleteRepositoryRequestBuilder(this, DeleteRepositoryAction.INSTANCE, name);
-        }
-
-        @Override
-        public ActionFuture<GetRepositoriesResponse> getRepositories(GetRepositoriesRequest request) {
-            return execute(GetRepositoriesAction.INSTANCE, request);
-        }
-
-        @Override
-        public void getRepositories(GetRepositoriesRequest request, ActionListener<GetRepositoriesResponse> listener) {
-            execute(GetRepositoriesAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public GetRepositoriesRequestBuilder prepareGetRepositories(String... name) {
-            return new GetRepositoriesRequestBuilder(this, GetRepositoriesAction.INSTANCE, name);
         }
 
         @Override
