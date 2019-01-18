@@ -32,7 +32,8 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.search.lookup.SourceLookup;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -48,7 +49,7 @@ public class DocRefResolverTest extends CrateUnitTest {
     private static final DocRefResolver REF_RESOLVER =
         new DocRefResolver(Collections.emptyList());
     private static final Doc GET_RESULT =
-        new Doc("t1", "abc", 1L, SourceLookup.sourceAsMap(SOURCE), SOURCE::utf8ToString);
+        new Doc("t1", "abc", 1L, XContentHelper.convertToMap(SOURCE, false, XContentType.JSON).v2(), SOURCE::utf8ToString);
 
     @Test
     public void testSystemColumnsCollectExpressions() throws Exception {
@@ -68,7 +69,7 @@ public class DocRefResolverTest extends CrateUnitTest {
 
         assertThat(collectExpressions.get(0).value(), is("abc"));
         assertThat(collectExpressions.get(1).value(), is(1L));
-        assertThat(collectExpressions.get(2).value(), is(SourceLookup.sourceAsMap(SOURCE)));
+        assertThat(collectExpressions.get(2).value(), is(XContentHelper.convertToMap(SOURCE, false, XContentType.JSON).v2()));
         assertThat(collectExpressions.get(3).value(), is(SOURCE.utf8ToString()));
     }
 }
