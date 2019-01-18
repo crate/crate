@@ -83,6 +83,7 @@ import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.StreamerVisitor;
@@ -450,7 +451,7 @@ public class JobSetup extends AbstractComponent {
             this.opCtx = new NodeOperationCtx(localNodeId, nodeOperations);
             this.distributingConsumerFactory = distributingConsumerFactory;
             this.sharedShardContexts = sharedShardContexts;
-            this.transactionContext = TransactionContext.of(userName, currentSchema);
+            this.transactionContext = TransactionContext.of(userName, SearchPath.createSearchPathFrom(currentSchema));
         }
 
         public UUID jobId() {

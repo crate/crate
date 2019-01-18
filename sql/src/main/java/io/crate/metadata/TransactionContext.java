@@ -26,8 +26,8 @@ import org.joda.time.DateTimeUtils;
 
 public interface TransactionContext {
 
-    static TransactionContext of(String userName, String currentSchema) {
-        return new StaticTransactionContext(userName, currentSchema);
+    static TransactionContext of(String userName, SearchPath searchPath) {
+        return new StaticTransactionContext(userName, searchPath);
     }
 
     long currentTimeMillis();
@@ -36,15 +36,17 @@ public interface TransactionContext {
 
     String currentSchema();
 
+    SearchPath searchPath();
+
     class StaticTransactionContext implements TransactionContext {
 
         private final String userName;
-        private final String currentSchema;
+        private final SearchPath searchPath;
         private Long currentTimeMillis;
 
-        StaticTransactionContext(String userName, String currentSchema) {
+        StaticTransactionContext(String userName, SearchPath searchPath) {
             this.userName = userName;
-            this.currentSchema = currentSchema;
+            this.searchPath = searchPath;
         }
 
         @Override
@@ -62,7 +64,12 @@ public interface TransactionContext {
 
         @Override
         public String currentSchema() {
-            return currentSchema;
+            return searchPath.currentSchema();
+        }
+
+        @Override
+        public SearchPath searchPath() {
+            return searchPath;
         }
     }
 }

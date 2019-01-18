@@ -54,10 +54,12 @@ import io.crate.expression.scalar.string.LengthFunction;
 import io.crate.expression.scalar.string.StringCaseFunction;
 import io.crate.expression.scalar.string.ReplaceFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
+import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.systeminformation.PgGetExpr;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionResolver;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
@@ -68,16 +70,20 @@ import java.util.Map;
 public class ScalarFunctionModule extends AbstractModule {
 
     private Map<FunctionIdent, FunctionImplementation> functions = new HashMap<>();
-    private Map<String, FunctionResolver> resolver = new HashMap<>();
+    private Map<FunctionName, FunctionResolver> resolver = new HashMap<>();
     private MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
-    private MapBinder<String, FunctionResolver> resolverBinder;
+    private MapBinder<FunctionName, FunctionResolver> resolverBinder;
 
     public void register(FunctionImplementation impl) {
         functions.put(impl.info().ident(), impl);
     }
 
     public void register(String name, FunctionResolver functionResolver) {
-        resolver.put(name, functionResolver);
+        register(new FunctionName(name), functionResolver);
+    }
+
+    public void register(FunctionName qualifiedName, FunctionResolver functionResolver) {
+        resolver.put(qualifiedName, functionResolver);
     }
 
     @Override
@@ -143,6 +149,7 @@ public class ScalarFunctionModule extends AbstractModule {
         IfFunction.register(this);
 
         CurrentSchemaFunction.register(this);
+        CurrentSchemasFunction.register(this);
         PgGetExpr.register(this);
 
         PgBackendPidFunction.register(this);
@@ -152,12 +159,12 @@ public class ScalarFunctionModule extends AbstractModule {
         // by doing it here instead of the register functions, plugins can also use the
         // register functions in their onModule(...) hooks
         functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
-        resolverBinder = MapBinder.newMapBinder(binder(), String.class, FunctionResolver.class);
+        resolverBinder = MapBinder.newMapBinder(binder(), FunctionName.class, FunctionResolver.class);
         for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functions.entrySet()) {
             functionBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
 
         }
-        for (Map.Entry<String, FunctionResolver> entry : resolver.entrySet()) {
+        for (Map.Entry<FunctionName, FunctionResolver> entry : resolver.entrySet()) {
             resolverBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
         }
 

@@ -38,6 +38,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -120,7 +121,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             ? GeneratedColumns.Validation.VALUE_MATCH
             : GeneratedColumns.Validation.NONE;
 
-        TransactionContext txnCtx = TransactionContext.of(request.userName(), request.currentSchema());
+        TransactionContext txnCtx = TransactionContext.of(request.userName(), SearchPath.createSearchPathFrom(request.currentSchema()));
         InsertSourceGen insertSourceGen = insertColumns == null
             ? null
             : InsertSourceGen.of(txnCtx, functions, tableInfo, valueValidation, Arrays.asList(insertColumns));
@@ -326,7 +327,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 Exception failure = indexResult.getFailure();
                 assert failure != null : "Failure must not be null if resultType is FAILURE";
                 throw failure;
-                
+
             case MAPPING_UPDATE_REQUIRED:
             default:
                 throw new AssertionError("IndexResult must either succeed or fail. Required mapping updates must have been handled.");
