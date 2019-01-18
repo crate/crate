@@ -29,7 +29,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
@@ -55,10 +54,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards with (number_of_replicas = 1, \"write.wait_for_active_shards\"=1)");
-        ensureYellow();
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
-            .actionGet().isExists());
-
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"true\",\"_meta\":{" +
                                  "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}," +
@@ -93,10 +88,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table test (id int primary key, content string) " +
                 "clustered into 5 shards " +
                 "with (refresh_interval=0, number_of_replicas = 0)");
-        ensureYellow();
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
-            .actionGet().isExists());
-
         String expectedSettings = "{\"test\":{" +
                                   "\"settings\":{" +
                                   "\"index.number_of_replicas\":\"0\"," +
@@ -142,9 +133,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateTableWithReplicasAndShards() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)" +
                 "clustered by (col1) into 10 shards with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
-            .actionGet().isExists());
-
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"true\"," +
                                  "\"_meta\":{" +
@@ -171,9 +159,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards " +
                 "with (column_policy='strict', number_of_replicas = 0)");
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
-            .actionGet().isExists());
-
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\",\"_meta\":{" +
                                  "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}," +
@@ -246,10 +231,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithInlineDefaultIndex() throws Exception {
         execute("create table quotes (quote string index using plain) with (number_of_replicas = 0)");
-        ensureYellow();
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
-            .actionGet().isExists());
-
         String quote = "Would it save you a lot of time if I just gave up and went mad now?";
         execute("insert into quotes values (?)", new Object[]{quote});
         refresh();
@@ -267,13 +248,9 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithInlineIndex() throws Exception {
         execute("create table quotes (quote string index using fulltext) with (number_of_replicas = 0)");
-        ensureYellow();
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
-            .actionGet().isExists());
-
         String quote = "Would it save you a lot of time if I just gave up and went mad now?";
         execute("insert into quotes values (?)", new Object[]{quote});
-        refresh();
+        execute("refresh table quotes");
 
         execute("select quote from quotes where match(quote, 'time')");
         assertEquals(1L, response.rowCount());
@@ -288,13 +265,9 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithIndexOff() throws Exception {
         execute("create table quotes (id int, quote string index off) with (number_of_replicas = 0)");
-        ensureYellow();
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
-            .actionGet().isExists());
-
         String quote = "Would it save you a lot of time if I just gave up and went mad now?";
         execute("insert into quotes (id, quote) values (?, ?)", new Object[]{1, quote});
-        refresh();
+        execute("refresh table quotes");
 
         expectedException.expectMessage("Cannot search on field [quote] since it is not indexed.");
         execute("select quote from quotes where quote = ?", new Object[]{quote});
@@ -304,13 +277,9 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateTableWithIndex() throws Exception {
         execute("create table quotes (quote string, " +
                 "index quote_fulltext using fulltext(quote) with (analyzer='english')) with (number_of_replicas = 0)");
-        ensureYellow();
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
-            .actionGet().isExists());
-
         String quote = "Would it save you a lot of time if I just gave up and went mad now?";
         execute("insert into quotes values (?)", new Object[]{quote});
-        refresh();
+        execute("refresh table quotes");
 
         execute("select quote from quotes where match(quote_fulltext, 'time')");
         assertEquals(1L, response.rowCount());
@@ -326,9 +295,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table novels (title string, description string, " +
                 "index title_desc_fulltext using fulltext(title, description) " +
                 "with(analyzer='english')) with (number_of_replicas = 0)");
-        ensureYellow();
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("novels"))
-            .actionGet().isExists());
 
         String title = "So Long, and Thanks for All the Fish";
         String description = "Many were increasingly of the opinion that they'd all made a big " +
@@ -586,15 +552,13 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureYellow();
 
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
-            .actionGet().isExists());
+        assertThat(internalCluster().clusterService().state().metaData().hasIndex("test"), is(true));
 
         execute("drop table test");
         assertThat(response.rowCount(), is(1L));
-        assertFalse(client().admin().indices().exists(new IndicesExistsRequest("test"))
-            .actionGet().isExists());
+
+        assertThat(internalCluster().clusterService().state().metaData().hasIndex("test"), is(false));
     }
 
     @Test
@@ -616,14 +580,11 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropTableIfExists() {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureYellow();
 
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
-            .actionGet().isExists());
+        assertThat(internalCluster().clusterService().state().metaData().hasIndex("test"), is(true));
         execute("drop table if exists test");
         assertThat(response.rowCount(), is(1L));
-        assertFalse(client().admin().indices().exists(new IndicesExistsRequest("test"))
-            .actionGet().isExists());
+        assertThat(internalCluster().clusterService().state().metaData().hasIndex("test"), is(false));
     }
 
     @Test
