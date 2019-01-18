@@ -27,9 +27,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequestBuilder;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequestBuilder;
-import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRequest;
-import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRequestBuilder;
-import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesResponse;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
@@ -174,21 +171,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Unregisters a repository.
      */
     DeleteRepositoryRequestBuilder prepareDeleteRepository(String name);
-
-    /**
-     * Gets repositories.
-     */
-    ActionFuture<GetRepositoriesResponse> getRepositories(GetRepositoriesRequest request);
-
-    /**
-     * Gets repositories.
-     */
-    void getRepositories(GetRepositoriesRequest request, ActionListener<GetRepositoriesResponse> listener);
-
-    /**
-     * Gets repositories.
-     */
-    GetRepositoriesRequestBuilder prepareGetRepositories(String... name);
 
     /**
      * Creates a new snapshot.
