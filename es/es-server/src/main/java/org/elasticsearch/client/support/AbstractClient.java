@@ -60,10 +60,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotA
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequestBuilder;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
-import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusAction;
-import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusRequestBuilder;
-import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
@@ -431,27 +427,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public RestoreSnapshotRequestBuilder prepareRestoreSnapshot(String repository, String snapshot) {
             return new RestoreSnapshotRequestBuilder(this, RestoreSnapshotAction.INSTANCE, repository, snapshot);
-        }
-
-
-        @Override
-        public ActionFuture<SnapshotsStatusResponse> snapshotsStatus(SnapshotsStatusRequest request) {
-            return execute(SnapshotsStatusAction.INSTANCE, request);
-        }
-
-        @Override
-        public void snapshotsStatus(SnapshotsStatusRequest request, ActionListener<SnapshotsStatusResponse> listener) {
-            execute(SnapshotsStatusAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public SnapshotsStatusRequestBuilder prepareSnapshotStatus(String repository) {
-            return new SnapshotsStatusRequestBuilder(this, SnapshotsStatusAction.INSTANCE, repository);
-        }
-
-        @Override
-        public SnapshotsStatusRequestBuilder prepareSnapshotStatus() {
-            return new SnapshotsStatusRequestBuilder(this, SnapshotsStatusAction.INSTANCE);
         }
     }
 

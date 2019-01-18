@@ -19,7 +19,6 @@
 
 package org.elasticsearch.repositories;
 
-import org.elasticsearch.action.admin.cluster.snapshots.status.TransportNodesSnapshotsStatus;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -62,7 +61,6 @@ public class RepositoriesModule extends AbstractModule {
         bind(RepositoriesService.class).asEagerSingleton();
         bind(SnapshotsService.class).asEagerSingleton();
         bind(SnapshotShardsService.class).asEagerSingleton();
-        bind(TransportNodesSnapshotsStatus.class).asEagerSingleton();
         bind(RestoreService.class).asEagerSingleton();
         MapBinder<String, Repository.Factory> typesBinder = MapBinder.newMapBinder(binder(), String.class, Repository.Factory.class);
         repositoryTypes.forEach((k, v) -> typesBinder.addBinding(k).toInstance(v));
