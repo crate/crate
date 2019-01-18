@@ -75,10 +75,6 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.exists.types.TypesExistsAction;
-import org.elasticsearch.action.admin.indices.exists.types.TypesExistsRequest;
-import org.elasticsearch.action.admin.indices.exists.types.TypesExistsRequestBuilder;
-import org.elasticsearch.action.admin.indices.exists.types.TypesExistsResponse;
 import org.elasticsearch.action.admin.indices.flush.FlushAction;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.flush.FlushRequestBuilder;
@@ -455,21 +451,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public ThreadPool threadPool() {
             return client.threadPool();
-        }
-
-        @Override
-        public ActionFuture<TypesExistsResponse> typesExists(TypesExistsRequest request) {
-            return execute(TypesExistsAction.INSTANCE, request);
-        }
-
-        @Override
-        public void typesExists(TypesExistsRequest request, ActionListener<TypesExistsResponse> listener) {
-            execute(TypesExistsAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public TypesExistsRequestBuilder prepareTypesExists(String... index) {
-            return new TypesExistsRequestBuilder(this, TypesExistsAction.INSTANCE, index);
         }
 
         @Override
