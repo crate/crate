@@ -79,7 +79,6 @@ import org.elasticsearch.monitor.process.ProcessService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.repositories.fs.FsRepository;
-import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TcpTransport;
@@ -347,7 +346,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     Node.NODE_LOCAL_STORAGE_SETTING,
                     TransportMasterNodeReadAction.FORCE_LOCAL_SETTING,
                     AutoCreateIndex.AUTO_CREATE_INDEX_SETTING,
-                    BaseRestHandler.MULTI_ALLOW_EXPLICIT_INDEX,
                     ClusterName.CLUSTER_NAME_SETTING,
                     Client.CLIENT_TYPE_SETTING_S,
                     ClusterModule.SHARDS_ALLOCATOR_TYPE_SETTING,

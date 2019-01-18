@@ -23,8 +23,6 @@ import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -96,94 +94,5 @@ public class UpgradeStatusResponse extends BroadcastResponse {
             totalBytes += indexShardUpgradeStatus.getTotalBytes();
         }
         return totalBytes;
-    }
-
-    public long getToUpgradeBytes() {
-        long upgradeBytes = 0;
-        for (IndexUpgradeStatus indexShardUpgradeStatus : getIndices().values()) {
-            upgradeBytes += indexShardUpgradeStatus.getToUpgradeBytes();
-        }
-        return upgradeBytes;
-    }
-
-    public long getToUpgradeBytesAncient() {
-        long upgradeBytesAncient = 0;
-        for (IndexUpgradeStatus indexShardUpgradeStatus : getIndices().values()) {
-            upgradeBytesAncient += indexShardUpgradeStatus.getToUpgradeBytesAncient();
-        }
-        return upgradeBytesAncient;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.humanReadableField(Fields.SIZE_IN_BYTES, Fields.SIZE, new ByteSizeValue(getTotalBytes()));
-        builder.humanReadableField(Fields.SIZE_TO_UPGRADE_IN_BYTES, Fields.SIZE_TO_UPGRADE, new ByteSizeValue(getToUpgradeBytes()));
-        builder.humanReadableField(Fields.SIZE_TO_UPGRADE_ANCIENT_IN_BYTES, Fields.SIZE_TO_UPGRADE_ANCIENT,
-                new ByteSizeValue(getToUpgradeBytesAncient()));
-
-        String level = params.param("level", "indices");
-        boolean outputShards = "shards".equals(level);
-        boolean outputIndices = "indices".equals(level) || outputShards;
-        if (outputIndices) {
-            builder.startObject(Fields.INDICES);
-            for (IndexUpgradeStatus indexUpgradeStatus : getIndices().values()) {
-                builder.startObject(indexUpgradeStatus.getIndex());
-
-                builder.humanReadableField(Fields.SIZE_IN_BYTES, Fields.SIZE, new ByteSizeValue(indexUpgradeStatus.getTotalBytes()));
-                builder.humanReadableField(Fields.SIZE_TO_UPGRADE_IN_BYTES, Fields.SIZE_TO_UPGRADE,
-                    new ByteSizeValue(indexUpgradeStatus.getToUpgradeBytes()));
-                builder.humanReadableField(Fields.SIZE_TO_UPGRADE_ANCIENT_IN_BYTES, Fields.SIZE_TO_UPGRADE_ANCIENT,
-                    new ByteSizeValue(indexUpgradeStatus.getToUpgradeBytesAncient()));
-                if (outputShards) {
-                    builder.startObject(Fields.SHARDS);
-                    for (IndexShardUpgradeStatus indexShardUpgradeStatus : indexUpgradeStatus) {
-                        builder.startArray(Integer.toString(indexShardUpgradeStatus.getShardId().id()));
-                        for (ShardUpgradeStatus shardUpgradeStatus : indexShardUpgradeStatus) {
-                            builder.startObject();
-
-                            builder.humanReadableField(Fields.SIZE_IN_BYTES, Fields.SIZE, new ByteSizeValue(getTotalBytes()));
-                            builder.humanReadableField(Fields.SIZE_TO_UPGRADE_IN_BYTES, Fields.SIZE_TO_UPGRADE,
-                                new ByteSizeValue(getToUpgradeBytes()));
-                            builder.humanReadableField(Fields.SIZE_TO_UPGRADE_ANCIENT_IN_BYTES, Fields.SIZE_TO_UPGRADE_ANCIENT,
-                                new ByteSizeValue(getToUpgradeBytesAncient()));
-
-                            builder.startObject(Fields.ROUTING);
-                            builder.field(Fields.STATE, shardUpgradeStatus.getShardRouting().state());
-                            builder.field(Fields.PRIMARY, shardUpgradeStatus.getShardRouting().primary());
-                            builder.field(Fields.NODE, shardUpgradeStatus.getShardRouting().currentNodeId());
-                            if (shardUpgradeStatus.getShardRouting().relocatingNodeId() != null) {
-                                builder.field(Fields.RELOCATING_NODE, shardUpgradeStatus.getShardRouting().relocatingNodeId());
-                            }
-                            builder.endObject();
-
-                            builder.endObject();
-                        }
-                        builder.endArray();
-                    }
-                    builder.endObject();
-                }
-                builder.endObject();
-            }
-            builder.endObject();
-        }
-        builder.endObject();
-        return builder;
-    }
-
-    static final class Fields {
-        static final String INDICES = "indices";
-        static final String SHARDS = "shards";
-        static final String ROUTING = "routing";
-        static final String STATE = "state";
-        static final String PRIMARY = "primary";
-        static final String NODE = "node";
-        static final String RELOCATING_NODE = "relocating_node";
-        static final String SIZE = "size";
-        static final String SIZE_IN_BYTES = "size_in_bytes";
-        static final String SIZE_TO_UPGRADE = "size_to_upgrade";
-        static final String SIZE_TO_UPGRADE_ANCIENT = "size_to_upgrade_ancient";
-        static final String SIZE_TO_UPGRADE_IN_BYTES = "size_to_upgrade_in_bytes";
-        static final String SIZE_TO_UPGRADE_ANCIENT_IN_BYTES = "size_to_upgrade_ancient_in_bytes";
     }
 }
