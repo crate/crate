@@ -11,7 +11,7 @@ Reporting issues it the easiest way to contribute. But we also accept pull
 requests for the code and for the documentation. For more information on how to
 work on the code or documentation, see our `developer guide`_.
 
-If you have any questions, please feel free to ask us on Slack_.
+If you have any questions, please feel free to reach out via any of our `support channels`_.
 
 Reporting Issues
 ================
@@ -129,5 +129,5 @@ See also: http://www.ericbmerritt.com/2011/09/21/commit-hygiene-and-git.html
 .. _CLA: https://crate.io/community/contribute/agreements/
 .. _Crate.io: http://crate.io/
 .. _developer guide: devs/docs/index.rst
-.. _Slack: https://crate.io/docs/support/slackin/
+.. _support channels: https://crate.io/support/ 
 .. _search the existing issues: https://github.com/issues?utf8=%E2%9C%93&q=is%3Aopen+is%3Aissue+user%3Acrate+
