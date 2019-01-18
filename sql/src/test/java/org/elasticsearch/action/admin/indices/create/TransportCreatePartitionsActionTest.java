@@ -24,9 +24,9 @@ package org.elasticsearch.action.admin.indices.create;
 import com.google.common.collect.ImmutableList;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.settings.Settings;
@@ -36,6 +36,7 @@ import org.junit.Test;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -54,17 +55,16 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
 
     @Test
     public void testCreateBulkIndicesSimple() throws Exception {
+        List<String> indices = Arrays.asList("index1", "index2", "index3", "index4");
         CreatePartitionsResponse response = action.execute(
-            new CreatePartitionsRequest(Arrays.asList("index1", "index2", "index3", "index4"), UUID.randomUUID())
+            new CreatePartitionsRequest(indices, UUID.randomUUID())
         ).actionGet();
         assertThat(response.isAcknowledged(), is(true));
-        ensureYellow();
 
-        IndicesExistsResponse indicesExistsResponse = cluster().client().admin()
-            .indices().prepareExists("index1", "index2", "index3", "index4")
-            .execute().actionGet();
-
-        assertThat(indicesExistsResponse.isExists(), is(true));
+        MetaData indexMetaData = internalCluster().clusterService().state().metaData();
+        for (String index : indices) {
+            assertThat(indexMetaData.hasIndex(index), is(true));
+        }
     }
 
     @Test
@@ -103,18 +103,17 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
 
     @Test
     public void testCreateBulkIndicesIgnoreExistingSame() throws Exception {
+        List<String> indices = Arrays.asList("index1", "index2", "index3", "index1");
         CreatePartitionsResponse response = action.execute(
-            new CreatePartitionsRequest(Arrays.asList("index1", "index2", "index3", "index1"), UUID.randomUUID())
+            new CreatePartitionsRequest(indices, UUID.randomUUID())
         ).actionGet();
         assertThat(response.isAcknowledged(), is(true));
-
-        IndicesExistsResponse indicesExistsResponse = cluster().client().admin()
-            .indices().prepareExists("index1", "index2", "index3")
-            .execute().actionGet();
-        assertThat(indicesExistsResponse.isExists(), is(true));
-
+        MetaData indexMetaData = internalCluster().clusterService().state().metaData();
+        for (String index : indices) {
+            assertThat(indexMetaData.hasIndex(index), is(true));
+        }
         CreatePartitionsResponse response2 = action.execute(
-            new CreatePartitionsRequest(Arrays.asList("index1", "index2", "index3", "index1"), UUID.randomUUID())
+            new CreatePartitionsRequest(indices, UUID.randomUUID())
         ).actionGet();
         assertThat(response2.isAcknowledged(), is(true));
     }
@@ -136,11 +135,8 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
             action.execute(createPartitionsRequest).actionGet();
             fail("no exception thrown");
         } catch (Throwable t) {
-            ensureYellow();
-            IndicesExistsResponse indicesExistsResponse = cluster().client().admin()
-                .indices().prepareExists("valid")
-                .execute().actionGet();
-            assertThat(indicesExistsResponse.isExists(), is(false)); // if one name is invalid no index is created
+            // if one name is invalid no index is created
+            assertThat(internalCluster().clusterService().state().metaData().hasIndex("valid"), is(false));
             throw t;
         }
     }
