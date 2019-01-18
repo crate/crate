@@ -21,7 +21,6 @@ package org.elasticsearch.client;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -193,16 +192,6 @@ public class Requests {
      */
     public static PutRepositoryRequest putRepositoryRequest(String name) {
         return new PutRepositoryRequest(name);
-    }
-
-    /**
-     * Gets snapshot repository
-     *
-     * @param repositories names of repositories
-     * @return get repository request
-     */
-    public static GetRepositoriesRequest getRepositoryRequest(String... repositories) {
-        return new GetRepositoriesRequest(repositories);
     }
 
     /**
