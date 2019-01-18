@@ -28,7 +28,6 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.path.PathTrie;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
@@ -52,13 +51,13 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.UnaryOperator;
 
+import static org.elasticsearch.rest.BytesRestResponse.TEXT_CONTENT_TYPE;
 import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
-import static org.elasticsearch.rest.RestStatus.METHOD_NOT_ALLOWED;
 import static org.elasticsearch.rest.RestStatus.FORBIDDEN;
 import static org.elasticsearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static org.elasticsearch.rest.RestStatus.METHOD_NOT_ALLOWED;
 import static org.elasticsearch.rest.RestStatus.NOT_ACCEPTABLE;
 import static org.elasticsearch.rest.RestStatus.OK;
-import static org.elasticsearch.rest.BytesRestResponse.TEXT_CONTENT_TYPE;
 
 public class RestController extends AbstractComponent implements HttpServerTransport.Dispatcher {
 
@@ -83,58 +82,6 @@ public class RestController extends AbstractComponent implements HttpServerTrans
         this.handlerWrapper = handlerWrapper;
         this.client = client;
         this.circuitBreakerService = circuitBreakerService;
-    }
-
-    /**
-     * Registers a REST handler to be executed when the provided {@code method} and {@code path} match the request.
-     *
-     * @param method GET, POST, etc.
-     * @param path Path to handle (e.g., "/{index}/{type}/_bulk")
-     * @param handler The handler to actually execute
-     * @param deprecationMessage The message to log and send as a header in the response
-     * @param logger The existing deprecation logger to use
-     */
-    public void registerAsDeprecatedHandler(RestRequest.Method method, String path, RestHandler handler,
-                                            String deprecationMessage, DeprecationLogger logger) {
-        assert (handler instanceof DeprecationRestHandler) == false;
-
-        registerHandler(method, path, new DeprecationRestHandler(handler, deprecationMessage, logger));
-    }
-
-    /**
-     * Registers a REST handler to be executed when the provided {@code method} and {@code path} match the request, or when provided
-     * with {@code deprecatedMethod} and {@code deprecatedPath}. Expected usage:
-     * <pre><code>
-     * // remove deprecation in next major release
-     * controller.registerWithDeprecatedHandler(POST, "/_forcemerge", this,
-     *                                          POST, "/_optimize", deprecationLogger);
-     * controller.registerWithDeprecatedHandler(POST, "/{index}/_forcemerge", this,
-     *                                          POST, "/{index}/_optimize", deprecationLogger);
-     * </code></pre>
-     * <p>
-     * The registered REST handler ({@code method} with {@code path}) is a normal REST handler that is not deprecated and it is
-     * replacing the deprecated REST handler ({@code deprecatedMethod} with {@code deprecatedPath}) that is using the <em>same</em>
-     * {@code handler}.
-     * <p>
-     * Deprecated REST handlers without a direct replacement should be deprecated directly using {@link #registerAsDeprecatedHandler}
-     * and a specific message.
-     *
-     * @param method GET, POST, etc.
-     * @param path Path to handle (e.g., "/_forcemerge")
-     * @param handler The handler to actually execute
-     * @param deprecatedMethod GET, POST, etc.
-     * @param deprecatedPath <em>Deprecated</em> path to handle (e.g., "/_optimize")
-     * @param logger The existing deprecation logger to use
-     */
-    public void registerWithDeprecatedHandler(RestRequest.Method method, String path, RestHandler handler,
-                                              RestRequest.Method deprecatedMethod, String deprecatedPath,
-                                              DeprecationLogger logger) {
-        // e.g., [POST /_optimize] is deprecated! Use [POST /_forcemerge] instead.
-        final String deprecationMessage =
-            "[" + deprecatedMethod.name() + " " + deprecatedPath + "] is deprecated! Use [" + method.name() + " " + path + "] instead.";
-
-        registerHandler(method, path, handler);
-        registerAsDeprecatedHandler(deprecatedMethod, deprecatedPath, handler, deprecationMessage, logger);
     }
 
     /**
