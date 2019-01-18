@@ -39,7 +39,6 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.flush.FlushResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
-import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -1759,14 +1758,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         }
     }
 
-    /**
-     * Compute a routing key that will route documents to the <code>shard</code>-th shard
-     * of the provided index.
-     */
-    protected String routingKeyForShard(String index, int shard) {
-        return internalCluster().routingKeyForShard(resolveIndex(index), shard, random());
-    }
-
     @Override
     protected NamedXContentRegistry xContentRegistry() {
         if (isInternalCluster() && cluster().size() > 0) {
@@ -1845,13 +1836,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
     @Inherited
     @Target(ElementType.TYPE)
     public @interface SuiteScopeTestCase {
-    }
-
-    public static Index resolveIndex(String index) {
-        GetIndexResponse getIndexResponse = client().admin().indices().prepareGetIndex().setIndices(index).get();
-        assertTrue("index " + index + " not found", getIndexResponse.getSettings().containsKey(index));
-        String uuid = getIndexResponse.getSettings().get(index).get(IndexMetaData.SETTING_INDEX_UUID);
-        return new Index(index, uuid);
     }
 
     public static boolean inFipsJvm() {

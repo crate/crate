@@ -91,10 +91,6 @@ import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequestBuilder;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
-import org.elasticsearch.action.admin.indices.get.GetIndexAction;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
@@ -474,21 +470,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public TypesExistsRequestBuilder prepareTypesExists(String... index) {
             return new TypesExistsRequestBuilder(this, TypesExistsAction.INSTANCE, index);
-        }
-
-        @Override
-        public ActionFuture<GetIndexResponse> getIndex(GetIndexRequest request) {
-            return execute(GetIndexAction.INSTANCE, request);
-        }
-
-        @Override
-        public void getIndex(GetIndexRequest request, ActionListener<GetIndexResponse> listener) {
-            execute(GetIndexAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public GetIndexRequestBuilder prepareGetIndex() {
-            return new GetIndexRequestBuilder(this, GetIndexAction.INSTANCE);
         }
 
         @Override

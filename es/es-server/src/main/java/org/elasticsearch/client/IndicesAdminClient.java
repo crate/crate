@@ -38,9 +38,6 @@ import org.elasticsearch.action.admin.indices.flush.SyncedFlushResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequestBuilder;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
@@ -343,26 +340,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Add mapping definition for a type into one or more indices.
      */
     PutMappingRequestBuilder preparePutMapping(String... indices);
-
-    /**
-     * Get index metadata for particular indices.
-     *
-     * @param request The result future
-     */
-    ActionFuture<GetIndexResponse> getIndex(GetIndexRequest request);
-
-    /**
-     * Get index metadata for particular indices.
-     *
-     * @param request  The index aliases request
-     * @param listener A listener to be notified with a result
-     */
-    void getIndex(GetIndexRequest request, ActionListener<GetIndexResponse> listener);
-
-    /**
-     * Get index metadata for particular indices.
-     */
-    GetIndexRequestBuilder prepareGetIndex();
 
     /**
      * Updates settings of one or more indices.

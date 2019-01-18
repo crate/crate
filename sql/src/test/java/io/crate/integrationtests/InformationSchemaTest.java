@@ -26,9 +26,10 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.IndexMappings;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matcher;
@@ -36,6 +37,8 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -1179,8 +1182,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         execute("insert into t values (1)");
-        ensureYellow();
-        String partitionIdent = client().admin().indices().getIndex(new GetIndexRequest()).actionGet().getIndices()[0];
+        String partitionIdent = new PartitionName(
+            new RelationName(sqlExecutor.getCurrentSchema(), "t"),
+            Collections.singletonList("1")
+        ).ident();
 
         execute("insert into t values (2), (3)");
         ensureYellow();
