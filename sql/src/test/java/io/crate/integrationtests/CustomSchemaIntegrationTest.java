@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -101,11 +100,10 @@ public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
     public void testSelectFromDroppedTableWithMoreThanOneTableInSchema() throws Exception {
         execute("create table custom.foo (id integer)");
         execute("create table custom.bar (id integer)");
-        ensureYellow();
 
-        assertThat(client().admin().indices().exists(new IndicesExistsRequest("custom.foo")).actionGet().isExists(), is(true));
+        assertThat(internalCluster().clusterService().state().metaData().hasIndex("custom.foo"), is(true));
         execute("drop table custom.foo");
-        assertThat(client().admin().indices().exists(new IndicesExistsRequest("custom.foo")).actionGet().isExists(), is(false));
+        assertThat(internalCluster().clusterService().state().metaData().hasIndex("custom.foo"), is(false));
 
         assertBusy(() -> {
             try {

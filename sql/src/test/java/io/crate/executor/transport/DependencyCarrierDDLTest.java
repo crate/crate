@@ -39,7 +39,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
 import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
@@ -111,7 +111,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         assertThat((Long) response.rows()[0][0], is(3L));
 
         // check that orphaned partition has been deleted
-        assertThat(client().admin().indices().exists(new IndicesExistsRequest(partitionName)).actionGet().isExists(), is(false));
+        assertThat(internalCluster().clusterService().state().metaData().hasIndex(partitionName), is(false));
     }
 
     @Test
@@ -137,11 +137,13 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         execute("select count(*) from information_schema.columns where table_name = 'test'");
         assertThat((Long) response.rows()[0][0], is(3L));
 
+        ClusterState state = internalCluster().clusterService().state();
+
         // check that orphaned alias has been deleted
-        assertThat(client().admin().cluster().prepareState().execute().actionGet()
-            .getState().metaData().hasAlias("test"), is(false));
+        assertThat(state.metaData().hasAlias("test"), is(false));
         // check that orphaned partition has been deleted
-        assertThat(client().admin().indices().exists(new IndicesExistsRequest(partitionName)).actionGet().isExists(), is(false));
+
+        assertThat(state.metaData().hasIndex(partitionName), is(false));
     }
 
 

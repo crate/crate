@@ -24,8 +24,6 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -96,15 +94,12 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
     @Test
     public void testSelectScoreMatchAll() throws Exception {
         execute("create table quotes (quote string) with (number_of_replicas = 0)");
-        ensureYellow();
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest(getFqn("quotes")))
-            .actionGet().isExists());
 
         execute("insert into quotes values (?), (?)",
             new Object[]{"Would it save you a lot of time if I just gave up and went mad now?",
                 "Time is an illusion. Lunchtime doubly so"}
         );
-        refresh();
+        execute("refresh table quotes");
 
         execute("select quote, \"_score\" from quotes");
         assertEquals(2L, response.rowCount());
@@ -140,16 +135,12 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
     public void testSelectMatchAnd() throws Exception {
         execute("create table quotes (id int, quote string, " +
                 "index quote_fulltext using fulltext(quote) with (analyzer='english')) with (number_of_replicas = 0)");
-        ensureYellow();
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest(getFqn("quotes")))
-            .actionGet().isExists());
-
         execute("insert into quotes (id, quote) values (?, ?), (?, ?)",
             new Object[]{
                 1, "Would it save you a lot of time if I just gave up and went mad now?",
                 2, "Time is an illusion. Lunchtime doubly so"}
         );
-        refresh();
+        execute("refresh table quotes");
 
         execute("select quote from quotes where match(quote_fulltext, 'time') and id = 1");
         assertEquals(1L, response.rowCount());
