@@ -62,7 +62,7 @@ public class RamBlockSizeCalculator implements IntSupplier {
         blockSize = Math.min(defaultBlockSize, blockSize);
 
         // In case no mem available from circuit breaker then still allocate a small blockSize,
-        // so that at least some rows (min 1) could be processed and a CircuitBreakerException can be triggered.
+        // so that at least some rows (min 10) could be processed and a CircuitBreakerException can be triggered.
         return blockSize <= 0 ? 10 : blockSize;
     }
 
