@@ -33,7 +33,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusRe
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
@@ -57,17 +56,6 @@ public class Requests {
      * The default content type to use to generate source documents when indexing.
      */
     public static XContentType INDEX_CONTENT_TYPE = XContentType.JSON;
-
-    /**
-     * Creates an indices exists request.
-     *
-     * @param indices The indices to check if they exists or not.
-     * @return The indices exists request
-     * @see org.elasticsearch.client.IndicesAdminClient#exists(org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest)
-     */
-    public static IndicesExistsRequest indicesExistsRequest(String... indices) {
-        return new IndicesExistsRequest(indices);
-    }
 
     /**
      * Creates a create index request.
