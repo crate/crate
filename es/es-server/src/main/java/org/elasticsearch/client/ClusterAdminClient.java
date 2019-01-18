@@ -46,9 +46,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequestBuilder;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
-import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusRequestBuilder;
-import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -56,7 +53,6 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequestBuilder;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.tasks.TaskId;
 
 /**
  * Administrative actions/operations against indices.
@@ -249,24 +245,4 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * that update the cluster state (for example, a create index operation)
      */
     PendingClusterTasksRequestBuilder preparePendingClusterTasks();
-
-    /**
-     * Get snapshot status.
-     */
-    ActionFuture<SnapshotsStatusResponse> snapshotsStatus(SnapshotsStatusRequest request);
-
-    /**
-     * Get snapshot status.
-     */
-    void snapshotsStatus(SnapshotsStatusRequest request, ActionListener<SnapshotsStatusResponse> listener);
-
-    /**
-     * Get snapshot status.
-     */
-    SnapshotsStatusRequestBuilder prepareSnapshotStatus(String repository);
-
-    /**
-     * Get snapshot status.
-     */
-    SnapshotsStatusRequestBuilder prepareSnapshotStatus();
 }
