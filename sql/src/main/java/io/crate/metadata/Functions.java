@@ -38,22 +38,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Functions {
 
-    private final Map<String, FunctionResolver> functionResolvers;
-    private final Map<String, Map<String, FunctionResolver>> udfResolversBySchema = new ConcurrentHashMap<>();
+    private final Map<FunctionName, FunctionResolver> functionResolvers;
+    private final Map<FunctionName, FunctionResolver> udfResolvers = new ConcurrentHashMap<>();
 
     @Inject
     public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
-                     Map<String, FunctionResolver> functionResolvers) {
+                     Map<FunctionName, FunctionResolver> functionResolvers) {
         this.functionResolvers = Maps.newHashMap(functionResolvers);
         this.functionResolvers.putAll(generateFunctionResolvers(functionImplementations));
     }
 
-    private Map<String, FunctionResolver> generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
-        Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> signatures = getSignatures(functionImplementations);
+    private Map<FunctionName, FunctionResolver> generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
+        Multimap<FunctionName, Tuple<FunctionIdent, FunctionImplementation>> signatures = getSignatures(functionImplementations);
         return signatures.keys().stream()
             .distinct()
             .collect(Collectors.toMap(name -> name, name -> new GeneratedFunctionResolver(signatures.get(name))));
@@ -66,21 +67,32 @@ public class Functions {
      * @return The MultiMap with the function name as key and a tuple of
      *         FunctionIdent and FunctionImplementation as value.
      */
-    private Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> getSignatures(
+    private Multimap<FunctionName, Tuple<FunctionIdent, FunctionImplementation>> getSignatures(
             Map<FunctionIdent, FunctionImplementation> functionImplementations) {
-        Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> signatureMap = ArrayListMultimap.create();
+        Multimap<FunctionName, Tuple<FunctionIdent, FunctionImplementation>> signatureMap = ArrayListMultimap.create();
         for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functionImplementations.entrySet()) {
-            signatureMap.put(entry.getKey().name(), new Tuple<>(entry.getKey(), entry.getValue()));
+            signatureMap.put(entry.getKey().fqnName(), new Tuple<>(entry.getKey(), entry.getValue()));
         }
         return signatureMap;
     }
 
     public void registerUdfResolversForSchema(String schema, Map<FunctionIdent, FunctionImplementation> functions) {
-        udfResolversBySchema.put(schema, generateFunctionResolvers(functions));
+        // remove deleted ones before re-registering all current ones for the given schema
+        Map<FunctionName, FunctionResolver> currentFunctions = generateFunctionResolvers(functions);
+        for (FunctionName functionName : udfResolvers.keySet()) {
+            if (schema.equals(functionName.schema()) && currentFunctions.get(functionName) == null) {
+                udfResolvers.remove(functionName);
+            }
+        }
+        udfResolvers.putAll(currentFunctions);
     }
 
     public void deregisterUdfResolversForSchema(String schema) {
-        udfResolversBySchema.remove(schema);
+        for (FunctionName functionName : udfResolvers.keySet()) {
+            if (schema.equals(functionName.schema())) {
+                udfResolvers.remove(functionName);
+            }
+        }
     }
 
     /**
@@ -89,8 +101,8 @@ public class Functions {
      * <pre>
      * {@code
      * Lookup logic:
-     *     No schema:   Built-ins -> UDFs in searchPath
-     *     With Schema: UDFs in schema
+     *     No schema:   Built-ins -> Function or UDFs in searchPath
+     *     With Schema: Function or UDFs in schema
      * }
      * </pre>
      *
@@ -100,14 +112,10 @@ public class Functions {
                                       String functionName,
                                       List<? extends FuncArg> arguments,
                                       SearchPath searchPath) {
-        FunctionImplementation func;
-        if (suppliedSchema == null) {
-            func = getBuiltinByArgs(functionName, arguments);
-            if (func == null) {
-                func = resolveUserDefinedByArgs(null, functionName, arguments, searchPath);
-            }
-        } else {
-            func = resolveUserDefinedByArgs(suppliedSchema, functionName, arguments, searchPath);
+        FunctionName fqnName = new FunctionName(suppliedSchema, functionName);
+        FunctionImplementation func = getBuiltinByArgs(fqnName, arguments, searchPath);
+        if (func == null) {
+            func = resolveUserDefinedByArgs(fqnName, arguments, searchPath);
         }
         if (func == null) {
             throw raiseUnknownFunction(suppliedSchema, functionName, arguments);
@@ -128,13 +136,13 @@ public class Functions {
     /**
      * Returns the built-in function implementation for the given function name and arguments.
      *
-     * @param name The function name.
+     * @param functionName The full qualified function name.
      * @param dataTypes The function argument types.
      * @return a function implementation or null if it was not found.
      */
     @Nullable
-    private FunctionImplementation getBuiltin(String name, List<DataType> dataTypes) {
-        FunctionResolver resolver = lookupBuiltinFunctionResolver(name);
+    private FunctionImplementation getBuiltin(FunctionName functionName, List<DataType> dataTypes) {
+        FunctionResolver resolver = lookupBuiltinFunctionResolver(functionName);
         if (resolver == null) {
             return null;
         }
@@ -145,13 +153,15 @@ public class Functions {
      * Returns the built-in function implementation for the given function name and argument types.
      * The types may be cast to match the built-in argument types.
      *
-     * @param name The function name.
+     * @param functionName The full qualified function name.
      * @param argumentsTypes The function argument types.
      * @return a function implementation or null if it was not found.
      */
     @Nullable
-    private FunctionImplementation getBuiltinByArgs(String name, List<? extends FuncArg> argumentsTypes) {
-        FunctionResolver resolver = lookupBuiltinFunctionResolver(name);
+    private FunctionImplementation getBuiltinByArgs(FunctionName functionName,
+                                                    List<? extends FuncArg> argumentsTypes,
+                                                    SearchPath searchPath) {
+        FunctionResolver resolver = lookupFunctionResolver(functionName, searchPath, this::lookupBuiltinFunctionResolver);
         if (resolver == null) {
             return null;
         }
@@ -161,15 +171,14 @@ public class Functions {
     /**
      * Returns the user-defined function implementation for the given function name and argTypes.
      *
-     * @param name The function name.
+     * @param functionName The full qualified function name.
      * @param argTypes The function argTypes.
      * @return a function implementation.
      */
     @Nullable
-    private FunctionImplementation getUserDefined(String schema,
-                                                  String name,
+    private FunctionImplementation getUserDefined(FunctionName functionName,
                                                   List<DataType> argTypes) throws UnsupportedOperationException {
-        FunctionResolver resolver = lookupUdfFunctionResolver(schema, name);
+        FunctionResolver resolver = lookupUdfFunctionResolver(functionName);
         if (resolver == null) {
             return null;
         }
@@ -180,18 +189,17 @@ public class Functions {
      * Returns the user-defined function implementation for the given function name and arguments.
      * The types may be cast to match the built-in argument types.
      *
-     * @param name The function name.
+     * @param functionName The full qualified function name.
      * @param arguments The function arguments.
      * @param searchPath The {@link SearchPath} against which to try to resolve the function if it is not identified by
      *                   a fully qualifed name (ie. `schema.functionName`)
      * @return a function implementation.
      */
     @Nullable
-    private FunctionImplementation resolveUserDefinedByArgs(@Nullable String schema,
-                                                           String name,
-                                                           List<? extends FuncArg> arguments,
-                                                           SearchPath searchPath) throws UnsupportedOperationException {
-        FunctionResolver resolver = lookupUdfFunctionResolver(schema, name, searchPath);
+    private FunctionImplementation resolveUserDefinedByArgs(FunctionName functionName,
+                                                            List<? extends FuncArg> arguments,
+                                                            SearchPath searchPath) throws UnsupportedOperationException {
+        FunctionResolver resolver = lookupFunctionResolver(functionName, searchPath, this::lookupUdfFunctionResolver);
         if (resolver == null) {
             return null;
         }
@@ -199,33 +207,30 @@ public class Functions {
     }
 
     @Nullable
-    private FunctionResolver lookupBuiltinFunctionResolver(String name) {
-        return functionResolvers.get(name);
+    private FunctionResolver lookupBuiltinFunctionResolver(FunctionName functionName) {
+        return functionResolvers.get(functionName);
     }
 
     @Nullable
-    private FunctionResolver lookupUdfFunctionResolver(String schema, String name) {
-        Map<String, FunctionResolver> functionResolvers = udfResolversBySchema.get(schema);
-        if (functionResolvers == null) {
-            return null;
-        }
-        return functionResolvers.get(name);
+    private FunctionResolver lookupUdfFunctionResolver(FunctionName functionName) {
+        return udfResolvers.get(functionName);
     }
 
     @Nullable
-    private FunctionResolver lookupUdfFunctionResolver(@Nullable String schema, String name, Iterable<String> searchPath) {
-        if (schema != null) {
-            return lookupUdfFunctionResolver(schema, name);
-        } else {
-            FunctionResolver functionResolver = null;
+    private static FunctionResolver lookupFunctionResolver(FunctionName functionName,
+                                                           Iterable<String> searchPath,
+                                                           Function<FunctionName, FunctionResolver> lookupFunction) {
+        FunctionResolver functionResolver = lookupFunction.apply(functionName);
+        if (functionResolver == null && functionName.schema() == null) {
             for (String pathSchema : searchPath) {
-                functionResolver = lookupUdfFunctionResolver(pathSchema, name);
+                FunctionName searchPathfunctionName = new FunctionName(pathSchema, functionName.name());
+                functionResolver = lookupFunction.apply(searchPathfunctionName);
                 if (functionResolver != null) {
                     break;
                 }
             }
-            return functionResolver;
         }
+        return functionResolver;
     }
 
     /**
@@ -237,12 +242,9 @@ public class Functions {
      * @throws UnsupportedOperationException if no implementation is found.
      */
     public FunctionImplementation getQualified(FunctionIdent ident) throws UnsupportedOperationException {
-        FunctionImplementation impl = null;
-        if (ident.schema() == null) {
-            impl = getBuiltin(ident.name(), ident.argumentTypes());
-        }
+        FunctionImplementation impl = getBuiltin(ident.fqnName(), ident.argumentTypes());
         if (impl == null) {
-            impl = getUserDefined(ident.schema(), ident.name(), ident.argumentTypes());
+            impl = getUserDefined(ident.fqnName(), ident.argumentTypes());
         }
         return impl;
     }

@@ -37,24 +37,24 @@ import java.util.List;
 
 public final class FunctionIdent implements Comparable<FunctionIdent>, Writeable {
 
-    private final String schema;
-    private final String name;
+    private final FunctionName fqnName;
     private final List<DataType> argumentTypes;
 
-    public FunctionIdent(@Nullable String schema, String name, List<DataType> argumentTypes) {
-        this.schema = schema;
-        this.name = name;
+    public FunctionIdent(FunctionName functionName, List<DataType> argumentTypes) {
+        this.fqnName = functionName;
         this.argumentTypes = argumentTypes;
+    }
+
+    public FunctionIdent(@Nullable String schema, String name, List<DataType> argumentTypes) {
+        this(new FunctionName(schema, name), argumentTypes);
     }
 
     public FunctionIdent(String name, List<DataType> argumentTypes) {
-        this.schema = null;
-        this.name = name;
-        this.argumentTypes = argumentTypes;
+        this(null, name, argumentTypes);
     }
 
     public String schema() {
-        return schema;
+        return fqnName.schema();
     }
 
     public List<DataType> argumentTypes() {
@@ -62,7 +62,11 @@ public final class FunctionIdent implements Comparable<FunctionIdent>, Writeable
     }
 
     public String name() {
-        return name;
+        return fqnName.name();
+    }
+
+    public FunctionName fqnName() {
+        return fqnName;
     }
 
     @Override
@@ -75,38 +79,34 @@ public final class FunctionIdent implements Comparable<FunctionIdent>, Writeable
         }
 
         FunctionIdent o = (FunctionIdent) obj;
-        return Objects.equal(schema, o.schema) &&
-            Objects.equal(name, o.name) &&
-            Objects.equal(argumentTypes, o.argumentTypes);
+        return Objects.equal(fqnName, o.fqnName) &&
+               Objects.equal(argumentTypes, o.argumentTypes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(schema, name, argumentTypes);
+        return Objects.hashCode(fqnName, argumentTypes);
     }
 
     @Override
     public String toString() {
         return "FunctionIdent{" +
-            "schema='" + schema + '\'' +
-            ", name='" + name + '\'' +
-            ", argumentTypes=" + argumentTypes +
-            '}';
+               fqnName.toString() +
+               ", argumentTypes=" + argumentTypes +
+               '}';
     }
 
     @Override
     public int compareTo(FunctionIdent o) {
         return ComparisonChain.start()
-            .compare(schema, o.schema)
-            .compare(name, o.name)
+            .compare(fqnName, o.fqnName)
             .compare(argumentTypes, o.argumentTypes, Ordering.<DataType>natural().lexicographical())
             .result();
     }
 
 
     public FunctionIdent(StreamInput in) throws IOException {
-        schema = in.readOptionalString();
-        name = in.readString();
+        fqnName = new FunctionName(in);
         int numTypes = in.readVInt();
         argumentTypes = new ArrayList<>(numTypes);
         for (int i = 0; i < numTypes; i++) {
@@ -116,8 +116,7 @@ public final class FunctionIdent implements Comparable<FunctionIdent>, Writeable
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeOptionalString(schema);
-        out.writeString(name);
+        fqnName.writeTo(out);
         out.writeVInt(argumentTypes.size());
         for (DataType argumentType : argumentTypes) {
             DataTypes.toStream(argumentType, out);

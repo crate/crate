@@ -1753,6 +1753,34 @@ Example::
     +----------------+
     SELECT 1 row in set (... sec)
 
+.. _current_schemas:
+
+``CURRENT_SCHEMAS(boolean)``
+----------------------------
+
+The ``CURRENT_SCHEMAS()`` system information function returns the current stored
+schemas inside the :ref:`search_path <conf-session-search-path>` session
+state, optionally including implicit schemas (e.g. ``pg_catalog``). If no custom
+:ref:`search_path <conf-session-search-path>` is set, this function will return
+the default :ref:`search_path <conf-session-search-path>` schemas.
+
+
+Returns: ``array(string)``
+
+Synopsis::
+
+    CURRENT_SCHEMAS ( boolean )
+
+Example::
+
+    cr> SELECT CURRENT_SCHEMAS(true);
+    +-----------------------+
+    | current_schemas(true) |
+    +-----------------------+
+    | ["pg_catalog", "doc"] |
+    +-----------------------+
+    SELECT 1 row in set (... sec)
+
 .. _current_user:
 
 ``CURRENT_USER``

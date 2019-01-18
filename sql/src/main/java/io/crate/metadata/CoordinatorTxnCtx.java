@@ -68,6 +68,11 @@ public final class CoordinatorTxnCtx implements TransactionContext {
         return sessionContext.searchPath().currentSchema();
     }
 
+    @Override
+    public SearchPath searchPath() {
+        return sessionContext.searchPath();
+    }
+
     public SessionContext sessionContext() {
         return sessionContext;
     }

@@ -41,7 +41,7 @@ import static org.hamcrest.Matchers.sameInstance;
 public class RandomFunctionTest extends AbstractScalarFunctionsTest {
 
     private RandomFunction random;
-    private TransactionContext txnCtx = TransactionContext.of("dummyUser", "dummySchema");
+    private TransactionContext txnCtx = TransactionContext.of("dummyUser", SearchPath.createSearchPathFrom("dummySchema"));
 
     @Before
     public void prepareRandom() {

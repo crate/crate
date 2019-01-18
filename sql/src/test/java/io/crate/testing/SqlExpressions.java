@@ -129,4 +129,8 @@ public class SqlExpressions {
     public void setDefaultSchema(String schema) {
         this.coordinatorTxnCtx.sessionContext().setSearchPath(schema);
     }
+
+    public void setSearchPath(String... schemas) {
+        this.coordinatorTxnCtx.sessionContext().setSearchPath(schemas);
+    }
 }

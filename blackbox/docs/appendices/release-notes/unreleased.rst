@@ -42,6 +42,9 @@ None
 Changes
 =======
 
+- Added ``current_schemas(boolean)`` scalar function which will return the
+  names of schemas in the ``search_path``.
+
 - Added support for the ``first_value``, ``last_value`` and ``nth_value``
   window functions as enterprise features.
 

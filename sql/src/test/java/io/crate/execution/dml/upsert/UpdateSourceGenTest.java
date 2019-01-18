@@ -28,6 +28,7 @@ import io.crate.expression.symbol.Assignments;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -159,7 +160,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen sourceGen = new UpdateSourceGen(
             e.functions(),
-            TransactionContext.of("dummyUser", "dummySchema"),
+            TransactionContext.of("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             table,
             assignments.targetNames()
         );
