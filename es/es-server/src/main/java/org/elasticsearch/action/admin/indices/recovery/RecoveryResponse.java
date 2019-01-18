@@ -21,10 +21,8 @@ package org.elasticsearch.action.admin.indices.recovery;
 
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.indices.recovery.RecoveryState;
 
 import java.io.IOException;
@@ -67,30 +65,6 @@ public class RecoveryResponse extends BroadcastResponse {
     }
 
     @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        if (hasRecoveries()) {
-            for (String index : shardRecoveryStates.keySet()) {
-                List<RecoveryState> recoveryStates = shardRecoveryStates.get(index);
-                if (recoveryStates == null || recoveryStates.size() == 0) {
-                    continue;
-                }
-                builder.startObject(index);
-                builder.startArray("shards");
-                for (RecoveryState recoveryState : recoveryStates) {
-                    builder.startObject();
-                    recoveryState.toXContent(builder, params);
-                    builder.endObject();
-                }
-                builder.endArray();
-                builder.endObject();
-            }
-        }
-        builder.endObject();
-        return builder;
-    }
-
-    @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeVInt(shardRecoveryStates.size());
@@ -116,10 +90,5 @@ public class RecoveryResponse extends BroadcastResponse {
             }
             shardRecoveryStates.put(s, list);
         }
-    }
-
-    @Override
-    public String toString() {
-        return Strings.toString(this, true, true);
     }
 }
