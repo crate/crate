@@ -28,7 +28,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotReq
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.status.SnapshotsStatusRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -247,15 +246,5 @@ public class Requests {
     public static DeleteSnapshotRequest deleteSnapshotRequest(String repository, String snapshot) {
         return new DeleteSnapshotRequest(repository, snapshot);
     }
-
-    /**
-     *  Get status of snapshots
-     *
-     * @param repository repository name
-     * @return snapshot status request
-     */
-    public static SnapshotsStatusRequest snapshotsStatusRequest(String repository) {
-        return new SnapshotsStatusRequest(repository);
-    }
-
 }
+
