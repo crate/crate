@@ -132,7 +132,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
 
         @Override
         public Number evaluate(TransactionContext txnCtx, Input<Number>... args) {
-            assert args.length == 1  : "number of args must be 1";
+            assert args.length == 1 : "number of args must be 1";
             Number value = args[0].value();
             if (value == null) {
                 return null;

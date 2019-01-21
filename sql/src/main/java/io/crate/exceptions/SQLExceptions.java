@@ -208,7 +208,7 @@ public class SQLExceptions {
             return new JobKilledException();
         } else if (unwrappedError instanceof RepositoryMissingException) {
             return new RepositoryUnknownException(((RepositoryMissingException) unwrappedError).repository());
-        } else if (unwrappedError instanceof  InvalidSnapshotNameException) {
+        } else if (unwrappedError instanceof InvalidSnapshotNameException) {
             return new SnapshotNameInvalidException(unwrappedError.getMessage());
         } else if (unwrappedError instanceof SnapshotMissingException) {
             SnapshotMissingException snapshotException = (SnapshotMissingException) unwrappedError;

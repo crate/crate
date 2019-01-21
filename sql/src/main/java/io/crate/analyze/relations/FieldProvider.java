@@ -33,7 +33,7 @@ public interface FieldProvider<T extends Symbol> {
     T resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation);
 
 
-    FieldProvider UNSUPPORTED  = (qualifiedName, path, operation) -> {
+    FieldProvider UNSUPPORTED = (qualifiedName, path, operation) -> {
         throw new UnsupportedOperationException("Cannot resolve field references");
     };
 }

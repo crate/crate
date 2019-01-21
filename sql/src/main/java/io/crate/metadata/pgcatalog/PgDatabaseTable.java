@@ -43,7 +43,7 @@ import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 
-public class PgDatabaseTable extends StaticTableInfo  {
+public class PgDatabaseTable extends StaticTableInfo {
 
     public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_database");
 

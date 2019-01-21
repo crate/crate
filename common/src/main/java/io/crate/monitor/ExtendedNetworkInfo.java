@@ -42,7 +42,7 @@ public class ExtendedNetworkInfo {
     }
 
     static Interface iface() {
-        try  {
+        try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             while (interfaces.hasMoreElements()) {
                 NetworkInterface iface = interfaces.nextElement();

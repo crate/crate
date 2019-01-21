@@ -81,7 +81,7 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
 
         int clusteredByIdx = MoreObjects.firstNonNull(columnPositions.get(tableInfo.clusteredBy()), -1);
         if (clusteredByIdx > -1) {
-            clusteredBySymbol = new InputColumn(clusteredByIdx,  targetColumns.get(clusteredByIdx).valueType());
+            clusteredBySymbol = new InputColumn(clusteredByIdx, targetColumns.get(clusteredByIdx).valueType());
         } else {
             clusteredBySymbol = null;
         }

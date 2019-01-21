@@ -126,7 +126,7 @@ public class AsyncCompositeBatchIterator<T> implements BatchIterator<T> {
                 }, executor);
                 nestedFutures.add(future);
             }
-        }  else {
+        } else {
             for (BatchIterator<T> iterator: itToLoad) {
                 nestedFutures.add(supplyAsync(() -> iterator.loadNextBatch().toCompletableFuture(), executor));
             }

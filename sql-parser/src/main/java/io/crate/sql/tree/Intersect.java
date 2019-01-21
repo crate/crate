@@ -31,7 +31,7 @@ public class Intersect extends SetOperation {
     private final Relation right;
 
     public Intersect(Relation left, Relation right) {
-        this.left  = Preconditions.checkNotNull(left, "relation must not be null");
+        this.left = Preconditions.checkNotNull(left, "relation must not be null");
         this.right = Preconditions.checkNotNull(right, "relation must not be null");
     }
 

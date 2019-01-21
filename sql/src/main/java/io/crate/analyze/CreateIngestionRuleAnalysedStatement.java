@@ -37,7 +37,7 @@ public class CreateIngestionRuleAnalysedStatement implements DCLStatement {
     public CreateIngestionRuleAnalysedStatement(String ruleName,
                                                 String sourceName,
                                                 RelationName targetTable,
-                                                @Nullable  Expression whereClause,
+                                                @Nullable Expression whereClause,
                                                 ParameterContext parameterContext) {
         this.ruleName = ruleName;
         this.sourceName = sourceName;

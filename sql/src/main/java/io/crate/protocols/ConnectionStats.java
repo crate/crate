@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 
-public final class ConnectionStats implements Writeable  {
+public final class ConnectionStats implements Writeable {
 
     private final long open;
     private final long total;

@@ -37,7 +37,7 @@ public final class FunctionName implements Comparable<FunctionName>, Writeable {
     private final String schema;
     private final String name;
 
-    public FunctionName(@Nullable  String schema, String name) {
+    public FunctionName(@Nullable String schema, String name) {
         this.schema = schema;
         this.name = name;
     }

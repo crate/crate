@@ -64,7 +64,7 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
     @Override
     public BytesReference generateSource(Object[] values) throws IOException {
         String rawSource = (String) values[0];
-        Map<String, Object>  source = XContentHelper.convertToMap(new BytesArray(rawSource), false, XContentType.JSON).v2();
+        Map<String, Object> source = XContentHelper.convertToMap(new BytesArray(rawSource), false, XContentType.JSON).v2();
         for (int i = 0; i < expressions.size(); i++) {
             expressions.get(i).setNextRow(source);
         }

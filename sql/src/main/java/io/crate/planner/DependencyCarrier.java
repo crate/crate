@@ -108,7 +108,7 @@ public class DependencyCarrier {
         return functions;
     }
 
-    public TransportActionProvider transportActionProvider()  {
+    public TransportActionProvider transportActionProvider() {
         return transportActionProvider;
     }
 
