@@ -138,7 +138,6 @@ public final class IndexEnv implements AutoCloseable {
             bitsetFilterCache
         );
         IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, new InternalEngineFactory(), Collections.emptyMap());
-        Client client = mock(Client.class);
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(ClusterModule.getNamedWriteables());
         nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env, nodeId -> {});
         luceneReferenceResolver = new LuceneReferenceResolver(
@@ -162,7 +161,6 @@ public final class IndexEnv implements AutoCloseable {
             new NoneCircuitBreakerService(),
             BigArrays.NON_RECYCLING_INSTANCE,
             threadPool,
-            client,
             new IndicesQueryCache(Settings.EMPTY),
             mapperRegistry,
             new IndicesFieldDataCache(Settings.EMPTY, mock(IndexFieldDataCache.Listener.class)),
@@ -180,7 +178,6 @@ public final class IndexEnv implements AutoCloseable {
             mapperService,
             NamedXContentRegistry.EMPTY,
             namedWriteableRegistry,
-            client,
             reader,
             System::currentTimeMillis,
             "dummyClusterAlias"

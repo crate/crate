@@ -124,7 +124,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final AsyncTrimTranslogTask trimTranslogTask;
     private final ThreadPool threadPool;
     private final BigArrays bigArrays;
-    private final Client client;
     private final CircuitBreakerService circuitBreakerService;
     private Supplier<Sort> indexSortSupplier;
 
@@ -138,7 +137,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             CircuitBreakerService circuitBreakerService,
             BigArrays bigArrays,
             ThreadPool threadPool,
-            Client client,
             QueryCache queryCache,
             IndexStore indexStore,
             IndexEventListener eventListener,
@@ -170,7 +168,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.shardStoreDeleter = shardStoreDeleter;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
-        this.client = client;
         this.eventListener = eventListener;
         this.nodeEnv = nodeEnv;
         this.indexStore = indexStore;
@@ -474,10 +471,17 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
      */
     public QueryShardContext newQueryShardContext(int shardId, IndexReader indexReader, LongSupplier nowInMillis, String clusterAlias) {
         return new QueryShardContext(
-            shardId, indexSettings, indexCache.bitsetFilterCache(), indexFieldData::getForField, mapperService(),
-                xContentRegistry,
-               namedWriteableRegistry, client, indexReader,
-            nowInMillis, clusterAlias);
+            shardId,
+            indexSettings,
+            indexCache.bitsetFilterCache(),
+            indexFieldData::getForField,
+            mapperService(),
+            xContentRegistry,
+            namedWriteableRegistry,
+            indexReader,
+            nowInMillis,
+            clusterAlias
+        );
     }
 
     /**
