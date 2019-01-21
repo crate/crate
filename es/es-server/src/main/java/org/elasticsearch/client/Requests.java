@@ -20,14 +20,6 @@
 package org.elasticsearch.client;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -36,7 +28,6 @@ import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
 import org.elasticsearch.common.xcontent.XContentType;
 
@@ -144,16 +135,6 @@ public class Requests {
     }
 
     /**
-     * A request to update indices settings.
-     *
-     * @param indices The indices to update the settings for. Use {@code null} or {@code _all} to executed against all indices.
-     * @return The request
-     */
-    public static UpdateSettingsRequest updateSettingsRequest(String... indices) {
-        return new UpdateSettingsRequest(indices);
-    }
-
-    /**
      * Creates a cluster state request.
      *
      * @return The cluster state request.
@@ -161,14 +142,6 @@ public class Requests {
      */
     public static ClusterStateRequest clusterStateRequest() {
         return new ClusterStateRequest();
-    }
-
-    public static ClusterRerouteRequest clusterRerouteRequest() {
-        return new ClusterRerouteRequest();
-    }
-
-    public static ClusterUpdateSettingsRequest clusterUpdateSettingsRequest() {
-        return new ClusterUpdateSettingsRequest();
     }
 
     /**
@@ -181,70 +154,6 @@ public class Requests {
      */
     public static ClusterHealthRequest clusterHealthRequest(String... indices) {
         return new ClusterHealthRequest(indices);
-    }
-
-    /**
-     * Registers snapshot repository
-     *
-     * @param name repository name
-     * @return repository registration request
-     */
-    public static PutRepositoryRequest putRepositoryRequest(String name) {
-        return new PutRepositoryRequest(name);
-    }
-
-    /**
-     * Deletes registration for snapshot repository
-     *
-     * @param name repository name
-     * @return delete repository request
-     */
-    public static DeleteRepositoryRequest deleteRepositoryRequest(String name) {
-        return new DeleteRepositoryRequest(name);
-    }
-
-
-    /**
-     * Creates new snapshot
-     *
-     * @param repository repository name
-     * @param snapshot   snapshot name
-     * @return create snapshot request
-     */
-    public static CreateSnapshotRequest createSnapshotRequest(String repository, String snapshot) {
-        return new CreateSnapshotRequest(repository, snapshot);
-    }
-
-    /**
-     * Gets snapshots from repository
-     *
-     * @param repository repository name
-     * @return get snapshot  request
-     */
-    public static GetSnapshotsRequest getSnapshotsRequest(String repository) {
-        return new GetSnapshotsRequest(repository);
-    }
-
-    /**
-     * Restores new snapshot
-     *
-     * @param repository repository name
-     * @param snapshot   snapshot name
-     * @return snapshot creation request
-     */
-    public static RestoreSnapshotRequest restoreSnapshotRequest(String repository, String snapshot) {
-        return new RestoreSnapshotRequest(repository, snapshot);
-    }
-
-    /**
-     * Deletes a snapshot
-     *
-     * @param snapshot   snapshot name
-     * @param repository repository name
-     * @return delete snapshot request
-     */
-    public static DeleteSnapshotRequest deleteSnapshotRequest(String repository, String snapshot) {
-        return new DeleteSnapshotRequest(repository, snapshot);
     }
 }
 

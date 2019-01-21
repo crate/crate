@@ -264,8 +264,7 @@ public abstract class Node implements Closeable {
         boolean success = false;
         try {
             originalSettings = environment.settings();
-            Settings tmpSettings = Settings.builder().put(environment.settings())
-                .put(Client.CLIENT_TYPE_SETTING_S.getKey(), CLIENT_TYPE).build();
+            Settings tmpSettings = environment.settings();
 
             /*
              * Create the node environment as soon as possible so we can
