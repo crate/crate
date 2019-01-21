@@ -30,7 +30,6 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.ConcurrentMapLong;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
@@ -78,21 +77,7 @@ public class TaskManager extends AbstractComponent implements ClusterStateApplie
      * Returns the task manager tracked task or null if the task doesn't support the task manager
      */
     public Task register(String type, String action, TaskAwareRequest request) {
-        Map<String, String> headers = new HashMap<>();
-        long headerSize = 0;
-        long maxSize = maxHeaderSize.getBytes();
-        ThreadContext threadContext = threadPool.getThreadContext();
-        for (String key : taskHeaders) {
-            String httpHeader = threadContext.getHeader(key);
-            if (httpHeader != null) {
-                headerSize += key.length() * 2 + httpHeader.length() * 2;
-                if (headerSize > maxSize) {
-                    throw new IllegalArgumentException("Request exceeded the maximum size of task headers " + maxHeaderSize);
-                }
-                headers.put(key, httpHeader);
-            }
-        }
-        Task task = request.createTask(taskIdGenerator.incrementAndGet(), type, action, request.getParentTask(), headers);
+        Task task = request.createTask(taskIdGenerator.incrementAndGet(), request.getParentTask());
         if (task == null) {
             return null;
         }

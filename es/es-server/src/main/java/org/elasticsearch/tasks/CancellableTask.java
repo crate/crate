@@ -19,9 +19,6 @@
 
 package org.elasticsearch.tasks;
 
-import org.elasticsearch.common.Nullable;
-
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -31,8 +28,8 @@ public abstract class CancellableTask extends Task {
 
     private final AtomicReference<String> reason = new AtomicReference<>();
 
-    public CancellableTask(long id, String type, String action, String description, TaskId parentTaskId, Map<String, String> headers) {
-        super(id, type, action, description, parentTaskId, headers);
+    public CancellableTask(long id, String description, TaskId parentTaskId) {
+        super(id, description, parentTaskId);
     }
 
     /**
@@ -52,21 +49,8 @@ public abstract class CancellableTask extends Task {
         return true;
     }
 
-    /**
-     * Returns true if this task can potentially have children that need to be cancelled when it parent is cancelled.
-     */
-    public abstract boolean shouldCancelChildrenOnCancellation();
-
     public boolean isCancelled() {
         return reason.get() != null;
-    }
-
-    /**
-     * The reason the task was cancelled or null if it hasn't been cancelled.
-     */
-    @Nullable
-    public String getReasonCancelled() {
-        return reason.get();
     }
 
     /**
