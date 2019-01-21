@@ -18,12 +18,10 @@
  */
 package org.elasticsearch.common.geo;
 
-import org.locationtech.jts.geom.Coordinate;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.geo.builders.CircleBuilder;
 import org.elasticsearch.common.geo.builders.CoordinatesBuilder;
 import org.elasticsearch.common.geo.builders.EnvelopeBuilder;
-import org.elasticsearch.common.geo.builders.GeometryCollectionBuilder;
 import org.elasticsearch.common.geo.builders.LineStringBuilder;
 import org.elasticsearch.common.geo.builders.MultiLineStringBuilder;
 import org.elasticsearch.common.geo.builders.MultiPointBuilder;
@@ -33,12 +31,10 @@ import org.elasticsearch.common.geo.builders.PolygonBuilder;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.geo.builders.ShapeBuilder.Orientation;
 import org.elasticsearch.common.geo.parsers.CoordinateNode;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry.Entry;
 import org.elasticsearch.common.unit.DistanceUnit;
+import org.locationtech.jts.geom.Coordinate;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -305,20 +301,6 @@ public enum GeoShapeType {
     /** wkt shape name */
     public String wktName() {
         return this.shapename;
-    }
-
-    public static List<Entry> getShapeWriteables() {
-        List<Entry> namedWriteables = new ArrayList<>();
-        namedWriteables.add(new Entry(ShapeBuilder.class, PointBuilder.TYPE.shapeName(), PointBuilder::new));
-        namedWriteables.add(new Entry(ShapeBuilder.class, CircleBuilder.TYPE.shapeName(), CircleBuilder::new));
-        namedWriteables.add(new Entry(ShapeBuilder.class, EnvelopeBuilder.TYPE.shapeName(), EnvelopeBuilder::new));
-        namedWriteables.add(new Entry(ShapeBuilder.class, MultiPointBuilder.TYPE.shapeName(), MultiPointBuilder::new));
-        namedWriteables.add(new Entry(ShapeBuilder.class, LineStringBuilder.TYPE.shapeName(), LineStringBuilder::new));
-        namedWriteables.add(new Entry(ShapeBuilder.class, MultiLineStringBuilder.TYPE.shapeName(), MultiLineStringBuilder::new));
-        namedWriteables.add(new Entry(ShapeBuilder.class, PolygonBuilder.TYPE.shapeName(), PolygonBuilder::new));
-        namedWriteables.add(new Entry(ShapeBuilder.class, MultiPolygonBuilder.TYPE.shapeName(), MultiPolygonBuilder::new));
-        namedWriteables.add(new Entry(ShapeBuilder.class, GeometryCollectionBuilder.TYPE.shapeName(), GeometryCollectionBuilder::new));
-        return namedWriteables;
     }
 
     @Override

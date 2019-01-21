@@ -19,7 +19,6 @@
 
 package org.elasticsearch.common.geo;
 
-import org.apache.lucene.geo.Rectangle;
 import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
 import org.apache.lucene.util.SloppyMath;
@@ -32,27 +31,11 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.GeoPointValues;
-import org.elasticsearch.index.fielddata.MultiGeoPointValues;
-import org.elasticsearch.index.fielddata.NumericDoubleValues;
-import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
-import org.elasticsearch.index.fielddata.SortingNumericDoubleValues;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 public class GeoUtils {
-
-    /** Maximum valid latitude in degrees. */
-    public static final double MAX_LAT = 90.0;
-    /** Minimum valid latitude in degrees. */
-    public static final double MIN_LAT = -90.0;
-    /** Maximum valid longitude in degrees. */
-    public static final double MAX_LON = 180.0;
-    /** Minimum valid longitude in degrees. */
-    public static final double MIN_LON = -180.0;
 
     public static final String LATITUDE = "lat";
     public static final String LONGITUDE = "lon";
@@ -78,88 +61,6 @@ public class GeoUtils {
 
     /** rounding error for quantized latitude and longitude values */
     public static final double TOLERANCE = 1E-6;
-
-    /** Returns true if latitude is actually a valid latitude value.*/
-    public static boolean isValidLatitude(double latitude) {
-        if (Double.isNaN(latitude) || Double.isInfinite(latitude) || latitude < GeoUtils.MIN_LAT || latitude > GeoUtils.MAX_LAT) {
-            return false;
-        }
-        return true;
-    }
-
-    /** Returns true if longitude is actually a valid longitude value. */
-    public static boolean isValidLongitude(double longitude) {
-        if (Double.isNaN(longitude) || Double.isInfinite(longitude) || longitude < GeoUtils.MIN_LON || longitude > GeoUtils.MAX_LON) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Calculate the width (in meters) of geohash cells at a specific level
-     * @param level geohash level must be greater or equal to zero
-     * @return the width of cells at level in meters
-     */
-    public static double geoHashCellWidth(int level) {
-        assert level>=0;
-        // Geohash cells are split into 32 cells at each level. the grid
-        // alternates at each level between a 8x4 and a 4x8 grid
-        return EARTH_EQUATOR / (1L<<((((level+1)/2)*3) + ((level/2)*2)));
-    }
-
-    /**
-     * Calculate the width (in meters) of quadtree cells at a specific level
-     * @param level quadtree level must be greater or equal to zero
-     * @return the width of cells at level in meters
-     */
-    public static double quadTreeCellWidth(int level) {
-        assert level >=0;
-        return EARTH_EQUATOR / (1L<<level);
-    }
-
-    /**
-     * Calculate the height (in meters) of geohash cells at a specific level
-     * @param level geohash level must be greater or equal to zero
-     * @return the height of cells at level in meters
-     */
-    public static double geoHashCellHeight(int level) {
-        assert level>=0;
-        // Geohash cells are split into 32 cells at each level. the grid
-        // alternates at each level between a 8x4 and a 4x8 grid
-        return EARTH_POLAR_DISTANCE / (1L<<((((level+1)/2)*2) + ((level/2)*3)));
-    }
-
-    /**
-     * Calculate the height (in meters) of quadtree cells at a specific level
-     * @param level quadtree level must be greater or equal to zero
-     * @return the height of cells at level in meters
-     */
-    public static double quadTreeCellHeight(int level) {
-        assert level>=0;
-        return EARTH_POLAR_DISTANCE / (1L<<level);
-    }
-
-    /**
-     * Calculate the size (in meters) of geohash cells at a specific level
-     * @param level geohash level must be greater or equal to zero
-     * @return the size of cells at level in meters
-     */
-    public static double geoHashCellSize(int level) {
-        assert level>=0;
-        final double w = geoHashCellWidth(level);
-        final double h = geoHashCellHeight(level);
-        return Math.sqrt(w*w + h*h);
-    }
-
-    /**
-     * Calculate the size (in meters) of quadtree cells at a specific level
-     * @param level quadtree level must be greater or equal to zero
-     * @return the size of cells at level in meters
-     */
-    public static double quadTreeCellSize(int level) {
-        assert level>=0;
-        return Math.sqrt(EARTH_POLAR_DISTANCE*EARTH_POLAR_DISTANCE + EARTH_EQUATOR*EARTH_EQUATOR) / (1L<<level);
-    }
 
     /**
      * Calculate the number of levels needed for a specific precision. Quadtree
@@ -237,29 +138,6 @@ public class GeoUtils {
     }
 
     /**
-     * Normalize latitude to lie within the -90 to 90 (both inclusive) range.
-     * <p>
-     * Note: You should not normalize longitude and latitude separately,
-     * because when normalizing latitude it may be necessary to
-     * add a shift of 180&deg; in the longitude.
-     * For this purpose, you should call the
-     * {@link #normalizePoint(GeoPoint)} function.
-     *
-     * @param lat Latitude to normalize
-     * @return The normalized latitude.
-     * @see #normalizePoint(GeoPoint)
-     */
-    public static double normalizeLat(double lat) {
-        lat = centeredModulus(lat, 360);
-        if (lat < -90) {
-            lat = -180 - lat;
-        } else if (lat > 90) {
-            lat = 180 - lat;
-        }
-        return lat;
-    }
-
-    /**
      * Normalize the geo {@code Point} for its coordinates to lie within their
      * respective normalized ranges.
      * <p>
@@ -293,10 +171,6 @@ public class GeoUtils {
         double[] pt = {point.lon(), point.lat()};
         normalizePoint(pt, normLon, normLat);
         point.reset(pt[1], pt[0]);
-    }
-
-    public static void normalizePoint(double[] lonLat) {
-        normalizePoint(lonLat, true, true);
     }
 
     public static void normalizePoint(double[] lonLat, boolean normLon, boolean normLat) {
@@ -342,16 +216,6 @@ public class GeoUtils {
         }
         return rtn;
     }
-    /**
-     * Parse a {@link GeoPoint} with a {@link XContentParser}:
-     *
-     * @param parser {@link XContentParser} to parse the value from
-     * @return new {@link GeoPoint} parsed from the parse
-     */
-    public static GeoPoint parseGeoPoint(XContentParser parser) throws IOException, ElasticsearchParseException {
-        return parseGeoPoint(parser, new GeoPoint());
-    }
-
 
     public static GeoPoint parseGeoPoint(XContentParser parser, GeoPoint point) throws IOException, ElasticsearchParseException {
         return parseGeoPoint(parser, point, false);
@@ -495,59 +359,6 @@ public class GeoUtils {
         }
     }
 
-    /**
-     * Parse a precision that can be expressed as an integer or a distance measure like "1km", "10m".
-     *
-     * The precision is expressed as a number between 1 and 12 and indicates the length of geohash
-     * used to represent geo points.
-     *
-     * @param parser {@link XContentParser} to parse the value from
-     * @return int representing precision
-     */
-    public static int parsePrecision(XContentParser parser) throws IOException, ElasticsearchParseException {
-        XContentParser.Token token = parser.currentToken();
-        if (token.equals(XContentParser.Token.VALUE_NUMBER)) {
-            return XContentMapValues.nodeIntegerValue(parser.intValue());
-        } else {
-            String precision = parser.text();
-            try {
-                // we want to treat simple integer strings as precision levels, not distances
-                return XContentMapValues.nodeIntegerValue(precision);
-            } catch (NumberFormatException e) {
-                // try to parse as a distance value
-                final int parsedPrecision = GeoUtils.geoHashLevelsForPrecision(precision);
-                try {
-                    return checkPrecisionRange(parsedPrecision);
-                } catch (IllegalArgumentException e2) {
-                    // this happens when distance too small, so precision > 12. We'd like to see the original string
-                    throw new IllegalArgumentException("precision too high [" + precision + "]", e2);
-                }
-            }
-        }
-    }
-
-    /**
-     * Checks that the precision is within range supported by elasticsearch - between 1 and 12
-     *
-     * Returns the precision value if it is in the range and throws an IllegalArgumentException if it
-     * is outside the range.
-     */
-    public static int checkPrecisionRange(int precision) {
-        if ((precision < 1) || (precision > 12)) {
-            throw new IllegalArgumentException("Invalid geohash aggregation precision of " + precision
-                + ". Must be between 1 and 12.");
-        }
-        return precision;
-    }
-
-    /** Returns the maximum distance/radius (in meters) from the point 'center' before overlapping */
-    public static double maxRadialDistanceMeters(final double centerLat, final double centerLon) {
-      if (Math.abs(centerLat) == MAX_LAT) {
-        return SloppyMath.haversinMeters(centerLat, centerLon, 0, centerLon);
-      }
-      return SloppyMath.haversinMeters(centerLat, centerLon, centerLat, (MAX_LON + centerLon) % 360);
-    }
-
     /** Return the distance (in meters) between 2 lat,lon geo points using the haversine method implemented by lucene */
     public static double arcDistance(double lat1, double lon1, double lat2, double lon2) {
         return SloppyMath.haversinMeters(lat1, lon1, lat2, lon2);
@@ -562,66 +373,6 @@ public class GeoUtils {
         double x = (lon2 - lon1) * SloppyMath.TO_RADIANS * Math.cos((lat2 + lat1) / 2.0 * SloppyMath.TO_RADIANS);
         double y = (lat2 - lat1) * SloppyMath.TO_RADIANS;
         return Math.sqrt(x * x + y * y) * EARTH_MEAN_RADIUS;
-    }
-
-    /** check if point is within a rectangle
-     * todo: move this to lucene Rectangle class
-     */
-    public static boolean rectangleContainsPoint(Rectangle r, double lat, double lon) {
-        if (lat >= r.minLat && lat <= r.maxLat) {
-            // if rectangle crosses the dateline we only check if the lon is >= min or max
-            return r.crossesDateline() ? lon >= r.minLon || lon <= r.maxLon : lon >= r.minLon && lon <= r.maxLon;
-        }
-        return false;
-    }
-
-    /**
-     * Return a {@link SortedNumericDoubleValues} instance that returns the distances to a list of geo-points
-     * for each document.
-     */
-    public static SortedNumericDoubleValues distanceValues(final GeoDistance distance,
-                                                           final DistanceUnit unit,
-                                                           final MultiGeoPointValues geoPointValues,
-                                                           final GeoPoint... fromPoints) {
-        final GeoPointValues singleValues = FieldData.unwrapSingleton(geoPointValues);
-        if (singleValues != null && fromPoints.length == 1) {
-            return FieldData.singleton(new NumericDoubleValues() {
-
-                @Override
-                public boolean advanceExact(int doc) throws IOException {
-                    return singleValues.advanceExact(doc);
-                }
-
-                @Override
-                public double doubleValue() throws IOException {
-                    final GeoPoint from = fromPoints[0];
-                    final GeoPoint to = singleValues.geoPointValue();
-                    return distance.calculate(from.lat(), from.lon(), to.lat(), to.lon(), unit);
-                }
-
-            });
-        } else {
-            return new SortingNumericDoubleValues() {
-                @Override
-                public boolean advanceExact(int target) throws IOException {
-                    if (geoPointValues.advanceExact(target)) {
-                        resize(geoPointValues.docValueCount() * fromPoints.length);
-                        int v = 0;
-                        for (int i = 0; i < geoPointValues.docValueCount(); ++i) {
-                            final GeoPoint point = geoPointValues.nextValue();
-                            for (GeoPoint from : fromPoints) {
-                                values[v] = distance.calculate(from.lat(), from.lon(), point.lat(), point.lon(), unit);
-                                v++;
-                            }
-                        }
-                        sort();
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
-            };
-        }
     }
 
     private GeoUtils() {
