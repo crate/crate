@@ -21,7 +21,6 @@ package org.elasticsearch.common.util;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.SeedUtils;
-
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.Accountables;
 import org.apache.lucene.util.BytesRef;
@@ -98,12 +97,6 @@ public class MockBigArrays extends BigArrays {
         random = new Random(seed);
     }
 
-
-    @Override
-    public BigArrays withCircuitBreaking() {
-        return new MockBigArrays(this.recycler, this.breakerService, true);
-    }
-
     @Override
     public ByteArray newByteArray(long size, boolean clearOnResize) {
         final ByteArrayWrapper array = new ByteArrayWrapper(super.newByteArray(size, clearOnResize), clearOnResize);
@@ -149,84 +142,6 @@ public class MockBigArrays extends BigArrays {
             arr = (IntArrayWrapper) array;
         } else {
             arr = new IntArrayWrapper(array, arr.clearOnResize);
-        }
-        if (!arr.clearOnResize) {
-            arr.randomizeContent(originalSize, size);
-        }
-        return arr;
-    }
-
-    @Override
-    public LongArray newLongArray(long size, boolean clearOnResize) {
-        final LongArrayWrapper array = new LongArrayWrapper(super.newLongArray(size, clearOnResize), clearOnResize);
-        if (!clearOnResize) {
-            array.randomizeContent(0, size);
-        }
-        return array;
-    }
-
-    @Override
-    public LongArray resize(LongArray array, long size) {
-        LongArrayWrapper arr = (LongArrayWrapper) array;
-        final long originalSize = arr.size();
-        array = super.resize(arr.in, size);
-        ACQUIRED_ARRAYS.remove(arr);
-        if (array instanceof LongArrayWrapper) {
-            arr = (LongArrayWrapper) array;
-        } else {
-            arr = new LongArrayWrapper(array, arr.clearOnResize);
-        }
-        if (!arr.clearOnResize) {
-            arr.randomizeContent(originalSize, size);
-        }
-        return arr;
-    }
-
-    @Override
-    public FloatArray newFloatArray(long size, boolean clearOnResize) {
-        final FloatArrayWrapper array = new FloatArrayWrapper(super.newFloatArray(size, clearOnResize), clearOnResize);
-        if (!clearOnResize) {
-            array.randomizeContent(0, size);
-        }
-        return array;
-    }
-
-    @Override
-    public FloatArray resize(FloatArray array, long size) {
-        FloatArrayWrapper arr = (FloatArrayWrapper) array;
-        final long originalSize = arr.size();
-        array = super.resize(arr.in, size);
-        ACQUIRED_ARRAYS.remove(arr);
-        if (array instanceof FloatArrayWrapper) {
-            arr = (FloatArrayWrapper) array;
-        } else {
-            arr = new FloatArrayWrapper(array, arr.clearOnResize);
-        }
-        if (!arr.clearOnResize) {
-            arr.randomizeContent(originalSize, size);
-        }
-        return arr;
-    }
-
-    @Override
-    public DoubleArray newDoubleArray(long size, boolean clearOnResize) {
-        final DoubleArrayWrapper array = new DoubleArrayWrapper(super.newDoubleArray(size, clearOnResize), clearOnResize);
-        if (!clearOnResize) {
-            array.randomizeContent(0, size);
-        }
-        return array;
-    }
-
-    @Override
-    public DoubleArray resize(DoubleArray array, long size) {
-        DoubleArrayWrapper arr = (DoubleArrayWrapper) array;
-        final long originalSize = arr.size();
-        array = super.resize(arr.in, size);
-        ACQUIRED_ARRAYS.remove(arr);
-        if (array instanceof DoubleArrayWrapper) {
-            arr = (DoubleArrayWrapper) array;
-        } else {
-            arr = new DoubleArrayWrapper(array, arr.clearOnResize);
         }
         if (!arr.clearOnResize) {
             arr.randomizeContent(originalSize, size);
@@ -374,142 +289,6 @@ public class MockBigArrays extends BigArrays {
 
         @Override
         public void fill(long fromIndex, long toIndex, int value) {
-            in.fill(fromIndex, toIndex, value);
-        }
-
-        @Override
-        public Collection<Accountable> getChildResources() {
-            return Collections.singleton(Accountables.namedAccountable("delegate", in));
-        }
-    }
-
-    private class LongArrayWrapper extends AbstractArrayWrapper implements LongArray {
-
-        private final LongArray in;
-
-        LongArrayWrapper(LongArray in, boolean clearOnResize) {
-            super(clearOnResize);
-            this.in = in;
-        }
-
-        @Override
-        protected BigArray getDelegate() {
-            return in;
-        }
-
-        @Override
-        protected void randomizeContent(long from, long to) {
-            fill(from, to, random.nextLong());
-        }
-
-        @Override
-        public long get(long index) {
-            return in.get(index);
-        }
-
-        @Override
-        public long set(long index, long value) {
-            return in.set(index, value);
-        }
-
-        @Override
-        public long increment(long index, long inc) {
-            return in.increment(index, inc);
-        }
-
-        @Override
-        public void fill(long fromIndex, long toIndex, long value) {
-            in.fill(fromIndex, toIndex, value);
-        }
-
-        @Override
-        public Collection<Accountable> getChildResources() {
-            return Collections.singleton(Accountables.namedAccountable("delegate", in));
-        }
-
-    }
-
-    private class FloatArrayWrapper extends AbstractArrayWrapper implements FloatArray {
-
-        private final FloatArray in;
-
-        FloatArrayWrapper(FloatArray in, boolean clearOnResize) {
-            super(clearOnResize);
-            this.in = in;
-        }
-
-        @Override
-        protected BigArray getDelegate() {
-            return in;
-        }
-
-        @Override
-        protected void randomizeContent(long from, long to) {
-            fill(from, to, (random.nextFloat() - 0.5f) * 1000);
-        }
-
-        @Override
-        public float get(long index) {
-            return in.get(index);
-        }
-
-        @Override
-        public float set(long index, float value) {
-            return in.set(index, value);
-        }
-
-        @Override
-        public float increment(long index, float inc) {
-            return in.increment(index, inc);
-        }
-
-        @Override
-        public void fill(long fromIndex, long toIndex, float value) {
-            in.fill(fromIndex, toIndex, value);
-        }
-
-        @Override
-        public Collection<Accountable> getChildResources() {
-            return Collections.singleton(Accountables.namedAccountable("delegate", in));
-        }
-    }
-
-    private class DoubleArrayWrapper extends AbstractArrayWrapper implements DoubleArray {
-
-        private final DoubleArray in;
-
-        DoubleArrayWrapper(DoubleArray in, boolean clearOnResize) {
-            super(clearOnResize);
-            this.in = in;
-        }
-
-        @Override
-        protected BigArray getDelegate() {
-            return in;
-        }
-
-        @Override
-        protected void randomizeContent(long from, long to) {
-            fill(from, to, (random.nextDouble() - 0.5) * 1000);
-        }
-
-        @Override
-        public double get(long index) {
-            return in.get(index);
-        }
-
-        @Override
-        public double set(long index, double value) {
-            return in.set(index, value);
-        }
-
-        @Override
-        public double increment(long index, double inc) {
-            return in.increment(index, inc);
-        }
-
-        @Override
-        public void fill(long fromIndex, long toIndex, double value) {
             in.fill(fromIndex, toIndex, value);
         }
 

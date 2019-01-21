@@ -35,17 +35,6 @@ public final class Text implements Comparable<Text>, ToXContentFragment {
 
     public static final Text[] EMPTY_ARRAY = new Text[0];
 
-    public static Text[] convertFromStringArray(String[] strings) {
-        if (strings.length == 0) {
-            return EMPTY_ARRAY;
-        }
-        Text[] texts = new Text[strings.length];
-        for (int i = 0; i < strings.length; i++) {
-            texts[i] = new Text(strings[i]);
-        }
-        return texts;
-    }
-
     private BytesReference bytes;
     private String text;
     private int hash;

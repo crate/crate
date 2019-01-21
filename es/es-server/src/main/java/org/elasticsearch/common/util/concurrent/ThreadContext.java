@@ -18,8 +18,8 @@
  */
 package org.elasticsearch.common.util.concurrent;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.CloseableThreadLocal;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -30,11 +30,9 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpTransportSettings;
 
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_MAX_WARNING_HEADER_COUNT;
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_MAX_WARNING_HEADER_SIZE;
-
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,7 +48,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.nio.charset.StandardCharsets;
+
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_MAX_WARNING_HEADER_COUNT;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_MAX_WARNING_HEADER_SIZE;
 
 
 /**
@@ -123,18 +123,6 @@ public final class ThreadContext implements Closeable, Writeable {
     public StoredContext stashContext() {
         final ThreadContextStruct context = threadLocal.get();
         threadLocal.set(null);
-        return () -> threadLocal.set(context);
-    }
-
-    /**
-     * Removes the current context and resets a new context that contains a merge of the current headers and the given headers. The removed context can be
-     * restored when closing the returned {@link StoredContext}. The merge strategy is that headers that are already existing are preserved unless they are defaults.
-     */
-    public StoredContext stashAndMergeHeaders(Map<String, String> headers) {
-        final ThreadContextStruct context = threadLocal.get();
-        Map<String, String> newHeader = new HashMap<>(headers);
-        newHeader.putAll(context.requestHeaders);
-        threadLocal.set(DEFAULT_CONTEXT.putHeaders(newHeader));
         return () -> threadLocal.set(context);
     }
 
@@ -239,24 +227,10 @@ public final class ThreadContext implements Closeable, Writeable {
     }
 
     /**
-     * Copies all header key, value pairs into the current context
-     */
-    public void copyHeaders(Iterable<Map.Entry<String, String>> headers) {
-        threadLocal.set(threadLocal.get().copyHeaders(headers));
-    }
-
-    /**
      * Puts a header into the context
      */
     public void putHeader(String key, String value) {
         threadLocal.set(threadLocal.get().putRequest(key, value));
-    }
-
-    /**
-     * Puts all of the given headers into this context
-     */
-    public void putHeader(Map<String, String> header) {
-        threadLocal.set(threadLocal.get().putHeaders(header));
     }
 
     /**
