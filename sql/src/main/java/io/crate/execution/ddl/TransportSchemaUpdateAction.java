@@ -33,7 +33,6 @@ import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.client.node.NodeClient;
@@ -81,7 +80,6 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
                                        TransportService transportService,
                                        ClusterService clusterService,
                                        ThreadPool threadPool,
-                                       ActionFilters actionFilters,
                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                        NodeClient nodeClient,
                                        NamedXContentRegistry xContentRegistry) {
@@ -90,7 +88,6 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
             transportService,
             clusterService,
             threadPool,
-            actionFilters,
             indexNameExpressionResolver,
             SchemaUpdateRequest::new);
         this.nodeClient = nodeClient;

@@ -21,7 +21,6 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -48,10 +47,9 @@ public class TransportStartBlobAction
                                     ThreadPool threadPool,
                                     ShardStateAction shardStateAction,
                                     BlobTransferTarget transferTarget,
-                                    ActionFilters actionFilters,
                                     IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, StartBlobAction.NAME, transportService, clusterService,
-            indicesService, threadPool, shardStateAction, actionFilters,
+            indicesService, threadPool, shardStateAction,
             indexNameExpressionResolver, StartBlobRequest::new, StartBlobRequest::new, ThreadPool.Names.INDEX);
 
         this.transferTarget = transferTarget;
@@ -69,7 +67,7 @@ public class TransportStartBlobAction
         logger.trace("shardOperationOnPrimary {}", request);
         final StartBlobResponse response = newResponseInstance();
         transferTarget.startTransfer(request, response);
-        return new PrimaryResult(request, response);
+        return new PrimaryResult<>(request, response);
     }
 
     @Override

@@ -40,7 +40,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -105,14 +104,13 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                                  ClusterService clusterService,
                                                  TransportService transportService,
                                                  SchemaUpdateClient schemaUpdateClient,
-                                                 ActionFilters actionFilters,
                                                  TasksService tasksService,
                                                  IndicesService indicesService,
                                                  ShardStateAction shardStateAction,
                                                  Functions functions,
                                                  Schemas schemas,
                                                  IndexNameExpressionResolver indexNameExpressionResolver) {
-            super(settings, threadPool, clusterService, transportService, schemaUpdateClient, actionFilters,
+            super(settings, threadPool, clusterService, transportService, schemaUpdateClient,
                 tasksService, indicesService, shardStateAction, functions, schemas, indexNameExpressionResolver);
         }
 
@@ -165,7 +163,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             clusterService,
             MockTransportService.createNewService(Settings.EMPTY, Version.V_6_0_1, THREAD_POOL, clusterService.getClusterSettings()),
             mock(SchemaUpdateClient.class),
-            mock(ActionFilters.class),
             mock(TasksService.class),
             indicesService,
             mock(ShardStateAction.class),

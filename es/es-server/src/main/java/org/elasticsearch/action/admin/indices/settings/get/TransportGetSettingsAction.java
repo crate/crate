@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.indices.settings.get;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -31,13 +30,13 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.regex.Regex;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.elasticsearch.common.settings.IndexScopedSettings;
 
 
 public class TransportGetSettingsAction extends TransportMasterNodeReadAction<GetSettingsRequest, GetSettingsResponse> {
@@ -48,9 +47,9 @@ public class TransportGetSettingsAction extends TransportMasterNodeReadAction<Ge
 
     @Inject
     public TransportGetSettingsAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                      ThreadPool threadPool, SettingsFilter settingsFilter, ActionFilters actionFilters,
+                                      ThreadPool threadPool, SettingsFilter settingsFilter,
                                       IndexNameExpressionResolver indexNameExpressionResolver, IndexScopedSettings indexedScopedSettings) {
-        super(settings, GetSettingsAction.NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, GetSettingsRequest::new);
+        super(settings, GetSettingsAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, GetSettingsRequest::new);
         this.settingsFilter = settingsFilter;
         this.indexScopedSettings = indexedScopedSettings;
     }

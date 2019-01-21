@@ -21,7 +21,6 @@ package org.elasticsearch.action.admin.indices.settings.put;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -46,8 +45,8 @@ public class TransportUpdateSettingsAction extends TransportMasterNodeAction<Upd
 
     @Inject
     public TransportUpdateSettingsAction(Settings settings, TransportService transportService, ClusterService clusterService, ThreadPool threadPool,
-                                         MetaDataUpdateSettingsService updateSettingsService, ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, UpdateSettingsAction.NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, UpdateSettingsRequest::new);
+                                         MetaDataUpdateSettingsService updateSettingsService, IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, UpdateSettingsAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, UpdateSettingsRequest::new);
         this.updateSettingsService = updateSettingsService;
     }
 

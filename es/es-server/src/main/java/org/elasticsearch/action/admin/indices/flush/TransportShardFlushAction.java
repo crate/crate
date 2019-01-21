@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.admin.indices.flush;
 
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -39,9 +38,9 @@ public class TransportShardFlushAction extends TransportReplicationAction<ShardF
     @Inject
     public TransportShardFlushAction(Settings settings, TransportService transportService, ClusterService clusterService,
                                      IndicesService indicesService, ThreadPool threadPool, ShardStateAction shardStateAction,
-                                     ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver) {
+                                     IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, NAME, transportService, clusterService, indicesService, threadPool, shardStateAction,
-            actionFilters, indexNameExpressionResolver, ShardFlushRequest::new, ShardFlushRequest::new, ThreadPool.Names.FLUSH);
+            indexNameExpressionResolver, ShardFlushRequest::new, ShardFlushRequest::new, ThreadPool.Names.FLUSH);
     }
 
     @Override
@@ -53,7 +52,7 @@ public class TransportShardFlushAction extends TransportReplicationAction<ShardF
     protected PrimaryResult shardOperationOnPrimary(ShardFlushRequest shardRequest, IndexShard primary) {
         primary.flush(shardRequest.getRequest());
         logger.trace("{} flush request executed on primary", primary.shardId());
-        return new PrimaryResult(shardRequest, new ReplicationResponse());
+        return new PrimaryResult<>(shardRequest, new ReplicationResponse());
     }
 
     @Override

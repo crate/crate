@@ -20,7 +20,6 @@ package org.elasticsearch.action.admin.indices.template.put;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -47,8 +46,8 @@ public class TransportPutIndexTemplateAction extends TransportMasterNodeAction<P
     @Inject
     public TransportPutIndexTemplateAction(Settings settings, TransportService transportService, ClusterService clusterService,
                                            ThreadPool threadPool, MetaDataIndexTemplateService indexTemplateService,
-                                           ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver, IndexScopedSettings indexScopedSettings) {
-        super(settings, PutIndexTemplateAction.NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, PutIndexTemplateRequest::new);
+                                           IndexNameExpressionResolver indexNameExpressionResolver, IndexScopedSettings indexScopedSettings) {
+        super(settings, PutIndexTemplateAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, PutIndexTemplateRequest::new);
         this.indexTemplateService = indexTemplateService;
         this.indexScopedSettings = indexScopedSettings;
     }

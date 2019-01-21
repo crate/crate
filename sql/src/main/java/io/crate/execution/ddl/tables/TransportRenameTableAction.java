@@ -26,7 +26,6 @@ import io.crate.execution.support.ActionListeners;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.RenameTableClusterStateExecutor;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -62,11 +61,10 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
                                       TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
-                                      ActionFilters actionFilters,
                                       IndexNameExpressionResolver indexNameExpressionResolver,
                                       AllocationService allocationService,
                                       DDLClusterStateService ddlClusterStateService) {
-        super(settings, ACTION_NAME, transportService, clusterService, threadPool, actionFilters,
+        super(settings, ACTION_NAME, transportService, clusterService, threadPool,
             indexNameExpressionResolver, RenameTableRequest::new);
         activeShardsObserver = new ActiveShardsObserver(settings, clusterService, threadPool);
         executor = new RenameTableClusterStateExecutor(

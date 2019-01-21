@@ -66,9 +66,7 @@ import org.elasticsearch.action.admin.indices.settings.get.TransportGetSettingsA
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.shrink.ResizeAction;
-import org.elasticsearch.action.admin.indices.shrink.ShrinkAction;
 import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
-import org.elasticsearch.action.admin.indices.shrink.TransportShrinkAction;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsAction;
 import org.elasticsearch.action.admin.indices.stats.TransportIndicesStatsAction;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateAction;
@@ -81,7 +79,6 @@ import org.elasticsearch.action.admin.indices.upgrade.post.TransportUpgradeActio
 import org.elasticsearch.action.admin.indices.upgrade.post.TransportUpgradeSettingsAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeSettingsAction;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.action.support.DestructiveOperations;
 import org.elasticsearch.action.support.TransportAction;
@@ -103,7 +100,6 @@ import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -116,7 +112,7 @@ import java.util.stream.Stream;
 import static java.util.Collections.unmodifiableMap;
 
 /**
- * Builds and binds the generic action map, all {@link TransportAction}s, and {@link ActionFilters}.
+ * Builds and binds the generic action map, all {@link TransportAction}s
  */
 public class ActionModule extends AbstractModule {
 
@@ -129,7 +125,6 @@ public class ActionModule extends AbstractModule {
     private final SettingsFilter settingsFilter;
     private final List<ActionPlugin> actionPlugins;
     private final Map<String, ActionHandler<?, ?>> actions;
-    private final ActionFilters actionFilters;
     private final AutoCreateIndex autoCreateIndex;
     private final DestructiveOperations destructiveOperations;
     private final RestController restController;
@@ -145,7 +140,6 @@ public class ActionModule extends AbstractModule {
         this.settingsFilter = settingsFilter;
         this.actionPlugins = actionPlugins;
         actions = setupActions(actionPlugins);
-        actionFilters = setupActionFilters(actionPlugins);
         autoCreateIndex = new AutoCreateIndex(settings, clusterSettings, indexNameExpressionResolver);
         destructiveOperations = new DestructiveOperations(settings, clusterSettings);
         Set<String> headers = Stream.concat(
@@ -205,7 +199,6 @@ public class ActionModule extends AbstractModule {
         actions.register(RestoreSnapshotAction.INSTANCE, TransportRestoreSnapshotAction.class);
         actions.register(IndicesStatsAction.INSTANCE, TransportIndicesStatsAction.class);
         actions.register(CreateIndexAction.INSTANCE, TransportCreateIndexAction.class);
-        actions.register(ShrinkAction.INSTANCE, TransportShrinkAction.class);
         actions.register(ResizeAction.INSTANCE, TransportResizeAction.class);
         actions.register(DeleteIndexAction.INSTANCE, TransportDeleteIndexAction.class);
         actions.register(PutMappingAction.INSTANCE, TransportPutMappingAction.class);
@@ -228,11 +221,6 @@ public class ActionModule extends AbstractModule {
         return unmodifiableMap(actions.getRegistry());
     }
 
-    private ActionFilters setupActionFilters(List<ActionPlugin> actionPlugins) {
-        return new ActionFilters(
-            Collections.unmodifiableSet(actionPlugins.stream().flatMap(p -> p.getActionFilters().stream()).collect(Collectors.toSet())));
-    }
-
     public void initRestHandlers(Supplier<DiscoveryNodes> nodesInCluster) {
         Consumer<RestHandler> registerHandler = a -> {
         };
@@ -246,7 +234,6 @@ public class ActionModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(ActionFilters.class).toInstance(actionFilters);
         bind(DestructiveOperations.class).toInstance(destructiveOperations);
         bind(RestController.class).toInstance(restController);
 
@@ -265,10 +252,6 @@ public class ActionModule extends AbstractModule {
                 bind(supportAction).asEagerSingleton();
             }
         }
-    }
-
-    public ActionFilters getActionFilters() {
-        return actionFilters;
     }
 
     public RestController getRestController() {

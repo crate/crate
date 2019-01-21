@@ -21,7 +21,6 @@ package org.elasticsearch.action.resync;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
@@ -56,9 +55,9 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
     @Inject
     public TransportResyncReplicationAction(Settings settings, TransportService transportService,
                                             ClusterService clusterService, IndicesService indicesService, ThreadPool threadPool,
-                                            ShardStateAction shardStateAction, ActionFilters actionFilters,
+                                            ShardStateAction shardStateAction,
                                             IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool, shardStateAction, actionFilters,
+        super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool, shardStateAction,
             indexNameExpressionResolver, ResyncReplicationRequest::new, ResyncReplicationRequest::new, ThreadPool.Names.WRITE);
     }
 

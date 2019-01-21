@@ -24,7 +24,6 @@ package io.crate.execution.ddl.index;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.cluster.SwapAndDropIndexExecutor;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -54,10 +53,9 @@ public class TransportSwapAndDropIndexNameAction extends AbstractDDLTransportAct
                                                TransportService transportService,
                                                ClusterService clusterService,
                                                ThreadPool threadPool,
-                                               ActionFilters actionFilters,
                                                AllocationService allocationService,
                                                IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ACTION_NAME, transportService, clusterService, threadPool, actionFilters,
+        super(settings, ACTION_NAME, transportService, clusterService, threadPool,
             indexNameExpressionResolver, SwapAndDropIndexRequest::new, AcknowledgedResponse::new, AcknowledgedResponse::new,
             "swap-and-drop-index");
         executor = new SwapAndDropIndexExecutor(allocationService);
