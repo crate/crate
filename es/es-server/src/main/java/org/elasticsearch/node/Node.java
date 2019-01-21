@@ -433,7 +433,7 @@ public abstract class Node implements Closeable {
                                                  namedWriteableRegistry).stream())
                 .collect(Collectors.toList());
 
-            ActionModule actionModule = new ActionModule(false, settings, clusterModule.getIndexNameExpressionResolver(),
+            ActionModule actionModule = new ActionModule(settings, clusterModule.getIndexNameExpressionResolver(),
                 settingsModule.getIndexScopedSettings(), settingsModule.getClusterSettings(), settingsModule.getSettingsFilter(),
                 threadPool, pluginsService.filterPlugins(ActionPlugin.class), client, circuitBreakerService);
             modules.add(actionModule);
