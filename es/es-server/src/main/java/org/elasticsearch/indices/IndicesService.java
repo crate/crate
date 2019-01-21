@@ -72,10 +72,8 @@ import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.flush.FlushStats;
-import org.elasticsearch.index.get.GetStats;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.merge.MergeStats;
-import org.elasticsearch.index.query.QueryRewriteContext;
 import org.elasticsearch.index.recovery.RecoveryStats;
 import org.elasticsearch.index.refresh.RefreshStats;
 import org.elasticsearch.index.search.stats.SearchStats;
@@ -117,7 +115,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -383,7 +380,6 @@ public class IndicesService extends AbstractLifecycleComponent
                 circuitBreakerService,
                 bigArrays,
                 threadPool,
-                client,
                 indicesQueryCache,
                 mapperRegistry,
                 indicesFieldDataCache,
@@ -532,8 +528,6 @@ public class IndicesService extends AbstractLifecycleComponent
 
     static class OldShardsStats implements IndexEventListener {
 
-        final SearchStats searchStats = new SearchStats();
-        final GetStats getStats = new GetStats();
         final IndexingStats indexingStats = new IndexingStats();
         final MergeStats mergeStats = new MergeStats();
         final RefreshStats refreshStats = new RefreshStats();
@@ -1096,28 +1090,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private final IndexDeletionAllowedPredicate DEFAULT_INDEX_DELETION_PREDICATE =
         (Index index, IndexSettings indexSettings) -> canDeleteIndexContents(index, indexSettings);
     private final IndexDeletionAllowedPredicate ALWAYS_TRUE = (Index index, IndexSettings indexSettings) -> true;
-
-    /**
-     * Returns a new {@link QueryRewriteContext} with the given {@code now} provider
-     */
-    public QueryRewriteContext getRewriteContext(LongSupplier nowInMillis) {
-        return new QueryRewriteContext(xContentRegistry, namedWriteableRegistry, client, nowInMillis);
-    }
-
-    /**
-     * Clears the caches for the given shard id if the shard is still allocated on this node
-     */
-    public void clearIndexShardCache(ShardId shardId, boolean queryCache, boolean fieldDataCache, boolean requestCache,
-                                     String...fields) {
-        final IndexService service = indexService(shardId.getIndex());
-        if (service != null) {
-            IndexShard shard = service.getShardOrNull(shardId.id());
-            final boolean clearedAtLeastOne = service.clearCaches(queryCache, fieldDataCache, fields);
-            if ((requestCache || (clearedAtLeastOne == false && fields.length == 0)) && shard != null) {
-                indicesRequestCache.clear(new IndexShardCacheEntity(shard));
-            }
-        }
-    }
 
     /**
      * Returns a function which given an index name, returns a predicate which fields must match in order to be returned by get mappings,

@@ -19,7 +19,6 @@
 
 package org.elasticsearch.index;
 
-import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Constants;
@@ -319,7 +318,6 @@ public final class IndexModule {
             CircuitBreakerService circuitBreakerService,
             BigArrays bigArrays,
             ThreadPool threadPool,
-            Client client,
             IndicesQueryCache indicesQueryCache,
             MapperRegistry mapperRegistry,
             IndicesFieldDataCache indicesFieldDataCache,
@@ -341,10 +339,25 @@ public final class IndexModule {
         } else {
             queryCache = new DisabledQueryCache(indexSettings);
         }
-        return new IndexService(indexSettings, environment, xContentRegistry,
-                shardStoreDeleter, analysisRegistry, engineFactory, circuitBreakerService, bigArrays, threadPool,
-                client, queryCache, store, eventListener, searcherWrapperFactory, mapperRegistry,
-                indicesFieldDataCache, indexOperationListeners, namedWriteableRegistry);
+        return new IndexService(
+            indexSettings,
+            environment,
+            xContentRegistry,
+            shardStoreDeleter,
+            analysisRegistry,
+            engineFactory,
+            circuitBreakerService,
+            bigArrays,
+            threadPool,
+            queryCache,
+            store,
+            eventListener,
+            searcherWrapperFactory,
+            mapperRegistry,
+            indicesFieldDataCache,
+            indexOperationListeners,
+            namedWriteableRegistry
+        );
     }
 
     private static IndexStore getIndexStore(
