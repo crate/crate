@@ -21,8 +21,6 @@ package org.elasticsearch.threadpool;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.Counter;
-import org.elasticsearch.core.internal.io.IOUtils;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -38,6 +36,7 @@ import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.node.Node;
 
 import java.io.Closeable;
@@ -71,7 +70,6 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         public static final String INDEX = "index";
         public static final String WRITE = "write";
         public static final String SEARCH = "search";
-        public static final String SEARCH_THROTTLED = "search_throttled";
         public static final String MANAGEMENT = "management";
         public static final String FLUSH = "flush";
         public static final String REFRESH = "refresh";
@@ -85,7 +83,6 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
     public enum ThreadPoolType {
         DIRECT("direct"),
         FIXED("fixed"),
-        FIXED_AUTO_QUEUE_SIZE("fixed_auto_queue_size"),
         SCALING("scaling");
 
         private final String type;
@@ -137,7 +134,6 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         map.put(Names.FORCE_MERGE, ThreadPoolType.FIXED);
         map.put(Names.FETCH_SHARD_STARTED, ThreadPoolType.SCALING);
         map.put(Names.FETCH_SHARD_STORE, ThreadPoolType.SCALING);
-        map.put(Names.SEARCH_THROTTLED, ThreadPoolType.FIXED_AUTO_QUEUE_SIZE);
         THREAD_POOL_TYPES = Collections.unmodifiableMap(map);
     }
 
@@ -176,8 +172,6 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         builders.put(Names.GET, new FixedExecutorBuilder(settings, Names.GET, availableProcessors, 1000));
         builders.put(Names.ANALYZE, new FixedExecutorBuilder(settings, Names.ANALYZE, 1, 16));
         builders.put(Names.SEARCH, new FixedExecutorBuilder(settings, Names.SEARCH, searchThreadPoolSize(availableProcessors), 1000));
-        builders.put(Names.SEARCH_THROTTLED, new AutoQueueAdjustingExecutorBuilder(settings,
-            Names.SEARCH_THROTTLED, 1, 100, 100, 100, 200));
         builders.put(Names.MANAGEMENT, new ScalingExecutorBuilder(Names.MANAGEMENT, 1, 5, TimeValue.timeValueMinutes(5)));
         // no queue as this means clients will need to handle rejections on listener queue even if the operation succeeded
         // the assumption here is that the listeners should be very lightweight on the listeners side
@@ -618,13 +612,7 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(name);
-            if (type == ThreadPoolType.FIXED_AUTO_QUEUE_SIZE &&
-                    out.getVersion().before(Version.V_6_0_0_alpha1)) {
-                // 5.x doesn't know about the "fixed_auto_queue_size" thread pool type, just write fixed.
-                out.writeString(ThreadPoolType.FIXED.getType());
-            } else {
-                out.writeString(type.getType());
-            }
+            out.writeString(type.getType());
             out.writeInt(min);
             out.writeInt(max);
             out.writeOptionalTimeValue(keepAlive);
