@@ -24,14 +24,11 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Objects;
 
-public class OsStats implements Writeable, ToXContentFragment {
+public class OsStats implements Writeable {
 
     private final long timestamp;
     private final Cpu cpu;
@@ -111,21 +108,7 @@ public class OsStats implements Writeable, ToXContentFragment {
         static final String USED_PERCENT = "used_percent";
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Fields.OS);
-        builder.field(Fields.TIMESTAMP, getTimestamp());
-        cpu.toXContent(builder, params);
-        mem.toXContent(builder, params);
-        swap.toXContent(builder, params);
-        if (cgroup != null) {
-            cgroup.toXContent(builder, params);
-        }
-        builder.endObject();
-        return builder;
-    }
-
-    public static class Cpu implements Writeable, ToXContentFragment {
+    public static class Cpu implements Writeable {
 
         private final short percent;
         private final double[] loadAverage;
@@ -162,30 +145,9 @@ public class OsStats implements Writeable, ToXContentFragment {
         public double[] getLoadAverage() {
             return loadAverage;
         }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.startObject(Fields.CPU);
-            builder.field(Fields.PERCENT, getPercent());
-            if (getLoadAverage() != null && Arrays.stream(getLoadAverage()).anyMatch(load -> load != -1)) {
-                builder.startObject(Fields.LOAD_AVERAGE);
-                if (getLoadAverage()[0] != -1) {
-                    builder.field(Fields.LOAD_AVERAGE_1M, getLoadAverage()[0]);
-                }
-                if (getLoadAverage()[1] != -1) {
-                    builder.field(Fields.LOAD_AVERAGE_5M, getLoadAverage()[1]);
-                }
-                if (getLoadAverage()[2] != -1) {
-                    builder.field(Fields.LOAD_AVERAGE_15M, getLoadAverage()[2]);
-                }
-                builder.endObject();
-            }
-            builder.endObject();
-            return builder;
-        }
     }
 
-    public static class Swap implements Writeable, ToXContentFragment {
+    public static class Swap implements Writeable {
 
         private final long total;
         private final long free;
@@ -217,19 +179,9 @@ public class OsStats implements Writeable, ToXContentFragment {
         public ByteSizeValue getTotal() {
             return new ByteSizeValue(total);
         }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.startObject(Fields.SWAP);
-            builder.humanReadableField(Fields.TOTAL_IN_BYTES, Fields.TOTAL, getTotal());
-            builder.humanReadableField(Fields.FREE_IN_BYTES, Fields.FREE, getFree());
-            builder.humanReadableField(Fields.USED_IN_BYTES, Fields.USED, getUsed());
-            builder.endObject();
-            return builder;
-        }
     }
 
-    public static class Mem implements Writeable, ToXContentFragment {
+    public static class Mem implements Writeable {
 
         private final long total;
         private final long free;
@@ -269,24 +221,12 @@ public class OsStats implements Writeable, ToXContentFragment {
         public short getFreePercent() {
             return calculatePercentage(free, total);
         }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.startObject(Fields.MEM);
-            builder.humanReadableField(Fields.TOTAL_IN_BYTES, Fields.TOTAL, getTotal());
-            builder.humanReadableField(Fields.FREE_IN_BYTES, Fields.FREE, getFree());
-            builder.humanReadableField(Fields.USED_IN_BYTES, Fields.USED, getUsed());
-            builder.field(Fields.FREE_PERCENT, getFreePercent());
-            builder.field(Fields.USED_PERCENT, getUsedPercent());
-            builder.endObject();
-            return builder;
-        }
     }
 
     /**
      * Encapsulates basic cgroup statistics.
      */
-    public static class Cgroup implements Writeable, ToXContentFragment {
+    public static class Cgroup implements Writeable {
 
         private final String cpuAcctControlGroup;
         private final long cpuAcctUsageNanos;
@@ -445,46 +385,10 @@ public class OsStats implements Writeable, ToXContentFragment {
             }
         }
 
-        @Override
-        public XContentBuilder toXContent(final XContentBuilder builder, final Params params) throws IOException {
-            builder.startObject("cgroup");
-            {
-                builder.startObject("cpuacct");
-                {
-                    builder.field("control_group", cpuAcctControlGroup);
-                    builder.field("usage_nanos", cpuAcctUsageNanos);
-                }
-                builder.endObject();
-                builder.startObject("cpu");
-                {
-                    builder.field("control_group", cpuControlGroup);
-                    builder.field("cfs_period_micros", cpuCfsPeriodMicros);
-                    builder.field("cfs_quota_micros", cpuCfsQuotaMicros);
-                    cpuStat.toXContent(builder, params);
-                }
-                builder.endObject();
-                if (memoryControlGroup != null) {
-                    builder.startObject("memory");
-                    {
-                        builder.field("control_group", memoryControlGroup);
-                        if (memoryLimitInBytes != null) {
-                            builder.field("limit_in_bytes", memoryLimitInBytes);
-                        }
-                        if (memoryUsageInBytes != null) {
-                            builder.field("usage_in_bytes", memoryUsageInBytes);
-                        }
-                    }
-                    builder.endObject();
-                }
-            }
-            builder.endObject();
-            return builder;
-        }
-
         /**
          * Encapsulates CPU time statistics.
          */
-        public static class CpuStat implements Writeable, ToXContentFragment {
+        public static class CpuStat implements Writeable {
 
             private final long numberOfElapsedPeriods;
             private final long numberOfTimesThrottled;
@@ -538,25 +442,10 @@ public class OsStats implements Writeable, ToXContentFragment {
                 out.writeLong(numberOfTimesThrottled);
                 out.writeLong(timeThrottledNanos);
             }
-
-            @Override
-            public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-                builder.startObject("stat");
-                {
-                    builder.field("number_of_elapsed_periods", numberOfElapsedPeriods);
-                    builder.field("number_of_times_throttled", numberOfTimesThrottled);
-                    builder.field("time_throttled_nanos", timeThrottledNanos);
-                }
-                builder.endObject();
-                return builder;
-            }
-
         }
-
     }
 
     public static short calculatePercentage(long used, long max) {
         return max <= 0 ? 0 : (short) (Math.round((100d * used) / max));
     }
-
 }
