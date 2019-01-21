@@ -47,7 +47,7 @@ public class OrOperator extends Operator<Boolean> {
     @Override
     public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {
         assert function != null : "function must not be null";
-        assert function.arguments().size() == 2  : "number of args must be 2";
+        assert function.arguments().size() == 2 : "number of args must be 2";
 
         Symbol left = function.arguments().get(0);
         Symbol right = function.arguments().get(1);

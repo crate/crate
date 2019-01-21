@@ -81,7 +81,7 @@ public class SortingTopNCollector implements Collector<Row, RowPriorityQueue<Obj
         this.offset = offset;
         this.maxSize = limit + offset;
 
-        if (maxSize >= ArrayUtil.MAX_ARRAY_LENGTH || maxSize < 0)  {
+        if (maxSize >= ArrayUtil.MAX_ARRAY_LENGTH || maxSize < 0) {
             // Throw exception to prevent confusing OOME in PriorityQueue
             // 1) if offset + limit exceeds maximum array length
             // 2) if offset + limit exceeds Integer.MAX_VALUE (then maxSize is negative!)

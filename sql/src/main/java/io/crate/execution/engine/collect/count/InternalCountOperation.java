@@ -126,7 +126,7 @@ public class InternalCountOperation implements CountOperation {
                 filter,
                 txnCtx,
                 indexService.mapperService(),
-                indexService.newQueryShardContext(shardId, searcher.reader(), System::currentTimeMillis,  null),
+                indexService.newQueryShardContext(shardId, searcher.reader(), System::currentTimeMillis, null),
                 indexService.cache());
             if (Thread.interrupted()) {
                 throw new InterruptedException("thread interrupted during count-operation");

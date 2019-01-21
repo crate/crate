@@ -369,7 +369,7 @@ class Collect extends ZeroInputPlan {
         return visitor.visitCollect(this, context);
     }
 
-    private static final  class NoPredicateVisitor extends SymbolVisitor<Void, Void> {
+    private static final class NoPredicateVisitor extends SymbolVisitor<Void, Void> {
 
         private static final NoPredicateVisitor NO_PREDICATE_VISITOR = new NoPredicateVisitor();
 

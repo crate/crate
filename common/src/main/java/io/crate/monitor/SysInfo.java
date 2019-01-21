@@ -418,7 +418,7 @@ public class SysInfo {
                 try {
                     Files.readAllLines(fn.toPath()).forEach(consumer);
                 } catch (IOException e) {
-                    LOGGER.debug("Failed to read '{}': {}", fn.getAbsolutePath(),  e.getMessage());
+                    LOGGER.debug("Failed to read '{}': {}", fn.getAbsolutePath(), e.getMessage());
                 }
             }
         }

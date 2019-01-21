@@ -111,7 +111,7 @@ public class SimplePortal extends AbstractPortal {
     public Portal bind(String statementName,
                        String query,
                        Statement statement,
-                       @Nullable  AnalyzedStatement analyzedStatement,
+                       @Nullable AnalyzedStatement analyzedStatement,
                        List<Object> params,
                        @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
 

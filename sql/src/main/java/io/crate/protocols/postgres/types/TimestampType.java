@@ -134,7 +134,7 @@ class TimestampType extends PGType {
         // Other PostgreSQL clients send the parameter as Bigint or Varchar
         String s = new String(bytes, StandardCharsets.UTF_8);
 
-        int endOfSeconds  = s.indexOf(".");
+        int endOfSeconds = s.indexOf(".");
         int idx = endOfSeconds;
         if (endOfSeconds > 0) {
             idx++;

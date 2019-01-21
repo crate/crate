@@ -72,7 +72,7 @@ public final class RowsTransformer {
         @SuppressWarnings("unchecked")
         Iterable<Row> rows = Iterables.transform(iterable, new ValueAndInputRow<>(ctx.topLevelInputs(), ctx.expressions()));
         assert DataTypes.BOOLEAN.equals(collectPhase.where().valueType()) :
-            "whereClause.query() must be of type " +  DataTypes.BOOLEAN;
+            "whereClause.query() must be of type " + DataTypes.BOOLEAN;
 
         //noinspection unchecked  whereClause().query() is a symbol of type boolean so it must become Input<Boolean>
         rows = Iterables.filter(rows, InputCondition.asPredicate(ctx.add(collectPhase.where())));

@@ -97,7 +97,7 @@ public class TableElementsAnalyzer {
                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                 AnalyzedTableElements analyzedTableElements,
                                 RelationName relationName,
-                                @Nullable  TableInfo tableInfo) {
+                                @Nullable TableInfo tableInfo) {
             this.analyzedColumnDefinition = new AnalyzedColumnDefinition(parent);
             this.parameters = parameters;
             this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;

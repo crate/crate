@@ -48,7 +48,7 @@ public final class RelationNormalizer {
     private final NormalizerVisitor visitor;
 
     public RelationNormalizer(Functions functions) {
-        visitor =  new NormalizerVisitor(functions);
+        visitor = new NormalizerVisitor(functions);
     }
 
     public AnalyzedRelation normalize(AnalyzedRelation relation, CoordinatorTxnCtx coordinatorTxnCtx) {

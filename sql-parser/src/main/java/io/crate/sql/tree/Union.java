@@ -32,7 +32,7 @@ public class Union extends SetOperation {
     private final boolean isDistinct;
 
     public Union(Relation left, Relation right, boolean isDistinct) {
-        this.left  = Preconditions.checkNotNull(left, "relation must not be null");
+        this.left = Preconditions.checkNotNull(left, "relation must not be null");
         this.right = Preconditions.checkNotNull(right, "relation must not be null");
         this.isDistinct = isDistinct;
     }

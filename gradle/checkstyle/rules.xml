@@ -254,5 +254,6 @@
             <property name="exceptionVariableName" value="ignored|expected;"/>
         </module>
         <module name="CommentsIndentation"/>
+        <module name="SingleSpaceSeparator"/>
     </module>
 </module>

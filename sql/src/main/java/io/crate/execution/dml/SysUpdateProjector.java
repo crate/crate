@@ -36,7 +36,7 @@ public class SysUpdateProjector implements Projector {
 
     private final Consumer<Object> rowWriter;
 
-    public SysUpdateProjector(Consumer<Object> rowWriter)  {
+    public SysUpdateProjector(Consumer<Object> rowWriter) {
         this.rowWriter = rowWriter;
     }
 

@@ -72,7 +72,7 @@ public final class IndexMappings {
     public static Map<String, Object> getMetaMapFromMapping(Map<String, Object> mapping) {
         mapping = (Map<String, Object>) mapping.get(DEFAULT_MAPPING_TYPE);
         if (mapping != null) {
-            return  (Map<String, Object>) mapping.get("_meta");
+            return (Map<String, Object>) mapping.get("_meta");
         }
         return null;
     }

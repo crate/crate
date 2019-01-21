@@ -44,7 +44,7 @@ import static io.crate.sql.tree.WindowFrame.Type.RANGE;
  */
 public class WindowDefinition implements Writeable {
 
-    public  static final WindowFrameDefinition DEFAULT_WINDOW_FRAME = new WindowFrameDefinition(
+    public static final WindowFrameDefinition DEFAULT_WINDOW_FRAME = new WindowFrameDefinition(
         RANGE,
         new FrameBoundDefinition(UNBOUNDED_PRECEDING),
         new FrameBoundDefinition(CURRENT_ROW)
