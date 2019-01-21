@@ -114,13 +114,6 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
             flags.set(CommonStatsFlags.Flag.Indexing);
             flags.types(request.types());
         }
-        if (request.get()) {
-            flags.set(CommonStatsFlags.Flag.Get);
-        }
-        if (request.search()) {
-            flags.set(CommonStatsFlags.Flag.Search);
-            flags.groups(request.groups());
-        }
         if (request.merge()) {
             flags.set(CommonStatsFlags.Flag.Merge);
         }
@@ -150,9 +143,6 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
         }
         if (request.translog()) {
             flags.set(CommonStatsFlags.Flag.Translog);
-        }
-        if (request.suggest()) {
-            flags.set(CommonStatsFlags.Flag.Suggest);
         }
         if (request.requestCache()) {
             flags.set(CommonStatsFlags.Flag.RequestCache);

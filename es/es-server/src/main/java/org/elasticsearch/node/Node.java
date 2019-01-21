@@ -465,7 +465,6 @@ public abstract class Node implements Closeable {
             ).collect(Collectors.toSet());
             final TransportService transportService = newTransportService(settings, transport, threadPool,
                 networkModule.getTransportInterceptor(), localNodeFactory, settingsModule.getClusterSettings(), taskHeaders);
-            final ResponseCollectorService responseCollectorService = new ResponseCollectorService(this.settings, clusterService);
             final Consumer<Binder> httpBind;
             final HttpServerTransport httpServerTransport;
             if (networkModule.isHttpEnabled()) {
@@ -484,9 +483,16 @@ public abstract class Node implements Closeable {
                 networkService, clusterService.getMasterService(), clusterService.getClusterApplierService(),
                 clusterService.getClusterSettings(), pluginsService.filterPlugins(DiscoveryPlugin.class),
                 clusterModule.getAllocationService(), environment.configFile());
-            this.nodeService = new NodeService(settings, threadPool, monitorService, discoveryModule.getDiscovery(),
-                transportService, indicesService, pluginsService, circuitBreakerService,
-                httpServerTransport, clusterService, settingsModule.getSettingsFilter(), responseCollectorService);
+            this.nodeService = new NodeService(
+                settings,
+                threadPool,
+                monitorService,
+                transportService,
+                indicesService,
+                pluginsService,
+                httpServerTransport,
+                settingsModule.getSettingsFilter()
+            );
 
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);
