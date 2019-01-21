@@ -33,7 +33,6 @@ import org.elasticsearch.cluster.routing.allocation.allocator.ShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
-import org.elasticsearch.cluster.routing.allocation.decider.SameShardAllocationDecider;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.GatewayAllocator;
@@ -41,7 +40,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -50,8 +48,6 @@ import java.util.Random;
 import java.util.Set;
 
 import static java.util.Collections.emptyMap;
-import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
-import static org.elasticsearch.common.util.CollectionUtils.arrayAsArrayList;
 
 public abstract class ESAllocationTestCase extends ESTestCase {
     private static final ClusterSettings EMPTY_CLUSTER_SETTINGS =
@@ -115,43 +111,6 @@ public abstract class ESAllocationTestCase extends ESTestCase {
 
     protected static DiscoveryNode newNode(String nodeId, Version version) {
         return new DiscoveryNode(nodeId, buildNewFakeTransportAddress(), emptyMap(), MASTER_DATA_ROLES, version);
-    }
-
-    protected  static ClusterState startRandomInitializingShard(ClusterState clusterState, AllocationService strategy) {
-        List<ShardRouting> initializingShards = clusterState.getRoutingNodes().shardsWithState(INITIALIZING);
-        if (initializingShards.isEmpty()) {
-            return clusterState;
-        }
-        return strategy.applyStartedShards(clusterState,
-            arrayAsArrayList(initializingShards.get(randomInt(initializingShards.size() - 1))));
-    }
-
-    protected static AllocationDeciders yesAllocationDeciders() {
-        return new AllocationDeciders(Settings.EMPTY, Arrays.asList(
-            new TestAllocateDecision(Decision.YES),
-            new SameShardAllocationDecider(Settings.EMPTY,
-                                           new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS))));
-    }
-
-    protected static AllocationDeciders noAllocationDeciders() {
-        return new AllocationDeciders(Settings.EMPTY, Collections.singleton(new TestAllocateDecision(Decision.NO)));
-    }
-
-    protected static AllocationDeciders throttleAllocationDeciders() {
-        return new AllocationDeciders(Settings.EMPTY, Arrays.asList(
-            new TestAllocateDecision(Decision.THROTTLE),
-            new SameShardAllocationDecider(Settings.EMPTY,
-                                           new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS))));
-    }
-
-    protected ClusterState applyStartedShardsUntilNoChange(ClusterState clusterState, AllocationService service) {
-        ClusterState lastClusterState;
-        do {
-            lastClusterState = clusterState;
-            logger.debug("ClusterState: {}", clusterState.getRoutingNodes());
-            clusterState = service.applyStartedShards(clusterState, clusterState.getRoutingNodes().shardsWithState(INITIALIZING));
-        } while (lastClusterState.equals(clusterState) == false);
-        return clusterState;
     }
 
     public static class TestAllocateDecision extends AllocationDecider {
