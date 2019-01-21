@@ -25,25 +25,14 @@ import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.spans.SpanBoostQuery;
 import org.apache.lucene.search.spans.SpanQuery;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.ParseField;
-import org.elasticsearch.common.ParsingException;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.logging.DeprecationLogger;
-import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.xcontent.AbstractObjectParser;
-import org.elasticsearch.common.xcontent.NamedObjectNotFoundException;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentLocation;
-import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.nio.CharBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -116,19 +105,6 @@ public abstract class AbstractQueryBuilder<QB extends AbstractQueryBuilder<QB>> 
         return query;
     }
 
-    @Override
-    public final Query toFilter(QueryShardContext context) throws IOException {
-        Query result;
-            final boolean originalIsFilter = context.isFilter();
-            try {
-                context.setIsFilter(true);
-                result = toQuery(context);
-            } finally {
-                context.setIsFilter(originalIsFilter);
-            }
-        return result;
-    }
-
     protected abstract Query doToQuery(QueryShardContext context) throws IOException;
 
     /**
@@ -199,153 +175,12 @@ public abstract class AbstractQueryBuilder<QB extends AbstractQueryBuilder<QB>> 
 
     protected abstract int doHashCode();
 
-    /**
-     * This helper method checks if the object passed in is a string or {@link CharBuffer},
-     * if so it converts it to a {@link BytesRef}.
-     * @param obj the input object
-     * @return the same input object or a {@link BytesRef} representation if input was of type string
-     */
-    static Object maybeConvertToBytesRef(Object obj) {
-        if (obj instanceof String) {
-            return BytesRefs.toBytesRef(obj);
-        } else if (obj instanceof CharBuffer) {
-            return new BytesRef((CharBuffer) obj);
-        }
-        return obj;
-    }
-
-    /**
-     * This helper method checks if the object passed in is a {@link BytesRef} or {@link CharBuffer},
-     * if so it converts it to a utf8 string.
-     * @param obj the input object
-     * @return the same input object or a utf8 string if input was of type {@link BytesRef} or {@link CharBuffer}
-     */
-    static Object maybeConvertToString(Object obj) {
-        if (obj instanceof BytesRef) {
-            return ((BytesRef) obj).utf8ToString();
-        } else if (obj instanceof CharBuffer) {
-            return new BytesRef((CharBuffer) obj).utf8ToString();
-        }
-        return obj;
-    }
-
-    /**
-     * Helper method to convert collection of {@link QueryBuilder} instances to lucene
-     * {@link Query} instances. {@link QueryBuilder} that return {@code null} calling
-     * their {@link QueryBuilder#toQuery(QueryShardContext)} method are not added to the
-     * resulting collection.
-     */
-    static Collection<Query> toQueries(Collection<QueryBuilder> queryBuilders, QueryShardContext context) throws QueryShardException,
-            IOException {
-        List<Query> queries = new ArrayList<>(queryBuilders.size());
-        for (QueryBuilder queryBuilder : queryBuilders) {
-            Query query = queryBuilder.toQuery(context);
-            if (query != null) {
-                queries.add(query);
-            }
-        }
-        return queries;
-    }
-
     @Override
     public String getName() {
         //default impl returns the same as writeable name, but we keep the distinction between the two just to make sure
         return getWriteableName();
     }
 
-    static void writeQueries(StreamOutput out, List<? extends QueryBuilder> queries) throws IOException {
-        out.writeVInt(queries.size());
-        for (QueryBuilder query : queries) {
-            out.writeNamedWriteable(query);
-        }
-    }
-
-    static List<QueryBuilder> readQueries(StreamInput in) throws IOException {
-        int size = in.readVInt();
-        List<QueryBuilder> queries = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            queries.add(in.readNamedWriteable(QueryBuilder.class));
-        }
-        return queries;
-    }
-
-    @Override
-    public final QueryBuilder rewrite(QueryRewriteContext queryShardContext) throws IOException {
-        QueryBuilder rewritten = doRewrite(queryShardContext);
-        if (rewritten == this) {
-            return rewritten;
-        }
-        if (queryName() != null && rewritten.queryName() == null) { // we inherit the name
-            rewritten.queryName(queryName());
-        }
-        if (boost() != DEFAULT_BOOST && rewritten.boost() == DEFAULT_BOOST) {
-            rewritten.boost(boost());
-        }
-        return rewritten;
-    }
-
-    protected QueryBuilder doRewrite(QueryRewriteContext queryShardContext) throws IOException {
-        return this;
-    }
-
-    /**
-     * Parses a query excluding the query element that wraps it
-     */
-    public static QueryBuilder parseInnerQueryBuilder(XContentParser parser) throws IOException {
-        if (parser.currentToken() != XContentParser.Token.START_OBJECT) {
-            if (parser.nextToken() != XContentParser.Token.START_OBJECT) {
-                throw new ParsingException(parser.getTokenLocation(), "[_na] query malformed, must start with start_object");
-            }
-        }
-        if (parser.nextToken() == XContentParser.Token.END_OBJECT) {
-            // we encountered '{}' for a query clause, it used to be supported, deprecated in 5.0 and removed in 6.0
-            throw new IllegalArgumentException("query malformed, empty clause found at [" + parser.getTokenLocation() +"]");
-        }
-        if (parser.currentToken() != XContentParser.Token.FIELD_NAME) {
-            throw new ParsingException(parser.getTokenLocation(), "[_na] query malformed, no field after start_object");
-        }
-        String queryName = parser.currentName();
-        // move to the next START_OBJECT
-        if (parser.nextToken() != XContentParser.Token.START_OBJECT) {
-            throw new ParsingException(parser.getTokenLocation(), "[" + queryName + "] query malformed, no start_object after query name");
-        }
-        QueryBuilder result;
-        try {
-            result = parser.namedObject(QueryBuilder.class, queryName, null);
-        } catch (NamedObjectNotFoundException e) {
-            // Preserve the error message from 5.0 until we have a compellingly better message so we don't break BWC.
-            // This intentionally doesn't include the causing exception because that'd change the "root_cause" of any unknown query errors
-            throw new ParsingException(new XContentLocation(e.getLineNumber(), e.getColumnNumber()),
-                    "no [query] registered for [" + queryName + "]");
-        }
-        //end_object of the specific query (e.g. match, multi_match etc.) element
-        if (parser.currentToken() != XContentParser.Token.END_OBJECT) {
-            throw new ParsingException(parser.getTokenLocation(),
-                    "[" + queryName + "] malformed query, expected [END_OBJECT] but found [" + parser.currentToken() + "]");
-        }
-        //end_object of the query object
-        if (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            throw new ParsingException(parser.getTokenLocation(),
-                    "[" + queryName + "] malformed query, expected [END_OBJECT] but found [" + parser.currentToken() + "]");
-        }
-        return result;
-    }
-
-    // Like Objects.requireNotNull(...) but instead throws a IllegalArgumentException
-    protected static <T> T requireValue(T value, String message) {
-        if (value == null) {
-            throw new IllegalArgumentException(message);
-        }
-        return value;
-    }
-
-    protected static void throwParsingExceptionOnMultipleFields(String queryName, XContentLocation contentLocation,
-                                                                String processedFieldName, String currentFieldName) {
-        if (processedFieldName != null) {
-            throw new ParsingException(contentLocation, "[" + queryName + "] query doesn't support multiple fields, found ["
-                    + processedFieldName + "] and [" + currentFieldName + "]");
-        }
-    }
 
     @Override
     public final String toString() {
