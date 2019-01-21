@@ -90,7 +90,6 @@ import org.elasticsearch.discovery.zen.ZenDiscovery;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.TestEnvironment;
-import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergePolicyConfig;
@@ -106,7 +105,6 @@ import org.elasticsearch.node.NodeMocksPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.test.client.RandomizingClient;
 import org.elasticsearch.test.discovery.TestZenDiscovery;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
@@ -609,19 +607,11 @@ public abstract class ESIntegTestCase extends ESTestCase {
         if (node != null) {
             return internalCluster().client(node);
         }
-        Client client = cluster().client();
-        if (frequently()) {
-            client = new RandomizingClient(client, random());
-        }
-        return client;
+        return cluster().client();
     }
 
     public static Client dataNodeClient() {
-        Client client = internalCluster().dataNodeClient();
-        if (frequently()) {
-            client = new RandomizingClient(client, random());
-        }
-        return client;
+        return internalCluster().dataNodeClient();
     }
 
     public static Iterable<Client> clients() {
