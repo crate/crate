@@ -207,39 +207,29 @@ public class CommonStatsFlags implements Writeable, Cloneable {
     }
 
     public enum Flag {
-        Store("store", 0),
-        Indexing("indexing", 1),
-        Get("get", 2),
-        Search("search", 3),
-        Merge("merge", 4),
-        Flush("flush", 5),
-        Refresh("refresh", 6),
-        QueryCache("query_cache", 7),
-        FieldData("fielddata", 8),
-        Docs("docs", 9),
-        Warmer("warmer", 10),
-        Completion("completion", 11),
-        Segments("segments", 12),
-        Translog("translog", 13),
-        Suggest("suggest", 14), // unused
-        RequestCache("request_cache", 15),
-        Recovery("recovery", 16);
+        Store(0),
+        Indexing(1),
+        Merge(4),
+        Flush(5),
+        Refresh(6),
+        QueryCache(7),
+        FieldData(8),
+        Docs(9),
+        Warmer(10),
+        Completion(11),
+        Segments(12),
+        Translog(13),
+        RequestCache(15),
+        Recovery(16);
 
-        private final String restName;
         private final int index;
 
-        Flag(final String restName, final int index) {
-            this.restName = restName;
+        Flag(final int index) {
             this.index = index;
-        }
-
-        public String getRestName() {
-            return restName;
         }
 
         private int getIndex() {
             return index;
         }
-
     }
 }

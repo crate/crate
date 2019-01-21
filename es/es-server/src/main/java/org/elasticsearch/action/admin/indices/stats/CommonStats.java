@@ -33,7 +33,6 @@ import org.elasticsearch.index.flush.FlushStats;
 import org.elasticsearch.index.merge.MergeStats;
 import org.elasticsearch.index.recovery.RecoveryStats;
 import org.elasticsearch.index.refresh.RefreshStats;
-import org.elasticsearch.index.search.stats.SearchStats;
 import org.elasticsearch.index.shard.DocsStats;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexingStats;
@@ -54,9 +53,6 @@ public class CommonStats implements Writeable {
 
     @Nullable
     public IndexingStats indexing;
-
-    @Nullable
-    public SearchStats search;
 
     @Nullable
     public MergeStats merge;
@@ -106,9 +102,6 @@ public class CommonStats implements Writeable {
                 case Indexing:
                     indexing = new IndexingStats();
                     break;
-                case Search:
-                    search = new SearchStats();
-                    break;
                 case Merge:
                     merge = new MergeStats();
                     break;
@@ -132,9 +125,6 @@ public class CommonStats implements Writeable {
                     break;
                 case Translog:
                     translog = new TranslogStats();
-                    break;
-                case Suggest:
-                    // skip
                     break;
                 case RequestCache:
                     requestCache = new RequestCacheStats();
@@ -186,9 +176,6 @@ public class CommonStats implements Writeable {
                     case Translog:
                         translog = indexShard.translogStats();
                         break;
-                    case Suggest:
-                        // skip
-                        break;
                     case RequestCache:
                         requestCache = indexShard.requestCache().stats();
                         break;
@@ -208,7 +195,6 @@ public class CommonStats implements Writeable {
         docs = in.readOptionalStreamable(DocsStats::new);
         store = in.readOptionalStreamable(StoreStats::new);
         indexing = in.readOptionalStreamable(IndexingStats::new);
-        search = in.readOptionalWriteable(SearchStats::new);
         merge = in.readOptionalStreamable(MergeStats::new);
         refresh =  in.readOptionalStreamable(RefreshStats::new);
         flush =  in.readOptionalStreamable(FlushStats::new);
@@ -226,7 +212,6 @@ public class CommonStats implements Writeable {
         out.writeOptionalStreamable(docs);
         out.writeOptionalStreamable(store);
         out.writeOptionalStreamable(indexing);
-        out.writeOptionalWriteable(search);
         out.writeOptionalStreamable(merge);
         out.writeOptionalStreamable(refresh);
         out.writeOptionalStreamable(flush);
@@ -263,14 +248,6 @@ public class CommonStats implements Writeable {
             }
         } else {
             indexing.add(stats.getIndexing());
-        }
-        if (search == null) {
-            if (stats.getSearch() != null) {
-                search = new SearchStats();
-                search.add(stats.getSearch());
-            }
-        } else {
-            search.add(stats.getSearch());
         }
         if (merge == null) {
             if (stats.getMerge() != null) {
@@ -368,11 +345,6 @@ public class CommonStats implements Writeable {
     @Nullable
     public IndexingStats getIndexing() {
         return indexing;
-    }
-
-    @Nullable
-    public SearchStats getSearch() {
-        return search;
     }
 
     @Nullable

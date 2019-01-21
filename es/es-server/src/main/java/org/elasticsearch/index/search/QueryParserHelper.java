@@ -97,21 +97,6 @@ public final class QueryParserHelper {
      * @param acceptAllTypes Whether all field type should be added when a pattern is expanded.
      *                       If false, only searchable field types are added.
      * @param acceptMetadataField Whether metadata fields should be added when a pattern is expanded.
-     */
-    public static Map<String, Float> resolveMappingField(QueryShardContext context, String fieldOrPattern, float weight,
-                                                         boolean acceptAllTypes, boolean acceptMetadataField) {
-        return resolveMappingField(context, fieldOrPattern, weight, acceptAllTypes, acceptMetadataField, null);
-    }
-
-    /**
-     * Resolves the provided pattern or field name from the {@link QueryShardContext} and return a map of
-     * the expanded fields with their original boost.
-     * @param context The context of the query
-     * @param fieldOrPattern The field name or the pattern to resolve
-     * @param weight The weight for the field
-     * @param acceptAllTypes Whether all field type should be added when a pattern is expanded.
-     *                       If false, only searchable field types are added.
-     * @param acceptMetadataField Whether metadata fields should be added when a pattern is expanded.
      * @param fieldSuffix The suffix name to add to the expanded field names if a mapping exists for that name.
      *                    The original name of the field is kept if adding the suffix to the field name does not point to a valid field
      *                    in the mapping.

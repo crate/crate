@@ -73,7 +73,7 @@ public class TransportNodesInfoAction extends TransportNodesAction<NodesInfoRequ
     protected NodeInfo nodeOperation(NodeInfoRequest nodeRequest) {
         NodesInfoRequest request = nodeRequest.request;
         return nodeService.info(request.settings(), request.os(), request.process(), request.jvm(), request.threadPool(),
-                request.transport(), request.http(), request.plugins(), request.ingest(), request.indices());
+                request.transport(), request.http(), request.plugins(), request.indices());
     }
 
     public static class NodeInfoRequest extends BaseNodeRequest {
