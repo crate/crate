@@ -25,22 +25,15 @@ import org.apache.lucene.util.BytesRefArray;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.InPlaceMergeSorter;
 import org.apache.lucene.util.IntroSorter;
-import org.elasticsearch.common.collect.Iterators;
 
-import java.nio.file.Path;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.IdentityHashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.RandomAccess;
-import java.util.Set;
 
 /** Collections-related utility methods. */
 public class CollectionUtils {
@@ -226,41 +219,6 @@ public class CollectionUtils {
         return ints.stream().mapToInt(s -> s).toArray();
     }
 
-    public static void ensureNoSelfReferences(Object value) {
-        Iterable<?> it = convert(value);
-        if (it != null) {
-            ensureNoSelfReferences(it, value, Collections.newSetFromMap(new IdentityHashMap<>()));
-        }
-    }
-
-    private static Iterable<?> convert(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Map) {
-            Map<?,?> map = (Map<?,?>) value;
-            return () -> Iterators.concat(map.keySet().iterator(), map.values().iterator());
-        } else if ((value instanceof Iterable) && (value instanceof Path == false)) {
-            return (Iterable<?>) value;
-        } else if (value instanceof Object[]) {
-            return Arrays.asList((Object[]) value);
-        } else {
-            return null;
-        }
-    }
-
-    private static void ensureNoSelfReferences(final Iterable<?> value, Object originalReference, final Set<Object> ancestors) {
-        if (value != null) {
-            if (ancestors.add(originalReference) == false) {
-                throw new IllegalArgumentException("Iterable object is self-referencing itself");
-            }
-            for (Object o : value) {
-                ensureNoSelfReferences(convert(o), o, ancestors);
-            }
-            ancestors.remove(originalReference);
-        }
-    }
-
     private static class RotatedList<T> extends AbstractList<T> implements RandomAccess {
 
         private final List<T> in;
@@ -291,7 +249,8 @@ public class CollectionUtils {
             return in.size();
         }
 
-    };
+    }
+
     public static void sort(final BytesRefArray bytes, final int[] indices) {
         sort(new BytesRefBuilder(), new BytesRefBuilder(), bytes, indices);
     }
@@ -316,32 +275,6 @@ public class CollectionUtils {
                 }
             }.sort(0, numValues);
         }
-
-    }
-
-    public static int sortAndDedup(final BytesRefArray bytes, final int[] indices) {
-        final BytesRefBuilder scratch = new BytesRefBuilder();
-        final BytesRefBuilder scratch1 = new BytesRefBuilder();
-        final int numValues = bytes.size();
-        assert indices.length >= numValues;
-        if (numValues <= 1) {
-            return numValues;
-        }
-        sort(scratch, scratch1, bytes, indices);
-        int uniqueCount = 1;
-        BytesRefBuilder previous = scratch;
-        BytesRefBuilder current = scratch1;
-        bytes.get(previous, indices[0]);
-        for (int i = 1; i < numValues; ++i) {
-            bytes.get(current, indices[i]);
-            if (!previous.get().equals(current.get())) {
-                indices[uniqueCount++] = indices[i];
-            }
-            BytesRefBuilder tmp = previous;
-            previous = current;
-            current = tmp;
-        }
-        return uniqueCount;
 
     }
 
@@ -386,47 +319,5 @@ public class CollectionUtils {
         list.add(second);
         list.addAll(Arrays.asList(other));
         return list;
-    }
-
-    public static <E> ArrayList<E> newSingletonArrayList(E element) {
-        return new ArrayList<>(Collections.singletonList(element));
-    }
-
-    public static <E> LinkedList<E> newLinkedList(Iterable<E> elements) {
-        if (elements == null) {
-            throw new NullPointerException("elements");
-        }
-        LinkedList<E> linkedList = new LinkedList<>();
-        for (E element : elements) {
-            linkedList.add(element);
-        }
-        return linkedList;
-    }
-
-    public static <E> List<List<E>> eagerPartition(List<E> list, int size) {
-        if (list == null) {
-            throw new NullPointerException("list");
-        }
-        if (size <= 0) {
-            throw new IllegalArgumentException("size <= 0");
-        }
-        List<List<E>> result = new ArrayList<>((int) Math.ceil(list.size() / size));
-
-        List<E> accumulator = new ArrayList<>(size);
-        int count = 0;
-        for (E element : list) {
-            if (count == size) {
-                result.add(accumulator);
-                accumulator = new ArrayList<>(size);
-                count = 0;
-            }
-            accumulator.add(element);
-            count++;
-        }
-        if (count > 0) {
-            result.add(accumulator);
-        }
-
-        return result;
     }
 }
