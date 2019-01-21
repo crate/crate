@@ -30,7 +30,6 @@ import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.metadata.IndexGraveyard;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
 import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
@@ -386,7 +385,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING,
                     ThreadPool.ESTIMATED_TIME_INTERVAL_SETTING,
                     Node.BREAKER_TYPE_KEY,
-                    OperationRouting.USE_ADAPTIVE_REPLICA_SELECTION_SETTING,
                     IndexGraveyard.SETTING_MAX_TOMBSTONES
             )));
 }

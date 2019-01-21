@@ -82,16 +82,6 @@ public class IndicesStatsRequestBuilder extends BroadcastOperationRequestBuilder
         return this;
     }
 
-    public IndicesStatsRequestBuilder setGet(boolean get) {
-        request.get(get);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setSearch(boolean search) {
-        request.search(search);
-        return this;
-    }
-
     public IndicesStatsRequestBuilder setMerge(boolean merge) {
         request.merge(merge);
         return this;
