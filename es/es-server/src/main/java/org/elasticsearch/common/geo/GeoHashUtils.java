@@ -22,7 +22,6 @@ import org.apache.lucene.geo.Rectangle;
 import org.apache.lucene.spatial.util.MortonEncoder;
 import org.apache.lucene.util.BitUtil;
 
-import java.util.ArrayList;
 import java.util.Collection;
 
 import static org.apache.lucene.geo.GeoUtils.MAX_LAT_INCL;
@@ -65,15 +64,6 @@ public class GeoHashUtils {
     }
 
     /**
-     * Encode lon/lat to the geohash based long format (lon/lat interleaved, 4 least significant bits = level)
-     */
-    public static final long longEncode(final double lon, final double lat, final int level) {
-        // shift to appropriate level
-        final short msf = (short)(((12 - level) * 5) + MORTON_OFFSET);
-        return ((BitUtil.flipFlop(encodeLatLon(lat, lon)) >>> msf) << 4) | level;
-    }
-
-    /**
      * Encode from geohash string to the geohash based long format (lon/lat interleaved, 4 least significant bits = level)
      */
     private static long longEncode(final String hash, int length) {
@@ -92,19 +82,6 @@ public class GeoHashUtils {
     }
 
     /**
-     * Encode an existing geohash long to the provided precision
-     */
-    public static long longEncode(long geohash, int level) {
-        final short precision = (short)(geohash & 15);
-        if (precision == level) {
-            return geohash;
-        } else if (precision > level) {
-            return ((geohash >>> (((precision - level) * 5) + 4)) << 4) | level;
-        }
-        return ((geohash >>> 4) << (((level - precision) * 5) + 4) | level);
-    }
-
-    /**
      * Convert from a morton encoded long from a geohash encoded long
      */
     public static long fromMorton(long morton, int level) {
@@ -116,7 +93,7 @@ public class GeoHashUtils {
     /**
      * Encode to a geohash string from the geohash based long format
      */
-    public static final String stringEncode(long geoHashLong) {
+    public static String stringEncode(long geoHashLong) {
         int level = (int)geoHashLong&15;
         geoHashLong >>>= 4;
         char[] chars = new char[level];
@@ -143,32 +120,6 @@ public class GeoHashUtils {
         final long ghLong = fromMorton(encodeLatLon(lat, lon), level);
         return stringEncode(ghLong);
 
-    }
-
-    /**
-     * Encode to a full precision geohash string from a given morton encoded long value
-     */
-    public static final String stringEncodeFromMortonLong(final long hashedVal) throws Exception {
-        return stringEncode(hashedVal, PRECISION);
-    }
-
-    /**
-     * Encode to a geohash string at a given level from a morton long
-     */
-    public static final String stringEncodeFromMortonLong(long hashedVal, final int level) {
-        // bit twiddle to geohash (since geohash is a swapped (lon/lat) encoding)
-        hashedVal = BitUtil.flipFlop(hashedVal);
-
-        StringBuilder geoHash = new StringBuilder();
-        short precision = 0;
-        final short msf = (BITS<<1)-5;
-        long mask = 31L<<msf;
-        do {
-            geoHash.append(BASE_32[(int)((mask & hashedVal)>>>(msf-(precision*5)))]);
-            // next 5 bits
-            mask >>>= 5;
-        } while (++precision < level);
-        return geoHash.toString();
     }
 
     /**
@@ -238,16 +189,6 @@ public class GeoHashUtils {
     }
 
     /**
-     * Calculate all neighbors of a given geohash cell.
-     *
-     * @param geohash Geohash of the defined cell
-     * @return geohashes of all neighbor cells
-     */
-    public static Collection<? extends CharSequence> neighbors(String geohash) {
-        return addNeighbors(geohash, geohash.length(), new ArrayList<CharSequence>(8));
-    }
-
-    /**
      * Calculate the geohash of a neighbor of a geohash
      *
      * @param geohash the geohash of a cell
@@ -305,17 +246,6 @@ public class GeoHashUtils {
      * Add all geohashes of the cells next to a given geohash to a list.
      *
      * @param geohash   Geohash of a specified cell
-     * @param neighbors list to add the neighbors to
-     * @return the given list
-     */
-    public static final <E extends Collection<? super String>> E addNeighbors(String geohash, E neighbors) {
-        return addNeighbors(geohash, geohash.length(), neighbors);
-    }
-
-    /**
-     * Add all geohashes of the cells next to a given geohash to a list.
-     *
-     * @param geohash   Geohash of a specified cell
      * @param length    level of the given geohash
      * @param neighbors list to add the neighbors to
      * @return the given list
@@ -357,15 +287,5 @@ public class GeoHashUtils {
 
     private static double unscaleLat(final long val) {
       return (val / LAT_SCALE) - 90;
-    }
-
-    /** returns the latitude value from the string based geohash */
-    public static final double decodeLatitude(final String geohash) {
-        return decodeLatitude(mortonEncode(geohash));
-    }
-
-    /** returns the latitude value from the string based geohash */
-    public static final double decodeLongitude(final String geohash) {
-        return decodeLongitude(mortonEncode(geohash));
     }
 }

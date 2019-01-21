@@ -113,8 +113,4 @@ public final class Cidrs {
         assert octets.length == 4;
         return octetsToString(octets) + "/" + networkMask;
     }
-
-    public static String createCIDR(long ipAddress, int networkMask) {
-        return octetsToCIDR(longToOctets(ipAddress), networkMask);
-    }
 }
