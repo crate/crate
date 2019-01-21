@@ -20,13 +20,9 @@
 
 package org.elasticsearch.tasks;
 
-import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.NamedWriteable;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 
-import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -75,34 +71,6 @@ public class Task {
         this.startTime = startTime;
         this.startTimeNanos = startTimeNanos;
         this.headers = headers;
-    }
-
-    /**
-     * Build a version of the task status you can throw over the wire and back
-     * to the user.
-     *
-     * @param localNodeId
-     *            the id of the node this task is running on
-     * @param detailed
-     *            should the information include detailed, potentially slow to
-     *            generate data?
-     */
-    public final TaskInfo taskInfo(String localNodeId, boolean detailed) {
-        String description = null;
-        Task.Status status = null;
-        if (detailed) {
-            description = getDescription();
-            status = getStatus();
-        }
-        return taskInfo(localNodeId, description, status);
-    }
-
-    /**
-     * Build a proper {@link TaskInfo} for this task.
-     */
-    protected final TaskInfo taskInfo(String localNodeId, String description, Status status) {
-        return new TaskInfo(new TaskId(localNodeId, getId()), getType(), getAction(), description, status, startTime,
-                System.nanoTime() - startTimeNanos, this instanceof CancellableTask, parentTask, headers);
     }
 
     /**

@@ -834,8 +834,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         // 61 used to be for RoutingValidationException
         NOT_SERIALIZABLE_EXCEPTION_WRAPPER(org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper.class,
                 org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper::new, 62, UNKNOWN_VERSION_ADDED),
-        ALIAS_FILTER_PARSING_EXCEPTION(org.elasticsearch.indices.AliasFilterParsingException.class,
-                org.elasticsearch.indices.AliasFilterParsingException::new, 63, UNKNOWN_VERSION_ADDED),
+        // 63 was AliasFilterParsingException
         // 64 was DeleteByQueryFailedEngineException, which was removed in 5.0
         GATEWAY_EXCEPTION(org.elasticsearch.gateway.GatewayException.class, org.elasticsearch.gateway.GatewayException::new, 65,
             UNKNOWN_VERSION_ADDED),
