@@ -24,13 +24,10 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.ToXContent.Params;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 
-public class ProcessStats implements Writeable, ToXContentFragment {
+public class ProcessStats implements Writeable {
 
     private final long timestamp;
     private final long openFileDescriptors;
@@ -81,43 +78,6 @@ public class ProcessStats implements Writeable, ToXContentFragment {
 
     public Mem getMem() {
         return mem;
-    }
-
-    static final class Fields {
-        static final String PROCESS = "process";
-        static final String TIMESTAMP = "timestamp";
-        static final String OPEN_FILE_DESCRIPTORS = "open_file_descriptors";
-        static final String MAX_FILE_DESCRIPTORS = "max_file_descriptors";
-
-        static final String CPU = "cpu";
-        static final String PERCENT = "percent";
-        static final String TOTAL = "total";
-        static final String TOTAL_IN_MILLIS = "total_in_millis";
-
-        static final String MEM = "mem";
-        static final String TOTAL_VIRTUAL = "total_virtual";
-        static final String TOTAL_VIRTUAL_IN_BYTES = "total_virtual_in_bytes";
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Fields.PROCESS);
-        builder.field(Fields.TIMESTAMP, timestamp);
-        builder.field(Fields.OPEN_FILE_DESCRIPTORS, openFileDescriptors);
-        builder.field(Fields.MAX_FILE_DESCRIPTORS, maxFileDescriptors);
-        if (cpu != null) {
-            builder.startObject(Fields.CPU);
-            builder.field(Fields.PERCENT, cpu.percent);
-            builder.humanReadableField(Fields.TOTAL_IN_MILLIS, Fields.TOTAL, new TimeValue(cpu.total));
-            builder.endObject();
-        }
-        if (mem != null) {
-            builder.startObject(Fields.MEM);
-            builder.humanReadableField(Fields.TOTAL_VIRTUAL_IN_BYTES, Fields.TOTAL_VIRTUAL, new ByteSizeValue(mem.totalVirtual));
-            builder.endObject();
-        }
-        builder.endObject();
-        return builder;
     }
 
     public static class Mem implements Writeable {
