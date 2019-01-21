@@ -19,9 +19,7 @@
 
 package org.elasticsearch.common.collect;
 
-import com.carrotsearch.hppc.ObjectIntHashMap;
 import com.carrotsearch.hppc.ObjectLookupContainer;
-import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import java.util.Iterator;
@@ -29,61 +27,6 @@ import java.util.Iterator;
 public final class HppcMaps {
 
     private HppcMaps() {
-    }
-
-    /**
-     * Returns a new map with the given number of expected elements.
-     * 
-     * @param expectedElements
-     *          The expected number of elements guaranteed not to cause buffer
-     *          expansion (inclusive).
-     */
-    public static <K, V> ObjectObjectHashMap<K, V> newMap(int expectedElements) {
-        return new ObjectObjectHashMap<>(expectedElements);
-    }
-
-    /**
-     * Returns a new map with a default initial capacity.
-     */
-    public static <K, V> ObjectObjectHashMap<K, V> newMap() {
-        return newMap(16);
-    }
-
-    /**
-     * Returns a map like {@link #newMap()} that does not accept <code>null</code> keys
-     */
-    public static <K, V> ObjectObjectHashMap<K, V> newNoNullKeysMap() {
-        return ensureNoNullKeys(16);
-    }
-
-    /**
-     * Returns a map like {@link #newMap(int)} that does not accept <code>null</code> keys
-     * 
-     * @param expectedElements
-     *          The expected number of elements guaranteed not to cause buffer
-     *          expansion (inclusive).
-     */
-    public static <K, V> ObjectObjectHashMap<K, V> newNoNullKeysMap(int expectedElements) {
-        return ensureNoNullKeys(expectedElements);
-    }
-
-    /**
-     * Wraps the given map and prevent adding of <code>null</code> keys.
-     * 
-     * @param expectedElements
-     *          The expected number of elements guaranteed not to cause buffer
-     *          expansion (inclusive).
-     */
-    public static <K, V> ObjectObjectHashMap<K, V> ensureNoNullKeys(int expectedElements) {
-        return new ObjectObjectHashMap<K, V>(expectedElements) {
-            @Override
-            public V put(K key, V value) {
-                if (key == null) {
-                    throw new IllegalArgumentException("Map key must not be null");
-                }
-                return super.put(key, value);
-            }
-        };
     }
 
     /**
@@ -122,27 +65,6 @@ public final class HppcMaps {
                 throw new UnsupportedOperationException();
             }
         };
-        return new Iterable<T>() {
-            @Override
-            public Iterator<T> iterator() {
-                return intersection;
-            }
-        };
-    }
-
-    public static final class Object {
-        public static final class Integer {
-            public static <V> ObjectIntHashMap<V> ensureNoNullKeys(int capacity, float loadFactor) {
-                return new ObjectIntHashMap<V>(capacity, loadFactor) {
-                    @Override
-                    public int put(V key, int value) {
-                        if (key == null) {
-                            throw new IllegalArgumentException("Map key must not be null");
-                        }
-                        return super.put(key, value);
-                    }
-                };
-            }
-        }
+        return () -> intersection;
     }
 }
