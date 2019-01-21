@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.cluster.repositories.put;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -44,9 +43,9 @@ public class TransportPutRepositoryAction extends TransportMasterNodeAction<PutR
 
     @Inject
     public TransportPutRepositoryAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                        RepositoriesService repositoriesService, ThreadPool threadPool, ActionFilters actionFilters,
+                                        RepositoriesService repositoriesService, ThreadPool threadPool,
                                         IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, PutRepositoryAction.NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, PutRepositoryRequest::new);
+        super(settings, PutRepositoryAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, PutRepositoryRequest::new);
         this.repositoriesService = repositoriesService;
     }
 

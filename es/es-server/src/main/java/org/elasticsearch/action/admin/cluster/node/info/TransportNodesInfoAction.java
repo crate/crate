@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.cluster.node.info;
 
 import org.elasticsearch.action.FailedNodeException;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -46,9 +45,9 @@ public class TransportNodesInfoAction extends TransportNodesAction<NodesInfoRequ
     @Inject
     public TransportNodesInfoAction(Settings settings, ThreadPool threadPool,
                                     ClusterService clusterService, TransportService transportService,
-                                    NodeService nodeService, ActionFilters actionFilters,
+                                    NodeService nodeService,
                                     IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, NodesInfoAction.NAME, threadPool, clusterService, transportService, actionFilters,
+        super(settings, NodesInfoAction.NAME, threadPool, clusterService, transportService,
               indexNameExpressionResolver, NodesInfoRequest::new, NodeInfoRequest::new, ThreadPool.Names.MANAGEMENT, NodeInfo.class);
         this.nodeService = nodeService;
     }

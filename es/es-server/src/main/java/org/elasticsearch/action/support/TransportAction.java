@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.support;
 
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
@@ -33,24 +32,20 @@ import org.elasticsearch.tasks.TaskListener;
 import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import static org.elasticsearch.action.support.PlainActionFuture.newFuture;
 
 public abstract class TransportAction<Request extends ActionRequest, Response extends ActionResponse> extends AbstractComponent {
 
     protected final ThreadPool threadPool;
     protected final String actionName;
-    private final ActionFilter[] filters;
     protected final IndexNameExpressionResolver indexNameExpressionResolver;
     protected final TaskManager taskManager;
 
-    protected TransportAction(Settings settings, String actionName, ThreadPool threadPool, ActionFilters actionFilters,
+    protected TransportAction(Settings settings, String actionName, ThreadPool threadPool,
                               IndexNameExpressionResolver indexNameExpressionResolver, TaskManager taskManager) {
         super(settings);
         this.threadPool = threadPool;
         this.actionName = actionName;
-        this.filters = actionFilters.filters();
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.taskManager = taskManager;
     }
@@ -130,8 +125,11 @@ public abstract class TransportAction<Request extends ActionRequest, Response ex
             listener.onFailure(validationException);
             return;
         }
-        RequestFilterChain<Request, Response> requestFilterChain = new RequestFilterChain<>(this, logger);
-        requestFilterChain.proceed(task, actionName, request, listener);
+        try {
+            doExecute(task, request, listener);
+        } catch (Exception e) {
+            listener.onFailure(e);
+        }
     }
 
     protected void doExecute(Task task, Request request, ActionListener<Response> listener) {
@@ -139,34 +137,4 @@ public abstract class TransportAction<Request extends ActionRequest, Response ex
     }
 
     protected abstract void doExecute(Request request, ActionListener<Response> listener);
-
-    private static class RequestFilterChain<Request extends ActionRequest, Response extends ActionResponse>
-            implements ActionFilterChain<Request, Response> {
-
-        private final TransportAction<Request, Response> action;
-        private final AtomicInteger index = new AtomicInteger();
-        private final Logger logger;
-
-        private RequestFilterChain(TransportAction<Request, Response> action, Logger logger) {
-            this.action = action;
-            this.logger = logger;
-        }
-
-        @Override
-        public void proceed(Task task, String actionName, Request request, ActionListener<Response> listener) {
-            int i = index.getAndIncrement();
-            try {
-                if (i < this.action.filters.length) {
-                    this.action.filters[i].apply(task, actionName, request, listener, this);
-                } else if (i == this.action.filters.length) {
-                    this.action.doExecute(task, request, listener);
-                } else {
-                    listener.onFailure(new IllegalStateException("proceed was called too many times"));
-                }
-            } catch(Exception e) {
-                logger.trace("Error during transport action execution.", e);
-                listener.onFailure(e);
-            }
-        }
-    }
 }

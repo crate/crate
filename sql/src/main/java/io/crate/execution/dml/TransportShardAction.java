@@ -34,7 +34,6 @@ import io.crate.execution.jobs.kill.KillAllListener;
 import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.metadata.ColumnIdent;
 import org.elasticsearch.action.bulk.MappingUpdatePerformer;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -78,11 +77,10 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
                                    IndicesService indicesService,
                                    ThreadPool threadPool,
                                    ShardStateAction shardStateAction,
-                                   ActionFilters actionFilters,
                                    Supplier<Request> requestSupplier,
                                    SchemaUpdateClient schemaUpdateClient) {
         super(settings, actionName, transportService, clusterService, indicesService, threadPool, shardStateAction,
-            actionFilters, indexNameExpressionResolver, requestSupplier, requestSupplier,ThreadPool.Names.WRITE);
+            indexNameExpressionResolver, requestSupplier, requestSupplier,ThreadPool.Names.WRITE);
         this.mappingUpdate = (update, shardId, type) -> {
             validateMapping(update.root().iterator(), false);
             schemaUpdateClient.blockingUpdateOnMaster(shardId.getIndex(), update);

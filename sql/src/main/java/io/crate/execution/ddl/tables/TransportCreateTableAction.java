@@ -31,7 +31,6 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -66,7 +65,6 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
                                       TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
-                                      ActionFilters actionFilters,
                                       IndexNameExpressionResolver indexNameExpressionResolver,
                                       TransportCreateIndexAction transportCreateIndexAction,
                                       TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
@@ -74,7 +72,6 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
             NAME,
             transportService,
             clusterService, threadPool,
-            actionFilters,
             indexNameExpressionResolver,
             CreateTableRequest::new);
         this.transportCreateIndexAction = transportCreateIndexAction;

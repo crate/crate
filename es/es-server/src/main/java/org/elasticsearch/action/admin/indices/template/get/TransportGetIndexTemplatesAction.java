@@ -20,7 +20,6 @@ package org.elasticsearch.action.admin.indices.template.get;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -42,8 +41,8 @@ public class TransportGetIndexTemplatesAction extends TransportMasterNodeReadAct
 
     @Inject
     public TransportGetIndexTemplatesAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                            ThreadPool threadPool, ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, GetIndexTemplatesAction.NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, GetIndexTemplatesRequest::new);
+                                            ThreadPool threadPool, IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, GetIndexTemplatesAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, GetIndexTemplatesRequest::new);
     }
 
     @Override

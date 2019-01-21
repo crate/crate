@@ -33,7 +33,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -136,9 +135,9 @@ public class TransportCreatePartitionsAction
                                            IndicesService indicesService,
                                            AllocationService allocationService,
                                            NamedXContentRegistry xContentRegistry,
-                                           IndexNameExpressionResolver indexNameExpressionResolver,
-                                           ActionFilters actionFilters) {
-        super(settings, NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, CreatePartitionsRequest::new);
+                                           IndexNameExpressionResolver indexNameExpressionResolver
+                                           ) {
+        super(settings, NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, CreatePartitionsRequest::new);
         this.aliasValidator = aliasValidator;
         this.indicesService = indicesService;
         this.allocationService = allocationService;

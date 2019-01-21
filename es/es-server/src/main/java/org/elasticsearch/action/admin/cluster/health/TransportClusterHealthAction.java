@@ -21,14 +21,13 @@ package org.elasticsearch.action.admin.cluster.health;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
-import org.elasticsearch.cluster.LocalClusterUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
+import org.elasticsearch.cluster.LocalClusterUpdateTask;
 import org.elasticsearch.cluster.NotMasterException;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
@@ -53,9 +52,9 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
 
     @Inject
     public TransportClusterHealthAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                        ThreadPool threadPool, ActionFilters actionFilters,
+                                        ThreadPool threadPool,
                                         IndexNameExpressionResolver indexNameExpressionResolver, GatewayAllocator gatewayAllocator) {
-        super(settings, ClusterHealthAction.NAME, false, transportService, clusterService, threadPool, actionFilters,
+        super(settings, ClusterHealthAction.NAME, false, transportService, clusterService, threadPool,
             indexNameExpressionResolver, ClusterHealthRequest::new);
         this.gatewayAllocator = gatewayAllocator;
     }

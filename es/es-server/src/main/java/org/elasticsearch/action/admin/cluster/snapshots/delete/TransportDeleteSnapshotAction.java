@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.cluster.snapshots.delete;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -42,9 +41,9 @@ public class TransportDeleteSnapshotAction extends TransportMasterNodeAction<Del
 
     @Inject
     public TransportDeleteSnapshotAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                         ThreadPool threadPool, SnapshotsService snapshotsService, ActionFilters actionFilters,
+                                         ThreadPool threadPool, SnapshotsService snapshotsService,
                                          IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, DeleteSnapshotAction.NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, DeleteSnapshotRequest::new);
+        super(settings, DeleteSnapshotAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, DeleteSnapshotRequest::new);
         this.snapshotsService = snapshotsService;
     }
 
