@@ -22,7 +22,6 @@ package org.elasticsearch.action.admin.cluster.settings;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -50,9 +49,9 @@ public class TransportClusterUpdateSettingsAction extends
 
     @Inject
     public TransportClusterUpdateSettingsAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                                ThreadPool threadPool, AllocationService allocationService, ActionFilters actionFilters,
+                                                ThreadPool threadPool, AllocationService allocationService,
                                                 IndexNameExpressionResolver indexNameExpressionResolver, ClusterSettings clusterSettings) {
-        super(settings, ClusterUpdateSettingsAction.NAME, false, transportService, clusterService, threadPool, actionFilters,
+        super(settings, ClusterUpdateSettingsAction.NAME, false, transportService, clusterService, threadPool,
             indexNameExpressionResolver, ClusterUpdateSettingsRequest::new);
         this.allocationService = allocationService;
         this.clusterSettings = clusterSettings;

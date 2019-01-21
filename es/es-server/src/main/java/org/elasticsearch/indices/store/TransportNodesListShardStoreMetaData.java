@@ -22,7 +22,6 @@ package org.elasticsearch.indices.store;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.BaseNodeResponse;
 import org.elasticsearch.action.support.nodes.BaseNodesRequest;
@@ -74,10 +73,10 @@ public class TransportNodesListShardStoreMetaData extends TransportNodesAction<T
     @Inject
     public TransportNodesListShardStoreMetaData(Settings settings, ThreadPool threadPool,
                                                 ClusterService clusterService, TransportService transportService,
-                                                IndicesService indicesService, NodeEnvironment nodeEnv, ActionFilters actionFilters,
+                                                IndicesService indicesService, NodeEnvironment nodeEnv,
                                                 IndexNameExpressionResolver indexNameExpressionResolver,
                                                 NamedXContentRegistry namedXContentRegistry) {
-        super(settings, ACTION_NAME, threadPool, clusterService, transportService, actionFilters, indexNameExpressionResolver,
+        super(settings, ACTION_NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
             Request::new, NodeRequest::new, ThreadPool.Names.FETCH_SHARD_STORE, NodeStoreFilesMetaData.class);
         this.indicesService = indicesService;
         this.nodeEnv = nodeEnv;

@@ -43,7 +43,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -95,7 +94,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       ClusterService clusterService,
                                       TransportService transportService,
                                       SchemaUpdateClient schemaUpdateClient,
-                                      ActionFilters actionFilters,
                                       TasksService tasksService,
                                       IndicesService indicesService,
                                       ShardStateAction shardStateAction,
@@ -103,7 +101,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       Schemas schemas,
                                       IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, ACTION_NAME, transportService, indexNameExpressionResolver, clusterService,
-            indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest::new, schemaUpdateClient);
+            indicesService, threadPool, shardStateAction, ShardUpsertRequest::new, schemaUpdateClient);
         this.schemas = schemas;
         this.functions = functions;
         tasksService.addListener(this);

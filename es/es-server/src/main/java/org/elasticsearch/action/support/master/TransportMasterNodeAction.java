@@ -24,7 +24,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.ActionRunnable;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
@@ -62,22 +61,22 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
     private final String executor;
 
     protected TransportMasterNodeAction(Settings settings, String actionName, TransportService transportService,
-                                        ClusterService clusterService, ThreadPool threadPool, ActionFilters actionFilters,
+                                        ClusterService clusterService, ThreadPool threadPool,
                                         IndexNameExpressionResolver indexNameExpressionResolver, Supplier<Request> request) {
-        this(settings, actionName, true, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, request);
+        this(settings, actionName, true, transportService, clusterService, threadPool, indexNameExpressionResolver, request);
     }
 
     protected TransportMasterNodeAction(Settings settings, String actionName, TransportService transportService,
-                                        ClusterService clusterService, ThreadPool threadPool, ActionFilters actionFilters,
+                                        ClusterService clusterService, ThreadPool threadPool,
                                         Writeable.Reader<Request> request, IndexNameExpressionResolver indexNameExpressionResolver) {
-        this(settings, actionName, true, transportService, clusterService, threadPool, actionFilters, request, indexNameExpressionResolver);
+        this(settings, actionName, true, transportService, clusterService, threadPool, request, indexNameExpressionResolver);
     }
 
     protected TransportMasterNodeAction(Settings settings, String actionName, boolean canTripCircuitBreaker,
                                         TransportService transportService, ClusterService clusterService, ThreadPool threadPool,
-                                        ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver,
+                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         Supplier<Request> request) {
-        super(settings, actionName, canTripCircuitBreaker, threadPool, transportService, actionFilters, indexNameExpressionResolver,
+        super(settings, actionName, canTripCircuitBreaker, threadPool, transportService, indexNameExpressionResolver,
             request);
         this.transportService = transportService;
         this.clusterService = clusterService;
@@ -86,9 +85,9 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
 
     protected TransportMasterNodeAction(Settings settings, String actionName, boolean canTripCircuitBreaker,
                                         TransportService transportService, ClusterService clusterService, ThreadPool threadPool,
-                                        ActionFilters actionFilters, Writeable.Reader<Request> request,
+                                        Writeable.Reader<Request> request,
                                         IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, actionName, canTripCircuitBreaker, threadPool, transportService, actionFilters, request,
+        super(settings, actionName, canTripCircuitBreaker, threadPool, transportService, request,
             indexNameExpressionResolver);
         this.transportService = transportService;
         this.clusterService = clusterService;

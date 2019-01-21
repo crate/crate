@@ -26,7 +26,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.view.ViewsMetaData;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -52,7 +51,6 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
                                    TransportService transportService,
                                    ClusterService clusterService,
                                    ThreadPool threadPool,
-                                   ActionFilters actionFilters,
                                    IndexNameExpressionResolver indexNameExpressionResolver,
                                    DDLClusterStateService ddlClusterStateService) {
         super(settings,
@@ -60,7 +58,6 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
             transportService,
             clusterService,
             threadPool,
-            actionFilters,
             indexNameExpressionResolver,
             DropViewRequest::new);
         this.ddlClusterStateService = ddlClusterStateService;

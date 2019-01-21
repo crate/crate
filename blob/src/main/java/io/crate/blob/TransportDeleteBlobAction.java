@@ -23,7 +23,6 @@ package io.crate.blob;
 
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -50,10 +49,9 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
                                      ThreadPool threadPool,
                                      ShardStateAction shardStateAction,
                                      BlobIndicesService blobIndicesService,
-                                     ActionFilters actionFilters,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, DeleteBlobAction.NAME, transportService, clusterService, indicesService,
-            threadPool, shardStateAction, actionFilters, indexNameExpressionResolver, DeleteBlobRequest::new,
+            threadPool, shardStateAction, indexNameExpressionResolver, DeleteBlobRequest::new,
             DeleteBlobRequest::new, ThreadPool.Names.INDEX);
         this.blobIndicesService = blobIndicesService;
         logger.trace("Constructor");
@@ -70,7 +68,7 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
         BlobShard blobShard = blobIndicesService.blobShardSafe(request.shardId());
         boolean deleted = blobShard.delete(request.id());
         final DeleteBlobResponse response = new DeleteBlobResponse(deleted);
-        return new PrimaryResult(request, response);
+        return new PrimaryResult<>(request, response);
     }
 
     @Override

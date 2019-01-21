@@ -21,7 +21,6 @@ package org.elasticsearch.action.admin.indices.upgrade.post;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -42,8 +41,8 @@ public class TransportUpgradeSettingsAction extends TransportMasterNodeAction<Up
 
     @Inject
     public TransportUpgradeSettingsAction(Settings settings, TransportService transportService, ClusterService clusterService, ThreadPool threadPool,
-                                          MetaDataUpdateSettingsService updateSettingsService, IndexNameExpressionResolver indexNameExpressionResolver, ActionFilters actionFilters) {
-        super(settings, UpgradeSettingsAction.NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, UpgradeSettingsRequest::new);
+                                          MetaDataUpdateSettingsService updateSettingsService, IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, UpgradeSettingsAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, UpgradeSettingsRequest::new);
         this.updateSettingsService = updateSettingsService;
     }
 

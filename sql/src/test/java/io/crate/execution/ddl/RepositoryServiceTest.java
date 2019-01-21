@@ -31,7 +31,6 @@ import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteReposito
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -48,7 +47,6 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
-import org.mockito.Answers;
 
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
@@ -80,7 +78,6 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         ClusterState state = ClusterState.builder(new ClusterName("dummy")).metaData(
             MetaData.builder().putCustom(RepositoriesMetaData.TYPE, repos)).build();
         ClusterServiceUtils.setState(clusterService, state);
-        final ActionFilters actionFilters = mock(ActionFilters.class, Answers.RETURNS_MOCKS.get());
         IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(Settings.EMPTY);
 
 
@@ -92,7 +89,6 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             mock(RepositoriesService.class),
             THREAD_POOL,
-            actionFilters,
             indexNameExpressionResolver) {
             @Override
             protected void doExecute(Task task, DeleteRepositoryRequest request, ActionListener<AcknowledgedResponse> listener) {
@@ -108,7 +104,6 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             mock(RepositoriesService.class),
             THREAD_POOL,
-            actionFilters,
             indexNameExpressionResolver) {
             @Override
             protected void doExecute(Task task, PutRepositoryRequest request, ActionListener<AcknowledgedResponse> listener) {

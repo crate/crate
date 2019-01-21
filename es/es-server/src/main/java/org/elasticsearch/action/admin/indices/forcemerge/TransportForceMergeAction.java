@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.admin.indices.forcemerge;
 
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.node.TransportBroadcastByNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -50,8 +49,8 @@ public class TransportForceMergeAction extends TransportBroadcastByNodeAction<Fo
     @Inject
     public TransportForceMergeAction(Settings settings, ThreadPool threadPool, ClusterService clusterService,
                                    TransportService transportService, IndicesService indicesService,
-                                   ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ForceMergeAction.NAME, threadPool, clusterService, transportService, actionFilters, indexNameExpressionResolver,
+                                   IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, ForceMergeAction.NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
                 ForceMergeRequest::new, ThreadPool.Names.FORCE_MERGE);
         this.indicesService = indicesService;
     }
