@@ -69,7 +69,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -186,13 +185,6 @@ public class IndicesModule extends AbstractModule {
         // we register _field_names here so that it has a chance to see all the other mappers, including from plugins
         metadataMappers.put(fieldNamesEntry.getKey(), fieldNamesEntry.getValue());
         return Collections.unmodifiableMap(metadataMappers);
-    }
-
-    /**
-     * Returns a set containing all of the builtin metadata fields
-     */
-    public static Set<String> getBuiltInMetaDataFields() {
-        return builtInMetadataMappers.keySet();
     }
 
     private static Function<String, Predicate<String>> getFieldFilter(List<MapperPlugin> mapperPlugins) {

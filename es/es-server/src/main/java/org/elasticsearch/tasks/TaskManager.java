@@ -36,11 +36,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
@@ -62,8 +60,6 @@ public class TaskManager extends AbstractComponent implements ClusterStateApplie
         .newConcurrentMapLongWithAggressiveConcurrency();
 
     private final AtomicLong taskIdGenerator = new AtomicLong();
-
-    private final Map<TaskId, String> banedParents = new ConcurrentHashMap<>();
 
     private DiscoveryNodes lastDiscoveryNodes = DiscoveryNodes.EMPTY_NODES;
 
@@ -119,19 +115,6 @@ public class TaskManager extends AbstractComponent implements ClusterStateApplie
         CancellableTaskHolder holder = new CancellableTaskHolder(cancellableTask);
         CancellableTaskHolder oldHolder = cancellableTasks.put(task.getId(), holder);
         assert oldHolder == null;
-        // Check if this task was banned before we start it
-        if (task.getParentTaskId().isSet() && banedParents.isEmpty() == false) {
-            String reason = banedParents.get(task.getParentTaskId());
-            if (reason != null) {
-                try {
-                    holder.cancel(reason);
-                    throw new IllegalStateException("Task cancelled before it started: " + reason);
-                } finally {
-                    // let's clean up the registration
-                    unregister(task);
-                }
-            }
-        }
     }
 
     /**
@@ -180,18 +163,6 @@ public class TaskManager extends AbstractComponent implements ClusterStateApplie
         return Collections.unmodifiableMap(taskHashMap);
     }
 
-
-    /**
-     * Returns the list of currently running tasks on the node that can be cancelled
-     */
-    public Map<Long, CancellableTask> getCancellableTasks() {
-        HashMap<Long, CancellableTask> taskHashMap = new HashMap<>();
-        for (CancellableTaskHolder holder : cancellableTasks.values()) {
-            taskHashMap.put(holder.getTask().getId(), holder.getTask());
-        }
-        return Collections.unmodifiableMap(taskHashMap);
-    }
-
     /**
      * Returns a task with given id, or null if the task is not found.
      */
@@ -216,67 +187,10 @@ public class TaskManager extends AbstractComponent implements ClusterStateApplie
         }
     }
 
-    /**
-     * Returns the number of currently banned tasks.
-     * <p>
-     * Will be used in task manager stats and for debugging.
-     */
-    public int getBanCount() {
-        return banedParents.size();
-    }
-
-    /**
-     * Bans all tasks with the specified parent task from execution, cancels all tasks that are currently executing.
-     * <p>
-     * This method is called when a parent task that has children is cancelled.
-     */
-    public void setBan(TaskId parentTaskId, String reason) {
-        logger.trace("setting ban for the parent task {} {}", parentTaskId, reason);
-
-        // Set the ban first, so the newly created tasks cannot be registered
-        synchronized (banedParents) {
-            if (lastDiscoveryNodes.nodeExists(parentTaskId.getNodeId())) {
-                // Only set the ban if the node is the part of the cluster
-                banedParents.put(parentTaskId, reason);
-            }
-        }
-
-        // Now go through already running tasks and cancel them
-        for (Map.Entry<Long, CancellableTaskHolder> taskEntry : cancellableTasks.entrySet()) {
-            CancellableTaskHolder holder = taskEntry.getValue();
-            if (holder.hasParent(parentTaskId)) {
-                holder.cancel(reason);
-            }
-        }
-    }
-
-    /**
-     * Removes the ban for the specified parent task.
-     * <p>
-     * This method is called when a previously banned task finally cancelled
-     */
-    public void removeBan(TaskId parentTaskId) {
-        logger.trace("removing ban for the parent task {}", parentTaskId);
-        banedParents.remove(parentTaskId);
-    }
-
     @Override
     public void applyClusterState(ClusterChangedEvent event) {
         lastDiscoveryNodes = event.state().getNodes();
         if (event.nodesRemoved()) {
-            synchronized (banedParents) {
-                lastDiscoveryNodes = event.state().getNodes();
-                // Remove all bans that were registered by nodes that are no longer in the cluster state
-                Iterator<TaskId> banIterator = banedParents.keySet().iterator();
-                while (banIterator.hasNext()) {
-                    TaskId taskId = banIterator.next();
-                    if (lastDiscoveryNodes.nodeExists(taskId.getNodeId()) == false) {
-                        logger.debug("Removing ban for the parent [{}] on the node [{}], reason: the parent node is gone", taskId,
-                            event.state().getNodes().getLocalNode());
-                        banIterator.remove();
-                    }
-                }
-            }
             // Cancel cancellable tasks for the nodes that are gone
             for (Map.Entry<Long, CancellableTaskHolder> taskEntry : cancellableTasks.entrySet()) {
                 CancellableTaskHolder holder = taskEntry.getValue();
@@ -377,10 +291,6 @@ public class TaskManager extends AbstractComponent implements ClusterStateApplie
                 listener.run();
             }
 
-        }
-
-        public boolean hasParent(TaskId parentTaskId) {
-            return task.getParentTaskId().equals(parentTaskId);
         }
 
         public CancellableTask getTask() {
