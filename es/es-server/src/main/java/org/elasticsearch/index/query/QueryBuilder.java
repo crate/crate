@@ -25,7 +25,7 @@ import org.elasticsearch.common.xcontent.ToXContentObject;
 
 import java.io.IOException;
 
-public interface QueryBuilder extends NamedWriteable, ToXContentObject, Rewriteable<QueryBuilder> {
+public interface QueryBuilder extends NamedWriteable, ToXContentObject {
 
     /**
      * Converts this QueryBuilder to a lucene {@link Query}.
@@ -36,16 +36,6 @@ public interface QueryBuilder extends NamedWriteable, ToXContentObject, Rewritea
      * @return the {@link Query} or {@code null} if this query should be ignored upstream
      */
     Query toQuery(QueryShardContext context) throws IOException;
-
-    /**
-     * Converts this QueryBuilder to an unscored lucene {@link Query} that acts as a filter.
-     * Returns {@code null} if this query should be ignored in the context of
-     * parent queries.
-     *
-     * @param context additional information needed to construct the queries
-     * @return the {@link Query} or {@code null} if this query should be ignored upstream
-     */
-    Query toFilter(QueryShardContext context) throws IOException;
 
     /**
      * Sets the arbitrary name to be assigned to the query (see named queries).
@@ -78,13 +68,4 @@ public interface QueryBuilder extends NamedWriteable, ToXContentObject, Rewritea
      * Returns the name that identifies uniquely the query
      */
     String getName();
-
-    /**
-     * Rewrites this query builder into its primitive form. By default this method return the builder itself. If the builder
-     * did not change the identity reference must be returned otherwise the builder will be rewritten infinitely.
-     */
-    @Override
-    default QueryBuilder rewrite(QueryRewriteContext queryShardContext) throws IOException {
-        return this;
-    }
 }

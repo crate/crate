@@ -30,7 +30,6 @@ import org.elasticsearch.index.cache.request.RequestCacheStats;
 import org.elasticsearch.index.engine.SegmentsStats;
 import org.elasticsearch.index.fielddata.FieldDataStats;
 import org.elasticsearch.index.flush.FlushStats;
-import org.elasticsearch.index.get.GetStats;
 import org.elasticsearch.index.merge.MergeStats;
 import org.elasticsearch.index.recovery.RecoveryStats;
 import org.elasticsearch.index.refresh.RefreshStats;
@@ -55,9 +54,6 @@ public class CommonStats implements Writeable {
 
     @Nullable
     public IndexingStats indexing;
-
-    @Nullable
-    public GetStats get;
 
     @Nullable
     public SearchStats search;
@@ -109,9 +105,6 @@ public class CommonStats implements Writeable {
                     break;
                 case Indexing:
                     indexing = new IndexingStats();
-                    break;
-                case Get:
-                    get = new GetStats();
                     break;
                 case Search:
                     search = new SearchStats();
@@ -215,7 +208,6 @@ public class CommonStats implements Writeable {
         docs = in.readOptionalStreamable(DocsStats::new);
         store = in.readOptionalStreamable(StoreStats::new);
         indexing = in.readOptionalStreamable(IndexingStats::new);
-        get = in.readOptionalStreamable(GetStats::new);
         search = in.readOptionalWriteable(SearchStats::new);
         merge = in.readOptionalStreamable(MergeStats::new);
         refresh =  in.readOptionalStreamable(RefreshStats::new);
@@ -234,7 +226,6 @@ public class CommonStats implements Writeable {
         out.writeOptionalStreamable(docs);
         out.writeOptionalStreamable(store);
         out.writeOptionalStreamable(indexing);
-        out.writeOptionalStreamable(get);
         out.writeOptionalWriteable(search);
         out.writeOptionalStreamable(merge);
         out.writeOptionalStreamable(refresh);
@@ -272,14 +263,6 @@ public class CommonStats implements Writeable {
             }
         } else {
             indexing.add(stats.getIndexing());
-        }
-        if (get == null) {
-            if (stats.getGet() != null) {
-                get = new GetStats();
-                get.add(stats.getGet());
-            }
-        } else {
-            get.add(stats.getGet());
         }
         if (search == null) {
             if (stats.getSearch() != null) {
@@ -385,11 +368,6 @@ public class CommonStats implements Writeable {
     @Nullable
     public IndexingStats getIndexing() {
         return indexing;
-    }
-
-    @Nullable
-    public GetStats getGet() {
-        return get;
     }
 
     @Nullable
