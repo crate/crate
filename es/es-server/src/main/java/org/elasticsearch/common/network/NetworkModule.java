@@ -19,7 +19,6 @@
 
 package org.elasticsearch.common.network;
 
-import org.elasticsearch.action.support.replication.ReplicationTask;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateEmptyPrimaryAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimaryAllocationCommand;
@@ -40,8 +39,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.NetworkPlugin;
-import org.elasticsearch.tasks.RawTaskStatus;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportInterceptor;
@@ -91,10 +88,6 @@ public final class NetworkModule {
             AllocateEmptyPrimaryAllocationCommand.COMMAND_NAME_FIELD);
         registerAllocationCommand(AllocateStalePrimaryAllocationCommand::new, AllocateStalePrimaryAllocationCommand::fromXContent,
             AllocateStalePrimaryAllocationCommand.COMMAND_NAME_FIELD);
-        namedWriteables.add(
-            new NamedWriteableRegistry.Entry(Task.Status.class, ReplicationTask.Status.NAME, ReplicationTask.Status::new));
-        namedWriteables.add(
-            new NamedWriteableRegistry.Entry(Task.Status.class, RawTaskStatus.NAME, RawTaskStatus::new));
     }
 
     private final Map<String, Supplier<Transport>> transportFactories = new HashMap<>();

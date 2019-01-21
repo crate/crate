@@ -79,7 +79,6 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -1243,9 +1242,10 @@ public abstract class TransportReplicationAction<
         public TaskId getParentTask() {
             return request.getParentTask();
         }
+
         @Override
-        public Task createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
-            return request.createTask(id, type, action, parentTaskId, headers);
+        public Task createTask(long id, TaskId parentTaskId) {
+            return request.createTask(id, parentTaskId);
         }
 
         @Override

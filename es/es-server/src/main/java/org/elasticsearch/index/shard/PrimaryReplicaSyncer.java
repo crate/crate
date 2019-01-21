@@ -25,16 +25,12 @@ import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.resync.ResyncReplicationRequest;
 import org.elasticsearch.action.resync.ResyncReplicationResponse;
 import org.elasticsearch.action.resync.TransportResyncReplicationAction;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
@@ -46,11 +42,8 @@ import org.elasticsearch.transport.TransportService;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static java.util.Objects.requireNonNull;
 
 public class PrimaryReplicaSyncer extends AbstractComponent {
 
@@ -240,7 +233,6 @@ public class PrimaryReplicaSyncer extends AbstractComponent {
 
             task.setPhase("collecting_ops");
             task.setResyncedOperations(totalSentOps.get());
-            task.setSkippedOperations(totalSkippedOps.get());
 
             Translog.Operation operation;
             while ((operation = snapshot.next()) != null) {
@@ -288,8 +280,8 @@ public class PrimaryReplicaSyncer extends AbstractComponent {
         }
 
         @Override
-        public Task createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
-            return new ResyncTask(id, type, action, getDescription(), parentTaskId, headers);
+        public Task createTask(long id, TaskId parentTaskId) {
+            return new ResyncTask(id, getDescription(), parentTaskId);
         }
 
         @Override
@@ -312,10 +304,9 @@ public class PrimaryReplicaSyncer extends AbstractComponent {
         private volatile String phase = "starting";
         private volatile int totalOperations;
         private volatile int resyncedOperations;
-        private volatile int skippedOperations;
 
-        public ResyncTask(long id, String type, String action, String description, TaskId parentTaskId, Map<String, String> headers) {
-            super(id, type, action, description, parentTaskId, headers);
+        public ResyncTask(long id, String description, TaskId parentTaskId) {
+            super(id, description, parentTaskId);
         }
 
         /**
@@ -352,97 +343,6 @@ public class PrimaryReplicaSyncer extends AbstractComponent {
 
         public void setResyncedOperations(int resyncedOperations) {
             this.resyncedOperations = resyncedOperations;
-        }
-
-        /**
-         * number of translog operations that have been skipped
-         */
-        public int getSkippedOperations() {
-            return skippedOperations;
-        }
-
-        public void setSkippedOperations(int skippedOperations) {
-            this.skippedOperations = skippedOperations;
-        }
-
-        @Override
-        public ResyncTask.Status getStatus() {
-            return new ResyncTask.Status(phase, totalOperations, resyncedOperations, skippedOperations);
-        }
-
-        public static class Status implements Task.Status {
-            public static final String NAME = "resync";
-
-            private final String phase;
-            private final int totalOperations;
-            private final int resyncedOperations;
-            private final int skippedOperations;
-
-            public Status(StreamInput in) throws IOException {
-                phase = in.readString();
-                totalOperations = in.readVInt();
-                resyncedOperations = in.readVInt();
-                skippedOperations = in.readVInt();
-            }
-
-            public Status(String phase, int totalOperations, int resyncedOperations, int skippedOperations) {
-                this.phase = requireNonNull(phase, "Phase cannot be null");
-                this.totalOperations = totalOperations;
-                this.resyncedOperations = resyncedOperations;
-                this.skippedOperations = skippedOperations;
-            }
-
-            @Override
-            public String getWriteableName() {
-                return NAME;
-            }
-
-            @Override
-            public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-                builder.startObject();
-                builder.field("phase", phase);
-                builder.field("totalOperations", totalOperations);
-                builder.field("resyncedOperations", resyncedOperations);
-                builder.field("skippedOperations", skippedOperations);
-                builder.endObject();
-                return builder;
-            }
-
-            @Override
-            public void writeTo(StreamOutput out) throws IOException {
-                out.writeString(phase);
-                out.writeVLong(totalOperations);
-                out.writeVLong(resyncedOperations);
-                out.writeVLong(skippedOperations);
-            }
-
-            @Override
-            public String toString() {
-                return Strings.toString(this);
-            }
-
-
-            @Override
-            public boolean equals(Object o) {
-                if (this == o) return true;
-                if (o == null || getClass() != o.getClass()) return false;
-
-                Status status = (Status) o;
-
-                if (totalOperations != status.totalOperations) return false;
-                if (resyncedOperations != status.resyncedOperations) return false;
-                if (skippedOperations != status.skippedOperations) return false;
-                return phase.equals(status.phase);
-            }
-
-            @Override
-            public int hashCode() {
-                int result = phase.hashCode();
-                result = 31 * result + totalOperations;
-                result = 31 * result + resyncedOperations;
-                result = 31 * result + skippedOperations;
-                return result;
-            }
         }
     }
 }
