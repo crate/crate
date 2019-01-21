@@ -18,7 +18,7 @@ which are related to the current row. This is comparable to aggregation
 functions, but window functions do not cause multiple rows to be grouped
 into a single row.
 
-Window definition
+Window Definition
 =================
 
 The ``OVER`` clause defines the ``window`` containing the appropriate rows
@@ -124,7 +124,7 @@ Example::
 .. _window-function-firstvalue:
 
 ``first_value(arg)``
-====================
+--------------------
 
 .. note::
 
@@ -151,7 +151,7 @@ Example::
 .. _window-function-lastvalue:
 
 ``last_value(arg)``
-===================
+-------------------
 
 .. note::
 
@@ -178,7 +178,7 @@ Example::
 .. _window-function-nthvalue:
 
 ``nth_value(arg, number)``
-==========================
+--------------------------
 
 .. note::
 
@@ -202,3 +202,8 @@ Example::
    | z    | y                                             |
    +------+-----------------------------------------------+
    SELECT 4 rows in set (... sec)
+
+Aggregate Window Functions
+==========================
+
+See :ref:`aggregation`.

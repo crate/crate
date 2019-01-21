@@ -123,6 +123,8 @@ These **functions** are either not supported or only partly supported:
 
 - Window Functions
 
+  - Various functions available (see :ref:`window-functions`)
+
 - ``ENUM`` support functions
 
 - ``IS DISTINCT FROM``
