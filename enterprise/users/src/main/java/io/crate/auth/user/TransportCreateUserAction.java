@@ -23,7 +23,6 @@ import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.user.SecureHash;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -48,9 +47,8 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
                               TransportService transportService,
                               ClusterService clusterService,
                               ThreadPool threadPool,
-                              ActionFilters actionFilters,
                               IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "internal:crate:sql/user/create", transportService, clusterService, threadPool, actionFilters,
+        super(settings, "internal:crate:sql/user/create", transportService, clusterService, threadPool,
             indexNameExpressionResolver, CreateUserRequest::new);
     }
 

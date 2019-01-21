@@ -22,7 +22,6 @@ package org.elasticsearch.action.support.replication;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.action.support.TransportActions;
@@ -59,8 +58,8 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
 
     public TransportBroadcastReplicationAction(String name, Supplier<Request> request, Settings settings, ThreadPool threadPool, ClusterService clusterService,
                                                TransportService transportService,
-                                               ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver, TransportReplicationAction replicatedBroadcastShardAction) {
-        super(settings, name, threadPool, transportService, actionFilters, indexNameExpressionResolver, request);
+                                               IndexNameExpressionResolver indexNameExpressionResolver, TransportReplicationAction replicatedBroadcastShardAction) {
+        super(settings, name, threadPool, transportService, indexNameExpressionResolver, request);
         this.replicatedBroadcastShardAction = replicatedBroadcastShardAction;
         this.clusterService = clusterService;
     }

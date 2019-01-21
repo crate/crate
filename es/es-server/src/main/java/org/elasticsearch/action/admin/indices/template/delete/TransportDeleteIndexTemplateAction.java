@@ -20,7 +20,6 @@ package org.elasticsearch.action.admin.indices.template.delete;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -44,8 +43,8 @@ public class TransportDeleteIndexTemplateAction extends TransportMasterNodeActio
     @Inject
     public TransportDeleteIndexTemplateAction(Settings settings, TransportService transportService, ClusterService clusterService,
                                               ThreadPool threadPool, MetaDataIndexTemplateService indexTemplateService,
-                                              ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, DeleteIndexTemplateAction.NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, DeleteIndexTemplateRequest::new);
+                                              IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, DeleteIndexTemplateAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, DeleteIndexTemplateRequest::new);
         this.indexTemplateService = indexTemplateService;
     }
 

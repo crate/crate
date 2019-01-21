@@ -25,7 +25,6 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexClusterStateUpda
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.stats.IndexShardStats;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
@@ -60,15 +59,15 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
     @Inject
     public TransportResizeAction(Settings settings, TransportService transportService, ClusterService clusterService,
                                  ThreadPool threadPool, MetaDataCreateIndexService createIndexService,
-                                 ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver, Client client) {
-        this(settings, ResizeAction.NAME, transportService, clusterService, threadPool, createIndexService, actionFilters,
+                                 IndexNameExpressionResolver indexNameExpressionResolver, Client client) {
+        this(settings, ResizeAction.NAME, transportService, clusterService, threadPool, createIndexService,
             indexNameExpressionResolver, client);
     }
 
     protected TransportResizeAction(Settings settings, String actionName, TransportService transportService, ClusterService clusterService,
                                  ThreadPool threadPool, MetaDataCreateIndexService createIndexService,
-                                 ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver, Client client) {
-        super(settings, actionName, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver,
+                                 IndexNameExpressionResolver indexNameExpressionResolver, Client client) {
+        super(settings, actionName, transportService, clusterService, threadPool, indexNameExpressionResolver,
             ResizeRequest::new);
         this.createIndexService = createIndexService;
         this.client = client;

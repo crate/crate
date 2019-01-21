@@ -28,7 +28,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -86,7 +85,6 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
             indicesService,
             mock(ThreadPool.class),
             mock(ShardStateAction.class),
-            mock(ActionFilters.class),
             mock(SchemaUpdateClient.class)
         );
     }

@@ -22,7 +22,6 @@ package org.elasticsearch.action.admin.cluster.state;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -46,8 +45,8 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
 
     @Inject
     public TransportClusterStateAction(Settings settings, TransportService transportService, ClusterService clusterService, ThreadPool threadPool,
-                                       ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ClusterStateAction.NAME, false, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, ClusterStateRequest::new);
+                                       IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, ClusterStateAction.NAME, false, transportService, clusterService, threadPool, indexNameExpressionResolver, ClusterStateRequest::new);
     }
 
     @Override

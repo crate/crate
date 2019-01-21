@@ -23,7 +23,6 @@
 package io.crate.license;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
@@ -48,9 +47,8 @@ public class TransportSetLicenseAction
                                      TransportService transportService,
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
-                                     ActionFilters actionFilters,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "internal:crate:sql/set_license", transportService, clusterService, threadPool, actionFilters,
+        super(settings, "internal:crate:sql/set_license", transportService, clusterService, threadPool,
             indexNameExpressionResolver, SetLicenseRequest::new);
     }
 

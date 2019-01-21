@@ -25,7 +25,6 @@ package io.crate.ingestion;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -52,9 +51,8 @@ public class TransportDropIngestRuleAction extends TransportMasterNodeAction<Dro
                                          TransportService transportService,
                                          ClusterService clusterService,
                                          ThreadPool threadPool,
-                                         ActionFilters actionFilters,
                                          IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ACTION_NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, DropIngestRuleRequest::new);
+        super(settings, ACTION_NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, DropIngestRuleRequest::new);
     }
 
     @Override

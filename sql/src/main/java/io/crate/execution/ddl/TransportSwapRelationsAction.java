@@ -26,7 +26,6 @@ import io.crate.execution.support.ActionListeners;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -59,7 +58,6 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
                                         TransportService transportService,
                                         ClusterService clusterService,
                                         ThreadPool threadPool,
-                                        ActionFilters actionFilters,
                                         IndexNameExpressionResolver indexNameExpressionResolver,
                                         DDLClusterStateService ddlClusterStateService,
                                         AllocationService allocationService) {
@@ -68,7 +66,6 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
             transportService,
             clusterService,
             threadPool,
-            actionFilters,
             indexNameExpressionResolver,
             SwapRelationsRequest::new);
         this.activeShardsObserver = new ActiveShardsObserver(settings, clusterService, threadPool);

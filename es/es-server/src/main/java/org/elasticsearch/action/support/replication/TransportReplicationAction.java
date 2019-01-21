@@ -28,7 +28,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.UnavailableShardsException;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.action.support.TransportActions;
@@ -116,10 +115,9 @@ public abstract class TransportReplicationAction<
     protected TransportReplicationAction(Settings settings, String actionName, TransportService transportService,
                                          ClusterService clusterService, IndicesService indicesService,
                                          ThreadPool threadPool, ShardStateAction shardStateAction,
-                                         ActionFilters actionFilters,
                                          IndexNameExpressionResolver indexNameExpressionResolver, Supplier<Request> request,
                                          Supplier<ReplicaRequest> replicaRequest, String executor) {
-        this(settings, actionName, transportService, clusterService, indicesService, threadPool, shardStateAction, actionFilters,
+        this(settings, actionName, transportService, clusterService, indicesService, threadPool, shardStateAction,
                 indexNameExpressionResolver, request, replicaRequest, executor, false);
     }
 
@@ -127,11 +125,10 @@ public abstract class TransportReplicationAction<
     protected TransportReplicationAction(Settings settings, String actionName, TransportService transportService,
                                          ClusterService clusterService, IndicesService indicesService,
                                          ThreadPool threadPool, ShardStateAction shardStateAction,
-                                         ActionFilters actionFilters,
                                          IndexNameExpressionResolver indexNameExpressionResolver, Supplier<Request> request,
                                          Supplier<ReplicaRequest> replicaRequest, String executor,
                                          boolean syncGlobalCheckpointAfterOperation) {
-        super(settings, actionName, threadPool, actionFilters, indexNameExpressionResolver, transportService.getTaskManager());
+        super(settings, actionName, threadPool, indexNameExpressionResolver, transportService.getTaskManager());
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.indicesService = indicesService;

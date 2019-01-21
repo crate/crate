@@ -22,7 +22,6 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.UsersMetaData;
 import io.crate.user.SecureHash;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -45,9 +44,8 @@ public class TransportAlterUserAction extends TransportMasterNodeAction<AlterUse
                                        TransportService transportService,
                                        ClusterService clusterService,
                                        ThreadPool threadPool,
-                                       ActionFilters actionFilters,
                                        IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "internal:crate:sql/user/alter", transportService, clusterService, threadPool, actionFilters,
+        super(settings, "internal:crate:sql/user/alter", transportService, clusterService, threadPool,
             indexNameExpressionResolver, AlterUserRequest::new);
     }
 

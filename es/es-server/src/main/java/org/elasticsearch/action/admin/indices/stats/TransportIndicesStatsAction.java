@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.indices.stats;
 
 import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.node.TransportBroadcastByNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -52,8 +51,8 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
     @Inject
     public TransportIndicesStatsAction(Settings settings, ThreadPool threadPool, ClusterService clusterService,
                                        TransportService transportService, IndicesService indicesService,
-                                       ActionFilters actionFilters, IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, IndicesStatsAction.NAME, threadPool, clusterService, transportService, actionFilters, indexNameExpressionResolver,
+                                        IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, IndicesStatsAction.NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
                 IndicesStatsRequest::new, ThreadPool.Names.MANAGEMENT);
         this.indicesService = indicesService;
     }

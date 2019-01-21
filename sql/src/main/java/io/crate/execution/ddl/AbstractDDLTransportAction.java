@@ -23,7 +23,6 @@
 package io.crate.execution.ddl;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -55,13 +54,12 @@ public abstract class AbstractDDLTransportAction<Request extends AcknowledgedReq
                                       TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
-                                      ActionFilters actionFilters,
                                       IndexNameExpressionResolver indexNameExpressionResolver,
                                       Supplier<Request> requestSupplier,
                                       Supplier<Response> responseSupplier,
                                       Function<Boolean, Response> ackedResponseFunction,
                                       String source) {
-        super(settings, actionName, transportService, clusterService, threadPool, actionFilters,
+        super(settings, actionName, transportService, clusterService, threadPool,
             indexNameExpressionResolver, requestSupplier);
         this.responseSupplier = responseSupplier;
         this.ackedResponseFunction = ackedResponseFunction;

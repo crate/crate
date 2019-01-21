@@ -20,7 +20,6 @@
 package org.elasticsearch.action.support.master;
 
 import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -45,30 +44,30 @@ public abstract class TransportMasterNodeReadAction<Request extends MasterNodeRe
     private final boolean forceLocal;
 
     protected TransportMasterNodeReadAction(Settings settings, String actionName, TransportService transportService,
-                                            ClusterService clusterService, ThreadPool threadPool, ActionFilters actionFilters,
+                                            ClusterService clusterService, ThreadPool threadPool,
                                             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<Request> request) {
-        this(settings, actionName, true, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver,request);
+        this(settings, actionName, true, transportService, clusterService, threadPool, indexNameExpressionResolver,request);
     }
 
     protected TransportMasterNodeReadAction(Settings settings, String actionName, TransportService transportService,
-                                            ClusterService clusterService, ThreadPool threadPool, ActionFilters actionFilters,
+                                            ClusterService clusterService, ThreadPool threadPool,
                                             Writeable.Reader<Request> request, IndexNameExpressionResolver indexNameExpressionResolver) {
-        this(settings, actionName, true, transportService, clusterService, threadPool, actionFilters, request,
+        this(settings, actionName, true, transportService, clusterService, threadPool, request,
             indexNameExpressionResolver);
     }
 
     protected TransportMasterNodeReadAction(Settings settings, String actionName, boolean checkSizeLimit, TransportService transportService,
-                                            ClusterService clusterService, ThreadPool threadPool, ActionFilters actionFilters,
+                                            ClusterService clusterService, ThreadPool threadPool,
                                             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<Request> request) {
-        super(settings, actionName, checkSizeLimit, transportService, clusterService, threadPool, actionFilters,
+        super(settings, actionName, checkSizeLimit, transportService, clusterService, threadPool,
             indexNameExpressionResolver,request);
         this.forceLocal = FORCE_LOCAL_SETTING.get(settings);
     }
 
     protected TransportMasterNodeReadAction(Settings settings, String actionName, boolean checkSizeLimit, TransportService transportService,
-                                            ClusterService clusterService, ThreadPool threadPool, ActionFilters actionFilters,
+                                            ClusterService clusterService, ThreadPool threadPool,
                                             Writeable.Reader<Request> request, IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, actionName, checkSizeLimit, transportService, clusterService, threadPool, actionFilters, request,
+        super(settings, actionName, checkSizeLimit, transportService, clusterService, threadPool, request,
             indexNameExpressionResolver);
         this.forceLocal = FORCE_LOCAL_SETTING.get(settings);
     }

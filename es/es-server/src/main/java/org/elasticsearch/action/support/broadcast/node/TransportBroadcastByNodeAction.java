@@ -24,7 +24,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.NoShardAvailableActionException;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -90,11 +89,10 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
         ThreadPool threadPool,
         ClusterService clusterService,
         TransportService transportService,
-        ActionFilters actionFilters,
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<Request> request,
         String executor) {
-        this(settings, actionName, threadPool, clusterService, transportService, actionFilters, indexNameExpressionResolver, request,
+        this(settings, actionName, threadPool, clusterService, transportService, indexNameExpressionResolver, request,
             executor, true);
     }
 
@@ -104,12 +102,11 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
             ThreadPool threadPool,
             ClusterService clusterService,
             TransportService transportService,
-            ActionFilters actionFilters,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<Request> request,
             String executor,
             boolean canTripCircuitBreaker) {
-        super(settings, actionName, canTripCircuitBreaker, threadPool, transportService, actionFilters, indexNameExpressionResolver,
+        super(settings, actionName, canTripCircuitBreaker, threadPool, transportService, indexNameExpressionResolver,
             request);
 
         this.clusterService = clusterService;
