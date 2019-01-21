@@ -24,8 +24,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.Map;
-
 /**
  * A client provides a one stop interface for performing actions/operations against the cluster.
  * <p>
@@ -58,20 +56,4 @@ public interface Client extends ElasticsearchClient, Releasable {
      * Returns this clients settings
      */
     Settings settings();
-
-    /**
-     * Returns a new lightweight Client that applies all given headers to each of the requests
-     * issued from it.
-     */
-    Client filterWithHeader(Map<String, String> headers);
-
-    /**
-     * Returns a client to a remote cluster with the given cluster alias.
-     *
-     * @throws IllegalArgumentException if the given clusterAlias doesn't exist
-     * @throws UnsupportedOperationException if this functionality is not available on this client.
-     */
-    default Client getRemoteClusterClient(String clusterAlias) {
-        throw new UnsupportedOperationException("this client doesn't support remote cluster connections");
-    }
 }

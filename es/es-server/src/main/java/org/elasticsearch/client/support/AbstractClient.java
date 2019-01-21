@@ -133,14 +133,10 @@ import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.ElasticsearchClient;
-import org.elasticsearch.client.FilterClient;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.Map;
 
 public abstract class AbstractClient extends AbstractComponent implements Client {
 
@@ -689,18 +685,5 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         public void getSettings(GetSettingsRequest request, ActionListener<GetSettingsResponse> listener) {
             execute(GetSettingsAction.INSTANCE, request, listener);
         }
-    }
-
-    @Override
-    public Client filterWithHeader(Map<String, String> headers) {
-        return new FilterClient(this) {
-            @Override
-            protected <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void doExecute(Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener) {
-                ThreadContext threadContext = threadPool().getThreadContext();
-                try (ThreadContext.StoredContext ctx = threadContext.stashAndMergeHeaders(headers)) {
-                    super.doExecute(action, request, listener);
-                }
-            }
-        };
     }
 }
