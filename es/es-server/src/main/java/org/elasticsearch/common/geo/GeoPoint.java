@@ -19,18 +19,12 @@
 
 package org.elasticsearch.common.geo;
 
-import org.apache.lucene.document.LatLonDocValuesField;
-import org.apache.lucene.document.LatLonPoint;
-import org.apache.lucene.geo.GeoEncodingUtils;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BitUtil;
-import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.ElasticsearchParseException;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import static org.elasticsearch.common.geo.GeoHashUtils.mortonEncode;
 import static org.elasticsearch.common.geo.GeoHashUtils.stringEncode;
@@ -69,16 +63,6 @@ public final class GeoPoint implements ToXContentFragment {
         return this;
     }
 
-    public GeoPoint resetLat(double lat) {
-        this.lat = lat;
-        return this;
-    }
-
-    public GeoPoint resetLon(double lon) {
-        this.lon = lon;
-        return this;
-    }
-
     public GeoPoint resetFromString(String value) {
         return resetFromString(value, false);
     }
@@ -104,24 +88,6 @@ public final class GeoPoint implements ToXContentFragment {
         lon = GeoHashUtils.decodeLongitude(hash);
         lat = GeoHashUtils.decodeLatitude(hash);
         return this;
-    }
-
-    // todo this is a crutch because LatLonPoint doesn't have a helper for returning .stringValue()
-    // todo remove with next release of lucene
-    public GeoPoint resetFromIndexableField(IndexableField field) {
-        if (field instanceof LatLonPoint) {
-            BytesRef br = field.binaryValue();
-            byte[] bytes = Arrays.copyOfRange(br.bytes, br.offset, br.length);
-            return this.reset(
-                GeoEncodingUtils.decodeLatitude(bytes, 0),
-                GeoEncodingUtils.decodeLongitude(bytes, Integer.BYTES));
-        } else if (field instanceof LatLonDocValuesField) {
-            long encoded = (long)(field.numericValue());
-            return this.reset(
-                GeoEncodingUtils.decodeLatitude((int)(encoded >>> 32)),
-                GeoEncodingUtils.decodeLongitude((int)encoded));
-        }
-        return resetFromIndexHash(Long.parseLong(field.stringValue()));
     }
 
     public GeoPoint resetFromGeoHash(String geohash) {
@@ -190,11 +156,6 @@ public final class GeoPoint implements ToXContentFragment {
     @Override
     public String toString() {
         return lat + ", " + lon;
-    }
-
-    public static GeoPoint parseFromLatLon(String latLon) {
-        GeoPoint point = new GeoPoint(latLon);
-        return point;
     }
 
     public static GeoPoint fromGeohash(String geohash) {

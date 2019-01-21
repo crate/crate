@@ -26,7 +26,6 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.PostingsFormat;
-import org.apache.lucene.document.LatLonDocValuesField;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.CorruptIndexException;
@@ -48,17 +47,10 @@ import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SegmentReader;
 import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.Explanation;
-import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.ScorerSupplier;
-import org.apache.lucene.search.SortField;
-import org.apache.lucene.search.SortedNumericSortField;
-import org.apache.lucene.search.SortedSetSortField;
-import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.Directory;
@@ -66,18 +58,14 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.Lock;
 import org.apache.lucene.util.Bits;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.SuppressForbidden;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.util.iterable.Iterables;
 import org.elasticsearch.index.analysis.AnalyzerScope;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
-import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 
 import java.io.IOException;
@@ -105,10 +93,6 @@ public class Lucene {
 
     public static final NamedAnalyzer STANDARD_ANALYZER = new NamedAnalyzer("_standard", AnalyzerScope.GLOBAL, new StandardAnalyzer());
     public static final NamedAnalyzer KEYWORD_ANALYZER = new NamedAnalyzer("_keyword", AnalyzerScope.GLOBAL, new KeywordAnalyzer());
-
-    public static final ScoreDoc[] EMPTY_SCORE_DOCS = new ScoreDoc[0];
-
-    public static final TopDocs EMPTY_TOP_DOCS = new TopDocs(0, EMPTY_SCORE_DOCS, 0.0f);
 
     public static Version parseVersion(@Nullable String version, Version defaultVersion, Logger logger) {
         if (version == null) {
@@ -273,219 +257,12 @@ public class Lucene {
         return false;
     }
 
-    private static final Class<?> GEO_DISTANCE_SORT_TYPE_CLASS = LatLonDocValuesField.newDistanceSort("some_geo_field", 0, 0).getClass();
-
-    private static void writeMissingValue(StreamOutput out, Object missingValue) throws IOException {
-        if (missingValue == SortField.STRING_FIRST) {
-            out.writeByte((byte) 1);
-        } else if (missingValue == SortField.STRING_LAST) {
-            out.writeByte((byte) 2);
-        } else {
-            out.writeByte((byte) 0);
-            out.writeGenericValue(missingValue);
-        }
-    }
-
-    private static Object readMissingValue(StreamInput in) throws IOException {
-        final byte id = in.readByte();
-        switch (id) {
-        case 0:
-            return in.readGenericValue();
-        case 1:
-            return SortField.STRING_FIRST;
-        case 2:
-            return SortField.STRING_LAST;
-        default:
-            throw new IOException("Unknown missing value id: " + id);
-        }
-    }
-
-
-    private static void writeSortValue(StreamOutput out, Object field) throws IOException {
-        if (field == null) {
-            out.writeByte((byte) 0);
-        } else {
-            Class type = field.getClass();
-            if (type == String.class) {
-                out.writeByte((byte) 1);
-                out.writeString((String) field);
-            } else if (type == Integer.class) {
-                out.writeByte((byte) 2);
-                out.writeInt((Integer) field);
-            } else if (type == Long.class) {
-                out.writeByte((byte) 3);
-                out.writeLong((Long) field);
-            } else if (type == Float.class) {
-                out.writeByte((byte) 4);
-                out.writeFloat((Float) field);
-            } else if (type == Double.class) {
-                out.writeByte((byte) 5);
-                out.writeDouble((Double) field);
-            } else if (type == Byte.class) {
-                out.writeByte((byte) 6);
-                out.writeByte((Byte) field);
-            } else if (type == Short.class) {
-                out.writeByte((byte) 7);
-                out.writeShort((Short) field);
-            } else if (type == Boolean.class) {
-                out.writeByte((byte) 8);
-                out.writeBoolean((Boolean) field);
-            } else if (type == BytesRef.class) {
-                out.writeByte((byte) 9);
-                out.writeBytesRef((BytesRef) field);
-            } else {
-                throw new IOException("Can't handle sort field value of type [" + type + "]");
-            }
-        }
-    }
-
-    public static void writeFieldDoc(StreamOutput out, FieldDoc fieldDoc) throws IOException {
-        out.writeVInt(fieldDoc.fields.length);
-        for (Object field : fieldDoc.fields) {
-            writeSortValue(out, field);
-        }
-        out.writeVInt(fieldDoc.doc);
-        out.writeFloat(fieldDoc.score);
-    }
-
-    public static void writeScoreDoc(StreamOutput out, ScoreDoc scoreDoc) throws IOException {
-        if (!scoreDoc.getClass().equals(ScoreDoc.class)) {
-            throw new IllegalArgumentException("This method can only be used to serialize a ScoreDoc, not a " + scoreDoc.getClass());
-        }
-        out.writeVInt(scoreDoc.doc);
-        out.writeFloat(scoreDoc.score);
-    }
-
-    // LUCENE 4 UPGRADE: We might want to maintain our own ordinal, instead of Lucene's ordinal
-    public static SortField.Type readSortType(StreamInput in) throws IOException {
-        return SortField.Type.values()[in.readVInt()];
-    }
-
-    public static SortField readSortField(StreamInput in) throws IOException {
-        String field = null;
-        if (in.readBoolean()) {
-            field = in.readString();
-        }
-        SortField.Type sortType = readSortType(in);
-        Object missingValue = readMissingValue(in);
-        boolean reverse = in.readBoolean();
-        SortField sortField = new SortField(field, sortType, reverse);
-        if (missingValue != null) {
-            sortField.setMissingValue(missingValue);
-        }
-        return sortField;
-    }
-
-    public static void writeSortType(StreamOutput out, SortField.Type sortType) throws IOException {
-        out.writeVInt(sortType.ordinal());
-    }
-
-    public static void writeSortField(StreamOutput out, SortField sortField) throws IOException {
-        if (sortField.getClass() == GEO_DISTANCE_SORT_TYPE_CLASS) {
-            // for geo sorting, we replace the SortField with a SortField that assumes a double field.
-            // this works since the SortField is only used for merging top docs
-            SortField newSortField = new SortField(sortField.getField(), SortField.Type.DOUBLE);
-            newSortField.setMissingValue(sortField.getMissingValue());
-            sortField = newSortField;
-        } else if (sortField.getClass() == SortedSetSortField.class) {
-            // for multi-valued sort field, we replace the SortedSetSortField with a simple SortField.
-            // It works because the sort field is only used to merge results from different shards.
-            SortField newSortField = new SortField(sortField.getField(), SortField.Type.STRING, sortField.getReverse());
-            newSortField.setMissingValue(sortField.getMissingValue());
-            sortField = newSortField;
-        } else if (sortField.getClass() == SortedNumericSortField.class) {
-            // for multi-valued sort field, we replace the SortedSetSortField with a simple SortField.
-            // It works because the sort field is only used to merge results from different shards.
-            SortField newSortField = new SortField(sortField.getField(),
-                ((SortedNumericSortField) sortField).getNumericType(),
-                sortField.getReverse());
-            newSortField.setMissingValue(sortField.getMissingValue());
-            sortField = newSortField;
-        }
-
-        if (sortField.getClass() != SortField.class) {
-            throw new IllegalArgumentException("Cannot serialize SortField impl [" + sortField + "]");
-        }
-        if (sortField.getField() == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeString(sortField.getField());
-        }
-        if (sortField.getComparatorSource() != null) {
-            IndexFieldData.XFieldComparatorSource comparatorSource =
-                    (IndexFieldData.XFieldComparatorSource) sortField.getComparatorSource();
-            writeSortType(out, comparatorSource.reducedType());
-            writeMissingValue(out, comparatorSource.missingValue(sortField.getReverse()));
-        } else {
-            writeSortType(out, sortField.getType());
-            writeMissingValue(out, sortField.getMissingValue());
-        }
-        out.writeBoolean(sortField.getReverse());
-    }
-
-    public static Explanation readExplanation(StreamInput in) throws IOException {
-        boolean match = in.readBoolean();
-        String description = in.readString();
-        final Explanation[] subExplanations = new Explanation[in.readVInt()];
-        for (int i = 0; i < subExplanations.length; ++i) {
-            subExplanations[i] = readExplanation(in);
-        }
-        if (match) {
-            return Explanation.match(in.readFloat(), description, subExplanations);
-        } else {
-            return Explanation.noMatch(description, subExplanations);
-        }
-    }
-
-    public static void writeExplanation(StreamOutput out, Explanation explanation) throws IOException {
-        out.writeBoolean(explanation.isMatch());
-        out.writeString(explanation.getDescription());
-        Explanation[] subExplanations = explanation.getDetails();
-        out.writeVInt(subExplanations.length);
-        for (Explanation subExp : subExplanations) {
-            writeExplanation(out, subExp);
-        }
-        if (explanation.isMatch()) {
-            out.writeFloat(explanation.getValue());
-        }
-    }
-
     private Lucene() {
 
     }
 
-    public static final boolean indexExists(final Directory directory) throws IOException {
+    public static boolean indexExists(final Directory directory) throws IOException {
         return DirectoryReader.indexExists(directory);
-    }
-
-    /**
-     * Wait for an index to exist for up to {@code timeLimitMillis}. Returns
-     * true if the index eventually exists, false if not.
-     *
-     * Will retry the directory every second for at least {@code timeLimitMillis}
-     */
-    public static final boolean waitForIndex(final Directory directory, final long timeLimitMillis)
-            throws IOException {
-        final long DELAY = 1000;
-        long waited = 0;
-        try {
-            while (true) {
-                if (waited >= timeLimitMillis) {
-                    break;
-                }
-                if (indexExists(directory)) {
-                    return true;
-                }
-                Thread.sleep(DELAY);
-                waited += DELAY;
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-        // one more try after all retries
-        return indexExists(directory);
     }
 
     /**
@@ -534,27 +311,6 @@ public class Lucene {
             }
             return defaultValue;
         }
-    }
-
-    /**
-     * Return a Scorer that throws an ElasticsearchIllegalStateException
-     * on all operations with the given message.
-     */
-    public static Scorer illegalScorer(final String message) {
-        return new Scorer(null) {
-            @Override
-            public float score() throws IOException {
-                throw new IllegalStateException(message);
-            }
-            @Override
-            public int docID() {
-                throw new IllegalStateException(message);
-            }
-            @Override
-            public DocIdSetIterator iterator() {
-                throw new IllegalStateException(message);
-            }
-        };
     }
 
     private static final class CommitPoint extends IndexCommit {

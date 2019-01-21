@@ -19,7 +19,6 @@
 
 package org.elasticsearch.common.lucene.all;
 
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
@@ -29,9 +28,6 @@ import org.apache.lucene.util.SmallFloat;
 import java.io.IOException;
 
 public final class AllTokenStream extends TokenFilter {
-    public static TokenStream allTokenStream(String allFieldName, String value, float boost, Analyzer analyzer) throws IOException {
-        return new AllTokenStream(analyzer.tokenStream(allFieldName, value), boost);
-    }
 
     private final BytesRef payloadSpare = new BytesRef(new byte[1]);
     private final PayloadAttribute payloadAttribute;
