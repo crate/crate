@@ -346,7 +346,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     TransportMasterNodeReadAction.FORCE_LOCAL_SETTING,
                     AutoCreateIndex.AUTO_CREATE_INDEX_SETTING,
                     ClusterName.CLUSTER_NAME_SETTING,
-                    Client.CLIENT_TYPE_SETTING_S,
                     ClusterModule.SHARDS_ALLOCATOR_TYPE_SETTING,
                     EsExecutors.PROCESSORS_SETTING,
                     ThreadContext.DEFAULT_HEADERS_SETTING,

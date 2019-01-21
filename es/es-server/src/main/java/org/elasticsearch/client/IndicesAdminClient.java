@@ -30,7 +30,6 @@ import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.flush.FlushRequestBuilder;
 import org.elasticsearch.action.admin.indices.flush.FlushResponse;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequestBuilder;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequestBuilder;
@@ -38,19 +37,14 @@ import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
-import org.elasticsearch.action.admin.indices.recovery.RecoveryRequestBuilder;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequestBuilder;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest;
-import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequestBuilder;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
-import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
-import org.elasticsearch.action.admin.indices.shrink.ResizeRequestBuilder;
-import org.elasticsearch.action.admin.indices.shrink.ResizeResponse;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequestBuilder;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
@@ -62,7 +56,6 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResp
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
-import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequestBuilder;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
@@ -97,11 +90,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      *Indices recoveries
      */
     void recoveries(RecoveryRequest request, ActionListener<RecoveryResponse> listener);
-
-    /**
-     * Indices recoveries
-     */
-    RecoveryRequestBuilder prepareRecoveries(String... indices);
 
     /**
      * Creates an index using an explicit request allowing to specify the settings of the index.
@@ -218,11 +206,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     void syncedFlush(SyncedFlushRequest request, ActionListener <SyncedFlushResponse> listener);
 
     /**
-     * Explicitly sync flush one or more indices (write sync id to shards for faster recovery).
-     */
-    SyncedFlushRequestBuilder prepareSyncedFlush(String... indices);
-
-    /**
      * Explicitly force merge one or more indices into a the number of segments.
      *
      * @param request The optimize request
@@ -262,11 +245,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @see org.elasticsearch.client.Requests#upgradeRequest(String...)
      */
     void upgrade(UpgradeRequest request, ActionListener<UpgradeResponse> listener);
-
-    /**
-     * Check upgrade status of one or more indices
-     */
-    UpgradeRequestBuilder prepareUpgrade(String... indices);
 
     /**
      * Add mapping definition for a type into one or more indices.
@@ -330,11 +308,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     PutIndexTemplateRequestBuilder preparePutTemplate(String name);
 
     /**
-     * Deletes index template.
-     */
-    ActionFuture<AcknowledgedResponse> deleteTemplate(DeleteIndexTemplateRequest request);
-
-    /**
      * Deletes an index template.
      */
     void deleteTemplate(DeleteIndexTemplateRequest request, ActionListener<AcknowledgedResponse> listener);
@@ -373,26 +346,4 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @see #getSettings(org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest)
      */
     ActionFuture<GetSettingsResponse> getSettings(GetSettingsRequest request);
-
-    /**
-     * Returns a builder for a per index settings get request.
-     * @param indices the indices to fetch the setting for.
-     * @see #getSettings(org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest)
-     */
-    GetSettingsRequestBuilder prepareGetSettings(String... indices);
-
-    /**
-     * Resize an index using an explicit request allowing to specify the settings, mappings and aliases of the target index of the index.
-     */
-    ResizeRequestBuilder prepareResizeIndex(String sourceIndex, String targetIndex);
-
-    /**
-     * Resize an index using an explicit request allowing to specify the settings, mappings and aliases of the target index of the index.
-     */
-    ActionFuture<ResizeResponse> resizeIndex(ResizeRequest request);
-
-    /**
-     * Shrinks an index using an explicit request allowing to specify the settings, mappings and aliases of the target index of the index.
-     */
-    void resizeIndex(ResizeRequest request, ActionListener<ResizeResponse> listener);
 }
