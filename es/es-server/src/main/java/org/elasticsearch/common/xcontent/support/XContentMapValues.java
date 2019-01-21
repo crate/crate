@@ -28,7 +28,6 @@ import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.Numbers;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.regex.Regex;
-import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,20 +37,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 public class XContentMapValues {
-
-    /**
-     * Extracts raw values (string, int, and so on) based on the path provided returning all of them
-     * as a single list.
-     */
-    public static List<Object> extractRawValues(String path, Map<String, Object> map) {
-        List<Object> values = new ArrayList<>();
-        String[] pathElements = path.split("\\.");
-        if (pathElements.length == 0) {
-            return values;
-        }
-        extractRawValues(values, map, pathElements, 0);
-        return values;
-    }
 
     @SuppressWarnings({"unchecked"})
     private static void extractRawValues(List values, Map<String, Object> part, String[] pathElements, int index) {
@@ -371,48 +356,6 @@ public class XContentMapValues {
         return nodeIntegerValue(node);
     }
 
-    public static short nodeShortValue(Object node, short defaultValue) {
-        if (node == null) {
-            return defaultValue;
-        }
-        return nodeShortValue(node);
-    }
-
-    public static short nodeShortValue(Object node) {
-        if (node instanceof Number) {
-            return Numbers.toShortExact((Number) node);
-        }
-        return Short.parseShort(node.toString());
-    }
-
-    public static byte nodeByteValue(Object node, byte defaultValue) {
-        if (node == null) {
-            return defaultValue;
-        }
-        return nodeByteValue(node);
-    }
-
-    public static byte nodeByteValue(Object node) {
-        if (node instanceof Number) {
-            return Numbers.toByteExact((Number) node);
-        }
-        return Byte.parseByte(node.toString());
-    }
-
-    public static long nodeLongValue(Object node, long defaultValue) {
-        if (node == null) {
-            return defaultValue;
-        }
-        return nodeLongValue(node);
-    }
-
-    public static long nodeLongValue(Object node) {
-        if (node instanceof Number) {
-            return Numbers.toLongExact((Number) node);
-        }
-        return Long.parseLong(node.toString());
-    }
-
     public static boolean nodeBooleanValue(Object node, String name, boolean defaultValue) {
         try {
             return nodeBooleanValue(node, defaultValue);
@@ -436,20 +379,6 @@ public class XContentMapValues {
 
     public static boolean nodeBooleanValue(Object node) {
         return Booleans.parseBoolean(node.toString());
-    }
-
-    public static TimeValue nodeTimeValue(Object node, TimeValue defaultValue) {
-        if (node == null) {
-            return defaultValue;
-        }
-        return nodeTimeValue(node);
-    }
-
-    public static TimeValue nodeTimeValue(Object node) {
-        if (node instanceof Number) {
-            return TimeValue.timeValueMillis(((Number) node).longValue());
-        }
-        return TimeValue.parseTimeValue(node.toString(), null, XContentMapValues.class.getSimpleName() + ".nodeTimeValue");
     }
 
     public static Map<String, Object> nodeMapValue(Object node, String desc) {

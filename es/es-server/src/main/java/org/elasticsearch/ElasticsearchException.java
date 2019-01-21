@@ -25,7 +25,6 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.ParseField;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -202,14 +201,6 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
     }
 
     /**
-     * Adds a new header with the given key.
-     * This method will replace existing header if a header with the same key already exists
-     */
-    public void addHeader(String key, String... value) {
-        addHeader(key, Arrays.asList(value));
-    }
-
-    /**
      * Returns a set of all header keys on this exception
      */
     public Set<String> getHeaderKeys() {
@@ -269,19 +260,6 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         }
     }
 
-    /**
-     * Retrieve the innermost cause of this exception, if none, returns the current exception.
-     */
-    public Throwable getRootCause() {
-        Throwable rootCause = this;
-        Throwable cause = getCause();
-        while (cause != null && cause != rootCause) {
-            rootCause = cause;
-            cause = cause.getCause();
-        }
-        return rootCause;
-    }
-
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeOptionalString(this.getMessage());
@@ -315,10 +293,6 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             return version.onOrAfter(elasticsearchExceptionHandle.versionAdded);
         }
         return false;
-    }
-
-    static Set<Class<? extends ElasticsearchException>> getRegisteredKeys() { // for testing
-        return CLASS_TO_ELASTICSEARCH_EXCEPTION_HANDLE.keySet();
     }
 
     /**
@@ -991,9 +965,8 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         TASK_CANCELLED_EXCEPTION(org.elasticsearch.tasks.TaskCancelledException.class,
             org.elasticsearch.tasks.TaskCancelledException::new, 146, Version.V_5_1_1),
         SHARD_LOCK_OBTAIN_FAILED_EXCEPTION(org.elasticsearch.env.ShardLockObtainFailedException.class,
-                                           org.elasticsearch.env.ShardLockObtainFailedException::new, 147, Version.V_5_0_2),
-        UNKNOWN_NAMED_OBJECT_EXCEPTION(org.elasticsearch.common.xcontent.UnknownNamedObjectException.class,
-                org.elasticsearch.common.xcontent.UnknownNamedObjectException::new, 148, Version.V_5_2_0);
+                                           org.elasticsearch.env.ShardLockObtainFailedException::new, 147, Version.V_5_0_2);
+        // 148 used to be UnknownNamedObjectException
         // 149 used to be MultiBucketConsumerService.TooManyBucketsException
 
         final Class<? extends ElasticsearchException> exceptionClass;
@@ -1010,30 +983,6 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             this.versionAdded = versionAdded;
             this.id = id;
         }
-    }
-
-    /**
-     * Returns an array of all registered handle IDs. These are the IDs for every registered
-     * exception.
-     *
-     * @return an array of all registered handle IDs
-     */
-    static int[] ids() {
-        return Arrays.stream(ElasticsearchExceptionHandle.values()).mapToInt(h -> h.id).toArray();
-    }
-
-    /**
-     * Returns an array of all registered pairs of handle IDs and exception classes. These pairs are
-     * provided for every registered exception.
-     *
-     * @return an array of all registered pairs of handle IDs and exception classes
-     */
-    static Tuple<Integer, Class<? extends ElasticsearchException>>[] classes() {
-        @SuppressWarnings("unchecked")
-        final Tuple<Integer, Class<? extends ElasticsearchException>>[] ts =
-                Arrays.stream(ElasticsearchExceptionHandle.values())
-                        .map(h -> Tuple.tuple(h.id, h.exceptionClass)).toArray(Tuple[]::new);
-        return ts;
     }
 
     static {
@@ -1085,19 +1034,6 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         assert type != null;
         addMetadata(RESOURCE_METADATA_ID_KEY, id);
         addMetadata(RESOURCE_METADATA_TYPE_KEY, type);
-    }
-
-    public List<String> getResourceId() {
-        return getMetadata(RESOURCE_METADATA_ID_KEY);
-    }
-
-    public String getResourceType() {
-        List<String> header = getMetadata(RESOURCE_METADATA_TYPE_KEY);
-        if (header != null && header.isEmpty() == false) {
-            assert header.size() == 1;
-            return header.get(0);
-        }
-        return null;
     }
 
     // lower cases and adds underscores to transitions in a name

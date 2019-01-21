@@ -28,9 +28,7 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -49,18 +47,6 @@ import static org.elasticsearch.common.util.set.Sets.newHashSet;
 public class Strings {
 
     public static final String[] EMPTY_ARRAY = new String[0];
-
-    public static void spaceify(int spaces, String from, StringBuilder to) throws Exception {
-        try (BufferedReader reader = new BufferedReader(new StringReader(from))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                for (int i = 0; i < spaces; i++) {
-                    to.append(' ');
-                }
-                to.append(line).append('\n');
-            }
-        }
-    }
 
     /**
      * Splits a backslash escaped string on the separator.
@@ -234,24 +220,6 @@ public class Strings {
     }
 
     /**
-     * Trim all occurrences of the supplied leading character from the given String.
-     *
-     * @param str              the String to check
-     * @param leadingCharacter the leading character to be trimmed
-     * @return the trimmed String
-     */
-    public static String trimLeadingCharacter(String str, char leadingCharacter) {
-        if (!hasLength(str)) {
-            return str;
-        }
-        StringBuilder sb = new StringBuilder(str);
-        while (sb.length() > 0 && sb.charAt(0) == leadingCharacter) {
-            sb.deleteCharAt(0);
-        }
-        return sb.toString();
-    }
-
-    /**
      * Test whether the given string matches the given substring
      * at the given index.
      *
@@ -288,7 +256,7 @@ public class Strings {
         // the index of an occurrence we've found, or -1
         int patLen = oldPattern.length();
         while (index >= 0) {
-            sb.append(inString.substring(pos, index));
+            sb.append(inString, pos, index);
             sb.append(newPattern);
             pos = index + patLen;
             index = inString.indexOf(oldPattern, pos);
@@ -831,26 +799,5 @@ public class Strings {
 
     public static boolean isNullOrEmpty(@Nullable String s) {
         return s == null || s.isEmpty();
-    }
-
-    public static String coalesceToEmpty(@Nullable String s) {
-        return s == null ? "" : s;
-    }
-
-    public static String padStart(String s, int minimumLength, char c) {
-        if (s == null) {
-            throw new NullPointerException("s");
-        }
-        if (s.length() >= minimumLength) {
-            return s;
-        } else {
-            StringBuilder sb = new StringBuilder(minimumLength);
-            for (int i = s.length(); i < minimumLength; i++) {
-                sb.append(c);
-            }
-
-            sb.append(s);
-            return sb.toString();
-        }
     }
 }
