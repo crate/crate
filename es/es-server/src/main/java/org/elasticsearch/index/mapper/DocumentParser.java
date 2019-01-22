@@ -359,11 +359,6 @@ final class DocumentParser {
             throw new MapperParsingException("object mapping for [" + mapper.name() + "] tried to parse field [" + currentFieldName + "] as object, but found a concrete value");
         }
 
-        ObjectMapper.Nested nested = mapper.nested();
-        if (nested.isNested()) {
-            context = nestedContext(context, mapper);
-        }
-
         // update the default value of include_in_all if necessary
         Boolean includeInAll = mapper.includeInAll();
         if (includeInAll != null) {
@@ -381,9 +376,6 @@ final class DocumentParser {
 
         innerParseObject(context, mapper, parser, currentFieldName, token);
         // restore the enable path flag
-        if (nested.isNested()) {
-            nested(context, nested);
-        }
     }
 
     private static void innerParseObject(ParseContext context, ObjectMapper mapper, XContentParser parser, String currentFieldName, XContentParser.Token token) throws IOException {
@@ -405,21 +397,6 @@ final class DocumentParser {
                 parseValue(context, mapper, currentFieldName, token);
             }
             token = parser.nextToken();
-        }
-    }
-
-    private static void nested(ParseContext context, ObjectMapper.Nested nested) {
-        ParseContext.Document nestedDoc = context.doc();
-        ParseContext.Document parentDoc = nestedDoc.getParent();
-        if (nested.isIncludeInParent()) {
-            addFields(nestedDoc, parentDoc);
-        }
-        if (nested.isIncludeInRoot()) {
-            ParseContext.Document rootDoc = context.rootDoc();
-            // don't add it twice, if its included in parent, and we are handling the master doc...
-            if (!nested.isIncludeInParent() || parentDoc != rootDoc) {
-                addFields(nestedDoc, rootDoc);
-            }
         }
     }
 
@@ -929,10 +906,6 @@ final class DocumentParser {
                         Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(),
                             context.path());
                         mapper = (ObjectMapper) builder.build(builderContext);
-                        if (mapper.nested() != ObjectMapper.Nested.NO) {
-                            throw new MapperParsingException("It is forbidden to create dynamic nested objects ([" + context.path().pathAsText(paths[i])
-                                    + "]) through `copy_to` or dots in field names");
-                        }
                         context.addDynamicMapper(mapper);
                         break;
                     case FALSE:
@@ -980,11 +953,6 @@ final class DocumentParser {
                 return null;
             }
             objectMapper = (ObjectMapper)mapper;
-            if (objectMapper.nested().isNested()) {
-                throw new MapperParsingException("Cannot add a value for field ["
-                        + fieldName + "] since one of the intermediate objects is mapped as a nested object: ["
-                        + mapper.name() + "]");
-            }
         }
         return objectMapper.getMapper(subfields[subfields.length - 1]);
     }

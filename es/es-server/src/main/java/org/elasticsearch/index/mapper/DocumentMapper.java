@@ -118,7 +118,6 @@ public class DocumentMapper implements ToXContentFragment {
 
     private final Map<String, ObjectMapper> objectMappers;
 
-    private final boolean hasNestedObjects;
     private final MetadataFieldMapper[] deleteTombstoneMetadataFieldMappers;
     private final MetadataFieldMapper[] noopTombstoneMetadataFieldMappers;
 
@@ -156,14 +155,7 @@ public class DocumentMapper implements ToXContentFragment {
             }
         }
 
-        boolean hasNestedObjects = false;
         this.objectMappers = Collections.unmodifiableMap(builder);
-        for (ObjectMapper objectMapper : newObjectMappers) {
-            if (objectMapper.nested().isNested()) {
-                hasNestedObjects = true;
-            }
-        }
-        this.hasNestedObjects = hasNestedObjects;
 
         try {
             mappingSource = new CompressedXContent(this, XContentType.JSON, ToXContent.EMPTY_PARAMS);
@@ -213,10 +205,6 @@ public class DocumentMapper implements ToXContentFragment {
     public RoutingFieldMapper routingFieldMapper() {
         return metadataMapper(RoutingFieldMapper.class);
 
-    }
-
-    public boolean hasNestedObjects() {
-        return hasNestedObjects;
     }
 
     public DocumentFieldMappers mappers() {

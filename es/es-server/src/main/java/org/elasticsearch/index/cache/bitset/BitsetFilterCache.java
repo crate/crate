@@ -37,7 +37,6 @@ import org.elasticsearch.common.cache.Cache;
 import org.elasticsearch.common.cache.CacheBuilder;
 import org.elasticsearch.common.cache.RemovalListener;
 import org.elasticsearch.common.cache.RemovalNotification;
-import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.TimeValue;
@@ -46,9 +45,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.IndexWarmer;
 import org.elasticsearch.index.IndexWarmer.TerminationHandle;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardUtils;
@@ -230,26 +226,7 @@ public final class BitsetFilterCache extends AbstractIndexComponent implements I
                 return TerminationHandle.NO_WAIT;
             }
 
-            boolean hasNested = false;
             final Set<Query> warmUp = new HashSet<>();
-            final MapperService mapperService = indexShard.mapperService();
-            for (DocumentMapper docMapper : mapperService.docMappers(false)) {
-                if (docMapper.hasNestedObjects()) {
-                    hasNested = true;
-                    for (ObjectMapper objectMapper : docMapper.objectMappers().values()) {
-                        if (objectMapper.nested().isNested()) {
-                            ObjectMapper parentObjectMapper = objectMapper.getParentObjectMapper(mapperService);
-                            if (parentObjectMapper != null && parentObjectMapper.nested().isNested()) {
-                                warmUp.add(parentObjectMapper.nestedTypeFilter());
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (hasNested) {
-                warmUp.add(Queries.newNonNestedFilter(indexSettings.getIndexVersionCreated()));
-            }
 
             final CountDownLatch latch = new CountDownLatch(searcher.reader().leaves().size() * warmUp.size());
             for (final LeafReaderContext ctx : searcher.reader().leaves()) {
