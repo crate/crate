@@ -42,6 +42,10 @@ None
 Changes
 =======
 
+- Marked ``CREATE INGEST RULE`` and ``DROP INGEST RULE`` as deprecated. Given
+  that the only implementation (MQTT) was deprecated and will be removed, the
+  framework itself will also be removed.
+
 - Added ``current_schemas(boolean)`` scalar function which will return the
   names of schemas in the ``search_path``.
 

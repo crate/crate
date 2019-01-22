@@ -9,6 +9,10 @@ Ingestion Framework
    .. figure:: ingestion-01.png
       :alt: A diagram of the ingestion framework
 
+.. WARNING::
+
+   The ingestion framework is deprecated and will be removed in a future release.
+
 As well as allowing you to ingest data via standard SQL inserts, CrateDB
 provides an ingestion framework that allows you to ingest data through custom
 event-based ingestion sources.
