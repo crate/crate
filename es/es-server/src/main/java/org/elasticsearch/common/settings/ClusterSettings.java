@@ -23,7 +23,6 @@ import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.action.support.DestructiveOperations;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.bootstrap.BootstrapSettings;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.NodeConnectionsService;
@@ -60,7 +59,6 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.http.HttpTransportSettings;
 import org.elasticsearch.index.IndexModule;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.indices.IndexingMemoryController;
 import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.IndicesRequestCache;
@@ -299,8 +297,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     NetworkService.TCP_SEND_BUFFER_SIZE,
                     NetworkService.TCP_RECEIVE_BUFFER_SIZE,
                     NetworkService.TCP_CONNECT_TIMEOUT,
-                    IndexSettings.QUERY_STRING_ANALYZE_WILDCARD,
-                    IndexSettings.QUERY_STRING_ALLOW_LEADING_WILDCARD,
                     IndicesService.INDICES_CACHE_CLEAN_INTERVAL_SETTING,
                     IndicesFieldDataCache.INDICES_FIELDDATA_CACHE_SIZE_KEY,
                     IndicesRequestCache.INDICES_CACHE_QUERY_SIZE,

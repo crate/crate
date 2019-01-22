@@ -36,7 +36,6 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.TypeFieldMapper;
 
-import java.util.List;
 import java.util.regex.Pattern;
 
 public class Queries {
@@ -96,20 +95,6 @@ public class Queries {
             .add(new MatchAllDocsQuery(), Occur.MUST)
             .add(q, Occur.MUST_NOT)
             .build();
-    }
-
-    private static boolean isNegativeQuery(Query q) {
-        if (!(q instanceof BooleanQuery)) {
-            return false;
-        }
-        List<BooleanClause> clauses = ((BooleanQuery) q).clauses();
-        if (clauses.isEmpty()) {
-            return false;
-        }
-        for (BooleanClause clause : clauses) {
-            if (!clause.isProhibited()) return false;
-        }
-        return true;
     }
 
     public static Query applyMinimumShouldMatch(BooleanQuery query, @Nullable String minimumShouldMatch) {
