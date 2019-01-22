@@ -42,7 +42,6 @@ import org.elasticsearch.indices.IndicesRequestCache;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -100,24 +99,13 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING,
         IndexSettings.INDEX_WARMER_ENABLED_SETTING,
         IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
-        IndexSettings.MAX_RESULT_WINDOW_SETTING,
-        IndexSettings.MAX_INNER_RESULT_WINDOW_SETTING,
-        IndexSettings.MAX_DOCVALUE_FIELDS_SEARCH_SETTING,
-        IndexSettings.MAX_SCRIPT_FIELDS_SETTING,
         IndexSettings.MAX_NGRAM_DIFF_SETTING,
         IndexSettings.MAX_SHINGLE_DIFF_SETTING,
-        IndexSettings.MAX_RESCORE_WINDOW_SETTING,
-        IndexSettings.MAX_ADJACENCY_MATRIX_FILTERS_SETTING,
-        IndexSettings.MAX_ANALYZED_OFFSET_SETTING,
-        IndexSettings.MAX_TERMS_COUNT_SETTING,
         IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING,
         IndexSettings.DEFAULT_FIELD_SETTING,
-        IndexSettings.QUERY_STRING_LENIENT_SETTING,
         IndexSettings.ALLOW_UNMAPPED,
         IndexSettings.INDEX_CHECK_ON_STARTUP,
         IndexSettings.MAX_REFRESH_LISTENERS_PER_SHARD,
-        IndexSettings.MAX_SLICES_PER_SCROLL,
-        IndexSettings.MAX_REGEX_LENGTH_SETTING,
         ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING,
         IndexSettings.INDEX_GC_DELETES_SETTING,
         IndexSettings.INDEX_SOFT_DELETES_SETTING,
