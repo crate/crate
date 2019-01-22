@@ -443,9 +443,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         for (DocumentMapper mapper : documentMappers) {
             // check naming
             validateTypeName(mapper.type());
-            if (mapper.type().equals(mapper.parentFieldMapper().type())) {
-                throw new IllegalArgumentException("The [_parent.type] option can't point to the same type");
-            }
 
             // compute the merged DocumentMapper
             DocumentMapper oldMapper = mappers.get(mapper.type());
@@ -495,14 +492,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                 // this check will be skipped.
                 // Also, don't take metadata mappers into account for the field limit check
                 checkTotalFieldsLimit(objectMappers.size() + fieldMappers.size() - metadataMappers.length + fieldAliasMappers.size() );
-            }
-
-            if (oldMapper == null && newMapper.parentFieldMapper().active()) {
-                if (parentTypes == this.parentTypes) {
-                    // first time through the loop
-                    parentTypes = new HashSet<>(this.parentTypes);
-                }
-                parentTypes.add(mapper.parentFieldMapper().type());
             }
 
             results.put(newMapper.type(), newMapper);
@@ -633,11 +622,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
     private void checkPartitionedIndexConstraints(DocumentMapper newMapper) {
         if (indexSettings.getIndexMetaData().isRoutingPartitionedIndex()) {
-            if (newMapper.parentFieldMapper().active()) {
-                throw new IllegalArgumentException("mapping type name [" + newMapper.type() + "] cannot have a "
-                        + "_parent field for the partitioned index [" + indexSettings.getIndex().getName() + "]");
-            }
-
             if (!newMapper.routingFieldMapper().required()) {
                 throw new IllegalArgumentException("mapping type [" + newMapper.type() + "] must have routing "
                         + "required for partitioned index [" + indexSettings.getIndex().getName() + "]");
