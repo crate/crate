@@ -249,17 +249,9 @@ public class TypeParsers {
                 }
                 iterator.remove();
             } else if (propName.equals("include_in_all")) {
-                if (parserContext.isWithinMultiField()) {
-                    throw new MapperParsingException("include_in_all in multi fields is not allowed. Found the include_in_all in field ["
-                        + name + "] which is within a multi field.");
-                } else if (parserContext.indexVersionCreated().onOrAfter(Version.V_6_0_0_alpha1)) {
-                    throw new MapperParsingException("[include_in_all] is not allowed for indices created on or after version 6.0.0 as " +
-                                    "[_all] is deprecated. As a replacement, you can use an [copy_to] on mapping fields to create your " +
-                                    "own catch all field.");
-                } else {
-                    builder.includeInAll(nodeBooleanValue(name, "include_in_all", propNode, parserContext));
-                }
-                iterator.remove();
+                throw new MapperParsingException("[include_in_all] is not allowed for indices created on or after version 6.0.0 as " +
+                                "[_all] is deprecated. As a replacement, you can use an [copy_to] on mapping fields to create your " +
+                                "own catch all field.");
             } else if (propName.equals("fielddata")
                     && propNode instanceof Map
                     && parserContext.indexVersionCreated().before(Version.V_5_0_0_alpha1)) {

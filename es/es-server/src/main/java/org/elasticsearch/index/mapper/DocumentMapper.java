@@ -20,10 +20,7 @@
 package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.document.StoredField;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -237,10 +234,6 @@ public class DocumentMapper implements ToXContentFragment {
 
     public SourceFieldMapper sourceMapper() {
         return metadataMapper(SourceFieldMapper.class);
-    }
-
-    public AllFieldMapper allFieldMapper() {
-        return metadataMapper(AllFieldMapper.class);
     }
 
     public IdFieldMapper idFieldMapper() {
