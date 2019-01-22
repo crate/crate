@@ -27,7 +27,6 @@ import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.IgnoredFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.ParentFieldMapper;
 import org.elasticsearch.index.mapper.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
@@ -54,8 +53,7 @@ public class FieldsVisitor extends StoredFieldVisitor {
     private static final Set<String> BASE_REQUIRED_FIELDS = unmodifiableSet(newHashSet(
             UidFieldMapper.NAME,
             IdFieldMapper.NAME,
-            RoutingFieldMapper.NAME,
-            ParentFieldMapper.NAME));
+            RoutingFieldMapper.NAME));
 
     private final boolean loadSource;
     private final String sourceFieldName;
