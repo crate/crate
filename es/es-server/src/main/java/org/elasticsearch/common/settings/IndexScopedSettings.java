@@ -123,7 +123,6 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         FieldMapper.COERCE_SETTING,
         Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING,
         MapperService.INDEX_MAPPER_DYNAMIC_SETTING,
-        MapperService.INDEX_MAPPING_NESTED_FIELDS_LIMIT_SETTING,
         MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING,
         MapperService.INDEX_MAPPING_DEPTH_LIMIT_SETTING,
         BitsetFilterCache.INDEX_LOAD_RANDOM_ACCESS_FILTERS_EAGERLY_SETTING,

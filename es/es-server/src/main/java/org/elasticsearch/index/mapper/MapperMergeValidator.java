@@ -26,7 +26,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -133,7 +132,6 @@ class MapperMergeValidator {
         if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_6_0_0_beta1)) {
             validateCopyTo(fieldMappers, fullPathObjectMappers, fieldTypes);
         }
-        validateFieldAliasTargets(fieldAliasMappers, fullPathObjectMappers);
     }
 
     private static void validateCopyTo(List<FieldMapper> fieldMappers,
@@ -146,7 +144,6 @@ class MapperMergeValidator {
                     throw new IllegalArgumentException("[copy_to] may not be used to copy from a multi-field: [" + mapper.name() + "]");
                 }
 
-                final String sourceScope = getNestedScope(mapper.name(), fullPathObjectMappers);
                 for (String copyTo : mapper.copyTo().copyToFields()) {
                     String copyToParent = parentObject(copyTo);
                     if (copyToParent != null && fieldTypes.get(copyToParent) != null) {
@@ -157,59 +154,8 @@ class MapperMergeValidator {
                         throw new IllegalArgumentException("Cannot copy to field [" + copyTo + "] since it is mapped as an object");
                     }
 
-                    final String targetScope = getNestedScope(copyTo, fullPathObjectMappers);
-                    checkNestedScopeCompatibility(sourceScope, targetScope);
                 }
             }
-        }
-    }
-
-    private static void validateFieldAliasTargets(List<FieldAliasMapper> fieldAliasMappers,
-                                                  Map<String, ObjectMapper> fullPathObjectMappers) {
-        for (FieldAliasMapper mapper : fieldAliasMappers) {
-            String aliasName = mapper.name();
-            String path = mapper.path();
-
-            String aliasScope = getNestedScope(aliasName, fullPathObjectMappers);
-            String pathScope = getNestedScope(path, fullPathObjectMappers);
-
-            if (!Objects.equals(aliasScope, pathScope)) {
-                StringBuilder message = new StringBuilder("Invalid [path] value [" + path + "] for field alias [" +
-                    aliasName + "]: an alias must have the same nested scope as its target. ");
-                message.append(aliasScope == null
-                    ? "The alias is not nested"
-                    : "The alias's nested scope is [" + aliasScope + "]");
-                message.append(", but ");
-                message.append(pathScope == null
-                    ? "the target is not nested."
-                    : "the target's nested scope is [" + pathScope + "].");
-                throw new IllegalArgumentException(message.toString());
-            }
-        }
-    }
-
-    private static String getNestedScope(String path, Map<String, ObjectMapper> fullPathObjectMappers) {
-        for (String parentPath = parentObject(path); parentPath != null; parentPath = parentObject(parentPath)) {
-            ObjectMapper objectMapper = fullPathObjectMappers.get(parentPath);
-            if (objectMapper != null && objectMapper.nested().isNested()) {
-                return parentPath;
-            }
-        }
-        return null;
-    }
-
-    private static void checkNestedScopeCompatibility(String source, String target) {
-        boolean targetIsParentOfSource;
-        if (source == null || target == null) {
-            targetIsParentOfSource = target == null;
-        } else {
-            targetIsParentOfSource = source.equals(target) || source.startsWith(target + ".");
-        }
-        if (targetIsParentOfSource == false) {
-            throw new IllegalArgumentException(
-                "Illegal combination of [copy_to] and [nested] mappings: [copy_to] may only copy data to the current nested " +
-                    "document or any of its parents, however one [copy_to] directive is trying to copy data from nested object [" +
-                    source + "] to [" + target + "]");
         }
     }
 

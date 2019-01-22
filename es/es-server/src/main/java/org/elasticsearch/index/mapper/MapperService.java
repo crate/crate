@@ -47,8 +47,6 @@ import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.IndexSortConfig;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
-import org.elasticsearch.index.analysis.NamedAnalyzer;
-import org.elasticsearch.index.mapper.Mapper.BuilderContext;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.indices.InvalidTypeNameException;
 import org.elasticsearch.indices.TypeMissingException;
@@ -71,7 +69,6 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
-import static java.util.Collections.unmodifiableMap;
 
 public class MapperService extends AbstractIndexComponent implements Closeable {
 
@@ -93,8 +90,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
     public static final String DEFAULT_MAPPING = "_default_";
     public static final String SINGLE_MAPPING_NAME = "_doc";
-    public static final Setting<Long> INDEX_MAPPING_NESTED_FIELDS_LIMIT_SETTING =
-        Setting.longSetting("index.mapping.nested_fields.limit", 50L, 0, Property.Dynamic, Property.IndexScope);
     public static final Setting<Long> INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING =
         Setting.longSetting("index.mapping.total_fields.limit", 1000L, 0, Property.Dynamic, Property.IndexScope);
     public static final Setting<Long> INDEX_MAPPING_DEPTH_LIMIT_SETTING =
@@ -105,7 +100,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
     //TODO this needs to be cleaned up: _timestamp and _ttl are not supported anymore, _field_names, _seq_no, _version and _source are
     //also missing, not sure if on purpose. See IndicesModule#getMetadataMappers
-    private static ObjectHashSet<String> META_FIELDS = ObjectHashSet.from(
+    private static final ObjectHashSet<String> META_FIELDS = ObjectHashSet.from(
             "_uid", "_id", "_type", "_all", "_parent", "_routing", "_index",
             "_size", "_timestamp", "_ttl", IgnoredFieldMapper.NAME
     );
@@ -132,8 +127,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     private final MapperAnalyzerWrapper indexAnalyzer;
     private final MapperAnalyzerWrapper searchAnalyzer;
     private final MapperAnalyzerWrapper searchQuoteAnalyzer;
-
-    private volatile Map<String, MappedFieldType> unmappedFieldTypes = emptyMap();
 
     private volatile Set<String> parentTypes = emptySet();
 
@@ -193,10 +186,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
     public IndexAnalyzers getIndexAnalyzers() {
         return this.indexAnalyzers;
-    }
-
-    public NamedAnalyzer getNamedAnalyzer(String analyzerName) {
-        return this.indexAnalyzers.get(analyzerName);
     }
 
     public DocumentMapperParser documentMapperParser() {
@@ -411,7 +400,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
     private synchronized Map<String, DocumentMapper> internalMerge(@Nullable DocumentMapper defaultMapper, @Nullable String defaultMappingSource,
                                                                    List<DocumentMapper> documentMappers, MergeReason reason, boolean updateAllTypes) {
-        boolean hasNested = this.hasNested;
         Map<String, ObjectMapper> fullPathObjectMappers = this.fullPathObjectMappers;
         FieldTypeLookup fieldTypes = this.fieldTypes;
         Set<String> parentTypes = this.parentTypes;
@@ -475,10 +463,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                     fullPathObjectMappers = new HashMap<>(this.fullPathObjectMappers);
                 }
                 fullPathObjectMappers.put(objectMapper.fullPath(), objectMapper);
-
-                if (objectMapper.nested().isNested()) {
-                    hasNested = true;
-                }
             }
 
             MapperMergeValidator.validateFieldReferences(indexSettings, fieldMappers,
@@ -504,7 +488,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             // the master node restoring mappings from disk or data nodes
             // deserializing cluster state that was sent by the master node,
             // this check will be skipped.
-            checkNestedFieldsLimit(fullPathObjectMappers);
             checkDepthLimit(fullPathObjectMappers.keySet());
         }
         checkIndexSortCompatibility(indexSettings.getIndexSortConfig(), hasNested);
@@ -577,19 +560,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                 + newMapper.mappingSource() + "]");
         }
         return true;
-    }
-
-    private void checkNestedFieldsLimit(Map<String, ObjectMapper> fullPathObjectMappers) {
-        long allowedNestedFields = indexSettings.getValue(INDEX_MAPPING_NESTED_FIELDS_LIMIT_SETTING);
-        long actualNestedFields = 0;
-        for (ObjectMapper objectMapper : fullPathObjectMappers.values()) {
-            if (objectMapper.nested().isNested()) {
-                actualNestedFields++;
-            }
-        }
-        if (actualNestedFields > allowedNestedFields) {
-            throw new IllegalArgumentException("Limit of nested fields [" + allowedNestedFields + "] in index [" + index().getName() + "] has been exceeded");
-        }
     }
 
     private void checkTotalFieldsLimit(long totalMappers) {
@@ -711,34 +681,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         return fullPathObjectMappers.get(name);
     }
 
-    /**
-     * Given a type (eg. long, string, ...), return an anonymous field mapper that can be used for search operations.
-     */
-    public MappedFieldType unmappedFieldType(String type) {
-        if (type.equals("string")) {
-            deprecationLogger.deprecated("[unmapped_type:string] should be replaced with [unmapped_type:keyword]");
-            type = "keyword";
-        }
-        MappedFieldType fieldType = unmappedFieldTypes.get(type);
-        if (fieldType == null) {
-            final Mapper.TypeParser.ParserContext parserContext = documentMapperParser().parserContext(type);
-            Mapper.TypeParser typeParser = parserContext.typeParser(type);
-            if (typeParser == null) {
-                throw new IllegalArgumentException("No mapper found for type [" + type + "]");
-            }
-            final Mapper.Builder<?, ?> builder = typeParser.parse("__anonymous_" + type, emptyMap(), parserContext);
-            final BuilderContext builderContext = new BuilderContext(indexSettings.getSettings(), new ContentPath(1));
-            fieldType = ((FieldMapper)builder.build(builderContext)).fieldType();
-
-            // There is no need to synchronize writes here. In the case of concurrent access, we could just
-            // compute some mappers several times, which is not a big deal
-            Map<String, MappedFieldType> newUnmappedFieldTypes = new HashMap<>(unmappedFieldTypes);
-            newUnmappedFieldTypes.put(type, fieldType);
-            unmappedFieldTypes = unmodifiableMap(newUnmappedFieldTypes);
-        }
-        return fieldType;
-    }
-
     public Analyzer indexAnalyzer() {
         return this.indexAnalyzer;
     }
@@ -765,10 +707,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
      */
     public static boolean isMetadataField(String fieldName) {
         return META_FIELDS.contains(fieldName);
-    }
-
-    public static String[] getAllMetaFields() {
-        return META_FIELDS.toArray(String.class);
     }
 
     /** An analyzer wrapper that can lookup fields within the index mappings */
