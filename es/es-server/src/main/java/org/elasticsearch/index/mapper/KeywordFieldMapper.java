@@ -143,7 +143,7 @@ public final class KeywordFieldMapper extends FieldMapper {
                 fieldType().setSearchAnalyzer(new NamedAnalyzer("whitespace", AnalyzerScope.INDEX, new WhitespaceAnalyzer()));
             }
             return new KeywordFieldMapper(
-                    name, fieldType, defaultFieldType, ignoreAbove, includeInAll,
+                    name, fieldType, defaultFieldType, ignoreAbove,
                     context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo);
         }
     }
@@ -315,16 +315,14 @@ public final class KeywordFieldMapper extends FieldMapper {
         }
     }
 
-    private Boolean includeInAll;
     private int ignoreAbove;
 
     protected KeywordFieldMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
-                                int ignoreAbove, Boolean includeInAll,
+                                int ignoreAbove,
                                 Settings indexSettings, MultiFields multiFields, CopyTo copyTo) {
         super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
         this.ignoreAbove = ignoreAbove;
-        this.includeInAll = includeInAll;
     }
 
     /** Values that have more chars than the return value of this method will
@@ -342,11 +340,6 @@ public final class KeywordFieldMapper extends FieldMapper {
     @Override
     public KeywordFieldType fieldType() {
         return (KeywordFieldType) super.fieldType();
-    }
-
-    // pkg-private for testing
-    Boolean includeInAll() {
-        return includeInAll;
     }
 
     @Override
@@ -388,10 +381,6 @@ public final class KeywordFieldMapper extends FieldMapper {
             }
         }
 
-        if (context.includeInAll(includeInAll, this)) {
-            context.allEntries().addText(fieldType().name(), value, fieldType().boost());
-        }
-
         // convert to utf8 only once before feeding postings/dv/stored fields
         final BytesRef binaryValue = new BytesRef(value);
         if (fieldType().indexOptions() != IndexOptions.NONE || fieldType().stored())  {
@@ -415,7 +404,6 @@ public final class KeywordFieldMapper extends FieldMapper {
     @Override
     protected void doMerge(Mapper mergeWith, boolean updateAllTypes) {
         super.doMerge(mergeWith, updateAllTypes);
-        this.includeInAll = ((KeywordFieldMapper) mergeWith).includeInAll;
         this.ignoreAbove = ((KeywordFieldMapper) mergeWith).ignoreAbove;
     }
 
@@ -425,12 +413,6 @@ public final class KeywordFieldMapper extends FieldMapper {
 
         if (includeDefaults || fieldType().nullValue() != null) {
             builder.field("null_value", fieldType().nullValue());
-        }
-
-        if (includeInAll != null) {
-            builder.field("include_in_all", includeInAll);
-        } else if (includeDefaults) {
-            builder.field("include_in_all", true);
         }
 
         if (includeDefaults || ignoreAbove != Defaults.IGNORE_ABOVE) {
