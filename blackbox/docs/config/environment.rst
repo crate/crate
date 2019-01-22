@@ -121,6 +121,21 @@ General
 Garbage Collection
 ------------------
 
+Collector
+~~~~~~~~~
+
+CrateDB uses the `Concurrent Mark Sweep`_ garbage collector by default.
+When running CrateBD with a **JVM >= 10**, using the `G1`_ garbage collector may result
+in better latency.
+
+Example of using :ref:`CRATE_JAVA_OPTS <conf-env-java-opts>` to enable the `G1`_::
+
+  export CRATE_JAVA_OPTS="-XX:-UseConcMarkSweepGC -XX:-UseCMSInitiatingOccupancyOnly -XX:+UseG1GC -XX:InitiatingHeapOccupancyPercent=75"
+
+
+Logging
+~~~~~~~
+
 CrateDB logs JVM garbage collection times using the built-in garbage collection
 logging of the JVM.
 
@@ -135,3 +150,5 @@ logging of the JVM.
 .. _Java options: http://docs.oracle.com/javase/7/docs/technotes/tools/windows/java.html#CBBIJCHG
 .. _environment variables: https://en.wikipedia.org/wiki/Environment_variable
 .. _expanded tarball: https://crate.io/docs/crate/getting-started/en/latest/install-run/basic.html
+.. _Concurrent Mark Sweep: https://docs.oracle.com/javase/10/gctuning/concurrent-mark-sweep-cms-collector.htm
+.. _G1: https://docs.oracle.com/javase/10/gctuning/garbage-first-garbage-collector.htm
