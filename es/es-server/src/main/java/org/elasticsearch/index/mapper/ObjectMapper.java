@@ -49,7 +49,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     public static class Defaults {
         public static final boolean ENABLED = true;
-        public static final Nested NESTED = Nested.NO;
         public static final Dynamic DYNAMIC = null; // not set, inherited from root
     }
 
@@ -59,48 +58,11 @@ public class ObjectMapper extends Mapper implements Cloneable {
         STRICT
     }
 
-    public static class Nested {
-
-        public static final Nested NO = new Nested(false, false, false);
-
-        public static Nested newNested(boolean includeInParent, boolean includeInRoot) {
-            return new Nested(true, includeInParent, includeInRoot);
-        }
-
-        private final boolean nested;
-
-        private final boolean includeInParent;
-
-        private final boolean includeInRoot;
-
-        private Nested(boolean nested, boolean includeInParent, boolean includeInRoot) {
-            this.nested = nested;
-            this.includeInParent = includeInParent;
-            this.includeInRoot = includeInRoot;
-        }
-
-        public boolean isNested() {
-            return nested;
-        }
-
-        public boolean isIncludeInParent() {
-            return includeInParent;
-        }
-
-        public boolean isIncludeInRoot() {
-            return includeInRoot;
-        }
-    }
-
     public static class Builder<T extends Builder, Y extends ObjectMapper> extends Mapper.Builder<T, Y> {
 
         protected boolean enabled = Defaults.ENABLED;
 
-        protected Nested nested = Defaults.NESTED;
-
         protected Dynamic dynamic = Defaults.DYNAMIC;
-
-        protected Boolean includeInAll;
 
         protected final List<Mapper.Builder> mappersBuilders = new ArrayList<>();
 
@@ -116,16 +78,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
         public T dynamic(Dynamic dynamic) {
             this.dynamic = dynamic;
-            return builder;
-        }
-
-        public T nested(Nested nested) {
-            this.nested = nested;
-            return builder;
-        }
-
-        public T includeInAll(boolean includeInAll) {
-            this.includeInAll = includeInAll;
             return builder;
         }
 
@@ -149,15 +101,15 @@ public class ObjectMapper extends Mapper implements Cloneable {
             }
             context.path().remove();
 
-            ObjectMapper objectMapper = createMapper(name, context.path().pathAsText(name), enabled, nested, dynamic,
-                    includeInAll, mappers, context.indexSettings());
+            ObjectMapper objectMapper = createMapper(name, context.path().pathAsText(name), enabled, dynamic,
+                    mappers, context.indexSettings());
 
             return (Y) objectMapper;
         }
 
-        protected ObjectMapper createMapper(String name, String fullPath, boolean enabled, Nested nested, Dynamic dynamic,
-                Boolean includeInAll, Map<String, Mapper> mappers, @Nullable Settings settings) {
-            return new ObjectMapper(name, fullPath, enabled, nested, dynamic, includeInAll, mappers, settings);
+        protected ObjectMapper createMapper(String name, String fullPath, boolean enabled, Dynamic dynamic,
+                Map<String, Mapper> mappers, @Nullable Settings settings) {
+            return new ObjectMapper(name, fullPath, enabled, dynamic, mappers, settings);
         }
     }
 
@@ -165,7 +117,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
         @Override
         public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             ObjectMapper.Builder builder = new Builder(name);
-            parseNested(name, node, builder, parserContext);
             for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
                 Map.Entry<String, Object> entry = iterator.next();
                 String fieldName = entry.getKey();
@@ -199,43 +150,8 @@ public class ObjectMapper extends Mapper implements Cloneable {
                     parseProperties(builder, (Map<String, Object>) fieldNode, parserContext);
                 }
                 return true;
-            } else if (fieldName.equals("include_in_all")) {
-                builder.includeInAll(TypeParsers.nodeBooleanValue(fieldName, "include_in_all", fieldNode, parserContext));
-                return true;
             }
             return false;
-        }
-
-        protected static void parseNested(String name, Map<String, Object> node, ObjectMapper.Builder builder,
-                                          ParserContext parserContext) {
-            boolean nested = false;
-            boolean nestedIncludeInParent = false;
-            boolean nestedIncludeInRoot = false;
-            Object fieldNode = node.get("type");
-            if (fieldNode!=null) {
-                String type = fieldNode.toString();
-                if (type.equals(CONTENT_TYPE)) {
-                    builder.nested = Nested.NO;
-                } else if (type.equals(NESTED_CONTENT_TYPE)) {
-                    nested = true;
-                } else {
-                    throw new MapperParsingException("Trying to parse an object but has a different type [" + type + "] for [" + name + "]");
-                }
-            }
-            fieldNode = node.get("include_in_parent");
-            if (fieldNode != null) {
-                nestedIncludeInParent = TypeParsers.nodeBooleanValue(name, "include_in_parent", fieldNode, parserContext);
-                node.remove("include_in_parent");
-            }
-            fieldNode = node.get("include_in_root");
-            if (fieldNode != null) {
-                nestedIncludeInRoot = TypeParsers.nodeBooleanValue(name, "include_in_root", fieldNode, parserContext);
-                node.remove("include_in_root");
-            }
-            if (nested) {
-                builder.nested = Nested.newNested(nestedIncludeInParent, nestedIncludeInRoot);
-            }
-
         }
 
         protected static void parseProperties(ObjectMapper.Builder objBuilder, Map<String, Object> propsNode, ParserContext parserContext) {
@@ -304,8 +220,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     private final boolean enabled;
 
-    private final Nested nested;
-
     private final String nestedTypePathAsString;
     private final BytesRef nestedTypePathAsBytes;
 
@@ -317,8 +231,8 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     private volatile CopyOnWriteHashMap<String, Mapper> mappers;
 
-    ObjectMapper(String name, String fullPath, boolean enabled, Nested nested, Dynamic dynamic,
-            Boolean includeInAll, Map<String, Mapper> mappers, Settings settings) {
+    ObjectMapper(String name, String fullPath, boolean enabled, Dynamic dynamic,
+            Map<String, Mapper> mappers, Settings settings) {
         super(name);
         assert settings != null;
         Version indexCreatedVersion = Version.indexCreated(settings);
@@ -329,9 +243,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
         this.fullPath = fullPath;
         this.enabled = enabled;
-        this.nested = nested;
         this.dynamic = dynamic;
-        this.includeInAll = includeInAll;
         if (mappers == null) {
             this.mappers = new CopyOnWriteHashMap<>();
         } else {
@@ -382,10 +294,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
         return mappers.get(field);
     }
 
-    public Nested nested() {
-        return this.nested;
-    }
-
     public Boolean includeInAll() {
         return includeInAll;
     }
@@ -429,21 +337,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
     }
 
-    /**
-     * Returns whether all parent objects fields are nested too.
-     */
-    public boolean parentObjectMapperAreNested(MapperService mapperService) {
-        for (ObjectMapper parent = getParentObjectMapper(mapperService);
-             parent != null;
-             parent = parent.getParentObjectMapper(mapperService)) {
-
-            if (parent.nested().isNested() == false) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     @Override
     public ObjectMapper merge(Mapper mergeWith, boolean updateAllTypes) {
         if (!(mergeWith instanceof ObjectMapper)) {
@@ -456,17 +349,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
     }
 
     protected void doMerge(final ObjectMapper mergeWith, boolean updateAllTypes) {
-        if (nested().isNested()) {
-            if (!mergeWith.nested().isNested()) {
-                throw new IllegalArgumentException("object mapping [" + name() + "] can't be changed from nested to non-nested");
-            }
-        } else {
-            if (mergeWith.nested().isNested()) {
-                throw new IllegalArgumentException("object mapping [" + name() + "] can't be changed from non-nested to nested");
-            }
-        }
-
-        this.includeInAll = mergeWith.includeInAll;
         if (mergeWith.dynamic != null) {
             this.dynamic = mergeWith.dynamic;
         }
@@ -529,15 +411,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     public void toXContent(XContentBuilder builder, Params params, ToXContent custom) throws IOException {
         builder.startObject(simpleName());
-        if (nested.isNested()) {
-            builder.field("type", NESTED_CONTENT_TYPE);
-            if (nested.isIncludeInParent()) {
-                builder.field("include_in_parent", true);
-            }
-            if (nested.isIncludeInRoot()) {
-                builder.field("include_in_root", true);
-            }
-        } else if (mappers.isEmpty() && custom == null) { // only write the object content type if there are no properties, otherwise, it is automatically detected
+        if (mappers.isEmpty() && custom == null) { // only write the object content type if there are no properties, otherwise, it is automatically detected
             builder.field("type", CONTENT_TYPE);
         }
         if (dynamic != null) {
