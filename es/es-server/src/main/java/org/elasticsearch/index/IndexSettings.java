@@ -58,12 +58,6 @@ public final class IndexSettings {
         DEFAULT_FIELD_SETTING =
                 Setting.listSetting(DEFAULT_FIELD_SETTING_KEY, Function.identity(), defValue, Property.Dynamic, Property.IndexScope);
     }
-    public static final Setting<Boolean> QUERY_STRING_LENIENT_SETTING =
-        Setting.boolSetting("index.query_string.lenient", false, Property.IndexScope);
-    public static final Setting<Boolean> QUERY_STRING_ANALYZE_WILDCARD =
-        Setting.boolSetting("indices.query.query_string.analyze_wildcard", false, Property.NodeScope);
-    public static final Setting<Boolean> QUERY_STRING_ALLOW_LEADING_WILDCARD =
-        Setting.boolSetting("indices.query.query_string.allowLeadingWildcard", true, Property.NodeScope);
     public static final Setting<Boolean> ALLOW_UNMAPPED =
         Setting.boolSetting("index.query.parse.allow_unmapped_fields", true, Property.IndexScope);
     public static final Setting<TimeValue> INDEX_TRANSLOG_SYNC_INTERVAL_SETTING =
@@ -90,53 +84,6 @@ public final class IndexSettings {
     }, Property.IndexScope);
 
     /**
-     * Index setting describing the maximum value of from + size on a query.
-     * The Default maximum value of from + size on a query is 10,000. This was chosen as
-     * a conservative default as it is sure to not cause trouble. Users can
-     * certainly profile their cluster and decide to set it to 100,000
-     * safely. 1,000,000 is probably way to high for any cluster to set
-     * safely.
-     */
-    public static final Setting<Integer> MAX_RESULT_WINDOW_SETTING =
-        Setting.intSetting("index.max_result_window", 10000, 1, Property.Dynamic, Property.IndexScope);
-
-    /**
-     * Index setting describing the maximum value of allowed `script_fields`that can be retrieved
-     * per search request. The default maximum of 32 is defensive for the reason that retrieving
-     * script fields is a costly operation.
-     */
-    public static final Setting<Integer> MAX_SCRIPT_FIELDS_SETTING =
-        Setting.intSetting("index.max_script_fields", 32, 0, Property.Dynamic, Property.IndexScope);
-
-    /**
-     * Index setting describing the maximum value of from + size on an individual inner hit definition or
-     * top hits aggregation. The default maximum of 100 is defensive for the reason that the number of inner hit responses
-     * and number of top hits buckets returned is unbounded. Profile your cluster when increasing this setting.
-     */
-    public static final Setting<Integer> MAX_INNER_RESULT_WINDOW_SETTING =
-        Setting.intSetting("index.max_inner_result_window", 100, 1, Property.Dynamic, Property.IndexScope);
-
-
-    /**
-     * A setting describing the maximum number of characters that will be analyzed for a highlight request.
-     * This setting is only applicable when highlighting is requested on a text that was indexed without
-     * offsets or term vectors.
-     * This setting is defensive as for highlighting larger texts, indexing with offsets or term vectors is recommended.
-     * For 6.x the default value is not set or equals to -1.
-     */
-    public static final Setting<Integer> MAX_ANALYZED_OFFSET_SETTING =
-        Setting.intSetting("index.highlight.max_analyzed_offset", -1, -1, Property.Dynamic, Property.IndexScope);
-
-
-    /**
-     * Index setting describing the maximum number of terms that can be used in Terms Query.
-     * The default maximum of 65536 terms is defensive, as extra processing and memory is involved
-     * for each additional term, and a large number of terms degrade the cluster performance.
-     */
-    public static final Setting<Integer> MAX_TERMS_COUNT_SETTING =
-        Setting.intSetting("index.max_terms_count", 65536, 1, Property.Dynamic, Property.IndexScope);
-
-    /**
      * Index setting describing for NGramTokenizer and NGramTokenFilter
      * the maximum difference between
      * max_gram (maximum length of characters in a gram) and
@@ -156,26 +103,6 @@ public final class IndexSettings {
     public static final Setting<Integer> MAX_SHINGLE_DIFF_SETTING =
         Setting.intSetting("index.max_shingle_diff", 3, 0, Property.Dynamic, Property.IndexScope);
 
-    /**
-     * Index setting describing the maximum value of allowed `docvalue_fields`that can be retrieved
-     * per search request. The default maximum of 100 is defensive for the reason that retrieving
-     * doc values might incur a per-field per-document seek.
-     */
-    public static final Setting<Integer> MAX_DOCVALUE_FIELDS_SEARCH_SETTING =
-        Setting.intSetting("index.max_docvalue_fields_search", 100, 0, Property.Dynamic, Property.IndexScope);
-    /**
-     * Index setting describing the maximum size of the rescore window. Defaults to {@link #MAX_RESULT_WINDOW_SETTING}
-     * because they both do the same thing: control the size of the heap of hits.
-     */
-    public static final Setting<Integer> MAX_RESCORE_WINDOW_SETTING =
-            Setting.intSetting("index.max_rescore_window", MAX_RESULT_WINDOW_SETTING, 1, Property.Dynamic, Property.IndexScope);
-    /**
-     * Index setting describing the maximum number of filters clauses that can be used
-     * in an adjacency_matrix aggregation. The max number of buckets produced by
-     * N filters is (N*N)/2 so a limit of 100 filters is imposed by default.
-     */
-    public static final Setting<Integer> MAX_ADJACENCY_MATRIX_FILTERS_SETTING =
-        Setting.intSetting("index.max_adjacency_matrix_filters", 100, 2, Property.Dynamic, Property.IndexScope);
     public static final TimeValue DEFAULT_REFRESH_INTERVAL = new TimeValue(1, TimeUnit.SECONDS);
     public static final Setting<TimeValue> INDEX_REFRESH_INTERVAL_SETTING =
         Setting.timeSetting("index.refresh_interval", DEFAULT_REFRESH_INTERVAL, new TimeValue(-1, TimeUnit.MILLISECONDS),
@@ -257,18 +184,6 @@ public final class IndexSettings {
     public static final Setting<Integer> MAX_REFRESH_LISTENERS_PER_SHARD = Setting.intSetting("index.max_refresh_listeners", 1000, 0,
             Property.Dynamic, Property.IndexScope);
 
-    /**
-     * The maximum number of slices allowed in a scroll request
-     */
-    public static final Setting<Integer> MAX_SLICES_PER_SCROLL = Setting.intSetting("index.max_slices_per_scroll",
-        1024, 1, Property.Dynamic, Property.IndexScope);
-
-    /**
-     * The maximum length of regex string allowed in a regexp query.
-     */
-    public static final Setting<Integer> MAX_REGEX_LENGTH_SETTING = Setting.intSetting("index.max_regex_length",
-        1000, 1, Property.Dynamic, Property.IndexScope);
-
     public static final String INDEX_MAPPING_SINGLE_TYPE_SETTING_KEY = "index.mapping.single_type";
     private static final Setting<Boolean> INDEX_MAPPING_SINGLE_TYPE_SETTING; // private - should not be registered
     static {
@@ -293,9 +208,6 @@ public final class IndexSettings {
     private volatile Settings settings;
     private volatile IndexMetaData indexMetaData;
     private volatile List<String> defaultFields;
-    private final boolean queryStringLenient;
-    private final boolean queryStringAnalyzeWildcard;
-    private final boolean queryStringAllowLeadingWildcard;
     private final boolean defaultAllowUnmappedFields;
     private volatile Translog.Durability durability;
     private final TimeValue syncInterval;
@@ -312,30 +224,13 @@ public final class IndexSettings {
     private final boolean softDeleteEnabled;
     private volatile long softDeleteRetentionOperations;
     private volatile boolean warmerEnabled;
-    private volatile int maxResultWindow;
-    private volatile int maxInnerResultWindow;
-    private volatile int maxAdjacencyMatrixFilters;
-    private volatile int maxRescoreWindow;
-    private volatile int maxDocvalueFields;
-    private volatile int maxScriptFields;
     private volatile int maxNgramDiff;
     private volatile int maxShingleDiff;
-    private volatile int maxAnalyzedOffset;
-    private volatile int maxTermsCount;
 
     /**
      * The maximum number of refresh listeners allows on this shard.
      */
     private volatile int maxRefreshListeners;
-    /**
-     * The maximum number of slices allowed in a scroll request.
-     */
-    private volatile int maxSlicesPerScroll;
-
-    /**
-     * The maximum length of regex string allowed in a regexp query.
-     */
-    private volatile int maxRegexLength;
 
     /**
      * Whether the index is required to have at most one type.
@@ -351,27 +246,6 @@ public final class IndexSettings {
 
     private void setDefaultFields(List<String> defaultFields) {
         this.defaultFields = defaultFields;
-    }
-
-    /**
-     * Returns <code>true</code> if query string parsing should be lenient. The default is <code>false</code>
-     */
-    public boolean isQueryStringLenient() {
-        return queryStringLenient;
-    }
-
-    /**
-     * Returns <code>true</code> if the query string should analyze wildcards. The default is <code>false</code>
-     */
-    public boolean isQueryStringAnalyzeWildcard() {
-        return queryStringAnalyzeWildcard;
-    }
-
-    /**
-     * Returns <code>true</code> if the query string parser should allow leading wildcards. The default is <code>true</code>
-     */
-    public boolean isQueryStringAllowLeadingWildcard() {
-        return queryStringAllowLeadingWildcard;
     }
 
     /**
@@ -410,9 +284,6 @@ public final class IndexSettings {
         this.indexMetaData = indexMetaData;
         numberOfShards = settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, null);
 
-        this.queryStringLenient = QUERY_STRING_LENIENT_SETTING.get(settings);
-        this.queryStringAnalyzeWildcard = QUERY_STRING_ANALYZE_WILDCARD.get(nodeSettings);
-        this.queryStringAllowLeadingWildcard = QUERY_STRING_ALLOW_LEADING_WILDCARD.get(nodeSettings);
         this.defaultAllowUnmappedFields = scopedSettings.get(ALLOW_UNMAPPED);
         this.durability = scopedSettings.get(INDEX_TRANSLOG_DURABILITY_SETTING);
         defaultFields = scopedSettings.get(DEFAULT_FIELD_SETTING);
@@ -427,19 +298,9 @@ public final class IndexSettings {
         softDeleteEnabled = version.onOrAfter(Version.V_6_5_0) && scopedSettings.get(INDEX_SOFT_DELETES_SETTING);
         softDeleteRetentionOperations = scopedSettings.get(INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING);
         warmerEnabled = scopedSettings.get(INDEX_WARMER_ENABLED_SETTING);
-        maxResultWindow = scopedSettings.get(MAX_RESULT_WINDOW_SETTING);
-        maxInnerResultWindow = scopedSettings.get(MAX_INNER_RESULT_WINDOW_SETTING);
-        maxAdjacencyMatrixFilters = scopedSettings.get(MAX_ADJACENCY_MATRIX_FILTERS_SETTING);
-        maxRescoreWindow = scopedSettings.get(MAX_RESCORE_WINDOW_SETTING);
-        maxDocvalueFields = scopedSettings.get(MAX_DOCVALUE_FIELDS_SEARCH_SETTING);
-        maxScriptFields = scopedSettings.get(MAX_SCRIPT_FIELDS_SETTING);
         maxNgramDiff = scopedSettings.get(MAX_NGRAM_DIFF_SETTING);
         maxShingleDiff = scopedSettings.get(MAX_SHINGLE_DIFF_SETTING);
         maxRefreshListeners = scopedSettings.get(MAX_REFRESH_LISTENERS_PER_SHARD);
-        maxSlicesPerScroll = scopedSettings.get(MAX_SLICES_PER_SCROLL);
-        maxAnalyzedOffset = scopedSettings.get(MAX_ANALYZED_OFFSET_SETTING);
-        maxTermsCount = scopedSettings.get(MAX_TERMS_COUNT_SETTING);
-        maxRegexLength = scopedSettings.get(MAX_REGEX_LENGTH_SETTING);
         this.mergePolicyConfig = new MergePolicyConfig(logger, this);
         this.indexSortConfig = new IndexSortConfig(this);
         singleType = INDEX_MAPPING_SINGLE_TYPE_SETTING.get(indexMetaData.getSettings()); // get this from metadata - it's not registered
@@ -461,12 +322,6 @@ public final class IndexSettings {
             mergeSchedulerConfig::setMaxThreadAndMergeCount);
         scopedSettings.addSettingsUpdateConsumer(MergeSchedulerConfig.AUTO_THROTTLE_SETTING, mergeSchedulerConfig::setAutoThrottle);
         scopedSettings.addSettingsUpdateConsumer(INDEX_TRANSLOG_DURABILITY_SETTING, this::setTranslogDurability);
-        scopedSettings.addSettingsUpdateConsumer(MAX_RESULT_WINDOW_SETTING, this::setMaxResultWindow);
-        scopedSettings.addSettingsUpdateConsumer(MAX_INNER_RESULT_WINDOW_SETTING, this::setMaxInnerResultWindow);
-        scopedSettings.addSettingsUpdateConsumer(MAX_ADJACENCY_MATRIX_FILTERS_SETTING, this::setMaxAdjacencyMatrixFilters);
-        scopedSettings.addSettingsUpdateConsumer(MAX_RESCORE_WINDOW_SETTING, this::setMaxRescoreWindow);
-        scopedSettings.addSettingsUpdateConsumer(MAX_DOCVALUE_FIELDS_SEARCH_SETTING, this::setMaxDocvalueFields);
-        scopedSettings.addSettingsUpdateConsumer(MAX_SCRIPT_FIELDS_SETTING, this::setMaxScriptFields);
         scopedSettings.addSettingsUpdateConsumer(MAX_NGRAM_DIFF_SETTING, this::setMaxNgramDiff);
         scopedSettings.addSettingsUpdateConsumer(MAX_SHINGLE_DIFF_SETTING, this::setMaxShingleDiff);
         scopedSettings.addSettingsUpdateConsumer(INDEX_WARMER_ENABLED_SETTING, this::setEnableWarmer);
@@ -479,11 +334,7 @@ public final class IndexSettings {
         scopedSettings.addSettingsUpdateConsumer(INDEX_TRANSLOG_RETENTION_SIZE_SETTING, this::setTranslogRetentionSize);
         scopedSettings.addSettingsUpdateConsumer(INDEX_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
         scopedSettings.addSettingsUpdateConsumer(MAX_REFRESH_LISTENERS_PER_SHARD, this::setMaxRefreshListeners);
-        scopedSettings.addSettingsUpdateConsumer(MAX_ANALYZED_OFFSET_SETTING, this::setHighlightMaxAnalyzedOffset);
-        scopedSettings.addSettingsUpdateConsumer(MAX_TERMS_COUNT_SETTING, this::setMaxTermsCount);
-        scopedSettings.addSettingsUpdateConsumer(MAX_SLICES_PER_SCROLL, this::setMaxSlicesPerScroll);
         scopedSettings.addSettingsUpdateConsumer(DEFAULT_FIELD_SETTING, this::setDefaultFields);
-        scopedSettings.addSettingsUpdateConsumer(MAX_REGEX_LENGTH_SETTING, this::setMaxRegexLength);
         scopedSettings.addSettingsUpdateConsumer(INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING, this::setSoftDeleteRetentionOperations);
     }
 
@@ -698,61 +549,6 @@ public final class IndexSettings {
     public MergeSchedulerConfig getMergeSchedulerConfig() { return mergeSchedulerConfig; }
 
     /**
-     * Returns the max result window for search requests, describing the maximum value of from + size on a query.
-     */
-    public int getMaxResultWindow() {
-        return this.maxResultWindow;
-    }
-
-    private void setMaxResultWindow(int maxResultWindow) {
-        this.maxResultWindow = maxResultWindow;
-    }
-
-    /**
-     * Returns the max result window for an individual inner hit definition or top hits aggregation.
-     */
-    public int getMaxInnerResultWindow() {
-        return maxInnerResultWindow;
-    }
-
-    private void setMaxInnerResultWindow(int maxInnerResultWindow) {
-        this.maxInnerResultWindow = maxInnerResultWindow;
-    }
-
-    /**
-     * Returns the max number of filters in adjacency_matrix aggregation search requests
-     */
-    public int getMaxAdjacencyMatrixFilters() {
-        return this.maxAdjacencyMatrixFilters;
-    }
-
-    private void setMaxAdjacencyMatrixFilters(int maxAdjacencyFilters) {
-        this.maxAdjacencyMatrixFilters = maxAdjacencyFilters;
-    }
-
-    /**
-     * Returns the maximum rescore window for search requests.
-     */
-    public int getMaxRescoreWindow() {
-        return maxRescoreWindow;
-    }
-
-    private void setMaxRescoreWindow(int maxRescoreWindow) {
-        this.maxRescoreWindow = maxRescoreWindow;
-    }
-
-    /**
-     * Returns the maximum number of allowed docvalue_fields to retrieve in a search request
-     */
-    public int getMaxDocvalueFields() {
-        return this.maxDocvalueFields;
-    }
-
-    private void setMaxDocvalueFields(int maxDocvalueFields) {
-        this.maxDocvalueFields = maxDocvalueFields;
-    }
-
-    /**
      * Returns the maximum allowed difference between max and min length of ngram
      */
     public int getMaxNgramDiff() { return this.maxNgramDiff; }
@@ -765,37 +561,6 @@ public final class IndexSettings {
     public int getMaxShingleDiff() { return this.maxShingleDiff; }
 
     private void setMaxShingleDiff(int maxShingleDiff) { this.maxShingleDiff = maxShingleDiff; }
-
-    /**
-     *  Returns the maximum number of chars that will be analyzed in a highlight request
-     */
-    public int getHighlightMaxAnalyzedOffset() { return this.maxAnalyzedOffset; }
-
-    private void setHighlightMaxAnalyzedOffset(int maxAnalyzedOffset) {
-        if (maxAnalyzedOffset < 1) {
-            throw new IllegalArgumentException(
-                "[" + MAX_ANALYZED_OFFSET_SETTING.getKey() + "] must be >= 1");
-        }
-        this.maxAnalyzedOffset = maxAnalyzedOffset;
-    }
-
-    /**
-     *  Returns the maximum number of terms that can be used in a Terms Query request
-     */
-    public int getMaxTermsCount() { return this.maxTermsCount; }
-
-    private void setMaxTermsCount (int maxTermsCount) { this.maxTermsCount = maxTermsCount; }
-
-    /**
-     * Returns the maximum number of allowed script_fields to retrieve in a search request
-     */
-    public int getMaxScriptFields() {
-        return this.maxScriptFields;
-    }
-
-    private void setMaxScriptFields(int maxScriptFields) {
-        this.maxScriptFields = maxScriptFields;
-    }
 
     /**
      * Returns the GC deletes cycle in milliseconds.
@@ -824,28 +589,6 @@ public final class IndexSettings {
 
     private void setMaxRefreshListeners(int maxRefreshListeners) {
         this.maxRefreshListeners = maxRefreshListeners;
-    }
-
-    /**
-     * The maximum number of slices allowed in a scroll request.
-     */
-    public int getMaxSlicesPerScroll() {
-        return maxSlicesPerScroll;
-    }
-
-    private void setMaxSlicesPerScroll(int value) {
-        this.maxSlicesPerScroll = value;
-    }
-
-    /**
-     * The maximum length of regex string allowed in a regexp query.
-     */
-    public int getMaxRegexLength() {
-        return maxRegexLength;
-    }
-
-    private void setMaxRegexLength(int maxRegexLength) {
-        this.maxRegexLength = maxRegexLength;
     }
 
     /**
