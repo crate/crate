@@ -23,6 +23,7 @@
 package io.crate.execution.engine.sort;
 
 import io.crate.data.BatchIterator;
+import io.crate.data.Bucket;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
@@ -31,33 +32,57 @@ import io.crate.execution.engine.collect.CollectExpression;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.stream.Collector;
 
 public class SortingTopNProjector implements Projector {
 
-    private final SortingTopNCollector collector;
+    private final Collector<Row, ?, Bucket> collector;
 
     /**
-     * @param inputs             contains output {@link Input}s and orderBy {@link Input}s
-     * @param collectExpressions gathered from outputs and orderBy inputs
-     * @param numOutputs         <code>inputs</code> contains this much output {@link Input}s starting form index 0
-     * @param ordering           ordering that is used to compare the rows
-     * @param limit              the number of rows to gather, pass to upStream
-     * @param offset             the initial offset, this number of rows are skipped
+     * @param inputs                      contains output {@link Input}s and orderBy {@link Input}s
+     * @param collectExpressions          gathered from outputs and orderBy inputs
+     * @param numOutputs                  <code>inputs</code> contains this much output {@link Input}s starting form index 0
+     * @param ordering                    ordering that is used to compare the rows
+     * @param limit                       the number of rows to gather, pass to upStream
+     * @param offset                      the initial offset, this number of rows are skipped
+     * @param unboundedCollectorThreshold if (limit + offset) is greater than this threshold an unbounded collector will
+     *                                    be used, otherwise a bounded one is used.
      */
     public SortingTopNProjector(Collection<? extends Input<?>> inputs,
                                 Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                 int numOutputs,
                                 Comparator<Object[]> ordering,
                                 int limit,
-                                int offset) {
-        collector = new SortingTopNCollector(
-            inputs,
-            collectExpressions,
-            numOutputs,
-            ordering,
-            limit,
-            offset
-        );
+                                int offset,
+                                int unboundedCollectorThreshold) {
+        /**
+         * We'll use an unbounded queue with the initial capacity of {@link unboundedCollectorThreshold}
+         * if the maximum number of rows we have to accommodate in the queue in order to maintain correctness is
+         * greater than this threshold.
+         *
+         * Otherwise, we'll use a bounded queue as we want to avoid the case where we pre-allocate a large queue that
+         * will never be filled.
+         */
+        if ((limit + offset) > unboundedCollectorThreshold) {
+            collector = new UnboundedSortingTopNCollector(
+                inputs,
+                collectExpressions,
+                numOutputs,
+                ordering,
+                unboundedCollectorThreshold,
+                limit,
+                offset
+            );
+        } else {
+            collector = new BoundedSortingTopNCollector(
+                inputs,
+                collectExpressions,
+                numOutputs,
+                ordering,
+                limit,
+                offset
+            );
+        }
     }
 
     @Override

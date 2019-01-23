@@ -28,7 +28,6 @@ import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.sort.RowPriorityQueue;
 import org.apache.lucene.util.ArrayUtil;
 
 import java.util.Collection;
@@ -43,10 +42,11 @@ import java.util.stream.Collector;
 
 
 /**
- * Collector implementation which collects rows into a priorityQueue in order to sort the rows and apply a limit + offset.
+ * Collector implementation which collects rows into a bounded priorityQueue in order to sort the rows and apply a
+ * limit + offset.
  * The final result is a sorted bucket with limit and offset applied.
  */
-public class SortingTopNCollector implements Collector<Row, RowPriorityQueue<Object[]>, Bucket> {
+public class BoundedSortingTopNCollector implements Collector<Row, RowPriorityQueue<Object[]>, Bucket> {
 
     private final Collection<? extends Input<?>> inputs;
     private final Iterable<? extends CollectExpression<Row, ?>> expressions;
@@ -58,19 +58,19 @@ public class SortingTopNCollector implements Collector<Row, RowPriorityQueue<Obj
     private Object[] spare;
 
     /**
-     * @param inputs             contains output {@link Input}s and orderBy {@link Input}s
-     * @param expressions        expressions linked to the inputs
-     * @param numOutputs         number of output columns
-     * @param comparator         used to sort the rows
-     * @param limit              the max number of rows the result should contain
-     * @param offset             the number of rows to skip (after sort)
+     * @param inputs      contains output {@link Input}s and orderBy {@link Input}s
+     * @param expressions expressions linked to the inputs
+     * @param numOutputs  number of output columns
+     * @param comparator  used to sort the rows
+     * @param limit       the max number of rows the result should contain
+     * @param offset      the number of rows to skip (after sort)
      */
-    public SortingTopNCollector(Collection<? extends Input<?>> inputs,
-                                Iterable<? extends CollectExpression<Row, ?>> expressions,
-                                int numOutputs,
-                                Comparator<Object[]> comparator,
-                                int limit,
-                                int offset) {
+    public BoundedSortingTopNCollector(Collection<? extends Input<?>> inputs,
+                                       Iterable<? extends CollectExpression<Row, ?>> expressions,
+                                       int numOutputs,
+                                       Comparator<Object[]> comparator,
+                                       int limit,
+                                       int offset) {
         Preconditions.checkArgument(limit > 0, "Invalid LIMIT: value must be > 0; got: " + limit);
         Preconditions.checkArgument(offset >= 0, "Invalid OFFSET: value must be >= 0; got: " + offset);
 
@@ -85,7 +85,8 @@ public class SortingTopNCollector implements Collector<Row, RowPriorityQueue<Obj
             // Throw exception to prevent confusing OOME in PriorityQueue
             // 1) if offset + limit exceeds maximum array length
             // 2) if offset + limit exceeds Integer.MAX_VALUE (then maxSize is negative!)
-            throw new IllegalArgumentException("Invalid LIMIT + OFFSET: value must be <= " + (ArrayUtil.MAX_ARRAY_LENGTH - 1) + "; got: " + maxSize);
+            throw new IllegalArgumentException(
+                "Invalid LIMIT + OFFSET: value must be <= " + (ArrayUtil.MAX_ARRAY_LENGTH - 1) + "; got: " + maxSize);
         }
     }
 
