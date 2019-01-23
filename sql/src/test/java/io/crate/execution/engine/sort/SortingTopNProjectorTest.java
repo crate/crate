@@ -24,7 +24,6 @@ package io.crate.execution.engine.sort;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
-import io.crate.expression.symbol.Literal;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Projector;
@@ -32,6 +31,7 @@ import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.symbol.Literal;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
@@ -53,13 +53,20 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     private TestingRowConsumer consumer = new TestingRowConsumer();
 
     private Projector getProjector(int numOutputs, int limit, int offset, Ordering<Object[]> ordering) {
+        int unboundedCollectorThreshold = 10_000;
+        if (random().nextFloat() >= 0.5f) {
+            unboundedCollectorThreshold = 1;
+        }
+        logger.info("Creating SortingTopN projector with unbounded collector threshold {}", unboundedCollectorThreshold);
+
         return new SortingTopNProjector(
             INPUT_LITERAL_LIST,
             COLLECT_EXPRESSIONS,
             numOutputs,
             ordering,
             limit,
-            offset
+            offset,
+            unboundedCollectorThreshold
         );
     }
 
@@ -81,6 +88,15 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
             iterateLength++;
         }
         assertThat(iterateLength, is(3));
+    }
+
+    @Test
+    public void testOrderByWithLimitMuchHigherThanExpectedRowsCount() throws Exception {
+        Projector projector = getProjector(1, 100_000, TopN.NO_OFFSET, FIRST_CELL_ORDERING);
+        consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
+
+        Bucket rows = consumer.getBucket();
+        assertThat(rows.size(), is(10));
     }
 
     @Test
@@ -110,7 +126,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid LIMIT: value must be > 0; got: -1");
 
-        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, -1, 0);
+        getProjector(2, -1, 0);
     }
 
     @Test
@@ -118,7 +134,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid LIMIT: value must be > 0; got: 0");
 
-        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, 0, 0);
+        getProjector(2, 0, 0);
     }
 
     @Test
@@ -126,7 +142,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid OFFSET: value must be >= 0; got: -1");
 
-        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, 1, -1);
+        getProjector(2, 1, -1);
     }
 
     @Test
@@ -135,7 +151,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         expectedException.expectMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: 2147483646");
 
         int i = Integer.MAX_VALUE / 2;
-        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, i, i);
+        getProjector(2, i, i);
     }
 
     @Test
@@ -144,6 +160,6 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         expectedException.expectMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: -2147483648");
 
         int i = Integer.MAX_VALUE / 2 + 1;
-        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, i, i);
+        getProjector(2, i, i);
     }
 }
