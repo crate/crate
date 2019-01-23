@@ -117,6 +117,19 @@ import java.util.function.Supplier;
 public class ProjectionToProjectorVisitor
     extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
 
+    /**
+     * Represents the minimum number of rows that have to be processed in a sorted TopN projector context after which
+     * we'll use an unbounded collector ie. {@link io.crate.execution.engine.sort.UnboundedSortingTopNCollector}. If
+     * less rows are needed (ie. limit + offset < threshold) a bounded collector will be used (a collector that
+     * pre-allocates the underlying structure in order to execute the sort and limit operation).
+     *
+     * We've chosen 10_000 because the usual user required limits are lower and our default limit applied over HTTP is
+     * 10_000. These most common cases will be accommodated by a bounded collector which is slightly faster than the
+     * unbounded one (however benchmarks have shown that using a collector that grows the underlying structure adds
+     * an overhead of around 1-5% so performance will not be grossly affected even for larger limits).
+     */
+    private static final int UNBOUNDED_COLLECTOR_THRESHOLD = 10_000;
+
     private final ClusterService clusterService;
     private final NodeJobsCounter nodeJobsCounter;
     private final Functions functions;
@@ -225,7 +238,8 @@ public class ProjectionToProjectorVisitor
                 numOutputs,
                 OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
                 projection.limit(),
-                projection.offset()
+                projection.offset(),
+                UNBOUNDED_COLLECTOR_THRESHOLD
             );
         }
         return new SortingProjector(
