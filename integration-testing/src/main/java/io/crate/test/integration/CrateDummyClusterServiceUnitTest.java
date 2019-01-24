@@ -54,6 +54,7 @@ import static org.elasticsearch.test.ClusterServiceUtils.createClusterStatePubli
 public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
 
     public static final String NODE_ID = "n1";
+    public static final String NODE_NAME = "node-name";
 
     private static final Set<Setting<?>> EMPTY_CLUSTER_SETTINGS = ImmutableSet.of();
 
@@ -110,7 +111,7 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
             }
         });
         DiscoveryNode discoveryNode = new DiscoveryNode(
-            "node-name",
+            NODE_NAME,
             NODE_ID,
             buildNewFakeTransportAddress(),
             Collections.emptyMap(),

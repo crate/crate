@@ -28,18 +28,25 @@ import string
 import threading
 from crate.testing.layer import CrateLayer
 from crate.client.http import Client
-from crate.client.exceptions import ProgrammingError
+from crate.client.exceptions import ProgrammingError, ConnectionError
 from testutils.paths import crate_path
 from testutils.ports import GLOBAL_PORT_POOL
 
 
-def decommission(process):
+def decommission_using_signal(process):
     os.kill(process.pid, signal.SIGUSR2)
     return process.wait(timeout=60)
 
 
+def decommission(client, node):
+    try:
+        return client.sql('alter cluster decommission ?', (node,))
+    except ConnectionError:
+        pass
+
+
 def retry_sql(client, statement):
-    """ retry statement on node not found in cluster state errros
+    """ retry statement on node not found in cluster state errors
 
     sys.shards queries might fail if a node that has shutdown is still
     in the cluster state
@@ -168,7 +175,7 @@ class TestProcessSignal(GracefulStopTest):
         crate = self.crates[0]
         process = crate.process
 
-        exit_value = decommission(process)
+        exit_value = decommission_using_signal(process)
         self.assertTrue(
             exit_value == 0,
             "crate stopped with return value {0}. expected: 0".format(exit_value)
@@ -195,7 +202,7 @@ class TestGracefulStopPrimaries(GracefulStopTest):
         """
         client2 = self.clients[1]
         self.set_settings({"cluster.graceful_stop.min_availability": "primaries"})
-        decommission(self.crates[0].process)
+        decommission(self.clients[0], self.node_names[0])
         stmt = "select table_name, id from sys.shards where state = 'UNASSIGNED'"
         response = retry_sql(client2, stmt)
         # assert that all shards are assigned
@@ -224,10 +231,10 @@ class TestGracefulStopFull(GracefulStopTest):
         """
         min_availability: full moves all shards
         """
-        crate1, crate2, crate3 = self.crates
+        node1, node2, node3 = self.node_names
         client1, client2, client3 = self.clients
         self.set_settings({"cluster.graceful_stop.min_availability": "full"})
-        decommission(crate1.process)
+        decommission(client1, node1)
 
         stmt = "select table_name, id from sys.shards where state = 'UNASSIGNED'"
         response = retry_sql(client2, stmt)
@@ -266,7 +273,7 @@ class TestGracefulStopNone(GracefulStopTest):
         client2 = self.clients[1]
 
         self.set_settings({"cluster.graceful_stop.min_availability": "none"})
-        decommission(self.crates[0].process)
+        decommission(self.clients[0], self.node_names[0])
 
         stmt = "select node['id'] as node_id, id, state \
             from sys.shards where state='UNASSIGNED'"
@@ -337,7 +344,7 @@ class TestGracefulStopDuringQueryExecution(GracefulStopTest):
             )
             t.start()
 
-        decommission(self.crates[1].process)
+        decommission(self.clients[1], self.node_names[1])
 
         run_queries[0] = False
         threads_finished_b.wait()

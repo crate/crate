@@ -42,6 +42,9 @@ None
 Changes
 =======
 
+- Added ``ALTER CLUSTER DECOMMISSION <nodeId | nodeName>`` command that
+  triggers the existing node decommission functionality.
+
 - Added ``pg_type.typlen`` and ``pg_type.typnamespace`` columns for improved
   postgresql compatibility.
 

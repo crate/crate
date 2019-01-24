@@ -74,6 +74,7 @@ import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DateLiteral;
 import io.crate.sql.tree.DeallocateStatement;
+import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DoubleLiteral;
@@ -270,6 +271,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitAlterClusterGCDanglingArtifacts(SqlBaseParser.AlterClusterGCDanglingArtifactsContext ctx) {
         return GCDanglingArtifacts.INSTANCE;
+    }
+
+    @Override
+    public Node visitAlterClusterDecommissionNode(SqlBaseParser.AlterClusterDecommissionNodeContext ctx) {
+        return new DecommissionNodeStatement((Expression) visit(ctx.node));
     }
 
     @Override

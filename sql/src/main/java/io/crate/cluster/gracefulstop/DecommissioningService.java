@@ -301,8 +301,12 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
     @Override
     public void handle(Signal signal) {
+        handle();
+    }
+
+    public void handle() {
         if (dataAvailability == DataAvailability.NONE) {
-            System.exit(0);
+            exit();
         } else {
             decommission();
         }
