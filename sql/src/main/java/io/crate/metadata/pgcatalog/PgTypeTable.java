@@ -50,6 +50,7 @@ public class PgTypeTable extends StaticTableInfo {
         static final ColumnIdent TYPNAME = new ColumnIdent("typname");
         static final ColumnIdent TYPDELIM = new ColumnIdent("typdelim");
         static final ColumnIdent TYPELEM = new ColumnIdent("typelem");
+        static final ColumnIdent TYPLEN = new ColumnIdent("typlen");
         static final ColumnIdent TYPTYPE = new ColumnIdent("typtype");
         static final ColumnIdent TYPBASETYPE = new ColumnIdent("typbasetype");
         static final ColumnIdent TYPTYPMOD = new ColumnIdent("typtypmod");
@@ -67,6 +68,8 @@ public class PgTypeTable extends StaticTableInfo {
                 () -> NestableCollectExpression.forFunction(PGType::typDelim))
             .put(Columns.TYPELEM,
                 () -> NestableCollectExpression.forFunction(PGType::typElem))
+            .put(Columns.TYPLEN,
+                () -> NestableCollectExpression.forFunction(PGType::typeLen))
             .put(Columns.TYPTYPE,
                 () -> NestableCollectExpression.constant(TYPTYPE))
             .put(Columns.TYPBASETYPE,
@@ -82,6 +85,7 @@ public class PgTypeTable extends StaticTableInfo {
                 .register(Columns.TYPNAME.name(), DataTypes.STRING, null)
                 .register(Columns.TYPDELIM.name(), DataTypes.STRING, null)
                 .register(Columns.TYPELEM.name(), DataTypes.INTEGER, null)
+                .register(Columns.TYPLEN.name(), DataTypes.SHORT, null)
                 .register(Columns.TYPTYPE.name(), DataTypes.STRING, null)
                 .register(Columns.TYPBASETYPE.name(), DataTypes.INTEGER, null)
                 .register(Columns.TYPTYPMOD.name(), DataTypes.INTEGER, null),

@@ -42,6 +42,8 @@ None
 Changes
 =======
 
+- Added the ``pg_type.typlen`` column for improved postgresql compatibility.
+
 - Marked ``CREATE INGEST RULE`` and ``DROP INGEST RULE`` as deprecated. Given
   that the only implementation (MQTT) was deprecated and will be removed, the
   framework itself will also be removed.
