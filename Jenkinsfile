@@ -5,7 +5,6 @@ pipeline {
       agent { label 'large' }
       steps {
         step([$class: 'WsCleanup'])
-        checkout scm
         sh 'git submodule update --init'
         sh './gradlew --no-daemon --parallel clean compileTestJava'
         stash includes: '**/build/**/*.jar', name: 'crate'
@@ -16,6 +15,7 @@ pipeline {
         stage('sphinx') {
           agent { label 'medium' }
           steps {
+            sh 'git clean -xdff'
             sh 'cd ./blackbox/ && ./bootstrap.sh'
             sh './blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E blackbox/docs/ docs/out/html'
             sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
@@ -28,7 +28,6 @@ pipeline {
           }
           steps {
             sh 'git clean -xdff'
-            checkout scm
             sh 'git submodule update --init'
             unstash 'crate'
             sh './gradlew --no-daemon --parallel -PtestForks=8 test forbiddenApisMain pmdMain jacocoReport'
@@ -50,7 +49,6 @@ pipeline {
           }
           steps {
             sh 'git clean -xdff'
-            checkout scm
             sh 'git submodule update --init'
             unstash 'crate'
             sh './gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
@@ -69,7 +67,6 @@ pipeline {
           }
           steps {
             sh 'git clean -xdff'
-            checkout scm
             sh 'git submodule update --init'
             unstash 'crate'
             sh './gradlew --no-daemon itest'
@@ -82,7 +79,6 @@ pipeline {
           }
           steps {
             sh 'git clean -xdff'
-            checkout scm
             sh 'git submodule update --init'
             unstash 'crate'
             sh './gradlew --no-daemon itest'
