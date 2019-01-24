@@ -21,7 +21,6 @@ package org.elasticsearch.cluster.metadata;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.common.Nullable;
@@ -195,11 +194,7 @@ public class IndexTemplateMetaData extends AbstractDiffable<IndexTemplateMetaDat
     public static IndexTemplateMetaData readFrom(StreamInput in) throws IOException {
         Builder builder = new Builder(in.readString());
         builder.order(in.readInt());
-        if (in.getVersion().onOrAfter(Version.V_6_0_0_alpha1)) {
-            builder.patterns(in.readList(StreamInput::readString));
-        } else {
-            builder.patterns(Collections.singletonList(in.readString()));
-        }
+        builder.patterns(in.readList(StreamInput::readString));
         builder.settings(Settings.readSettingsFromStream(in));
         int mappingsSize = in.readVInt();
         for (int i = 0; i < mappingsSize; i++) {
@@ -210,17 +205,7 @@ public class IndexTemplateMetaData extends AbstractDiffable<IndexTemplateMetaDat
             AliasMetaData aliasMd = new AliasMetaData(in);
             builder.putAlias(aliasMd);
         }
-        if (in.getVersion().before(Version.V_6_5_0)) {
-            // Previously we allowed custom metadata
-            int customSize = in.readVInt();
-            assert customSize == 0 : "expected no custom metadata";
-            if (customSize > 0) {
-                throw new IllegalStateException("unexpected custom metadata when none is supported");
-            }
-        }
-        if (in.getVersion().onOrAfter(Version.V_5_0_0_beta1)) {
-            builder.version(in.readOptionalVInt());
-        }
+        builder.version(in.readOptionalVInt());
         return builder.build();
     }
 
@@ -232,11 +217,7 @@ public class IndexTemplateMetaData extends AbstractDiffable<IndexTemplateMetaDat
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
         out.writeInt(order);
-        if (out.getVersion().onOrAfter(Version.V_6_0_0_alpha1)) {
-            out.writeStringList(patterns);
-        } else {
-            out.writeString(patterns.get(0));
-        }
+        out.writeStringList(patterns);
         Settings.writeSettingsToStream(settings, out);
         out.writeVInt(mappings.size());
         for (ObjectObjectCursor<String, CompressedXContent> cursor : mappings) {
@@ -247,12 +228,7 @@ public class IndexTemplateMetaData extends AbstractDiffable<IndexTemplateMetaDat
         for (ObjectCursor<AliasMetaData> cursor : aliases.values()) {
             cursor.value.writeTo(out);
         }
-        if (out.getVersion().before(Version.V_6_5_0)) {
-            out.writeVInt(0);
-        }
-        if (out.getVersion().onOrAfter(Version.V_5_0_0_beta1)) {
-            out.writeOptionalVInt(version);
-        }
+        out.writeOptionalVInt(version);
     }
 
     public static class Builder {

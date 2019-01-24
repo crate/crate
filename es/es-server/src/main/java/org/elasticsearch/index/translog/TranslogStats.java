@@ -118,28 +118,17 @@ public class TranslogStats implements Streamable, ToXContentFragment {
     public void readFrom(StreamInput in) throws IOException {
         numberOfOperations = in.readVInt();
         translogSizeInBytes = in.readVLong();
-        if (in.getVersion().onOrAfter(Version.V_6_0_0_beta1)) {
-            uncommittedOperations = in.readVInt();
-            uncommittedSizeInBytes = in.readVLong();
-        } else {
-            uncommittedOperations = numberOfOperations;
-            uncommittedSizeInBytes = translogSizeInBytes;
-        }
-        if (in.getVersion().onOrAfter(Version.V_6_3_0)) {
-            earliestLastModifiedAge = in.readVLong();
-        }
+        uncommittedOperations = in.readVInt();
+        uncommittedSizeInBytes = in.readVLong();
+        earliestLastModifiedAge = in.readVLong();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(numberOfOperations);
         out.writeVLong(translogSizeInBytes);
-        if (out.getVersion().onOrAfter(Version.V_6_0_0_beta1)) {
-            out.writeVInt(uncommittedOperations);
-            out.writeVLong(uncommittedSizeInBytes);
-        }
-        if (out.getVersion().onOrAfter(Version.V_6_3_0)) {
-            out.writeVLong(earliestLastModifiedAge);
-        }
+        out.writeVInt(uncommittedOperations);
+        out.writeVLong(uncommittedSizeInBytes);
+        out.writeVLong(earliestLastModifiedAge);
     }
 }

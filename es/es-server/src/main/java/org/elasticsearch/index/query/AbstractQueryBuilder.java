@@ -26,11 +26,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.spans.SpanBoostQuery;
 import org.apache.lucene.search.spans.SpanQuery;
 import org.elasticsearch.common.ParseField;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.logging.DeprecationLogger;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -54,37 +50,6 @@ public abstract class AbstractQueryBuilder<QB extends AbstractQueryBuilder<QB>> 
 
     protected AbstractQueryBuilder() {
 
-    }
-
-    protected AbstractQueryBuilder(StreamInput in) throws IOException {
-        boost = in.readFloat();
-        queryName = in.readOptionalString();
-    }
-
-    @Override
-    public final void writeTo(StreamOutput out) throws IOException {
-        out.writeFloat(boost);
-        out.writeOptionalString(queryName);
-        doWriteTo(out);
-    }
-
-    protected abstract void doWriteTo(StreamOutput out) throws IOException;
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        doXContent(builder, params);
-        builder.endObject();
-        return builder;
-    }
-
-    protected abstract void doXContent(XContentBuilder builder, Params params) throws IOException;
-
-    protected void printBoostAndQueryName(XContentBuilder builder) throws IOException {
-        builder.field(BOOST_FIELD.getPreferredName(), boost);
-        if (queryName != null) {
-            builder.field(NAME_FIELD.getPreferredName(), queryName);
-        }
     }
 
     @Override
@@ -174,16 +139,4 @@ public abstract class AbstractQueryBuilder<QB extends AbstractQueryBuilder<QB>> 
     }
 
     protected abstract int doHashCode();
-
-    @Override
-    public String getName() {
-        //default impl returns the same as writeable name, but we keep the distinction between the two just to make sure
-        return getWriteableName();
-    }
-
-
-    @Override
-    public final String toString() {
-        return Strings.toString(this, true, true);
-    }
 }

@@ -181,11 +181,7 @@ public class Alias implements Streamable, ToXContentFragment {
         filter = in.readOptionalString();
         indexRouting = in.readOptionalString();
         searchRouting = in.readOptionalString();
-        if (in.getVersion().onOrAfter(Version.V_6_4_0)) {
-            writeIndex = in.readOptionalBoolean();
-        } else {
-            writeIndex = null;
-        }
+        writeIndex = in.readOptionalBoolean();
     }
 
     @Override
@@ -194,9 +190,7 @@ public class Alias implements Streamable, ToXContentFragment {
         out.writeOptionalString(filter);
         out.writeOptionalString(indexRouting);
         out.writeOptionalString(searchRouting);
-        if (out.getVersion().onOrAfter(Version.V_6_4_0)) {
-            out.writeOptionalBoolean(writeIndex);
-        }
+        out.writeOptionalBoolean(writeIndex);
     }
 
     /**
