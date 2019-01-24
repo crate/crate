@@ -19,7 +19,6 @@
 
 package org.elasticsearch.monitor.os;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -49,11 +48,7 @@ public class OsStats implements Writeable {
         this.cpu = new Cpu(in);
         this.mem = new Mem(in);
         this.swap = new Swap(in);
-        if (in.getVersion().onOrAfter(Version.V_5_1_1)) {
-            this.cgroup = in.readOptionalWriteable(Cgroup::new);
-        } else {
-            this.cgroup = null;
-        }
+        this.cgroup = in.readOptionalWriteable(Cgroup::new);
     }
 
     @Override
@@ -62,9 +57,7 @@ public class OsStats implements Writeable {
         cpu.writeTo(out);
         mem.writeTo(out);
         swap.writeTo(out);
-        if (out.getVersion().onOrAfter(Version.V_5_1_1)) {
-            out.writeOptionalWriteable(cgroup);
-        }
+        out.writeOptionalWriteable(cgroup);
     }
 
     public long getTimestamp() {
@@ -83,29 +76,6 @@ public class OsStats implements Writeable {
 
     public Cgroup getCgroup() {
         return cgroup;
-    }
-
-    static final class Fields {
-        static final String OS = "os";
-        static final String TIMESTAMP = "timestamp";
-        static final String CPU = "cpu";
-        static final String PERCENT = "percent";
-        static final String LOAD_AVERAGE = "load_average";
-        static final String LOAD_AVERAGE_1M = "1m";
-        static final String LOAD_AVERAGE_5M = "5m";
-        static final String LOAD_AVERAGE_15M = "15m";
-
-        static final String MEM = "mem";
-        static final String SWAP = "swap";
-        static final String FREE = "free";
-        static final String FREE_IN_BYTES = "free_in_bytes";
-        static final String USED = "used";
-        static final String USED_IN_BYTES = "used_in_bytes";
-        static final String TOTAL = "total";
-        static final String TOTAL_IN_BYTES = "total_in_bytes";
-
-        static final String FREE_PERCENT = "free_percent";
-        static final String USED_PERCENT = "used_percent";
     }
 
     public static class Cpu implements Writeable {
@@ -359,15 +329,9 @@ public class OsStats implements Writeable {
             cpuCfsPeriodMicros = in.readLong();
             cpuCfsQuotaMicros = in.readLong();
             cpuStat = new CpuStat(in);
-            if (in.getVersion().onOrAfter(Version.V_6_1_0)) {
-                memoryControlGroup = in.readOptionalString();
-                memoryLimitInBytes = in.readOptionalString();
-                memoryUsageInBytes = in.readOptionalString();
-            } else {
-                memoryControlGroup = null;
-                memoryLimitInBytes = null;
-                memoryUsageInBytes = null;
-            }
+            memoryControlGroup = in.readOptionalString();
+            memoryLimitInBytes = in.readOptionalString();
+            memoryUsageInBytes = in.readOptionalString();
         }
 
         @Override
@@ -378,11 +342,9 @@ public class OsStats implements Writeable {
             out.writeLong(cpuCfsPeriodMicros);
             out.writeLong(cpuCfsQuotaMicros);
             cpuStat.writeTo(out);
-            if (out.getVersion().onOrAfter(Version.V_6_1_0)) {
-                out.writeOptionalString(memoryControlGroup);
-                out.writeOptionalString(memoryLimitInBytes);
-                out.writeOptionalString(memoryUsageInBytes);
-            }
+            out.writeOptionalString(memoryControlGroup);
+            out.writeOptionalString(memoryLimitInBytes);
+            out.writeOptionalString(memoryUsageInBytes);
         }
 
         /**

@@ -19,13 +19,6 @@
 package org.elasticsearch.common.unit;
 
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.ParseField;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
@@ -37,14 +30,12 @@ import java.util.Objects;
  * parsing and conversion from similarities to edit distances
  * etc.
  */
-public final class Fuzziness implements ToXContentFragment, Writeable {
+public final class Fuzziness {
 
-    public static final String X_FIELD_NAME = "fuzziness";
     public static final Fuzziness ZERO = new Fuzziness(0);
     public static final Fuzziness ONE = new Fuzziness(1);
     public static final Fuzziness TWO = new Fuzziness(2);
     public static final Fuzziness AUTO = new Fuzziness("AUTO");
-    public static final ParseField FIELD = new ParseField(X_FIELD_NAME);
     private static final int DEFAULT_LOW_DISTANCE = 3;
     private static final int DEFAULT_HIGH_DISTANCE = 6;
 
@@ -74,43 +65,6 @@ public final class Fuzziness implements ToXContentFragment, Writeable {
         }
         this.lowDistance = lowDistance;
         this.highDistance = highDistance;
-    }
-
-    /**
-     * Read from a stream.
-     */
-    public Fuzziness(StreamInput in) throws IOException {
-        fuzziness = in.readString();
-        if (in.getVersion().onOrAfter(Version.V_6_1_0) && in.readBoolean()) {
-            lowDistance = in.readVInt();
-            highDistance = in.readVInt();
-        }
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(fuzziness);
-        if (out.getVersion().onOrAfter(Version.V_6_1_0)) {
-            // we cannot serialize the low/high bounds since the other node does not know about them.
-            // This is a best-effort to not fail queries in case the cluster is being upgraded and users
-            // start using features that are not available on all nodes.
-            if (isAutoWithCustomValues()) {
-                out.writeBoolean(true);
-                out.writeVInt(lowDistance);
-                out.writeVInt(highDistance);
-            } else {
-                out.writeBoolean(false);
-            }
-        }
-    }
-
-    /**
-     * Creates a {@link Fuzziness} instance from an edit distance. The value must be one of {@code [0, 1, 2]}
-     *
-     * Note: Using this method only makes sense if the field you are applying Fuzziness to is some sort of string.
-     */
-    public static Fuzziness fromEdits(int edits) {
-        return new Fuzziness(edits);
     }
 
     public static Fuzziness build(Object fuzziness) {
@@ -173,16 +127,6 @@ public final class Fuzziness implements ToXContentFragment, Writeable {
             default:
                 throw new IllegalArgumentException("Can't parse fuzziness on token: [" + token + "]");
         }
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.field(X_FIELD_NAME, fuzziness);
-        return builder;
-    }
-
-    public int asDistance() {
-        return asDistance(null);
     }
 
     public int asDistance(String text) {

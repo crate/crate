@@ -243,30 +243,12 @@ public class IndicesOptions implements ToXContentFragment {
     }
 
     public void writeIndicesOptions(StreamOutput out) throws IOException {
-        if (out.getVersion().onOrAfter(Version.V_6_4_0)) {
-            out.writeEnumSet(options);
-            out.writeEnumSet(expandWildcards);
-        } else {
-            if (out.getVersion().onOrAfter(Version.V_6_0_0_alpha2)) {
-                out.write(IndicesOptions.toByte(this));
-            } else {
-                // if we are talking to a node that doesn't support the newly added flag (ignoreAliases)
-                // flip to 0 all the bits starting from the 7th
-                out.write(IndicesOptions.toByte(this) & 0x3f);
-            }
-        }
+        out.writeEnumSet(options);
+        out.writeEnumSet(expandWildcards);
     }
 
     public static IndicesOptions readIndicesOptions(StreamInput in) throws IOException {
-        if (in.getVersion().onOrAfter(Version.V_6_4_0)) {
-            return new IndicesOptions(in.readEnumSet(Option.class), in.readEnumSet(WildcardStates.class));
-        } else {
-            byte id = in.readByte();
-            if (id >= OLD_VALUES.length) {
-                throw new IllegalArgumentException("No valid missing index type id: " + id);
-            }
-            return OLD_VALUES[id];
-        }
+        return new IndicesOptions(in.readEnumSet(Option.class), in.readEnumSet(WildcardStates.class));
     }
 
     public static IndicesOptions fromOptions(boolean ignoreUnavailable, boolean allowNoIndices, boolean expandToOpenIndices, boolean expandToClosedIndices) {

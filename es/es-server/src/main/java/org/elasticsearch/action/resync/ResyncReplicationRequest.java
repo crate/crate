@@ -18,11 +18,9 @@
  */
 package org.elasticsearch.action.resync;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 
@@ -65,36 +63,17 @@ public final class ResyncReplicationRequest extends ReplicatedWriteRequest<Resyn
 
     @Override
     public void readFrom(final StreamInput in) throws IOException {
-        if (in.getVersion().equals(Version.V_6_0_0)) {
-            /*
-             * Resync replication request serialization was broken in 6.0.0 due to the elements of the stream not being prefixed with a
-             * byte indicating the type of the operation.
-             */
-            throw new IllegalStateException("resync replication request serialization is broken in 6.0.0");
-        }
         super.readFrom(in);
-        if (in.getVersion().onOrAfter(Version.V_6_4_0)) {
-            trimAboveSeqNo = in.readZLong();
-        } else {
-            trimAboveSeqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
-        }
-        if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
-            maxSeenAutoIdTimestampOnPrimary = in.readZLong();
-        } else {
-            maxSeenAutoIdTimestampOnPrimary = Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
-        }
+        trimAboveSeqNo = in.readZLong();
+        maxSeenAutoIdTimestampOnPrimary = in.readZLong();
         operations = in.readArray(Translog.Operation::readOperation, Translog.Operation[]::new);
     }
 
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
         super.writeTo(out);
-        if (out.getVersion().onOrAfter(Version.V_6_4_0)) {
-            out.writeZLong(trimAboveSeqNo);
-        }
-        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
-            out.writeZLong(maxSeenAutoIdTimestampOnPrimary);
-        }
+        out.writeZLong(trimAboveSeqNo);
+        out.writeZLong(maxSeenAutoIdTimestampOnPrimary);
         out.writeArray(Translog.Operation::writeOperation, operations);
     }
 
