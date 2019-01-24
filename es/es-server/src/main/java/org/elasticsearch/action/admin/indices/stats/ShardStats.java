@@ -103,9 +103,7 @@ public class ShardStats implements Streamable, Writeable {
         statePath = in.readString();
         dataPath = in.readString();
         isCustomDataPath = in.readBoolean();
-        if (in.getVersion().onOrAfter(Version.V_6_0_0_alpha1)) {
-            seqNoStats = in.readOptionalWriteable(SeqNoStats::new);
-        }
+        seqNoStats = in.readOptionalWriteable(SeqNoStats::new);
     }
 
     @Override
@@ -116,8 +114,6 @@ public class ShardStats implements Streamable, Writeable {
         out.writeString(statePath);
         out.writeString(dataPath);
         out.writeBoolean(isCustomDataPath);
-        if (out.getVersion().onOrAfter(Version.V_6_0_0_alpha1)) {
-            out.writeOptionalWriteable(seqNoStats);
-        }
+        out.writeOptionalWriteable(seqNoStats);
     }
 }

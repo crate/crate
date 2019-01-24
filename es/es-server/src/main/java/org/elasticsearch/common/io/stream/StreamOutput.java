@@ -904,23 +904,9 @@ public abstract class StreamOutput extends OutputStream {
             } else if (throwable instanceof IOException) {
                 writeVInt(17);
             } else if (throwable instanceof EsRejectedExecutionException) {
-                if (version.before(Version.V_6_3_0)) {
-                    /*
-                     * This is a backwards compatibility layer when speaking to nodes that still treated EsRejectedExceutionException as an
-                     * instance of ElasticsearchException. As such, we serialize this in a way that the receiving node would read this as an
-                     * EsRejectedExecutionException.
-                     */
-                    final ElasticsearchException ex = new ElasticsearchException(throwable.getMessage());
-                    writeVInt(0);
-                    writeVInt(59);
-                    ex.writeTo(this);
-                    writeBoolean(((EsRejectedExecutionException) throwable).isExecutorShutdown());
-                    return;
-                } else {
-                    writeVInt(18);
-                    writeBoolean(((EsRejectedExecutionException) throwable).isExecutorShutdown());
-                    writeCause = false;
-                }
+                writeVInt(18);
+                writeBoolean(((EsRejectedExecutionException) throwable).isExecutorShutdown());
+                writeCause = false;
             } else {
                 final ElasticsearchException ex;
                 if (throwable instanceof ElasticsearchException && ElasticsearchException.isRegistered(throwable.getClass(), version)) {

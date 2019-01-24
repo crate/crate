@@ -47,14 +47,7 @@ class RecoveryPrepareForTranslogOperationsRequest extends TransportRequest {
         recoveryId = in.readLong();
         shardId = ShardId.readShardId(in);
         totalTranslogOps = in.readVInt();
-        if (in.getVersion().before(Version.V_6_0_0_alpha1)) {
-            in.readLong(); // maxUnsafeAutoIdTimestamp
-        }
-        if (in.getVersion().onOrAfter(Version.V_6_2_0)) {
-            fileBasedRecovery = in.readBoolean();
-        } else {
-            fileBasedRecovery = true;
-        }
+        fileBasedRecovery = in.readBoolean();
     }
 
     public long recoveryId() {
@@ -82,11 +75,6 @@ class RecoveryPrepareForTranslogOperationsRequest extends TransportRequest {
         out.writeLong(recoveryId);
         shardId.writeTo(out);
         out.writeVInt(totalTranslogOps);
-        if (out.getVersion().before(Version.V_6_0_0_alpha1)) {
-            out.writeLong(Translog.UNSET_AUTO_GENERATED_TIMESTAMP); // maxUnsafeAutoIdTimestamp
-        }
-        if (out.getVersion().onOrAfter(Version.V_6_2_0)) {
-            out.writeBoolean(fileBasedRecovery);
-        }
+        out.writeBoolean(fileBasedRecovery);
     }
 }

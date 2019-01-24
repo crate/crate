@@ -114,17 +114,13 @@ public class FlushStats implements Streamable, ToXContentFragment {
     public void readFrom(StreamInput in) throws IOException {
         total = in.readVLong();
         totalTimeInMillis = in.readVLong();
-        if (in.getVersion().onOrAfter(Version.V_6_3_0)) {
-            periodic = in.readVLong();
-        }
+        periodic = in.readVLong();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVLong(total);
         out.writeVLong(totalTimeInMillis);
-        if (out.getVersion().onOrAfter(Version.V_6_3_0)) {
-            out.writeVLong(periodic);
-        }
+        out.writeVLong(periodic);
     }
 }

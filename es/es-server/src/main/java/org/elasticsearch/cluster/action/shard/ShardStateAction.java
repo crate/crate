@@ -398,11 +398,7 @@ public class ShardStateAction extends AbstractComponent {
             primaryTerm = in.readVLong();
             message = in.readString();
             failure = in.readException();
-            if (in.getVersion().onOrAfter(Version.V_6_3_0)) {
-                markAsStale = in.readBoolean();
-            } else {
-                markAsStale = true;
-            }
+            markAsStale = in.readBoolean();
         }
 
         public FailedShardEntry(ShardId shardId, String allocationId, long primaryTerm, String message, Exception failure, boolean markAsStale) {
@@ -430,9 +426,7 @@ public class ShardStateAction extends AbstractComponent {
             out.writeVLong(primaryTerm);
             out.writeString(message);
             out.writeException(failure);
-            if (out.getVersion().onOrAfter(Version.V_6_3_0)) {
-                out.writeBoolean(markAsStale);
-            }
+            out.writeBoolean(markAsStale);
         }
 
         @Override
@@ -573,15 +567,7 @@ public class ShardStateAction extends AbstractComponent {
             super(in);
             shardId = ShardId.readShardId(in);
             allocationId = in.readString();
-            if (in.getVersion().before(Version.V_6_3_0)) {
-                final long primaryTerm = in.readVLong();
-                assert primaryTerm == 0L : "shard is only started by itself: primary term [" + primaryTerm + "]";
-            }
             this.message = in.readString();
-            if (in.getVersion().before(Version.V_6_3_0)) {
-                final Exception ex = in.readException();
-                assert ex == null : "started shard must not have failure [" + ex + "]";
-            }
         }
 
         public StartedShardEntry(ShardId shardId, String allocationId, String message) {
@@ -595,13 +581,7 @@ public class ShardStateAction extends AbstractComponent {
             super.writeTo(out);
             shardId.writeTo(out);
             out.writeString(allocationId);
-            if (out.getVersion().before(Version.V_6_3_0)) {
-                out.writeVLong(0L);
-            }
             out.writeString(message);
-            if (out.getVersion().before(Version.V_6_3_0)) {
-                out.writeException(null);
-            }
         }
 
         @Override
