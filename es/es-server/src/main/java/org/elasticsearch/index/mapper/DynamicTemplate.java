@@ -186,7 +186,7 @@ public class DynamicTemplate implements ToXContentObject {
                 matchPattern = entry.getValue().toString();
             } else if ("mapping".equals(propName)) {
                 mapping = (Map<String, Object>) entry.getValue();
-            } else if (indexVersionCreated.onOrAfter(Version.V_5_0_0_alpha1)) {
+            } else {
                 // unknown parameters were ignored before but still carried through serialization
                 // so we need to ignore them at parsing time for old indices
                 throw new IllegalArgumentException("Illegal dynamic template parameter: [" + propName + "]");
@@ -205,7 +205,7 @@ public class DynamicTemplate implements ToXContentObject {
             try {
                 xcontentFieldType = XContentFieldType.fromString(matchMappingType);
             } catch (IllegalArgumentException e) {
-                if (indexVersionCreated.onOrAfter(Version.V_6_0_0_alpha1)) {
+                if (indexVersionCreated.onOrAfter(Version.V_6_1_4)) {
                     throw e;
                 } else {
                     DEPRECATION_LOGGER.deprecated("match_mapping_type [" + matchMappingType + "] is invalid and will be ignored: "
@@ -219,7 +219,7 @@ public class DynamicTemplate implements ToXContentObject {
 
         final MatchType matchType = MatchType.fromString(matchPattern);
 
-        if (indexVersionCreated.onOrAfter(Version.V_6_3_0)) {
+        if (indexVersionCreated.onOrAfter(Version.V_6_5_1)) {
             // Validate that the pattern
             for (String regex : new String[] { pathMatch, match, pathUnmatch, unmatch }) {
                 if (regex == null) {

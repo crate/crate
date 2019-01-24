@@ -632,16 +632,8 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
             index = in.readString();
             routingNumShards = in.readInt();
             version = in.readLong();
-            if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
-                mappingVersion = in.readVLong();
-            } else {
-                mappingVersion = 1;
-            }
-            if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
-                settingsVersion = in.readVLong();
-            } else {
-                settingsVersion = 1;
-            }
+            mappingVersion = in.readVLong();
+            settingsVersion = in.readVLong();
             state = State.fromId(in.readByte());
             settings = Settings.readSettingsFromStream(in);
             primaryTerms = in.readVLongArray();
@@ -660,12 +652,8 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
             out.writeString(index);
             out.writeInt(routingNumShards);
             out.writeLong(version);
-            if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
-                out.writeVLong(mappingVersion);
-            }
-            if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
-                out.writeVLong(settingsVersion);
-            }
+            out.writeVLong(mappingVersion);
+            out.writeVLong(settingsVersion);
             out.writeByte(state.id);
             Settings.writeSettingsToStream(settings, out);
             out.writeVLongArray(primaryTerms);
@@ -696,16 +684,8 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
     public static IndexMetaData readFrom(StreamInput in) throws IOException {
         Builder builder = new Builder(in.readString());
         builder.version(in.readLong());
-        if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
-            builder.mappingVersion(in.readVLong());
-        } else {
-            builder.mappingVersion(1);
-        }
-        if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
-            builder.settingsVersion(in.readVLong());
-        } else {
-            builder.settingsVersion(1);
-        }
+        builder.mappingVersion(in.readVLong());
+        builder.settingsVersion(in.readVLong());
         builder.setRoutingNumShards(in.readInt());
         builder.state(State.fromId(in.readByte()));
         builder.settings(readSettingsFromStream(in));
@@ -721,17 +701,10 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
             builder.putAlias(aliasMd);
         }
         int customSize = in.readVInt();
-        if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
-            for (int i = 0; i < customSize; i++) {
-                String key = in.readString();
-                DiffableStringMap custom = new DiffableStringMap(in);
-                builder.putCustom(key, custom);
-            }
-        } else {
-            assert customSize == 0 : "expected no custom index metadata";
-            if (customSize > 0) {
-                throw new IllegalStateException("unexpected custom metadata when none is supported");
-            }
+        for (int i = 0; i < customSize; i++) {
+            String key = in.readString();
+            DiffableStringMap custom = new DiffableStringMap(in);
+            builder.putCustom(key, custom);
         }
         int inSyncAllocationIdsSize = in.readVInt();
         for (int i = 0; i < inSyncAllocationIdsSize; i++) {
@@ -746,12 +719,8 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(index.getName()); // uuid will come as part of settings
         out.writeLong(version);
-        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
-            out.writeVLong(mappingVersion);
-        }
-        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
-            out.writeVLong(settingsVersion);
-        }
+        out.writeVLong(mappingVersion);
+        out.writeVLong(settingsVersion);
         out.writeInt(routingNumShards);
         out.writeByte(state.id());
         writeSettingsToStream(settings, out);
@@ -764,14 +733,10 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
         for (ObjectCursor<AliasMetaData> cursor : aliases.values()) {
             cursor.value.writeTo(out);
         }
-        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
-            out.writeVInt(customData.size());
-            for (final ObjectObjectCursor<String, DiffableStringMap> cursor : customData) {
-                out.writeString(cursor.key);
-                cursor.value.writeTo(out);
-            }
-        } else {
-            out.writeVInt(0);
+        out.writeVInt(customData.size());
+        for (final ObjectObjectCursor<String, DiffableStringMap> cursor : customData) {
+            out.writeString(cursor.key);
+            cursor.value.writeTo(out);
         }
         out.writeVInt(inSyncAllocationIds.size());
         for (IntObjectCursor<Set<String>> cursor : inSyncAllocationIds) {
@@ -1297,10 +1262,10 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
                     throw new IllegalArgumentException("Unexpected token " + token);
                 }
             }
-            if (Assertions.ENABLED && Version.indexCreated(builder.settings).onOrAfter(Version.V_6_5_0)) {
+            if (Assertions.ENABLED && Version.indexCreated(builder.settings).onOrAfter(Version.V_6_5_1)) {
                 assert mappingVersion : "mapping version should be present for indices created on or after 6.5.0";
             }
-            if (Assertions.ENABLED && Version.indexCreated(builder.settings).onOrAfter(Version.V_6_5_0)) {
+            if (Assertions.ENABLED && Version.indexCreated(builder.settings).onOrAfter(Version.V_6_5_1)) {
                 assert settingsVersion : "settings version should be present for indices created on or after 6.5.0";
             }
             return builder.build();

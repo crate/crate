@@ -869,9 +869,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
             stream.setVersion(version);
             threadPool.getThreadContext().writeTo(stream);
-            if (version.onOrAfter(Version.V_6_3_0)) {
-                stream.writeStringArray(features);
-            }
+            stream.writeStringArray(features);
             stream.writeString(action);
             BytesReference message = buildMessage(requestId, status, node.getVersion(), request, stream);
             final TransportRequestOptions finalOptions = options;
@@ -1275,12 +1273,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     protected String handleRequest(TcpChannel channel, String profileName, final StreamInput stream, long requestId,
                                    int messageLengthBytes, Version version, InetSocketAddress remoteAddress, byte status)
         throws IOException {
-        final Set<String> features;
-        if (version.onOrAfter(Version.V_6_3_0)) {
-            features = Collections.unmodifiableSet(new TreeSet<>(Arrays.asList(stream.readStringArray())));
-        } else {
-            features = Collections.emptySet();
-        }
+        final Set<String> features = Collections.unmodifiableSet(new TreeSet<>(Arrays.asList(stream.readStringArray())));
         final String action = stream.readString();
         messageListener.onRequestReceived(requestId, action);
         TransportChannel transportChannel = null;

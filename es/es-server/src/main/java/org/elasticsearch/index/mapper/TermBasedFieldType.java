@@ -19,17 +19,16 @@
 
 package org.elasticsearch.index.mapper;
 
-import java.util.List;
-
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.index.query.QueryShardContext;
+
+import java.util.List;
 
 /** Base {@link MappedFieldType} implementation for a field that is indexed
  *  with the inverted index. */
@@ -52,8 +51,7 @@ abstract class TermBasedFieldType extends SimpleMappedFieldType {
     public Query termQuery(Object value, QueryShardContext context) {
         failIfNotIndexed();
         TermQuery query = new TermQuery(new Term(name(), indexedValueForSearch(value)));
-        if (boost() == 1f ||
-            (context != null && context.indexVersionCreated().before(Version.V_5_0_0_alpha1))) {
+        if (boost() == 1f) {
             return query;
         }
         return new BoostQuery(query, boost());

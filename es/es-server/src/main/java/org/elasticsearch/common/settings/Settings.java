@@ -20,7 +20,6 @@
 package org.elasticsearch.common.settings;
 
 import org.apache.logging.log4j.Level;
-import org.elasticsearch.core.internal.io.IOUtils;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
@@ -46,6 +45,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParserUtils;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.core.internal.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,11 +62,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.ListIterator;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -373,7 +373,7 @@ public final class Settings implements ToXContentFragment {
         final String setting,
         final Boolean defaultValue,
         final DeprecationLogger deprecationLogger) {
-        if (indexVersion.before(Version.V_6_0_0_alpha1)) {
+        if (indexVersion.before(Version.V_6_1_4)) {
             //Only emit a warning if the setting's value is not a proper boolean
             final String value = get(setting, "false");
             if (Booleans.isBoolean(value) == false) {
@@ -609,23 +609,15 @@ public final class Settings implements ToXContentFragment {
     public static Settings readSettingsFromStream(StreamInput in) throws IOException {
         Builder builder = new Builder();
         int numberOfSettings = in.readVInt();
-        if (in.getVersion().onOrAfter(Version.V_6_1_0)) {
-            for (int i = 0; i < numberOfSettings; i++) {
-                String key = in.readString();
-                Object value = in.readGenericValue();
-                if (value == null) {
-                    builder.putNull(key);
-                } else if (value instanceof List) {
-                    builder.putList(key, (List<String>) value);
-                } else {
-                    builder.put(key, value.toString());
-                }
-            }
-        } else {
-            for (int i = 0; i < numberOfSettings; i++) {
-                String key = in.readString();
-                String value = in.readOptionalString();
-                builder.put(key, value);
+        for (int i = 0; i < numberOfSettings; i++) {
+            String key = in.readString();
+            Object value = in.readGenericValue();
+            if (value == null) {
+                builder.putNull(key);
+            } else if (value instanceof List) {
+                builder.putList(key, (List<String>) value);
+            } else {
+                builder.put(key, value.toString());
             }
         }
         return builder.build();
@@ -634,27 +626,10 @@ public final class Settings implements ToXContentFragment {
     public static void writeSettingsToStream(Settings settings, StreamOutput out) throws IOException {
         // pull settings to exclude secure settings in size()
         Set<Map.Entry<String, Object>> entries = settings.settings.entrySet();
-        if (out.getVersion().onOrAfter(Version.V_6_1_0)) {
-            out.writeVInt(entries.size());
-            for (Map.Entry<String, Object> entry : entries) {
-                out.writeString(entry.getKey());
-                out.writeGenericValue(entry.getValue());
-            }
-        } else {
-            int size = entries.stream().mapToInt(e -> e.getValue() instanceof List ? ((List)e.getValue()).size() : 1).sum();
-            out.writeVInt(size);
-            for (Map.Entry<String, Object> entry : entries) {
-                if (entry.getValue() instanceof List) {
-                    int idx = 0;
-                    for (String value : (List<String>)entry.getValue()) {
-                        out.writeString(entry.getKey() + "." + idx++);
-                        out.writeOptionalString(value);
-                    }
-                } else {
-                    out.writeString(entry.getKey());
-                    out.writeOptionalString(toString(entry.getValue()));
-                }
-            }
+        out.writeVInt(entries.size());
+        for (Map.Entry<String, Object> entry : entries) {
+            out.writeString(entry.getKey());
+            out.writeGenericValue(entry.getValue());
         }
     }
 

@@ -193,18 +193,8 @@ public class Build {
     }
 
     public static Build readBuild(StreamInput in) throws IOException {
-        final Flavor flavor;
-        final Type type;
-        if (in.getVersion().onOrAfter(Version.V_6_3_0)) {
-            flavor = Flavor.fromDisplayName(in.readString());
-        } else {
-            flavor = Flavor.OSS;
-        }
-        if (in.getVersion().onOrAfter(Version.V_6_3_0)) {
-            type = Type.fromDisplayName(in.readString());
-        } else {
-            type = Type.UNKNOWN;
-        }
+        Flavor flavor = Flavor.fromDisplayName(in.readString());
+        Type type = Type.fromDisplayName(in.readString());
         String hash = in.readString();
         String date = in.readString();
         boolean snapshot = in.readBoolean();
@@ -212,12 +202,8 @@ public class Build {
     }
 
     public static void writeBuild(Build build, StreamOutput out) throws IOException {
-        if (out.getVersion().onOrAfter(Version.V_6_3_0)) {
-            out.writeString(build.flavor().displayName());
-        }
-        if (out.getVersion().onOrAfter(Version.V_6_3_0)) {
-            out.writeString(build.type().displayName());
-        }
+        out.writeString(build.flavor().displayName());
+        out.writeString(build.type().displayName());
         out.writeString(build.shortHash());
         out.writeString(build.date());
         out.writeBoolean(build.isSnapshot());

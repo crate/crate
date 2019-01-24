@@ -43,7 +43,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -136,17 +135,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         super(in.readOptionalString(), in.readException());
         readStackTrace(this, in);
         headers.putAll(in.readMapOfLists(StreamInput::readString, StreamInput::readString));
-        if (in.getVersion().onOrAfter(Version.V_5_3_0)) {
-            metadata.putAll(in.readMapOfLists(StreamInput::readString, StreamInput::readString));
-        } else {
-            for (Iterator<Map.Entry<String, List<String>>> iterator = headers.entrySet().iterator(); iterator.hasNext(); ) {
-                Map.Entry<String, List<String>> header = iterator.next();
-                if (header.getKey().startsWith("es.")) {
-                    metadata.put(header.getKey(), header.getValue());
-                    iterator.remove();
-                }
-            }
-        }
+        metadata.putAll(in.readMapOfLists(StreamInput::readString, StreamInput::readString));
     }
 
     /**
@@ -265,15 +254,8 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         out.writeOptionalString(this.getMessage());
         out.writeException(this.getCause());
         writeStackTraces(this, out);
-        if (out.getVersion().onOrAfter(Version.V_5_3_0)) {
-            out.writeMapOfLists(headers, StreamOutput::writeString, StreamOutput::writeString);
-            out.writeMapOfLists(metadata, StreamOutput::writeString, StreamOutput::writeString);
-        } else {
-            Map<String, List<String>> finalHeaders = new HashMap<>(headers.size() + metadata.size());
-            finalHeaders.putAll(headers);
-            finalHeaders.putAll(metadata);
-            out.writeMapOfLists(finalHeaders, StreamOutput::writeString, StreamOutput::writeString);
-        }
+        out.writeMapOfLists(headers, StreamOutput::writeString, StreamOutput::writeString);
+        out.writeMapOfLists(metadata, StreamOutput::writeString, StreamOutput::writeString);
     }
 
     public static ElasticsearchException readException(StreamInput input, int id) throws IOException {
@@ -962,7 +944,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         STATUS_EXCEPTION(org.elasticsearch.ElasticsearchStatusException.class, org.elasticsearch.ElasticsearchStatusException::new, 145,
             UNKNOWN_VERSION_ADDED),
         TASK_CANCELLED_EXCEPTION(org.elasticsearch.tasks.TaskCancelledException.class,
-            org.elasticsearch.tasks.TaskCancelledException::new, 146, Version.V_5_1_1),
+            org.elasticsearch.tasks.TaskCancelledException::new, 146, Version.V_5_2_2),
         SHARD_LOCK_OBTAIN_FAILED_EXCEPTION(org.elasticsearch.env.ShardLockObtainFailedException.class,
                                            org.elasticsearch.env.ShardLockObtainFailedException::new, 147, Version.V_5_0_2);
         // 148 used to be UnknownNamedObjectException

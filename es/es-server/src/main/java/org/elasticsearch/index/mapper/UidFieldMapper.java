@@ -164,7 +164,7 @@ public class UidFieldMapper extends MetadataFieldMapper {
                 if (uidString.startsWith(expectedPrefix)) {
                     String id = uidString.substring(expectedPrefix.length(), uidString.length());
                     BytesRef encodedId;
-                    if (context.indexVersionCreated().onOrAfter(Version.V_6_0_0_beta1)) {
+                    if (context.indexVersionCreated().onOrAfter(Version.V_6_1_4)) {
                         encodedId = Uid.encodeId(id);
                     } else {
                         encodedId = new BytesRef(id);

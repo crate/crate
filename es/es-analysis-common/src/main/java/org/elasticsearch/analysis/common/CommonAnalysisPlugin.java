@@ -355,7 +355,7 @@ public class CommonAnalysisPlugin extends Plugin implements AnalysisPlugin {
         List<PreConfiguredCharFilter> filters = new ArrayList<>();
         filters.add(PreConfiguredCharFilter.singleton("html_strip", false, HTMLStripCharFilter::new));
         filters.add(PreConfiguredCharFilter.singletonWithVersion("htmlStrip", false, (reader, version) -> {
-            if (version.onOrAfter(org.elasticsearch.Version.V_6_3_0)) {
+            if (version.onOrAfter(org.elasticsearch.Version.V_6_5_1)) {
                 DEPRECATION_LOGGER.deprecatedAndMaybeLog("htmlStrip_deprecation",
                         "The [htmpStrip] char filter name is deprecated and will be removed in a future version. "
                                 + "Please change the filter name to [html_strip] instead.");
@@ -393,7 +393,7 @@ public class CommonAnalysisPlugin extends Plugin implements AnalysisPlugin {
         filters.add(PreConfiguredTokenFilter.singleton("edge_ngram", false, input ->
                 new EdgeNGramTokenFilter(input, EdgeNGramTokenFilter.DEFAULT_MIN_GRAM_SIZE, EdgeNGramTokenFilter.DEFAULT_MAX_GRAM_SIZE)));
         filters.add(PreConfiguredTokenFilter.singletonWithVersion("edgeNGram", false, (reader, version) -> {
-            if (version.onOrAfter(org.elasticsearch.Version.V_6_4_0)) {
+            if (version.onOrAfter(org.elasticsearch.Version.V_6_5_1)) {
                 DEPRECATION_LOGGER.deprecatedAndMaybeLog("edgeNGram_deprecation",
                         "The [edgeNGram] token filter name is deprecated and will be removed in a future version. "
                                 + "Please change the filter name to [edge_ngram] instead.");
@@ -417,7 +417,7 @@ public class CommonAnalysisPlugin extends Plugin implements AnalysisPlugin {
                         LimitTokenCountFilterFactory.DEFAULT_CONSUME_ALL_TOKENS)));
         filters.add(PreConfiguredTokenFilter.singleton("ngram", false, NGramTokenFilter::new));
         filters.add(PreConfiguredTokenFilter.singletonWithVersion("nGram", false, (reader, version) -> {
-            if (version.onOrAfter(org.elasticsearch.Version.V_6_4_0)) {
+            if (version.onOrAfter(org.elasticsearch.Version.V_6_5_1)) {
                 DEPRECATION_LOGGER.deprecatedAndMaybeLog("nGram_deprecation",
                         "The [nGram] token filter name is deprecated and will be removed in a future version. "
                                 + "Please change the filter name to [ngram] instead.");

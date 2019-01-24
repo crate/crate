@@ -136,7 +136,7 @@ public class IdFieldMapper extends MetadataFieldMapper {
             if (indexOptions() != IndexOptions.NONE) {
                 failIfNotIndexed();
                 BytesRef[] bytesRefs = new BytesRef[values.size()];
-                final boolean is5xIndex = context.indexVersionCreated().before(Version.V_6_0_0_beta1);
+                final boolean is5xIndex = context.indexVersionCreated().before(Version.V_6_1_4);
                 for (int i = 0; i < bytesRefs.length; i++) {
                     BytesRef id;
                     if (is5xIndex) {
@@ -171,7 +171,7 @@ public class IdFieldMapper extends MetadataFieldMapper {
                 public IndexFieldData<?> build(IndexSettings indexSettings, MappedFieldType fieldType, IndexFieldDataCache cache,
                         CircuitBreakerService breakerService, MapperService mapperService) {
                     final IndexFieldData<?> fieldData = fieldDataBuilder.build(indexSettings, fieldType, cache, breakerService, mapperService);
-                    if (indexSettings.getIndexVersionCreated().before(Version.V_6_0_0_beta1)) {
+                    if (indexSettings.getIndexVersionCreated().before(Version.V_6_1_4)) {
                         // ids were indexed as utf-8
                         return fieldData;
                     }
@@ -285,7 +285,7 @@ public class IdFieldMapper extends MetadataFieldMapper {
     @Override
     protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
         if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
-            if (context.mapperService().getIndexSettings().getIndexVersionCreated().onOrAfter(Version.V_6_0_0_beta1)) {
+            if (context.mapperService().getIndexSettings().getIndexVersionCreated().onOrAfter(Version.V_6_1_4)) {
                 BytesRef id = Uid.encodeId(context.sourceToParse().id());
                 fields.add(new Field(NAME, id, fieldType));
             } else {

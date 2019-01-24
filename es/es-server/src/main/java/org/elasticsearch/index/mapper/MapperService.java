@@ -145,7 +145,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         this.searchQuoteAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultSearchQuoteAnalyzer(), p -> p.searchQuoteAnalyzer());
         this.mapperRegistry = mapperRegistry;
 
-        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_6_0_0_rc1)) {
+        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_6_1_4)) {
             if (INDEX_MAPPER_DYNAMIC_SETTING.exists(indexSettings.getSettings())) {
                 DEPRECATION_LOGGER.deprecated("Setting " + INDEX_MAPPER_DYNAMIC_SETTING.getKey() + " is deprecated since indices may not have more than one type anymore.");
             }
@@ -255,7 +255,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             final Map<String, DocumentMapper> updatedEntries) {
         if (Assertions.ENABLED
                 && currentIndexMetaData != null
-                && currentIndexMetaData.getCreationVersion().onOrAfter(Version.V_6_5_0)) {
+                && currentIndexMetaData.getCreationVersion().onOrAfter(Version.V_6_5_1)) {
             if (currentIndexMetaData.getMappingVersion() == newIndexMetaData.getMappingVersion()) {
                 // if the mapping version is unchanged, then there should not be any updates and all mappings should be the same
                 assert updatedEntries.isEmpty() : updatedEntries;
@@ -408,7 +408,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         Map<String, DocumentMapper> results = new LinkedHashMap<>(documentMappers.size() + 1);
 
         if (defaultMapper != null) {
-            if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_6_0_0_beta1)
+            if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_6_1_4)
                     && reason == MergeReason.MAPPING_UPDATE) { // only log in case of explicit mapping updates
                 DEPRECATION_LOGGER.deprecated("[_default_] mapping is deprecated since it is not useful anymore now that indexes " +
                         "cannot have more than one type");
@@ -739,7 +739,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         if (hasMapping(type) == false) {
             return null;
         }
-        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_6_0_0_beta1)) {
+        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_6_1_4)) {
             assert indexSettings.isSingleType();
             return new Term(IdFieldMapper.NAME, Uid.encodeId(id));
         } else if (indexSettings.isSingleType()) {

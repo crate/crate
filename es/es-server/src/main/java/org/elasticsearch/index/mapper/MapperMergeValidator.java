@@ -129,7 +129,7 @@ class MapperMergeValidator {
                                                List<FieldAliasMapper> fieldAliasMappers,
                                                Map<String, ObjectMapper> fullPathObjectMappers,
                                                FieldTypeLookup fieldTypes) {
-        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_6_0_0_beta1)) {
+        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_6_1_4)) {
             validateCopyTo(fieldMappers, fullPathObjectMappers, fieldTypes);
         }
     }

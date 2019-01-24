@@ -69,17 +69,11 @@ public class StoreStats implements Streamable, ToXContentFragment {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         sizeInBytes = in.readVLong();
-        if (in.getVersion().before(Version.V_6_0_0_alpha1)) {
-            in.readVLong(); // throttleTimeInNanos
-        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVLong(sizeInBytes);
-        if (out.getVersion().before(Version.V_6_0_0_alpha1)) {
-            out.writeVLong(0L); // throttleTimeInNanos
-        }
     }
 
     @Override

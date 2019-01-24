@@ -20,7 +20,6 @@
 package org.elasticsearch.cluster.metadata;
 
 import org.elasticsearch.ElasticsearchGenerationException;
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.common.Nullable;
@@ -186,9 +185,7 @@ public class AliasMetaData extends AbstractDiffable<AliasMetaData> implements To
             out.writeBoolean(false);
         }
 
-        if (out.getVersion().onOrAfter(Version.V_6_4_0)) {
-            out.writeOptionalBoolean(writeIndex());
-        }
+        out.writeOptionalBoolean(writeIndex());
     }
 
     public AliasMetaData(StreamInput in) throws IOException {
@@ -210,11 +207,7 @@ public class AliasMetaData extends AbstractDiffable<AliasMetaData> implements To
             searchRouting = null;
             searchRoutingValues = emptySet();
         }
-        if (in.getVersion().onOrAfter(Version.V_6_4_0)) {
-            writeIndex = in.readOptionalBoolean();
-        } else {
-            writeIndex = null;
-        }
+        writeIndex = in.readOptionalBoolean();
     }
 
     public static Diff<AliasMetaData> readDiffFrom(StreamInput in) throws IOException {

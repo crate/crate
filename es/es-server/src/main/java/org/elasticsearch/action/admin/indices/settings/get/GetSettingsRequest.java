@@ -72,9 +72,7 @@ public class GetSettingsRequest extends MasterNodeReadRequest<GetSettingsRequest
         indicesOptions = IndicesOptions.readIndicesOptions(in);
         names = in.readStringArray();
         humanReadable = in.readBoolean();
-        if (in.getVersion().onOrAfter(Version.V_6_4_0)) {
-            includeDefaults = in.readBoolean();
-        }
+        includeDefaults = in.readBoolean();
     }
 
     @Override
@@ -84,9 +82,7 @@ public class GetSettingsRequest extends MasterNodeReadRequest<GetSettingsRequest
         indicesOptions.writeIndicesOptions(out);
         out.writeStringArray(names);
         out.writeBoolean(humanReadable);
-        if (out.getVersion().onOrAfter(Version.V_6_4_0)) {
-            out.writeBoolean(includeDefaults);
-        }
+        out.writeBoolean(includeDefaults);
     }
 
     @Override

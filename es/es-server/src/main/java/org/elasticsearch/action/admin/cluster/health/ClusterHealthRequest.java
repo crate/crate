@@ -235,9 +235,7 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
         if (in.readBoolean()) {
             waitForEvents = Priority.readFrom(in);
         }
-        if (in.getVersion().onOrAfter(Version.V_6_2_0)) {
-            waitForNoInitializingShards = in.readBoolean();
-        }
+        waitForNoInitializingShards = in.readBoolean();
     }
 
     @Override
@@ -267,9 +265,7 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
             out.writeBoolean(true);
             Priority.writeTo(waitForEvents, out);
         }
-        if (out.getVersion().onOrAfter(Version.V_6_2_0)) {
-            out.writeBoolean(waitForNoInitializingShards);
-        }
+        out.writeBoolean(waitForNoInitializingShards);
     }
 
     public enum Level {

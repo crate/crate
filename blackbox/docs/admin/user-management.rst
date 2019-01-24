@@ -142,10 +142,5 @@ shows whether the user has superuser privileges or not.
     system information functions: :ref:`CURRENT_USER <current_user>`,
     :ref:`USER <user>` and :ref:`SESSION_USER <session_user>`.
 
-.. WARNING::
-
-   When the :ref:`es_api_setting` is enabled, it is possible to read the users
-   data via the Elasticsearch API. Therefore access to the users table is not
-   restricted.
 
 .. _Enterprise Edition: https://crate.io/enterprise/
