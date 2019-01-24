@@ -170,6 +170,11 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testAlterClusterDecommissionNode() {
+        printStatement("ALTER CLUSTER DECOMMISSION 'node1'");
+    }
+
+    @Test
     public void testStmtWithSemicolonBuilder() {
         printStatement("select 1;");
     }

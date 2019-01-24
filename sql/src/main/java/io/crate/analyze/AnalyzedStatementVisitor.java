@@ -250,4 +250,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitGCDanglingArtifacts(AnalyzedGCDanglingArtifacts gcDanglingIndices, C context) {
         return visitAnalyzedStatement(gcDanglingIndices, context);
     }
+
+    public R visitDecommissionNode(AnalyzedDecommissionNodeStatement decommissionNode, C context) {
+        return visitAnalyzedStatement(decommissionNode, context);
+    }
 }

@@ -40,6 +40,7 @@ import io.crate.sql.tree.CreateIngestRule;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropIngestRule;
 import io.crate.sql.tree.DropRepository;
@@ -137,6 +138,14 @@ public final class SqlFormatter {
         @Override
         public Void visitGCDanglingArtifacts(GCDanglingArtifacts gcDanglingArtifacts, Integer indent) {
             append(indent, "ALTER CLUSTER GC DANGLING ARTIFACTS");
+            return null;
+        }
+
+        @Override
+        public Void visitAlterClusterDecommissionNode(DecommissionNodeStatement decommissionNodeStatement,
+                                                      Integer indent) {
+            append(indent, "ALTER CLUSTER DECOMMISSION ");
+            process(decommissionNodeStatement.nodeIdOrName(), indent);
             return null;
         }
 

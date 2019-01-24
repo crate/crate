@@ -19,6 +19,7 @@ Synopsis
 
     ALTER CLUSTER 
       { REROUTE RETRY FAILED
+      | DECOMMISSION <nodeId | nodeName>
       | SWAP TABLE source TO target [ WITH ( expr = expr [ , ... ] ) ]
       | GC DANGLING ARTIFACTS
       }
@@ -53,6 +54,14 @@ get acknowledged.
     Additionally, keep in mind that this statement only triggers the shard
     re-allocation and is therefore asynchronous. Unassigned shards with large
     size will take some time to allocate.
+
+``DECOMMISSION <nodeId | nodeName>``
+------------------------------------
+
+This command triggers a graceful cluster node decommission. The node can be
+specified by either its Id or name. See `Graceful stop`_ for more information
+on decommissioning nodes gracefully.
+
 
 
 ``SWAP TABLE``
@@ -101,3 +110,6 @@ temporary artifacts might not be cleaned up correctly.
 
 The ``ALTER CLUSTER GC DANGLING ARTIFACTS`` command can be used to remove all
 artifacts created by such operations.
+
+
+.. _Graceful stop: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html#step-2-graceful-stop

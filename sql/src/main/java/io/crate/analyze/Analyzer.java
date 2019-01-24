@@ -56,6 +56,7 @@ import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.DeallocateStatement;
+import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
@@ -144,6 +145,7 @@ public class Analyzer {
     private final CreateViewAnalyzer createViewAnalyzer;
     private final Schemas schemas;
     private final SwapTableAnalyzer swapTableAnalyzer;
+    private final DecommissionNodeAnalyzer decommissionNodeAnalyzer;
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
@@ -213,6 +215,7 @@ public class Analyzer {
         this.createIngestionRuleAnalyzer = new CreateIngestionRuleAnalyzer(schemas);
         this.createUserAnalyzer = new CreateUserAnalyzer(functions);
         this.alterUserAnalyzer = new AlterUserAnalyzer(functions);
+        this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
     }
 
     public Analysis boundAnalyze(Statement statement, CoordinatorTxnCtx coordinatorTxnCtx, ParameterContext parameterContext) {
@@ -529,6 +532,15 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitGCDanglingArtifacts(GCDanglingArtifacts gcDanglingArtifacts, Analysis context) {
             return AnalyzedGCDanglingArtifacts.INSTANCE;
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterClusterDecommissionNode(DecommissionNodeStatement decommissionNodeStatement,
+                                                                   Analysis analysis) {
+            return decommissionNodeAnalyzer.analyze(decommissionNodeStatement,
+                analysis.transactionContext(),
+                analysis.paramTypeHints()
+            );
         }
 
         @Override
