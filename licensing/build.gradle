@@ -57,3 +57,8 @@ processResources {
     println "No crate public key provided"
   }
 }
+
+shadowJar {
+    // Ensure we'll end up in a file called `crate-license.jar` without any classifier suffix.
+    classifier = null
+}
