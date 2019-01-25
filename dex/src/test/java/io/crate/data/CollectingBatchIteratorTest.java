@@ -79,7 +79,8 @@ public class CollectingBatchIteratorTest {
         BatchIterator<Row> collectingBatchIterator = CollectingBatchIterator.newInstance(
             () -> {},
             t -> {},
-            () -> loadItemsFuture);
+            () -> loadItemsFuture,
+            false);
         loadItemsFuture.completeExceptionally(new RuntimeException());
         assertThat(collectingBatchIterator.loadNextBatch().toCompletableFuture().isCompletedExceptionally(), is(true));
     }

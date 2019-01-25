@@ -93,4 +93,9 @@ public class CloseAssertingBatchIterator<T> implements BatchIterator<T> {
         delegate.kill(throwable);
         killed = throwable;
     }
+
+    @Override
+    public boolean involvesIO() {
+        return delegate.involvesIO();
+    }
 }

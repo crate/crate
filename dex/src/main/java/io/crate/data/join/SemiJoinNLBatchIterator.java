@@ -159,4 +159,9 @@ class SemiJoinNLBatchIterator<L, R, C> implements BatchIterator<L> {
         }
         return false;
     }
+
+    @Override
+    public boolean involvesIO() {
+        return false;
+    }
 }
