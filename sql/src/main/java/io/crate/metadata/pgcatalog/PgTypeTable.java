@@ -41,9 +41,13 @@ import org.elasticsearch.cluster.ClusterState;
 import java.util.Collections;
 import java.util.Map;
 
+import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
+
 public class PgTypeTable extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_type");
+
+    private static final Integer TYPE_NAMESPACE_OID = schemaOid(PgCatalogSchemaInfo.NAME);
 
     static class Columns {
         static final ColumnIdent OID = new ColumnIdent("oid");
@@ -54,6 +58,7 @@ public class PgTypeTable extends StaticTableInfo {
         static final ColumnIdent TYPTYPE = new ColumnIdent("typtype");
         static final ColumnIdent TYPBASETYPE = new ColumnIdent("typbasetype");
         static final ColumnIdent TYPTYPMOD = new ColumnIdent("typtypmod");
+        static final ColumnIdent TYPNAMESPACE = new ColumnIdent("typnamespace");
     }
 
     private static final String TYPTYPE = "b";
@@ -76,6 +81,8 @@ public class PgTypeTable extends StaticTableInfo {
                 () -> NestableCollectExpression.constant(0))
             .put(Columns.TYPTYPMOD,
                 () -> NestableCollectExpression.constant(-1))
+            .put(Columns.TYPNAMESPACE,
+                () -> NestableCollectExpression.constant(TYPE_NAMESPACE_OID))
             .build();
     }
 
@@ -88,7 +95,8 @@ public class PgTypeTable extends StaticTableInfo {
                 .register(Columns.TYPLEN.name(), DataTypes.SHORT, null)
                 .register(Columns.TYPTYPE.name(), DataTypes.STRING, null)
                 .register(Columns.TYPBASETYPE.name(), DataTypes.INTEGER, null)
-                .register(Columns.TYPTYPMOD.name(), DataTypes.INTEGER, null),
+                .register(Columns.TYPTYPMOD.name(), DataTypes.INTEGER, null)
+                .register(Columns.TYPNAMESPACE.name(), DataTypes.INTEGER, null),
             Collections.emptyList());
     }
 
