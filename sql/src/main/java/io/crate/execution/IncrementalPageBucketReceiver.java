@@ -71,7 +71,8 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
         lazyBatchIterator = CollectingBatchIterator.newInstance(
             () -> {},
             t -> {},
-            () -> processingFuture);
+            () -> processingFuture,
+            true);
         rowConsumer.accept(lazyBatchIterator, null);
         accumulateRowsFunction = (Bucket rows) -> {
             try {

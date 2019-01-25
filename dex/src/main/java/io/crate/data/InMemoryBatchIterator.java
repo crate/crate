@@ -105,4 +105,9 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
     public void kill(@Nonnull Throwable throwable) {
         // handled by CloseAssertingBatchIterator
     }
+
+    @Override
+    public boolean involvesIO() {
+        return false;
+    }
 }
