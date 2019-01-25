@@ -203,6 +203,11 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
         return true;
     }
 
+    @Override
+    public boolean involvesIO() {
+        return true;
+    }
+
     private static boolean docDeleted(@Nullable Bits liveDocs, int doc) {
         if (liveDocs == null) {
             return false;

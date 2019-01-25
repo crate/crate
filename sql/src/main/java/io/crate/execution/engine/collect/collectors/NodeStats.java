@@ -74,7 +74,8 @@ public final class NodeStats {
                 collectPhase,
                 nodes,
                 inputFactory
-            )
+            ),
+            true
         );
     }
 

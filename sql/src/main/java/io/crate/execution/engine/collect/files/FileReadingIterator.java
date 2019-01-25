@@ -269,6 +269,11 @@ public class FileReadingIterator implements BatchIterator<Row> {
         return true;
     }
 
+    @Override
+    public boolean involvesIO() {
+        return true;
+    }
+
     private static class UriWithGlob {
         final URI uri;
         final URI preGlobUri;

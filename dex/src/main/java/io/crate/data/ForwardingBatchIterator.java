@@ -31,4 +31,10 @@ public abstract class ForwardingBatchIterator<T> extends MappedForwardingBatchIt
     public T currentElement() {
         return delegate().currentElement();
     }
+
+
+    @Override
+    public boolean involvesIO() {
+        return delegate().involvesIO();
+    }
 }

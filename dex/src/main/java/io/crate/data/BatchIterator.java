@@ -127,4 +127,9 @@ public interface BatchIterator<T> extends Killable {
      * @return true if no more batches can be loaded
      */
     boolean allLoaded();
+
+    /**
+     * @return true if any IO (disk, network) is used
+     */
+    boolean involvesIO();
 }

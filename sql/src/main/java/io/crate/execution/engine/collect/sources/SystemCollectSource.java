@@ -127,7 +127,9 @@ public class SystemCollectSource implements CollectSource {
                             supportMoveToStart,
                             records
                         )
-                    )
+                    ),
+            // Most system resources are in-memory but some are not and involves IO.
+            true
         );
     }
 
