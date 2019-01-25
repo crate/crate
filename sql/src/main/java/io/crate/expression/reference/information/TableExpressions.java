@@ -22,24 +22,20 @@
 
 package io.crate.expression.reference.information;
 
-import io.crate.Version;
 import io.crate.metadata.table.StoredTable;
+import org.elasticsearch.Version;
 
 import javax.annotation.Nullable;
 
-public final class TableExpressions {
+final class TableExpressions {
 
     @Nullable
-    public static <TRow> Version getVersion(TRow row, Version.Property property) {
-        Version version = null;
-        if (row instanceof StoredTable) {
-            StoredTable storedTable = (StoredTable) row;
-            if (property == Version.Property.CREATED) {
-                version = storedTable.versionCreated();
-            } else {
-                version = storedTable.versionUpgraded();
-            }
-        }
-        return version;
+    static <TRow> Version getVersionCreated(TRow row) {
+        return row instanceof StoredTable ? ((StoredTable) row).versionCreated() : null;
+    }
+
+    @Nullable
+    static <TRow> Version getVersionUpgraded(TRow row) {
+        return row instanceof StoredTable ? ((StoredTable) row).versionUpgraded() : null;
     }
 }

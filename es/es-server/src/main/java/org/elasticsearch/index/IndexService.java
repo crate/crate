@@ -605,7 +605,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
 
         if (Assertions.ENABLED
                 && currentIndexMetaData != null
-                && currentIndexMetaData.getCreationVersion().onOrAfter(Version.V_6_5_1)) {
+                && currentIndexMetaData.getCreationVersion().onOrAfter(Version.ES_V_6_5_1)) {
             final long currentSettingsVersion = currentIndexMetaData.getSettingsVersion();
             final long newSettingsVersion = newIndexMetaData.getSettingsVersion();
             if (currentSettingsVersion == newSettingsVersion) {

@@ -19,34 +19,3 @@ test {
         ]
     }
 }
-
-task getVersion(dependsOn: 'classes') {
-    doLast {
-        def stdout = new ByteArrayOutputStream()
-        javaexec {
-            classpath = sourceSets.main.runtimeClasspath
-            main = 'io.crate.Version'
-            standardOutput = stdout
-        }
-        ext.gitTag = "git describe".execute().text.trim()
-        ext.version = stdout.toString().trim().split(" ")[1].replace(',', '').trim()
-
-        ext.buildDate = new Date().format('yyyyMMddHHmm')
-        ext.buildShortHash = "git rev-parse --short HEAD".execute().text.trim()
-        if (gradle.taskGraph.hasTask(':app:release')) {
-            assert gitTag == version, "Version mismatch gitTag: " + gitTag + " does not match crate version: " + version
-        } else {
-
-            if (gradle.taskGraph.hasTask(':app:nightly')) {
-                ext.version = version.replace('-SNAPSHOT', '') + "-" + ext.buildDate + "-" + ext.buildShortHash
-            } else if (!gradle.taskGraph.hasTask(':app:uploadArchives')) {
-                ext.version = version + "-" + ext.buildShortHash
-            }
-        }
-
-        logger.quiet("gitTag:         " + gitTag)
-        logger.quiet("version:        " + version)
-        logger.quiet("buildDate:      " + buildDate)
-        logger.quiet("buildShortHash: " + buildShortHash)
-    }
-}

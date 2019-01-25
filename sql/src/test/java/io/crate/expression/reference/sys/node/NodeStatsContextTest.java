@@ -23,9 +23,9 @@
 package io.crate.expression.reference.sys.node;
 
 import io.crate.Build;
-import io.crate.Version;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
 import org.elasticsearch.common.io.stream.StreamOutput;

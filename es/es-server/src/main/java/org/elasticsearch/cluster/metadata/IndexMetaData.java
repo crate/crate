@@ -1262,10 +1262,10 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
                     throw new IllegalArgumentException("Unexpected token " + token);
                 }
             }
-            if (Assertions.ENABLED && Version.indexCreated(builder.settings).onOrAfter(Version.V_6_5_1)) {
+            if (Assertions.ENABLED && Version.indexCreated(builder.settings).onOrAfter(Version.ES_V_6_5_1)) {
                 assert mappingVersion : "mapping version should be present for indices created on or after 6.5.0";
             }
-            if (Assertions.ENABLED && Version.indexCreated(builder.settings).onOrAfter(Version.V_6_5_1)) {
+            if (Assertions.ENABLED && Version.indexCreated(builder.settings).onOrAfter(Version.ES_V_6_5_1)) {
                 assert settingsVersion : "settings version should be present for indices created on or after 6.5.0";
             }
             return builder.build();

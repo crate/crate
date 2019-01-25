@@ -23,11 +23,11 @@
 package io.crate.expression.reference.sys.node;
 
 import io.crate.Build;
-import io.crate.Version;
 import io.crate.monitor.ExtendedOsStats;
 import io.crate.protocols.ConnectionStats;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -336,7 +336,7 @@ public class NodeStatsContext implements Streamable {
         out.writeLong(timestamp);
         out.writeBoolean(version != null);
         if (version != null) {
-            Version.writeVersionTo(version, out);
+            Version.writeVersion(version, out);
         }
         out.writeBoolean(build != null);
         if (build != null) {

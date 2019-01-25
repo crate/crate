@@ -216,7 +216,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
             final long minGenerationToRecoverFrom;
             if (checkpoint.minTranslogGeneration < 0) {
                 final Version indexVersionCreated = indexSettings().getIndexVersionCreated();
-                assert indexVersionCreated.before(Version.V_6_1_4) :
+                assert indexVersionCreated.before(Version.ES_V_6_1_4) :
                     "no minTranslogGeneration in checkpoint, but index was created with version [" + indexVersionCreated + "]";
                 minGenerationToRecoverFrom = deletionPolicy.getMinTranslogGenerationForRecovery();
             } else {

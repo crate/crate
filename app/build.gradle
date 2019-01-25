@@ -87,17 +87,17 @@ dependencies {
 
 task release(dependsOn: 'distTar') {
     doLast {
-        logger.info("released version: " + project(':common').getVersion.version)
+        logger.info("released version: " + project(':es:es-server').getVersion.version)
     }
 }
 
 task nightly(dependsOn: 'distTar') {
     doLast {
-        logger.info("nightly version: " + project(':common').getVersion.version)
+        logger.info("nightly version: " + project(':es:es-server').getVersion.version)
     }
 }
 
-task writeBuildInfo(dependsOn: [':common:getVersion']) {
+task writeBuildInfo(dependsOn: [':es:es-server:getVersion']) {
     doLast {
         def hash = "git rev-parse HEAD".execute().in.text.trim()
 
@@ -113,7 +113,7 @@ task writeBuildInfo(dependsOn: [':common:getVersion']) {
         copy {
             into('src/main/dist/bin')
             from('src/bin') {
-                filter(ReplaceTokens, tokens: [version: project(':common').getVersion.version])
+                filter(ReplaceTokens, tokens: [version: project(':es:es-server').getVersion.version])
             }
         }
 
@@ -152,9 +152,9 @@ task javadocJar(type: Jar, dependsOn: [myJavadocs]) {
     }
 }
 
-task buildJavadocJar(dependsOn: [':common:getVersion', myJavadocs]) {
+task buildJavadocJar(dependsOn: [':es:es-server:getVersion', myJavadocs]) {
     doLast {
-        ext.version = project(':common').getVersion.version
+        ext.version = project(':es:es-server').getVersion.version
         project.version = ext.version
         tasks.javadocJar.execute()
     }
@@ -176,9 +176,9 @@ task sourceJar(type: Jar) {
     }
 }
 
-task buildSourceJar(dependsOn: [':common:getVersion']) {
+task buildSourceJar(dependsOn: [':es:es-server:getVersion']) {
     doLast {
-        ext.version = project(':common').getVersion.version
+        ext.version = project(':es:es-server').getVersion.version
         project.version = ext.version
         tasks.sourceJar.execute()
     }
@@ -194,7 +194,7 @@ task signJars(type: Sign, dependsOn: [jar, buildSourceJar, buildJavadocJar]) {
     sign configurations.archives
 }
 
-install.dependsOn([jar, ':common:getVersion', buildSourceJar, buildJavadocJar])
+install.dependsOn([jar, ':es:es-server:getVersion', buildSourceJar, buildJavadocJar])
 install {
     repositories {
         mavenInstaller {
@@ -236,7 +236,7 @@ install {
 project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
 project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
 
-uploadArchives.dependsOn([jar, ':common:getVersion', buildSourceJar, buildJavadocJar, signJars])
+uploadArchives.dependsOn([jar, ':es:es-server:getVersion', buildSourceJar, buildJavadocJar, signJars])
 uploadArchives {
     repositories {
         mavenDeployer {
@@ -303,9 +303,9 @@ def libs = project.configurations.runtime.filter { !it.toPath().startsWith(Paths
 
 // For releases choose the file under the release_notes structure
 // and for all other builds choose CHANGES.txt which contains the unreleased changes
-task chooseReleaseNotes(dependsOn: [':common:getVersion']) {
+task chooseReleaseNotes(dependsOn: [':es:es-server:getVersion']) {
     doLast {
-        def version = project(':common').getVersion.version
+        def version = project(':es:es-server').getVersion.version
         def releaseNotesDir = "$rootDir/blackbox/docs/appendices/release-notes"
         def releaseNotesFile = version.replaceAll('-.*', '') + '.rst'
         if (new File(releaseNotesDir + "/" + releaseNotesFile).exists()) {
@@ -328,7 +328,7 @@ task chooseReleaseNotes(dependsOn: [':common:getVersion']) {
 }
 
 distTar {
-    dependsOn ':common:getVersion'
+    dependsOn ':es:es-server:getVersion'
     compression = Compression.GZIP
     baseName = 'crate'
     extension = 'tar.gz'
@@ -336,7 +336,7 @@ distTar {
 distTar.dependsOn(chooseReleaseNotes)
 
 distZip {
-    dependsOn ':common:getVersion'
+    dependsOn ':es:es-server:getVersion'
     baseName = 'crate'
 }
 distZip.dependsOn(chooseReleaseNotes)
@@ -394,14 +394,14 @@ distributions {
 }
 
 jar {
-    dependsOn ':common:getVersion'
+    dependsOn ':es:es-server:getVersion'
 
     doFirst {
-        manifest.attributes 'Implementation-Version': project(':common').getVersion.version
+        manifest.attributes 'Implementation-Version': project(':es:es-server').getVersion.version
         // Needed by ES which validates those manifest attributes in Build class
-        manifest.attributes 'Build-Date': project(':common').getVersion.buildDate
-        manifest.attributes 'Change': project(':common').getVersion.buildShortHash
-        project.version = project(':common').getVersion.version
+        manifest.attributes 'Build-Date': project(':es:es-server').getVersion.buildDate
+        manifest.attributes 'Change': project(':es:es-server').getVersion.buildShortHash
+        project.version = project(':es:es-server').getVersion.version
         def serviceDir = file("$buildDir/META-INF/services")
         serviceDir.deleteDir()
         serviceDir.mkdirs()
