@@ -475,7 +475,7 @@ public final class SnapshotInfo implements Comparable<SnapshotInfo>, ToXContent,
         builder.field(SNAPSHOT, snapshotId.getName());
         builder.field(UUID, snapshotId.getUUID());
         if (version != null) {
-            builder.field(VERSION_ID, version.id);
+            builder.field(VERSION_ID, version.internalId);
             builder.field(VERSION, version.toString());
         }
         builder.startArray(INDICES);
@@ -526,7 +526,7 @@ public final class SnapshotInfo implements Comparable<SnapshotInfo>, ToXContent,
         builder.field(NAME, snapshotId.getName());
         builder.field(UUID, snapshotId.getUUID());
         assert version != null : "version must always be known when writing a snapshot metadata blob";
-        builder.field(VERSION_ID, version.id);
+        builder.field(VERSION_ID, version.internalId);
         builder.startArray(INDICES);
         for (String index : indices) {
             builder.value(index);

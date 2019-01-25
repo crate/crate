@@ -21,30 +21,26 @@
 
 package io.crate.metadata.blob;
 
-import io.crate.Constants;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocIndexMetaData;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import java.nio.file.Path;
-import java.util.Map;
 
 public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
 
@@ -76,22 +72,16 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
     @Override
     public BlobTableInfo create(RelationName ident, ClusterState clusterState) {
         IndexMetaData indexMetaData = resolveIndexMetaData(ident.name(), clusterState);
-        Map<String, Object> mappingMap;
-        try {
-            mappingMap = indexMetaData.mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
-        } catch (ElasticsearchParseException e) {
-            LOGGER.error("error extracting blob table info for {}", e, ident.fqn());
-            throw new RuntimeException(e);
-        }
+        Settings settings = indexMetaData.getSettings();
         return new BlobTableInfo(
             ident,
             indexMetaData.getIndex().getName(),
             indexMetaData.getNumberOfShards(),
-            NumberOfReplicas.fromSettings(indexMetaData.getSettings()),
+            NumberOfReplicas.fromSettings(settings),
             TableParameterInfo.tableParametersFromIndexMetaData(indexMetaData),
-            blobsPath(indexMetaData.getSettings()),
-            DocIndexMetaData.getVersionCreated(mappingMap),
-            DocIndexMetaData.getVersionUpgraded(mappingMap),
+            blobsPath(settings),
+            IndexMetaData.SETTING_INDEX_VERSION_CREATED.get(settings),
+            settings.getAsVersion(IndexMetaData.SETTING_VERSION_UPGRADED, null),
             indexMetaData.getState() == IndexMetaData.State.CLOSE);
     }
 

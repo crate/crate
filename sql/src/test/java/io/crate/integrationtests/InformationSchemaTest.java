@@ -23,13 +23,13 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matcher;
@@ -37,7 +37,6 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -586,7 +585,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(665, response.rowCount());
+        assertEquals(657, response.rowCount());
     }
 
     @Test

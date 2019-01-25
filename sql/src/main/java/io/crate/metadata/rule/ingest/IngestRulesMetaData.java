@@ -264,6 +264,6 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
 
     @Override
     public Version getMinimalSupportedVersion() {
-        return Version.V_6_1_4;
+        return Version.ES_V_6_1_4;
     }
 }

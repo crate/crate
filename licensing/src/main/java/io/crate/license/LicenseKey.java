@@ -219,6 +219,6 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
 
     @Override
     public Version getMinimalSupportedVersion() {
-        return Version.V_6_1_4;
+        return Version.ES_V_6_1_4;
     }
 }

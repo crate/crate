@@ -24,7 +24,6 @@ package io.crate.testing;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import io.crate.Version;
 import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
 import io.crate.common.collections.Sorted;
@@ -47,6 +46,7 @@ import io.crate.metadata.Schemas;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -412,9 +412,11 @@ public class TestingHelpers {
     public static void assertCrateVersion(Object object, Version versionCreated, Version versionUpgraded) {
         assertThat((Map<String, String>) object,
             allOf(
-                hasEntry(is(Version.Property.CREATED.toString()),
-                    versionCreated == null ? nullValue() : is(Version.toStringMap(versionCreated))),
-                hasEntry(is(Version.Property.UPGRADED.toString()),
-                    versionUpgraded == null ? nullValue() : is(Version.toStringMap(versionUpgraded)))));
+                hasEntry(
+                    is(Version.Property.CREATED.toString()),
+                    versionCreated == null ? nullValue() : is(versionCreated.externalNumber())),
+                hasEntry(
+                    is(Version.Property.UPGRADED.toString()),
+                    versionUpgraded == null ? nullValue() : is(versionUpgraded.externalNumber()))));
     }
 }

@@ -23,7 +23,6 @@
 package io.crate.protocols.postgres;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.Version;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
@@ -44,8 +43,9 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.ssl.SslContext;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLSession;
@@ -422,7 +422,7 @@ class PostgresWireProtocol {
     }
 
     private void sendParamsAndRdyForQuery(Channel channel) {
-        Messages.sendParameterStatus(channel, "crate_version", Version.CURRENT.toString());
+        Messages.sendParameterStatus(channel, "crate_version", Version.CURRENT.externalNumber());
         Messages.sendParameterStatus(channel, "server_version", "10.5");
         Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
         Messages.sendParameterStatus(channel, "client_encoding", "UTF8");

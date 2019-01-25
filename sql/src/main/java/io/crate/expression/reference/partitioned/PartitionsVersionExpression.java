@@ -22,12 +22,10 @@
 
 package io.crate.expression.reference.partitioned;
 
-import io.crate.Version;
 import io.crate.common.collections.Maps;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.ObjectCollectExpression;
-import io.crate.expression.reference.information.TableExpressions;
 import io.crate.metadata.PartitionInfo;
+import org.elasticsearch.Version;
 
 import java.util.Map;
 
@@ -38,75 +36,16 @@ public class PartitionsVersionExpression extends ObjectCollectExpression<Partiti
     }
 
     private void addChildImplementations() {
-        childImplementations.put(Version.Property.CREATED.toString(),
-            new PartitionDetailedVersionExpression(Version.Property.CREATED));
+        childImplementations.put(
+            Version.Property.CREATED.toString(),
+            withNullableProperty(PartitionInfo::versionCreated, Version::externalNumber));
         childImplementations.put(Version.Property.UPGRADED.toString(),
-            new PartitionDetailedVersionExpression(Version.Property.UPGRADED));
+            withNullableProperty(PartitionInfo::versionUpgraded, Version::externalNumber));
     }
 
     @Override
     public Map<String, Object> value() {
         Map<String, Object> map = super.value();
         return Maps.mapOrNullIfNullValues(map);
-    }
-
-    static class PartitionDetailedVersionExpression extends ObjectCollectExpression<PartitionInfo> {
-
-        PartitionDetailedVersionExpression(Version.Property property) {
-            addChildImplementations(property);
-        }
-
-        private void addChildImplementations(Version.Property property) {
-            childImplementations.put(Version.CRATEDB_VERSION_KEY, new PartitionCrateVersionExpression(property));
-            childImplementations.put(Version.ES_VERSION_KEY, new PartitionESVersionExpression(property));
-        }
-
-        @Override
-        public Map<String, Object> value() {
-            Map<String, Object> map = super.value();
-            return Maps.mapOrNullIfNullValues(map);
-        }
-    }
-
-    static class PartitionCrateVersionExpression extends NestableCollectExpression<PartitionInfo, String> {
-
-        private final Version.Property property;
-        private String value;
-
-        PartitionCrateVersionExpression(Version.Property property) {
-            this.property = property;
-        }
-
-        @Override
-        public void setNextRow(PartitionInfo row) {
-            Version version = TableExpressions.getVersion(row, property);
-            value = version == null ? null : version.number();
-        }
-
-        @Override
-        public String value() {
-            return value;
-        }
-    }
-
-    static class PartitionESVersionExpression extends NestableCollectExpression<PartitionInfo, String> {
-
-        private final Version.Property property;
-        private String value;
-
-        PartitionESVersionExpression(Version.Property property) {
-            this.property = property;
-        }
-
-        @Override
-        public void setNextRow(PartitionInfo row) {
-            Version version = TableExpressions.getVersion(row, property);
-            value = version == null ? null : version.esVersion.toString();
-        }
-
-        @Override
-        public String value() {
-            return value;
-        }
     }
 }

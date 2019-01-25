@@ -151,7 +151,7 @@ public class PluginInfo implements Writeable, ToXContentObject {
             throw new IllegalArgumentException(
                     "property [elasticsearch.version] is missing for plugin [" + name + "]");
         }
-        final Version esVersion = Version.fromString(esVersionString);
+        final Version esVersion = Version.fromInternalString(esVersionString);
         final String javaVersionString = propsMap.remove("java.version");
         if (javaVersionString == null) {
             throw new IllegalArgumentException(
@@ -196,7 +196,7 @@ public class PluginInfo implements Writeable, ToXContentObject {
             }
         }
 
-        if (esVersion.before(Version.V_6_5_1) && esVersion.onOrAfter(Version.V_6_1_4)) {
+        if (esVersion.before(Version.ES_V_6_5_1) && esVersion.onOrAfter(Version.ES_V_6_1_4)) {
             propsMap.remove("requires.keystore");
         }
 

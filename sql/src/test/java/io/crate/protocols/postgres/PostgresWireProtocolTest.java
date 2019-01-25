@@ -22,7 +22,6 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.Version;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.auth.AlwaysOKNullAuthentication;
@@ -43,6 +42,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.embedded.EmbeddedChannel;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
@@ -366,7 +366,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             String value = PostgresWireProtocol.readCString(respBuf);
 
             assertThat(key, is("crate_version"));
-            assertThat(value, is(Version.CURRENT.toString()));
+            assertThat(value, is(Version.CURRENT.externalNumber()));
         } finally {
             respBuf.release();
         }

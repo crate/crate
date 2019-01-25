@@ -159,7 +159,7 @@ public class DateFieldMapper extends FieldMapper {
                     iterator.remove();
                 } else if (propName.equals("locale")) {
                     Locale locale;
-                    if (parserContext.indexVersionCreated().onOrAfter(Version.V_6_1_4)) {
+                    if (parserContext.indexVersionCreated().onOrAfter(Version.ES_V_6_1_4)) {
                         locale = LocaleUtils.parse(propNode.toString());
                     } else {
                         locale = LocaleUtils.parse5x(propNode.toString());

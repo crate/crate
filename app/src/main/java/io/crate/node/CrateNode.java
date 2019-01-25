@@ -24,7 +24,6 @@ package io.crate.node;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Build;
-import io.crate.Version;
 import io.crate.plugin.BlobPlugin;
 import io.crate.plugin.CrateCommonPlugin;
 import io.crate.plugin.HttpTransportPlugin;
@@ -34,6 +33,7 @@ import io.crate.plugin.SrvPlugin;
 import io.crate.udc.plugin.UDCPlugin;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.Version;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;

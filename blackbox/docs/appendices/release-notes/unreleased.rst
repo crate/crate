@@ -39,6 +39,12 @@ Breaking Changes
 
 - The Elasticsearch REST API has been removed.
 
+- Changed the layout of the ``version`` column in the
+  ``information_schema.tables`` and ``information_schema.table_partitions``
+  tables. The version is now displayed directly under ``created`` and
+  ``upgraded``. The ``cratedb`` and ``elasticsearch`` sub-category has been
+  removed.
+
 Changes
 =======
 

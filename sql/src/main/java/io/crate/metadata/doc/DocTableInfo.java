@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
-import io.crate.Version;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
@@ -44,6 +43,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.StoredTable;
 import io.crate.metadata.table.TableInfo;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 

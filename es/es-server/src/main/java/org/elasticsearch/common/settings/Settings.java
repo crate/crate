@@ -373,7 +373,7 @@ public final class Settings implements ToXContentFragment {
         final String setting,
         final Boolean defaultValue,
         final DeprecationLogger deprecationLogger) {
-        if (indexVersion.before(Version.V_6_1_4)) {
+        if (indexVersion.before(Version.ES_V_6_1_4)) {
             //Only emit a warning if the setting's value is not a proper boolean
             final String value = get(setting, "false");
             if (Booleans.isBoolean(value) == false) {
@@ -989,7 +989,7 @@ public final class Settings implements ToXContentFragment {
         }
 
         public Builder put(String setting, Version version) {
-            put(setting, version.id);
+            put(setting, version.internalId);
             return this;
         }
 

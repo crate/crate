@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.Version;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.auth.user.User;
@@ -1060,17 +1059,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("INDEX constraint cannot be used on columns of type \"object\"");
         e.analyze("create table test (obj object index off)");
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testCreateTableCreatedVersionSet() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
-            "create table created_version_table (id int)");
-        Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
-        Map<String, Object> versionMap = (Map) metaMapping.get("version");
-        assertThat(versionMap.get(Version.Property.CREATED.toString()), is(Version.toMap(Version.CURRENT)));
-        assertThat(versionMap.get(Version.Property.UPGRADED.toString()), nullValue());
     }
 
     @Test

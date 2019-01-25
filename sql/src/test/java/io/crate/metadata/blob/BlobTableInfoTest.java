@@ -22,12 +22,12 @@
 package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.Version;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import java.util.Collections;
