@@ -98,7 +98,7 @@ public abstract class AbstractSimpleTransportTestCase extends ESTestCase {
 
     protected ThreadPool threadPool;
     // we use always a non-alpha or beta version here otherwise minimumCompatibilityVersion will be different for the two used versions
-    private static final Version CURRENT_VERSION = Version.fromString(String.valueOf(Version.CURRENT.major) + ".0.0");
+    private static final Version CURRENT_VERSION = Version.fromInternalString(String.valueOf(Version.CURRENT.major) + ".0.0");
     protected static final Version version0 = CURRENT_VERSION.minimumCompatibilityVersion();
 
     private ClusterSettings clusterSettings;
@@ -106,7 +106,7 @@ public abstract class AbstractSimpleTransportTestCase extends ESTestCase {
     protected volatile DiscoveryNode nodeA;
     protected volatile MockTransportService serviceA;
 
-    protected static final Version version1 = Version.fromId(CURRENT_VERSION.id + 1);
+    protected static final Version version1 = Version.fromId(CURRENT_VERSION.internalId + 1);
     protected volatile DiscoveryNode nodeB;
     protected volatile MockTransportService serviceB;
 
@@ -1951,7 +1951,7 @@ public abstract class AbstractSimpleTransportTestCase extends ESTestCase {
 
     public void testHandshakeWithIncompatVersion() {
         assumeTrue("only tcp transport has a handshake method", serviceA.getOriginalTransport() instanceof TcpTransport);
-        Version version = Version.fromString("2.0.0");
+        Version version = Version.fromInternalString("2.0.0");
         try (MockTransportService service = build(Settings.EMPTY, version, null, true)) {
             service.start();
             service.acceptIncomingRequests();
@@ -1976,7 +1976,7 @@ public abstract class AbstractSimpleTransportTestCase extends ESTestCase {
             service.start();
             service.acceptIncomingRequests();
             TransportAddress address = service.boundAddress().publishAddress();
-            DiscoveryNode node = new DiscoveryNode("TS_TPC", "TS_TPC", address, emptyMap(), emptySet(), Version.fromString("2.0.0"));
+            DiscoveryNode node = new DiscoveryNode("TS_TPC", "TS_TPC", address, emptyMap(), emptySet(), Version.fromInternalString("2.0.0"));
             ConnectionProfile.Builder builder = new ConnectionProfile.Builder();
             builder.addConnections(1,
                 TransportRequestOptions.Type.BULK,

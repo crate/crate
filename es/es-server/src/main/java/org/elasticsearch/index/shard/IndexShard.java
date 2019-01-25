@@ -404,8 +404,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 assert currentRouting.active() == false : "we are in POST_RECOVERY, but our shard routing is active " + currentRouting;
 
                 assert currentRouting.isRelocationTarget() == false || currentRouting.primary() == false ||
-                    recoveryState.getSourceNode().getVersion().before(Version.V_6_1_4) ||
-                        replicationTracker.isPrimaryMode() :
+                       recoveryState.getSourceNode().getVersion().before(Version.ES_V_6_1_4) ||
+                       replicationTracker.isPrimaryMode() :
                     "a primary relocation is completed by the master, but primary mode is not active " + currentRouting;
 
                 changeState(IndexShardState.STARTED, "global state is [" + newRouting.state() + "]");
@@ -427,7 +427,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                         if (currentRouting.isRelocationTarget() == false) {
                             // the master started a recovering primary, activate primary mode.
                             replicationTracker.activatePrimaryMode(getLocalCheckpoint());
-                        } else if (recoveryState.getSourceNode().getVersion().before(Version.V_6_1_4)) {
+                        } else if (recoveryState.getSourceNode().getVersion().before(Version.ES_V_6_1_4)) {
                             // there was no primary context hand-off in < 6.0.0, need to manually activate the shard
                             replicationTracker.activatePrimaryMode(getLocalCheckpoint());
                             // Flush the translog as it may contain operations with no sequence numbers. We want to make sure those
@@ -438,7 +438,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                             if (getMaxSeqNoOfUpdatesOrDeletes() == SequenceNumbers.UNASSIGNED_SEQ_NO) {
                                 // If the old primary was on an old version that did not replicate the msu,
                                 // we need to bootstrap it manually from its local history.
-                                assert indexSettings.getIndexVersionCreated().before(Version.V_6_5_1);
+                                assert indexSettings.getIndexVersionCreated().before(Version.ES_V_6_5_1);
                                 getEngine().advanceMaxSeqNoOfUpdatesOrDeletes(seqNoStats().getMaxSeqNo());
                             }
                         }
@@ -496,12 +496,12 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                                 if (getMaxSeqNoOfUpdatesOrDeletes() == SequenceNumbers.UNASSIGNED_SEQ_NO) {
                                     // If the old primary was on an old version that did not replicate the msu,
                                     // we need to bootstrap it manually from its local history.
-                                    assert indexSettings.getIndexVersionCreated().before(Version.V_6_5_1);
+                                    assert indexSettings.getIndexVersionCreated().before(Version.ES_V_6_5_1);
                                     engine.advanceMaxSeqNoOfUpdatesOrDeletes(seqNoStats().getMaxSeqNo());
                                 }
                                 engine.restoreLocalHistoryFromTranslog((resettingEngine, snapshot) ->
                                     runTranslogRecovery(resettingEngine, snapshot, Engine.Operation.Origin.LOCAL_RESET, () -> {}));
-                                if (indexSettings.getIndexVersionCreated().onOrBefore(Version.V_6_1_4)) {
+                                if (indexSettings.getIndexVersionCreated().onOrBefore(Version.ES_V_6_1_4)) {
                                     // an index that was created before sequence numbers were introduced may contain operations in its
                                     // translog that do not have a sequence numbers. We want to make sure those operations will never
                                     // be replayed as part of peer recovery to avoid an arbitrary mixture of operations with seq# (due
@@ -723,7 +723,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             doc.addDynamicMappingsUpdate(docMapper.getMapping());
         }
         Term uid;
-        if (indexCreatedVersion.onOrAfter(Version.V_6_1_4)) {
+        if (indexCreatedVersion.onOrAfter(Version.ES_V_6_1_4)) {
             uid = new Term(IdFieldMapper.NAME, Uid.encodeId(doc.id()));
         } else if (docMapper.getDocumentMapper().idFieldMapper().fieldType().indexOptions() != IndexOptions.NONE) {
             uid = new Term(IdFieldMapper.NAME, doc.id());
@@ -828,7 +828,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     private Term extractUidForDelete(String type, String id) {
-        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_6_1_4)) {
+        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.ES_V_6_1_4)) {
             assert indexSettings.isSingleType();
             // This is only correct because we create types dynamically on delete operations
             // otherwise this could match the same _id from a different type
@@ -1393,7 +1393,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     private boolean assertMaxUnsafeAutoIdInCommit() throws IOException {
         final Map<String, String> userData = SegmentInfos.readLatestCommit(store.directory()).getUserData();
-        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_5_5_2)) {
+        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.ES_V_5_5_2)) {
             // as of 5.5.0, the engine stores the maxUnsafeAutoIdTimestamp in the commit point.
             // This should have baked into the commit by the primary we recover from, regardless of the index age.
             assert userData.containsKey(Engine.MAX_UNSAFE_AUTO_ID_TIMESTAMP_COMMIT_ID) :
@@ -1956,7 +1956,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             if (getMaxSeqNoOfUpdatesOrDeletes() == SequenceNumbers.UNASSIGNED_SEQ_NO) {
                 // If the old primary was on an old version that did not replicate the msu,
                 // we need to bootstrap it manually from its local history.
-                assert indexSettings.getIndexVersionCreated().before(Version.V_6_5_1);
+                assert indexSettings.getIndexVersionCreated().before(Version.ES_V_6_5_1);
                 getEngine().advanceMaxSeqNoOfUpdatesOrDeletes(seqNoStats().getMaxSeqNo());
             }
         }

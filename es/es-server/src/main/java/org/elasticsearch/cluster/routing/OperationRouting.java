@@ -203,7 +203,7 @@ public class OperationRouting extends AbstractComponent {
         }
         // if not, then use it as the index
         int routingHash = Murmur3HashFunction.hash(preference);
-        if (nodes.getMinNodeVersion().onOrAfter(Version.V_6_1_4)) {
+        if (nodes.getMinNodeVersion().onOrAfter(Version.ES_V_6_1_4)) {
             // The AllocationService lists shards in a fixed order based on nodes
             // so earlier versions of this class would have a tendency to
             // select the same node across different shardIds.

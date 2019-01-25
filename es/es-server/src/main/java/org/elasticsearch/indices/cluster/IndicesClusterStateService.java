@@ -577,7 +577,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                         return Stream.of(shr);
                     }
                 })
-                .filter(shr -> nodes.get(shr.currentNodeId()).getVersion().before(Version.V_6_1_4))
+                .filter(shr -> nodes.get(shr.currentNodeId()).getVersion().before(Version.ES_V_6_1_4))
                 .map(ShardRouting::allocationId)
                 .map(AllocationId::getId)
                 .collect(Collectors.toSet());

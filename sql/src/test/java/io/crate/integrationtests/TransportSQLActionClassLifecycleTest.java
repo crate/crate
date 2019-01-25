@@ -22,13 +22,13 @@
 package io.crate.integrationtests;
 
 import io.crate.Build;
-import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -570,9 +570,9 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         for (int i = 0; i <= 1; i++) {
             assertThat(response.rows()[i][0], instanceOf(Map.class));
             assertThat((Map<String, Object>) response.rows()[i][0], allOf(hasKey("number"), hasKey("build_hash"), hasKey("build_snapshot")));
-            assertThat((String) response.rows()[i][1], Matchers.is(Version.CURRENT.number()));
+            assertThat((String) response.rows()[i][1], Matchers.is(Version.CURRENT.externalNumber()));
             assertThat((String) response.rows()[i][2], is(Build.CURRENT.hash()));
-            assertThat((Boolean) response.rows()[i][3], is(Version.CURRENT.snapshot()));
+            assertThat((Boolean) response.rows()[i][3], is(Version.CURRENT.isSnapshot()));
         }
     }
 

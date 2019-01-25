@@ -978,7 +978,7 @@ public class Setting<T> implements ToXContentObject {
     }
 
     public static Setting<Version> versionSetting(final String key, final Version defaultValue, Property... properties) {
-        return new Setting<>(key, s -> Integer.toString(defaultValue.id), s -> Version.fromId(Integer.parseInt(s)), properties);
+        return new Setting<>(key, s -> Integer.toString(defaultValue.internalId), s -> Version.fromId(Integer.parseInt(s)), properties);
     }
 
     public static Setting<Float> floatSetting(String key, float defaultValue, Property... properties) {

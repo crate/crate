@@ -238,7 +238,7 @@ public class RecoverySourceHandler {
 
     private boolean isTargetSameHistory() {
         final String targetHistoryUUID = request.metadataSnapshot().getHistoryUUID();
-        assert targetHistoryUUID != null || shard.indexSettings().getIndexVersionCreated().before(Version.V_6_1_4) :
+        assert targetHistoryUUID != null || shard.indexSettings().getIndexVersionCreated().before(Version.ES_V_6_1_4) :
             "incoming target history N/A but index was created after or on 6.0.0-rc1";
         return targetHistoryUUID != null && targetHistoryUUID.equals(shard.getHistoryUUID());
     }

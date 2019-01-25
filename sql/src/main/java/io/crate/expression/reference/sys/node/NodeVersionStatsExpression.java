@@ -32,7 +32,7 @@ public class NodeVersionStatsExpression extends NestedNodeStatsExpression {
         childImplementations.put(NUMBER, new SimpleNodeStatsExpression<String>() {
             @Override
             public String innerValue(NodeStatsContext nodeStatsContext) {
-                return nodeStatsContext.version().number();
+                return nodeStatsContext.version().externalNumber();
             }
         });
         childImplementations.put(BUILD_HASH, new SimpleNodeStatsExpression<String>() {
@@ -44,7 +44,7 @@ public class NodeVersionStatsExpression extends NestedNodeStatsExpression {
         childImplementations.put(BUILD_SNAPSHOT, new SimpleNodeStatsExpression<Boolean>() {
             @Override
             public Boolean innerValue(NodeStatsContext nodeStatsContext) {
-                return nodeStatsContext.version().snapshot();
+                return nodeStatsContext.version().isSnapshot();
             }
         });
     }

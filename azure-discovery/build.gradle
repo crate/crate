@@ -10,7 +10,7 @@ task writePropertiesFile {
             into "${buildDir}/tmp"
             include "plugin-descriptor.properties"
             expand(version: project.version,
-                    esVersion: versions.elasticsearch,
+                    esVersion: versions.internalES,
                     jmvCompatibility: project.targetCompatibility,
                     name: project.name)
         }

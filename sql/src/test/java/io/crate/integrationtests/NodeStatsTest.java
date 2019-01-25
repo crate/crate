@@ -21,10 +21,10 @@
 
 package io.crate.integrationtests;
 
-import io.crate.Version;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.Version;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -351,9 +351,9 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], instanceOf(Map.class));
         assertThat((Map<String, Object>) response.rows()[0][0], allOf(hasKey("number"), hasKey("build_hash"), hasKey("build_snapshot")));
-        assertThat((String) response.rows()[0][1], is(Version.CURRENT.number()));
+        assertThat((String) response.rows()[0][1], is(Version.CURRENT.externalNumber()));
         assertThat(response.rows()[0][2], instanceOf(String.class));
-        assertThat((Boolean) response.rows()[0][3], is(Version.CURRENT.snapshot()));
+        assertThat((Boolean) response.rows()[0][3], is(Version.CURRENT.isSnapshot()));
     }
 
     @Test
