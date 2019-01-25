@@ -67,18 +67,14 @@ public class CreateIndexResponse extends ShardsAcknowledgedResponse {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         readShardsAcknowledged(in);
-        if (in.getVersion().onOrAfter(Version.V_5_6_0)) {
-            index = in.readString();
-        }
+        index = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         writeShardsAcknowledged(out);
-        if (out.getVersion().onOrAfter(Version.V_5_6_0)) {
-            out.writeString(index);
-        }
+        out.writeString(index);
     }
 
     /**

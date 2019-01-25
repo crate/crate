@@ -69,17 +69,9 @@ public final class TransportAddress implements Writeable, ToXContentFragment {
     }
 
     /**
-     * Read from a stream.
+     * Read from a stream
      */
     public TransportAddress(StreamInput in) throws IOException {
-        this(in, null);
-    }
-
-    /**
-     * Read from a stream and use the {@code hostString} when creating the InetAddress if the input comes from a version on or prior
-     * {@link Version#V_5_0_2} as the hostString was not serialized
-     */
-    public TransportAddress(StreamInput in, @Nullable String hostString) throws IOException {
         final int len = in.readByte();
         final byte[] a = new byte[len]; // 4 bytes (IPv4) or 16 bytes (IPv6)
         in.readFully(a);
