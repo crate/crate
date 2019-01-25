@@ -151,4 +151,9 @@ public class BatchSimulatingIterator<T> implements BatchIterator<T> {
     public int getMovetoStartCalls() {
         return moveToStartCalls;
     }
+
+    @Override
+    public boolean involvesIO() {
+        return delegate.involvesIO();
+    }
 }

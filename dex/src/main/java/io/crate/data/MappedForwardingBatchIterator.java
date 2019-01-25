@@ -61,4 +61,9 @@ public abstract class MappedForwardingBatchIterator<I, O> implements BatchIterat
     public void kill(@Nonnull Throwable throwable) {
         delegate().kill(throwable);
     }
+
+    @Override
+    public boolean involvesIO() {
+        return delegate().involvesIO();
+    }
 }

@@ -199,7 +199,8 @@ final class GroupByOptimizedIterator {
                     } catch (Throwable t) {
                         return failedFuture(t);
                     }
-                }
+                },
+                true
             );
         } catch (Throwable t) {
             searcher.close();
