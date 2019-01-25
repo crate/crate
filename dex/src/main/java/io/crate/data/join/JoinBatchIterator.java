@@ -111,4 +111,12 @@ public abstract class JoinBatchIterator<L, R, C> implements BatchIterator<C> {
         left.kill(throwable);
         right.kill(throwable);
     }
+
+    @Override
+    public boolean involvesIO() {
+        if (left.involvesIO()) {
+            return true;
+        }
+        return right.involvesIO();
+    }
 }

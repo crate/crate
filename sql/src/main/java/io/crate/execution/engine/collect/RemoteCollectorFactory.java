@@ -119,7 +119,8 @@ public class RemoteCollectorFactory {
             () -> {
                 shardStateAwareRemoteCollector.doCollect();
                 return consumer.resultFuture().thenApply(results -> results.stream().map(Buckets.arrayToSharedRow())::iterator);
-            }
+            },
+            true
         );
     }
 

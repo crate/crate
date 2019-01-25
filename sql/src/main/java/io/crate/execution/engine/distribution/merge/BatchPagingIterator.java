@@ -148,6 +148,11 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
         return isUpstreamExhausted.getAsBoolean();
     }
 
+    @Override
+    public boolean involvesIO() {
+        return true;
+    }
+
     private void raiseIfClosedOrKilled() {
         Throwable err;
         synchronized (this) {

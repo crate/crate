@@ -47,6 +47,8 @@ None
 Fixes
 =====
 
+- Fixed performance regression when inserting data using ``unnest()``.
+
 - Fixed an issue where an ordered query with a specified limit that was much
   larger than the available rows would result in ``OutOfMemoryError`` even
   though the number of available rows could fit in memory.

@@ -97,4 +97,9 @@ public final class FlatMapBatchIterator<TIn, TOut> implements BatchIterator<TOut
     public void kill(@Nonnull Throwable throwable) {
         source.kill(throwable);
     }
+
+    @Override
+    public boolean involvesIO() {
+        return source.involvesIO();
+    }
 }
