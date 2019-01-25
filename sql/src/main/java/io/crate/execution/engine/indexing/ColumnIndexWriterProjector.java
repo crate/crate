@@ -133,7 +133,7 @@ public class ColumnIndexWriterProjector implements Projector {
 
     @Override
     public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
-        return CollectingBatchIterator.newInstance(batchIterator, shardingUpsertExecutor);
+        return CollectingBatchIterator.newInstance(batchIterator, shardingUpsertExecutor, batchIterator.involvesIO());
     }
 
     @Override

@@ -43,6 +43,7 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
     private final Supplier<CompletableFuture<? extends Iterable<? extends T>>> loadItems;
     private final Runnable onClose;
     private final Consumer<? super Throwable> onKill;
+    private final boolean involvesIO;
 
     private CompletableFuture<? extends Iterable<? extends T>> resultFuture;
     private Iterator<? extends T> it = Collections.emptyIterator();
@@ -50,10 +51,12 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
 
     private CollectingBatchIterator(Supplier<CompletableFuture<? extends Iterable<? extends T>>> loadItems,
                                     Runnable onClose,
-                                    Consumer<? super Throwable> onKill) {
+                                    Consumer<? super Throwable> onKill,
+                                    boolean involvesIO) {
         this.loadItems = loadItems;
         this.onClose = onClose;
         this.onKill = onKill;
+        this.involvesIO = involvesIO;
     }
 
     /**
@@ -80,22 +83,26 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
         return newInstance(
             source::close,
             source::kill,
-            () -> BatchIterators.collect(source, collector)
+            () -> BatchIterators.collect(source, collector),
+            source.involvesIO()
         );
     }
 
     public static <T> BatchIterator<T> newInstance(BatchIterator<T> source,
-                                                   Function<BatchIterator<T>, CompletableFuture<? extends Iterable<? extends T>>> processSource) {
+                                                   Function<BatchIterator<T>, CompletableFuture<? extends Iterable<? extends T>>> processSource,
+                                                   boolean involvesIO) {
         return newInstance(
             source::close,
             source::kill,
-            () -> processSource.apply(source).whenComplete((r, f) -> source.close()));
+            () -> processSource.apply(source).whenComplete((r, f) -> source.close()),
+            involvesIO);
     }
 
     public static <T> BatchIterator<T> newInstance(Runnable onClose,
                                                    Consumer<? super Throwable> onKill,
-                                                   Supplier<CompletableFuture<? extends Iterable<? extends T>>> loadItems) {
-        return new CloseAssertingBatchIterator<>(new CollectingBatchIterator<>(loadItems, onClose, onKill));
+                                                   Supplier<CompletableFuture<? extends Iterable<? extends T>>> loadItems,
+                                                   boolean involvesIO) {
+        return new CloseAssertingBatchIterator<>(new CollectingBatchIterator<>(loadItems, onClose, onKill, involvesIO));
     }
 
     @Override
@@ -156,5 +163,10 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
     public void kill(@Nonnull Throwable throwable) {
         onKill.accept(throwable);
         // rest is handled by CloseAssertingBatchIterator
+    }
+
+    @Override
+    public boolean involvesIO() {
+        return involvesIO;
     }
 }

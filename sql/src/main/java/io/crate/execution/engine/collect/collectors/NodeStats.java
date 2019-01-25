@@ -77,7 +77,8 @@ public final class NodeStats {
                 nodes,
                 txnCtx,
                 inputFactory
-            )
+            ),
+            true
         );
     }
 

@@ -117,4 +117,14 @@ public class CompositeBatchIterator<T> implements BatchIterator<T> {
             iterator.kill(throwable);
         }
     }
+
+    @Override
+    public boolean involvesIO() {
+        for (BatchIterator iterator : iterators) {
+            if (iterator.involvesIO()) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
