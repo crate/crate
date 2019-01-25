@@ -19,6 +19,10 @@ Ingestion rules define where and how the incoming data of a specific
 :ref:`ingestion source <administration-ingestion-sources>` should be routed and
 stored.
 
+   .. WARNING::
+
+      Ingestion rules are deprecated and will be removed in a future release.
+
 .. rubric:: Table of Contents
 
 .. contents::

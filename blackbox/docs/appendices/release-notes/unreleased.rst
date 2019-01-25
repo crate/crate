@@ -42,6 +42,12 @@ None
 Changes
 =======
 
+- Added the ``pg_type.typlen`` column for improved postgresql compatibility.
+
+- Marked ``CREATE INGEST RULE`` and ``DROP INGEST RULE`` as deprecated. Given
+  that the only implementation (MQTT) was deprecated and will be removed, the
+  framework itself will also be removed.
+
 - Added ``current_schemas(boolean)`` scalar function which will return the
   names of schemas in the ``search_path``.
 
@@ -67,9 +73,3 @@ Changes
 
 Fixes
 =====
-
-- Fixed a ``NullPointerException`` that could occur on queries on the
-  ``information_schema.tables`` table.
-
-- Fixed a ``NullPointerException`` that occurs on ``OUTER`` joins which can
-  be rewritten to ``INNER`` joins and uses a function as a select item.

@@ -14,14 +14,9 @@ To start working on the docs locally, you will need Python_ 3 in addition to
 Java_ (needed for the doctests_). Make sure that ``python3`` is on your
 ``$PATH``.
 
-Before you can get started, you need to bootstrap the docs::
+You can run the sphinx build as a development server, like so::
 
-    $ cd blackbox
-    $ ./bootstrap.sh
-
-Once this runs, you can build the docs and start the docs web server like so::
-
-    $ ./bin/sphinx dev
+    $ ./gradlew blackbox:developDocs
 
 Once the web server running, you can view your local copy of the docs by
 visiting http://127.0.0.1:8000 in a web browser.
@@ -30,19 +25,17 @@ This command also watches the file system and rebuilds the docs when changes
 are detected. Even better, it will automatically refresh the browser tab for
 you.
 
+Alternatively, you can just build the docs without starting the web server::
+
+    $ ./gradlew blackbox:buildDocs
+
+
 Many of the examples in the documentation are executable and function as
 doctests_.
 
 You can run the doctests like so::
 
-    $ ./bin/test
-
-If you want to test the doctests in a specific file, run this::
-
-    $ ./bin/test -1vt <filename>
-
-There is also a Gradle task called ``itest`` which will execute all of the
-above steps.
+    $ ./gradlew blackbox:itest
 
 *Note*: Your network connection should be up and running, or some of the tests
 will fail.

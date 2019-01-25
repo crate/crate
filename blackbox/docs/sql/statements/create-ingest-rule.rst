@@ -6,6 +6,10 @@
 
 Defines a new ingestion rule.
 
+   .. WARNING::
+
+      This statement has been deprecated and will be removed in the future.
+
 .. rubric:: Table of Contents
 
 .. contents::

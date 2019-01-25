@@ -46,8 +46,8 @@ if [ "x$CRATE_USE_IPV4" != "x" ]; then
   JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true"
 fi
 
+## GC configuration
 JAVA_OPTS="$JAVA_OPTS -XX:+UseConcMarkSweepGC"
-
 JAVA_OPTS="$JAVA_OPTS -XX:CMSInitiatingOccupancyFraction=75"
 JAVA_OPTS="$JAVA_OPTS -XX:+UseCMSInitiatingOccupancyOnly"
 

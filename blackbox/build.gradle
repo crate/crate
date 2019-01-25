@@ -65,6 +65,9 @@ task buildDocs(type: Exec, dependsOn: bootstrap) {
     commandLine "$projectDir/bin/sphinx"
 }
 
+task developDocs(type: Exec, dependsOn: bootstrap) {
+    commandLine "$projectDir/bin/sphinx", "dev"
+}
 
 hdfsTest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold,
         project(':es:es-repository-hdfs').blackBoxTestJar)
