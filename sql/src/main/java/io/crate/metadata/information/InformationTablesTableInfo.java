@@ -23,7 +23,6 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.Version;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.information.TablesSettingsExpression;
 import io.crate.expression.reference.information.TablesVersionExpression;
@@ -39,6 +38,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
 
 import java.util.List;
 import java.util.Map;
@@ -66,16 +66,8 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         static final ColumnIdent TABLE_VERSION = new ColumnIdent("version");
         static final ColumnIdent TABLE_VERSION_CREATED = new ColumnIdent("version",
             ImmutableList.of(Version.Property.CREATED.toString()));
-        static final ColumnIdent TABLE_VERSION_CREATED_CRATEDB = new ColumnIdent("version",
-            ImmutableList.of(Version.Property.CREATED.toString(), Version.CRATEDB_VERSION_KEY));
-        static final ColumnIdent TABLE_VERSION_CREATED_ES = new ColumnIdent("version",
-            ImmutableList.of(Version.Property.CREATED.toString(), Version.ES_VERSION_KEY));
         static final ColumnIdent TABLE_VERSION_UPGRADED = new ColumnIdent("version",
             ImmutableList.of(Version.Property.UPGRADED.toString()));
-        static final ColumnIdent TABLE_VERSION_UPGRADED_CRATEDB = new ColumnIdent("version",
-            ImmutableList.of(Version.Property.UPGRADED.toString(), Version.CRATEDB_VERSION_KEY));
-        static final ColumnIdent TABLE_VERSION_UPGRADED_ES = new ColumnIdent("version",
-            ImmutableList.of(Version.Property.UPGRADED.toString(), Version.ES_VERSION_KEY));
         static final ColumnIdent CLOSED = new ColumnIdent("closed");
         static final ColumnIdent REFERENCE_GENERATION = new ColumnIdent("reference_generation");
         static final ColumnIdent SELF_REFERENCING_COLUMN_NAME = new ColumnIdent("self_referencing_column_name");
@@ -152,12 +144,8 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             .register(Columns.COLUMN_POLICY, DataTypes.STRING)
             .register(Columns.ROUTING_HASH_FUNCTION, DataTypes.STRING)
             .register(Columns.TABLE_VERSION, DataTypes.OBJECT)
-            .register(Columns.TABLE_VERSION_CREATED, DataTypes.OBJECT)
-            .register(Columns.TABLE_VERSION_CREATED_CRATEDB, DataTypes.STRING)
-            .register(Columns.TABLE_VERSION_CREATED_ES, DataTypes.STRING)
-            .register(Columns.TABLE_VERSION_UPGRADED, DataTypes.OBJECT)
-            .register(Columns.TABLE_VERSION_UPGRADED_CRATEDB, DataTypes.STRING)
-            .register(Columns.TABLE_VERSION_UPGRADED_ES, DataTypes.STRING)
+            .register(Columns.TABLE_VERSION_CREATED, DataTypes.STRING)
+            .register(Columns.TABLE_VERSION_UPGRADED, DataTypes.STRING)
             .register(Columns.CLOSED, DataTypes.BOOLEAN)
             .register(Columns.REFERENCE_GENERATION, DataTypes.STRING)
             .register(Columns.SELF_REFERENCING_COLUMN_NAME, DataTypes.STRING)

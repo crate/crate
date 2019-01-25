@@ -175,7 +175,7 @@ public class TextFieldMapper extends FieldMapper {
                 }
                 // Copy the index options of the main field to allow phrase queries on
                 // the prefix field.
-                if (context.indexCreatedVersion().onOrAfter(Version.V_6_5_1)) {
+                if (context.indexCreatedVersion().onOrAfter(Version.ES_V_6_5_1)) {
                     if (fieldType.indexOptions() == IndexOptions.DOCS_AND_FREQS) {
                         // frequencies are not needed because prefix queries always use a constant score
                         prefixFieldType.setIndexOptions(IndexOptions.DOCS);

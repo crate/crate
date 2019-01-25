@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import io.crate.Constants;
-import io.crate.Version;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.TableParameterInfo;
@@ -42,7 +41,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
-import io.crate.metadata.IndexMappings;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -55,6 +53,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Booleans;
@@ -134,8 +133,8 @@ public class DocIndexMetaData {
         IndexMetaData.State state = isClosed(metaData, mappingMap, !partitionedByList.isEmpty()) ?
             IndexMetaData.State.CLOSE : IndexMetaData.State.OPEN;
         supportedOperations = Operation.buildFromIndexSettingsAndState(metaData.getSettings(), state);
-        versionCreated = getVersionCreated(mappingMap);
-        versionUpgraded = getVersionUpgraded(mappingMap);
+        versionCreated = IndexMetaData.SETTING_INDEX_VERSION_CREATED.get(settings);
+        versionUpgraded = settings.getAsVersion(IndexMetaData.SETTING_VERSION_UPGRADED, null);
         closed = state == IndexMetaData.State.CLOSE;
     }
 
@@ -145,25 +144,6 @@ public class DocIndexMetaData {
             return ImmutableMap.of();
         }
         return mappingMetaData.sourceAsMap();
-    }
-
-    private static Map<String, Object> getVersionMap(Map<String, Object> mappingMap) {
-        return Maps.getOrDefault(
-            Maps.getOrDefault(mappingMap, "_meta", null),
-            IndexMappings.VERSION_STRING,
-            null);
-    }
-
-    @Nullable
-    public static Version getVersionCreated(Map<String, Object> mappingMap) {
-        Map<String, Object> versionMap = getVersionMap(mappingMap);
-        return Version.fromMap(Maps.getOrDefault(versionMap, Version.Property.CREATED.toString(), null));
-    }
-
-    @Nullable
-    public static Version getVersionUpgraded(Map<String, Object> mappingMap) {
-        Map<String, Object> versionMap = getVersionMap(mappingMap);
-        return Version.fromMap(Maps.getOrDefault(versionMap, Version.Property.UPGRADED.toString(), null));
     }
 
     public static boolean isClosed(IndexMetaData indexMetaData, Map<String, Object> mappingMap, boolean isPartitioned) {

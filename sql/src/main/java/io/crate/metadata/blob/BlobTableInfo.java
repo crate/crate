@@ -22,7 +22,6 @@
 package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Version;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
@@ -39,6 +38,7 @@ import io.crate.metadata.table.StoredTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.collect.Tuple;
 

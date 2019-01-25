@@ -26,7 +26,6 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.Version;
 import io.crate.action.FutureActionListener;
 import io.crate.collections.Lists2;
 import io.crate.execution.support.ActionListeners;
@@ -231,7 +230,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
                 } else {
                     if (updateAllowed(key, sourceValue, updateValue)) {
                         source.put(key, updateValue);
-                    } else if (!isUpdateIgnored(path, key) && !sourceValue.equals(updateValue)) {
+                    } else if (!isUpdateIgnored(path) && !sourceValue.equals(updateValue)) {
                         String fqKey = String.join(".", path) + '.' + key;
                         throw new IllegalArgumentException(
                             "Can't overwrite " + fqKey + "=" + sourceValue + " with " + updateValue);
@@ -243,13 +242,9 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         }
     }
 
-    private static boolean isUpdateIgnored(List<String> path, String key) {
-        List<String> createdVersionPath = ImmutableList.of(
-            "default", "_meta", IndexMappings.VERSION_STRING, Version.Property.CREATED.toString());
-        List<String> upgradedVersionPath = ImmutableList.of(
-            "default", "_meta", IndexMappings.VERSION_STRING, Version.Property.UPGRADED.toString());
-        return (key.equals(Version.CRATEDB_VERSION_KEY) || key.equals(Version.ES_VERSION_KEY))
-               && (path.equals(createdVersionPath) || path.equals(upgradedVersionPath));
+    private static boolean isUpdateIgnored(List<String> path) {
+        List<String> versionMeta = ImmutableList.of("default", "_meta", IndexMappings.VERSION_STRING);
+        return path.size() > 3 && path.subList(0, 3).equals(versionMeta);
     }
 
     private static boolean updateAllowed(String key, Object sourceValue, Object updateValue) {

@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -121,8 +120,6 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
             if (routingColumn != null) {
                 metaMap.put("routing", routingColumn.fqn());
             }
-            IndexMappings.putDefaultSettingsToMeta(metaMap);
-
             // merge in user defined mapping parameter
             mapping.putAll(tableParameter.mappings());
         }

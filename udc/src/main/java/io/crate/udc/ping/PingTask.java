@@ -24,12 +24,12 @@ package io.crate.udc.ping;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import io.crate.Version;
 import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseService;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
@@ -125,7 +125,7 @@ public class PingTask extends TimerTask {
         queryMap.put("enterprise", isEnterprise());
         queryMap.put("ping_count", Strings.toString(XContentFactory.jsonBuilder().map(getCounters())));
         queryMap.put("hardware_address", getHardwareAddress());
-        queryMap.put("crate_version", Version.CURRENT.number());
+        queryMap.put("crate_version", Version.CURRENT.externalNumber());
         queryMap.put("java_version", System.getProperty("java.version"));
 
         DecryptedLicenseData license = licenseService.currentLicense();

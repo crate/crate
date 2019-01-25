@@ -26,7 +26,6 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
@@ -210,9 +209,6 @@ public class TransportCreatePartitionsAction
 
             List<IndexTemplateMetaData> templates = findTemplates(request, currentState);
             applyTemplates(mappings, templatesAliases, templateNames, templates);
-
-            // set `created` versions to actual ones
-            IndexMappings.putDefaultSettingsToMappings(mappings);
 
             MetaData.Builder newMetaDataBuilder = MetaData.builder(currentState.metaData());
             for (String index : indicesToCreate) {

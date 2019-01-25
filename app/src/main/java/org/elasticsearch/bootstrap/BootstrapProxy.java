@@ -22,7 +22,6 @@
 
 package org.elasticsearch.bootstrap;
 
-import io.crate.Version;
 import io.crate.bootstrap.BootstrapException;
 import io.crate.node.CrateNode;
 import org.apache.logging.log4j.LogManager;
@@ -35,6 +34,7 @@ import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.StringHelper;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.Version;
 import org.elasticsearch.cli.UserException;
 import org.elasticsearch.common.PidFile;
 import org.elasticsearch.common.SuppressForbidden;

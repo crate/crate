@@ -44,6 +44,6 @@ public class TcpHeader {
         output.writeInt(messageSize + REQUEST_ID_SIZE + STATUS_SIZE + VERSION_ID_SIZE);
         output.writeLong(requestId);
         output.writeByte(status);
-        output.writeInt(version.id);
+        output.writeInt(version.internalId);
     }
 }

@@ -54,7 +54,7 @@ public class TypeParsers {
     //TODO 22298: Remove this method and have all call-sites use <code>XContentMapValues.nodeBooleanValue(node)</code> directly.
     public static boolean nodeBooleanValue(String fieldName, String propertyName, Object node,
                                            Mapper.TypeParser.ParserContext parserContext) {
-        if (parserContext.indexVersionCreated().onOrAfter(Version.V_6_1_4)) {
+        if (parserContext.indexVersionCreated().onOrAfter(Version.ES_V_6_1_4)) {
             return XContentMapValues.nodeBooleanValue(node, fieldName + "." + propertyName);
         } else {
             return nodeBooleanValueLenient(fieldName, propertyName, node);

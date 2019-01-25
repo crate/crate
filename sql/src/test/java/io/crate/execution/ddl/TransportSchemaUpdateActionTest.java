@@ -23,7 +23,6 @@
 package io.crate.execution.ddl;
 
 import io.crate.Constants;
-import io.crate.Version;
 import io.crate.analyze.AddColumnAnalyzedStatement;
 import io.crate.metadata.IndexMappings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -38,7 +37,6 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 
 import static io.crate.metadata.PartitionName.templateName;
@@ -89,14 +87,15 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
     @Test
     public void testVersionChangesAreIgnored() {
         HashMap<String, Object> source = new HashMap<>();
-        source.put(Version.CRATEDB_VERSION_KEY, 100);
+        String versionKey = "cratedb";
+        source.put(versionKey, 100);
 
         TransportSchemaUpdateAction.mergeIntoSource(
             source,
-            singletonMap(Version.CRATEDB_VERSION_KEY, 200),
-            Arrays.asList("default", "_meta", IndexMappings.VERSION_STRING, Version.Property.CREATED.toString())
+            singletonMap(versionKey, 200),
+            Arrays.asList("default", "_meta", IndexMappings.VERSION_STRING, versionKey)
         );
 
-        assertThat(source.get(Version.CRATEDB_VERSION_KEY), is(100));
+        assertThat(source.get(versionKey), is(100));
     }
 }

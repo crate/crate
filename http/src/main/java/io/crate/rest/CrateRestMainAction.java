@@ -24,8 +24,8 @@ package io.crate.rest;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Build;
-import io.crate.Version;
 import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -202,11 +202,10 @@ public class CrateRestMainAction implements RestHandler {
             }
             builder.field("cluster_name", clusterName.value());
             builder.startObject("version")
-                .field("number", version.number())
+                .field("number", version.externalNumber())
                 .field("build_hash", Build.CURRENT.hash())
                 .field("build_timestamp", Build.CURRENT.timestamp())
-                .field("build_snapshot", version.snapshot)
-                .field("es_version", version.esVersion)
+                .field("build_snapshot", version.build)
                 // We use the lucene version from lucene constants since
                 // this includes bugfix release version as well and is already in
                 // the right format. We can also be sure that the format is maitained

@@ -23,8 +23,8 @@ package io.crate.metadata;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
-import io.crate.Version;
 import io.crate.metadata.table.StoredTable;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.Nullable;
 
 import java.util.Map;

@@ -57,7 +57,7 @@ public class SynonymTokenFilterFactory extends AbstractTokenFilterFactory {
 
         this.ignoreCase =
             settings.getAsBooleanLenientForPreEs6Indices(indexSettings.getIndexVersionCreated(), "ignore_case", false, deprecationLogger);
-        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_6_1_4) && settings.get("ignore_case") != null) {
+        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.ES_V_6_1_4) && settings.get("ignore_case") != null) {
             deprecationLogger.deprecated(
                 "The ignore_case option on the synonym_graph filter is deprecated. " +
                     "Instead, insert a lowercase filter in the filter chain before the synonym_graph filter.");
@@ -67,7 +67,7 @@ public class SynonymTokenFilterFactory extends AbstractTokenFilterFactory {
             settings.getAsBooleanLenientForPreEs6Indices(indexSettings.getIndexVersionCreated(), "expand", true, deprecationLogger);
 
         // for backward compatibility
-        if (indexSettings.getIndexVersionCreated().before(Version.V_6_1_4)) {
+        if (indexSettings.getIndexVersionCreated().before(Version.ES_V_6_1_4)) {
             String tokenizerName = settings.get("tokenizer", "whitespace");
             AnalysisModule.AnalysisProvider<TokenizerFactory> tokenizerFactoryFactory =
                 analysisRegistry.getTokenizerProvider(tokenizerName, indexSettings);

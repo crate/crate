@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.Version;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.CreateTableAnalyzedStatement;
@@ -1306,39 +1305,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(md.indices().size(), is(1));
         assertThat(md.indices().keySet().iterator().next(), is(new ColumnIdent("description_ft")));
-    }
-
-    @Test
-    public void testVersionsRead() throws Exception {
-        // @formatter:off
-        XContentBuilder builder = XContentFactory.jsonBuilder()
-            .startObject()
-                .startObject("_meta")
-                    .startObject("version")
-                        .startObject(Version.Property.CREATED.toString())
-                            .field(Version.CRATEDB_VERSION_KEY, 560499)
-                            .field(Version.ES_VERSION_KEY, 2040299)
-                        .endObject()
-                        .startObject(Version.Property.UPGRADED.toString())
-                            .field(Version.CRATEDB_VERSION_KEY, Version.CURRENT.id)
-                            .field(Version.ES_VERSION_KEY, Version.CURRENT.esVersion.id)
-                        .endObject()
-                    .endObject()
-                .endObject()
-                .startObject("properties")
-                    .startObject("id")
-                        .field("type", "integer")
-                    .endObject()
-                .endObject()
-            .endObject();
-        // @formatter: on
-
-        IndexMetaData metaData = getIndexMetaData("test1", builder);
-        DocIndexMetaData md = newMeta(metaData, "test1");
-
-        assertThat(md.versionCreated().id, is(560499));
-        assertThat(md.versionCreated().esVersion.id, is(2040299));
-        assertThat(md.versionUpgraded(), is(Version.CURRENT));
     }
 
     @Test
