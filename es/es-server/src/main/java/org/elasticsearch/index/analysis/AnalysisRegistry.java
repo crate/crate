@@ -21,13 +21,11 @@ package org.elasticsearch.index.analysis;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
-import org.elasticsearch.Version;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
@@ -43,7 +41,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -515,12 +512,9 @@ public final class AnalysisRegistry implements Closeable {
             throw new IllegalArgumentException("no default analyzer configured");
         }
         if (analyzers.containsKey("default_index")) {
-            final Version createdVersion = indexSettings.getIndexVersionCreated();
-            if (createdVersion.onOrAfter(Version.V_5_0_0_alpha1)) {
-                throw new IllegalArgumentException("setting [index.analysis.analyzer.default_index] is not supported anymore, use [index.analysis.analyzer.default] instead for index [" + index.getName() + "]");
-            } else {
-                deprecationLogger.deprecated("setting [index.analysis.analyzer.default_index] is deprecated, use [index.analysis.analyzer.default] instead for index [{}]", index.getName());
-            }
+            throw new IllegalArgumentException(
+                "setting [index.analysis.analyzer.default_index] is not supported anymore, " +
+                "use [index.analysis.analyzer.default] instead for index [" + index.getName() + "]");
         }
         NamedAnalyzer defaultIndexAnalyzer = analyzers.containsKey("default_index") ? analyzers.get("default_index") : defaultAnalyzer;
         NamedAnalyzer defaultSearchAnalyzer = analyzers.containsKey("default_search") ? analyzers.get("default_search") : defaultAnalyzer;
@@ -582,20 +576,7 @@ public final class AnalysisRegistry implements Closeable {
         // TODO: remove alias support completely when we no longer support pre 5.0 indices
         final String analyzerAliasKey = "index.analysis.analyzer." + analyzerFactory.name() + ".alias";
         if (indexSettings.getSettings().get(analyzerAliasKey) != null) {
-            if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_5_0_0_beta1)) {
-                // do not allow alias creation if the index was created on or after v5.0 alpha6
-                throw new IllegalArgumentException("setting [" + analyzerAliasKey + "] is not supported");
-            }
-
-            // the setting is now removed but we only support it for loading indices created before v5.0
-            deprecationLogger.deprecated("setting [{}] is only allowed on index [{}] because it was created before 5.x; " +
-                "analyzer aliases can no longer be created on new indices.", analyzerAliasKey, indexSettings.getIndex().getName());
-            Set<String> aliases = Sets.newHashSet(indexSettings.getSettings().getAsList(analyzerAliasKey));
-            for (String alias : aliases) {
-                if (analyzerAliases.putIfAbsent(alias, analyzer) != null) {
-                    throw new IllegalStateException("alias [" + alias + "] is already used by [" + analyzerAliases.get(alias).name() + "]");
-                }
-            }
+            throw new IllegalArgumentException("setting [" + analyzerAliasKey + "] is not supported");
         }
     }
 
