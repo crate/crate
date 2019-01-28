@@ -45,24 +45,6 @@ public class Version implements Comparable<Version>, ToXContentFragment {
      */
     public static final int V_EMPTY_ID = 0;
     public static final Version V_EMPTY = new Version(V_EMPTY_ID, org.apache.lucene.util.Version.LATEST);
-    public static final int V_5_0_0_alpha1_ID = 5000001;
-    public static final Version V_5_0_0_alpha1 = new Version(V_5_0_0_alpha1_ID, org.apache.lucene.util.Version.LUCENE_6_0_0);
-    public static final int V_5_0_0_alpha2_ID = 5000002;
-    public static final Version V_5_0_0_alpha2 = new Version(V_5_0_0_alpha2_ID, org.apache.lucene.util.Version.LUCENE_6_0_0);
-    public static final int V_5_0_0_alpha3_ID = 5000003;
-    public static final Version V_5_0_0_alpha3 = new Version(V_5_0_0_alpha3_ID, org.apache.lucene.util.Version.LUCENE_6_0_0);
-    public static final int V_5_0_0_alpha4_ID = 5000004;
-    public static final Version V_5_0_0_alpha4 = new Version(V_5_0_0_alpha4_ID, org.apache.lucene.util.Version.LUCENE_6_1_0);
-    public static final int V_5_0_0_alpha5_ID = 5000005;
-    public static final Version V_5_0_0_alpha5 = new Version(V_5_0_0_alpha5_ID, org.apache.lucene.util.Version.LUCENE_6_1_0);
-    public static final int V_5_0_0_beta1_ID = 5000026;
-    public static final Version V_5_0_0_beta1 = new Version(V_5_0_0_beta1_ID, org.apache.lucene.util.Version.LUCENE_6_2_0);
-    public static final int V_5_0_0_rc1_ID = 5000051;
-    public static final Version V_5_0_0_rc1 = new Version(V_5_0_0_rc1_ID, org.apache.lucene.util.Version.LUCENE_6_2_0);
-    public static final int V_5_0_0_ID = 5000099;
-    public static final Version V_5_0_0 = new Version(V_5_0_0_ID, org.apache.lucene.util.Version.LUCENE_6_2_0);
-    public static final int V_5_0_1_ID = 5000199;
-    public static final Version V_5_0_1 = new Version(V_5_0_1_ID, org.apache.lucene.util.Version.LUCENE_6_2_1);
     public static final int V_5_0_2_ID = 5000299;
     public static final Version V_5_0_2 = new Version(V_5_0_2_ID, org.apache.lucene.util.Version.LUCENE_6_2_1);
     // no version constant for 5.1.0 due to inadvertent release
@@ -324,24 +306,6 @@ public class Version implements Comparable<Version>, ToXContentFragment {
                 return V_5_1_1;
             case V_5_0_2_ID:
                 return V_5_0_2;
-            case V_5_0_1_ID:
-                return V_5_0_1;
-            case V_5_0_0_ID:
-                return V_5_0_0;
-            case V_5_0_0_rc1_ID:
-                return V_5_0_0_rc1;
-            case V_5_0_0_beta1_ID:
-                return V_5_0_0_beta1;
-            case V_5_0_0_alpha5_ID:
-                return V_5_0_0_alpha5;
-            case V_5_0_0_alpha4_ID:
-                return V_5_0_0_alpha4;
-            case V_5_0_0_alpha3_ID:
-                return V_5_0_0_alpha3;
-            case V_5_0_0_alpha2_ID:
-                return V_5_0_0_alpha2;
-            case V_5_0_0_alpha1_ID:
-                return V_5_0_0_alpha1;
             case V_EMPTY_ID:
                 return V_EMPTY;
             default:
