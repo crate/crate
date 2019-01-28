@@ -459,7 +459,7 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
         void postParse() {
             if (documents.size() > 1) {
                 docsReversed = true;
-                if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_6_5_0)) {
+                if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_6_5_1)) {
                     /**
                      * For indices created on or after {@link Version#V_6_5_0} we preserve the order
                      * of the children while ensuring that parents appear after them.

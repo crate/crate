@@ -438,7 +438,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                             if (getMaxSeqNoOfUpdatesOrDeletes() == SequenceNumbers.UNASSIGNED_SEQ_NO) {
                                 // If the old primary was on an old version that did not replicate the msu,
                                 // we need to bootstrap it manually from its local history.
-                                assert indexSettings.getIndexVersionCreated().before(Version.V_6_5_0);
+                                assert indexSettings.getIndexVersionCreated().before(Version.V_6_5_1);
                                 getEngine().advanceMaxSeqNoOfUpdatesOrDeletes(seqNoStats().getMaxSeqNo());
                             }
                         }
@@ -496,7 +496,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                                 if (getMaxSeqNoOfUpdatesOrDeletes() == SequenceNumbers.UNASSIGNED_SEQ_NO) {
                                     // If the old primary was on an old version that did not replicate the msu,
                                     // we need to bootstrap it manually from its local history.
-                                    assert indexSettings.getIndexVersionCreated().before(Version.V_6_5_0);
+                                    assert indexSettings.getIndexVersionCreated().before(Version.V_6_5_1);
                                     engine.advanceMaxSeqNoOfUpdatesOrDeletes(seqNoStats().getMaxSeqNo());
                                 }
                                 engine.restoreLocalHistoryFromTranslog((resettingEngine, snapshot) ->
@@ -1956,7 +1956,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             if (getMaxSeqNoOfUpdatesOrDeletes() == SequenceNumbers.UNASSIGNED_SEQ_NO) {
                 // If the old primary was on an old version that did not replicate the msu,
                 // we need to bootstrap it manually from its local history.
-                assert indexSettings.getIndexVersionCreated().before(Version.V_6_5_0);
+                assert indexSettings.getIndexVersionCreated().before(Version.V_6_5_1);
                 getEngine().advanceMaxSeqNoOfUpdatesOrDeletes(seqNoStats().getMaxSeqNo());
             }
         }

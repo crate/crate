@@ -1559,7 +1559,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
             // We may not have a safe commit if an index was create before v6.2; and if there is a snapshotted commit whose translog
             // are not retained but max_seqno is at most the global checkpoint, we may mistakenly select it as a starting commit.
             // To avoid this issue, we only select index commits whose translog are fully retained.
-            if (indexVersionCreated.before(org.elasticsearch.Version.V_6_2_0)) {
+            if (indexVersionCreated.before(org.elasticsearch.Version.V_6_5_1)) {
                 if (minRetainedTranslogGen == -1L) {
                     // An old checkpoint does not have min_translog_gen, then we can not determine whether a commit point has all
                     // its required translog or not. In this case, we should start with the last commit until we have a new checkpoint.
