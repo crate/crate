@@ -70,7 +70,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     private final Supplier<TReq> requestFactory;
     private final Function<String, TItem> itemFactory;
     private final BiConsumer<TReq, ActionListener<ShardResponse>> operation;
-    private final Predicate<TReq> shouldPause;
     private final String localNodeId;
 
     private int numItems = -1;
@@ -93,9 +92,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
         this.itemFactory = itemFactory;
         this.operation = transportAction;
         this.localNodeId = getLocalNodeId(clusterService);
-
-        this.shouldPause = ignored ->
-            nodeJobsCounter.getInProgressJobsForNode(localNodeId) >= MAX_NODE_CONCURRENT_OPERATIONS;
     }
 
     private void addRowToRequest(TReq req, Row row) {
@@ -127,6 +123,15 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
             BatchIterators.partition(batchIterator, bulkSize, requestFactory, this::addRowToRequest, r -> false);
         BinaryOperator<Long> combinePartialResult = (a, b) -> a + b;
         long initialResult = 0L;
+
+        // If the source batch iterator does not involve IO, mostly in-memory structures are used which we want to free
+        // as soon as possible. We do not want to throttle based on the targets node counter in such cases.
+        Predicate<TReq> shouldPause = ignored -> true;
+        if (batchIterator.involvesIO()) {
+            shouldPause = ignored ->
+                nodeJobsCounter.getInProgressJobsForNode(localNodeId) >= MAX_NODE_CONCURRENT_OPERATIONS;
+        }
+
         return new BatchIteratorBackpressureExecutor<>(
             scheduler,
             executor,

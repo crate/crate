@@ -44,6 +44,8 @@ Changes
 Fixes
 =====
 
+- Fixed performance regression on ``UPDATE`` and ``DELETE`` operations.
+
 - Fixed performance regression when inserting data using ``unnest()``.
 
 - Fixed an issue where an ordered query with a specified limit that was much
