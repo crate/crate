@@ -43,7 +43,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -945,7 +944,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         STATUS_EXCEPTION(org.elasticsearch.ElasticsearchStatusException.class, org.elasticsearch.ElasticsearchStatusException::new, 145,
             UNKNOWN_VERSION_ADDED),
         TASK_CANCELLED_EXCEPTION(org.elasticsearch.tasks.TaskCancelledException.class,
-            org.elasticsearch.tasks.TaskCancelledException::new, 146, Version.V_5_1_1),
+            org.elasticsearch.tasks.TaskCancelledException::new, 146, Version.V_5_2_2),
         SHARD_LOCK_OBTAIN_FAILED_EXCEPTION(org.elasticsearch.env.ShardLockObtainFailedException.class,
                                            org.elasticsearch.env.ShardLockObtainFailedException::new, 147, Version.V_5_0_2);
         // 148 used to be UnknownNamedObjectException
