@@ -255,7 +255,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             final Map<String, DocumentMapper> updatedEntries) {
         if (Assertions.ENABLED
                 && currentIndexMetaData != null
-                && currentIndexMetaData.getCreationVersion().onOrAfter(Version.V_6_5_0)) {
+                && currentIndexMetaData.getCreationVersion().onOrAfter(Version.V_6_5_1)) {
             if (currentIndexMetaData.getMappingVersion() == newIndexMetaData.getMappingVersion()) {
                 // if the mapping version is unchanged, then there should not be any updates and all mappings should be the same
                 assert updatedEntries.isEmpty() : updatedEntries;

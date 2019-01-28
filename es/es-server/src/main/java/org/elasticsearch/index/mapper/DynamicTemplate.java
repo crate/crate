@@ -219,7 +219,7 @@ public class DynamicTemplate implements ToXContentObject {
 
         final MatchType matchType = MatchType.fromString(matchPattern);
 
-        if (indexVersionCreated.onOrAfter(Version.V_6_3_0)) {
+        if (indexVersionCreated.onOrAfter(Version.V_6_5_1)) {
             // Validate that the pattern
             for (String regex : new String[] { pathMatch, match, pathUnmatch, unmatch }) {
                 if (regex == null) {

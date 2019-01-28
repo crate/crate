@@ -19,15 +19,6 @@
 
 package org.elasticsearch.node;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterName;
@@ -36,6 +27,15 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 public class InternalSettingsPreparer {
 
@@ -195,7 +195,7 @@ public class InternalSettingsPreparer {
         }
 
         terminal.println(Terminal.Verbosity.SILENT,
-            "Prompting for property values is deprecated since " + Version.V_6_3_0
+            "Prompting for property values is deprecated since " + Version.V_6_5_1
                 + ". Some setting values can be stored in the keystore. Consult the docs for more information.");
 
         if (secret) {
