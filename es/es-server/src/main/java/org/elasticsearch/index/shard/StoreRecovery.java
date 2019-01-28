@@ -118,7 +118,7 @@ final class StoreRecovery {
             Sort indexSort = indexShard.getIndexSort();
             final boolean hasNested = indexShard.mapperService().hasNested();
             final boolean isSplit = sourceMetaData.getNumberOfShards() < indexShard.indexSettings().getNumberOfShards();
-            assert isSplit == false || sourceMetaData.getCreationVersion().onOrAfter(Version.V_6_0_0_alpha1) : "for split we require a " +
+            assert isSplit == false || sourceMetaData.getCreationVersion().onOrAfter(Version.V_6_1_4) : "for split we require a " +
                 "single type but the index is created before 6.0.0";
             return executeRecovery(indexShard, () -> {
                 logger.debug("starting recovery from local shards {}", shards);
@@ -401,7 +401,7 @@ final class StoreRecovery {
                 if (recoveryState.getRecoverySource().shouldBootstrapNewHistoryUUID()) {
                     store.bootstrapNewHistory();
                 }
-                if (indexShard.indexSettings().getIndexVersionCreated().before(Version.V_6_0_0_rc1)) {
+                if (indexShard.indexSettings().getIndexVersionCreated().before(Version.V_6_1_4)) {
                     if (store.ensureIndexHas6xCommitTags()) {
                         si = store.readLastCommittedSegmentsInfo(); // new commit is flushed - refresh SegmentInfo.
                     }

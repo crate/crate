@@ -170,7 +170,7 @@ final class TranslogLeafReader extends LeafReader {
         }
         if (visitor.needsField(FAKE_ID_FIELD) == StoredFieldVisitor.Status.YES) {
             final byte[] id;
-            if (indexVersionCreated.onOrAfter(Version.V_6_0_0)) {
+            if (indexVersionCreated.onOrAfter(Version.V_6_1_4)) {
                 BytesRef bytesRef = Uid.encodeId(operation.id());
                 id = new byte[bytesRef.length];
                 System.arraycopy(bytesRef.bytes, bytesRef.offset, id, 0, bytesRef.length);
