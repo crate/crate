@@ -67,7 +67,6 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.MapperService.MergeReason;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.indices.IndexCreationException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexNameException;
@@ -654,7 +653,7 @@ public class MetaDataCreateIndexService extends AbstractComponent {
                                    Settings targetIndexSettings) {
         IndexMetaData sourceMetaData = validateResize(state, sourceIndex, targetIndexMappingsTypes, targetIndexName, targetIndexSettings);
         IndexMetaData.selectSplitShard(0, sourceMetaData, IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(targetIndexSettings));
-        if (sourceMetaData.getCreationVersion().before(Version.V_6_0_0_alpha1)) {
+        if (sourceMetaData.getCreationVersion().before(Version.V_6_1_4)) {
             // ensure we have a single type since this would make the splitting code considerably more complex
             // and a 5.x index would not be splittable unless it has been shrunk before so rather opt out of the complexity
             // since in 5.x we don't have a setting to artificially set the number of routing shards
