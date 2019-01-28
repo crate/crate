@@ -25,7 +25,6 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
@@ -117,9 +116,6 @@ public class SourceFieldMapper extends MetadataFieldMapper {
                 Object fieldNode = entry.getValue();
                 if (fieldName.equals("enabled")) {
                     builder.enabled(TypeParsers.nodeBooleanValue(name, "enabled", fieldNode, parserContext));
-                    iterator.remove();
-                } else if ("format".equals(fieldName) && parserContext.indexVersionCreated().before(Version.V_5_0_0_alpha1)) {
-                    // ignore on old indices, reject on and after 5.0
                     iterator.remove();
                 } else if (fieldName.equals("includes")) {
                     List<Object> values = (List<Object>) fieldNode;

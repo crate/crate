@@ -236,9 +236,6 @@ public class TypeParsers {
             } else if (propName.equals("boost")) {
                 builder.boost(nodeFloatValue(propNode));
                 iterator.remove();
-            } else if (parserContext.indexVersionCreated().before(Version.V_5_0_0_alpha1)
-                && parseNorms(builder, name, propName, propNode, parserContext)) {
-                iterator.remove();
             } else if (propName.equals("index_options")) {
                 if (builder.allowsIndexOptions()) {
                     builder.indexOptions(nodeIndexOptionValue(propNode));
@@ -252,11 +249,6 @@ public class TypeParsers {
                 throw new MapperParsingException("[include_in_all] is not allowed for indices created on or after version 6.0.0 as " +
                                 "[_all] is deprecated. As a replacement, you can use an [copy_to] on mapping fields to create your " +
                                 "own catch all field.");
-            } else if (propName.equals("fielddata")
-                    && propNode instanceof Map
-                    && parserContext.indexVersionCreated().before(Version.V_5_0_0_alpha1)) {
-                // ignore for bw compat
-                iterator.remove();
             } else if (parseMultiField(builder, name, parserContext, propName, propNode)) {
                 iterator.remove();
             } else if (propName.equals("copy_to")) {

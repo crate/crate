@@ -236,10 +236,8 @@ public class ObjectMapper extends Mapper implements Cloneable {
         super(name);
         assert settings != null;
         Version indexCreatedVersion = Version.indexCreated(settings);
-        if (indexCreatedVersion.onOrAfter(Version.V_5_0_0_beta1)) {
-            if (name.isEmpty()) {
-                throw new IllegalArgumentException("name cannot be empty string");
-            }
+        if (name.isEmpty()) {
+            throw new IllegalArgumentException("name cannot be empty string");
         }
         this.fullPath = fullPath;
         this.enabled = enabled;
