@@ -58,7 +58,7 @@ public class ExistsQueryBuilder {
             fields = context.simpleMatchToIndexNames(fieldPattern);
         }
 
-        if (context.indexVersionCreated().before(Version.V_6_1_0)) {
+        if (context.indexVersionCreated().before(Version.V_6_1_4)) {
             return newLegacyExistsQuery(context, fields);
         }
 

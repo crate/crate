@@ -193,6 +193,6 @@ public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
 
     @Override
     public Version getMinimalSupportedVersion() {
-        return Version.V_6_0_0;
+        return Version.V_6_1_4;
     }
 }

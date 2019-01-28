@@ -54,22 +54,22 @@ public class VersionUtilsTests extends ESTestCase {
         assertTrue(got.onOrBefore(Version.CURRENT));
 
         // sub range
-        got = VersionUtils.randomVersionBetween(random(), Version.V_6_0_0_alpha1,
+        got = VersionUtils.randomVersionBetween(random(), Version.V_6_1_4,
                 Version.V_6_2_4);
-        assertTrue(got.onOrAfter(Version.V_6_0_0_alpha1));
+        assertTrue(got.onOrAfter(Version.V_6_1_4));
         assertTrue(got.onOrBefore(Version.V_6_2_4));
 
         // unbounded lower
-        got = VersionUtils.randomVersionBetween(random(), null, Version.V_6_0_0_beta1);
+        got = VersionUtils.randomVersionBetween(random(), null, Version.V_6_1_4);
         assertTrue(got.onOrAfter(VersionUtils.getFirstVersion()));
-        assertTrue(got.onOrBefore(Version.V_6_0_0_beta1));
+        assertTrue(got.onOrBefore(Version.V_6_1_4));
         got = VersionUtils.randomVersionBetween(random(), null, VersionUtils.allReleasedVersions().get(0));
         assertTrue(got.onOrAfter(VersionUtils.getFirstVersion()));
         assertTrue(got.onOrBefore(VersionUtils.allReleasedVersions().get(0)));
 
         // unbounded upper
-        got = VersionUtils.randomVersionBetween(random(), Version.V_6_0_0, null);
-        assertTrue(got.onOrAfter(Version.V_6_0_0));
+        got = VersionUtils.randomVersionBetween(random(), Version.V_6_1_4, null);
+        assertTrue(got.onOrAfter(Version.V_6_1_4));
         assertTrue(got.onOrBefore(Version.CURRENT));
         got = VersionUtils.randomVersionBetween(random(), VersionUtils.getPreviousVersion(), null);
         assertTrue(got.onOrAfter(VersionUtils.getPreviousVersion()));
@@ -80,9 +80,9 @@ public class VersionUtilsTests extends ESTestCase {
         assertEquals(got, VersionUtils.getFirstVersion());
         got = VersionUtils.randomVersionBetween(random(), Version.CURRENT, Version.CURRENT);
         assertEquals(got, Version.CURRENT);
-        got = VersionUtils.randomVersionBetween(random(), Version.V_6_0_0_beta1,
-                Version.V_6_0_0_beta1);
-        assertEquals(got, Version.V_6_0_0_beta1);
+        got = VersionUtils.randomVersionBetween(random(), Version.V_6_1_4,
+                Version.V_6_1_4);
+        assertEquals(got, Version.V_6_1_4);
 
         // implicit range of one
         got = VersionUtils.randomVersionBetween(random(), null, VersionUtils.getFirstVersion());
@@ -182,10 +182,9 @@ public class VersionUtilsTests extends ESTestCase {
         public static final Version V_5_3_1 = Version.fromString("5.3.1");
         public static final Version V_5_3_2 = Version.fromString("5.3.2");
         public static final Version V_5_4_0 = Version.fromString("5.4.0");
-        public static final Version V_6_0_0_alpha1 = Version.fromString("6.0.0-alpha1");
+        public static final Version V_6_1_4 = Version.fromString("6.0.0-alpha1");
         public static final Version V_6_0_0_alpha2 = Version.fromString("6.0.0-alpha2");
-        public static final Version V_6_0_0_beta1 = Version.fromString("6.0.0-beta1");
-        public static final Version CURRENT = V_6_0_0_beta1;
+        public static final Version CURRENT = V_6_1_4;
     }
 
     public void testResolveReleasedVersionsForUnstableBranch() {
@@ -197,23 +196,21 @@ public class VersionUtilsTests extends ESTestCase {
         assertThat(released, equalTo(Arrays.asList(
             TestUnstableBranch.V_5_3_0,
             TestUnstableBranch.V_5_3_1,
-            TestUnstableBranch.V_6_0_0_alpha1,
+            TestUnstableBranch.V_6_1_4,
             TestUnstableBranch.V_6_0_0_alpha2)));
         assertThat(unreleased, equalTo(Arrays.asList(
             TestUnstableBranch.V_5_3_2,
             TestUnstableBranch.V_5_4_0,
-            TestUnstableBranch.V_6_0_0_beta1)));
+            TestUnstableBranch.V_6_1_4)));
     }
 
     public static class TestNewMajorRelease {
         public static final Version V_5_6_0 = Version.fromString("5.6.0");
         public static final Version V_5_6_1 = Version.fromString("5.6.1");
         public static final Version V_5_6_2 = Version.fromString("5.6.2");
-        public static final Version V_6_0_0_alpha1 = Version.fromString("6.0.0-alpha1");
+        public static final Version V_6_1_4 = Version.fromString("6.0.0-alpha1");
         public static final Version V_6_0_0_alpha2 = Version.fromString("6.0.0-alpha2");
-        public static final Version V_6_0_0_beta1 = Version.fromString("6.0.0-beta1");
         public static final Version V_6_0_0_beta2 = Version.fromString("6.0.0-beta2");
-        public static final Version V_6_0_0 = Version.fromString("6.0.0");
         public static final Version V_6_0_1 = Version.fromString("6.0.1");
         public static final Version CURRENT = V_6_0_1;
     }
@@ -227,11 +224,11 @@ public class VersionUtilsTests extends ESTestCase {
         assertThat(released, equalTo(Arrays.asList(
             TestNewMajorRelease.V_5_6_0,
             TestNewMajorRelease.V_5_6_1,
-            TestNewMajorRelease.V_6_0_0_alpha1,
+            TestNewMajorRelease.V_6_1_4,
             TestNewMajorRelease.V_6_0_0_alpha2,
-            TestNewMajorRelease.V_6_0_0_beta1,
+            TestNewMajorRelease.V_6_1_4,
             TestNewMajorRelease.V_6_0_0_beta2,
-            TestNewMajorRelease.V_6_0_0)));
+            TestNewMajorRelease.V_6_1_4)));
         assertThat(unreleased, equalTo(Arrays.asList(
             TestNewMajorRelease.V_5_6_2,
             TestNewMajorRelease.V_6_0_1)));
@@ -241,11 +238,9 @@ public class VersionUtilsTests extends ESTestCase {
         public static final Version V_5_6_0 = Version.fromString("5.6.0");
         public static final Version V_5_6_1 = Version.fromString("5.6.1");
         public static final Version V_5_6_2 = Version.fromString("5.6.2");
-        public static final Version V_6_0_0_alpha1 = Version.fromString("6.0.0-alpha1");
+        public static final Version V_6_1_4 = Version.fromString("6.0.0-alpha1");
         public static final Version V_6_0_0_alpha2 = Version.fromString("6.0.0-alpha2");
-        public static final Version V_6_0_0_beta1 = Version.fromString("6.0.0-beta1");
         public static final Version V_6_0_0_beta2 = Version.fromString("6.0.0-beta2");
-        public static final Version V_6_0_0 = Version.fromString("6.0.0");
         public static final Version V_6_0_1 = Version.fromString("6.0.1");
         public static final Version V_6_1_0 = Version.fromString("6.1.0");
         public static final Version CURRENT = V_6_1_0;
@@ -260,11 +255,11 @@ public class VersionUtilsTests extends ESTestCase {
         assertThat(released, equalTo(Arrays.asList(
             TestVersionBumpIn6x.V_5_6_0,
             TestVersionBumpIn6x.V_5_6_1,
-            TestVersionBumpIn6x.V_6_0_0_alpha1,
+            TestVersionBumpIn6x.V_6_1_4,
             TestVersionBumpIn6x.V_6_0_0_alpha2,
-            TestVersionBumpIn6x.V_6_0_0_beta1,
+            TestVersionBumpIn6x.V_6_1_4,
             TestVersionBumpIn6x.V_6_0_0_beta2,
-            TestVersionBumpIn6x.V_6_0_0)));
+            TestVersionBumpIn6x.V_6_1_4)));
         assertThat(unreleased, equalTo(Arrays.asList(
             TestVersionBumpIn6x.V_5_6_2,
             TestVersionBumpIn6x.V_6_0_1,
@@ -275,11 +270,9 @@ public class VersionUtilsTests extends ESTestCase {
         public static final Version V_5_6_0 = Version.fromString("5.6.0");
         public static final Version V_5_6_1 = Version.fromString("5.6.1");
         public static final Version V_5_6_2 = Version.fromString("5.6.2");
-        public static final Version V_6_0_0_alpha1 = Version.fromString("6.0.0-alpha1");
+        public static final Version V_6_1_4 = Version.fromString("6.0.0-alpha1");
         public static final Version V_6_0_0_alpha2 = Version.fromString("6.0.0-alpha2");
-        public static final Version V_6_0_0_beta1 = Version.fromString("6.0.0-beta1");
         public static final Version V_6_0_0_beta2 = Version.fromString("6.0.0-beta2");
-        public static final Version V_6_0_0 = Version.fromString("6.0.0");
         public static final Version V_6_0_1 = Version.fromString("6.0.1");
         public static final Version V_6_1_0 = Version.fromString("6.1.0");
         public static final Version V_6_1_1 = Version.fromString("6.1.1");
@@ -297,11 +290,11 @@ public class VersionUtilsTests extends ESTestCase {
         assertThat(released, equalTo(Arrays.asList(
             TestNewMinorBranchIn6x.V_5_6_0,
             TestNewMinorBranchIn6x.V_5_6_1,
-            TestNewMinorBranchIn6x.V_6_0_0_alpha1,
+            TestNewMinorBranchIn6x.V_6_1_4,
             TestNewMinorBranchIn6x.V_6_0_0_alpha2,
-            TestNewMinorBranchIn6x.V_6_0_0_beta1,
+            TestNewMinorBranchIn6x.V_6_1_4,
             TestNewMinorBranchIn6x.V_6_0_0_beta2,
-            TestNewMinorBranchIn6x.V_6_0_0,
+            TestNewMinorBranchIn6x.V_6_1_4,
             TestNewMinorBranchIn6x.V_6_0_1,
             TestNewMinorBranchIn6x.V_6_1_0,
             TestNewMinorBranchIn6x.V_6_1_1)));

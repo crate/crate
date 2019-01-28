@@ -190,7 +190,7 @@ public final class IndexSettings {
         Function<Settings, String> defValue = settings -> {
             boolean singleType = true;
             if (settings.getAsVersion(IndexMetaData.SETTING_VERSION_CREATED, null) != null) {
-                singleType = Version.indexCreated(settings).onOrAfter(Version.V_6_0_0_alpha1);
+                singleType = Version.indexCreated(settings).onOrAfter(Version.V_6_1_4);
             }
             return Boolean.valueOf(singleType).toString();
         };
@@ -304,7 +304,7 @@ public final class IndexSettings {
         this.mergePolicyConfig = new MergePolicyConfig(logger, this);
         this.indexSortConfig = new IndexSortConfig(this);
         singleType = INDEX_MAPPING_SINGLE_TYPE_SETTING.get(indexMetaData.getSettings()); // get this from metadata - it's not registered
-        if ((singleType || version.before(Version.V_6_0_0_alpha1)) == false) {
+        if ((singleType || version.before(Version.V_6_1_4)) == false) {
             throw new AssertionError(index.toString()  + "multiple types are only allowed on pre 6.x indices but version is: ["
                 + version + "]");
         }

@@ -406,7 +406,7 @@ public class InternalEngine extends Engine {
         try (ReleasableLock lock = readLock.acquire()) {
             ensureOpen();
             assert getMaxSeqNoOfUpdatesOrDeletes() != SequenceNumbers.UNASSIGNED_SEQ_NO ||
-                engineConfig.getIndexSettings().getIndexVersionCreated().before(Version.V_6_0_0) : "max_seq_no_of_updates is uninitialized";
+                engineConfig.getIndexSettings().getIndexVersionCreated().before(Version.V_6_1_4) : "max_seq_no_of_updates is uninitialized";
             if (pendingTranslogRecovery.get() == false) {
                 throw new IllegalStateException("Engine has already been recovered");
             }
@@ -462,7 +462,7 @@ public class InternalEngine extends Engine {
         final String translogUUID = loadTranslogUUIDFromLastCommit();
         // A translog checkpoint from 5.x index does not have translog_generation_key and Translog's ctor will read translog gen values
         // from translogDeletionPolicy. We need to bootstrap these values from the recovering commit before calling Translog ctor.
-        if (engineConfig.getIndexSettings().getIndexVersionCreated().before(Version.V_6_0_0)) {
+        if (engineConfig.getIndexSettings().getIndexVersionCreated().before(Version.V_6_1_4)) {
             final SegmentInfos lastCommitInfo = store.readLastCommittedSegmentsInfo();
             final long minRequiredTranslogGen = Long.parseLong(lastCommitInfo.userData.get(Translog.TRANSLOG_GENERATION_KEY));
             translogDeletionPolicy.setTranslogGenerationOfLastCommit(minRequiredTranslogGen);
@@ -802,13 +802,13 @@ public class InternalEngine extends Engine {
     }
 
     private boolean assertIncomingSequenceNumber(final Engine.Operation.Origin origin, final long seqNo) {
-        if (engineConfig.getIndexSettings().getIndexVersionCreated().before(Version.V_6_0_0_alpha1) && origin == Operation.Origin.LOCAL_TRANSLOG_RECOVERY) {
+        if (engineConfig.getIndexSettings().getIndexVersionCreated().before(Version.V_6_1_4) && origin == Operation.Origin.LOCAL_TRANSLOG_RECOVERY) {
             // legacy support
             assert seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO : "old op recovering but it already has a seq no.;" +
                 " index version: " + engineConfig.getIndexSettings().getIndexVersionCreated() + ", seqNo: " + seqNo;
         } else if (origin == Operation.Origin.PRIMARY) {
             assertPrimaryIncomingSequenceNumber(origin, seqNo);
-        } else if (engineConfig.getIndexSettings().getIndexVersionCreated().onOrAfter(Version.V_6_0_0_alpha1)) {
+        } else if (engineConfig.getIndexSettings().getIndexVersionCreated().onOrAfter(Version.V_6_1_4)) {
             // sequence number should be set when operation origin is not primary
             assert seqNo >= 0 : "recovery or replica ops should have an assigned seq no.; origin: " + origin;
         }
@@ -823,7 +823,7 @@ public class InternalEngine extends Engine {
     }
 
     private boolean assertSequenceNumberBeforeIndexing(final Engine.Operation.Origin origin, final long seqNo) {
-        if (engineConfig.getIndexSettings().getIndexVersionCreated().onOrAfter(Version.V_6_0_0_alpha1) ||
+        if (engineConfig.getIndexSettings().getIndexVersionCreated().onOrAfter(Version.V_6_1_4) ||
             origin == Operation.Origin.PRIMARY) {
             // sequence number should be set when operation origin is primary or when all shards are on new nodes
             assert seqNo >= 0 : "ops should have an assigned seq no.; origin: " + origin;
@@ -976,7 +976,7 @@ public class InternalEngine extends Engine {
                 if (index.seqNo() == SequenceNumbers.UNASSIGNED_SEQ_NO) {
                     // This can happen if the primary is still on an old node and send traffic without seq#
                     // or we recover from translog created by an old version.
-                    assert config().getIndexSettings().getIndexVersionCreated().before(Version.V_6_0_0_alpha1) :
+                    assert config().getIndexSettings().getIndexVersionCreated().before(Version.V_6_1_4) :
                         "index is newly created but op has no sequence numbers. op: " + index;
                     opVsLucene = compareOpToLuceneDocBasedOnVersions(index);
                 } else {
@@ -1326,7 +1326,7 @@ public class InternalEngine extends Engine {
             if (delete.seqNo() == SequenceNumbers.UNASSIGNED_SEQ_NO) {
                 // This can happen if the primary is still on an old node and send traffic without seq#
                 // or we recover from translog created by an old version.
-                assert config().getIndexSettings().getIndexVersionCreated().before(Version.V_6_0_0_alpha1) :
+                assert config().getIndexSettings().getIndexVersionCreated().before(Version.V_6_1_4) :
                     "index is newly created but op has no sequence numbers. op: " + delete;
                 opVsLucene = compareOpToLuceneDocBasedOnVersions(delete);
             } else {

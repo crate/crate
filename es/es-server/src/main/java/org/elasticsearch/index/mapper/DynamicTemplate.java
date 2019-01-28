@@ -205,7 +205,7 @@ public class DynamicTemplate implements ToXContentObject {
             try {
                 xcontentFieldType = XContentFieldType.fromString(matchMappingType);
             } catch (IllegalArgumentException e) {
-                if (indexVersionCreated.onOrAfter(Version.V_6_0_0_alpha1)) {
+                if (indexVersionCreated.onOrAfter(Version.V_6_1_4)) {
                     throw e;
                 } else {
                     DEPRECATION_LOGGER.deprecated("match_mapping_type [" + matchMappingType + "] is invalid and will be ignored: "
