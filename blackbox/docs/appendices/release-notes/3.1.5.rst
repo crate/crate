@@ -1,0 +1,68 @@
+.. _version_3.1.5:
+
+=============
+Version 3.1.5
+=============
+
+Released on 2019/01/14.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 2.0.4 or higher
+    before you upgrade to 3.1.5.
+
+    We recommend that you upgrade to the latest 3.0 release before moving to
+    3.1.5.
+
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_3.1.1`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
+
+.. WARNING::
+
+    Tables that were created prior to upgrading to CrateDB 2.x will not
+    function with 3.1 and must be recreated before moving to 3.1.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` while running a
+    2.x release into a new table, or by `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Changelog
+=========
+
+
+Fixes
+-----
+
+- Fixed an issue that caused incorrectness in the navigation of the Admin UI.
+
+- Fixed a ``NullPointerException`` that could occur using ``array_difference``.
+
+- Fixed a race condition that could lead to stuck queries, for example if a
+  node was stopped or crashed.
+
+- Casts to nested arrays are now properly supported.
+
+- The type of parameter placeholders in sub-queries in the FROM clause of a
+  query can now be resolved to support PostgreSQL clients relying on the
+  ``ParameterDescription`` message. This enables queries like ``select *
+  from (select $1::int + $2) t``
+
+- Fixed error readability of certain ``ALTER TABLE`` operations.
+
+- Fixed SQL parser to not allow repeated ``PARTITION BY`` or ``CLUSTERED BY |
+  INTO`` tokens on ``CREATE TABLE`` statements.
+
+- Support ECS Task IAM profile credentials on AWS S3 repositories.
