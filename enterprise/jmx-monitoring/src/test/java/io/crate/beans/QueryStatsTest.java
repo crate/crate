@@ -66,13 +66,13 @@ public class QueryStatsTest {
         assertThat(metricsByCommand.get(StatementType.UPDATE).avgDurationInMs(), is(20.0));
         assertThat(metricsByCommand.get(StatementType.UPDATE).statementsPerSec(), is(0.5));
 
-        assertThat(metricsByCommand.get(StatementType.DELETE).avgDurationInMs(), is(7.0));
+        assertThat(metricsByCommand.get(StatementType.DELETE).avgDurationInMs(), is(7.5));
         assertThat(metricsByCommand.get(StatementType.DELETE).statementsPerSec(), is(1.0));
 
         assertThat(metricsByCommand.get(StatementType.UNDEFINED).avgDurationInMs(), is(1.0));
         assertThat(metricsByCommand.get(StatementType.UNDEFINED).statementsPerSec(), is(0.5));
 
-        assertThat(metricsByCommand.get(StatementType.ALL).avgDurationInMs(), is(15.0));
+        assertThat(metricsByCommand.get(StatementType.ALL).avgDurationInMs(), is(15.625));
         assertThat(metricsByCommand.get(StatementType.ALL).statementsPerSec(), is(4.0));
     }
 
