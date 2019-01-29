@@ -824,6 +824,14 @@ By default, the cluster will retrieve information about the disk usage of the
 nodes every 30 seconds. This can also be changed by setting the
 `cluster.info.update.interval`_ setting.
 
+.. NOTE::
+
+   The watermark settings are also used for the
+   :ref:`node_checks_watermark_low` and :ref:`node_checks_watermark_high` node
+   check. Setting ``cluster.routing.allocation.disk.threshold_enabled`` to
+   false will disable the allocation decider, but the node checks will still be
+   active and warn users about running low on disk space.
+
 Recovery
 --------
 
