@@ -633,13 +633,14 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
         }
 
         try {
-            LOGGER.debug("{} creating shard", shardRouting.shardId());
+            final long primaryTerm = state.metadata().index(shardRouting.index()).primaryTerm(shardRouting.id());
+            LOGGER.debug("{} creating shard with primary term [{}]", shardRouting.shardId(), primaryTerm);
             RecoveryState recoveryState = new RecoveryState(shardRouting, nodes.getLocalNode(), sourceNode);
             indicesService.createShard(
                 shardRouting,
                 recoveryState,
                 recoveryTargetService,
-                new RecoveryListener(shardRouting),
+                new RecoveryListener(shardRouting, primaryTerm),
                 repositoriesService,
                 failedShardHandler,
                 this::updateGlobalCheckpointForShard,
@@ -657,9 +658,10 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             "local shard has a different allocation id but wasn't cleaned by removeShards. "
                 + "cluster state: " + shardRouting + " local: " + currentRoutingEntry;
 
+        final long primaryTerm;
         try {
             final IndexMetadata indexMetadata = clusterState.metadata().index(shard.shardId().getIndex());
-            final long primaryTerm = indexMetadata.primaryTerm(shard.shardId().id());
+            primaryTerm = indexMetadata.primaryTerm(shard.shardId().id());
             final Set<String> inSyncIds = indexMetadata.inSyncAllocationIds(shard.shardId().id());
             final IndexShardRoutingTable indexShardRoutingTable = routingTable.shardRoutingTable(shardRouting.shardId());
             shard.updateShardState(shardRouting, primaryTerm, primaryReplicaSyncer::resync, clusterState.version(),
@@ -679,7 +681,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                     shardRouting.shardId(), state, nodes.getMasterNode());
             }
             if (nodes.getMasterNode() != null) {
-                shardStateAction.shardStarted(shardRouting, "master " + nodes.getMasterNode() +
+                shardStateAction.shardStarted(shardRouting, primaryTerm, "master " + nodes.getMasterNode() +
                         " marked shard as initializing, but shard state is [" + state + "], mark shard as started",
                     SHARD_STATE_ACTION_LISTENER, clusterState);
             }
@@ -719,15 +721,24 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
 
     private class RecoveryListener implements PeerRecoveryTargetService.RecoveryListener {
 
+        /**
+         * ShardRouting with which the shard was created
+         */
         private final ShardRouting shardRouting;
 
-        private RecoveryListener(ShardRouting shardRouting) {
+        /**
+         * Primary term with which the shard was created
+         */
+        private final long primaryTerm;
+
+        private RecoveryListener(final ShardRouting shardRouting, final long primaryTerm) {
             this.shardRouting = shardRouting;
+            this.primaryTerm = primaryTerm;
         }
 
         @Override
-        public void onRecoveryDone(RecoveryState state) {
-            shardStateAction.shardStarted(shardRouting, "after " + state.getRecoverySource(), SHARD_STATE_ACTION_LISTENER);
+        public void onRecoveryDone(final RecoveryState state) {
+            shardStateAction.shardStarted(shardRouting, primaryTerm, "after " + state.getRecoverySource(), SHARD_STATE_ACTION_LISTENER);
         }
 
         @Override
