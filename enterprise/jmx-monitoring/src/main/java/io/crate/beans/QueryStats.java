@@ -59,7 +59,7 @@ public class QueryStats implements QueryStatsMBean {
         }
 
         double avgDurationInMs() {
-            return sumOfDurations / count;
+            return sumOfDurations / (double) count;
         }
     }
 
