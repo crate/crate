@@ -562,15 +562,13 @@ public abstract class Node implements Closeable {
         }
     }
 
-    protected void logVersion(Logger logger, JvmInfo jvmInfo) {
+    private void logVersion(Logger logger, JvmInfo jvmInfo) {
         logger.info(
-            "version[{}], pid[{}], build[{}/{}/{}/{}], OS[{}/{}/{}], JVM[{}/{}/{}/{}]",
-            Version.displayVersion(Version.CURRENT, Build.CURRENT.isSnapshot()),
+            "version[{}], pid[{}], build[{}/{}], OS[{}/{}/{}], JVM[{}/{}/{}/{}]",
+            Version.displayVersion(Version.CURRENT, Version.CURRENT.isSnapshot()),
             jvmInfo.pid(),
-            Build.CURRENT.flavor().displayName(),
-            Build.CURRENT.type().displayName(),
-            Build.CURRENT.shortHash(),
-            Build.CURRENT.date(),
+            Build.CURRENT.hashShort(),
+            Build.CURRENT.timestamp(),
             Constants.OS_NAME,
             Constants.OS_VERSION,
             Constants.OS_ARCH,
@@ -578,7 +576,7 @@ public abstract class Node implements Closeable {
             Constants.JVM_NAME,
             Constants.JAVA_VERSION,
             Constants.JVM_VERSION);
-        warnIfPreRelease(Version.CURRENT, Build.CURRENT.isSnapshot(), logger);
+        warnIfPreRelease(Version.CURRENT, Version.CURRENT.isSnapshot(), logger);
     }
 
     static void warnIfPreRelease(final Version version, final boolean isSnapshot, final Logger logger) {
