@@ -45,4 +45,16 @@ public class UnnestFunctionTest extends AbstractTableFunctionsTest {
     public void testSecondArrayShorter() throws Exception {
         assertExecute("unnest([1, 2, 3], [1, 2])", "1| 1\n2| 2\n3| NULL\n");
     }
+
+    @Test
+    public void testUnnestWithNullArgReturnsZeroRows() {
+        assertExecute("unnest(null)", "");
+    }
+
+    @Test
+    public void testUnnestWithNullArgAndArrayArg() {
+        assertExecute("unnest(null, [1, null])",
+            "NULL| 1\n" +
+            "NULL| NULL\n");
+    }
 }
