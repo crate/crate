@@ -944,9 +944,9 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         STATUS_EXCEPTION(org.elasticsearch.ElasticsearchStatusException.class, org.elasticsearch.ElasticsearchStatusException::new, 145,
             UNKNOWN_VERSION_ADDED),
         TASK_CANCELLED_EXCEPTION(org.elasticsearch.tasks.TaskCancelledException.class,
-            org.elasticsearch.tasks.TaskCancelledException::new, 146, Version.ES_V_5_2_2),
+            org.elasticsearch.tasks.TaskCancelledException::new, 146, Version.ES_V_6_1_4),
         SHARD_LOCK_OBTAIN_FAILED_EXCEPTION(org.elasticsearch.env.ShardLockObtainFailedException.class,
-                                           org.elasticsearch.env.ShardLockObtainFailedException::new, 147, Version.ES_V_5_0_2);
+                                           org.elasticsearch.env.ShardLockObtainFailedException::new, 147, Version.ES_V_6_1_4);
         // 148 used to be UnknownNamedObjectException
         // 149 used to be MultiBucketConsumerService.TooManyBucketsException
 

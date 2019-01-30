@@ -1393,13 +1393,11 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     private boolean assertMaxUnsafeAutoIdInCommit() throws IOException {
         final Map<String, String> userData = SegmentInfos.readLatestCommit(store.directory()).getUserData();
-        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.ES_V_5_5_2)) {
-            // as of 5.5.0, the engine stores the maxUnsafeAutoIdTimestamp in the commit point.
-            // This should have baked into the commit by the primary we recover from, regardless of the index age.
-            assert userData.containsKey(Engine.MAX_UNSAFE_AUTO_ID_TIMESTAMP_COMMIT_ID) :
-                "opening index which was created post 5.5.0 but " + Engine.MAX_UNSAFE_AUTO_ID_TIMESTAMP_COMMIT_ID
-                    + " is not found in commit";
-        }
+        // as of 5.5.0, the engine stores the maxUnsafeAutoIdTimestamp in the commit point.
+        // This should have baked into the commit by the primary we recover from, regardless of the index age.
+        assert userData.containsKey(Engine.MAX_UNSAFE_AUTO_ID_TIMESTAMP_COMMIT_ID) :
+            "opening index which was created post 5.5.0 but " + Engine.MAX_UNSAFE_AUTO_ID_TIMESTAMP_COMMIT_ID
+                + " is not found in commit";
         return true;
     }
 
