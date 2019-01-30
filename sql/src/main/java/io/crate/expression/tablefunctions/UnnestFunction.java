@@ -80,7 +80,6 @@ public class UnnestFunction {
 
         /**
          *
-         * @param txnCtx
          * @param arguments collection of array-literals
          *                  e.g. [ [1, 2], [Marvin, Trillian] ]
          * @return Bucket containing the unnested rows.
@@ -119,10 +118,10 @@ public class UnnestFunction {
                             }
                             for (int c = 0; c < numCols; c++) {
                                 Object[] columnValues = values.get(c);
-                                if (columnValues.length > currentRow) {
-                                    cells[c] = columnValues[currentRow];
-                                } else {
+                                if (columnValues == null || columnValues.length <= currentRow) {
                                     cells[c] = null;
+                                } else {
+                                    cells[c] = columnValues[currentRow];
                                 }
                             }
                             currentRow++;
@@ -143,9 +142,12 @@ public class UnnestFunction {
             List<Object[]> values = new ArrayList<>(arguments.length);
             for (Input argument : arguments) {
                 Object value = argument.value();
-                assert value instanceof Object[] : "must be an array because unnest only accepts array arguments";
-                Object[] columnValues = (Object[]) value;
-                values.add(columnValues);
+                if (value == null) {
+                    values.add(null);
+                } else {
+                    assert value instanceof Object[] : "must be an array because unnest only accepts array arguments";
+                    values.add((Object[]) value);
+                }
             }
             return values;
         }
@@ -187,7 +189,7 @@ public class UnnestFunction {
     private static int maxLength(List<Object[]> values) {
         int length = 0;
         for (Object[] value : values) {
-            if (value.length > length) {
+            if (value != null && value.length > length) {
                 length = value.length;
             }
         }
