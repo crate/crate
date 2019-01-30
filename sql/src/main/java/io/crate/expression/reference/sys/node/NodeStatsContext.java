@@ -22,11 +22,11 @@
 
 package io.crate.expression.reference.sys.node;
 
-import io.crate.Build;
 import io.crate.monitor.ExtendedOsStats;
 import io.crate.protocols.ConnectionStats;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;

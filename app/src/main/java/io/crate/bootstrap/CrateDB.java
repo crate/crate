@@ -21,11 +21,11 @@
 
 package io.crate.bootstrap;
 
-import io.crate.Build;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
 import joptsimple.util.PathConverter;
+import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 import org.elasticsearch.bootstrap.BootstrapProxy;
 import org.elasticsearch.bootstrap.StartupExceptionProxy;

@@ -23,7 +23,6 @@
 package io.crate.node;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Build;
 import io.crate.plugin.BlobPlugin;
 import io.crate.plugin.CrateCommonPlugin;
 import io.crate.plugin.HttpTransportPlugin;
@@ -31,14 +30,10 @@ import io.crate.plugin.LicensePlugin;
 import io.crate.plugin.PluginLoaderPlugin;
 import io.crate.plugin.SrvPlugin;
 import io.crate.udc.plugin.UDCPlugin;
-import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.Constants;
-import org.elasticsearch.Version;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
@@ -71,21 +66,5 @@ public class CrateNode extends Node {
     protected void registerDerivedNodeNameWithLogger(String nodeName) {
         LogConfigurator.setNodeName(nodeName);
     }
-
-    @Override
-    protected void logVersion(Logger logger, JvmInfo jvmInfo) {
-        logger.info(
-            "version[{}], pid[{}], build[{}/{}], OS[{}/{}/{}], JVM[{}/{}/{}/{}]",
-            Version.CURRENT,
-            jvmInfo.pid(),
-            Build.CURRENT.hashShort(),
-            Build.CURRENT.timestamp(),
-            Constants.OS_NAME,
-            Constants.OS_VERSION,
-            Constants.OS_ARCH,
-            Constants.JVM_VENDOR,
-            Constants.JVM_NAME,
-            Constants.JAVA_VERSION,
-            Constants.JVM_VERSION);
-    }
 }
+

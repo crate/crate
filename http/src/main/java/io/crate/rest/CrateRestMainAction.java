@@ -23,7 +23,7 @@
 package io.crate.rest;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Build;
+import org.elasticsearch.Build;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;

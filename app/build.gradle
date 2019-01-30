@@ -1,6 +1,5 @@
-import org.apache.tools.ant.filters.ReplaceTokens
-
 import java.nio.file.Paths
+import org.apache.tools.ant.filters.ReplaceTokens;
 
 buildscript {
     repositories {
@@ -123,7 +122,6 @@ task writeBuildInfo(dependsOn: [':es:es-server:getVersion']) {
         }
     }
 }
-
 
 processResources.dependsOn('writeBuildInfo')
 

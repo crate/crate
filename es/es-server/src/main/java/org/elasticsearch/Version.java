@@ -298,12 +298,10 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     public static void main(String[] args) {
         final String versionOutput = String.format(
                 Locale.ROOT,
-                "Version: %s, Build: %s/%s/%s/%s, JVM: %s",
-                Version.displayVersion(Version.CURRENT, Build.CURRENT.isSnapshot()),
-                Build.CURRENT.flavor().displayName(),
-                Build.CURRENT.type().displayName(),
-                Build.CURRENT.shortHash(),
-                Build.CURRENT.date(),
+                "Version: %s, Build: %s/%s, JVM: %s",
+                Version.displayVersion(Version.CURRENT, Version.CURRENT.isSnapshot()),
+                Build.CURRENT.hashShort(),
+                Build.CURRENT.timestamp(),
                 JvmInfo.jvmInfo().version());
         System.out.println(versionOutput);
     }
@@ -311,30 +309,6 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     @Override
     public String toString() {
         return externalNumber();
-    }
-
-    public String internalNumber() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(major).append('.').append(minor).append('.').append(revision);
-        if (isAlpha()) {
-            sb.append("-alpha");
-            sb.append(build);
-        } else if (isBeta()) {
-            if (major >= 2) {
-                sb.append("-beta");
-            } else {
-                sb.append(".Beta");
-            }
-            sb.append(major < 5 ? build : build-25);
-        } else if (build < 99) {
-            if (major >= 2) {
-                sb.append("-rc");
-            } else {
-                sb.append(".RC");
-            }
-            sb.append(build - 50);
-        }
-        return sb.toString();
     }
 
     public String externalNumber() {
