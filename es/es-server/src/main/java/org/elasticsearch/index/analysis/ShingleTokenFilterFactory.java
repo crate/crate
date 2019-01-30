@@ -30,13 +30,13 @@ public class ShingleTokenFilterFactory extends AbstractTokenFilterFactory {
 
     private final Factory factory;
 
-    public ShingleTokenFilterFactory(IndexSettings indexSettings, Environment environment, String name, Settings settings) {
+    public ShingleTokenFilterFactory(IndexSettings indexSettings, Environment env, String name, Settings settings) {
         super(indexSettings, name, settings);
         int maxAllowedShingleDiff = indexSettings.getMaxShingleDiff();
         Integer maxShingleSize = settings.getAsInt("max_shingle_size", ShingleFilter.DEFAULT_MAX_SHINGLE_SIZE);
         Integer minShingleSize = settings.getAsInt("min_shingle_size", ShingleFilter.DEFAULT_MIN_SHINGLE_SIZE);
-        Boolean outputUnigrams = settings.getAsBooleanLenientForPreEs6Indices(indexSettings.getIndexVersionCreated(), "output_unigrams", true, deprecationLogger);
-        Boolean outputUnigramsIfNoShingles = settings.getAsBooleanLenientForPreEs6Indices(indexSettings.getIndexVersionCreated(), "output_unigrams_if_no_shingles", false, deprecationLogger);
+        Boolean outputUnigrams = settings.getAsBoolean("output_unigrams", true);
+        Boolean outputUnigramsIfNoShingles = settings.getAsBoolean("output_unigrams_if_no_shingles", false);
 
         int shingleDiff = maxShingleSize - minShingleSize + (outputUnigrams ? 1 : 0);
         if (shingleDiff > maxAllowedShingleDiff) {

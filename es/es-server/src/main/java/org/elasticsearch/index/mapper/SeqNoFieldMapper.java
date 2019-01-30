@@ -255,15 +255,9 @@ public class SeqNoFieldMapper extends MetadataFieldMapper {
         // we share the parent docs fields to ensure good compression
         SequenceIDFields seqID = context.seqID();
         assert seqID != null;
-        final Version versionCreated = context.mapperService().getIndexSettings().getIndexVersionCreated();
-        final boolean includePrimaryTerm = versionCreated.before(Version.ES_V_6_1_4);
         for (Document doc : context.nonRootDocuments()) {
             doc.add(seqID.seqNo);
             doc.add(seqID.seqNoDocValue);
-            if (includePrimaryTerm) {
-                // primary terms are used to distinguish between parent and nested docs since 6.1.0
-                doc.add(seqID.primaryTerm);
-            }
         }
     }
 

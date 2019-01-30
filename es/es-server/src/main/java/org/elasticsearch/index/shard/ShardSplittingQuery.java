@@ -64,10 +64,6 @@ final class ShardSplittingQuery extends Query {
     private final BitSetProducer nestedParentBitSetProducer;
 
     ShardSplittingQuery(IndexMetaData indexMetaData, int shardId, boolean hasNested) {
-        if (indexMetaData.getCreationVersion().before(Version.ES_V_6_1_4)) {
-            throw new IllegalArgumentException("Splitting query can only be executed on an index created with version "
-                                               + Version.ES_V_6_1_4 + " or higher");
-        }
         this.indexMetaData = indexMetaData;
         this.shardId = shardId;
         this.nestedParentBitSetProducer =  hasNested ? newParentDocBitSetProducer() : null;
