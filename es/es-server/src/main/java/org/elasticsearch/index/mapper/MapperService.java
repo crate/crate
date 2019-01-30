@@ -145,14 +145,10 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         this.searchQuoteAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultSearchQuoteAnalyzer(), p -> p.searchQuoteAnalyzer());
         this.mapperRegistry = mapperRegistry;
 
-        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.ES_V_6_1_4)) {
-            if (INDEX_MAPPER_DYNAMIC_SETTING.exists(indexSettings.getSettings())) {
-                DEPRECATION_LOGGER.deprecated("Setting " + INDEX_MAPPER_DYNAMIC_SETTING.getKey() + " is deprecated since indices may not have more than one type anymore.");
-            }
-            this.dynamic = INDEX_MAPPER_DYNAMIC_DEFAULT;
-        } else {
-            this.dynamic = this.indexSettings.getValue(INDEX_MAPPER_DYNAMIC_SETTING);
+        if (INDEX_MAPPER_DYNAMIC_SETTING.exists(indexSettings.getSettings())) {
+            DEPRECATION_LOGGER.deprecated("Setting " + INDEX_MAPPER_DYNAMIC_SETTING.getKey() + " is deprecated since indices may not have more than one type anymore.");
         }
+        this.dynamic = INDEX_MAPPER_DYNAMIC_DEFAULT;
         defaultMappingSource = "{\"_default_\":{}}";
 
         if (logger.isTraceEnabled()) {
@@ -408,8 +404,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         Map<String, DocumentMapper> results = new LinkedHashMap<>(documentMappers.size() + 1);
 
         if (defaultMapper != null) {
-            if (indexSettings.getIndexVersionCreated().onOrAfter(Version.ES_V_6_1_4)
-                    && reason == MergeReason.MAPPING_UPDATE) { // only log in case of explicit mapping updates
+            if (reason == MergeReason.MAPPING_UPDATE) { // only log in case of explicit mapping updates
                 DEPRECATION_LOGGER.deprecated("[_default_] mapping is deprecated since it is not useful anymore now that indexes " +
                         "cannot have more than one type");
             }
@@ -464,9 +459,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                 }
                 fullPathObjectMappers.put(objectMapper.fullPath(), objectMapper);
             }
-
-            MapperMergeValidator.validateFieldReferences(indexSettings, fieldMappers,
-                fieldAliasMappers, fullPathObjectMappers, fieldTypes);
 
             if (reason == MergeReason.MAPPING_UPDATE) {
                 // this check will only be performed on the master node when there is
@@ -739,13 +731,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         if (hasMapping(type) == false) {
             return null;
         }
-        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.ES_V_6_1_4)) {
-            assert indexSettings.isSingleType();
-            return new Term(IdFieldMapper.NAME, Uid.encodeId(id));
-        } else if (indexSettings.isSingleType()) {
-            return new Term(IdFieldMapper.NAME, id);
-        } else {
-            return new Term(UidFieldMapper.NAME, Uid.createUidAsBytes(type, id));
-        }
+        assert indexSettings.isSingleType();
+        return new Term(IdFieldMapper.NAME, Uid.encodeId(id));
     }
 }

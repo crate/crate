@@ -185,18 +185,8 @@ public final class IndexSettings {
             Property.Dynamic, Property.IndexScope);
 
     public static final String INDEX_MAPPING_SINGLE_TYPE_SETTING_KEY = "index.mapping.single_type";
-    private static final Setting<Boolean> INDEX_MAPPING_SINGLE_TYPE_SETTING; // private - should not be registered
-    static {
-        Function<Settings, String> defValue = settings -> {
-            boolean singleType = true;
-            if (settings.getAsVersion(IndexMetaData.SETTING_VERSION_CREATED, null) != null) {
-                singleType = Version.indexCreated(settings).onOrAfter(Version.ES_V_6_1_4);
-            }
-            return Boolean.valueOf(singleType).toString();
-        };
-        INDEX_MAPPING_SINGLE_TYPE_SETTING = Setting.boolSetting(INDEX_MAPPING_SINGLE_TYPE_SETTING_KEY, defValue, Property.IndexScope,
-            Property.Final);
-    }
+    private static final Setting<Boolean> INDEX_MAPPING_SINGLE_TYPE_SETTING =
+        Setting.boolSetting(INDEX_MAPPING_SINGLE_TYPE_SETTING_KEY, true, Property.IndexScope, Property.Final);
 
     private final Index index;
     private final Version version;
@@ -304,7 +294,7 @@ public final class IndexSettings {
         this.mergePolicyConfig = new MergePolicyConfig(logger, this);
         this.indexSortConfig = new IndexSortConfig(this);
         singleType = INDEX_MAPPING_SINGLE_TYPE_SETTING.get(indexMetaData.getSettings()); // get this from metadata - it's not registered
-        if ((singleType || version.before(Version.ES_V_6_1_4)) == false) {
+        if (singleType == false) {
             throw new AssertionError(index.toString()  + "multiple types are only allowed on pre 6.x indices but version is: ["
                 + version + "]");
         }

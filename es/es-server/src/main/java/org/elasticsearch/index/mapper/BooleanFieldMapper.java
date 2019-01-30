@@ -237,15 +237,7 @@ public class BooleanFieldMapper extends FieldMapper {
                     value = fieldType().nullValue();
                 }
             } else {
-                if (indexCreatedVersion.onOrAfter(Version.ES_V_6_1_4)) {
-                    value = context.parser().booleanValue();
-                } else {
-                    value = context.parser().booleanValueLenient();
-                    if (context.parser().isBooleanValueLenient() != context.parser().isBooleanValue()) {
-                        String rawValue = context.parser().text();
-                        deprecationLogger.deprecated("Expected a boolean for property [{}] but got [{}]", fieldType().name(), rawValue);
-                    }
-                }
+                value = context.parser().booleanValue();
             }
         }
 
