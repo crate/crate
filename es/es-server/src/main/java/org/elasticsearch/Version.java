@@ -45,18 +45,6 @@ public class Version implements Comparable<Version>, ToXContentFragment {
      */
     public static final int V_EMPTY_ID = 0;
     public static final Version V_EMPTY = new Version(V_EMPTY_ID, 0, org.apache.lucene.util.Version.LATEST);
-    public static final int ES_V_5_0_2_ID = 5000299;
-    public static final Version ES_V_5_0_2 = new Version(ES_V_5_0_2_ID, 2_00_04_99, org.apache.lucene.util.Version.LUCENE_6_2_1);
-    public static final int ES_V_5_2_2_ID = 5020299;
-    public static final Version ES_V_5_2_2 = new Version(ES_V_5_2_2_ID, 2_01_00_99, org.apache.lucene.util.Version.LUCENE_6_4_1);
-    public static final int ES_V_5_4_3_ID = 5040399;
-    public static final Version ES_V_5_4_3 = new Version(ES_V_5_4_3_ID, 2_01_01_99, org.apache.lucene.util.Version.LUCENE_6_5_1);
-    public static final int ES_V_5_5_2_ID = 5050299;
-    public static final Version ES_V_5_5_2 = new Version(ES_V_5_5_2_ID, 2_02_00_99, org.apache.lucene.util.Version.LUCENE_6_6_0);
-    public static final int ES_V_5_6_3_ID = 5060399;
-    public static final Version ES_V_5_6_3 = new Version(ES_V_5_6_3_ID, 2_03_00_99, org.apache.lucene.util.Version.LUCENE_6_6_1);
-    public static final int ES_V_5_6_8_ID = 5060899;
-    public static final Version ES_V_5_6_8 = new Version(ES_V_5_6_8_ID, 2_03_04_99, org.apache.lucene.util.Version.LUCENE_6_6_1);
     public static final int ES_V_6_1_4_ID = 6010499;
     public static final Version ES_V_6_1_4 = new Version(ES_V_6_1_4_ID, 3_00_01_99, org.apache.lucene.util.Version.LUCENE_7_1_0);
     public static final int ES_V_6_5_1_ID = 6050199;
@@ -100,18 +88,6 @@ public class Version implements Comparable<Version>, ToXContentFragment {
                 return ES_V_6_5_1;
             case ES_V_6_1_4_ID:
                 return ES_V_6_1_4;
-            case ES_V_5_6_8_ID:
-                return ES_V_5_6_8;
-            case ES_V_5_6_3_ID:
-                return ES_V_5_6_3;
-            case ES_V_5_5_2_ID:
-                return ES_V_5_5_2;
-            case ES_V_5_4_3_ID:
-                return ES_V_5_4_3;
-            case ES_V_5_2_2_ID:
-                return ES_V_5_2_2;
-            case ES_V_5_0_2_ID:
-                return ES_V_5_0_2;
             case ES_V_7_0_0_ID:
                 return V_4_0_0;
             case V_EMPTY_ID:
@@ -271,7 +247,7 @@ public class Version implements Comparable<Version>, ToXContentFragment {
      * is a beta or RC release then the version itself is returned.
      */
     public Version minimumCompatibilityVersion() {
-        return ES_V_5_0_2;
+        return ES_V_6_1_4;
     }
 
     /**
@@ -280,7 +256,7 @@ public class Version implements Comparable<Version>, ToXContentFragment {
      * code that is used to read / write file formats like transaction logs, cluster state, and index metadata.
      */
     public Version minimumIndexCompatibilityVersion() {
-        return ES_V_5_0_2;
+        return ES_V_6_1_4;
     }
 
     /**

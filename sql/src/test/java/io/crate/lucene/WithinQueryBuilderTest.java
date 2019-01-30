@@ -22,10 +22,8 @@
 
 package io.crate.lucene;
 
-import io.crate.testing.IndexVersionCreated;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.spatial.prefix.WithinPrefixTreeQuery;
-import org.elasticsearch.Version;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -59,12 +57,4 @@ public class WithinQueryBuilderTest extends LuceneQueryBuilderTest {
         Query eqWithinQuery = convert("within(point, 'POLYGON((-95.0 10.0, -95.0 20.0, 95.0 20.0, 95.0 10.0, -95.0 10.0))')");
         assertThat(eqWithinQuery.toString(), is("LatLonPointInPolygonQuery: field=point:[[10.0, 180.0] [20.0, 180.0] [20.0, 95.0] [10.0, 95.0] [10.0, 180.0] [10.0, -180.0] [10.0, -95.0] [20.0, -95.0] [20.0, -180.0] [10.0, -180.0] [10.0, 180.0] ]"));
     }
-
-    @Test
-    @IndexVersionCreated(Version.ES_V_5_0_2_ID)
-    public void testWithinFunctionIndexV_5_0() throws Exception {
-        Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 1.0]]})");
-        assertThat(eqWithinQuery.toString(), is("LatLonPointInPolygonQuery: field=point:[[0.0, 0.0] [1.0, 1.0] [1.0, 2.0] [0.0, 0.0] ]"));
-    }
-
 }
