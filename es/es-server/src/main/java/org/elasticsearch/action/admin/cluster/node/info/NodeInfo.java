@@ -204,7 +204,7 @@ public class NodeInfo extends BaseNodeResponse {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeVInt(version.internalId);
-        Build.writeBuild(build, out);
+        Build.writeBuildTo(build, out);
         if (totalIndexingBuffer == null) {
             out.writeBoolean(false);
         } else {

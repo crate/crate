@@ -158,10 +158,10 @@ public class DeprecationLogger {
     private static final String WARNING_FORMAT =
             String.format(
                     Locale.ROOT,
-                    "299 Elasticsearch-%s%s-%s ",
+                    "299 CrateDB-%s%s-%s ",
                     Version.CURRENT.toString(),
-                    Build.CURRENT.isSnapshot() ? "-SNAPSHOT" : "",
-                    Build.CURRENT.shortHash()) +
+                    Version.CURRENT.isSnapshot() ? "-SNAPSHOT" : "",
+                    Build.CURRENT.hashShort()) +
                     "\"%s\" \"%s\"";
 
     /*
@@ -227,9 +227,9 @@ public class DeprecationLogger {
      * Regular expression to test if a string matches the RFC7234 specification for warning headers. This pattern assumes that the warn code
      * is always 299. Further, this pattern assumes that the warn agent represents a version of Elasticsearch including the build hash.
      */
-    public static Pattern WARNING_HEADER_PATTERN = Pattern.compile(
+    public static final Pattern WARNING_HEADER_PATTERN = Pattern.compile(
             "299 " + // warn code
-                    "Elasticsearch-\\d+\\.\\d+\\.\\d+(?:-(?:alpha|beta|rc)\\d+)?(?:-SNAPSHOT)?-(?:[a-f0-9]{7}|Unknown) " + // warn agent
+                    "CrateDB-\\d+\\.\\d+\\.\\d+(?:-(?:alpha|beta|rc)\\d+)?(?:-SNAPSHOT)?-(?:[a-f0-9]{7}|NA) " + // warn agent
                     "\"((?:\t| |!|[\\x23-\\x5B]|[\\x5D-\\x7E]|[\\x80-\\xFF]|\\\\|\\\\\")*)\" " + // quoted warning value, captured
                     // quoted RFC 1123 date format
                     "\"" + // opening quote
