@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 import static org.elasticsearch.index.mapper.GeoPointFieldMapper.Names.IGNORE_MALFORMED;
 
 /**
@@ -222,17 +223,17 @@ public class GeoShapeFieldMapper extends FieldMapper {
                     builder.fieldType().setStrategyName(fieldNode.toString());
                     iterator.remove();
                 } else if (IGNORE_MALFORMED.equals(fieldName)) {
-                    builder.ignoreMalformed(TypeParsers.nodeBooleanValue(fieldName, "ignore_malformed", fieldNode, parserContext));
+                    builder.ignoreMalformed(nodeBooleanValue(fieldNode, fieldName + ".ignore_malformed"));
                     iterator.remove();
                 } else if (Names.COERCE.equals(fieldName)) {
-                    builder.coerce(TypeParsers.nodeBooleanValue(fieldName, Names.COERCE, fieldNode, parserContext));
+                    builder.coerce(nodeBooleanValue(fieldNode, fieldName + '.' + Names.COERCE));
                     iterator.remove();
                 } else if (GeoPointFieldMapper.Names.IGNORE_Z_VALUE.getPreferredName().equals(fieldName)) {
-                    builder.ignoreZValue(TypeParsers.nodeBooleanValue(fieldName, GeoPointFieldMapper.Names.IGNORE_Z_VALUE.getPreferredName(),
-                        fieldNode, parserContext));
+                    builder.ignoreZValue(
+                        nodeBooleanValue(fieldNode, fieldName + '.' + GeoPointFieldMapper.Names.IGNORE_Z_VALUE.getPreferredName()));
                     iterator.remove();
                 } else if (Names.STRATEGY_POINTS_ONLY.equals(fieldName)) {
-                    pointsOnly = TypeParsers.nodeBooleanValue(fieldName, Names.STRATEGY_POINTS_ONLY, fieldNode, parserContext);
+                    pointsOnly = nodeBooleanValue(fieldNode, fieldName + '.' + Names.STRATEGY_POINTS_ONLY);
                     iterator.remove();
                 }
             }

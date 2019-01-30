@@ -39,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
+
 /**
  * A mapper that indexes the field names of a document under <code>_field_names</code>. This mapper is typically useful in order
  * to have fast <code>exists</code> and <code>missing</code> queries/filters.
@@ -111,7 +113,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
                 String fieldName = entry.getKey();
                 Object fieldNode = entry.getValue();
                 if (fieldName.equals("enabled")) {
-                    builder.enabled(TypeParsers.nodeBooleanValue(name, "enabled", fieldNode, parserContext));
+                    builder.enabled(nodeBooleanValue(fieldNode, name + ".enabled"));
                     iterator.remove();
                 }
             }
@@ -219,9 +221,6 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
 
     @Override
     public void postParse(ParseContext context) throws IOException {
-        if (context.indexSettings().getIndexVersionCreated().before(Version.ES_V_6_1_4)) {
-            super.parse(context);
-        }
     }
 
     @Override

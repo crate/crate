@@ -57,6 +57,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 import static org.elasticsearch.index.mapper.TypeParsers.parseDateTimeFormatter;
 
 /** A {@link FieldMapper} for ip addresses. */
@@ -155,15 +156,10 @@ public class DateFieldMapper extends FieldMapper {
                     builder.nullValue(propNode.toString());
                     iterator.remove();
                 } else if (propName.equals("ignore_malformed")) {
-                    builder.ignoreMalformed(TypeParsers.nodeBooleanValue(name, "ignore_malformed", propNode, parserContext));
+                    builder.ignoreMalformed(nodeBooleanValue(propNode, name + ".ignore_malformed"));
                     iterator.remove();
                 } else if (propName.equals("locale")) {
-                    Locale locale;
-                    if (parserContext.indexVersionCreated().onOrAfter(Version.ES_V_6_1_4)) {
-                        locale = LocaleUtils.parse(propNode.toString());
-                    } else {
-                        locale = LocaleUtils.parse5x(propNode.toString());
-                    }
+                    Locale locale = LocaleUtils.parse(propNode.toString());
                     builder.locale(locale);
                     iterator.remove();
                 } else if (propName.equals("format")) {

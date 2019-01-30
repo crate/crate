@@ -213,15 +213,9 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
         try (ReleasableLock lock = writeLock.acquire()) {
             logger.debug("open uncommitted translog checkpoint {}", checkpoint);
 
-            final long minGenerationToRecoverFrom;
-            if (checkpoint.minTranslogGeneration < 0) {
-                final Version indexVersionCreated = indexSettings().getIndexVersionCreated();
-                assert indexVersionCreated.before(Version.ES_V_6_1_4) :
-                    "no minTranslogGeneration in checkpoint, but index was created with version [" + indexVersionCreated + "]";
-                minGenerationToRecoverFrom = deletionPolicy.getMinTranslogGenerationForRecovery();
-            } else {
-                minGenerationToRecoverFrom = checkpoint.minTranslogGeneration;
-            }
+            final long minGenerationToRecoverFrom = checkpoint.minTranslogGeneration;
+            assert minGenerationToRecoverFrom >= 0
+                : "minTranslogGeneration must be in checkpoint for indices created with CrateDB 3.0+";
 
             final String checkpointTranslogFile = getFilename(checkpoint.generation);
             // we open files in reverse order in order to validate tranlsog uuid before we start traversing the translog based on

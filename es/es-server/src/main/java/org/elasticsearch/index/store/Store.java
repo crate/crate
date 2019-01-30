@@ -1490,41 +1490,6 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
     }
 
     /**
-     * A 5.x index does not have either historyUUDID or sequence number markers as these markers are introduced in 6.0+.
-     * This method should be called only in local store recovery or file-based recovery to ensure an index has proper
-     * historyUUID and sequence number markers before opening an engine.
-     *
-     * @return <code>true</code> if a new commit is flushed, otherwise return false
-     */
-    public boolean ensureIndexHas6xCommitTags() throws IOException {
-        metadataLock.writeLock().lock();
-        try (IndexWriter writer = newIndexWriter(IndexWriterConfig.OpenMode.APPEND, directory, null)) {
-            final Map<String, String> userData = getUserData(writer);
-            final Map<String, String> maps = new HashMap<>();
-            if (userData.containsKey(Engine.HISTORY_UUID_KEY) == false) {
-                maps.put(Engine.HISTORY_UUID_KEY, UUIDs.randomBase64UUID());
-            }
-            if (userData.containsKey(SequenceNumbers.MAX_SEQ_NO) == false) {
-                assert userData.containsKey(SequenceNumbers.LOCAL_CHECKPOINT_KEY) == false :
-                    "Inconsistent sequence number markers in commit [" + userData + "]";
-                maps.put(SequenceNumbers.MAX_SEQ_NO, Long.toString(SequenceNumbers.NO_OPS_PERFORMED));
-                maps.put(SequenceNumbers.LOCAL_CHECKPOINT_KEY, Long.toString(SequenceNumbers.NO_OPS_PERFORMED));
-            }
-            if (userData.containsKey(Engine.MAX_UNSAFE_AUTO_ID_TIMESTAMP_COMMIT_ID) == false) {
-                maps.put(Engine.MAX_UNSAFE_AUTO_ID_TIMESTAMP_COMMIT_ID, "-1");
-            }
-            if (maps.isEmpty() == false) {
-                logger.debug("bootstrap 6.x commit tags [{}], user_data [{}]", maps, userData);
-                updateCommitData(writer, maps);
-                return true;
-            }
-        } finally {
-            metadataLock.writeLock().unlock();
-        }
-        return false;
-    }
-
-    /**
      * Keeping existing unsafe commits when opening an engine can be problematic because these commits are not safe
      * at the recovering time but they can suddenly become safe in the future.
      * The following issues can happen if unsafe commits are kept oninit.

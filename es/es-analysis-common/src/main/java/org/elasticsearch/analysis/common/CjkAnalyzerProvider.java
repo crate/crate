@@ -34,7 +34,7 @@ public class CjkAnalyzerProvider extends AbstractIndexAnalyzerProvider<CJKAnalyz
     CjkAnalyzerProvider(IndexSettings indexSettings, Environment env, String name, Settings settings) {
         super(indexSettings, name, settings);
         CharArraySet stopWords = Analysis.parseStopWords(
-            env, indexSettings.getIndexVersionCreated(), settings, CJKAnalyzer.getDefaultStopSet());
+            env, settings, CJKAnalyzer.getDefaultStopSet());
 
         analyzer = new CJKAnalyzer(stopWords);
         analyzer.setVersion(version);

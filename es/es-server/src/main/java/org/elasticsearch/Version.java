@@ -43,11 +43,11 @@ public class Version implements Comparable<Version>, ToXContentFragment {
      * values below 25 are for alpha builder (since 5.0), and above 25 and below 50 are beta builds, and below 99 are RC builds, with 99
      * indicating a release the (internal) format of the id is there so we can easily do after/before checks on the id
      */
-    public static final int V_EMPTY_ID = 0;
+    private static final int V_EMPTY_ID = 0;
     public static final Version V_EMPTY = new Version(V_EMPTY_ID, 0, org.apache.lucene.util.Version.LATEST);
-    public static final int ES_V_6_1_4_ID = 6010499;
+    private static final int ES_V_6_1_4_ID = 6010499;
     public static final Version ES_V_6_1_4 = new Version(ES_V_6_1_4_ID, 3_00_01_99, org.apache.lucene.util.Version.LUCENE_7_1_0);
-    public static final int ES_V_6_5_1_ID = 6050199;
+    private static final int ES_V_6_5_1_ID = 6050199;
     public static final Version ES_V_6_5_1 = new Version(ES_V_6_5_1_ID, 3_02_00_99, org.apache.lucene.util.Version.LUCENE_7_5_0);
 
     /**

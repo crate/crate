@@ -64,13 +64,9 @@ final class ShardSplittingQuery extends Query {
     private final BitSetProducer nestedParentBitSetProducer;
 
     ShardSplittingQuery(IndexMetaData indexMetaData, int shardId, boolean hasNested) {
-        if (indexMetaData.getCreationVersion().before(Version.ES_V_6_1_4)) {
-            throw new IllegalArgumentException("Splitting query can only be executed on an index created with version "
-                                               + Version.ES_V_6_1_4 + " or higher");
-        }
         this.indexMetaData = indexMetaData;
         this.shardId = shardId;
-        this.nestedParentBitSetProducer =  hasNested ? newParentDocBitSetProducer(indexMetaData.getCreationVersion()) : null;
+        this.nestedParentBitSetProducer =  hasNested ? newParentDocBitSetProducer() : null;
     }
     @Override
     public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) {
@@ -342,9 +338,9 @@ final class ShardSplittingQuery extends Query {
      * than once. There is no point in using BitsetFilterCache#BitSetProducerWarmer since we use this only as a delete by query which is
      * executed on a recovery-private index writer. There is no point in caching it and it won't have a cache hit either.
      */
-    private static BitSetProducer newParentDocBitSetProducer(Version indexVersionCreated) {
+    private static BitSetProducer newParentDocBitSetProducer() {
         return context -> {
-                Query query = Queries.newNonNestedFilter(indexVersionCreated);
+                Query query = Queries.newNonNestedFilter();
                 final IndexReaderContext topLevelContext = ReaderUtil.getTopLevelContext(context);
                 final IndexSearcher searcher = new IndexSearcher(topLevelContext);
                 searcher.setQueryCache(null);

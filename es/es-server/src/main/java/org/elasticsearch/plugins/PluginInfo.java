@@ -196,7 +196,7 @@ public class PluginInfo implements Writeable, ToXContentObject {
             }
         }
 
-        if (esVersion.before(Version.ES_V_6_5_1) && esVersion.onOrAfter(Version.ES_V_6_1_4)) {
+        if (esVersion.before(Version.ES_V_6_5_1)) {
             propsMap.remove("requires.keystore");
         }
 

@@ -362,9 +362,6 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
 
     @Override
     public void prepareForTranslogOperations(boolean fileBasedRecovery, int totalTranslogOps) throws IOException {
-        if (fileBasedRecovery && indexShard.indexSettings().getIndexVersionCreated().before(Version.ES_V_6_1_4)) {
-            store.ensureIndexHas6xCommitTags();
-        }
         state().getTranslog().totalOperations(totalTranslogOps);
         indexShard().openEngineAndSkipTranslogRecovery();
     }

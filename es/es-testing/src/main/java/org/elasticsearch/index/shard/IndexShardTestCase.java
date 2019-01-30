@@ -485,8 +485,13 @@ public abstract class IndexShardTestCase extends ESTestCase {
         IndexShardRoutingTable newRoutingTable = new IndexShardRoutingTable.Builder(shardRouting.shardId())
             .addShard(shardRouting)
             .build();
-        shard.updateShardState(shardRouting, shard.getPendingPrimaryTerm(), null, currentClusterStateVersion.incrementAndGet(),
-            inSyncIds, newRoutingTable, Collections.emptySet());
+        shard.updateShardState(
+            shardRouting,
+            shard.getPendingPrimaryTerm(),
+            null,
+            currentClusterStateVersion.incrementAndGet(),
+            inSyncIds,
+            newRoutingTable);
     }
 
     protected void recoveryEmptyReplica(IndexShard replica, boolean startReplica) throws IOException {
@@ -573,8 +578,14 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 recoveryTarget,
                 request,
                 (int) ByteSizeUnit.MB.toBytes(1));
-        primary.updateShardState(primary.routingEntry(), primary.getPendingPrimaryTerm(), null,
-            currentClusterStateVersion.incrementAndGet(), inSyncIds, routingTable, Collections.emptySet());
+        primary.updateShardState(
+            primary.routingEntry(),
+            primary.getPendingPrimaryTerm(),
+            null,
+            currentClusterStateVersion.incrementAndGet(),
+            inSyncIds,
+            routingTable
+        );
         recovery.recoverToTarget();
         recoveryTarget.markAsDone();
     }
@@ -595,10 +606,22 @@ public abstract class IndexShardTestCase extends ESTestCase {
         Set<String> inSyncIdsWithReplica = new HashSet<>(inSyncIds);
         inSyncIdsWithReplica.add(replica.routingEntry().allocationId().getId());
         // update both primary and replica shard state
-        primary.updateShardState(primary.routingEntry(), primary.getPendingPrimaryTerm(), null,
-            currentClusterStateVersion.incrementAndGet(), inSyncIdsWithReplica, newRoutingTable, Collections.emptySet());
-        replica.updateShardState(replica.routingEntry().moveToStarted(), replica.getPendingPrimaryTerm(), null,
-            currentClusterStateVersion.get(), inSyncIdsWithReplica, newRoutingTable, Collections.emptySet());
+        primary.updateShardState(
+            primary.routingEntry(),
+            primary.getPendingPrimaryTerm(),
+            null,
+            currentClusterStateVersion.incrementAndGet(),
+            inSyncIdsWithReplica,
+            newRoutingTable
+        );
+        replica.updateShardState(
+            replica.routingEntry().moveToStarted(),
+            replica.getPendingPrimaryTerm(),
+            null,
+            currentClusterStateVersion.get(),
+            inSyncIdsWithReplica,
+            newRoutingTable
+        );
     }
 
 
@@ -623,7 +646,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             (is, listener) ->
                 listener.onResponse(new PrimaryReplicaSyncer.ResyncTask(1, "desc", null)),
             currentClusterStateVersion.incrementAndGet(),
-            inSyncIds, newRoutingTable, Collections.emptySet());
+            inSyncIds, newRoutingTable);
     }
 
     private Store.MetadataSnapshot getMetadataSnapshotOrEmpty(IndexShard replica) throws IOException {
