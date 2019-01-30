@@ -178,15 +178,13 @@ public class Analysis {
         return parseWords(env, settings, "common_words", defaultCommonWords, NAMED_STOP_WORDS, ignoreCase);
     }
 
-    public static CharArraySet parseArticles(Environment env, org.elasticsearch.Version indexCreatedVersion, Settings settings) {
-        boolean articlesCase = settings.getAsBooleanLenientForPreEs6Indices(indexCreatedVersion, "articles_case", false, deprecationLogger);
+    public static CharArraySet parseArticles(Environment env, Settings settings) {
+        boolean articlesCase = settings.getAsBoolean("articles_case", false);
         return parseWords(env, settings, "articles", null, null, articlesCase);
     }
 
-    public static CharArraySet parseStopWords(Environment env, org.elasticsearch.Version indexCreatedVersion, Settings settings,
-                                              CharArraySet defaultStopWords) {
-        boolean stopwordsCase =
-            settings.getAsBooleanLenientForPreEs6Indices(indexCreatedVersion, "stopwords_case", false, deprecationLogger);
+    public static CharArraySet parseStopWords(Environment env, Settings settings, CharArraySet defaultStopWords) {
+        boolean stopwordsCase = settings.getAsBoolean("stopwords_case", false);
         return parseStopWords(env, settings, defaultStopWords, stopwordsCase);
     }
 
@@ -209,14 +207,13 @@ public class Analysis {
         return setWords;
     }
 
-    public static CharArraySet getWordSet(Environment env, org.elasticsearch.Version indexCreatedVersion, Settings settings,
-                                          String settingsPrefix) {
+    public static CharArraySet getWordSet(Environment env, Settings settings, String settingsPrefix) {
         List<String> wordList = getWordList(env, settings, settingsPrefix);
         if (wordList == null) {
             return null;
         }
         boolean ignoreCase =
-            settings.getAsBooleanLenientForPreEs6Indices(indexCreatedVersion, settingsPrefix + "_case", false, deprecationLogger);
+            settings.getAsBoolean(settingsPrefix + "_case", false);
         return new CharArraySet(wordList, ignoreCase);
     }
 

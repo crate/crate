@@ -62,6 +62,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
+
 /** A {@link FieldMapper} for numeric types: byte, short, int, long, float and double. */
 public class NumberFieldMapper extends FieldMapper {
 
@@ -158,10 +160,10 @@ public class NumberFieldMapper extends FieldMapper {
                     builder.nullValue(type.parse(propNode, false));
                     iterator.remove();
                 } else if (propName.equals("ignore_malformed")) {
-                    builder.ignoreMalformed(TypeParsers.nodeBooleanValue(name,"ignore_malformed", propNode, parserContext));
+                    builder.ignoreMalformed(nodeBooleanValue(propNode, name + ".ignore_malformed"));
                     iterator.remove();
                 } else if (propName.equals("coerce")) {
-                    builder.coerce(TypeParsers.nodeBooleanValue(name, "coerce", propNode, parserContext));
+                    builder.coerce(nodeBooleanValue(propNode, name + ".coerce"));
                     iterator.remove();
                 }
             }

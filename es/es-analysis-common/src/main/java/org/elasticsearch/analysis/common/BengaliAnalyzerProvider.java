@@ -34,7 +34,7 @@ public class BengaliAnalyzerProvider extends AbstractIndexAnalyzerProvider<Benga
     BengaliAnalyzerProvider(IndexSettings indexSettings, Environment env, String name, Settings settings) {
         super(indexSettings, name, settings);
         analyzer = new BengaliAnalyzer(
-            Analysis.parseStopWords(env, indexSettings.getIndexVersionCreated(), settings, BengaliAnalyzer.getDefaultStopSet()),
+            Analysis.parseStopWords(env, settings, BengaliAnalyzer.getDefaultStopSet()),
             Analysis.parseStemExclusion(settings, CharArraySet.EMPTY_SET)
         );
         analyzer.setVersion(version);

@@ -46,6 +46,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 import static org.elasticsearch.index.mapper.TypeParsers.parseField;
 
 /**
@@ -141,11 +142,10 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                 Object propNode = entry.getValue();
 
                 if (propName.equals(Names.IGNORE_MALFORMED)) {
-                    builder.ignoreMalformed(TypeParsers.nodeBooleanValue(name, Names.IGNORE_MALFORMED, propNode, parserContext));
+                    builder.ignoreMalformed(nodeBooleanValue(propNode, name + '.' + Names.IGNORE_MALFORMED));
                     iterator.remove();
                 } else if (propName.equals(Names.IGNORE_Z_VALUE.getPreferredName())) {
-                    builder.ignoreZValue(TypeParsers.nodeBooleanValue(propName, Names.IGNORE_Z_VALUE.getPreferredName(),
-                        propNode, parserContext));
+                    builder.ignoreZValue(nodeBooleanValue(propNode, propName + '.' + Names.IGNORE_Z_VALUE.getPreferredName()));
                     iterator.remove();
                 } else if (propName.equals(Names.NULL_VALUE)) {
                     if (propNode == null) {

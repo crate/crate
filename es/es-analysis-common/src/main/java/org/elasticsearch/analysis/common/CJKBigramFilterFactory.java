@@ -53,8 +53,7 @@ public final class CJKBigramFilterFactory extends AbstractTokenFilterFactory {
 
     CJKBigramFilterFactory(IndexSettings indexSettings, Environment environment, String name, Settings settings) {
         super(indexSettings, name, settings);
-        outputUnigrams = settings.getAsBooleanLenientForPreEs6Indices(
-            indexSettings.getIndexVersionCreated(), "output_unigrams", false, deprecationLogger);
+        outputUnigrams = settings.getAsBoolean("output_unigrams", false);
         final List<String> asArray = settings.getAsList("ignored_scripts");
         Set<String> scripts = new HashSet<>(Arrays.asList("han", "hiragana", "katakana", "hangul"));
         if (asArray != null) {

@@ -48,6 +48,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
+
 /** A {@link FieldMapper} for ip addresses. */
 public class IpFieldMapper extends FieldMapper {
 
@@ -109,7 +111,7 @@ public class IpFieldMapper extends FieldMapper {
                     builder.nullValue(InetAddresses.forString(propNode.toString()));
                     iterator.remove();
                 } else if (propName.equals("ignore_malformed")) {
-                    builder.ignoreMalformed(TypeParsers.nodeBooleanValue(name, "ignore_malformed", propNode, parserContext));
+                    builder.ignoreMalformed(nodeBooleanValue(propNode, name + ".ignore_malformed"));
                     iterator.remove();
                 } else if (TypeParsers.parseMultiField(builder, name, parserContext, propName, propNode)) {
                     iterator.remove();

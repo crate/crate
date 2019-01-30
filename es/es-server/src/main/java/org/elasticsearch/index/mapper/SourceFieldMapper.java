@@ -47,6 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
+
 public class SourceFieldMapper extends MetadataFieldMapper {
 
     public static final String NAME = "_source";
@@ -115,7 +117,7 @@ public class SourceFieldMapper extends MetadataFieldMapper {
                 String fieldName = entry.getKey();
                 Object fieldNode = entry.getValue();
                 if (fieldName.equals("enabled")) {
-                    builder.enabled(TypeParsers.nodeBooleanValue(name, "enabled", fieldNode, parserContext));
+                    builder.enabled(nodeBooleanValue(fieldNode, name + ".enabled"));
                     iterator.remove();
                 } else if (fieldName.equals("includes")) {
                     List<Object> values = (List<Object>) fieldNode;

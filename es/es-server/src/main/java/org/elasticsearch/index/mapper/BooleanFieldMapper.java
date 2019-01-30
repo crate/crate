@@ -49,6 +49,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 import static org.elasticsearch.index.mapper.TypeParsers.parseField;
 
 /**
@@ -105,7 +106,7 @@ public class BooleanFieldMapper extends FieldMapper {
                     if (propNode == null) {
                         throw new MapperParsingException("Property [null_value] cannot be null.");
                     }
-                    builder.nullValue(TypeParsers.nodeBooleanValue(name, "null_value", propNode, parserContext));
+                    builder.nullValue(nodeBooleanValue(propNode, name + ".null_value"));
                     iterator.remove();
                 }
             }

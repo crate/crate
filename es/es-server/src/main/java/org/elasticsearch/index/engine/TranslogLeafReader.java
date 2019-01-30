@@ -169,14 +169,9 @@ final class TranslogLeafReader extends LeafReader {
             visitor.stringField(FAKE_ROUTING_FIELD, operation.routing().getBytes(StandardCharsets.UTF_8));
         }
         if (visitor.needsField(FAKE_ID_FIELD) == StoredFieldVisitor.Status.YES) {
-            final byte[] id;
-            if (indexVersionCreated.onOrAfter(Version.ES_V_6_1_4)) {
-                BytesRef bytesRef = Uid.encodeId(operation.id());
-                id = new byte[bytesRef.length];
-                System.arraycopy(bytesRef.bytes, bytesRef.offset, id, 0, bytesRef.length);
-            } else { // TODO this can go away in 7.0 after backport
-                id = operation.id().getBytes(StandardCharsets.UTF_8);
-            }
+            BytesRef bytesRef = Uid.encodeId(operation.id());
+            byte[] id = new byte[bytesRef.length];
+            System.arraycopy(bytesRef.bytes, bytesRef.offset, id, 0, bytesRef.length);
             visitor.stringField(FAKE_ID_FIELD, id);
         }
         if (visitor.needsField(FAKE_UID_FIELD) == StoredFieldVisitor.Status.YES) {

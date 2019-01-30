@@ -20,16 +20,12 @@
 package org.elasticsearch.index.analysis;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.LowerCaseFilter;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.synonym.SynonymFilter;
 import org.apache.lucene.analysis.synonym.SynonymMap;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.indices.analysis.AnalysisModule;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -54,34 +50,14 @@ public class SynonymTokenFilterFactory extends AbstractTokenFilterFactory {
                                       String name, Settings settings) throws IOException {
         super(indexSettings, name, settings);
         this.settings = settings;
-
-        this.ignoreCase =
-            settings.getAsBooleanLenientForPreEs6Indices(indexSettings.getIndexVersionCreated(), "ignore_case", false, deprecationLogger);
-        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.ES_V_6_1_4) && settings.get("ignore_case") != null) {
+        this.ignoreCase = settings.getAsBoolean("ignore_case", false);
+        if (settings.get("ignore_case") != null) {
             deprecationLogger.deprecated(
                 "The ignore_case option on the synonym_graph filter is deprecated. " +
                     "Instead, insert a lowercase filter in the filter chain before the synonym_graph filter.");
         }
 
-        this.expand =
-            settings.getAsBooleanLenientForPreEs6Indices(indexSettings.getIndexVersionCreated(), "expand", true, deprecationLogger);
-
-        // for backward compatibility
-        if (indexSettings.getIndexVersionCreated().before(Version.ES_V_6_1_4)) {
-            String tokenizerName = settings.get("tokenizer", "whitespace");
-            AnalysisModule.AnalysisProvider<TokenizerFactory> tokenizerFactoryFactory =
-                analysisRegistry.getTokenizerProvider(tokenizerName, indexSettings);
-            if (tokenizerFactoryFactory == null) {
-                throw new IllegalArgumentException("failed to find tokenizer [" + tokenizerName + "] for synonym token filter");
-            }
-            final TokenizerFactory tokenizerFactory = tokenizerFactoryFactory.get(indexSettings, env, tokenizerName,
-                AnalysisRegistry.getSettingsFromIndexSettings(indexSettings,
-                    AnalysisRegistry.INDEX_ANALYSIS_TOKENIZER + "." + tokenizerName));
-            this.tokenizerFactory = tokenizerFactory;
-        } else {
-            this.tokenizerFactory = null;
-        }
-
+        this.expand = settings.getAsBoolean("expand", true);
         this.lenient = settings.getAsBoolean("lenient", false);
         this.format = settings.get("format", "");
         this.environment = env;
@@ -114,16 +90,6 @@ public class SynonymTokenFilterFactory extends AbstractTokenFilterFactory {
 
     protected Analyzer buildSynonymAnalyzer(TokenizerFactory tokenizer, List<CharFilterFactory> charFilters,
                                             List<TokenFilterFactory> tokenFilters) {
-        if (tokenizerFactory != null) {
-            return new Analyzer() {
-                @Override
-                protected TokenStreamComponents createComponents(String fieldName) {
-                    Tokenizer tokenizer = tokenizerFactory.create();
-                    TokenStream stream = ignoreCase ? new LowerCaseFilter(tokenizer) : tokenizer;
-                    return new TokenStreamComponents(tokenizer, stream);
-                }
-            };
-        }
         return new CustomAnalyzer("synonyms", tokenizer, charFilters.toArray(new CharFilterFactory[0]),
             tokenFilters.stream()
                 .map(TokenFilterFactory::getSynonymFilter)
@@ -162,12 +128,4 @@ public class SynonymTokenFilterFactory extends AbstractTokenFilterFactory {
         }
         return rulesReader;
     }
-
-    // for backward compatibility
-    /**
-     * @deprecated This filter tokenize synonyms with whatever tokenizer and token filters appear before it in the chain in 6.0.
-     */
-    @Deprecated
-    protected final TokenizerFactory tokenizerFactory;
-
 }
