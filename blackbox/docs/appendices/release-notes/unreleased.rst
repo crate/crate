@@ -75,6 +75,8 @@ Changes
 Fixes
 =====
 
+- Fixed a NPE that occurred if ``null`` arguments were supplied to ``unnest``.
+
 - Fixed performance regression on ``UPDATE`` and ``DELETE`` operations.
 
 - Fixed performance regression when inserting data using ``unnest()``.
