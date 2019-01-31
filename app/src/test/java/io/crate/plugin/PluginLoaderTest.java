@@ -39,6 +39,7 @@ import org.junit.rules.ExpectedException;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -54,7 +55,7 @@ public class PluginLoaderTest extends ESIntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Collections.singletonList(PluginLoaderPlugin.class);
+        return Arrays.asList(PluginLoaderPlugin.class, HttpTransportPlugin.class);
     }
 
     @Test

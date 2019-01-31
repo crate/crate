@@ -19,8 +19,6 @@
 
 package org.elasticsearch.node;
 
-import org.elasticsearch.common.network.NetworkModule;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.MockBigArrays;
@@ -41,7 +39,6 @@ public class MockNodeTests extends ESTestCase {
         Settings settings = Settings.builder() // All these are required or MockNode will fail to build.
                 .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir())
                 .put("transport.type", getTestTransportType())
-                .put("http.enabled", false)
                 .build();
         List<Class<? extends Plugin>> plugins = new ArrayList<>();
         plugins.add(getTestTransportPlugin());
@@ -57,6 +54,5 @@ public class MockNodeTests extends ESTestCase {
                 assertSame(bigArrays.getClass(), BigArrays.class);
             }
         }
-        assertSettingDeprecationsAndWarnings(new Setting<?>[] {NetworkModule.HTTP_ENABLED});
     }
 }

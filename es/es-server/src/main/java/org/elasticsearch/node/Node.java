@@ -465,18 +465,10 @@ public abstract class Node implements Closeable {
             final TransportService transportService = newTransportService(settings, transport, threadPool,
                 networkModule.getTransportInterceptor(), localNodeFactory, settingsModule.getClusterSettings(), taskHeaders);
             final Consumer<Binder> httpBind;
-            final HttpServerTransport httpServerTransport;
-            if (networkModule.isHttpEnabled()) {
-                httpServerTransport = networkModule.getHttpServerTransportSupplier().get();
-                httpBind = b -> {
-                    b.bind(HttpServerTransport.class).toInstance(httpServerTransport);
-                };
-            } else {
-                httpBind = b -> {
-                    b.bind(HttpServerTransport.class).toProvider(Providers.of(null));
-                };
-                httpServerTransport = null;
-            }
+            final HttpServerTransport httpServerTransport = networkModule.getHttpServerTransportSupplier().get();
+            httpBind = b -> {
+                b.bind(HttpServerTransport.class).toInstance(httpServerTransport);
+            };
 
             final DiscoveryModule discoveryModule = new DiscoveryModule(this.settings, threadPool, transportService, namedWriteableRegistry,
                 networkService, clusterService.getMasterService(), clusterService.getClusterApplierService(),
@@ -546,10 +538,8 @@ public abstract class Node implements Closeable {
             client.initialize(injector.getInstance(new Key<Map<GenericAction, TransportAction>>() {}),
                     () -> clusterService.localNode().getId());
 
-            if (NetworkModule.HTTP_ENABLED.get(settings)) {
-                logger.debug("initializing HTTP handlers ...");
-                actionModule.initRestHandlers(() -> clusterService.state().nodes());
-            }
+            logger.debug("initializing HTTP handlers ...");
+            actionModule.initRestHandlers(() -> clusterService.state().nodes());
             logger.info("initialized");
 
             success = true;
@@ -663,16 +653,11 @@ public abstract class Node implements Closeable {
         Discovery discovery = injector.getInstance(Discovery.class);
         clusterService.getMasterService().setClusterStatePublisher(discovery::publish);
 
-        // Start Http service before Transport service to ensure that
-        // the publish http address gets passed as a node attribute.
-        if (NetworkModule.HTTP_ENABLED.get(settings)) {
-            HttpServerTransport httpServerTransport = injector.getInstance(HttpServerTransport.class);
-            httpServerTransport.start();
-            // CRATE_PATCH: add http publish address to the discovery node
-            localNodeFactory.httpPublishAddress =
-                httpServerTransport.info().address().publishAddress().getAddress() + ":" +
-                httpServerTransport.info().address().publishAddress().getPort();
-        }
+        HttpServerTransport httpServerTransport = injector.getInstance(HttpServerTransport.class);
+        httpServerTransport.start();
+        // CRATE_PATCH: add http publish address to the discovery node
+        TransportAddress publishAddress = httpServerTransport.info().address().publishAddress();
+        localNodeFactory.httpPublishAddress = publishAddress.getAddress() + ':' + publishAddress.getPort();
 
         // Start the transport service now so the publish address will be added to the local disco node in ClusterService
         TransportService transportService = injector.getInstance(TransportService.class);
@@ -742,10 +727,8 @@ public abstract class Node implements Closeable {
         }
 
         if (WRITE_PORTS_FILE_SETTING.get(settings)) {
-            if (NetworkModule.HTTP_ENABLED.get(settings)) {
-                HttpServerTransport http = injector.getInstance(HttpServerTransport.class);
-                writePortsFile("http", http.boundAddress());
-            }
+            HttpServerTransport http = injector.getInstance(HttpServerTransport.class);
+            writePortsFile("http", http.boundAddress());
             TransportService transport = injector.getInstance(TransportService.class);
             writePortsFile("transport", transport.boundAddress());
         }
@@ -763,10 +746,7 @@ public abstract class Node implements Closeable {
         }
         logger.info("stopping ...");
 
-        if (NetworkModule.HTTP_ENABLED.get(settings)) {
-            injector.getInstance(HttpServerTransport.class).stop();
-        }
-
+        injector.getInstance(HttpServerTransport.class).stop();
         injector.getInstance(SnapshotsService.class).stop();
         injector.getInstance(SnapshotShardsService.class).stop();
         // stop any changes happening as a result of cluster state changes
@@ -810,9 +790,7 @@ public abstract class Node implements Closeable {
         toClose.add(() -> stopWatch.stop().start("node_service"));
         toClose.add(nodeService);
         toClose.add(() -> stopWatch.stop().start("http"));
-        if (NetworkModule.HTTP_ENABLED.get(settings)) {
-            toClose.add(injector.getInstance(HttpServerTransport.class));
-        }
+        toClose.add(injector.getInstance(HttpServerTransport.class));
         toClose.add(() -> stopWatch.stop().start("snapshot_service"));
         toClose.add(injector.getInstance(SnapshotsService.class));
         toClose.add(injector.getInstance(SnapshotShardsService.class));

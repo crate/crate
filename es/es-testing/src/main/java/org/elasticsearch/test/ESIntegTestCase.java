@@ -1464,7 +1464,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
             @Override
             public Settings nodeSettings(int nodeOrdinal) {
                 return Settings.builder()
-                    .put(NetworkModule.HTTP_ENABLED.getKey(), false)
                     .put(networkSettings.build())
                     .put(ESIntegTestCase.this.nodeSettings(nodeOrdinal)).build();
             }

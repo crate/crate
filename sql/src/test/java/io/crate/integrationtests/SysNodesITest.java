@@ -33,14 +33,6 @@ import static org.hamcrest.Matchers.startsWith;
 @ESIntegTestCase.ClusterScope(numClientNodes = 0)
 public class SysNodesITest extends SQLTransportIntegrationTest {
 
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.builder()
-            .put(super.nodeSettings(nodeOrdinal))
-            .put("http.enabled", true)
-            .build();
-    }
-
     @Test
     public void testNoMatchingNode() throws Exception {
         execute("select id, name, hostname from sys.nodes where id = 'does-not-exist'");
