@@ -38,7 +38,7 @@ import java.util.function.BiFunction;
 
 public class NthValueFunctions implements WindowFunction {
 
-    private static final String LAST_VALUE_NAME = "last_value";
+    public static final String LAST_VALUE_NAME = "last_value";
     private static final String FIRST_VALUE_NAME = "first_value";
     private static final String NTH_VALUE = "nth_value";
 

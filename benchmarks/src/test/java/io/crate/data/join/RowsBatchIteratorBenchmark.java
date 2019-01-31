@@ -22,26 +22,37 @@
 
 package io.crate.data.join;
 
+import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.CloseAssertingBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.SkippingBatchIterator;
+import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.execution.engine.join.RamAccountingBatchIterator;
+import io.crate.execution.engine.window.WindowBatchIterator;
+import io.crate.execution.engine.window.WindowFunction;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.Functions;
+import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.testing.RowGenerator;
 import io.crate.types.DataTypes;
+import io.crate.window.NthValueFunctions;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.common.inject.ModulesBuilder;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -75,6 +86,16 @@ public class RowsBatchIteratorBenchmark {
     // used with  RowsBatchIterator without any state/error handling to establish a performance baseline.
     private final List<Row1> oneThousandRows = IntStream.range(0, 1000).mapToObj(Row1::new).collect(Collectors.toList());
     private final List<Row1> tenThousandRows = IntStream.range(0, 10000).mapToObj(Row1::new).collect(Collectors.toList());
+
+    private WindowFunction lastValueIntFunction;
+
+    @Setup
+    public void setup() {
+        Functions functions = new ModulesBuilder().add(new EnterpriseFunctionsModule())
+            .createInjector().getInstance(Functions.class);
+        lastValueIntFunction = (WindowFunction) functions.getQualified(
+            new FunctionIdent(NthValueFunctions.LAST_VALUE_NAME, Collections.singletonList(DataTypes.INTEGER)));
+    }
 
     @Benchmark
     public void measureConsumeBatchIterator(Blackhole blackhole) {
@@ -189,6 +210,27 @@ public class RowsBatchIteratorBenchmark {
         );
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
+        }
+    }
+
+    @Benchmark
+    public void measureConsumeWindowBatchIterator(Blackhole blackhole) {
+        InputCollectExpression input = new InputCollectExpression(0);
+        WindowBatchIterator iterator = new WindowBatchIterator(
+            new WindowDefinition(Collections.emptyList(), null, null),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            new InMemoryBatchIterator<>(rows, SENTINEL),
+            Collections.singletonList(lastValueIntFunction),
+            Collections.singletonList(input),
+            Collections.singletonList(DataTypes.INTEGER),
+            ramAccountingContext,
+            new int[] { 0 },
+            new Input[] { input }
+        );
+
+        while (iterator.moveNext()) {
+            blackhole.consume(iterator.currentElement().get(0));
         }
     }
 }
