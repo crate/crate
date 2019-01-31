@@ -264,15 +264,12 @@ name and has following attributes:
 | ``Search``            | Thread pool statistics of the ``search`` thread pool    |
 |                       | used by read statements on user generated tables.       |
 +-----------------------+---------------------------------------------------------+
-| ``Bulk``              | Thread pool statistics of the ``bulk`` thread pool      |
+| ``Write``             | Thread pool statistics of the ``write`` thread pool     |
 |                       | used for writing and deleting data.                     |
 +-----------------------+---------------------------------------------------------+
 | ``Management``        | Thread pool statistics of the ``management`` thread     |
 |                       | pool used by management tasks like stats collecting,    |
 |                       | repository information, shard allocations, etc.         |
-+-----------------------+---------------------------------------------------------+
-| ``Index``             | Thread pool statistics of the ``index`` thread pool     |
-|                       | used for writing blobs.                                 |
 +-----------------------+---------------------------------------------------------+
 | ``Flush``             | Thread pool statistics of the ``flush`` thread pool     |
 |                       | used for fsyncing to disk and merging segments in the   |

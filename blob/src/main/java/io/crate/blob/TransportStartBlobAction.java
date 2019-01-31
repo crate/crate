@@ -50,7 +50,7 @@ public class TransportStartBlobAction
                                     IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, StartBlobAction.NAME, transportService, clusterService,
             indicesService, threadPool, shardStateAction,
-            indexNameExpressionResolver, StartBlobRequest::new, StartBlobRequest::new, ThreadPool.Names.INDEX);
+            indexNameExpressionResolver, StartBlobRequest::new, StartBlobRequest::new, ThreadPool.Names.WRITE);
 
         this.transferTarget = transferTarget;
         logger.trace("Constructor");

@@ -49,6 +49,10 @@ Breaking Changes
   ``upgraded``. The ``cratedb`` and ``elasticsearch`` sub-category has been
   removed.
 
+- Removed the ``index`` thread-pool and the ``bulk`` alias for the ``write``
+  thread-pool. The JMX ``getBulk`` property of the ``ThreadPools`` bean has
+  been renamed too ``getWrite``.
+
 Deprecations
 ============
 

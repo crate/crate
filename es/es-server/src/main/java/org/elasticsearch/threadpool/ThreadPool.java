@@ -19,10 +19,11 @@
 
 package org.elasticsearch.threadpool;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.Counter;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -59,7 +60,9 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.unmodifiableMap;
 
-public class ThreadPool extends AbstractComponent implements Scheduler, Closeable {
+public class ThreadPool implements Scheduler, Closeable {
+
+    private static final Logger logger = LogManager.getLogger(ThreadPool.class);
 
     public static class Names {
         public static final String SAME = "same";
@@ -67,7 +70,6 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         public static final String LISTENER = "listener";
         public static final String GET = "get";
         public static final String ANALYZE = "analyze";
-        public static final String INDEX = "index";
         public static final String WRITE = "write";
         public static final String SEARCH = "search";
         public static final String MANAGEMENT = "management";
@@ -123,7 +125,6 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         map.put(Names.LISTENER, ThreadPoolType.FIXED);
         map.put(Names.GET, ThreadPoolType.FIXED);
         map.put(Names.ANALYZE, ThreadPoolType.FIXED);
-        map.put(Names.INDEX, ThreadPoolType.FIXED);
         map.put(Names.WRITE, ThreadPoolType.FIXED);
         map.put(Names.SEARCH, ThreadPoolType.FIXED);
         map.put(Names.MANAGEMENT, ThreadPoolType.SCALING);
@@ -137,11 +138,11 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         THREAD_POOL_TYPES = Collections.unmodifiableMap(map);
     }
 
-    private Map<String, ExecutorHolder> executors = new HashMap<>();
+    private final Map<String, ExecutorHolder> executors;
 
     private final CachedTimeThread cachedTimeThread;
 
-    static final ExecutorService DIRECT_EXECUTOR = EsExecutors.newDirectExecutorService();
+    private static final ExecutorService DIRECT_EXECUTOR = EsExecutors.newDirectExecutorService();
 
     private final ThreadContext threadContext;
 
@@ -153,12 +154,10 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         return Collections.unmodifiableCollection(builders.values());
     }
 
-    public static Setting<TimeValue> ESTIMATED_TIME_INTERVAL_SETTING =
+    public final static Setting<TimeValue> ESTIMATED_TIME_INTERVAL_SETTING =
         Setting.timeSetting("thread_pool.estimated_time_interval", TimeValue.timeValueMillis(200), Setting.Property.NodeScope);
 
     public ThreadPool(final Settings settings, final ExecutorBuilder<?>... customBuilders) {
-        super(settings);
-
         assert Node.NODE_NAME_SETTING.exists(settings);
 
         final Map<String, ExecutorBuilder> builders = new HashMap<>();
@@ -167,8 +166,7 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         final int halfProcMaxAt10 = halfNumberOfProcessorsMaxTen(availableProcessors);
         final int genericThreadPoolMax = boundedBy(4 * availableProcessors, 128, 512);
         builders.put(Names.GENERIC, new ScalingExecutorBuilder(Names.GENERIC, 4, genericThreadPoolMax, TimeValue.timeValueSeconds(30)));
-        builders.put(Names.INDEX, new FixedExecutorBuilder(settings, Names.INDEX, availableProcessors, 200, true));
-        builders.put(Names.WRITE, new FixedExecutorBuilder(settings, Names.WRITE, "bulk", availableProcessors, 200));
+        builders.put(Names.WRITE, new FixedExecutorBuilder(settings, Names.WRITE, availableProcessors, 200));
         builders.put(Names.GET, new FixedExecutorBuilder(settings, Names.GET, availableProcessors, 1000));
         builders.put(Names.ANALYZE, new FixedExecutorBuilder(settings, Names.ANALYZE, 1, 16));
         builders.put(Names.SEARCH, new FixedExecutorBuilder(settings, Names.SEARCH, searchThreadPoolSize(availableProcessors), 1000));
@@ -194,7 +192,7 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         threadContext = new ThreadContext(settings);
 
         final Map<String, ExecutorHolder> executors = new HashMap<>();
-        for (@SuppressWarnings("unchecked") final Map.Entry<String, ExecutorBuilder> entry : builders.entrySet()) {
+        for (final Map.Entry<String, ExecutorBuilder> entry : builders.entrySet()) {
             final ExecutorBuilder.ExecutorSettings executorSettings = entry.getValue().getSettings(settings);
             final ExecutorHolder executorHolder = entry.getValue().build(executorSettings, threadContext);
             if (executors.containsKey(executorHolder.info.getName())) {
@@ -215,26 +213,10 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
     /**
      * Returns a value of milliseconds that may be used for relative time calculations.
      *
-     * This method should only be used for calculating time deltas. For an epoch based
-     * timestamp, see {@link #absoluteTimeInMillis()}.
+     * This method should only be used for calculating time deltas.
      */
     public long relativeTimeInMillis() {
         return cachedTimeThread.relativeTimeInMillis();
-    }
-
-    /**
-     * Returns the value of milliseconds since UNIX epoch.
-     *
-     * This method should only be used for exact date/time formatting. For calculating
-     * time deltas that should not suffer from negative deltas, which are possible with
-     * this method, see {@link #relativeTimeInMillis()}.
-     */
-    public long absoluteTimeInMillis() {
-        return cachedTimeThread.absoluteTimeInMillis();
-    }
-
-    public Counter estimatedTimeInMillisCounter() {
-        return cachedTimeThread.counter;
     }
 
     public ThreadPoolInfo info() {
@@ -406,23 +388,19 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
      * @return min if value is less than min, max if value is greater
      * than value, otherwise value
      */
-    static int boundedBy(int value, int min, int max) {
+    private static int boundedBy(int value, int min, int max) {
         return Math.min(max, Math.max(min, value));
     }
 
-    static int halfNumberOfProcessorsMaxFive(int numberOfProcessors) {
+    private static int halfNumberOfProcessorsMaxFive(int numberOfProcessors) {
         return boundedBy((numberOfProcessors + 1) / 2, 1, 5);
     }
 
-    static int halfNumberOfProcessorsMaxTen(int numberOfProcessors) {
+    private static int halfNumberOfProcessorsMaxTen(int numberOfProcessors) {
         return boundedBy((numberOfProcessors + 1) / 2, 1, 10);
     }
 
-    static int twiceNumberOfProcessors(int numberOfProcessors) {
-        return boundedBy(2 * numberOfProcessors, 2, Integer.MAX_VALUE);
-    }
-
-    public static int searchThreadPoolSize(int availableProcessors) {
+    private static int searchThreadPoolSize(int availableProcessors) {
         return ((availableProcessors * 3) / 2) + 1;
     }
 
@@ -504,13 +482,11 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         final TimeCounter counter;
         volatile boolean running = true;
         volatile long relativeMillis;
-        volatile long absoluteMillis;
 
         CachedTimeThread(String name, long interval) {
             super(name);
             this.interval = interval;
             this.relativeMillis = TimeValue.nsecToMSec(System.nanoTime());
-            this.absoluteMillis = System.currentTimeMillis();
             this.counter = new TimeCounter();
             setDaemon(true);
         }
@@ -523,19 +499,10 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
             return relativeMillis;
         }
 
-        /**
-         * Return the current epoch time, used to find absolute time. This is
-         * a cached version of {@link System#currentTimeMillis()}.
-         */
-        long absoluteTimeInMillis() {
-            return absoluteMillis;
-        }
-
         @Override
         public void run() {
             while (running) {
                 relativeMillis = TimeValue.nsecToMSec(System.nanoTime());
-                absoluteMillis = System.currentTimeMillis();
                 try {
                     Thread.sleep(interval);
                 } catch (InterruptedException e) {
@@ -574,7 +541,7 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         }
     }
 
-    public static class Info implements Writeable, ToXContentFragment {
+    public static class Info implements Writeable {
 
         private final String name;
         private final ThreadPoolType type;
@@ -583,15 +550,15 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         private final TimeValue keepAlive;
         private final SizeValue queueSize;
 
-        public Info(String name, ThreadPoolType type) {
+        Info(String name, ThreadPoolType type) {
             this(name, type, -1);
         }
 
-        public Info(String name, ThreadPoolType type, int size) {
+        Info(String name, ThreadPoolType type, int size) {
             this(name, type, size, size, null, null);
         }
 
-        public Info(String name, ThreadPoolType type, int min, int max, @Nullable TimeValue keepAlive, @Nullable SizeValue queueSize) {
+        Info(String name, ThreadPoolType type, int min, int max, @Nullable TimeValue keepAlive, @Nullable SizeValue queueSize) {
             this.name = name;
             this.type = type;
             this.min = min;
@@ -600,7 +567,7 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
             this.queueSize = queueSize;
         }
 
-        public Info(StreamInput in) throws IOException {
+        Info(StreamInput in) throws IOException {
             name = in.readString();
             type = ThreadPoolType.fromType(in.readString());
             min = in.readInt();
@@ -623,10 +590,6 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
             return this.name;
         }
 
-        public ThreadPoolType getThreadPoolType() {
-            return this.type;
-        }
-
         public int getMin() {
             return this.min;
         }
@@ -636,43 +599,13 @@ public class ThreadPool extends AbstractComponent implements Scheduler, Closeabl
         }
 
         @Nullable
-        public TimeValue getKeepAlive() {
+        TimeValue getKeepAlive() {
             return this.keepAlive;
         }
 
         @Nullable
-        public SizeValue getQueueSize() {
+        SizeValue getQueueSize() {
             return this.queueSize;
-        }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.startObject(name);
-            builder.field(Fields.TYPE, type.getType());
-            if (min != -1) {
-                builder.field(Fields.MIN, min);
-            }
-            if (max != -1) {
-                builder.field(Fields.MAX, max);
-            }
-            if (keepAlive != null) {
-                builder.field(Fields.KEEP_ALIVE, keepAlive.toString());
-            }
-            if (queueSize == null) {
-                builder.field(Fields.QUEUE_SIZE, -1);
-            } else {
-                builder.field(Fields.QUEUE_SIZE, queueSize.singles());
-            }
-            builder.endObject();
-            return builder;
-        }
-
-        static final class Fields {
-            static final String TYPE = "type";
-            static final String MIN = "min";
-            static final String MAX = "max";
-            static final String KEEP_ALIVE = "keep_alive";
-            static final String QUEUE_SIZE = "queue_size";
         }
     }
 
