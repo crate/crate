@@ -46,7 +46,6 @@ public class BelowMinNumberOfNodesITest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put("http.enabled", true)
             .put(ElectMasterService.DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING.getKey(), 2)
             .build();
     }

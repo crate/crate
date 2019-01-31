@@ -50,7 +50,6 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put("network.host", "127.0.0.1")
-            .put("http.enabled", true)
             .put("http.host", "127.0.0.1")
             .put("http.cors.enabled", true)
             .put("http.cors.allow-origin", "*")

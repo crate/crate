@@ -71,7 +71,7 @@ import static org.hamcrest.Matchers.not;
 @LuceneTestCase.SuppressFileSystems("ExtrasFS") // doesn't work with potential multi data path from test cluster yet
 public class InternalTestClusterTests extends ESTestCase {
 
-    private static final Setting<?>[] DEPRECATED_SETTINGS = {NetworkModule.HTTP_ENABLED, HttpTransportSettings.SETTING_PIPELINING};
+    private static final Setting<?>[] DEPRECATED_SETTINGS = {HttpTransportSettings.SETTING_PIPELINING};
 
     public void testInitializiationIsConsistent() {
         long clusterSeed = randomLong();
@@ -189,7 +189,6 @@ public class InternalTestClusterTests extends ESTestCase {
                     .put(
                         NodeEnvironment.MAX_LOCAL_STORAGE_NODES_SETTING.getKey(),
                         2 * ((masterNodes ? InternalTestCluster.DEFAULT_HIGH_NUM_MASTER_NODES : 0) + maxNumDataNodes + numClientNodes))
-                    .put(NetworkModule.HTTP_ENABLED.getKey(), false)
                     .put(NetworkModule.TRANSPORT_TYPE_KEY, getTestTransportType());
                 if (autoManageMinMasterNodes == false) {
                     assert minNumDataNodes == maxNumDataNodes;
@@ -252,9 +251,6 @@ public class InternalTestClusterTests extends ESTestCase {
             cluster1.afterTest();
         } finally {
             IOUtils.close(cluster0, cluster1);
-            if (shouldAssertSettingsDeprecationsAndWarnings) {
-                assertSettingDeprecationsAndWarnings(new Setting<?>[] {NetworkModule.HTTP_ENABLED});
-            }
         }
     }
 
@@ -270,7 +266,7 @@ public class InternalTestClusterTests extends ESTestCase {
         NodeConfigurationSource nodeConfigurationSource = new NodeConfigurationSource() {
             @Override
             public Settings nodeSettings(int nodeOrdinal) {
-                return Settings.builder().put(NetworkModule.HTTP_ENABLED.getKey(), false)
+                return Settings.builder()
                     .put(
                         NodeEnvironment.MAX_LOCAL_STORAGE_NODES_SETTING.getKey(),
                         2 + (masterNodes ? InternalTestCluster.DEFAULT_HIGH_NUM_MASTER_NODES : 0) + maxNumDataNodes + numClientNodes)
@@ -383,7 +379,6 @@ public class InternalTestClusterTests extends ESTestCase {
             public Settings nodeSettings(int nodeOrdinal) {
                 return Settings.builder()
                         .put(NodeEnvironment.MAX_LOCAL_STORAGE_NODES_SETTING.getKey(), numNodes)
-                        .put(NetworkModule.HTTP_ENABLED.getKey(), false)
                         .put(NetworkModule.TRANSPORT_TYPE_KEY, getTestTransportType())
                         .put(DiscoverySettings.INITIAL_STATE_TIMEOUT_SETTING.getKey(), 0)
                         // speedup join timeout as setting initial state timeout to 0 makes split
@@ -469,7 +464,7 @@ public class InternalTestClusterTests extends ESTestCase {
         NodeConfigurationSource nodeConfigurationSource = new NodeConfigurationSource() {
             @Override
             public Settings nodeSettings(int nodeOrdinal) {
-                return Settings.builder().put(NetworkModule.HTTP_ENABLED.getKey(), false)
+                return Settings.builder()
                     .put(NodeEnvironment.MAX_LOCAL_STORAGE_NODES_SETTING.getKey(), 2)
                     .put(NetworkModule.TRANSPORT_TYPE_KEY, getTestTransportType())
                     .build();
