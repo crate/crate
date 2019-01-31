@@ -37,7 +37,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, transportClientRatio = 0)
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST)
 public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTest {
 
     private static final int NUMBER_OF_BOOLEAN_CLAUSES = 10_000;
