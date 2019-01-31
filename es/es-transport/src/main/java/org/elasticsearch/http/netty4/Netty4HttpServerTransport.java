@@ -117,7 +117,6 @@ import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_TCP_NO_D
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_TCP_RECEIVE_BUFFER_SIZE;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_TCP_REUSE_ADDRESS;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_TCP_SEND_BUFFER_SIZE;
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_PIPELINING;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_PIPELINING_MAX_EVENTS;
 import static org.elasticsearch.http.netty4.cors.Netty4CorsHandler.ANY_ORIGIN;
 
@@ -198,8 +197,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     protected final ByteSizeValue maxChunkSize;
 
     protected final int workerCount;
-
-    protected final boolean pipelining;
 
     protected final int pipeliningMaxEvents;
 
@@ -294,7 +291,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
         this.compression = SETTING_HTTP_COMPRESSION.get(settings);
         this.compressionLevel = SETTING_HTTP_COMPRESSION_LEVEL.get(settings);
-        this.pipelining = SETTING_PIPELINING.get(settings);
         this.pipeliningMaxEvents = SETTING_PIPELINING_MAX_EVENTS.get(settings);
         this.corsConfig = buildCorsConfig(settings);
 
@@ -309,9 +305,9 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         this.maxContentLength = maxContentLength;
 
         logger.debug("using max_chunk_size[{}], max_header_size[{}], max_initial_line_length[{}], max_content_length[{}], " +
-                "receive_predictor[{}->{}], max_composite_buffer_components[{}], pipelining[{}], pipelining_max_events[{}]",
+                "receive_predictor[{}->{}], max_composite_buffer_components[{}], pipelining_max_events[{}]",
             maxChunkSize, maxHeaderSize, maxInitialLineLength, this.maxContentLength,
-            receivePredictorMin, receivePredictorMax, maxCompositeBufferComponents, pipelining, pipeliningMaxEvents);
+            receivePredictorMin, receivePredictorMax, maxCompositeBufferComponents, pipeliningMaxEvents);
     }
 
     public Settings settings() {
@@ -618,9 +614,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             if (SETTING_CORS_ENABLED.get(transport.settings())) {
                 ch.pipeline().addLast("cors", new Netty4CorsHandler(transport.getCorsConfig()));
             }
-            if (transport.pipelining) {
-                ch.pipeline().addLast("pipelining", new HttpPipeliningHandler(transport.logger, transport.pipeliningMaxEvents));
-            }
+            ch.pipeline().addLast("pipelining", new HttpPipeliningHandler(transport.logger, transport.pipeliningMaxEvents));
             ch.pipeline().addLast("handler", requestHandler);
         }
 

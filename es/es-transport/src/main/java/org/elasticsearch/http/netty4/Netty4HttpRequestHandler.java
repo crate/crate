@@ -39,13 +39,11 @@ import java.util.Collections;
 class Netty4HttpRequestHandler extends SimpleChannelInboundHandler<Object> {
 
     private final Netty4HttpServerTransport serverTransport;
-    private final boolean httpPipeliningEnabled;
     private final boolean detailedErrorsEnabled;
     private final ThreadContext threadContext;
 
     Netty4HttpRequestHandler(Netty4HttpServerTransport serverTransport, boolean detailedErrorsEnabled, ThreadContext threadContext) {
         this.serverTransport = serverTransport;
-        this.httpPipeliningEnabled = serverTransport.pipelining;
         this.detailedErrorsEnabled = detailedErrorsEnabled;
         this.threadContext = threadContext;
     }
@@ -54,7 +52,7 @@ class Netty4HttpRequestHandler extends SimpleChannelInboundHandler<Object> {
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
         final FullHttpRequest request;
         final HttpPipelinedRequest pipelinedRequest;
-        if (this.httpPipeliningEnabled && msg instanceof HttpPipelinedRequest) {
+        if (msg instanceof HttpPipelinedRequest) {
             pipelinedRequest = (HttpPipelinedRequest) msg;
             request = (FullHttpRequest) pipelinedRequest.last();
         } else {
