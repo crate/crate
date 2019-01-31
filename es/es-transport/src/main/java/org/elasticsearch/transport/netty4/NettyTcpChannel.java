@@ -98,10 +98,6 @@ public class NettyTcpChannel implements TcpChannel {
         }
     }
 
-    public Channel getLowLevelChannel() {
-        return channel;
-    }
-
     @Override
     public String toString() {
         return "NettyTcpChannel{" +

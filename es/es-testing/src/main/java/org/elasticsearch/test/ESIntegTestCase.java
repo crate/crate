@@ -26,14 +26,11 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.annotations.TestGroup;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-import org.apache.http.HttpHost;
 import org.apache.lucene.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
@@ -47,8 +44,6 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.RestoreInProgress;
@@ -71,13 +66,11 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -127,7 +120,6 @@ import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Security;
@@ -210,8 +202,6 @@ import static org.hamcrest.core.IsEqual.equalTo;
  * <p>
  * This class supports the following system properties (passed with -Dkey=value to the application)
  * <ul>
- * <li>-D{@value #TESTS_CLIENT_RATIO} - a double value in the interval [0..1] which defines the ration between node
- * and transport clients used</li>
  * <li>-D{@value #TESTS_ENABLE_MOCK_MODULES} - a boolean value to enable or disable mock modules. This is
  * useful to test the system without asserting modules that to make sure they don't hide any bugs in production.</li>
  * <li> - a random seed used to initialize the index random context.
@@ -248,16 +238,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
     /** node names of the corresponding clusters will start with these prefixes */
     public static final String SUITE_CLUSTER_NODE_PREFIX = "node_s";
     public static final String TEST_CLUSTER_NODE_PREFIX = "node_t";
-
-    /**
-     * Key used to set the transport client ratio via the commandline -D{@value #TESTS_CLIENT_RATIO}
-     */
-    public static final String TESTS_CLIENT_RATIO = "tests.client.ratio";
-
-    /**
-     * Key used to eventually switch to using an external cluster and provide its transport addresses
-     */
-    public static final String TESTS_CLUSTER = "tests.cluster";
 
     /**
      * Key used to retrieve the index random seed from the index settings on a running node.
@@ -312,9 +292,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
      * By default if no {@link ClusterScope} is configured this will hold a reference to the suite cluster.
      */
     private static TestCluster currentCluster;
-    private static RestClient restClient = null;
-
-    private static final double TRANSPORT_CLIENT_RATIO = transportClientRatio();
 
     private static final Map<Class<?>, TestCluster> clusters = new IdentityHashMap<>();
 
@@ -501,10 +478,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         if (!clusters.isEmpty()) {
             IOUtils.close(clusters.values());
             clusters.clear();
-        }
-        if (restClient != null) {
-            restClient.close();
-            restClient = null;
         }
     }
 
@@ -1250,12 +1223,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
          * negative value means that the number of client nodes will be randomized.
          */
         int numClientNodes() default InternalTestCluster.DEFAULT_NUM_CLIENT_NODES;
-
-        /**
-         * Returns the transport client ratio. By default this returns <code>-1</code> which means a random
-         * ratio in the interval <code>[0..1]</code> is used.
-         */
-        double transportClientRatio() default -1;
     }
 
     private class LatchedActionListener<Response> implements ActionListener<Response> {
@@ -1281,23 +1248,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         }
 
         protected void addError(Exception e) {
-        }
-
-    }
-
-    private class PayloadLatchedActionListener<Response, T> extends LatchedActionListener<Response> {
-        private final CopyOnWriteArrayList<Tuple<T, Exception>> errors;
-        private final T builder;
-
-        PayloadLatchedActionListener(T builder, CountDownLatch latch, CopyOnWriteArrayList<Tuple<T, Exception>> errors) {
-            super(latch);
-            this.errors = errors;
-            this.builder = builder;
-        }
-
-        @Override
-        protected void addError(Exception e) {
-            errors.add(new Tuple<>(builder, e));
         }
 
     }
@@ -1581,35 +1531,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     /**
-     * Returns the client ratio configured via
-     */
-    private static double transportClientRatio() {
-        String property = System.getProperty(TESTS_CLIENT_RATIO);
-        if (property == null || property.isEmpty()) {
-            return Double.NaN;
-        }
-        return Double.parseDouble(property);
-    }
-
-    /**
-     * Returns the transport client ratio from the class level annotation or via
-     * {@link System#getProperty(String)} if available. If both are not available this will
-     * return a random ratio in the interval {@code [0..1]}.
-     */
-    protected double getPerTestTransportClientRatio() {
-        final ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
-        double perTestRatio = -1;
-        if (annotation != null) {
-            perTestRatio = annotation.transportClientRatio();
-        }
-        if (perTestRatio == -1) {
-            return Double.isNaN(TRANSPORT_CLIENT_RATIO) ? randomDouble() : TRANSPORT_CLIENT_RATIO;
-        }
-        assert perTestRatio >= 0.0 && perTestRatio <= 1.0;
-        return perTestRatio;
-    }
-
-    /**
      * Returns path to a random directory that can be used to create a temporary file system repo
      */
     public Path randomRepoPath() {
@@ -1633,13 +1554,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         return path;
     }
 
-    protected NumShards getNumShards(String index) {
-        MetaData metaData = client().admin().cluster().prepareState().get().getState().metaData();
-        assertThat(metaData.hasIndex(index), equalTo(true));
-        int numShards = Integer.valueOf(metaData.index(index).getSettings().get(SETTING_NUMBER_OF_SHARDS));
-        int numReplicas = Integer.valueOf(metaData.index(index).getSettings().get(SETTING_NUMBER_OF_REPLICAS));
-        return new NumShards(numShards, numReplicas);
-    }
 
     /**
      * Asserts that all shards are allocated on nodes matching the given node pattern.
@@ -1760,46 +1674,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
     protected boolean forbidPrivateIndexSettings() {
         return true;
-    }
-
-    /**
-     * Returns an instance of {@link RestClient} pointing to the current test cluster.
-     * Creates a new client if the method is invoked for the first time in the context of the current test scope.
-     * The returned client gets automatically closed when needed, it shouldn't be closed as part of tests otherwise
-     * it cannot be reused by other tests anymore.
-     */
-    protected static synchronized RestClient getRestClient() {
-        if (restClient == null) {
-            restClient = createRestClient(null);
-        }
-        return restClient;
-    }
-
-    protected static RestClient createRestClient(RestClientBuilder.HttpClientConfigCallback httpClientConfigCallback) {
-        return createRestClient(httpClientConfigCallback, "http");
-    }
-
-    protected static RestClient createRestClient(RestClientBuilder.HttpClientConfigCallback httpClientConfigCallback, String protocol) {
-        NodesInfoResponse nodesInfoResponse = client().admin().cluster().prepareNodesInfo().get();
-        assertFalse(nodesInfoResponse.hasFailures());
-        return createRestClient(nodesInfoResponse.getNodes(), httpClientConfigCallback, protocol);
-    }
-
-    protected static RestClient createRestClient(final List<NodeInfo> nodes,
-                                                 RestClientBuilder.HttpClientConfigCallback httpClientConfigCallback, String protocol) {
-        List<HttpHost> hosts = new ArrayList<>();
-        for (NodeInfo node : nodes) {
-            if (node.getHttp() != null) {
-                TransportAddress publishAddress = node.getHttp().address().publishAddress();
-                InetSocketAddress address = publishAddress.address();
-                hosts.add(new HttpHost(NetworkAddress.format(address.getAddress()), address.getPort(), protocol));
-            }
-        }
-        RestClientBuilder builder = RestClient.builder(hosts.toArray(new HttpHost[hosts.size()]));
-        if (httpClientConfigCallback != null) {
-            builder.setHttpClientConfigCallback(httpClientConfigCallback);
-        }
-        return builder.build();
     }
 
     /**

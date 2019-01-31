@@ -49,14 +49,6 @@ public class CompletableContext<T> {
         return completableFuture.isDone();
     }
 
-    public boolean isCompletedExceptionally() {
-        return completableFuture.isCompletedExceptionally();
-    }
-
-    public boolean completeExceptionally(Exception ex) {
-        return completableFuture.completeExceptionally(ex);
-    }
-
     public boolean complete(T value) {
         return completableFuture.complete(value);
     }

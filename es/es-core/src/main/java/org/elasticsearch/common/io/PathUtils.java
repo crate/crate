@@ -100,11 +100,4 @@ public final class PathUtils {
     public static Path get(Path[] roots, URI uri) {
         return get(roots, PathUtils.get(uri).normalize().toString());
     }
-
-    /**
-     * Returns the default FileSystem.
-     */
-    public static FileSystem getDefaultFileSystem() {
-        return DEFAULT;
-    }
 }

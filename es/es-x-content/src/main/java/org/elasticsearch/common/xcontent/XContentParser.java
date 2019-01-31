@@ -133,8 +133,6 @@ public interface XContentParser extends Closeable {
 
     Map<String, String> mapStrings() throws IOException;
 
-    Map<String, String> mapStringsOrdered() throws IOException;
-
     List<Object> list() throws IOException;
 
     List<Object> listOrderedMap() throws IOException;
@@ -143,8 +141,6 @@ public interface XContentParser extends Closeable {
 
     String textOrNull() throws IOException;
 
-    CharBuffer charBufferOrNull() throws IOException;
-
     /**
      * Returns a {@link CharBuffer} holding UTF-8 bytes.
      * This method should be used to read text only binary content should be read through {@link #binaryValue()}
@@ -152,8 +148,6 @@ public interface XContentParser extends Closeable {
     CharBuffer charBuffer() throws IOException;
 
     Object objectText() throws IOException;
-
-    Object objectBytes() throws IOException;
 
     /**
      * Method that can be used to determine whether calling of textCharacters() would be the most efficient way to
@@ -187,8 +181,6 @@ public interface XContentParser extends Closeable {
 
     double doubleValue(boolean coerce) throws IOException;
 
-    short shortValue() throws IOException;
-
     int intValue() throws IOException;
 
     long longValue() throws IOException;
@@ -203,26 +195,6 @@ public interface XContentParser extends Closeable {
     boolean isBooleanValue() throws IOException;
 
     boolean booleanValue() throws IOException;
-
-    // TODO #22298: Remove this method and replace all call sites with #isBooleanValue()
-    /**
-     * returns true if the current value is boolean in nature.
-     * values that are considered booleans:
-     * - boolean value (true/false)
-     * - numeric integers (=0 is considered as false, !=0 is true)
-     * - one of the following strings: "true","false","on","off","yes","no","1","0"
-     *
-     * @deprecated Just present for providing backwards compatibility. Use {@link #isBooleanValue()} instead.
-     */
-    @Deprecated
-    boolean isBooleanValueLenient() throws IOException;
-
-    // TODO #22298: Remove this method and replace all call sites with #booleanValue()
-    /**
-     * @deprecated Just present for providing backwards compatibility. Use {@link #booleanValue()} instead.
-     */
-    @Deprecated
-    boolean booleanValueLenient() throws IOException;
 
     /**
      * Reads a plain binary value that was written via one of the following methods:

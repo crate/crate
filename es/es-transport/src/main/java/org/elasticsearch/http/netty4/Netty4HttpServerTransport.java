@@ -219,12 +219,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
      */
     protected final NamedXContentRegistry xContentRegistry;
 
-    protected final boolean tcpNoDelay;
-    protected final boolean tcpKeepAlive;
-    protected final boolean reuseAddress;
-
-    protected final ByteSizeValue tcpSendBufferSize;
-    protected final ByteSizeValue tcpReceiveBufferSize;
     protected final RecvByteBufAllocator recvByteBufAllocator;
     private final int readTimeoutMillis;
 
@@ -269,11 +263,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         List<String> httpPublishHost = SETTING_HTTP_PUBLISH_HOST.get(settings);
         this.publishHosts = (httpPublishHost.isEmpty() ? NetworkService.GLOBAL_NETWORK_PUBLISHHOST_SETTING.get(settings) : httpPublishHost)
             .toArray(Strings.EMPTY_ARRAY);
-        this.tcpNoDelay = SETTING_HTTP_TCP_NO_DELAY.get(settings);
-        this.tcpKeepAlive = SETTING_HTTP_TCP_KEEP_ALIVE.get(settings);
-        this.reuseAddress = SETTING_HTTP_TCP_REUSE_ADDRESS.get(settings);
-        this.tcpSendBufferSize = SETTING_HTTP_TCP_SEND_BUFFER_SIZE.get(settings);
-        this.tcpReceiveBufferSize = SETTING_HTTP_TCP_RECEIVE_BUFFER_SIZE.get(settings);
         this.detailedErrorsEnabled = SETTING_HTTP_DETAILED_ERRORS_ENABLED.get(settings);
         this.readTimeoutMillis = Math.toIntExact(SETTING_HTTP_READ_TIMEOUT.get(settings).getMillis());
 

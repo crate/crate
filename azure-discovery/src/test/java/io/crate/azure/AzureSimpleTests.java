@@ -35,10 +35,7 @@ import java.util.Collections;
 
 import static org.hamcrest.Matchers.notNullValue;
 
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST,
-    numDataNodes = 0,
-    transportClientRatio = 0,
-    numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, numClientNodes = 0)
 public class AzureSimpleTests extends AbstractAzureComputeServiceTestCase {
 
     @Override

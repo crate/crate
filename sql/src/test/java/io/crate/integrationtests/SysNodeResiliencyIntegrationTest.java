@@ -35,7 +35,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
-@ESIntegTestCase.ClusterScope(minNumDataNodes = 2, transportClientRatio = 0)
+@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override

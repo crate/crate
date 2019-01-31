@@ -110,24 +110,6 @@ public class JsonXContentParser extends AbstractXContentParser {
     }
 
     @Override
-    public Object objectBytes() throws IOException {
-        JsonToken currentToken = parser.getCurrentToken();
-        if (currentToken == JsonToken.VALUE_STRING) {
-            return charBuffer();
-        } else if (currentToken == JsonToken.VALUE_NUMBER_INT || currentToken == JsonToken.VALUE_NUMBER_FLOAT) {
-            return parser.getNumberValue();
-        } else if (currentToken == JsonToken.VALUE_TRUE) {
-            return Boolean.TRUE;
-        } else if (currentToken == JsonToken.VALUE_FALSE) {
-            return Boolean.FALSE;
-        } else if (currentToken == JsonToken.VALUE_NULL) {
-            return null;
-        } else {
-            return charBuffer();
-        }
-    }
-
-    @Override
     public boolean hasTextCharacters() {
         return parser.hasTextCharacters();
     }

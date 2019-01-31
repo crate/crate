@@ -37,14 +37,6 @@ import java.util.Map;
  */
 public final class IOUtils {
 
-    /**
-     * UTF-8 charset string.
-     * <p>Where possible, use {@link StandardCharsets#UTF_8} instead,
-     * as using the String constant may slow things down.
-     * @see StandardCharsets#UTF_8
-     */
-    public static final String UTF_8 = StandardCharsets.UTF_8.name();
-
     private IOUtils() {
         // Static utils methods
     }

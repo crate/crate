@@ -98,40 +98,7 @@ public abstract class AbstractXContentParser implements XContentParser {
         return doBooleanValue();
     }
 
-    @Override
-    @Deprecated
-    public boolean isBooleanValueLenient() throws IOException {
-        switch (currentToken()) {
-            case VALUE_BOOLEAN:
-                return true;
-            case VALUE_NUMBER:
-                NumberType numberType = numberType();
-                return numberType == NumberType.LONG || numberType == NumberType.INT;
-            case VALUE_STRING:
-                return Booleans.isBooleanLenient(textCharacters(), textOffset(), textLength());
-            default:
-                return false;
-        }
-    }
-
-    @Override
-    @Deprecated
-    public boolean booleanValueLenient() throws IOException {
-        Token token = currentToken();
-        if (token == Token.VALUE_NUMBER) {
-            return intValue() != 0;
-        } else if (token == Token.VALUE_STRING) {
-            return Booleans.parseBooleanLenient(textCharacters(), textOffset(), textLength(), false /* irrelevant */);
-        }
-        return doBooleanValue();
-    }
-
     protected abstract boolean doBooleanValue() throws IOException;
-
-    @Override
-    public short shortValue() throws IOException {
-        return shortValue(DEFAULT_NUMBER_COERCE_POLICY);
-    }
 
     @Override
     public short shortValue(boolean coerce) throws IOException {
@@ -270,14 +237,6 @@ public abstract class AbstractXContentParser implements XContentParser {
     }
 
     @Override
-    public CharBuffer charBufferOrNull() throws IOException {
-        if (currentToken() == Token.VALUE_NULL) {
-            return null;
-        }
-        return charBuffer();
-    }
-
-    @Override
     public Map<String, Object> map() throws IOException {
         return readMap(this);
     }
@@ -290,11 +249,6 @@ public abstract class AbstractXContentParser implements XContentParser {
     @Override
     public Map<String, String> mapStrings() throws IOException {
         return readMapStrings(this);
-    }
-
-    @Override
-    public Map<String, String> mapStringsOrdered() throws IOException {
-        return readOrderedMapStrings(this);
     }
 
     @Override

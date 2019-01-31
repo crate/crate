@@ -146,11 +146,6 @@ public abstract class AbstractObjectParser<Value, Context>
         declareField(consumer, (p, c) -> objectParser.parse(p, c), field, ValueType.OBJECT);
     }
 
-    public void declareFloat(BiConsumer<Value, Float> consumer, ParseField field) {
-        // Using a method reference here angers some compilers
-        declareField(consumer, p -> p.floatValue(), field, ValueType.FLOAT);
-    }
-
     public void declareDouble(BiConsumer<Value, Double> consumer, ParseField field) {
         // Using a method reference here angers some compilers
         declareField(consumer, p -> p.doubleValue(), field, ValueType.DOUBLE);
@@ -186,22 +181,6 @@ public abstract class AbstractObjectParser<Value, Context>
 
     public void declareStringArray(BiConsumer<Value, List<String>> consumer, ParseField field) {
         declareFieldArray(consumer, (p, c) -> p.text(), field, ValueType.STRING_ARRAY);
-    }
-
-    public void declareDoubleArray(BiConsumer<Value, List<Double>> consumer, ParseField field) {
-        declareFieldArray(consumer, (p, c) -> p.doubleValue(), field, ValueType.DOUBLE_ARRAY);
-    }
-
-    public void declareFloatArray(BiConsumer<Value, List<Float>> consumer, ParseField field) {
-        declareFieldArray(consumer, (p, c) -> p.floatValue(), field, ValueType.FLOAT_ARRAY);
-    }
-
-    public void declareLongArray(BiConsumer<Value, List<Long>> consumer, ParseField field) {
-        declareFieldArray(consumer, (p, c) -> p.longValue(), field, ValueType.LONG_ARRAY);
-    }
-
-    public void declareIntArray(BiConsumer<Value, List<Integer>> consumer, ParseField field) {
-        declareFieldArray(consumer, (p, c) -> p.intValue(), field, ValueType.INT_ARRAY);
     }
 
     /**
