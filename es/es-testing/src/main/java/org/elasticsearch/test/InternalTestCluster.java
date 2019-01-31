@@ -178,8 +178,6 @@ public final class InternalTestCluster extends TestCluster {
     static final int DEFAULT_MIN_NUM_CLIENT_NODES = 0;
     static final int DEFAULT_MAX_NUM_CLIENT_NODES = 1;
 
-    static final boolean DEFAULT_ENABLE_HTTP_PIPELINING = true;
-
     /* sorted map to make traverse order reproducible, concurrent since we do checks on it not within a sync block */
     private final NavigableMap<String, NodeAndClient> nodes = new TreeMap<>();
 
@@ -235,7 +233,6 @@ public final class InternalTestCluster extends TestCluster {
             final String clusterName,
             final NodeConfigurationSource nodeConfigurationSource,
             final int numClientNodes,
-            final boolean enableHttpPipelining,
             final String nodePrefix,
             final Collection<Class<? extends Plugin>> mockPlugins,
             final Function<Client, Client> clientWrapper) {
@@ -249,7 +246,6 @@ public final class InternalTestCluster extends TestCluster {
                 clusterName,
                 nodeConfigurationSource,
                 numClientNodes,
-                enableHttpPipelining,
                 nodePrefix,
                 mockPlugins,
                 clientWrapper,
@@ -266,7 +262,6 @@ public final class InternalTestCluster extends TestCluster {
             final String clusterName,
             final NodeConfigurationSource nodeConfigurationSource,
             final int numClientNodes,
-            final boolean enableHttpPipelining,
             final String nodePrefix,
             final Collection<Class<? extends Plugin>> mockPlugins,
             final Function<Client, Client> clientWrapper,
@@ -351,7 +346,6 @@ public final class InternalTestCluster extends TestCluster {
         builder.put(Environment.PATH_REPO_SETTING.getKey(), baseDir.resolve("repos"));
         builder.put(TcpTransport.PORT.getKey(), 0);
         builder.put("http.port", 0);
-        builder.put("http.pipelining", enableHttpPipelining);
         if (Strings.hasLength(System.getProperty("tests.es.logger.level"))) {
             builder.put("logger.level", System.getProperty("tests.es.logger.level"));
         }

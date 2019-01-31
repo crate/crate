@@ -1451,7 +1451,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
         return new InternalTestCluster(seed, createTempDir(), supportsDedicatedMasters, getAutoMinMasterNodes(),
             minNumDataNodes, maxNumDataNodes,
             InternalTestCluster.clusterName(scope.name(), seed) + "-cluster", nodeConfigurationSource, getNumClientNodes(),
-            InternalTestCluster.DEFAULT_ENABLE_HTTP_PIPELINING, nodePrefix, mockPlugins, getClientWrapper(), forbidPrivateIndexSettings());
+            nodePrefix, mockPlugins, getClientWrapper(), forbidPrivateIndexSettings());
     }
 
     protected NodeConfigurationSource getNodeConfigSource() {
