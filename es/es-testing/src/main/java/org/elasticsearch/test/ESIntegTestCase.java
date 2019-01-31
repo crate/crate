@@ -26,14 +26,11 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.annotations.TestGroup;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-import org.apache.http.HttpHost;
 import org.apache.lucene.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
@@ -47,8 +44,6 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.RestoreInProgress;
@@ -71,13 +66,11 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -127,7 +120,6 @@ import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Security;
@@ -312,7 +304,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
      * By default if no {@link ClusterScope} is configured this will hold a reference to the suite cluster.
      */
     private static TestCluster currentCluster;
-    private static RestClient restClient = null;
 
     private static final double TRANSPORT_CLIENT_RATIO = transportClientRatio();
 
@@ -501,10 +492,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         if (!clusters.isEmpty()) {
             IOUtils.close(clusters.values());
             clusters.clear();
-        }
-        if (restClient != null) {
-            restClient.close();
-            restClient = null;
         }
     }
 
@@ -1760,46 +1747,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
     protected boolean forbidPrivateIndexSettings() {
         return true;
-    }
-
-    /**
-     * Returns an instance of {@link RestClient} pointing to the current test cluster.
-     * Creates a new client if the method is invoked for the first time in the context of the current test scope.
-     * The returned client gets automatically closed when needed, it shouldn't be closed as part of tests otherwise
-     * it cannot be reused by other tests anymore.
-     */
-    protected static synchronized RestClient getRestClient() {
-        if (restClient == null) {
-            restClient = createRestClient(null);
-        }
-        return restClient;
-    }
-
-    protected static RestClient createRestClient(RestClientBuilder.HttpClientConfigCallback httpClientConfigCallback) {
-        return createRestClient(httpClientConfigCallback, "http");
-    }
-
-    protected static RestClient createRestClient(RestClientBuilder.HttpClientConfigCallback httpClientConfigCallback, String protocol) {
-        NodesInfoResponse nodesInfoResponse = client().admin().cluster().prepareNodesInfo().get();
-        assertFalse(nodesInfoResponse.hasFailures());
-        return createRestClient(nodesInfoResponse.getNodes(), httpClientConfigCallback, protocol);
-    }
-
-    protected static RestClient createRestClient(final List<NodeInfo> nodes,
-                                                 RestClientBuilder.HttpClientConfigCallback httpClientConfigCallback, String protocol) {
-        List<HttpHost> hosts = new ArrayList<>();
-        for (NodeInfo node : nodes) {
-            if (node.getHttp() != null) {
-                TransportAddress publishAddress = node.getHttp().address().publishAddress();
-                InetSocketAddress address = publishAddress.address();
-                hosts.add(new HttpHost(NetworkAddress.format(address.getAddress()), address.getPort(), protocol));
-            }
-        }
-        RestClientBuilder builder = RestClient.builder(hosts.toArray(new HttpHost[hosts.size()]));
-        if (httpClientConfigCallback != null) {
-            builder.setHttpClientConfigCallback(httpClientConfigCallback);
-        }
-        return builder.build();
     }
 
     /**
