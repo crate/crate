@@ -54,7 +54,6 @@ import java.util.List;
 import java.util.Locale;
 
 import static org.elasticsearch.common.network.NetworkModule.HTTP_DEFAULT_TYPE_SETTING;
-import static org.elasticsearch.common.network.NetworkModule.HTTP_ENABLED;
 import static org.hamcrest.core.Is.is;
 
 public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
@@ -66,7 +65,6 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(HTTP_ENABLED.getKey(), true)
             .put(HTTP_DEFAULT_TYPE_SETTING.getKey(), "netty4")
             .build();
     }

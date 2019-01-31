@@ -68,8 +68,6 @@ public final class NetworkModule {
             Property.NodeScope);
     public static final Setting<String> HTTP_DEFAULT_TYPE_SETTING = Setting.simpleString(HTTP_TYPE_DEFAULT_KEY, Property.NodeScope);
     public static final Setting<String> HTTP_TYPE_SETTING = Setting.simpleString(HTTP_TYPE_KEY, Property.NodeScope);
-    public static final Setting<Boolean> HTTP_ENABLED = Setting.boolSetting("http.enabled", true,
-        Property.NodeScope, Property.Deprecated);
     public static final Setting<String> TRANSPORT_TYPE_SETTING = Setting.simpleString(TRANSPORT_TYPE_KEY, Property.NodeScope);
 
     private final Settings settings;
@@ -107,12 +105,10 @@ public final class NetworkModule {
                          NetworkService networkService, HttpServerTransport.Dispatcher dispatcher) {
         this.settings = settings;
         for (NetworkPlugin plugin : plugins) {
-            if (HTTP_ENABLED.get(settings)) {
-                Map<String, Supplier<HttpServerTransport>> httpTransportFactory = plugin.getHttpTransports(settings, threadPool, bigArrays,
-                    circuitBreakerService, namedWriteableRegistry, xContentRegistry, networkService, dispatcher);
-                for (Map.Entry<String, Supplier<HttpServerTransport>> entry : httpTransportFactory.entrySet()) {
-                    registerHttpTransport(entry.getKey(), entry.getValue());
-                }
+            Map<String, Supplier<HttpServerTransport>> httpTransportFactory = plugin.getHttpTransports(settings, threadPool, bigArrays,
+                circuitBreakerService, namedWriteableRegistry, xContentRegistry, networkService, dispatcher);
+            for (Map.Entry<String, Supplier<HttpServerTransport>> entry : httpTransportFactory.entrySet()) {
+                registerHttpTransport(entry.getKey(), entry.getValue());
             }
             Map<String, Supplier<Transport>> transportFactory = plugin.getTransports(settings, threadPool, bigArrays, pageCacheRecycler,
                 circuitBreakerService, namedWriteableRegistry, networkService);
@@ -178,10 +174,6 @@ public final class NetworkModule {
             throw new IllegalStateException("Unsupported http.type [" + name + "]");
         }
         return factory;
-    }
-
-    public boolean isHttpEnabled() {
-        return HTTP_ENABLED.get(settings);
     }
 
     public Supplier<Transport> getTransportSupplier() {

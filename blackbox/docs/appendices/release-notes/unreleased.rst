@@ -49,6 +49,9 @@ Breaking Changes
   thread-pool. The JMX ``getBulk`` property of the ``ThreadPools`` bean has
   been renamed too ``getWrite``.
 
+- Removed the deprecated ``http.enabled`` setting. ``HTTP`` is now always
+  enabled and can no longer be disabled.
+
 Changes
 =======
 
