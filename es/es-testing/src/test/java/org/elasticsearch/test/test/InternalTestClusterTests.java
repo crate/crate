@@ -71,8 +71,6 @@ import static org.hamcrest.Matchers.not;
 @LuceneTestCase.SuppressFileSystems("ExtrasFS") // doesn't work with potential multi data path from test cluster yet
 public class InternalTestClusterTests extends ESTestCase {
 
-    private static final Setting<?>[] DEPRECATED_SETTINGS = {HttpTransportSettings.SETTING_PIPELINING};
-
     public void testInitializiationIsConsistent() {
         long clusterSeed = randomLong();
         boolean masterNodes = randomBoolean();
@@ -81,16 +79,15 @@ public class InternalTestClusterTests extends ESTestCase {
         String clusterName = randomRealisticUnicodeOfCodepointLengthBetween(1, 10);
         NodeConfigurationSource nodeConfigurationSource = NodeConfigurationSource.EMPTY;
         int numClientNodes = randomIntBetween(0, 10);
-        boolean enableHttpPipelining = randomBoolean();
         String nodePrefix = randomRealisticUnicodeOfCodepointLengthBetween(1, 10);
 
         Path baseDir = createTempDir();
         InternalTestCluster cluster0 = new InternalTestCluster(clusterSeed, baseDir, masterNodes,
             randomBoolean(), minNumDataNodes, maxNumDataNodes, clusterName, nodeConfigurationSource, numClientNodes,
-            enableHttpPipelining, nodePrefix, Collections.emptyList(), Function.identity());
+            nodePrefix, Collections.emptyList(), Function.identity());
         InternalTestCluster cluster1 = new InternalTestCluster(clusterSeed, baseDir, masterNodes,
             randomBoolean(), minNumDataNodes, maxNumDataNodes, clusterName, nodeConfigurationSource, numClientNodes,
-            enableHttpPipelining, nodePrefix, Collections.emptyList(), Function.identity());
+            nodePrefix, Collections.emptyList(), Function.identity());
         // TODO: this is not ideal - we should have a way to make sure ports are initialized in the same way
         assertClusters(cluster0, cluster1, false);
 
@@ -210,17 +207,16 @@ public class InternalTestClusterTests extends ESTestCase {
             }
         };
 
-        boolean enableHttpPipelining = randomBoolean();
         String nodePrefix = "foobar";
 
         Path baseDir = createTempDir();
         final List<Class<? extends Plugin>> mockPlugins = Arrays.asList(getTestTransportPlugin(), TestZenDiscovery.TestPlugin.class);
         InternalTestCluster cluster0 = new InternalTestCluster(clusterSeed, baseDir, masterNodes,
             autoManageMinMasterNodes, minNumDataNodes, maxNumDataNodes, clusterName1, nodeConfigurationSource, numClientNodes,
-            enableHttpPipelining, nodePrefix, mockPlugins, Function.identity());
+            nodePrefix, mockPlugins, Function.identity());
         InternalTestCluster cluster1 = new InternalTestCluster(clusterSeed, baseDir, masterNodes,
             autoManageMinMasterNodes, minNumDataNodes, maxNumDataNodes, clusterName2, nodeConfigurationSource, numClientNodes,
-            enableHttpPipelining, nodePrefix, mockPlugins, Function.identity());
+            nodePrefix, mockPlugins, Function.identity());
 
         assertClusters(cluster0, cluster1, false);
         long seed = randomLong();
@@ -235,10 +231,6 @@ public class InternalTestClusterTests extends ESTestCase {
                 cluster1.beforeTest(random);
             }
             assertArrayEquals(cluster0.getNodeNames(), cluster1.getNodeNames());
-            if (cluster0.getNodeNames().length > 0) {
-                shouldAssertSettingsDeprecationsAndWarnings = true;
-                assertSettingDeprecationsAndWarnings(DEPRECATED_SETTINGS);
-            }
             Iterator<Client> iterator1 = cluster1.getClients().iterator();
             for (Client client : cluster0.getClients()) {
                 assertTrue(iterator1.hasNext());
@@ -285,12 +277,11 @@ public class InternalTestClusterTests extends ESTestCase {
                     .put(NetworkModule.TRANSPORT_TYPE_KEY, transportClient).build();
             }
         };
-        boolean enableHttpPipelining = randomBoolean();
         String nodePrefix = "test";
         Path baseDir = createTempDir();
         InternalTestCluster cluster = new InternalTestCluster(clusterSeed, baseDir, masterNodes,
             true, minNumDataNodes, maxNumDataNodes, clusterName1, nodeConfigurationSource, numClientNodes,
-            enableHttpPipelining, nodePrefix, Arrays.asList(getTestTransportPlugin(), TestZenDiscovery.TestPlugin.class),
+            nodePrefix, Arrays.asList(getTestTransportPlugin(), TestZenDiscovery.TestPlugin.class),
             Function.identity());
         try {
             cluster.beforeTest(random());
@@ -356,7 +347,6 @@ public class InternalTestClusterTests extends ESTestCase {
         } finally {
             cluster.close();
         }
-        assertSettingDeprecationsAndWarnings(DEPRECATED_SETTINGS);
     }
 
     private Path[] getNodePaths(InternalTestCluster cluster, String name) {
@@ -397,7 +387,7 @@ public class InternalTestClusterTests extends ESTestCase {
                 return Settings.builder()
                         .put(NetworkModule.TRANSPORT_TYPE_KEY, transportClient).build();
             }
-        }, 0, randomBoolean(), "", Arrays.asList(getTestTransportPlugin(), TestZenDiscovery.TestPlugin.class), Function.identity());
+        }, 0, "", Arrays.asList(getTestTransportPlugin(), TestZenDiscovery.TestPlugin.class), Function.identity());
         cluster.beforeTest(random());
         List<DiscoveryNode.Role> roles = new ArrayList<>();
         for (int i = 0; i < numNodes; i++) {
@@ -456,7 +446,6 @@ public class InternalTestClusterTests extends ESTestCase {
         } finally {
             cluster.close();
         }
-        assertSettingDeprecationsAndWarnings(DEPRECATED_SETTINGS);
     }
 
     public void testTwoNodeCluster() throws Exception {
@@ -481,13 +470,12 @@ public class InternalTestClusterTests extends ESTestCase {
                     .put(NetworkModule.TRANSPORT_TYPE_KEY, transportClient).build();
             }
         };
-        boolean enableHttpPipelining = randomBoolean();
         String nodePrefix = "test";
         Path baseDir = createTempDir();
         List<Class<? extends Plugin>> plugins = new ArrayList<>(Arrays.asList(getTestTransportPlugin(), TestZenDiscovery.TestPlugin.class));
         plugins.add(NodeAttrCheckPlugin.class);
         InternalTestCluster cluster = new InternalTestCluster(randomLong(), baseDir, false, true, 2, 2,
-            "test", nodeConfigurationSource, 0, enableHttpPipelining, nodePrefix,
+            "test", nodeConfigurationSource, 0, nodePrefix,
             plugins, Function.identity());
         try {
             cluster.beforeTest(random());
@@ -522,7 +510,6 @@ public class InternalTestClusterTests extends ESTestCase {
         } finally {
             cluster.close();
         }
-        assertSettingDeprecationsAndWarnings(DEPRECATED_SETTINGS);
     }
 
     /**
