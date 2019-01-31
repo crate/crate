@@ -80,6 +80,6 @@ Looking for more help?
 .. _developer docs: devs/docs/index.rst
 .. _Docker image: https://hub.docker.com/_/crate/
 .. _getting started: https://crate.io/docs/getting-started/
-.._support channels: https://crate.io/support/
+.. _support channels: https://crate.io/support/
 .. _the introductory docs: https://crate.io/docs/crate/getting-started/en/latest/first-use/index.html
 .. _the project documentation: https://crate.io/docs/
