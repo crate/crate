@@ -27,9 +27,7 @@ public interface ThreadPoolsMXBean {
 
     ThreadPools.ThreadPoolInfo getGet();
 
-    ThreadPools.ThreadPoolInfo getIndex();
-
-    ThreadPools.ThreadPoolInfo getBulk();
+    ThreadPools.ThreadPoolInfo getWrite();
 
     ThreadPools.ThreadPoolInfo getSearch();
 

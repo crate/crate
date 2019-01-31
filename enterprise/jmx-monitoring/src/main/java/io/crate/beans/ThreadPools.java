@@ -30,7 +30,6 @@ import static org.elasticsearch.threadpool.ThreadPool.Names.FLUSH;
 import static org.elasticsearch.threadpool.ThreadPool.Names.FORCE_MERGE;
 import static org.elasticsearch.threadpool.ThreadPool.Names.GENERIC;
 import static org.elasticsearch.threadpool.ThreadPool.Names.GET;
-import static org.elasticsearch.threadpool.ThreadPool.Names.INDEX;
 import static org.elasticsearch.threadpool.ThreadPool.Names.LISTENER;
 import static org.elasticsearch.threadpool.ThreadPool.Names.MANAGEMENT;
 import static org.elasticsearch.threadpool.ThreadPool.Names.REFRESH;
@@ -144,12 +143,7 @@ public class ThreadPools implements ThreadPoolsMXBean {
     }
 
     @Override
-    public ThreadPoolInfo getIndex() {
-        return getThreadPoolInfo(INDEX);
-    }
-
-    @Override
-    public ThreadPoolInfo getBulk() {
+    public ThreadPoolInfo getWrite() {
         return getThreadPoolInfo(WRITE);
     }
 
