@@ -34,9 +34,7 @@ import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-// disabling the transport clients because the _other_ types of nodes are likely to load a CrateDB license in the
-// metadata custom and these transport clients will not be able to deserialize it (as they're not part of the cluster)
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, transportClientRatio = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class RemoteCollectorIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

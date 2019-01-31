@@ -43,7 +43,7 @@ import java.util.Map;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(transportClientRatio = 0)
+@ESIntegTestCase.ClusterScope()
 @UseJdbc(0) // missing column types
 public class SysRepositoriesServiceTest extends SQLTransportIntegrationTest {
 

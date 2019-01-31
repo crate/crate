@@ -28,7 +28,6 @@ import org.junit.Test;
 
 import java.util.EnumSet;
 
-@ESIntegTestCase.ClusterScope(transportClientRatio = 0)
 public class OdbcIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);

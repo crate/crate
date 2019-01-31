@@ -42,7 +42,7 @@ import javax.annotation.Nullable;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, transportClientRatio = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1)
 @UseRandomizedSchema(random = false)
 public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
 

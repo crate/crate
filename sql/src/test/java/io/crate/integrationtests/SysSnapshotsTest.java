@@ -50,7 +50,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
-@ESIntegTestCase.ClusterScope(transportClientRatio = 0)
+@ESIntegTestCase.ClusterScope()
 @UseJdbc(0) // missing column types
 public class SysSnapshotsTest extends SQLTransportIntegrationTest {
 

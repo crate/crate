@@ -202,8 +202,6 @@ import static org.hamcrest.core.IsEqual.equalTo;
  * <p>
  * This class supports the following system properties (passed with -Dkey=value to the application)
  * <ul>
- * <li>-D{@value #TESTS_CLIENT_RATIO} - a double value in the interval [0..1] which defines the ration between node
- * and transport clients used</li>
  * <li>-D{@value #TESTS_ENABLE_MOCK_MODULES} - a boolean value to enable or disable mock modules. This is
  * useful to test the system without asserting modules that to make sure they don't hide any bugs in production.</li>
  * <li> - a random seed used to initialize the index random context.
@@ -240,16 +238,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
     /** node names of the corresponding clusters will start with these prefixes */
     public static final String SUITE_CLUSTER_NODE_PREFIX = "node_s";
     public static final String TEST_CLUSTER_NODE_PREFIX = "node_t";
-
-    /**
-     * Key used to set the transport client ratio via the commandline -D{@value #TESTS_CLIENT_RATIO}
-     */
-    public static final String TESTS_CLIENT_RATIO = "tests.client.ratio";
-
-    /**
-     * Key used to eventually switch to using an external cluster and provide its transport addresses
-     */
-    public static final String TESTS_CLUSTER = "tests.cluster";
 
     /**
      * Key used to retrieve the index random seed from the index settings on a running node.
@@ -304,8 +292,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
      * By default if no {@link ClusterScope} is configured this will hold a reference to the suite cluster.
      */
     private static TestCluster currentCluster;
-
-    private static final double TRANSPORT_CLIENT_RATIO = transportClientRatio();
 
     private static final Map<Class<?>, TestCluster> clusters = new IdentityHashMap<>();
 
@@ -1237,12 +1223,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
          * negative value means that the number of client nodes will be randomized.
          */
         int numClientNodes() default InternalTestCluster.DEFAULT_NUM_CLIENT_NODES;
-
-        /**
-         * Returns the transport client ratio. By default this returns <code>-1</code> which means a random
-         * ratio in the interval <code>[0..1]</code> is used.
-         */
-        double transportClientRatio() default -1;
     }
 
     private class LatchedActionListener<Response> implements ActionListener<Response> {
@@ -1268,23 +1248,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         }
 
         protected void addError(Exception e) {
-        }
-
-    }
-
-    private class PayloadLatchedActionListener<Response, T> extends LatchedActionListener<Response> {
-        private final CopyOnWriteArrayList<Tuple<T, Exception>> errors;
-        private final T builder;
-
-        PayloadLatchedActionListener(T builder, CountDownLatch latch, CopyOnWriteArrayList<Tuple<T, Exception>> errors) {
-            super(latch);
-            this.errors = errors;
-            this.builder = builder;
-        }
-
-        @Override
-        protected void addError(Exception e) {
-            errors.add(new Tuple<>(builder, e));
         }
 
     }
@@ -1568,35 +1531,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     /**
-     * Returns the client ratio configured via
-     */
-    private static double transportClientRatio() {
-        String property = System.getProperty(TESTS_CLIENT_RATIO);
-        if (property == null || property.isEmpty()) {
-            return Double.NaN;
-        }
-        return Double.parseDouble(property);
-    }
-
-    /**
-     * Returns the transport client ratio from the class level annotation or via
-     * {@link System#getProperty(String)} if available. If both are not available this will
-     * return a random ratio in the interval {@code [0..1]}.
-     */
-    protected double getPerTestTransportClientRatio() {
-        final ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
-        double perTestRatio = -1;
-        if (annotation != null) {
-            perTestRatio = annotation.transportClientRatio();
-        }
-        if (perTestRatio == -1) {
-            return Double.isNaN(TRANSPORT_CLIENT_RATIO) ? randomDouble() : TRANSPORT_CLIENT_RATIO;
-        }
-        assert perTestRatio >= 0.0 && perTestRatio <= 1.0;
-        return perTestRatio;
-    }
-
-    /**
      * Returns path to a random directory that can be used to create a temporary file system repo
      */
     public Path randomRepoPath() {
@@ -1620,13 +1554,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         return path;
     }
 
-    protected NumShards getNumShards(String index) {
-        MetaData metaData = client().admin().cluster().prepareState().get().getState().metaData();
-        assertThat(metaData.hasIndex(index), equalTo(true));
-        int numShards = Integer.valueOf(metaData.index(index).getSettings().get(SETTING_NUMBER_OF_SHARDS));
-        int numReplicas = Integer.valueOf(metaData.index(index).getSettings().get(SETTING_NUMBER_OF_REPLICAS));
-        return new NumShards(numShards, numReplicas);
-    }
 
     /**
      * Asserts that all shards are allocated on nodes matching the given node pattern.
