@@ -49,7 +49,7 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
                                    IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, PutChunkAction.NAME, transportService, clusterService,
             indicesService, threadPool, shardStateAction,
-            indexNameExpressionResolver, PutChunkRequest::new, PutChunkReplicaRequest::new, ThreadPool.Names.INDEX);
+            indexNameExpressionResolver, PutChunkRequest::new, PutChunkReplicaRequest::new, ThreadPool.Names.WRITE);
 
         this.transferTarget = transferTarget;
     }

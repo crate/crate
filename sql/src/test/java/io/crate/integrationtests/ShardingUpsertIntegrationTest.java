@@ -34,7 +34,7 @@ public class ShardingUpsertIntegrationTest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put("thread_pool.bulk.queue_size", 1)
+            .put("thread_pool.write.queue_size", 1)
             .build();
     }
 

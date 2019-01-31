@@ -52,7 +52,7 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, DeleteBlobAction.NAME, transportService, clusterService, indicesService,
             threadPool, shardStateAction, indexNameExpressionResolver, DeleteBlobRequest::new,
-            DeleteBlobRequest::new, ThreadPool.Names.INDEX);
+            DeleteBlobRequest::new, ThreadPool.Names.WRITE);
         this.blobIndicesService = blobIndicesService;
         logger.trace("Constructor");
     }

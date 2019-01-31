@@ -1019,11 +1019,10 @@ Thread Pools
 Every node holds several thread pools to improve how threads are managed within
 a node. There are several pools, but the important ones include:
 
-* ``index``: For index/delete operations, defaults to fixed
+* ``write``: For index, update and delete operations, defaults to fixed
 * ``search``: For count/search operations, defaults to fixed
 * ``get``: For queries that are optimized to do a direct lookup by primary key,
   defaults to fixed
-* ``bulk``: For bulk operations, defaults to fixed
 * ``refresh``: For refresh operations, defaults to cache
 
 **thread_pool.<name>.type**
@@ -1049,10 +1048,9 @@ settings.
   the number of available CPU cores.
 
 **thread_pool.<name>.queue_size**
-  | *Default index:*  ``200``
+  | *Default write:*  ``200``
   | *Default search:* ``1000``
   | *Default get:* ``1000``
-  | *Default bulk:* ``50``
   | *Runtime:*  ``no``
 
   Size of the queue for pending requests. A value of ``-1`` sets it to
