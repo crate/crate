@@ -256,7 +256,7 @@ public class ShardingUpsertExecutor
         Predicate<ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item>> shouldPause =
             this::shouldPauseOnPartitionCreation;
         if (batchIterator.involvesIO()) {
-            shouldPause = shouldPause.and(this::shouldPauseOnTargetNodeJobsCounter);
+            shouldPause = shouldPause.or(this::shouldPauseOnTargetNodeJobsCounter);
         }
 
         BatchIteratorBackpressureExecutor<ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item>, UpsertResults> executor =
