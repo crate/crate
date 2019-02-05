@@ -75,8 +75,7 @@ public class TransportDecommissionNodeAction implements NodeAction<DecommissionN
     @Override
     public CompletableFuture<AcknowledgedResponse> nodeOperation(DecommissionNodeRequest request) {
         try {
-            decommissioningService.handle();
-            return CompletableFuture.completedFuture(new AcknowledgedResponse(true));
+            return decommissioningService.decommission().thenApply(aVoid -> new AcknowledgedResponse(true));
         } catch (Throwable t) {
             return CompletableFutures.failedFuture(t);
         }
