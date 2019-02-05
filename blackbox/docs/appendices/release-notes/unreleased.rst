@@ -78,6 +78,10 @@ Changes
 Fixes
 =====
 
+- Fixed a regression that disabled the job counter throttling and allowed a
+  cluster to become overloaded in certain ``INSERT ... FROM QUERY`` or
+  ``COPY FROM`` scenarios.
+
 - Fixed a NPE that occurred if ``null`` arguments were supplied to ``unnest``.
 
 - Fixed performance regression on ``UPDATE`` and ``DELETE`` operations.
