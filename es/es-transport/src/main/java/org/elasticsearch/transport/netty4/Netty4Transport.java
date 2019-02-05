@@ -211,7 +211,7 @@ public class Netty4Transport extends TcpTransport {
         return new ServerChannelInitializer(name);
     }
 
-    protected ChannelHandler getClientChannelInitializer(DiscoveryNode node) {
+    protected ChannelHandler getClientChannelInitializer() {
         return new ClientChannelInitializer();
     }
 
@@ -228,7 +228,7 @@ public class Netty4Transport extends TcpTransport {
     protected NettyTcpChannel initiateChannel(DiscoveryNode node, ActionListener<Void> listener) throws IOException {
         InetSocketAddress address = node.getAddress().address();
         Bootstrap bootstrapWithHandler = clientBootstrap.clone();
-        bootstrapWithHandler.handler(getClientChannelInitializer(node));
+        bootstrapWithHandler.handler(getClientChannelInitializer());
         bootstrapWithHandler.remoteAddress(address);
         ChannelFuture channelFuture = bootstrapWithHandler.connect();
 
@@ -265,14 +265,6 @@ public class Netty4Transport extends TcpTransport {
         NettyTcpChannel esChannel = new NettyTcpChannel(channel);
         channel.attr(CHANNEL_KEY).set(esChannel);
         return esChannel;
-    }
-
-    long successfulPingCount() {
-        return successfulPings.count();
-    }
-
-    long failedPingCount() {
-        return failedPings.count();
     }
 
     @Override
