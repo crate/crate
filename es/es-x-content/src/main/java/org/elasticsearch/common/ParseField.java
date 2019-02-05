@@ -86,15 +86,6 @@ public class ParseField {
         return new ParseField(this.name, deprecatedNames);
     }
 
-    /**
-     * Return a new ParseField where all field names are deprecated and replaced
-     * with {@code allReplacedWith}.
-     */
-    public ParseField withAllDeprecated(String allReplacedWith) {
-        ParseField parseField = this.withDeprecation(getAllNamesIncludedDeprecated());
-        parseField.allReplacedWith = allReplacedWith;
-        return parseField;
-    }
 
     /**
      * Does {@code fieldName} match this field?
@@ -148,13 +139,5 @@ public class ParseField {
      */
     public String[] getDeprecatedNames() {
         return deprecatedNames;
-    }
-
-    public static class CommonFields {
-        public static final ParseField FIELD = new ParseField("field");
-        public static final ParseField FIELDS = new ParseField("fields");
-        public static final ParseField FORMAT = new ParseField("format");
-        public static final ParseField MISSING = new ParseField("missing");
-        public static final ParseField TIME_ZONE = new ParseField("time_zone");
     }
 }

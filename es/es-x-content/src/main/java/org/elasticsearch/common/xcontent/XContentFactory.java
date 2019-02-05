@@ -54,24 +54,10 @@ public class XContentFactory {
     }
 
     /**
-     * Returns a content builder using SMILE format ({@link org.elasticsearch.common.xcontent.XContentType#SMILE}.
-     */
-    public static XContentBuilder smileBuilder() throws IOException {
-        return contentBuilder(XContentType.SMILE);
-    }
-
-    /**
      * Constructs a new json builder that will output the result into the provided output stream.
      */
     public static XContentBuilder smileBuilder(OutputStream os) throws IOException {
         return new XContentBuilder(SmileXContent.smileXContent, os);
-    }
-
-    /**
-     * Returns a content builder using YAML format ({@link org.elasticsearch.common.xcontent.XContentType#YAML}.
-     */
-    public static XContentBuilder yamlBuilder() throws IOException {
-        return contentBuilder(XContentType.YAML);
     }
 
     /**

@@ -69,17 +69,6 @@ import static org.elasticsearch.common.xcontent.XContentParser.Token.VALUE_STRIN
  * {@link #declareField} which can be used to implement exceptional parsing operations not covered by the high level methods.
  */
 public final class ObjectParser<Value, Context> extends AbstractObjectParser<Value, Context> {
-    /**
-     * Adapts an array (or varags) setter into a list setter.
-     */
-    public static <Value, ElementValue> BiConsumer<Value, List<ElementValue>> fromList(Class<ElementValue> c,
-            BiConsumer<Value, ElementValue[]> consumer) {
-        return (Value v, List<ElementValue> l) -> {
-            @SuppressWarnings("unchecked")
-            ElementValue[] array = (ElementValue[]) Array.newInstance(c, l.size());
-            consumer.accept(v, l.toArray(array));
-        };
-    }
 
     private final Map<String, FieldParser> fieldParserMap = new HashMap<>();
     private final String name;
@@ -214,19 +203,6 @@ public final class ObjectParser<Value, Context> extends AbstractObjectParser<Val
             throw new IllegalArgumentException("[parser] is required");
         }
         declareField((p, v, c) -> consumer.accept(v, parser.parse(p, c)), parseField, type);
-    }
-
-    public <T> void declareObjectOrDefault(BiConsumer<Value, T> consumer, BiFunction<XContentParser, Context, T> objectParser,
-            Supplier<T> defaultValue, ParseField field) {
-        declareField((p, v, c) -> {
-            if (p.currentToken() == XContentParser.Token.VALUE_BOOLEAN) {
-                if (p.booleanValue()) {
-                    consumer.accept(v, defaultValue.get());
-                }
-            } else {
-                consumer.accept(v, objectParser.apply(p, c));
-            }
-        }, field, ValueType.OBJECT_OR_BOOLEAN);
     }
 
     @Override

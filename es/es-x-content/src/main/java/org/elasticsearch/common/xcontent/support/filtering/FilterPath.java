@@ -63,18 +63,6 @@ public class FilterPath {
         return doubleWildcard;
     }
 
-    boolean isSimpleWildcard() {
-        return simpleWildcard;
-    }
-
-    String getSegment() {
-        return segment;
-    }
-
-    FilterPath getNext() {
-        return next;
-    }
-
     public static FilterPath[] compile(Set<String> filters) {
         if (filters == null || filters.isEmpty()) {
             return null;
