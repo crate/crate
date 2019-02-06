@@ -297,7 +297,7 @@ public final class SnapshotInfo implements Comparable<SnapshotInfo>, ToXContent,
      */
     public static SnapshotInfo incompatible(SnapshotId snapshotId) {
         return new SnapshotInfo(snapshotId, Collections.emptyList(), SnapshotState.INCOMPATIBLE,
-                                "the snapshot is incompatible with the current version of Elasticsearch and its exact version is unknown",
+                                "the snapshot is incompatible with the current version of CrateDB and its exact version is unknown",
                                 null, 0L, 0L, 0, 0, Collections.emptyList(), null);
     }
 

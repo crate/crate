@@ -569,10 +569,10 @@ public abstract class Node implements Closeable {
         warnIfPreRelease(Version.CURRENT, Version.CURRENT.isSnapshot(), logger);
     }
 
-    static void warnIfPreRelease(final Version version, final boolean isSnapshot, final Logger logger) {
+    private static void warnIfPreRelease(final Version version, final boolean isSnapshot, final Logger logger) {
         if (!version.isRelease() || isSnapshot) {
             logger.warn(
-                "version [{}] is a pre-release version of Elasticsearch and is not suitable for production",
+                "version [{}] is a pre-release version of CrateDB and is not suitable for production",
                 Version.displayVersion(version, isSnapshot));
         }
     }

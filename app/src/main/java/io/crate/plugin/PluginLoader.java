@@ -195,7 +195,7 @@ public class PluginLoader {
             Collection<Class<? extends Plugin>> implementations = findImplementations(pluginUrls);
             if (implementations == null || implementations.isEmpty()) {
                 String msg = String.format(Locale.ENGLISH,
-                    "Path [%s] does not contain a valid Crate or Elasticsearch plugin", plugin.getAbsolutePath());
+                    "Path [%s] does not contain a valid CrateDB plugin", plugin.getAbsolutePath());
                 RuntimeException e = new RuntimeException(msg);
                 logger.error(msg, e);
                 throw e;

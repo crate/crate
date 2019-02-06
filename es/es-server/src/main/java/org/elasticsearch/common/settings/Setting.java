@@ -469,7 +469,7 @@ public class Setting<T> implements ToXContentObject {
             final String key = getKey();
             Settings.DeprecationLoggerHolder.deprecationLogger.deprecatedAndMaybeLog(
                     key,
-                    "[{}] setting was deprecated in Elasticsearch and will be removed in a future release! "
+                    "[{}] setting was deprecated in CrateDB and will be removed in a future release! "
                             + "See the breaking changes documentation for the next major version.",
                     key);
         }
