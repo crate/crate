@@ -46,8 +46,9 @@ Changes
   running. We recommend users to upgrade to JVM 11 as support for older
   versions will be dropped in the future.
 
-- Added ``ALTER CLUSTER DECOMMISSION <nodeId | nodeName>`` command that
-  triggers the existing node decommission functionality.
+- Added ``ALTER CLUSTER DECOMMISSION <nodeId | nodeName>`` statement that
+  triggers the existing node decommission functionality. In addition,
+  node decommission using the ``USR2`` signal is marked as deprecated.
 
 - Added ``pg_type.typlen`` and ``pg_type.typnamespace`` columns for improved
   postgresql compatibility.
