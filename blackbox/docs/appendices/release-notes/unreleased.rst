@@ -42,6 +42,10 @@ None
 Changes
 =======
 
+- Added a node check that checks the JVM version under which CrateDB is
+  running. We recommend users to upgrade to JVM 11 as support for older
+  versions will be dropped in the future.
+
 - Added ``ALTER CLUSTER DECOMMISSION <nodeId | nodeName>`` command that
   triggers the existing node decommission functionality.
 

@@ -36,7 +36,10 @@ public class SysNodeCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {
-        SQLResponse response = execute("select id, severity, passed from sys.node_checks order by id, node_id asc");
+        SQLResponse response = execute("select id, severity, passed " +
+                                       "from sys.node_checks " +
+                                       "where id != 8 " +
+                                       "order by id, node_id asc");
         assertThat(response.rowCount(), equalTo(12L));
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("1| 3| false\n" +  // 1 = recoveryExpectedNodesCheck
