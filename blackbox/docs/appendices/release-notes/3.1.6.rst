@@ -1,0 +1,58 @@
+.. _version_3.1.6:
+
+=============
+Version 3.1.6
+=============
+
+Released on 2019/02/05.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 2.0.4 or higher
+    before you upgrade to 3.1.6.
+
+    We recommend that you upgrade to the latest 3.0 release before moving to
+    3.1.6.
+
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_3.1.1`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
+
+.. WARNING::
+
+    Tables that were created prior to upgrading to CrateDB 2.x will not
+    function with 3.1 and must be recreated before moving to 3.1.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` while running a
+    2.x release into a new table, or by `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Changelog
+=========
+
+
+Fixes
+-----
+
+- Fixed a performance regression on ``UPDATE`` and ``DELETE`` operations.
+
+- Fixed a performance regression when inserting data using ``unnest()``.
+
+- Fixed an issue where an ordered query with a specified limit that was much
+  larger than the available rows would result in ``OutOfMemoryError`` even
+  though the number of available rows could fit in memory.
+
+- Fixed a ``NullPointerException`` that occurs on ``OUTER`` joins which can
+  be rewritten to ``INNER`` joins and uses a function as a select item.
