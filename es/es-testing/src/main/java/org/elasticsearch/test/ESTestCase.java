@@ -385,7 +385,7 @@ public abstract class ESTestCase extends LuceneTestCase {
                 Stream.concat(
                         Arrays
                                 .stream(settings)
-                                .map(k -> "[" + k + "] setting was deprecated in Elasticsearch and will be removed in a future release! " +
+                                .map(k -> "[" + k + "] setting was deprecated in CrateDB and will be removed in a future release! " +
                                         "See the breaking changes documentation for the next major version."),
                         Arrays.stream(warnings))
                         .toArray(String[]::new));

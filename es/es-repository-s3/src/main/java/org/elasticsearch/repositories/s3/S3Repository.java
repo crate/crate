@@ -215,7 +215,7 @@ class S3Repository extends BlobStoreRepository {
         if (S3ClientSettings.checkDeprecatedCredentials(metadata.settings())) {
             // provided repository settings
             deprecationLogger.deprecated("Using s3 access/secret key from repository settings. Instead "
-                    + "store these in named clients and the elasticsearch keystore for secure settings.");
+                    + "store these in named clients and the CrateDB keystore for secure settings.");
             final BasicAWSCredentials insecureCredentials = S3ClientSettings.loadDeprecatedCredentials(metadata.settings());
             final S3ClientSettings s3ClientSettings = S3ClientSettings.getClientSettings(metadata, insecureCredentials);
             this.reference = new AmazonS3Reference(service.buildClient(s3ClientSettings));

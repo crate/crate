@@ -111,13 +111,12 @@ public class MetaDataIndexUpgradeService extends AbstractComponent {
      * before they can be opened by this version of elasticsearch.
      */
     private void checkSupportedVersion(IndexMetaData indexMetaData, Version minimumIndexCompatibilityVersion) {
-        if (indexMetaData.getState() == IndexMetaData.State.OPEN && isSupportedVersion(indexMetaData,
-            minimumIndexCompatibilityVersion) == false) {
+        if (indexMetaData.getState() == IndexMetaData.State.OPEN
+            && isSupportedVersion(indexMetaData, minimumIndexCompatibilityVersion) == false) {
             throw new IllegalStateException("The index [" + indexMetaData.getIndex() + "] was created with version ["
                 + indexMetaData.getCreationVersion() + "] but the minimum compatible version is ["
-
-                + minimumIndexCompatibilityVersion + "]. It should be re-indexed in Elasticsearch " + minimumIndexCompatibilityVersion.major
-                + ".x before upgrading to " + Version.CURRENT + ".");
+                + minimumIndexCompatibilityVersion + "]."
+                + "It should be re-indexed in the previous major version of CrateDB before upgrading to " + Version.CURRENT + ".");
         }
     }
 
