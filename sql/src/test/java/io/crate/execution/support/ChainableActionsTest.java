@@ -32,6 +32,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -116,7 +117,6 @@ public class ChainableActionsTest {
         }
 
         // create last one which will throw an error, undo() on all previous actions must be called in reverse order
-        CompletableFuture<Integer> failingFuture = new CompletableFuture<>();
         actions.add(new TrackedChainableAction(
             numActions - 1,
             doCalls,
@@ -130,6 +130,68 @@ public class ChainableActionsTest {
 
         assertThat(doCalls, contains(0, 1, 2));
         assertThat(undoCalls, contains(1, 0));
+    }
+
+    @Test
+    public void testRollbackOnOneAction() throws Exception {
+        int numActions = 1;
+        List<TrackedChainableAction> actions = new ArrayList<>(numActions);
+        List<Integer> doCalls = new ArrayList<>(numActions);
+        List<Integer> undoCalls = new ArrayList<>(numActions);
+
+        actions.add(new TrackedChainableAction(
+            numActions - 1,
+            doCalls,
+            undoCalls,
+            () -> CompletableFutures.failedFuture(new RuntimeException("do operation failed")),
+            () -> CompletableFuture.completedFuture(0)));
+
+        CompletableFuture<Integer> result = ChainableActions.run(actions);
+        assertThat(result.isCompletedExceptionally(), is(true));
+        try {
+            result.get();
+        } catch (ExecutionException e) {
+            assertThat(e.getCause().getMessage(), is("do operation failed"));
+        }
+
+        assertThat(doCalls, contains(0));
+        assertThat(undoCalls, contains(0));
+    }
+
+    @Test
+    public void testRollbackOnErrorWhenFirstActionFails() throws Exception {
+        int numActions = 3;
+        List<TrackedChainableAction> actions = new ArrayList<>(numActions);
+        List<Integer> doCalls = new ArrayList<>(numActions);
+        List<Integer> undoCalls = new ArrayList<>(numActions);
+
+        actions.add(new TrackedChainableAction(
+            numActions - 1,
+            doCalls,
+            undoCalls,
+            () -> CompletableFutures.failedFuture(new RuntimeException("do operation failed")),
+            () -> CompletableFuture.completedFuture(0)));
+
+        for (int i = 0; i < numActions - 1; i++) {
+            actions.add(new TrackedChainableAction(
+                i,
+                doCalls,
+                undoCalls,
+                () -> CompletableFuture.completedFuture(0),
+                () -> CompletableFuture.completedFuture(0)));
+        }
+
+        CompletableFuture<Integer> result = ChainableActions.run(actions);
+
+        assertThat(result.isCompletedExceptionally(), is(true));
+        try {
+            result.get();
+        } catch (ExecutionException e) {
+            assertThat(e.getCause().getMessage(), is("do operation failed"));
+        }
+
+        assertThat(doCalls, contains(2));
+        assertThat(undoCalls, contains(2));
     }
 
     @Test
