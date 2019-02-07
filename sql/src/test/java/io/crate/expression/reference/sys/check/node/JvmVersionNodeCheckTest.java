@@ -63,4 +63,9 @@ public class JvmVersionNodeCheckTest {
     public void testEAVersionStringCanBeParsed() {
         assertThat(JvmVersionNodeCheck.parseVersion("12ea"), is(new int[] { 12, 0, 0 }));
     }
+
+    @Test
+    public void testEAVersionWithDashCanBeParsed() {
+        assertThat(JvmVersionNodeCheck.parseVersion("12-ea"), is(new int[] { 12, 0, 0 }));
+    }
 }
