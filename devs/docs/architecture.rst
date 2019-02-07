@@ -53,26 +53,18 @@ An advantage of the Postgres protocol in CrateDB is that you can use it also for
 applications which were originally built to communicate with Postgres. You may
 also use Postgres tools like `psql` with CrateDB.
 
-The enterprise version of CrateDB also contains support for ingesting data with
-the MQTT protocol.
-
 Class entry points:
 
 - `CrateRestMainAction`_
 - `PostgresWireProtocol`_
-- `MqttNettyHandler`_
 
 Transport
 ..........
 
 Transport denotes the communication between nodes in a CrateDB cluster. CrateDB
-uses Elasticsearch to manage the cluster state and to transfer data between
-cluster nodes. This includes node discovery, partitioning of data, recovery, and
-replication.
+manages the cluster state and the transfer of data between cluster nodes. This
+includes node discovery, partitioning of data, recovery, and replication.
 
-CrateDB uses the internal API of Elasticsearch to build its own transport logic
-on top of Elasticsearch. This lets us control how data is stored, how
-replication is performed, and when indices are updated or built.
 
 Class entry points:
 
@@ -141,7 +133,6 @@ Class entry points:
 
 .. _CrateRestMainAction: https://github.com/crate/crate/blob/98e5fe3d911c8ffdf605c7259f738b24ef1c4085/http/src/main/java/io/crate/rest/CrateRestMainAction.java
 .. _PostgresWireProtocol: https://github.com/crate/crate/blob/98e5fe3d911c8ffdf605c7259f738b24ef1c4085/sql/src/main/java/io/crate/protocols/postgres/PostgresWireProtocol.java
-.. _MqttNettyHandler: https://github.com/crate/crate/blob/98e5fe3d911c8ffdf605c7259f738b24ef1c4085/enterprise/mqtt/src/main/java/io/crate/mqtt/netty/MqttNettyHandler.java
 
 .. _TransportJobAction: https://github.com/crate/crate/blob/98e5fe3d911c8ffdf605c7259f738b24ef1c4085/sql/src/main/java/io/crate/execution/jobs/transport/TransportJobAction.java
 .. _TransportShardUpsertAction: https://github.com/crate/crate/blob/98e5fe3d911c8ffdf605c7259f738b24ef1c4085/sql/src/main/java/io/crate/execution/dml/upsert/TransportShardUpsertAction.java
