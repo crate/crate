@@ -49,13 +49,19 @@ public class ChainableActions {
         CompletableFuture<R> future = lastAction.doIt();
 
         Result<R> result = new Result<>(null, null);
-        for (int i = 1; i < actions.size(); i++) {
-            ChainableAction<R> action = actions.get(i);
+        if (actions.size() > 1) {
+            for (int i = 1; i < actions.size(); i++) {
+                ChainableAction<R> action = actions.get(i);
+                previousActions.add(lastAction);
+                lastAction = action;
+                future = future.handle(result::addResultAndError)
+                    .thenCompose(r -> runOrRollbackOnErrors(r, action, ImmutableList.copyOf(previousActions)));
+            }
+        } else {
+            // we'll want to undo the action in case it fails
             previousActions.add(lastAction);
-            lastAction = action;
-            future = future.handle(result::addResultAndError)
-                .thenCompose(r -> runOrRollbackOnErrors(r, action, ImmutableList.copyOf(previousActions)));
         }
+
         return future.handle(result::addResultAndError)
             .thenCompose(r -> rollbackOnErrors(r, previousActions));
     }
@@ -84,6 +90,8 @@ public class ChainableActions {
                 return CompletableFutures.failedFuture(result.error);
             }
             int previousActionsSize = previousActions.size();
+            assert previousActionsSize > 0 : "previous actions cannot be empty. " +
+                                             "if only one action was executed it should be part of the previous actions in order to undo it";
             CompletableFuture<R> previousActionUndo = previousActions.get(previousActionsSize - 1).undo();
             for (int i = previousActionsSize - 2; i >= 0; i--) {
                 ChainableAction<R> previousAction = previousActions.get(i);
