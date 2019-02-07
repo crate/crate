@@ -1,3 +1,4 @@
 # packages for RTD to pick up (not used for local dev)
 crate-docs-theme
 sphinx-csv-filter
+Pygments==2.3.1
