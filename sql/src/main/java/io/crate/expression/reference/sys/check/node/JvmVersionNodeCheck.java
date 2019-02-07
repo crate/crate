@@ -71,7 +71,8 @@ public final class JvmVersionNodeCheck extends AbstractSysNodeCheck {
             return new int[] {major, minor, hotfix};
         } catch (NumberFormatException e) {
             if (firstToken.endsWith("ea")) {
-                int major = Integer.parseInt(firstToken.substring(0, firstToken.length() - 2));
+                int offset = firstToken.endsWith("-ea") ? 3 : 2;
+                int major = Integer.parseInt(firstToken.substring(0, firstToken.length() - offset));
                 return new int[] {major, 0, 0};
             }
             throw e;
