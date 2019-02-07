@@ -307,6 +307,9 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
     @Override
     public void handle(Signal signal) {
+        deprecationLogger.deprecated(
+            "Node decommission using 'USR2' signal has been deprecated and will be removed in the future. " +
+            "It is recommended to use the 'ALTER CLUSTER DECOMMISSION' statement.");
         decommission();
     }
 
