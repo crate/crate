@@ -105,5 +105,21 @@ archived.
 You can archive releases by selecting *Edit*, unselecting the *Active*
 checkbox, and then saving.
 
+Release Notes 
+=======================
+
+Once a release is done, we create a release note, which is
+
+- Added to the documentation
+- Sent out via mail as testing release note
+
+Keep each release note simple and provide the right level of information. Everyone shall be able to understand the impact of the changes without the need to go into the depth of tech. 
+
+- Cluster the topics
+- Link to the docs
+- Let a tech writer review
+
+As soon as a version is declared stable, the user is informed via mail. This mail contains at least a link to the docs.
+
 .. _Jenkins: http://jenkins-ci.org/
 .. _versions hosted on ReadTheDocs: https://readthedocs.org/projects/crate-dbal/versions/
