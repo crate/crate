@@ -123,6 +123,18 @@ pipeline {
             sh './gradlew --no-daemon itest'
           }
         }
+        stage('blackbox tests') {
+          agent { label 'medium' }
+          tools {
+            jdk 'jdk11'
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            sh './gradlew --no-daemon hdfsTest monitoringTest gtest'
+          }
+        }
       }
     }
   }
