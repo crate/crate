@@ -62,9 +62,9 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     private static final Logger LOGGER = LogManager.getLogger(HttpAuthUpstreamHandler.class);
     @VisibleForTesting
-    static final String WWW_AUTHENTICATE_REALM_MESSAGE = "Basic realm=\"Please provide credentials " +
-                                                         "(password maybe empty if trust authentication " +
-                                                         "is configured for your user)\")";
+
+    // realm-value should not contain any special characters
+    static final String WWW_AUTHENTICATE_REALM_MESSAGE = "Basic realm=\"CrateDB Authenticator\"";
     private final Authentication authService;
     private final Settings settings;
     private String authorizedUser = null;
