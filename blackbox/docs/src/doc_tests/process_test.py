@@ -159,6 +159,7 @@ class GracefulStopTest(unittest.TestCase):
                     "cluster.routing.allocation.disk.watermark.high": "10k",
                     "cluster.routing.allocation.disk.watermark.flood_stage": "1k",
                 },
+                env=os.environ.copy(),
                 cluster_name=self.__class__.__name__)
             client = Client(layer.crate_servers)
             self.crates.append(layer)
