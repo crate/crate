@@ -251,6 +251,10 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     }
 
     private CompletableFuture<ClusterUpdateSettingsResponse> clusterSetDecommissionNodeSetting() {
+        if (dataAvailability == DataAvailability.NONE) {
+            return CompletableFuture.completedFuture(null);
+        }
+
         /*
          * setting this setting will cause the {@link DecommissionAllocationDecider} to prevent allocations onto this node
          *
@@ -266,6 +270,10 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     }
 
     private CompletableFuture<ClusterHealthResponse> clusterHealthGet() {
+        if (dataAvailability == DataAvailability.NONE) {
+            return CompletableFuture.completedFuture(null);
+        }
+
         // NOTE: it waits for ALL relocating shards, not just those that involve THIS node.
         ClusterHealthRequest request = new ClusterHealthRequest()
             .waitForNoRelocatingShards(true)
@@ -289,6 +297,10 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
     @VisibleForTesting
     protected void removeDecommissioningSetting() {
+        if (dataAvailability == DataAvailability.NONE) {
+            return;
+        }
+
         Map<String, Object> settingsToRemove = MapBuilder.<String, Object>newMapBuilder()
             .put(DECOMMISSION_PREFIX + clusterService.localNode().getId(), null)
             .map();
