@@ -31,6 +31,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.sys.ClassifiedMetrics.Metrics;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
@@ -49,6 +50,7 @@ public class SysMetricsTableInfo extends StaticTableInfo {
 
     static class Columns {
         static final ColumnIdent TOTAL_COUNT = new ColumnIdent("total_count");
+        static final ColumnIdent SUM_OF_DURATIONS = new ColumnIdent("sum_of_durations");
         static final ColumnIdent MEAN = new ColumnIdent("mean");
         static final ColumnIdent STDEV = new ColumnIdent("stdev");
         static final ColumnIdent MAX = new ColumnIdent("max");
@@ -72,6 +74,7 @@ public class SysMetricsTableInfo extends StaticTableInfo {
         super(NAME,
             new ColumnRegistrar(NAME, RowGranularity.DOC)
                 .register(Columns.TOTAL_COUNT, DataTypes.LONG)
+                .register(Columns.SUM_OF_DURATIONS, DataTypes.LONG)
                 .register(Columns.MEAN, DataTypes.DOUBLE)
                 .register(Columns.STDEV, DataTypes.DOUBLE)
                 .register(Columns.MAX, DataTypes.LONG)
@@ -93,9 +96,10 @@ public class SysMetricsTableInfo extends StaticTableInfo {
         );
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<ClassifiedHistograms.ClassifiedHistogram>> expressions(Supplier<DiscoveryNode> localNode) {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ClassifiedHistograms.ClassifiedHistogram>>builder()
+    public static Map<ColumnIdent, RowCollectExpressionFactory<Metrics>> expressions(Supplier<DiscoveryNode> localNode) {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<Metrics>>builder()
             .put(Columns.TOTAL_COUNT, () -> forFunction(h -> h.histogram().getTotalCount()))
+            .put(Columns.SUM_OF_DURATIONS, () -> forFunction(Metrics::sumOfDurations))
             .put(Columns.MEAN, () -> forFunction(h -> h.histogram().getMean()))
             .put(Columns.STDEV, () -> forFunction(h -> h.histogram().getStdDeviation()))
             .put(Columns.MAX, () -> forFunction(h -> h.histogram().getMaxValue()))
