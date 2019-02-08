@@ -85,3 +85,5 @@ Changes
 
 Fixes
 =====
+
+- Fixed an issue that caused the Basic Authentication prompt to fail in Safari.
