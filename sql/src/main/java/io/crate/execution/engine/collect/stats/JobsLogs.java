@@ -27,7 +27,7 @@ import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
-import io.crate.metadata.sys.ClassifiedHistograms;
+import io.crate.metadata.sys.ClassifiedMetrics;
 import io.crate.planner.operators.StatementClassifier;
 import org.elasticsearch.common.collect.Tuple;
 
@@ -73,7 +73,7 @@ public class JobsLogs {
 
     private final LongAdder activeRequests = new LongAdder();
     private final BooleanSupplier enabled;
-    private final ClassifiedHistograms histograms = new ClassifiedHistograms();
+    private final ClassifiedMetrics classifiedMetrics = new ClassifiedMetrics();
 
     public JobsLogs(BooleanSupplier enabled) {
         this.enabled = enabled;
@@ -132,7 +132,7 @@ public class JobsLogs {
     private void addToHistogram(JobContextLog log) {
         StatementClassifier.Classification classification = log.classification();
         assert classification != null : "A job must have a classification";
-        histograms.recordValue(classification, log.ended() - log.started());
+        classifiedMetrics.recordValue(classification, log.ended() - log.started());
     }
 
     /**
@@ -161,8 +161,8 @@ public class JobsLogs {
         }
     }
 
-    public Iterable<ClassifiedHistograms.ClassifiedHistogram> metrics() {
-        return histograms;
+    public Iterable<ClassifiedMetrics.Metrics> metrics() {
+        return classifiedMetrics;
     }
 
     public void operationFinished(int operationId, UUID jobId, @Nullable String errorMessage, long usedBytes) {
@@ -237,8 +237,8 @@ public class JobsLogs {
         }
     }
 
-    void resetMetricHistograms() {
-        histograms.reset();
+    void resetMetrics() {
+        classifiedMetrics.reset();
     }
 
     public void close() {

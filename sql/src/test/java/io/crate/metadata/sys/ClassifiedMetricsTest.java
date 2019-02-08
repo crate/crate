@@ -22,32 +22,56 @@
 
 package io.crate.metadata.sys;
 
+import io.crate.metadata.sys.ClassifiedMetrics.Metrics;
 import io.crate.planner.Plan;
 import io.crate.planner.operators.StatementClassifier;
 import org.HdrHistogram.Histogram;
 import org.junit.Test;
 
+import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-public class ClassifiedHistogramsTest {
+public class ClassifiedMetricsTest {
 
     @Test
     public void testRecordHighDurationDoesNotCauseArrayIndexOutOfBoundsException() {
-        ClassifiedHistograms histograms = new ClassifiedHistograms();
+        ClassifiedMetrics histograms = new ClassifiedMetrics();
         histograms.recordValue(
             new StatementClassifier.Classification(Plan.StatementType.SELECT), TimeUnit.MINUTES.toMillis(30));
     }
 
     @Test
     public void testRecordValueWithNegativeDurationDoesNotThrowException() {
-        ClassifiedHistograms histograms = new ClassifiedHistograms();
+        ClassifiedMetrics histograms = new ClassifiedMetrics();
         histograms.recordValue(
             new StatementClassifier.Classification(Plan.StatementType.SELECT), -2);
         Histogram histogram = histograms.iterator().next().histogram();
         assertThat(histogram.getTotalCount(), is(1L));
         assertThat(histogram.getMinValue(), is(0L));
+    }
+
+    @Test
+    public void testSumOfAllDurations() {
+        ClassifiedMetrics histograms = new ClassifiedMetrics();
+        histograms.recordValue(
+            new StatementClassifier.Classification(Plan.StatementType.SELECT), SECONDS.toMillis(30));
+        histograms.recordValue(
+            new StatementClassifier.Classification(Plan.StatementType.SELECT), SECONDS.toMillis(15));
+        histograms.recordValue(
+            new StatementClassifier.Classification(Plan.StatementType.UPDATE), SECONDS.toMillis(10));
+        histograms.recordValue(
+            new StatementClassifier.Classification(Plan.StatementType.UPDATE), SECONDS.toMillis(25));
+
+        for (Metrics metrics : histograms) {
+            if (metrics.classification().type().equals(Plan.StatementType.SELECT)) {
+                assertThat(metrics.sumOfDurations(), is(SECONDS.toMillis(45)));
+            } else {
+                assertThat(metrics.sumOfDurations(), is(SECONDS.toMillis(35)));
+            }
+        }
     }
 }
