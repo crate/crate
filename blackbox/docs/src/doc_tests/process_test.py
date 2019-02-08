@@ -69,6 +69,35 @@ def retry_sql(client, statement):
     raise last_error
 
 
+def wait_for_cluster_size(client, expected_size, timeout_in_s=20):
+    """ retry check (up to timeout_in_s) for expected cluster size
+
+    Returns True if the cluster size reaches the expected one, False otherwise
+    Can raise:  Value Error -- for a negative value of expected_size
+                TimeoutError -- after timeout_in_s
+
+    A node can be decommissioned with a delay, this can be
+    used to check when a node is indeed decommissioned
+    """
+    if expected_size < 0:
+        raise ValueError('expected_size cannot be negative')
+
+    wait_time = 0
+    sleep_duration = 1
+    num_nodes = -1
+    while num_nodes != expected_size:
+        time.sleep(sleep_duration)
+        wait_time += sleep_duration
+        response = client.sql("select * from sys.nodes")
+        num_nodes = response.get("rowcount", -1)
+        if num_nodes == -1:
+            return False
+        if wait_time > timeout_in_s:
+            raise TimeoutError('Timeout occurred ({}s) while waiting for cluster size to become {}'
+                               .format(timeout_in_s, expected_size))
+    return True
+
+
 class CascadedLayer(object):
 
     def __init__(self, name, *bases):
@@ -203,6 +232,8 @@ class TestGracefulStopPrimaries(GracefulStopTest):
         client2 = self.clients[1]
         self.set_settings({"cluster.graceful_stop.min_availability": "primaries"})
         decommission(self.clients[0], self.node_names[0])
+        self.assertEqual(wait_for_cluster_size(client2, TestGracefulStopPrimaries.NUM_SERVERS - 1), True)
+
         stmt = "select table_name, id from sys.shards where state = 'UNASSIGNED'"
         response = retry_sql(client2, stmt)
         # assert that all shards are assigned
@@ -235,6 +266,7 @@ class TestGracefulStopFull(GracefulStopTest):
         client1, client2, client3 = self.clients
         self.set_settings({"cluster.graceful_stop.min_availability": "full"})
         decommission(client1, node1)
+        self.assertEqual(wait_for_cluster_size(client2, TestGracefulStopFull.NUM_SERVERS - 1), True)
 
         stmt = "select table_name, id from sys.shards where state = 'UNASSIGNED'"
         response = retry_sql(client2, stmt)
@@ -274,6 +306,7 @@ class TestGracefulStopNone(GracefulStopTest):
 
         self.set_settings({"cluster.graceful_stop.min_availability": "none"})
         decommission(self.clients[0], self.node_names[0])
+        self.assertEqual(wait_for_cluster_size(client2, TestGracefulStopNone.NUM_SERVERS - 1), True)
 
         stmt = "select node['id'] as node_id, id, state \
             from sys.shards where state='UNASSIGNED'"
@@ -345,6 +378,7 @@ class TestGracefulStopDuringQueryExecution(GracefulStopTest):
             t.start()
 
         decommission(self.clients[1], self.node_names[1])
+        self.assertEqual(wait_for_cluster_size(self.clients[0], TestGracefulStopDuringQueryExecution.NUM_SERVERS - 1), True)
 
         run_queries[0] = False
         threads_finished_b.wait()
