@@ -21,27 +21,33 @@
 
 package io.crate.planner.node.ddl;
 
+import com.google.common.collect.Iterables;
+import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.execution.ddl.ESClusterUpdateSettingsTask;
+import io.crate.execution.support.OneRowActionListener;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Expression;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
-public class ESClusterUpdateSettingsPlan implements Plan {
+public final class UpdateSettingsPlan implements Plan {
 
     private final Map<String, List<Expression>> persistentSettings;
     private final Map<String, List<Expression>> transientSettings;
 
-    public ESClusterUpdateSettingsPlan(Map<String, List<Expression>> persistentSettings,
-                                       Map<String, List<Expression>> transientSettings) {
+    public UpdateSettingsPlan(Map<String, List<Expression>> persistentSettings,
+                              Map<String, List<Expression>> transientSettings) {
         this.persistentSettings = persistentSettings;
         // always override transient settings with persistent ones, so they won't get overridden
         // on cluster settings merge, which prefers the transient ones over the persistent ones
@@ -50,7 +56,7 @@ public class ESClusterUpdateSettingsPlan implements Plan {
         this.transientSettings.putAll(transientSettings);
     }
 
-    public ESClusterUpdateSettingsPlan(Map<String, List<Expression>> persistentSettings) {
+    public UpdateSettingsPlan(Map<String, List<Expression>> persistentSettings) {
         this(persistentSettings, persistentSettings); // override stale transient settings too in that case
     }
 
@@ -73,27 +79,33 @@ public class ESClusterUpdateSettingsPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        ESClusterUpdateSettingsTask task = new ESClusterUpdateSettingsTask(
-            this, dependencies.transportActionProvider().transportClusterUpdateSettingsAction());
-        task.execute(consumer, params);
+
+        ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest()
+            .persistentSettings(buildSettingsFrom(persistentSettings, params))
+            .transientSettings(buildSettingsFrom(transientSettings, params));
+        OneRowActionListener<ClusterUpdateSettingsResponse> actionListener = new OneRowActionListener<>(
+            consumer,
+            r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L));
+        dependencies.transportActionProvider().transportClusterUpdateSettingsAction().execute(request, actionListener);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ESClusterUpdateSettingsPlan that = (ESClusterUpdateSettingsPlan) o;
-        return Objects.equals(persistentSettings, that.persistentSettings) &&
-               Objects.equals(transientSettings, that.transientSettings);
-    }
+    static Settings buildSettingsFrom(Map<String, List<Expression>> settingsMap, Row parameters) {
+        Settings.Builder settings = Settings.builder();
+        for (Map.Entry<String, List<Expression>> entry : settingsMap.entrySet()) {
+            String settingsName = entry.getKey();
+            if (CrateSettings.isValidSetting(settingsName) == false) {
+                throw new IllegalArgumentException("Setting '" + settingsName + "' is not supported");
+            }
 
-    @Override
-    public int hashCode() {
-
-        return Objects.hash(persistentSettings, transientSettings);
+            List<Expression> value = entry.getValue();
+            // value can be null to reset settings
+            if (value == null) {
+                settings.put(settingsName, (String) null);
+            } else {
+                CrateSettings.flattenSettings(settings, settingsName,
+                    ExpressionToObjectVisitor.convert(Iterables.getOnlyElement(value), parameters));
+            }
+        }
+        return settings.build();
     }
 }

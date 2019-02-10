@@ -65,7 +65,7 @@ import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
+import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.management.ExplainPlan;
@@ -309,7 +309,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         for (String setting : settingsToRemove) {
             nullSettings.put(setting, null);
         }
-        return new ESClusterUpdateSettingsPlan(nullSettings, nullSettings);
+        return new UpdateSettingsPlan(nullSettings, nullSettings);
     }
 
     @Override
@@ -329,9 +329,9 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             case GLOBAL:
             default:
                 if (setStatement.isPersistent()) {
-                    return new ESClusterUpdateSettingsPlan(setStatement.settings());
+                    return new UpdateSettingsPlan(setStatement.settings());
                 } else {
-                    return new ESClusterUpdateSettingsPlan(
+                    return new UpdateSettingsPlan(
                         Collections.emptyMap(),
                         setStatement.settings()
                     );

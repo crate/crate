@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.execution.ddl;
+package io.crate.planner.node.ddl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.data.Row;
@@ -37,9 +37,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.core.Is.is;
+import static io.crate.planner.node.ddl.UpdateSettingsPlan.buildSettingsFrom;
+import static org.hamcrest.Matchers.is;
 
-public class ESClusterUpdateSettingsRootTaskTest extends CrateUnitTest {
+public class UpdateSettingsPlanTest extends CrateUnitTest {
 
     @Test
     public void testUpdateSettingsWithStringValue() throws Exception {
@@ -49,7 +50,7 @@ public class ESClusterUpdateSettingsRootTaskTest extends CrateUnitTest {
         Settings expected = Settings.builder()
             .put("cluster.graceful_stop.min_availability", "full")
             .build();
-        assertThat(ESClusterUpdateSettingsTask.buildSettingsFrom(settings, Row.EMPTY), is(expected));
+        assertThat(buildSettingsFrom(settings, Row.EMPTY), is(expected));
     }
 
     @Test
@@ -63,7 +64,7 @@ public class ESClusterUpdateSettingsRootTaskTest extends CrateUnitTest {
             .put("stats.jobs_log_size", 25)
             .build();
         assertThat(
-            ESClusterUpdateSettingsTask.buildSettingsFrom(settings, new RowN(new Object[]{10, 25})),
+            buildSettingsFrom(settings, new RowN(new Object[]{10, 25})),
             is(expected)
         );
     }
@@ -77,18 +78,18 @@ public class ESClusterUpdateSettingsRootTaskTest extends CrateUnitTest {
             .put("enabled", true)
             .put("breaker",
                 MapBuilder.newMapBuilder()
-                .put("log", MapBuilder.newMapBuilder()
-                    .put("jobs", MapBuilder.newMapBuilder()
-                        .put("overhead", 1.05d).map()
+                    .put("log", MapBuilder.newMapBuilder()
+                        .put("jobs", MapBuilder.newMapBuilder()
+                            .put("overhead", 1.05d).map()
+                        ).map()
                     ).map()
-                ).map()
             ).map();
 
         Settings expected = Settings.builder()
             .put("stats.enabled", true)
             .put("stats.breaker.log.jobs.overhead", 1.05d)
             .build();
-        assertThat(ESClusterUpdateSettingsTask.buildSettingsFrom(settings, new RowN(new Object[]{param})), is(expected));
+        assertThat(buildSettingsFrom(settings, new RowN(new Object[]{param})), is(expected));
     }
 
     @Test
@@ -99,6 +100,6 @@ public class ESClusterUpdateSettingsRootTaskTest extends CrateUnitTest {
         Map<String, List<Expression>> settings = new HashMap<String, List<Expression>>() {{
             put("unsupported_setting", ImmutableList.of(new StringLiteral("foo")));
         }};
-        ESClusterUpdateSettingsTask.buildSettingsFrom(settings, Row.EMPTY);
+        buildSettingsFrom(settings, Row.EMPTY);
     }
 }
