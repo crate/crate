@@ -3,7 +3,7 @@ package io.crate.planner;
 import io.crate.action.sql.SessionContext;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
+import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -31,7 +31,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSetPlan() throws Exception {
-        ESClusterUpdateSettingsPlan plan = e.plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
+        UpdateSettingsPlan plan = e.plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
 
         // set transient settings too when setting persistent ones
         assertThat(plan.transientSettings().get("stats.jobs_log_size").get(0), Is.is(new LongLiteral("1024")));
