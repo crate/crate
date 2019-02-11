@@ -54,6 +54,7 @@ get acknowledged.
     re-allocation and is therefore asynchronous. Unassigned shards with large
     size will take some time to allocate.
 
+.. _alter_cluster_swap_table:
 
 ``SWAP TABLE``
 --------------
@@ -86,6 +87,7 @@ Options
    ``source`` table after the rename. This causes the command to *replace*
    ``source`` with ``target``, instead of swapping the names.
 
+.. _alter_cluster_gc_dangling_artifacts:
 
 ``GC DANGLING ARTIFACTS``
 -------------------------

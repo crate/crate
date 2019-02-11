@@ -224,6 +224,8 @@ Returns: ``string``
     +----------------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-initcap:
+
 ``initcap('string')``
 ---------------------
 
@@ -269,6 +271,8 @@ Returns: ``string``
 Computes the MD5 checksum of the given string.
 
 See :ref:`sha1 <sha1>` for an example.
+
+.. _scalar-replace:
 
 ``replace(text, from, to)``
 ---------------------------
@@ -1449,6 +1453,7 @@ Returns: ``array``
 
     :ref:`Array construction with subquery <sql_expressions_array_subquery>`
 
+.. _scalar-array-upper:
 
 ``array_upper(anyarray, dimension)``
 ------------------------------------
@@ -1467,6 +1472,7 @@ Returns: ``integer``
     +-------------------------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-array-length:
 
 ``array_length(anyarray, dimension)``
 -------------------------------------
@@ -1486,6 +1492,7 @@ Returns: ``integer``
     +--------------------------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-array-lower:
 
 ``array_lower(anyarray, dimension)``
 ------------------------------------
@@ -1719,6 +1726,8 @@ Returns: same type as arguments
 System Information Functions
 ============================
 
+.. _scalar_current_schema:
+
 ``CURRENT_SCHEMA``
 ------------------
 
@@ -1874,6 +1883,7 @@ Example::
     +------------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar_current_database:
 
 ``current_database()``
 ----------------------
