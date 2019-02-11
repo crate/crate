@@ -21,15 +21,18 @@ package io.crate.beans;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.expression.reference.sys.job.JobContextLog;
+import io.crate.metadata.sys.ClassifiedMetrics.Metrics;
 import io.crate.planner.Plan.StatementType;
+import io.crate.planner.operators.StatementClassifier;
+import org.HdrHistogram.Histogram;
 
+import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
 
 public class QueryStats implements QueryStatsMBean {
 
@@ -38,36 +41,44 @@ public class QueryStats implements QueryStatsMBean {
 
     static class Metric {
 
-        private final long elapsedSinceUpdateInMs;
-
-        private long count;
+        private long elapsedSinceLastUpdateInMs;
+        private long totalCount;
         private long sumOfDurations;
 
-        Metric(long duration, long elapsedSinceUpdateInMs) {
-            this.elapsedSinceUpdateInMs = elapsedSinceUpdateInMs;
-            sumOfDurations = duration;
-            count = 1;
+        Metric(@Nullable Metric previousReading, long sumOfDurations, long totalCount, long elapsedSinceLastUpdateInMs) {
+            this.elapsedSinceLastUpdateInMs = elapsedSinceLastUpdateInMs;
+            this.sumOfDurations = sumOfDurations;
+            this.totalCount = totalCount;
+            // if a previous read was performed, we will offset the values that were computed before since the current
+            // metric needs to provide the calculations *since* the previous reading.
+            if (previousReading != null) {
+                this.sumOfDurations -= previousReading.sumOfDurations;
+                this.totalCount -= previousReading.totalCount;
+            }
         }
 
-        void inc(long duration) {
-            sumOfDurations += duration;
-            count++;
+        void inc(long duration, long count) {
+            this.sumOfDurations += duration;
+            this.totalCount += count;
         }
 
         double statementsPerSec() {
-            return count / (elapsedSinceUpdateInMs / 1000.0);
+            return totalCount / (elapsedSinceLastUpdateInMs / 1000.0);
         }
 
         double avgDurationInMs() {
-            return sumOfDurations / (double) count;
+            if (totalCount == 0) {
+                return 0;
+            }
+            return sumOfDurations / (double) totalCount;
         }
     }
 
     public static final String NAME = "io.crate.monitoring:type=QueryStats";
-    private static final Metric DEFAULT_METRIC = new Metric(0, 0) {
+    private static final Metric DEFAULT_METRIC = new Metric(null, 0, 0, 0) {
 
         @Override
-        void inc(long duration) {
+        void inc(long duration, long count) {
             throw new AssertionError("inc must not be called on default metric - it's immutable");
         }
 
@@ -81,7 +92,7 @@ public class QueryStats implements QueryStatsMBean {
             return 0.0;
         }
     };
-
+    private Map<StatementType, Metric> previouslyReadMetrics = Collections.emptyMap();
     private final Supplier<Map<StatementType, Metric>> metricByStmtType;
 
     private volatile long lastUpdateTsInMillis = System.currentTimeMillis();
@@ -90,31 +101,33 @@ public class QueryStats implements QueryStatsMBean {
         metricByStmtType = Suppliers.memoizeWithExpiration(
             () -> {
                 long currentTs = System.currentTimeMillis();
-                Map<StatementType, Metric> metricByCommand = createMetricsMap(jobsLogs.jobsLog(), currentTs, lastUpdateTsInMillis);
+                previouslyReadMetrics = createMetricsMap(jobsLogs.metrics(), previouslyReadMetrics, currentTs, lastUpdateTsInMillis);
                 lastUpdateTsInMillis = currentTs;
-                return metricByCommand;
+                return previouslyReadMetrics;
             },
             1,
             TimeUnit.SECONDS
         );
     }
 
-    static Map<StatementType, Metric> createMetricsMap(Iterable<JobContextLog> logEntries, long currentTs, long lastUpdateTs) {
+    static Map<StatementType, Metric> createMetricsMap(Iterable<Metrics> metrics,
+                                                       Map<StatementType, Metric> previouslyReadMetrics,
+                                                       long currentTs,
+                                                       long lastUpdateTs) {
         Map<StatementType, Metric> metricsByStmtType = new HashMap<>();
         long elapsedSinceLastUpdateInMs = currentTs - lastUpdateTs;
 
-        Metric total = new Metric(0, elapsedSinceLastUpdateInMs);
-        for (JobContextLog logEntry : logEntries) {
-            if (logEntry.started() < lastUpdateTs || logEntry.started() > currentTs) {
-                continue;
-            }
-            long duration = logEntry.ended() - logEntry.started();
-            total.inc(duration);
-            metricsByStmtType.compute(classificationType(logEntry), (key, oldMetric) -> {
+        Metric total = new Metric(previouslyReadMetrics.get(StatementType.ALL), 0, 0, elapsedSinceLastUpdateInMs);
+        for (Metrics classifiedMetrics : metrics) {
+            Histogram histogram = classifiedMetrics.histogram();
+            long sumOfDurations = classifiedMetrics.sumOfDurations();
+
+            total.inc(sumOfDurations, histogram.getTotalCount());
+            metricsByStmtType.compute(classificationType(classifiedMetrics.classification()), (key, oldMetric) -> {
                 if (oldMetric == null) {
-                    return new Metric(duration, elapsedSinceLastUpdateInMs);
+                    return new Metric(previouslyReadMetrics.get(key), sumOfDurations, histogram.getTotalCount(), elapsedSinceLastUpdateInMs);
                 }
-                oldMetric.inc(duration);
+                oldMetric.inc(sumOfDurations, histogram.getTotalCount());
                 return oldMetric;
             });
         }
@@ -122,11 +135,11 @@ public class QueryStats implements QueryStatsMBean {
         return metricsByStmtType;
     }
 
-    private static StatementType classificationType(JobContextLog logEntry) {
-        if (logEntry.classification() == null || !CLASSIFIED_STATEMENT_TYPES.contains(logEntry.classification().type())) {
+    private static StatementType classificationType(StatementClassifier.Classification classification) {
+        if (classification == null || !CLASSIFIED_STATEMENT_TYPES.contains(classification.type())) {
             return StatementType.UNDEFINED;
         }
-        return logEntry.classification().type();
+        return classification.type();
     }
 
     @Override

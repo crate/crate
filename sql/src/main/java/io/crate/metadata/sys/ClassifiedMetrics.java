@@ -50,12 +50,12 @@ public class ClassifiedMetrics implements Iterable<ClassifiedMetrics.Metrics> {
          * @param highestTrackableValue          represents the highest value to track
          * @param numberOfSignificantValueDigits the precision to use
          */
-        Metrics(Classification classification, final long highestTrackableValue, final int numberOfSignificantValueDigits) {
+        public Metrics(Classification classification, final long highestTrackableValue, final int numberOfSignificantValueDigits) {
             this.classification = classification;
             this.histogram = new ConcurrentHistogram(highestTrackableValue, numberOfSignificantValueDigits);
         }
 
-        void recordValue(long duration) {
+        public void recordValue(long duration) {
             // We use start and end time to calculate the duration (since we track them anyway)
             // If the system time is adjusted this can lead to negative durations
             // so we protect here against it.
@@ -73,7 +73,7 @@ public class ClassifiedMetrics implements Iterable<ClassifiedMetrics.Metrics> {
             return classification;
         }
 
-        long sumOfDurations() {
+        public long sumOfDurations() {
             return sumOfDurations.longValue();
         }
     }
