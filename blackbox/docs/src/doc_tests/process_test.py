@@ -69,25 +69,24 @@ def retry_sql(client, statement):
     raise last_error
 
 
-def wait_for_cluster_size(client, expected_size, timeout_in_s=20):
+def wait_for_cluster_size(client, expected_size, delay_is_s=1, timeout_in_s=20):
     """ retry check (up to timeout_in_s) for expected cluster size
 
     Returns True if the cluster size reaches the expected one, False otherwise
-    Can raise:  Value Error -- for a negative value of expected_size
+    Can raise:  Value Error -- for a negative value of expected_size, delay_is_s or timeout_in_s
                 TimeoutError -- after timeout_in_s
 
     A node can be decommissioned with a delay, this can be
     used to check when a node is indeed decommissioned
     """
-    if expected_size < 0:
-        raise ValueError('expected_size cannot be negative')
-
+    if expected_size < 0 or delay_is_s < 0 or timeout_in_s < 0:
+        raise ValueError('arguments: "expected_size", "delay_is_s" '
+                         'or "timeout_in_s" cannot be negative')
     wait_time = 0
-    sleep_duration = 1
     num_nodes = -1
     while num_nodes != expected_size:
-        time.sleep(sleep_duration)
-        wait_time += sleep_duration
+        time.sleep(delay_is_s)
+        wait_time += delay_is_s
         response = client.sql("select * from sys.nodes")
         num_nodes = response.get("rowcount", -1)
         if num_nodes == -1:
@@ -378,7 +377,11 @@ class TestGracefulStopDuringQueryExecution(GracefulStopTest):
             t.start()
 
         decommission(self.clients[1], self.node_names[1])
-        self.assertEqual(wait_for_cluster_size(self.clients[0], TestGracefulStopDuringQueryExecution.NUM_SERVERS - 1), True)
+        # allow more waiting time for these use case for the running queries to finish
+        self.assertEqual(wait_for_cluster_size(self.clients[0],
+                                               TestGracefulStopDuringQueryExecution.NUM_SERVERS - 1,
+                                               2,
+                                               30), True)
 
         run_queries[0] = False
         threads_finished_b.wait()
