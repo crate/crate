@@ -31,6 +31,8 @@ enterprise features are enabled:
 - `The CrateDB admin UI`_: `shards browser`_, `monitoring overview`_,
   `privileges browser`_
 
+.. _enterprise_trial:
+
 Trial
 =====
 

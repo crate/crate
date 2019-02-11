@@ -522,6 +522,7 @@ reverse
 skip
     Controls initial tokens to skip, defaults to 0.
 
+.. _analyzers_char_group:
 
 Char Group Tokenizer
 --------------------
@@ -1238,6 +1239,7 @@ this filter into the ``token_filter`` chain.
 
 A token filter that folds unicode digits to ``0-9``
 
+.. _analyzers_remove_duplicates:
 
 ``remove_duplicates``
 ---------------------
