@@ -33,7 +33,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
+import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
@@ -183,7 +183,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
             put(persistentSetting, ImmutableList.<Expression>of(Literal.fromObject(false)));
         }};
 
-        ESClusterUpdateSettingsPlan node = new ESClusterUpdateSettingsPlan(persistentSettings);
+        UpdateSettingsPlan node = new UpdateSettingsPlan(persistentSettings);
         PlannerContext plannerContext = mock(PlannerContext.class);
         Bucket objects = executePlan(node, plannerContext);
 
@@ -197,7 +197,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
             put(transientSetting, ImmutableList.<Expression>of(Literal.fromObject("123s")));
         }};
 
-        node = new ESClusterUpdateSettingsPlan(ImmutableMap.<String, List<Expression>>of(), transientSettings);
+        node = new UpdateSettingsPlan(ImmutableMap.<String, List<Expression>>of(), transientSettings);
         objects = executePlan(node, plannerContext);
 
         assertThat(objects, contains(isRow(1L)));
@@ -214,7 +214,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
             put(transientSetting, ImmutableList.<Expression>of(Literal.fromObject("243s")));
         }};
 
-        node = new ESClusterUpdateSettingsPlan(persistentSettings, transientSettings);
+        node = new UpdateSettingsPlan(persistentSettings, transientSettings);
         objects = executePlan(node, plannerContext);
 
         MetaData md = client().admin().cluster().prepareState().execute().actionGet().getState().metaData();
