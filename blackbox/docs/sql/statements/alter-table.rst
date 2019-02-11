@@ -95,6 +95,8 @@ columns with a value each to identify the partition to alter.
 Arguments
 =========
 
+.. _alter_table_set_reset:
+
 ``SET/RESET``
 -------------
 
@@ -131,6 +133,8 @@ all operations, except ``ALTER TABLE ... OPEN``, to fail. Operations on closed
 partitions will not produce an exception, but will have no effect. Similarly,
 like ``SELECT`` and ``INSERT`` on partitioned will exclude closed partitions and
 continue working.
+
+.. _alter_table_rename:
 
 ``RENAME TO``
 -------------

@@ -62,7 +62,7 @@ This command triggers a graceful cluster node decommission. The node can be
 specified by either its Id or name. See `Graceful stop`_ for more information
 on decommissioning nodes gracefully.
 
-
+.. _alter_cluster_swap_table:
 
 ``SWAP TABLE``
 --------------
@@ -95,6 +95,7 @@ Options
    ``source`` table after the rename. This causes the command to *replace*
    ``source`` with ``target``, instead of swapping the names.
 
+.. _alter_cluster_gc_dangling_artifacts:
 
 ``GC DANGLING ARTIFACTS``
 -------------------------

@@ -52,8 +52,8 @@ Logging Configuration Changes
 -----------------------------
 
 The default logging configuration for CrateDB in ``log4j2.properties`` has been
-changed. If you have customised this logging configuration, you should replace
-the ``$marker`` entry with ``[%node_name] %marker``.
+changed. If you have customised this `logging configuration <conf-logging-log4j>`_, 
+you should replace the ``$marker`` entry with ``[%node_name] %marker``.
 
 Deprecated Settings and Features
 --------------------------------
@@ -77,7 +77,8 @@ Changelog
 Breaking Changes
 ----------------
 
-- The ``*`` of ``SELECT *`` statements in the query clause of view definitions
+- The ``*`` of ``SELECT *`` statements in the query clause of 
+  `view definitions <views>`_
   is no longer expanded at view creation time but lazy whenever a view is
   evaluated. That means columns added to a table after the views initial
   creation will show up in queries on the view. It is generally recommended to
@@ -86,106 +87,70 @@ Breaking Changes
 Changes
 -------
 
-- ``geo_shape`` columns can now be casted to ``object`` with ``cast`` in
-  addition to ``try_cast``.
+New features
+~~~~~~~~~~~~
 
-- Added a ``ALTER CLUSTER GC DANGLING ARTIFACTS`` statement that can be used to
-  clean up internal structures that weren't properly cleaned up due to cluster
-  failures during operations which create such temporary artifacts.
+- Added support for executing existing aggregation functions as 
+  `window functions <window-functions>`_ using the 
+  `OVER <over>`_ clause.
 
-- Added support for per-table shard allocation filtering.
+- Added support for CrateDB license management enabling users to 
+  `trial <enterprise_trial>`_ the
+  enterprise features, set a production enterprise license or continue
+  using the community edition. Additionally, a new 
+  `SET LICENSE <ref-set-license>`_ statement
+  has been added for license registration, and the ``license.ident`` setting
+  has become ``@deprecated``.
 
-- Added support for changing the number of shards on an existing table or
-  partition using the ``ALTER TABLE SET`` statement.
+SQL improvements
+~~~~~~~~~~~~~~~~
 
-- Improved resiliency of the ``ALTER TABLE RENAME`` operation by making it an
-  atomic operation.
+- Added the `REPLACE <scalar-replace>`_ scalar function replacing
+  substrings in a string with another string.
 
-- Added support for executing aggregations as window functions using the
-  ``OVER`` clause.
+- Added the 
+  `GENERATE_SERIES(start, stop [, step ]) <table-functions-generate-series>`_ 
+  table function which can generate a series of numbers.
 
-- Added an ``ALTER CLUSTER SWAP TABLE`` statement that can be used to switch the
-  names of two tables.
-
-- Functions like ``CURRENT_SCHEMA`` and ``CURRENT_USER`` which depend on the
-  active session can now be used as generated columns.
-
-- Added the ``REPLACE`` scalar function.
-
-- Added the ``pg_catalog.pg_database`` table.
-
-- Added support for ``SHOW parameter_name | ALL`` to retrieve one or all session
-  setting value(s).
-
-- Added support for ``INITCAP(string)`` and ``CURRENT_DATABASE`` scalar expressions.
-
-- Improved the compatibility with postgres clients that use the ``text`` type
-  for parameter encoding.
-
--  Upgraded the Admin UI to 1.11.3 which includes the following changes:
-
-   - Changed the license information (ident) to be taken from the
-     `sys.cluster.licence` attribute instead of the `license.ident` setting,
-     which is ``@deprecated``.
-
-   - Addition of French language files and menu options.
-
-   - Fixed an issue that caused incorrectness in the navigation of the Admin UI.
-
-   - Updated the license div to be responsive in the Admin UI.
-
-   - Various Admin UI improvements.
-
-- Changed PostgreSQL wire interface to emulate version ``10.5``.
-
--  Added support for CrateDB license management enabling users to trial the
-   enterprise features, set a production enterprise license or continue
-   using the community edition. Additionally, a new ``SET LICENSE`` statement
-   has been added for license registration, and the ``license.ident`` setting
-   has become ``@deprecated``.
-
-- The ``MQTT`` endpoint has been deprecated and will be removed in a future
-  version.
-
-- Upgraded to Elasticsearch 6.5.1, which includes changes to the default logging
-  configuration.
-
-- Deprecated the ``http.enabled`` setting.
-
-- Added a ``remove_duplicates`` token filter.
-
-- Added a ``char_group`` tokenizer.
-
-- Renamed the ``delimited_payload_filter`` token filter to
-  ``delimited_payload``. The old name can still be used, but is deprecated.
-
-- Added the ``GENERATE_SERIES(start, stop [, step ])`` table function.
-
-- Added ``pg_class``, ``pg_namespace``, ``pg_attribute``, ``pg_attrdef``,
-  ``pg_index`` and ``pg_constraint`` tables to the ``pg_catalog`` schema for
-  improved compatibility with postgresql.
-
-- Added support for using table functions in the select list of a query.
-
-- Implemented the ``array_upper``, ``array_length`` and ``array_lower`` scalars
+- Implemented the `ARRAY_UPPER <scalar-array-upper>`_, 
+  `ARRAY_LENGTH <scalar-array-length>`_ and 
+  `ARRAY_LOWER <_scalar-array-lower>`_ scalars
   that return the upper and respectively lower bound of a given array
   dimension.
 
-- Added some type aliases for improved compatibility with postgresql.
+- Added support for the 
+  `ARRAY(subquery) <_sql_expressions_array_subquery>`_ expression,
+  which can turn the result from a subquery into an array.
 
-- Expand the ``search_path`` setting to accept a list of schemas that will be
-  searched when a relation (table, view or user defined function) is referenced
-  without specifying a schema. The system ``pg_catalog`` schema is implicitly
-  included as the first one in the path.
-
-- Improved the handling of function expressions inside subscripts used on
-  object columns. This allows expressions like ``obj['x' || 'x']`` to be used.
-
-- The ``= ANY`` operator now also supports operations on object arrays or
+- The `= ANY <sql_dql_any_array>`_ operator now also supports 
+  operations on object arrays or
   nested arrays. This enables queries like ``WHERE ['foo', 'bar'] =
   ANY(object_array(string_array))``.
 
-- Added support for the ``ARRAY(subquery)`` expression.
+- Added support for `SHOW parameter_name | ALL <ref-show>`_ to retrieve
+  one or all session setting value(s).
+
+- Added support for `INITCAP(string) <scalar-initcap>`_ which
+  capitalizes the first letter of every word while turning all others into
+  lowercase.
+
+- Added the scalar expression 
+  `CURRENT_DATABASE <scalar_current_database>`_ which returns the
+  current database.
+
+- Functions like `CURRENT_SCHEMA <scalar_current_schema>`_ and 
+  `CURRENT_USER <current_user>`_ which depend on the
+  active session can now be used as 
+  `generated columns <sql-ddl-generated-columns>`_.
+
+- Added support for using `table functions <ref-table-functions>`_ in the 
+  select list of a query.
+
+- `geo_shape <geo_shape_data_type>`_ columns can now be casted to ``object``
+  with ``cast`` in addition to ``try_cast``.
+
+- Improved the handling of function expressions inside subscripts used on
+  object columns. This allows expressions like ``obj['x' || 'x']`` to be used.
 
 - ``<object_column> = <object_literal>`` comparisons now try to utilize the
   index for the objects contents and can therefore run much faster.
@@ -197,3 +162,90 @@ Changes
 - Added support of using units inside byte-size or time bases statement
   parameters values. E.g. '1mb' for 1 MegaByte or '1s' for 1 Second.
 
+PostgreSQL compatibility
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Added the `pg_catalog.pg_database <postgres_pg_catalog>`_ table.
+
+- Added ``pg_class``, ``pg_namespace``, ``pg_attribute``, ``pg_attrdef``,
+  ``pg_index`` and ``pg_constraint`` tables to the 
+  `pg_catalog <postgres_pg_catalog>`_ schema for
+  improved compatibility with PostgreSQL.
+
+- Improved the compatibility with PostgreSQL clients that use the ``text`` type
+  for parameter encoding.
+
+- Changed PostgreSQL wire interface to emulate version ``10.5``.
+
+- Added some type aliases for improved compatibility with PostgreSQL.
+
+- Expand the `search_path <conf-session-search-path>`_ setting to 
+  accept a list of schemas that will be
+  searched when a relation (table, view or user defined function) is referenced
+  without specifying a schema. The system 
+  `pg_catalog <postgres_pg_catalog>`_ schema is implicitly
+  included as the first one in the path.
+
+Database administration
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- Added support for changing the number of shards on an existing table or
+  partition using the `ALTER TABLE SET <alter_table_set_reset>`_ 
+  statement.
+
+- Improved resiliency of the `ALTER TABLE RENAME <alter_table_rename>`_
+  operation by making it an atomic operation.
+
+- Added an `ALTER CLUSTER SWAP TABLE <alter_cluster_swap_table>`_
+  statement that can be used to switch the names of two tables.
+
+- Added a `ALTER CLUSTER GC DANGLING ARTIFACTS <alter_cluster_gc_dangling_artifacts>`_
+  statement that can be used to
+  clean up internal structures that weren't properly cleaned up due to cluster
+  failures during operations which create such temporary artifacts.
+
+- Added support for per-table 
+  `shard allocation filtering <ddl_shard_allocation>`_.
+
+Admin UI upgrade to 1.11.3
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Changed the license information (ident) to be taken from the
+  `sys.cluster.licence` attribute instead of the `license.ident` setting,
+  which is ``@deprecated``.
+
+- Addition of French language files and menu options.
+
+- Fixed an issue that caused incorrectness in the navigation of the Admin UI.
+
+- Updated the license container to be responsive in the Admin UI.
+
+- Various other improvements.
+
+Deprecations
+~~~~~~~~~~~~
+
+- The `MQTT <ingest_mqtt>`_ endpoint has been deprecated and will be 
+  removed in a future version.
+
+- Deprecated the ``http.enabled`` setting which will be always on in future.
+
+Other
+~~~~~
+
+- Upgraded to Elasticsearch 6.5.1, which includes changes to the default logging
+  configuration.
+
+- Added a `remove_duplicates <analyzers_remove_duplicates>`_ token 
+  filter.
+
+- Added a `char_group <analyzers_char_group>`_ tokenizer.
+
+- Renamed the ``delimited_payload_filter`` token filter to
+  `delimited_payload <delimited_payload-tokenfilter>`_. The old name 
+  can still be used, but is deprecated.
+
+For further information on CrateDB 3.2.0 see our
+`announcement blogpost <blogpost>`_.
+
+.. _blogpost: https://crate.io/a/cratedb-3-2-stable-available-now/

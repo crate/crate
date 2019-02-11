@@ -77,6 +77,8 @@ possible to access values of the object using the subscript notation::
     cr> select col1['x'] from unnest([{x=10}]);
     SQLActionException[ColumnUnknownException: Column col1['x'] unknown]
 
+.. table-functions-generate-series:
+
 ``generate_series(start, stop, [step])``
 ========================================
 
