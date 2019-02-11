@@ -381,7 +381,7 @@ class TestGracefulStopDuringQueryExecution(GracefulStopTest):
         self.assertEqual(wait_for_cluster_size(self.clients[0],
                                                TestGracefulStopDuringQueryExecution.NUM_SERVERS - 1,
                                                2,
-                                               30), True)
+                                               60), True)
 
         run_queries[0] = False
         threads_finished_b.wait()
