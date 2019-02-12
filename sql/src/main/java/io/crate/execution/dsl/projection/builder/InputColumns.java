@@ -22,17 +22,24 @@
 package io.crate.execution.dsl.projection.builder;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
+import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.WindowFunction;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
@@ -41,6 +48,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
+
+import static io.crate.expression.symbol.Symbols.lookupValueByColumn;
 
 /**
  * Provides functions to create {@link InputColumn}s
@@ -181,7 +190,35 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
                 sourceSymbols.inputs.get(ref),
                 visitSymbol(((GeneratedReference) ref).generatedExpression(), sourceSymbols));
         }
+        InputColumn inputColumn = sourceSymbols.inputs.get(ref);
+        if (inputColumn == null) {
+            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(ref, sourceSymbols.inputs);
+            return subscriptOnRoot == null ? ref : subscriptOnRoot;
+        }
         return visitSymbol(ref, sourceSymbols);
+    }
+
+    @Nullable
+    private static Symbol tryCreateSubscriptOnRoot(Reference ref, HashMap<Symbol, InputColumn> inputs) {
+        if (ref.column().isTopLevel()) {
+            return null;
+        }
+        ColumnIdent root = ref.column().getRoot();
+        InputColumn rootIC = lookupValueByColumn(inputs, root);
+        if (rootIC == null) {
+            return ref;
+        }
+        Symbol subscript = rootIC;
+        List<String> path = ref.column().path();
+        for (int i = 0; i < path.size(); i++) {
+            boolean lastPart = i + 1 == path.size();
+            DataType returnType = lastPart ? ref.valueType() : DataTypes.OBJECT;
+            subscript = new Function(
+                new FunctionInfo(new FunctionIdent(SubscriptObjectFunction.NAME, ImmutableList.of(DataTypes.OBJECT, DataTypes.STRING)), returnType),
+                ImmutableList.of(subscript, Literal.of(path.get(i)))
+            );
+        }
+        return subscript;
     }
 
     @Override
