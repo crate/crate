@@ -90,4 +90,7 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused inserts into partitioned tables where the
+  partitioned column is generated and based on the child of an object to fail.
+
 - Fixed an issue that caused the Basic Authentication prompt to fail in Safari.

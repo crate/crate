@@ -23,6 +23,7 @@ package io.crate.execution.dsl.projection;
 
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -66,6 +67,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        Settings settings,
                                        boolean autoCreateIndices) {
         super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices);
+        assert partitionedBySymbols.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
+            : "All references and fields in partitionedBySymbols must be resolved to inputColumns, got: " + partitionedBySymbols;
         this.partitionedBySymbols = partitionedBySymbols;
         this.ignoreDuplicateKeys = ignoreDuplicateKeys;
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
