@@ -22,35 +22,29 @@
 package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.execution.dsl.projection.builder.InputColumns;
-import io.crate.expression.scalar.SubscriptObjectFunction;
-import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 
 public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
@@ -77,7 +71,6 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
         this.targetColumns = targetColumns;
         Map<ColumnIdent, Integer> columnPositions = toPositionMap(targetColumns);
-
 
         int clusteredByIdx = MoreObjects.firstNonNull(columnPositions.get(tableInfo.clusteredBy()), -1);
         if (clusteredByIdx > -1) {
@@ -117,57 +110,30 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
         if (columns.isEmpty()) {
             return Collections.emptyList();
         }
-
         List<Symbol> symbols = new ArrayList<>(columns.size());
-        InputColumns.SourceSymbols sourceSymbols = null;
+        InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(targetColumns);
         for (ColumnIdent column : columns) {
-            ColumnIdent subscriptColumn = null;
-            if (!column.isTopLevel()) {
-                subscriptColumn = column;
-                column = column.getRoot();
-            }
-            Integer colPosition = targetColumnMap.get(column);
-            if (colPosition != null) {
-                Symbol symbol = new InputColumn(colPosition, targetColumns.get(colPosition).valueType());
-                if (subscriptColumn != null) {
-                    symbol = rewriteNestedInputToSubscript(subscriptColumn, symbol);
+            Integer position = targetColumnMap.get(column);
+            if (position == null) {
+                GeneratedReference generatedRef = generatedColumns.get(column);
+                final Symbol symbol;
+                if (generatedRef == null) {
+                    Reference columnRef = requireNonNull(targetTable.getReference(column),
+                        "Column " + column + " must exist in table " + targetTable.ident());
+                    symbol = InputColumns.create(columnRef, sourceSymbols);
+                } else {
+                    symbol = InputColumns.create(generatedRef.generatedExpression(), sourceSymbols);
                 }
                 symbols.add(symbol);
-            } else {
-                GeneratedReference generatedReference = generatedColumns.get(column);
-                if (generatedReference == null) {
+                if (SymbolVisitors.any(Symbols.IS_COLUMN, symbol)) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Column \"%s\" is required but is missing from the insert statement", column.sqlFqn()));
                 }
-
-                if (sourceSymbols == null) {
-                    sourceSymbols = new InputColumns.SourceSymbols(targetColumns);
-                }
-                Symbol symbol = InputColumns.create(generatedReference.generatedExpression(), sourceSymbols);
-                symbols.add(symbol);
+            } else {
+                symbols.add(new InputColumn(position, targetColumns.get(position).valueType()));
             }
         }
         return symbols;
-    }
-
-    private Symbol rewriteNestedInputToSubscript(ColumnIdent columnIdent, Symbol inputSymbol) {
-        Reference reference = tableInfo().getReference(columnIdent);
-        Symbol symbol = inputSymbol;
-        Iterator<String> pathIt = columnIdent.path().iterator();
-        while (pathIt.hasNext()) {
-            // rewrite object access to subscript scalar
-            String key = pathIt.next();
-            DataType returnType = DataTypes.OBJECT;
-            if (!pathIt.hasNext()) {
-                returnType = reference.valueType();
-            }
-
-            FunctionIdent functionIdent = new FunctionIdent(SubscriptObjectFunction.NAME,
-                ImmutableList.<DataType>of(DataTypes.OBJECT, DataTypes.STRING));
-            symbol = new Function(new FunctionInfo(functionIdent, returnType),
-                Arrays.asList(symbol, Literal.of(key)));
-        }
-        return symbol;
     }
 
     public List<Reference> columns() {
