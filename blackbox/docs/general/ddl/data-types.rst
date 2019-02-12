@@ -772,7 +772,7 @@ converting an array of integer values to a boolean array.
 
 .. NOTE::
 
-   It is not possible to cast to or from ``object``, ``geopoint``, and
+   It is not possible to cast to or from ``object`` and ``geopoint``, or to
    ``geoshape`` data type.
 
 ``TRY_CAST``
