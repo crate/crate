@@ -87,7 +87,7 @@ Breaking Changes
 Changes
 -------
 
-New features
+New Features
 ~~~~~~~~~~~~
 
 - Added support for executing existing aggregation functions as 
@@ -102,7 +102,7 @@ New features
   has been added for license registration, and the ``license.ident`` setting
   has become ``@deprecated``.
 
-SQL improvements
+SQL Improvements
 ~~~~~~~~~~~~~~~~
 
 - Added the `REPLACE <scalar-replace>`_ scalar function replacing
@@ -162,7 +162,7 @@ SQL improvements
 - Added support of using units inside byte-size or time bases statement
   parameters values. E.g. '1mb' for 1 MegaByte or '1s' for 1 Second.
 
-PostgreSQL compatibility
+PostgreSQL Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added the `pg_catalog.pg_database <postgres_pg_catalog>`_ table.
@@ -186,7 +186,7 @@ PostgreSQL compatibility
   `pg_catalog <postgres_pg_catalog>`_ schema is implicitly
   included as the first one in the path.
 
-Database administration
+Database Administration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added support for changing the number of shards on an existing table or
@@ -207,7 +207,7 @@ Database administration
 - Added support for per-table 
   `shard allocation filtering <ddl_shard_allocation>`_.
 
-Admin UI upgrade to 1.11.3
+Admin UI Upgrade to 1.11.3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Changed the license information (ident) to be taken from the
