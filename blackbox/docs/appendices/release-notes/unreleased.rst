@@ -29,6 +29,10 @@ Unreleased Changes
 .. When resetting this file during a release, leave the headers in place, but
 .. add a single paragraph to each section with the word "None".
 
+.. Always cluster items into bigger topics. Link to the documentation whenever feasible.  
+.. Remember to give the right level of information: Users should understand  
+.. the impact of the change without going into the depth of tech.
+
 .. rubric:: Table of Contents
 
 .. contents::

@@ -1,16 +1,6 @@
 pipeline {
   agent any
   stages {
-    stage('Build') {
-      agent { label 'large' }
-      steps {
-        step([$class: 'WsCleanup'])
-        checkout scm
-        sh 'git submodule update --init'
-        sh './gradlew --no-daemon --parallel clean compileTestJava'
-        stash includes: '**/build/**/*.jar', name: 'crate'
-      }
-    }
     stage('Parallel') {
       parallel {
         stage('sphinx') {
@@ -30,7 +20,6 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'git submodule update --init'
-            unstash 'crate'
             sh './gradlew --no-daemon --parallel -PtestForks=8 test forbiddenApisMain pmdMain jacocoReport'
             sh 'curl -s https://codecov.io/bash | bash'
           }
@@ -52,7 +41,6 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'git submodule update --init'
-            unstash 'crate'
             sh './gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
             sh 'curl -s https://codecov.io/bash | bash'
           }
@@ -74,7 +62,6 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'git submodule update --init'
-            unstash 'crate'
             sh './gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
             sh 'curl -s https://codecov.io/bash | bash'
           }
@@ -93,7 +80,6 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'git submodule update --init'
-            unstash 'crate'
             sh './gradlew --no-daemon itest'
           }
         }
@@ -106,7 +92,6 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'git submodule update --init'
-            unstash 'crate'
             sh './gradlew --no-daemon itest'
           }
         }
@@ -119,8 +104,19 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'git submodule update --init'
-            unstash 'crate'
             sh './gradlew --no-daemon itest'
+          }
+        }
+        stage('blackbox tests') {
+          agent { label 'medium' }
+          tools {
+            jdk 'jdk11'
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            sh './gradlew --no-daemon hdfsTest monitoringTest gtest'
           }
         }
       }
