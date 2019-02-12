@@ -4,6 +4,11 @@ archivesBaseName = 'functions'
 group = 'io.crate'
 description = 'Enterprise functions for CrateDB'
 
+configurations {
+    // export the main and test output so benchmarks (which are run as tests) can test the main output of this module
+    testOutput
+}
+
 dependencies {
     compile project(':sql')
 
@@ -16,4 +21,14 @@ dependencies {
             exclude group: 'commons-logging', module: 'commons-logging'
             exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
     }
+}
+
+task jarTest (type: Jar) {
+    from sourceSets.main.output
+    from sourceSets.test.output
+    classifier = 'enterprise-functions-main-and-tests'
+}
+
+artifacts {
+    testOutput jarTest
 }
