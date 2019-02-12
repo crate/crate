@@ -1403,4 +1403,20 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("select x, obj['y'], obj['z'] from t");
         assertThat(printedTable(response.rows()), is("10| 11| 4\n"));
     }
+
+    @Test
+    public void testInsertIntoTablePartitionedOnGeneratedColumnBasedOnColumnWithinObject() {
+        execute("create table t (" +
+                "   day as date_trunc('day', obj['ts'])," +
+                "   obj object (strict) as (" +
+                "       ts timestamp" +
+                "   )" +
+                ") partitioned by (day) clustered into 1 shards");
+        execute("insert into t (obj) (select {ts=1549966541034})");
+        execute("refresh table t");
+        assertThat(
+            printedTable(execute("select day, obj from t").rows()),
+            is("1549929600000| {ts=1549966541034}\n")
+        );
+    }
 }
