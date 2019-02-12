@@ -124,6 +124,8 @@ Operations can be cancelled using the ``KILL`` statement, hence the
 ``CancelRequest`` message  is unsupported. Consequently, the server won't send
 a ``BackendKeyData`` message during connection initialization.
 
+.. _postgres_pg_catalog:
+
 ``pg_catalog``
 --------------
 
