@@ -27,12 +27,15 @@ import io.crate.planner.Plan.StatementType;
 import io.crate.planner.operators.StatementClassifier.Classification;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import static io.crate.beans.QueryStats.createMetricsMap;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class QueryStatsTest {
@@ -62,34 +65,75 @@ public class QueryStatsTest {
     }
 
     @Test
+    public void testTrackedStatementTypes() {
+        List<Metrics> oneMetricForEachStatementType = new ArrayList<>();
+        for (StatementType type : StatementType.values()) {
+            if(type.equals(StatementType.ALL) || type.equals(StatementType.UNDEFINED)) {
+                continue;
+            }
+            oneMetricForEachStatementType.add(createMetric(new Classification(type), 1));
+        }
+
+        Map<StatementType, QueryStats.Metric> metricsByCommand = createMetricsMap(
+            oneMetricForEachStatementType,
+            Collections.emptyMap(),
+            2000,
+            0);
+
+        assertThat(metricsByCommand.size(), is(8));
+        assertThat(metricsByCommand.get(StatementType.SELECT), is(notNullValue()));
+        assertThat(metricsByCommand.get(StatementType.UPDATE), is(notNullValue()));
+        assertThat(metricsByCommand.get(StatementType.INSERT), is(notNullValue()));
+        assertThat(metricsByCommand.get(StatementType.DELETE), is(notNullValue()));
+        assertThat(metricsByCommand.get(StatementType.DDL), is(notNullValue()));
+        assertThat(metricsByCommand.get(StatementType.MANAGEMENT), is(notNullValue()));
+        assertThat(metricsByCommand.get(StatementType.COPY), is(notNullValue()));
+        assertThat(metricsByCommand.get(StatementType.ALL), is(notNullValue()));
+
+        assertThat(metricsByCommand.get(StatementType.UNDEFINED), is(nullValue()));
+    }
+
+    @Test
     public void testCreateMetricsMap() {
         Map<StatementType, QueryStats.Metric> metricsByCommand = createMetricsMap(metrics, Collections.emptyMap(), 2000, 0);
         assertThat(metricsByCommand.size(), is(6));
 
+        assertThat(metricsByCommand.get(StatementType.SELECT).totalCount(), is(2L));
+        assertThat(metricsByCommand.get(StatementType.SELECT).sumOfDurations(), is(70L));
         assertThat(metricsByCommand.get(StatementType.SELECT).avgDurationInMs(), is(35.0));
         assertThat(metricsByCommand.get(StatementType.SELECT).statementsPerSec(), is(1.0));
 
+        assertThat(metricsByCommand.get(StatementType.INSERT).totalCount(), is(1L));
+        assertThat(metricsByCommand.get(StatementType.INSERT).sumOfDurations(), is(19L));
         assertThat(metricsByCommand.get(StatementType.INSERT).avgDurationInMs(), is(19.0));
         assertThat(metricsByCommand.get(StatementType.INSERT).statementsPerSec(), is(0.5));
 
+        assertThat(metricsByCommand.get(StatementType.UPDATE).totalCount(), is(1L));
+        assertThat(metricsByCommand.get(StatementType.UPDATE).sumOfDurations(), is(20L));
         assertThat(metricsByCommand.get(StatementType.UPDATE).avgDurationInMs(), is(20.0));
         assertThat(metricsByCommand.get(StatementType.UPDATE).statementsPerSec(), is(0.5));
 
+        assertThat(metricsByCommand.get(StatementType.DELETE).totalCount(), is(2L));
+        assertThat(metricsByCommand.get(StatementType.DELETE).sumOfDurations(), is(15L));
         assertThat(metricsByCommand.get(StatementType.DELETE).avgDurationInMs(), is(7.5));
         assertThat(metricsByCommand.get(StatementType.DELETE).statementsPerSec(), is(1.0));
 
-        assertThat(metricsByCommand.get(StatementType.UNDEFINED).avgDurationInMs(), is(1.0));
-        assertThat(metricsByCommand.get(StatementType.UNDEFINED).statementsPerSec(), is(0.5));
+        assertThat(metricsByCommand.get(StatementType.DDL).totalCount(), is(1L));
+        assertThat(metricsByCommand.get(StatementType.DDL).sumOfDurations(), is(1L));
+        assertThat(metricsByCommand.get(StatementType.DDL).avgDurationInMs(), is(1.0));
+        assertThat(metricsByCommand.get(StatementType.DDL).statementsPerSec(), is(0.5));
 
+        assertThat(metricsByCommand.get(StatementType.ALL).totalCount(), is(7L));
+        assertThat(metricsByCommand.get(StatementType.ALL).sumOfDurations(), is(125L));
         assertThat(metricsByCommand.get(StatementType.ALL).avgDurationInMs(), is(17.857142857142858));
         assertThat(metricsByCommand.get(StatementType.ALL).statementsPerSec(), is(3.5));
     }
 
     @Test
-    public void testCreateMetricsMapWithPreviouslyReadMetrics() {
+    public void testAveragesSinceLastReadAndGlobalSumOfDurationsAndCount() {
         // setting up so that we've read a few of the configured metrics in a previous reading
         // the newly created reading should factor in the already read metrics and offset them from the measurements
-        // ie. the new measurement will contain only one SELECT statement that was executed in the 2000 timeframe.
+        // when computing the avg duration and ops/sec (total count and sum of durations are always global)
         Map<StatementType, QueryStats.Metric> previouslyReadMetrics = ImmutableMap.of(
             StatementType.SELECT, new QueryStats.Metric(null, 35, 1, 2000),
             StatementType.DELETE, new QueryStats.Metric(null, 5, 1, 2000),
@@ -100,21 +144,33 @@ public class QueryStatsTest {
         Map<StatementType, QueryStats.Metric> metricsByCommand = createMetricsMap(metrics, previouslyReadMetrics, 2000, 0);
         assertThat(metricsByCommand.size(), is(6));
 
+        assertThat(metricsByCommand.get(StatementType.SELECT).totalCount(), is(2L));
+        assertThat(metricsByCommand.get(StatementType.SELECT).sumOfDurations(), is(70L));
         assertThat(metricsByCommand.get(StatementType.SELECT).avgDurationInMs(), is(35.0));
         assertThat(metricsByCommand.get(StatementType.SELECT).statementsPerSec(), is(0.5));
 
+        assertThat(metricsByCommand.get(StatementType.INSERT).totalCount(), is(1L));
+        assertThat(metricsByCommand.get(StatementType.INSERT).sumOfDurations(), is(19L));
         assertThat(metricsByCommand.get(StatementType.INSERT).avgDurationInMs(), is(19.0));
         assertThat(metricsByCommand.get(StatementType.INSERT).statementsPerSec(), is(0.5));
 
+        assertThat(metricsByCommand.get(StatementType.UPDATE).totalCount(), is(1L));
+        assertThat(metricsByCommand.get(StatementType.UPDATE).sumOfDurations(), is(20L));
         assertThat(metricsByCommand.get(StatementType.UPDATE).avgDurationInMs(), is(0.0));
         assertThat(metricsByCommand.get(StatementType.UPDATE).statementsPerSec(), is(0.0));
 
+        assertThat(metricsByCommand.get(StatementType.DELETE).totalCount(), is(2L));
+        assertThat(metricsByCommand.get(StatementType.DELETE).sumOfDurations(), is(15L));
         assertThat(metricsByCommand.get(StatementType.DELETE).avgDurationInMs(), is(10.0));
         assertThat(metricsByCommand.get(StatementType.DELETE).statementsPerSec(), is(0.5));
 
-        assertThat(metricsByCommand.get(StatementType.UNDEFINED).avgDurationInMs(), is(1.0));
-        assertThat(metricsByCommand.get(StatementType.UNDEFINED).statementsPerSec(), is(0.5));
+        assertThat(metricsByCommand.get(StatementType.DDL).totalCount(), is(1L));
+        assertThat(metricsByCommand.get(StatementType.DDL).sumOfDurations(), is(1L));
+        assertThat(metricsByCommand.get(StatementType.DDL).avgDurationInMs(), is(1.0));
+        assertThat(metricsByCommand.get(StatementType.DDL).statementsPerSec(), is(0.5));
 
+        assertThat(metricsByCommand.get(StatementType.ALL).totalCount(), is(7L));
+        assertThat(metricsByCommand.get(StatementType.ALL).sumOfDurations(), is(125L));
         assertThat(metricsByCommand.get(StatementType.ALL).avgDurationInMs(), is(16.25));
         assertThat(metricsByCommand.get(StatementType.ALL).statementsPerSec(), is(2.0));
     }
@@ -129,6 +185,8 @@ public class QueryStatsTest {
         Map<StatementType, QueryStats.Metric> metricsByCommand = createMetricsMap(selectMetrics, Collections.emptyMap(), 2000, 0);
         assertThat(metricsByCommand.size(), is(2));
 
+        assertThat(metricsByCommand.get(StatementType.SELECT).totalCount(), is(2L));
+        assertThat(metricsByCommand.get(StatementType.SELECT).sumOfDurations(), is(90L));
         assertThat(metricsByCommand.get(StatementType.SELECT).avgDurationInMs(), is(45.0));
         assertThat(metricsByCommand.get(StatementType.SELECT).statementsPerSec(), is(1.0));
 

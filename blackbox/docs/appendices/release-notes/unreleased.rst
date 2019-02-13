@@ -46,6 +46,10 @@ None
 Changes
 =======
 
+- Expose the total count and sum of durations metrics under the
+  :ref:`query_stats_mbean` for ``QUERY``, ``INSERT``, ``UPDATE``, ``DELETE``,
+  ``MANAGEMENT``, ``DDL`` and ``COPY`` statement types.
+
 - Expose the sum of statement durations classified by statement type under
   the sum_of_durations column in sys.jobs_metric.
 

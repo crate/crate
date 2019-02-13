@@ -21,11 +21,11 @@ package io.crate.beans;
 /**
  * The QueryStatsMBean interface is required to define a standard MBean,
  * such as a standard MBean is composed of an MBean interface and a class.
- *
+ * <p>
  * The QueryStatsMBean interface lists the methods for all exposed attributes.
  *
  * @see <a href="https://docs.oracle.com/javase/tutorial/jmx/mbeans/standard.html">
- *     https://docs.oracle.com/javase/tutorial/jmx/mbeans/standard.html</a>
+ * https://docs.oracle.com/javase/tutorial/jmx/mbeans/standard.html</a>
  */
 public interface QueryStatsMBean {
 
@@ -48,4 +48,36 @@ public interface QueryStatsMBean {
     double getDeleteQueryAverageDuration();
 
     double getOverallQueryAverageDuration();
+
+    long getSelectQueryTotalCount();
+
+    long getInsertQueryTotalCount();
+
+    long getUpdateQueryTotalCount();
+
+    long getDeleteQueryTotalCount();
+
+    long getManagementQueryTotalCount();
+
+    long getDDLQueryTotalCount();
+
+    long getCopyQueryTotalCount();
+
+    long getUndefinedQueryTotalCount();
+
+    long getSelectQuerySumOfDurations();
+
+    long getInsertQuerySumOfDurations();
+
+    long getUpdateQuerySumOfDurations();
+
+    long getDeleteQuerySumOfDurations();
+
+    long getManagementQuerySumOfDurations();
+
+    long getDDLQuerySumOfDurations();
+
+    long getCopyQuerySumOfDurations();
+
+    long getUndefinedQuerySumOfDurations();
 }
