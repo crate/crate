@@ -190,7 +190,8 @@ Optionally, you can provide a schema::
 Supported Languages
 ===================
 
-CrateDB currently only supports the UDF language ``javascript``.
+CrateDB currently only supports the UDF language ``javascript``, which needs to 
+be turned on as :ref:`CrateDB setting <conf-node-lang-js>`.
 
 .. _udf_lang_js:
 
