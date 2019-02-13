@@ -24,9 +24,13 @@ package io.crate.execution.ddl;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
+import io.crate.Version;
 import io.crate.action.FutureActionListener;
+import io.crate.collections.Lists2;
 import io.crate.execution.support.ActionListeners;
+import io.crate.metadata.IndexMappings;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import org.elasticsearch.ResourceNotFoundException;
@@ -64,6 +68,8 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -212,7 +218,11 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         return ClusterState.builder(currentState).metaData(builder).build();
     }
 
-    private static void mergeIntoSource(Map<String, Object> source, Map<String, Object> mappingUpdate) {
+    static void mergeIntoSource(Map<String, Object> source, Map<String, Object> mappingUpdate) {
+        mergeIntoSource(source, mappingUpdate, Collections.emptyList());
+    }
+
+    static void mergeIntoSource(Map<String, Object> source, Map<String, Object> mappingUpdate, List<String> path) {
         for (Map.Entry<String, Object> updateEntry : mappingUpdate.entrySet()) {
             String key = updateEntry.getKey();
             Object updateValue = updateEntry.getValue();
@@ -220,16 +230,36 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
                 Object sourceValue = source.get(key);
                 if (sourceValue instanceof Map && updateValue instanceof Map) {
                     //noinspection unchecked
-                    mergeIntoSource((Map) sourceValue, (Map) updateValue);
+                    mergeIntoSource((Map) sourceValue, (Map) updateValue, Lists2.concat(path, key));
                 } else {
-                    if (!sourceValue.equals(updateValue)) {
-                        throw new IllegalArgumentException("Can't overwrite " + key + "=" + sourceValue + " with " + updateValue);
+                    if (updateAllowed(key, sourceValue, updateValue)) {
+                        source.put(key, updateValue);
+                    } else if (!isUpdateIgnored(path, key) && !sourceValue.equals(updateValue)) {
+                        String fqKey = String.join(".", path) + '.' + key;
+                        throw new IllegalArgumentException(
+                            "Can't overwrite " + fqKey + "=" + sourceValue + " with " + updateValue);
                     }
                 }
             } else {
                 source.put(key, updateValue);
             }
         }
+    }
+
+    private static boolean isUpdateIgnored(List<String> path, String key) {
+        List<String> createdVersionPath = ImmutableList.of(
+            "default", "_meta", IndexMappings.VERSION_STRING, Version.Property.CREATED.toString());
+        List<String> upgradedVersionPath = ImmutableList.of(
+            "default", "_meta", IndexMappings.VERSION_STRING, Version.Property.UPGRADED.toString());
+        return (key.equals(Version.CRATEDB_VERSION_KEY) || key.equals(Version.ES_VERSION_KEY))
+               && (path.equals(createdVersionPath) || path.equals(upgradedVersionPath));
+    }
+
+    private static boolean updateAllowed(String key, Object sourceValue, Object updateValue) {
+        if (sourceValue instanceof Boolean && updateValue instanceof String && key.equals("dynamic")) {
+            return sourceValue.toString().equals(updateValue);
+        }
+        return false;
     }
 
     @Override
