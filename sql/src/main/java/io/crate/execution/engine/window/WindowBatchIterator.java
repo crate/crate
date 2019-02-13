@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.window;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
@@ -98,7 +99,8 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
     private int windowFunctionsCount;
     private final OrderBy order;
 
-    WindowBatchIterator(WindowDefinition windowDefinition,
+    @VisibleForTesting
+    public WindowBatchIterator(WindowDefinition windowDefinition,
                         List<Input<?>> standaloneInputs,
                         List<CollectExpression<Row, ?>> standaloneExpressions,
                         BatchIterator<Row> source,
