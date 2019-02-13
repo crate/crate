@@ -90,6 +90,9 @@ Changes
 Fixes
 =====
 
+- Fixed a regression that caused inserts which create new dynamic columns to
+  fail if the table was created in an earlier version of CrateDB.
+
 - Fixed an issue that caused inserts into partitioned tables where the
   partitioned column is generated and based on the child of an object to fail.
 

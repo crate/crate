@@ -23,7 +23,9 @@
 package io.crate.execution.ddl;
 
 import io.crate.Constants;
+import io.crate.Version;
 import io.crate.analyze.AddColumnAnalyzedStatement;
+import io.crate.metadata.IndexMappings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterState;
@@ -32,9 +34,16 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+
 import static io.crate.metadata.PartitionName.templateName;
+import static java.util.Collections.singletonMap;
+import static org.hamcrest.core.Is.is;
 
 public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -67,5 +76,27 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
             templateName,
             addXString.analyzedTableElements().toMapping()
         );
+    }
+
+    @Test
+    public void testDynamicTrueCanBeChangedFromBooleanToStringValue() {
+        HashMap<String, Object> source = new HashMap<>();
+        source.put("dynamic", true);
+        TransportSchemaUpdateAction.mergeIntoSource(source, singletonMap("dynamic", "true"));
+        assertThat(source.get("dynamic"), Matchers.is("true"));
+    }
+
+    @Test
+    public void testVersionChangesAreIgnored() {
+        HashMap<String, Object> source = new HashMap<>();
+        source.put(Version.CRATEDB_VERSION_KEY, 100);
+
+        TransportSchemaUpdateAction.mergeIntoSource(
+            source,
+            singletonMap(Version.CRATEDB_VERSION_KEY, 200),
+            Arrays.asList("default", "_meta", IndexMappings.VERSION_STRING, Version.Property.CREATED.toString())
+        );
+
+        assertThat(source.get(Version.CRATEDB_VERSION_KEY), is(100));
     }
 }
