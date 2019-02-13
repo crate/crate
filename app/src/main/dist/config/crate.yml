@@ -170,10 +170,6 @@ auth:
 # shards but not replicas. Other options are "full" and "none".
 #cluster.graceful_stop.min_availability: primaries
 #
-# The cluster may reallocate shards to ensure minimum data availabillity
-# before a certain node shuts down.
-#cluster.graceful_stop.reallocate: true
-#
 # The time to wait for the reallocation process to be finished.
 #cluster.graceful_stop.timeout: 2h
 #

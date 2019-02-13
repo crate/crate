@@ -272,9 +272,9 @@ nodes of the cluster:
   before shutting down the node in order to ensure minimum data availability
   set with ``min_availability``.
 
-  ``false``: The ``graceful stop`` command will fail if the cluster would need
-  to reallocate shards in order to ensure the minimum data availability set
-  with ``min_availability``.
+  ``false``: This has no effect, meaning that the behaviour is the same as
+  setting this to `true`. For this reason, this setting is deprecated and
+  will be removed in a future release.
 
   .. WARNING::
 
