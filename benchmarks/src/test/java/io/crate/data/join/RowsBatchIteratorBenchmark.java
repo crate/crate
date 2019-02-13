@@ -178,7 +178,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeHashInnerJoin(Blackhole blackhole) {
-        BatchIterator<Row> leftJoin = new HashInnerJoinBatchIterator<>(
+        BatchIterator<Row> leftJoin = new HashInnerJoinBatchIterator(
             new RamAccountingBatchIterator<>(InMemoryBatchIterator.of(oneThousandRows, SENTINEL), rowAccounting),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
             new CombinedRow(1, 1),
@@ -194,7 +194,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeHashInnerJoinWithHashCollisions(Blackhole blackhole) {
-        BatchIterator<Row> leftJoin = new HashInnerJoinBatchIterator<>(
+        BatchIterator<Row> leftJoin = new HashInnerJoinBatchIterator(
             new RamAccountingBatchIterator<>(InMemoryBatchIterator.of(oneThousandRows, SENTINEL), rowAccounting),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
             new CombinedRow(1, 1),
