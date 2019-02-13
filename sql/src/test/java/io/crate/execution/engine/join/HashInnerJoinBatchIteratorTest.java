@@ -133,7 +133,7 @@ public class HashInnerJoinBatchIteratorTest {
 
     @Test
     public void testInnerHashJoin() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator<>(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator(
             leftIterator.get(),
             rightIterator.get(),
             new CombinedRow(1, 1),
@@ -148,7 +148,7 @@ public class HashInnerJoinBatchIteratorTest {
 
     @Test
     public void testInnerHashJoinWithHashCollisions() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator<>(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator(
             leftIterator.get(),
             rightIterator.get(),
             new CombinedRow(1, 1),
@@ -163,7 +163,7 @@ public class HashInnerJoinBatchIteratorTest {
 
     @Test
     public void testInnerHashJoinWithBlockSizeSmallerThanDataSet() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator<>(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator(
             leftIterator.get(),
             rightIterator.get(),
             new CombinedRow(1, 1),
@@ -178,7 +178,7 @@ public class HashInnerJoinBatchIteratorTest {
 
     @Test
     public void testInnerHashJoinWithBlockSizeBiggerThanIteratorBatchSize() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator<>(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator(
             leftIterator.get(),
             rightIterator.get(),
             new CombinedRow(1, 1),
