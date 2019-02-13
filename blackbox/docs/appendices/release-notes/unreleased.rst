@@ -46,6 +46,10 @@ None
 Changes
 =======
 
+- Marked the ``:ref:cluster.graceful_stop.reallocate`` setting as deprecated.
+  This setting was already being ignored, setting the value to `false`
+  has no effect.
+
 - Expose the total count and sum of durations metrics under the
   :ref:`query_stats_mbean` for ``QUERY``, ``INSERT``, ``UPDATE``, ``DELETE``,
   ``MANAGEMENT``, ``DDL`` and ``COPY`` statement types.
