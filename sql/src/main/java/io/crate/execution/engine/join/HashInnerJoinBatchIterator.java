@@ -86,7 +86,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
     private final UnsafeArrayRow leftRow = new UnsafeArrayRow();
     private final Function<Row, Integer> hashBuilderForLeft;
     private final Function<Row, Integer> hashBuilderForRight;
-    private final IntSupplier blockSizeSupplier;
+    private final IntSupplier calculateBlockSize;
     private final IntObjectHashMap<List<Object[]>> buffer;
 
     private int blockSize;
@@ -102,12 +102,12 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
                                       Predicate<Row> joinCondition,
                                       Function<Row, Integer> hashBuilderForLeft,
                                       Function<Row, Integer> hashBuilderForRight,
-                                      IntSupplier blockSizeSupplier) {
+                                      IntSupplier calculateBlockSize) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
-        this.blockSizeSupplier = blockSizeSupplier;
+        this.calculateBlockSize = calculateBlockSize;
         // resized upon block size calculation
         this.buffer = new IntObjectHashMap<>(0);
         recreateBuffer();
@@ -163,7 +163,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
     }
 
     private void recreateBuffer() {
-        blockSize = blockSizeSupplier.getAsInt();
+        blockSize = calculateBlockSize.getAsInt();
         buffer.release();
         buffer.ensureCapacity(blockSize);
         numberOfRowsInBuffer = 0;
