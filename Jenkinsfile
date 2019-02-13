@@ -72,7 +72,7 @@ pipeline {
           }
         }
         stage('itest jdk8') {
-          agent { label 'large' }
+          agent { label 'medium' }
           tools {
             jdk 'jdk8'
           }
@@ -84,7 +84,7 @@ pipeline {
           }
         }
         stage('itest jdk11') {
-          agent { label 'large' }
+          agent { label 'medium' }
           tools {
             jdk 'jdk11'
           }
@@ -96,7 +96,7 @@ pipeline {
           }
         }
         stage('itest jdk12') {
-          agent { label 'large' }
+          agent { label 'medium' }
           tools {
             jdk 'jdk12'
           }
@@ -108,7 +108,7 @@ pipeline {
           }
         }
         stage('blackbox tests') {
-          agent { label 'medium' }
+          agent { label 'large' }
           tools {
             jdk 'jdk11'
           }
