@@ -67,7 +67,7 @@ public class HashInnerJoinBatchIteratorMemoryTest {
         when(circuitBreaker.getLimit()).thenReturn(110L);
         when(circuitBreaker.getUsed()).thenReturn(10L);
 
-        BatchIterator<Row> it = new HashInnerJoinBatchIterator<>(
+        BatchIterator<Row> it = new HashInnerJoinBatchIterator(
             leftIterator,
             rightIterator,
             new CombinedRow(1, 1),

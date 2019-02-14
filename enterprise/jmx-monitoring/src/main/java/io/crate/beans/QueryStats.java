@@ -37,10 +37,12 @@ import java.util.function.Supplier;
 public class QueryStats implements QueryStatsMBean {
 
     private static final Set<StatementType> CLASSIFIED_STATEMENT_TYPES =
-        ImmutableSet.of(StatementType.SELECT, StatementType.INSERT, StatementType.UPDATE, StatementType.DELETE);
+        ImmutableSet.of(StatementType.SELECT, StatementType.INSERT, StatementType.UPDATE, StatementType.DELETE,
+            StatementType.MANAGEMENT, StatementType.COPY, StatementType.DDL);
 
     static class Metric {
 
+        private final Metric previousReading;
         private long elapsedSinceLastUpdateInMs;
         private long totalCount;
         private long sumOfDurations;
@@ -49,12 +51,7 @@ public class QueryStats implements QueryStatsMBean {
             this.elapsedSinceLastUpdateInMs = elapsedSinceLastUpdateInMs;
             this.sumOfDurations = sumOfDurations;
             this.totalCount = totalCount;
-            // if a previous read was performed, we will offset the values that were computed before since the current
-            // metric needs to provide the calculations *since* the previous reading.
-            if (previousReading != null) {
-                this.sumOfDurations -= previousReading.sumOfDurations;
-                this.totalCount -= previousReading.totalCount;
-            }
+            this.previousReading = previousReading;
         }
 
         void inc(long duration, long count) {
@@ -63,14 +60,36 @@ public class QueryStats implements QueryStatsMBean {
         }
 
         double statementsPerSec() {
-            return totalCount / (elapsedSinceLastUpdateInMs / 1000.0);
+            if (previousReading == null) {
+                return totalCount / (elapsedSinceLastUpdateInMs / 1000.0);
+            } else {
+                return (totalCount - previousReading.totalCount()) / (elapsedSinceLastUpdateInMs / 1000.0);
+            }
         }
 
         double avgDurationInMs() {
             if (totalCount == 0) {
                 return 0;
             }
-            return sumOfDurations / (double) totalCount;
+
+            if (previousReading == null) {
+                return sumOfDurations / (double) totalCount;
+            } else {
+                long countSinceLastRead = totalCount - previousReading.totalCount();
+                if (countSinceLastRead == 0) {
+                    return 0;
+                }
+                return (sumOfDurations - previousReading.sumOfDurations()) /
+                       (double) countSinceLastRead;
+            }
+        }
+
+        long totalCount() {
+            return totalCount;
+        }
+
+        long sumOfDurations() {
+            return sumOfDurations;
         }
     }
 
@@ -190,5 +209,85 @@ public class QueryStats implements QueryStatsMBean {
     @Override
     public double getOverallQueryAverageDuration() {
         return metricByStmtType.get().getOrDefault(StatementType.ALL, DEFAULT_METRIC).avgDurationInMs();
+    }
+
+    @Override
+    public long getSelectQueryTotalCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.SELECT, DEFAULT_METRIC).totalCount();
+    }
+
+    @Override
+    public long getInsertQueryTotalCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.INSERT, DEFAULT_METRIC).totalCount();
+    }
+
+    @Override
+    public long getUpdateQueryTotalCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.UPDATE, DEFAULT_METRIC).totalCount();
+    }
+
+    @Override
+    public long getDeleteQueryTotalCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.DELETE, DEFAULT_METRIC).totalCount();
+    }
+
+    @Override
+    public long getManagementQueryTotalCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.MANAGEMENT, DEFAULT_METRIC).totalCount();
+    }
+
+    @Override
+    public long getDDLQueryTotalCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.DDL, DEFAULT_METRIC).totalCount();
+    }
+
+    @Override
+    public long getCopyQueryTotalCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.COPY, DEFAULT_METRIC).totalCount();
+    }
+
+    @Override
+    public long getUndefinedQueryTotalCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.UNDEFINED, DEFAULT_METRIC).totalCount();
+    }
+
+    @Override
+    public long getSelectQuerySumOfDurations() {
+        return metricByStmtType.get().getOrDefault(StatementType.SELECT, DEFAULT_METRIC).sumOfDurations();
+    }
+
+    @Override
+    public long getInsertQuerySumOfDurations() {
+        return metricByStmtType.get().getOrDefault(StatementType.INSERT, DEFAULT_METRIC).sumOfDurations();
+    }
+
+    @Override
+    public long getUpdateQuerySumOfDurations() {
+        return metricByStmtType.get().getOrDefault(StatementType.UPDATE, DEFAULT_METRIC).sumOfDurations();
+    }
+
+    @Override
+    public long getDeleteQuerySumOfDurations() {
+        return metricByStmtType.get().getOrDefault(StatementType.DELETE, DEFAULT_METRIC).sumOfDurations();
+    }
+
+    @Override
+    public long getManagementQuerySumOfDurations() {
+        return metricByStmtType.get().getOrDefault(StatementType.MANAGEMENT, DEFAULT_METRIC).sumOfDurations();
+    }
+
+    @Override
+    public long getDDLQuerySumOfDurations() {
+        return metricByStmtType.get().getOrDefault(StatementType.DDL, DEFAULT_METRIC).sumOfDurations();
+    }
+
+    @Override
+    public long getCopyQuerySumOfDurations() {
+        return metricByStmtType.get().getOrDefault(StatementType.COPY, DEFAULT_METRIC).sumOfDurations();
+    }
+
+    @Override
+    public long getUndefinedQuerySumOfDurations() {
+        return metricByStmtType.get().getOrDefault(StatementType.UNDEFINED, DEFAULT_METRIC).sumOfDurations();
     }
 }

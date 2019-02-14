@@ -67,7 +67,7 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
         BatchSimulatingIterator<Row> rightIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(2, 0, 4, 5)), 2, 1, null);
 
-        BatchIterator<Row> batchIterator = new HashInnerJoinBatchIterator<>(
+        BatchIterator<Row> batchIterator = new HashInnerJoinBatchIterator(
                 leftIterator,
                 rightIterator,
                 new CombinedRow(1, 1),
@@ -99,7 +99,7 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
         BatchSimulatingIterator<Row> rightIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(2, 0, 4, 5)), 2, 1, null);
 
-        BatchIterator<Row> batchIterator = new HashInnerJoinBatchIterator<>(
+        BatchIterator<Row> batchIterator = new HashInnerJoinBatchIterator(
             leftIterator,
             rightIterator,
             new CombinedRow(1, 1),

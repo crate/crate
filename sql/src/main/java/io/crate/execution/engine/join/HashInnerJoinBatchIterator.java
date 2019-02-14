@@ -27,7 +27,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
-import io.crate.data.join.ElementCombiner;
+import io.crate.data.join.CombinedRow;
 import io.crate.data.join.JoinBatchIterator;
 
 import java.util.ArrayList;
@@ -76,17 +76,17 @@ import java.util.function.Predicate;
  * This information is not available for the {@link HashInnerJoinBatchIterator}, so it's the responsibility of the
  * caller to provide those two functions that operate on the left and right rows accordingly and return the hash values.
  */
-public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBatchIterator<L, R, C> {
+public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
-    private final Predicate<C> joinCondition;
+    private final Predicate<Row> joinCondition;
 
     /**
      * Used to avoid instantiating multiple times RowN in {@link #findMatchingRows()}
      */
     private final UnsafeArrayRow leftRow = new UnsafeArrayRow();
-    private final Function<L, Integer> hashBuilderForLeft;
-    private final Function<R, Integer> hashBuilderForRight;
-    private final IntSupplier blockSizeSupplier;
+    private final Function<Row, Integer> hashBuilderForLeft;
+    private final Function<Row, Integer> hashBuilderForRight;
+    private final IntSupplier calculateBlockSize;
     private final IntObjectHashMap<List<Object[]>> buffer;
 
     private int blockSize;
@@ -96,18 +96,18 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private int numberOfLeftBatchesLoadedForBlock;
     private Iterator<Object[]> leftMatchingRowsIterator;
 
-    public HashInnerJoinBatchIterator(RamAccountingBatchIterator<L> left,
-                                      BatchIterator<R> right,
-                                      ElementCombiner<L, R, C> combiner,
-                                      Predicate<C> joinCondition,
-                                      Function<L, Integer> hashBuilderForLeft,
-                                      Function<R, Integer> hashBuilderForRight,
-                                      IntSupplier blockSizeSupplier) {
+    public HashInnerJoinBatchIterator(RamAccountingBatchIterator<Row> left,
+                                      BatchIterator<Row> right,
+                                      CombinedRow combiner,
+                                      Predicate<Row> joinCondition,
+                                      Function<Row, Integer> hashBuilderForLeft,
+                                      Function<Row, Integer> hashBuilderForRight,
+                                      IntSupplier calculateBlockSize) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
-        this.blockSizeSupplier = blockSizeSupplier;
+        this.calculateBlockSize = calculateBlockSize;
         // resized upon block size calculation
         this.buffer = new IntObjectHashMap<>(0);
         recreateBuffer();
@@ -117,7 +117,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     }
 
     @Override
-    public C currentElement() {
+    public Row currentElement() {
         return combiner.currentElement();
     }
 
@@ -163,7 +163,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     }
 
     private void recreateBuffer() {
-        blockSize = blockSizeSupplier.getAsInt();
+        blockSize = calculateBlockSize.getAsInt();
         buffer.release();
         buffer.ensureCapacity(blockSize);
         numberOfRowsInBuffer = 0;
@@ -231,7 +231,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private boolean findMatchingRows() {
         while (leftMatchingRowsIterator.hasNext()) {
             leftRow.cells(leftMatchingRowsIterator.next());
-            combiner.setLeft((L) leftRow);
+            combiner.setLeft(leftRow);
             if (joinCondition.test(combiner.currentElement())) {
                 return true;
             }

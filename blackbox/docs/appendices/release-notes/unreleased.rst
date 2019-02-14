@@ -46,6 +46,14 @@ None
 Changes
 =======
 
+- Marked the ``:ref:cluster.graceful_stop.reallocate`` setting as deprecated.
+  This setting was already being ignored, setting the value to `false`
+  has no effect.
+
+- Expose the total count and sum of durations metrics under the
+  :ref:`query_stats_mbean` for ``QUERY``, ``INSERT``, ``UPDATE``, ``DELETE``,
+  ``MANAGEMENT``, ``DDL`` and ``COPY`` statement types.
+
 - Expose the sum of statement durations classified by statement type under
   the sum_of_durations column in sys.jobs_metric.
 
@@ -89,6 +97,9 @@ Changes
 
 Fixes
 =====
+
+- Fixed a regression that caused inserts which create new dynamic columns to
+  fail if the table was created in an earlier version of CrateDB.
 
 - Fixed an issue that caused inserts into partitioned tables where the
   partitioned column is generated and based on the child of an object to fail.

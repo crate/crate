@@ -112,16 +112,25 @@ host.
 JMX Beans
 =========
 
+.. _query_stats_mbean:
+
 QueryStats MBean
 ----------------
 
 The ``QueryStats`` JMX MBean exposes query frequency and average duration in
 milliseconds for ``SELECT``, ``UPDATE``, ``DELETE``, and ``INSERT`` queries.
+The frequency and average duration are calculated against the interval of time
+since the ``QueryStats`` MBean was queried last.
+Besides the averages, the ``QueryStats`` MBean exposes the total count and
+the sum of durations, in milliseconds, of all statements executed since the
+node was started, grouped by type, for ``SELECT``, ``UPDATE``, ``DELETE``,
+``INSERT``, ``MANAGEMENT``, ``DDL``, ``COPY`` and ``UNDEFINED`` queries.
 
 Metrics can be accessed using the JMX MBean object name
 ``io.crate.monitoring:type=QueryStats`` and the following attributes:
 
-Frequency:
+Frequency of operations/second in the interval of time since the last time the
+``QueryStats`` MBean was queried:
 
  - ``SelectQueryFrequency``
  - ``InsertQueryFrequency``
@@ -129,13 +138,37 @@ Frequency:
  - ``DeleteQueryFrequency``
  - ``OverallQueryFrequency``
 
-Average duration:
+Average duration of operations, in milliseconds, measured against the interval
+of time since the last time the ``QueryStats`` MBean was queried:
 
  - ``SelectQueryAverageDuration``
  - ``InsertQueryAverageDuration``
  - ``UpdateQueryAverageDuration``
  - ``DeleteQueryAverageDuration``
  - ``OverallQueryAverageDuration``
+
+Statements total count since the node was started:
+
+ - ``SelectQueryTotalCount``
+ - ``InsertQueryTotalCount``
+ - ``UpdateQueryTotalCount``
+ - ``DeleteQueryTotalCount``
+ - ``ManagementQueryTotalCount``
+ - ``DDLQueryTotalCount``
+ - ``CopyQueryTotalCount``
+ - ``UndefinedQueryTotalCount``
+
+The sum of the durations, in milliseconds, since the node was started, of all
+statement executions grouped by type:
+
+ - ``SelectQuerySumOfDurations``
+ - ``InsertQuerySumOfDurations``
+ - ``UpdateQuerySumOfDurations``
+ - ``DeleteQuerySumOfDurations``
+ - ``ManagementQuerySumOfDurations``
+ - ``DDLQuerySumOfDurations``
+ - ``CopyQuerySumOfDurations``
+ - ``UndefinedQuerySumOfDurations``
 
 NodeStatus MBean
 ----------------
