@@ -50,12 +50,21 @@ Deprecations
   have been deprecated in favour of the new total count and sum of durations
   metrics.
 
+- Marked the
+  :ref:`cluster.graceful_stop.reallocate <cluster.graceful_stop.reallocate>`
+  setting as deprecated. This setting was already being ignored, setting the
+  value to `false` has no effect.
+
+- The node decommission using the ``USR2`` :ref:`cli_signals` has been
+  deprecated in favour of the
+  :ref:`ALTER CLUSTER DECOMISSION <alter_cluster_decommission>` statement.
+
+- Marked :ref:`create-ingest-rule` and :ref:`drop-ingest-rule` as deprecated.
+  Given that the only implementation (MQTT) was deprecated and will be removed,
+  the framework itself will also be removed.
+
 Changes
 =======
-
-- Marked the ``:ref:cluster.graceful_stop.reallocate`` setting as deprecated.
-  This setting was already being ignored, setting the value to `false`
-  has no effect.
 
 - Expose the total count and sum of durations metrics under the
   :ref:`query_stats_mbean` for ``QUERY``, ``INSERT``, ``UPDATE``, ``DELETE``,
@@ -69,15 +78,10 @@ Changes
   versions will be dropped in the future.
 
 - Added ``ALTER CLUSTER DECOMMISSION <nodeId | nodeName>`` statement that
-  triggers the existing node decommission functionality. In addition,
-  node decommission using the ``USR2`` signal is marked as deprecated.
+  triggers the existing node decommission functionality.
 
 - Added ``pg_type.typlen`` and ``pg_type.typnamespace`` columns for improved
   postgresql compatibility.
-
-- Marked ``CREATE INGEST RULE`` and ``DROP INGEST RULE`` as deprecated. Given
-  that the only implementation (MQTT) was deprecated and will be removed, the
-  framework itself will also be removed.
 
 - Added ``current_schemas(boolean)`` scalar function which will return the
   names of schemas in the ``search_path``.
@@ -90,7 +94,6 @@ Changes
 
 - Output the custom analyzer/tokenizer/token_filter/char_filter definition inside
   the ``information_schema.routines.routine_definition`` column.
-
 
 - Added a ``pg_description`` table to the ``pg_catalog`` schema for improved
   postgresql compatibility.

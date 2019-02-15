@@ -55,6 +55,8 @@ get acknowledged.
     re-allocation and is therefore asynchronous. Unassigned shards with large
     size will take some time to allocate.
 
+.. _alter_cluster_decommission:
+
 ``DECOMMISSION <nodeId | nodeName>``
 ------------------------------------
 
