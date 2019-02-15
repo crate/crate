@@ -1419,4 +1419,20 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
             is("1549929600000| {ts=1549966541034}\n")
         );
     }
+
+    @Test
+    public void testInsertIntoPartitionedTableFromPartitionedTable() {
+        execute("create table tsrc (country string not null, name string not null) " +
+                "partitioned by (country) " +
+                "clustered into 1 shards");
+        execute("insert into tsrc (country, name) values ('AR', 'Felipe')");
+        execute("refresh table tsrc");
+
+        execute("create table tdst (country string not null, name string not null) " +
+                "partitioned by (country) " +
+                "clustered into 1 shards");
+
+        execute("insert into tdst (country, name) (select country, name from tsrc)");
+        assertThat(response.rowCount(), is(1L));
+    }
 }
