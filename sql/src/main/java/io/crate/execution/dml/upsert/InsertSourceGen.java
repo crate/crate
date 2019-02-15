@@ -42,6 +42,7 @@ public interface InsertSourceGen {
     static InsertSourceGen of(TransactionContext txnCtx,
                               Functions functions,
                               DocTableInfo table,
+                              String indexName,
                               GeneratedColumns.Validation validation,
                               List<Reference> targets) {
         if (targets.size() == 1 && targets.get(0).column().equals(DocSysColumns.RAW)) {
@@ -51,6 +52,6 @@ public interface InsertSourceGen {
                 return new GeneratedColsFromRawInsertSource(txnCtx, functions, table.generatedColumns());
             }
         }
-        return new InsertSourceFromCells(txnCtx, functions, table, validation, targets);
+        return new InsertSourceFromCells(txnCtx, functions, table, indexName, validation, targets);
     }
 }

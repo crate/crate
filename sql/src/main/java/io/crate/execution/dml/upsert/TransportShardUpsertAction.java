@@ -115,7 +115,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                                                         ShardUpsertRequest request,
                                                                                         AtomicBoolean killed) {
         ShardResponse shardResponse = new ShardResponse();
-        DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(request.index()), Operation.INSERT);
+        String indexName = request.index();
+        DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
         Reference[] insertColumns = request.insertColumns();
         GeneratedColumns.Validation valueValidation = request.validateConstraints()
             ? GeneratedColumns.Validation.VALUE_MATCH
@@ -124,7 +125,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         TransactionContext txnCtx = TransactionContext.of(request.userName(), SearchPath.createSearchPathFrom(request.currentSchema()));
         InsertSourceGen insertSourceGen = insertColumns == null
             ? null
-            : InsertSourceGen.of(txnCtx, functions, tableInfo, valueValidation, Arrays.asList(insertColumns));
+            : InsertSourceGen.of(txnCtx, functions, tableInfo, indexName, valueValidation, Arrays.asList(insertColumns));
 
         UpdateSourceGen updateSourceGen = request.updateColumns() == null
             ? null
