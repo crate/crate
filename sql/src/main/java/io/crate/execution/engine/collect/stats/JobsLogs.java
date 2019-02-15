@@ -41,6 +41,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BooleanSupplier;
 
+import static io.crate.planner.Plan.StatementType.UNDEFINED;
+
 
 /**
  * JobsLogs is responsible for adding jobs and operations of that node.
@@ -120,7 +122,7 @@ public class JobsLogs {
             return;
         }
         JobContextLog jobContextLog = new JobContextLog(jobContext, errorMessage);
-        addToHistogram(jobContextLog);
+        recordMetrics(jobContextLog);
         jobsLogRWLock.readLock().lock();
         try {
             jobsLog.add(jobContextLog);
@@ -129,10 +131,14 @@ public class JobsLogs {
         }
     }
 
-    private void addToHistogram(JobContextLog log) {
+    private void recordMetrics(JobContextLog log) {
         StatementClassifier.Classification classification = log.classification();
         assert classification != null : "A job must have a classification";
-        classifiedMetrics.recordValue(classification, log.ended() - log.started());
+        if (log.errorMessage() == null) {
+            classifiedMetrics.recordValue(classification, log.ended() - log.started());
+        } else {
+            classifiedMetrics.recordFailedExecution(classification, log.ended() - log.started());
+        }
     }
 
     /**
@@ -144,13 +150,14 @@ public class JobsLogs {
      */
     public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage, User user) {
         JobContextLog jobContextLog = new JobContextLog(
-            new JobContext(jobId, stmt, System.currentTimeMillis(), user, null), errorMessage);
+            new JobContext(jobId, stmt, System.currentTimeMillis(), user, new StatementClassifier.Classification(UNDEFINED)), errorMessage);
         jobsLogRWLock.readLock().lock();
         try {
             jobsLog.add(jobContextLog);
         } finally {
             jobsLogRWLock.readLock().unlock();
         }
+        recordMetrics(jobContextLog);
     }
 
     public void operationStarted(int operationId, UUID jobId, String name) {

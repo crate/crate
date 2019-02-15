@@ -32,8 +32,12 @@ import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
+import io.crate.metadata.sys.ClassifiedMetrics;
+import io.crate.metadata.sys.ClassifiedMetrics.Metrics;
 import io.crate.planner.Plan;
+import io.crate.planner.Plan.StatementType;
 import io.crate.planner.operators.StatementClassifier;
+import io.crate.planner.operators.StatementClassifier.Classification;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -64,6 +68,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
+import static io.crate.planner.Plan.StatementType.*;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -255,8 +260,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
         LogSink<OperationContextLog> operationsLogSink = (LogSink<OperationContextLog>) stats.get().operationsLog();
 
-        StatementClassifier.Classification classification =
-            new StatementClassifier.Classification(Plan.StatementType.SELECT, Collections.singleton("Collect"));
+        Classification classification =
+            new Classification(SELECT, Collections.singleton("Collect"));
 
         jobsLogSink.add(new JobContextLog(
             new JobContext(UUID.randomUUID(), "select 1", 1L, User.CRATE_USER, classification), null));
@@ -288,8 +293,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         JobsLogService jobsLogService = new JobsLogService(settings, clusterSettings, getFunctions(), scheduler, breakerService);
         JobsLogs jobsLogs = jobsLogService.get();
 
-        StatementClassifier.Classification classification =
-            new StatementClassifier.Classification(Plan.StatementType.SELECT, Collections.singleton("Collect"));
+        Classification classification =
+            new Classification(SELECT, Collections.singleton("Collect"));
 
         CountDownLatch latch = new CountDownLatch(2);
         AtomicBoolean doInsertJobs = new AtomicBoolean(true);
@@ -367,8 +372,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
         User user = User.of("arthur");
 
-        StatementClassifier.Classification classification =
-            new StatementClassifier.Classification(Plan.StatementType.SELECT, Collections.singleton("Collect"));
+        Classification classification =
+            new Classification(SELECT, Collections.singleton("Collect"));
 
         JobContext jobContext = new JobContext(UUID.randomUUID(), "select 1", 1L, user, classification);
         jobsLogs.logExecutionStart(jobContext.id(), jobContext.stmt(), user, classification);
@@ -394,7 +399,23 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(jobsLogEntries.get(0).username(), is(user.name()));
         assertThat(jobsLogEntries.get(0).statement(), is("select foo"));
         assertThat(jobsLogEntries.get(0).errorMessage(), is("stmt error"));
-        assertThat(jobsLogEntries.get(0).classification(), nullValue());
+        assertThat(jobsLogEntries.get(0).classification(), is(new Classification(UNDEFINED)));
+    }
+
+    @Test
+    public void testExecutionFailureIsRecordedInMetrics() {
+        JobsLogs jobsLogs = new JobsLogs(() -> true);
+        User user = User.of("arthur");
+        Queue<JobContextLog> q = new BlockingEvictingQueue<>(1);
+
+        jobsLogs.updateJobsLog(new QueueSink<>(q, ramAccountingContext::close));
+        jobsLogs.logPreExecutionFailure(UUID.randomUUID(), "select foo", "stmt error", user);
+
+        List<Metrics> metrics = ImmutableList.copyOf(jobsLogs.metrics().iterator());
+        assertThat(metrics.size(), is(1));
+        assertThat(metrics.get(0).failedCount(), is(1L));
+        assertThat(metrics.get(0).histogram().getTotalCount(), is(1L));
+        assertThat(metrics.get(0).classification(), is(new Classification(UNDEFINED)));
     }
 
     @Test

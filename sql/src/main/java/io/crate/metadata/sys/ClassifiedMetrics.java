@@ -44,6 +44,7 @@ public class ClassifiedMetrics implements Iterable<ClassifiedMetrics.Metrics> {
         private final Classification classification;
         private final ConcurrentHistogram histogram;
         private final LongAdder sumOfDurations = new LongAdder();
+        private final LongAdder failedCount = new LongAdder();
 
         /**
          * @param classification
@@ -65,6 +66,11 @@ public class ClassifiedMetrics implements Iterable<ClassifiedMetrics.Metrics> {
             sumOfDurations.add(Math.max(0, duration));
         }
 
+        public void recordFailedExecution(long duration) {
+            recordValue(duration);
+            failedCount.increment();
+        }
+
         public Histogram histogram() {
             return histogram;
         }
@@ -76,10 +82,18 @@ public class ClassifiedMetrics implements Iterable<ClassifiedMetrics.Metrics> {
         public long sumOfDurations() {
             return sumOfDurations.longValue();
         }
+
+        public long failedCount() {
+            return failedCount.longValue();
+        }
     }
 
     public void recordValue(Classification classification, long duration) {
         getOrCreate(classification).recordValue(duration);
+    }
+
+    public void recordFailedExecution(Classification classification, long duration) {
+        getOrCreate(classification).recordFailedExecution(duration);
     }
 
     private Metrics getOrCreate(Classification classification) {

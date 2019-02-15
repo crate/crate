@@ -51,6 +51,7 @@ public class SysMetricsTableInfo extends StaticTableInfo {
     static class Columns {
         static final ColumnIdent TOTAL_COUNT = new ColumnIdent("total_count");
         static final ColumnIdent SUM_OF_DURATIONS = new ColumnIdent("sum_of_durations");
+        static final ColumnIdent FAILED_COUNT = new ColumnIdent("failed_count");
         static final ColumnIdent MEAN = new ColumnIdent("mean");
         static final ColumnIdent STDEV = new ColumnIdent("stdev");
         static final ColumnIdent MAX = new ColumnIdent("max");
@@ -75,6 +76,7 @@ public class SysMetricsTableInfo extends StaticTableInfo {
             new ColumnRegistrar(NAME, RowGranularity.DOC)
                 .register(Columns.TOTAL_COUNT, DataTypes.LONG)
                 .register(Columns.SUM_OF_DURATIONS, DataTypes.LONG)
+                .register(Columns.FAILED_COUNT, DataTypes.LONG)
                 .register(Columns.MEAN, DataTypes.DOUBLE)
                 .register(Columns.STDEV, DataTypes.DOUBLE)
                 .register(Columns.MAX, DataTypes.LONG)
@@ -100,6 +102,7 @@ public class SysMetricsTableInfo extends StaticTableInfo {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<Metrics>>builder()
             .put(Columns.TOTAL_COUNT, () -> forFunction(h -> h.histogram().getTotalCount()))
             .put(Columns.SUM_OF_DURATIONS, () -> forFunction(Metrics::sumOfDurations))
+            .put(Columns.FAILED_COUNT, () -> forFunction(Metrics::failedCount))
             .put(Columns.MEAN, () -> forFunction(h -> h.histogram().getMean()))
             .put(Columns.STDEV, () -> forFunction(h -> h.histogram().getStdDeviation()))
             .put(Columns.MAX, () -> forFunction(h -> h.histogram().getMaxValue()))
