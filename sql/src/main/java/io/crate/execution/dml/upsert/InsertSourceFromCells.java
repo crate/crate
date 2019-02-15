@@ -34,6 +34,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.ValueExtractors;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -42,6 +43,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -57,10 +59,11 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     InsertSourceFromCells(TransactionContext txnCtx,
                           Functions functions,
                           DocTableInfo table,
+                          String indexName,
                           GeneratedColumns.Validation validation,
                           List<Reference> targets) {
         this.targets = targets;
-        ReferencesFromInputRow referenceResolver = new ReferencesFromInputRow(targets);
+        ReferencesFromInputRow referenceResolver = new ReferencesFromInputRow(targets, table.partitionedByColumns(), indexName);
         InputFactory inputFactory = new InputFactory(functions);
         if (table.generatedColumns().isEmpty()) {
             generatedColumns = GeneratedColumns.empty();
@@ -108,11 +111,16 @@ public final class InsertSourceFromCells implements InsertSourceGen {
 
     private static class ReferencesFromInputRow implements ReferenceResolver<CollectExpression<Row, ?>> {
         private final List<Reference> targets;
+        private final List<Reference> partitionedBy;
         private final List<ColumnIdent> columns;
+        @Nullable
+        private final PartitionName partitionName;
 
-        ReferencesFromInputRow(List<Reference> targets) {
+        ReferencesFromInputRow(List<Reference> targets, List<Reference> partitionedBy, String indexName) {
             this.columns = Lists2.map(targets, Reference::column);
             this.targets = targets;
+            this.partitionedBy = partitionedBy;
+            this.partitionName = partitionedBy.isEmpty() ? null : PartitionName.fromIndexOrTemplate(indexName);
         }
 
         @Override
@@ -123,7 +131,14 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             } else {
                 int rootIdx = columns.indexOf(ref.column().getRoot());
                 if (rootIdx < 0) {
-                    return NestableCollectExpression.constant(null);
+                    int partitionPos = partitionedBy.indexOf(ref);
+                    if (partitionPos < 0) {
+                        return NestableCollectExpression.constant(null);
+                    } else {
+                        assert partitionName != null
+                            : "If there was a match in `partitionedBy`, then partitionName must not be null";
+                        return NestableCollectExpression.constant(partitionName.values().get(partitionPos));
+                    }
                 } else {
                     return NestableCollectExpression.forFunction(
                         ValueExtractors.fromRow(rootIdx, ref.column().path())

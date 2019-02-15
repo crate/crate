@@ -181,6 +181,7 @@ public final class QueryTester implements AutoCloseable {
                 CoordinatorTxnCtx.systemTransactionContext(),
                 sqlExecutor.functions(),
                 table,
+                table.concreteIndices()[0],
                 GeneratedColumns.Validation.NONE,
                 Collections.singletonList(table.getReference(ColumnIdent.fromPath(column)))
             );
