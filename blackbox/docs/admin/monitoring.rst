@@ -126,6 +126,12 @@ the sum of durations, in milliseconds, of all statements executed since the
 node was started, grouped by type, for ``SELECT``, ``UPDATE``, ``DELETE``,
 ``INSERT``, ``MANAGEMENT``, ``DDL``, ``COPY`` and ``UNDEFINED`` queries.
 
+   .. WARNING::
+
+      The query frequency and average duration metrics have been deprecated and
+      will be removed in the future. We recommend using the total count and sum
+      of durations metrics instead.
+
 Metrics can be accessed using the JMX MBean object name
 ``io.crate.monitoring:type=QueryStats`` and the following attributes:
 
