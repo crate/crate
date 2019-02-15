@@ -80,4 +80,20 @@ public interface QueryStatsMBean {
     long getCopyQuerySumOfDurations();
 
     long getUndefinedQuerySumOfDurations();
+
+    long getSelectQueryFailedCount();
+
+    long getInsertQueryFailedCount();
+
+    long getUpdateQueryFailedCount();
+
+    long getDeleteQueryFailedCount();
+
+    long getManagementQueryFailedCount();
+
+    long getDDLQueryFailedCount();
+
+    long getCopyQueryFailedCount();
+
+    long getUndefinedQueryFailedCount();
 }

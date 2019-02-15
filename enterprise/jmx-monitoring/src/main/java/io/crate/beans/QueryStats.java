@@ -302,4 +302,44 @@ public class QueryStats implements QueryStatsMBean {
     public long getUndefinedQuerySumOfDurations() {
         return metricByStmtType.get().getOrDefault(StatementType.UNDEFINED, DEFAULT_METRIC).sumOfDurations();
     }
+
+    @Override
+    public long getSelectQueryFailedCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.SELECT, DEFAULT_METRIC).failedCount();
+    }
+
+    @Override
+    public long getInsertQueryFailedCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.INSERT, DEFAULT_METRIC).failedCount();
+    }
+
+    @Override
+    public long getUpdateQueryFailedCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.UPDATE, DEFAULT_METRIC).failedCount();
+    }
+
+    @Override
+    public long getDeleteQueryFailedCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.DELETE, DEFAULT_METRIC).failedCount();
+    }
+
+    @Override
+    public long getManagementQueryFailedCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.MANAGEMENT, DEFAULT_METRIC).failedCount();
+    }
+
+    @Override
+    public long getDDLQueryFailedCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.DDL, DEFAULT_METRIC).failedCount();
+    }
+
+    @Override
+    public long getCopyQueryFailedCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.COPY, DEFAULT_METRIC).failedCount();
+    }
+
+    @Override
+    public long getUndefinedQueryFailedCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.UNDEFINED, DEFAULT_METRIC).failedCount();
+    }
 }
