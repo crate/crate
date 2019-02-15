@@ -43,6 +43,13 @@ Breaking Changes
 
 None
 
+Deprecations
+============
+
+- The query frequency and average duration :ref:`query_stats_mbean` metrics
+  have been deprecated in favour of the new total count and sum of durations
+  metrics.
+
 Changes
 =======
 
