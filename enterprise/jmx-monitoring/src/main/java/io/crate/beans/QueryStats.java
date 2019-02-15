@@ -44,19 +44,26 @@ public class QueryStats implements QueryStatsMBean {
 
         private final Metric previousReading;
         private long elapsedSinceLastUpdateInMs;
+        private long failedCount;
         private long totalCount;
         private long sumOfDurations;
 
-        Metric(@Nullable Metric previousReading, long sumOfDurations, long totalCount, long elapsedSinceLastUpdateInMs) {
+        Metric(@Nullable Metric previousReading,
+               long sumOfDurations,
+               long totalCount,
+               long failedCount,
+               long elapsedSinceLastUpdateInMs) {
             this.elapsedSinceLastUpdateInMs = elapsedSinceLastUpdateInMs;
             this.sumOfDurations = sumOfDurations;
             this.totalCount = totalCount;
+            this.failedCount = failedCount;
             this.previousReading = previousReading;
         }
 
-        void inc(long duration, long count) {
+        void inc(long duration, long totalCount, long failedCount) {
             this.sumOfDurations += duration;
-            this.totalCount += count;
+            this.totalCount += totalCount;
+            this.failedCount += failedCount;
         }
 
         double statementsPerSec() {
@@ -91,13 +98,17 @@ public class QueryStats implements QueryStatsMBean {
         long sumOfDurations() {
             return sumOfDurations;
         }
+
+        long failedCount() {
+            return failedCount;
+        }
     }
 
     public static final String NAME = "io.crate.monitoring:type=QueryStats";
-    private static final Metric DEFAULT_METRIC = new Metric(null, 0, 0, 0) {
+    private static final Metric DEFAULT_METRIC = new Metric(null, 0, 0, 0, 0) {
 
         @Override
-        void inc(long duration, long count) {
+        void inc(long duration, long totalCount, long failedCount) {
             throw new AssertionError("inc must not be called on default metric - it's immutable");
         }
 
@@ -136,17 +147,18 @@ public class QueryStats implements QueryStatsMBean {
         Map<StatementType, Metric> metricsByStmtType = new HashMap<>();
         long elapsedSinceLastUpdateInMs = currentTs - lastUpdateTs;
 
-        Metric total = new Metric(previouslyReadMetrics.get(StatementType.ALL), 0, 0, elapsedSinceLastUpdateInMs);
+        Metric total = new Metric(previouslyReadMetrics.get(StatementType.ALL), 0, 0, 0, elapsedSinceLastUpdateInMs);
         for (Metrics classifiedMetrics : metrics) {
             Histogram histogram = classifiedMetrics.histogram();
             long sumOfDurations = classifiedMetrics.sumOfDurations();
+            long failedCount = classifiedMetrics.failedCount();
 
-            total.inc(sumOfDurations, histogram.getTotalCount());
+            total.inc(sumOfDurations, histogram.getTotalCount(), failedCount);
             metricsByStmtType.compute(classificationType(classifiedMetrics.classification()), (key, oldMetric) -> {
                 if (oldMetric == null) {
-                    return new Metric(previouslyReadMetrics.get(key), sumOfDurations, histogram.getTotalCount(), elapsedSinceLastUpdateInMs);
+                    return new Metric(previouslyReadMetrics.get(key), sumOfDurations, histogram.getTotalCount(), failedCount, elapsedSinceLastUpdateInMs);
                 }
-                oldMetric.inc(sumOfDurations, histogram.getTotalCount());
+                oldMetric.inc(sumOfDurations, histogram.getTotalCount(), failedCount);
                 return oldMetric;
             });
         }
