@@ -121,9 +121,9 @@ The ``QueryStats`` JMX MBean exposes query frequency and average duration in
 milliseconds for ``SELECT``, ``UPDATE``, ``DELETE``, and ``INSERT`` queries.
 The frequency and average duration are calculated against the interval of time
 since the ``QueryStats`` MBean was queried last.
-Besides the averages, the ``QueryStats`` MBean exposes the total count and
-the sum of durations, in milliseconds, of all statements executed since the
-node was started, grouped by type, for ``SELECT``, ``UPDATE``, ``DELETE``,
+Besides the averages, the ``QueryStats`` MBean exposes the sum of durations, in
+milliseconds, total and failed count of all statements executed since the node
+was started, grouped by type, for ``SELECT``, ``UPDATE``, ``DELETE``,
 ``INSERT``, ``MANAGEMENT``, ``DDL``, ``COPY`` and ``UNDEFINED`` queries.
 
    .. WARNING::
@@ -163,6 +163,17 @@ Statements total count since the node was started:
  - ``DDLQueryTotalCount``
  - ``CopyQueryTotalCount``
  - ``UndefinedQueryTotalCount``
+
+Statements failed count since the node was started:
+
+ - ``SelectQueryFailedCount``
+ - ``InsertQueryFailedCount``
+ - ``UpdateQueryFailedCount``
+ - ``DeleteQueryFailedCount``
+ - ``ManagementQueryFailedCount``
+ - ``DDLQueryFailedCount``
+ - ``CopyQueryFailedCount``
+ - ``UndefinedQueryFailedCount``
 
 The sum of the durations, in milliseconds, since the node was started, of all
 statement executions grouped by type:

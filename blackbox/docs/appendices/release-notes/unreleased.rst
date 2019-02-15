@@ -66,7 +66,7 @@ Deprecations
 Changes
 =======
 
-- Expose the total count and sum of durations metrics under the
+- Expose the sum of durations, total, and failed count metrics under the
   :ref:`query_stats_mbean` for ``QUERY``, ``INSERT``, ``UPDATE``, ``DELETE``,
   ``MANAGEMENT``, ``DDL`` and ``COPY`` statement types.
 
