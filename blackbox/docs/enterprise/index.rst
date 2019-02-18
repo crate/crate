@@ -25,7 +25,6 @@ enterprise features are enabled:
 - :ref:`Support for JavaScript in UDF <udf_lang_js>`: write user-defined
   functions in JavaScript
 - :ref:`jmx_monitoring`: monitor your query stats with JMX
-- :ref:`ingest_mqtt`: ingest data using MQTT_ without any 3rd party tools
 - :ref:`aggregation-hll-distinct`: distinct count aggregation using the
   `HyperLoglog++`_ algorithm
 - :ref:`window-function-firstvalue`: ``first_value`` window function
@@ -63,7 +62,6 @@ features.
 .. _enterprise license: https://crate.io/products/cratedb-editions/
 .. _HyperLogLog++: https://research.google.com/pubs/pub40671.html
 .. _monitoring overview: https://crate.io/docs/clients/admin-ui/en/latest/monitoring.html
-.. _MQTT: http://mqtt.org/
 .. _privileges browser: https://crate.io/docs/clients/admin-ui/en/latest/privileges.html
 .. _request an enterprise license: https://crate.io/pricing/#contactsales
 .. _shards browser: https://crate.io/docs/clients/admin-ui/en/latest/shards.html#shards

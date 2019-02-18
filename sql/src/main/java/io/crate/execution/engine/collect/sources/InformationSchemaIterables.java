@@ -29,8 +29,6 @@ import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexParts;
-import io.crate.metadata.IngestionRuleInfo;
-import io.crate.metadata.IngestionRuleInfos;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionInfos;
 import io.crate.metadata.Reference;
@@ -42,7 +40,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -88,7 +85,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     private Iterable<RoutineInfo> routines;
-    private Iterable<IngestionRuleInfo> ingestionRules;
     private boolean initialClusterStateReceived = false;
 
     @Inject
@@ -128,7 +124,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
         referentialConstraints = emptyList();
         // these are initialized on a clusterState change
         routines = emptyList();
-        ingestionRules = emptyList();
         clusterService.addListener(this);
     }
 
@@ -181,10 +176,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return sqlFeatures;
     }
 
-    public Iterable<IngestionRuleInfo> ingestionRules() {
-        return ingestionRules;
-    }
-
     public Iterable<KeyColumnUsage> keyColumnUsage() {
         return sequentialStream(primaryKeys)
             .filter(tableInfo -> !IGNORED_SCHEMAS.contains(tableInfo.ident().schema()))
@@ -206,8 +197,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     public void clusterChanged(ClusterChangedEvent event) {
         if (initialClusterStateReceived) {
             Set<String> changedCustomMetaDataSet = event.changedCustomMetaDataSet();
-            if (changedCustomMetaDataSet.contains(UserDefinedFunctionsMetaData.TYPE) == false &&
-                changedCustomMetaDataSet.contains(IngestRulesMetaData.TYPE) == false) {
+            if (changedCustomMetaDataSet.contains(UserDefinedFunctionsMetaData.TYPE) == false) {
                 return;
             }
             createMetaDataBasedIterables(event.state().getMetaData());
@@ -221,7 +211,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
         RoutineInfos routineInfos = new RoutineInfos(fulltextAnalyzerResolver,
             metaData.custom(UserDefinedFunctionsMetaData.TYPE));
         routines = () -> sequentialStream(routineInfos).filter(Objects::nonNull).iterator();
-        ingestionRules = new IngestionRuleInfos(metaData.custom(IngestRulesMetaData.TYPE));
     }
 
     /**

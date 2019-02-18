@@ -33,13 +33,11 @@ import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CreateFunction;
-import io.crate.sql.tree.CreateIngestRule;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.DenyPrivilege;
-import io.crate.sql.tree.DropIngestRule;
 import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
@@ -613,22 +611,6 @@ public class TestStatementBuilder {
         printStatement("grant ALL ON TABLE my_schema.t to anna");
         printStatement("grant ALL ON TABLE my_schema.t, banana.b, tree to anna, nyan, cat");
     }
-
-
-    @Test
-    public void testCreateIngestRuleStmtBuilder() {
-        printStatement("CREATE INGEST RULE v4 ON mqtt WHERE topic like 'v4/%' INTO my_schema.raw_v4");
-        printStatement("CREATE INGEST RULE \"Nyan cat space übercool\" ON \"http\" WHERE topic like 'v4/%' INTO my_schema.raw_v4");
-        printStatement("CREATE INGEST RULE v5 ON http INTO t1");
-    }
-
-    @Test
-    public void testDropIngestRuleStmtBuilder() {
-        printStatement("DROP INGEST RULE v4");
-        printStatement("DROP INGEST RULE \"Nyan cat space übercool\"");
-        printStatement("DROP INGEST RULE IF EXISTS \"Nyan cat space übercool\"");
-    }
-
 
     @Test
     public void testDenyPrivilegeStmtBuilder() {
@@ -1446,9 +1428,7 @@ public class TestStatementBuilder {
             statement instanceof DropUser ||
             statement instanceof GrantPrivilege ||
             statement instanceof DenyPrivilege ||
-            statement instanceof RevokePrivilege ||
-            statement instanceof CreateIngestRule ||
-            statement instanceof DropIngestRule) {
+            statement instanceof RevokePrivilege) {
             println(SqlFormatter.formatSql(statement));
             println("");
             assertFormattedSql(statement);

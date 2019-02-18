@@ -203,14 +203,6 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    public R visitCreateIngestRuleStatement(CreateIngestionRuleAnalysedStatement analysis, C context) {
-        return visitDCLStatement(analysis, context);
-    }
-
-    public R visitDropIngestRuleStatement(DropIngestionRuleAnalysedStatement analysis, C context) {
-        return visitDCLStatement(analysis, context);
-    }
-
     protected R visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement analysis, C context) {
         return visitDDLStatement(analysis, context);
     }

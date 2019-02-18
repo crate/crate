@@ -85,11 +85,6 @@ public class InformationSchemaTableDefinitions {
             () -> completedFuture(informationSchemaIterables.features()),
             InformationSqlFeaturesTableInfo.expressions()
         ));
-        tableDefinitions.put(InformationSchemaIngestionRulesTableInfo.IDENT, new StaticTableDefinition<>(
-            informationSchemaIterables::ingestionRules,
-            (user, ingestionRule) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, ingestionRule.getTarget()),
-            InformationSchemaIngestionRulesTableInfo.expressions()
-        ));
         tableDefinitions.put(InformationKeyColumnUsageTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::keyColumnUsage,
             (user, k) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, k.getFQN()),

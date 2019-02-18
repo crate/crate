@@ -52,7 +52,6 @@ public class InformationSchemaInfo implements SchemaInfo {
             .put(InformationRoutinesTableInfo.NAME, new InformationRoutinesTableInfo())
             .put(InformationSchemataTableInfo.NAME, new InformationSchemataTableInfo())
             .put(InformationSqlFeaturesTableInfo.NAME, new InformationSqlFeaturesTableInfo())
-            .put(InformationSchemaIngestionRulesTableInfo.NAME, new InformationSchemaIngestionRulesTableInfo())
             .build();
     }
 

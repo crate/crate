@@ -15,7 +15,6 @@ SQL Statements
     create-analyzer
     create-blob-table
     create-function
-    create-ingest-rule
     create-repository
     create-snapshot
     create-table
@@ -26,7 +25,6 @@ SQL Statements
     deny
     drop-analyzer
     drop-function
-    drop-ingest-rule
     drop-repository
     drop-snapshot
     drop-table

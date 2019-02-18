@@ -65,7 +65,6 @@ import io.crate.sql.tree.CrateTableOption;
 import io.crate.sql.tree.CreateAnalyzer;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateFunction;
-import io.crate.sql.tree.CreateIngestRule;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
@@ -81,7 +80,6 @@ import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropFunction;
-import io.crate.sql.tree.DropIngestRule;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropTable;
@@ -1588,21 +1586,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitOn(SqlBaseParser.OnContext context) {
         return BooleanLiteral.TRUE_LITERAL;
     }
-
-    @Override
-    public Node visitDropIngestRule(SqlBaseParser.DropIngestRuleContext ctx) {
-        return new DropIngestRule(getIdentText(ctx.rule_name), ctx.EXISTS() != null);
-    }
-
-    @Override
-    public Node visitCreateIngestRule(SqlBaseParser.CreateIngestRuleContext ctx) {
-        return new CreateIngestRule(getIdentText(ctx.rule_name),
-            getIdentText(ctx.source_ident),
-            getQualifiedName(ctx.table_ident),
-            visitIfPresent(ctx.where(), Expression.class));
-    }
-
-    // Data types
 
     @Override
     public Node visitDataType(SqlBaseParser.DataTypeContext context) {

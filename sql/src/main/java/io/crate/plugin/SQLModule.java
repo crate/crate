@@ -24,7 +24,6 @@ package io.crate.plugin;
 import io.crate.action.sql.SQLOperations;
 import io.crate.execution.ddl.DDLStatementDispatcher;
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.ingestion.IngestionService;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.planner.Planner;
@@ -50,7 +49,6 @@ public class SQLModule extends AbstractModule {
         bind(UserDefinedFunctionService.class).asEagerSingleton();
         bind(SslContextProvider.class).asEagerSingleton();
         bind(RestSQLAction.class).asEagerSingleton();
-        bind(IngestionService.class).asEagerSingleton();
         bind(DanglingArtifactsService.class).asEagerSingleton();
     }
 }

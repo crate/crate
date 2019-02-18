@@ -123,9 +123,6 @@ auth:
 # Enable encrypted communication for the PostgreSQL wire protocol:
 #ssl.psql.enabled: true
 
-# Enable encrypted communication for the MQTT endpoints:
-#ssl.ingestion.mqtt.enabled: true
-
 # The full path to the node keystore file
 #ssl.keystore_filepath: /path/to/keystore_file.jks
 
@@ -143,18 +140,6 @@ auth:
 
 # The password used to decrypt the truststore_file.jks
 #ssl.truststore_password: myTrustStorePasswd
-
-#/////////////////////// Ingestion Implementations ///////////////////////////
-
-#//////// MQTT ////////
-# Enable the MQTT ingestion implementation
-#ingestion.mqtt.enabled: false
-
-# Set a custom port for the mqtt implementation to connect to
-#ingestion.mqtt.port: 1883
-
-# The time of no activity after which the mqtt connection is closed
-#ingestion.mqtt.timeout: 10s
 
 ################################### Cluster ##################################
 
