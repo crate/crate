@@ -21,15 +21,13 @@ package io.crate.operation.language;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.ArrayType;
 import io.crate.types.GeoPointType;
 import io.crate.types.ObjectType;
 import io.crate.types.SetType;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
-import jdk.nashorn.internal.runtime.ECMAException;
-import jdk.nashorn.internal.runtime.Undefined;
 
 import javax.script.Bindings;
 import javax.script.ScriptException;
@@ -118,7 +116,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
                 "The name of the function signature doesn't match the function name in the function definition.",
                 JavaScriptLanguage.NAME
             );
-        } catch (ECMAException e) {
+        } catch (Exception e) {
             throw new io.crate.exceptions.ScriptException(
                 e.getMessage(),
                 e,
@@ -128,7 +126,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
         if (result instanceof ScriptObjectMirror) {
             return info.returnType().value(convertScriptResult((ScriptObjectMirror) result));
-        } else if (result instanceof Undefined) {
+        } else if (result != null && "Undefined".equals(result.getClass().getSimpleName())) {
             return null;
         } else {
             return info.returnType().value(result);

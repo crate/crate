@@ -15,8 +15,6 @@ compileJava {
     options.warnings = false
     options.deprecation = false
     options.compilerArgs << '-XDignore.symbol.file'
-    options.fork = true
-    options.forkOptions.executable = 'javac'
 
     finalizedBy checkstyleMain
 }
@@ -27,8 +25,8 @@ javadoc {
 }
 
 
-sourceCompatibility = "8"
-targetCompatibility = "8"
+sourceCompatibility = "11"
+targetCompatibility = "11"
 
 if (project.hasProperty('testLogging')) {
     // Used to enable logging for tests
@@ -119,7 +117,7 @@ test {
     }
 
     jacoco {
-        enabled = JavaVersion.current() <= JavaVersion.VERSION_1_10;
+        enabled = true;
     }
 
     // ES testing framework adds the resources target build paths to the classpath of the tests,

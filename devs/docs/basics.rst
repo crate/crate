@@ -8,7 +8,7 @@ Prerequisites
 CrateDB is written in Java_. Some of the (testing) tooling in Python_. So to
 develop on CrateDB you'll need:
 
- - Java_ (>= 8)
+ - Java_ (>= 11)
  - Python_ (>= 3.6)
 
 On macOS, we recommend using `Oracle's Java`_. If you're using Linux, we
@@ -146,7 +146,7 @@ build like so::
 
 
 .. _Java: http://www.java.com/
-.. _OpenJDK: http://openjdk.java.net/projects/jdk8/
+.. _OpenJDK: https://openjdk.java.net/projects/jdk/11/
 .. _Oracle's Java: http://www.java.com/en/download/help/mac_install.xml
 .. _Python: http://www.python.org/
 .. _Gradle: http://www.gradle.org/

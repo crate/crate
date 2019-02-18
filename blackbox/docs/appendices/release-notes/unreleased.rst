@@ -41,6 +41,8 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Dropped support for Java versions < 11
+
 - The Elasticsearch REST API has been removed.
 
 - Changed the layout of the ``version`` column in the

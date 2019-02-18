@@ -11,24 +11,6 @@ pipeline {
             sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
           }
         }
-        stage('test') {
-          agent { label 'large' }
-          environment {
-            CODECOV_TOKEN = credentials('cratedb-codecov-token')
-          }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'git submodule update --init'
-            sh './gradlew --no-daemon --parallel -PtestForks=8 test forbiddenApisMain pmdMain jacocoReport'
-            sh 'curl -s https://codecov.io/bash | bash'
-          }
-          post {
-            always {
-              junit '*/build/test-results/test/*.xml'
-            }
-          }
-        }
         stage('test jdk11') {
           agent { label 'large' }
           environment {
@@ -41,7 +23,7 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'git submodule update --init'
-            sh './gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
+            sh './gradlew --no-daemon --parallel -PtestForks=8 test forbiddenApisMain jacocoReport'
             sh 'curl -s https://codecov.io/bash | bash'
           }
           post {
@@ -69,18 +51,6 @@ pipeline {
             always {
               junit '*/build/test-results/test/*.xml'
             }
-          }
-        }
-        stage('itest jdk8') {
-          agent { label 'medium' }
-          tools {
-            jdk 'jdk8'
-          }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'git submodule update --init'
-            sh './gradlew --no-daemon itest'
           }
         }
         stage('itest jdk11') {
