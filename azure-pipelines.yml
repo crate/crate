@@ -20,24 +20,6 @@ jobs:
           testResultsFiles: '**/TEST-*.xml'
           tasks: ':sql:test'
 
-  - job: LinuxJDK8
-    pool:
-      vmImage: 'Ubuntu 16.04'
-    steps:
-      - task: Gradle@2
-        env:
-          CRATE_TESTS_SQL_REQUEST_TIMEOUT: 20
-        inputs:
-          workingDirectory: ''
-          gradleWrapperFile: 'gradlew'
-          gradleOptions: '-Xmx2048m'
-          javaHomeOption: 'JDKVersion'
-          jdkVersionOption: '1.8'
-          jdkArchitectureOption: 'x64'
-          publishJUnitResults: true
-          testResultsFiles: '**/TEST-*.xml'
-          tasks: ':sql:test'
-
   - job: Windows
     pool:
       vmImage: 'VS2017-Win2016'
@@ -50,7 +32,7 @@ jobs:
           gradleWrapperFile: 'gradlew'
           gradleOptions: '-Xmx2048m'
           javaHomeOption: 'JDKVersion'
-          jdkVersionOption: '1.10'
+          jdkVersionOption: '1.11'
           jdkArchitectureOption: 'x64'
           publishJUnitResults: true
           testResultsFiles: '**/TEST-*.xml'

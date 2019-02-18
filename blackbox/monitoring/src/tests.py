@@ -54,7 +54,6 @@ log.addHandler(ch)
 
 class JmxClient:
 
-    JAVA_HOME = os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-8-openjdk/')
     SJK_JAR_URL = "https://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=org.gridkit.jvmtool&a=sjk&v=LATEST"
 
     CACHE_DIR = os.environ.get(
@@ -76,6 +75,8 @@ class JmxClient:
         return jar_path
 
     def query_jmx(self, bean, attribute):
+        env = os.environ.copy()
+        env.setdefault('JAVA_HOME', '/usr/lib/jvm/java-11-openjdk')
         p = Popen(
             [
                 'java',
@@ -87,7 +88,7 @@ class JmxClient:
                 '-f', attribute
             ],
             stdin=PIPE, stdout=PIPE, stderr=PIPE,
-            env={'JAVA_HOME': JmxClient.JAVA_HOME},
+            env=env,
             universal_newlines=True
         )
         stdout, stderr = p.communicate()
@@ -253,14 +254,14 @@ class CircuitBreakersBeanTest(unittest.TestCase):
 
 
 def test_suite():
+    env = os.environ.copy()
+    env['CRATE_JAVA_OPTS'] = JMX_OPTS.format(JMX_PORT)
     crateLayer = CrateLayer(
         'crate-enterprise',
         crate_home=crate_path(),
         port=CRATE_HTTP_PORT,
         transport_port=GLOBAL_PORT_POOL.get(),
-        env={
-            "CRATE_JAVA_OPTS": JMX_OPTS.format(JMX_PORT)
-        },
+        env=env,
         settings={
             'license.enterprise': True,
             'psql.port': GLOBAL_PORT_POOL.get(),
@@ -295,15 +296,14 @@ def test_suite():
 
     # JMX Disabled test
     s = unittest.TestSuite(unittest.makeSuite(MonitoringSettingIntegrationTest))
+    env = os.environ.copy()
+    env["CRATE_JAVA_OPTS"] = JMX_OPTS.format(JMX_PORT_ENTERPRISE_DISABLED)
     s.layer = CrateLayer(
         'crate',
         crate_home=crate_path(),
         port=GLOBAL_PORT_POOL.get(),
         transport_port=GLOBAL_PORT_POOL.get(),
-        env={
-            "CRATE_JAVA_OPTS":
-                JMX_OPTS.format(JMX_PORT_ENTERPRISE_DISABLED)
-        },
+        env=env,
         settings={
             'license.enterprise': False,
         }

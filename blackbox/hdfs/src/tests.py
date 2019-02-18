@@ -122,7 +122,7 @@ class HadoopLayer:
             '-D', 'dfs.datanode.use.datanode.hostname=true',
         ]
 
-        JAVA_HOME = os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-8-openjdk/')
+        JAVA_HOME = os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-11-openjdk/')
 
         self.p = subprocess.Popen(
             cmd,
@@ -187,7 +187,8 @@ def test_suite():
         transport_port=CRATE_TRANSPORT_PORT,
         settings={
             'psql.port': GLOBAL_PORT_POOL.get(),
-        }
+        },
+        env=os.environ.copy()
     )
     hadoop_layer = HadoopLayer()
     layer = HadoopAndCrateLayer(crate_layer, hadoop_layer)
