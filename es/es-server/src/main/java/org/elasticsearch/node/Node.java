@@ -62,7 +62,6 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Key;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.inject.util.Providers;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.logging.DeprecationLogger;
@@ -474,16 +473,7 @@ public abstract class Node implements Closeable {
                 networkService, clusterService.getMasterService(), clusterService.getClusterApplierService(),
                 clusterService.getClusterSettings(), pluginsService.filterPlugins(DiscoveryPlugin.class),
                 clusterModule.getAllocationService(), environment.configFile());
-            this.nodeService = new NodeService(
-                settings,
-                threadPool,
-                monitorService,
-                transportService,
-                indicesService,
-                pluginsService,
-                httpServerTransport,
-                settingsModule.getSettingsFilter()
-            );
+            this.nodeService = new NodeService(settings, monitorService, indicesService);
 
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);

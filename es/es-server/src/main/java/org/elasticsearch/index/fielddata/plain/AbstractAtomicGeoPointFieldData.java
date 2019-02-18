@@ -18,14 +18,9 @@
  */
 package org.elasticsearch.index.fielddata.plain;
 
-import org.apache.lucene.util.Accountable;
 import org.elasticsearch.index.fielddata.AtomicGeoPointFieldData;
 import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.MultiGeoPointValues;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
-
-import java.util.Collection;
-import java.util.Collections;
 
 public abstract class AbstractAtomicGeoPointFieldData implements AtomicGeoPointFieldData {
 
@@ -34,27 +29,4 @@ public abstract class AbstractAtomicGeoPointFieldData implements AtomicGeoPointF
         return FieldData.toString(getGeoPointValues());
     }
 
-    public static AtomicGeoPointFieldData empty(final int maxDoc) {
-        return new AbstractAtomicGeoPointFieldData() {
-
-            @Override
-            public long ramBytesUsed() {
-                return 0;
-            }
-
-            @Override
-            public Collection<Accountable> getChildResources() {
-                return Collections.emptyList();
-            }
-
-            @Override
-            public void close() {
-            }
-
-            @Override
-            public MultiGeoPointValues getGeoPointValues() {
-                return FieldData.emptyMultiGeoPoints();
-            }
-        };
-    }
 }

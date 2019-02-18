@@ -25,7 +25,6 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.geo.GeoPoint;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -69,114 +68,6 @@ public enum FieldData {
         return singleton(emptyNumericDouble());
     }
 
-    public static GeoPointValues emptyGeoPoint() {
-        return new GeoPointValues() {
-            @Override
-            public boolean advanceExact(int doc) throws IOException {
-                return false;
-            }
-
-            @Override
-            public GeoPoint geoPointValue() {
-                throw new UnsupportedOperationException();
-            }
-        };
-    }
-
-    /**
-     * Return a {@link SortedNumericDoubleValues} that doesn't contain any value.
-     */
-    public static MultiGeoPointValues emptyMultiGeoPoints() {
-        return singleton(emptyGeoPoint());
-    }
-
-    /**
-     * Returns a {@link DocValueBits} representing all documents from <code>values</code> that have a value.
-     */
-    public static DocValueBits docsWithValue(final SortedBinaryDocValues values) {
-        return new DocValueBits() {
-            @Override
-            public boolean advanceExact(int doc) throws IOException {
-                return values.advanceExact(doc);
-            }
-        };
-    }
-
-    /**
-     * Returns a {@link DocValueBits} representing all documents from <code>docValues</code>
-     * that have a value.
-     */
-    public static DocValueBits docsWithValue(final SortedSetDocValues docValues) {
-        return new DocValueBits() {
-            @Override
-            public boolean advanceExact(int doc) throws IOException {
-                return docValues.advanceExact(doc);
-            }
-        };
-    }
-
-    /**
-     * Returns a {@link DocValueBits} representing all documents from <code>pointValues</code> that have
-     * a value.
-     */
-    public static DocValueBits docsWithValue(final MultiGeoPointValues pointValues) {
-        return new DocValueBits() {
-            @Override
-            public boolean advanceExact(int doc) throws IOException {
-                return pointValues.advanceExact(doc);
-            }
-        };
-    }
-
-    /**
-     * Returns a {@link DocValueBits} representing all documents from <code>doubleValues</code> that have a value.
-     */
-    public static DocValueBits docsWithValue(final SortedNumericDoubleValues doubleValues) {
-        return new DocValueBits() {
-            @Override
-            public boolean advanceExact(int doc) throws IOException {
-                return doubleValues.advanceExact(doc);
-            }
-        };
-    }
-
-    /**
-     * Returns a {@link DocValueBits} representing all documents from <code>docValues</code> that have
-     * a value.
-     */
-    public static DocValueBits docsWithValue(final SortedNumericDocValues docValues) {
-        return new DocValueBits() {
-            @Override
-            public boolean advanceExact(int doc) throws IOException {
-                return docValues.advanceExact(doc);
-            }
-        };
-    }
-
-    /**
-     * Given a {@link SortedNumericDoubleValues}, return a
-     * {@link SortedNumericDocValues} instance that will translate double values
-     * to sortable long bits using
-     * {@link org.apache.lucene.util.NumericUtils#doubleToSortableLong(double)}.
-     */
-    public static SortedNumericDocValues toSortableLongBits(SortedNumericDoubleValues values) {
-        final NumericDoubleValues singleton = unwrapSingleton(values);
-        if (singleton != null) {
-            final NumericDocValues longBits;
-            if (singleton instanceof SortableLongBitsToNumericDoubleValues) {
-                longBits = ((SortableLongBitsToNumericDoubleValues) singleton).getLongValues();
-            } else {
-                longBits = new SortableLongBitsNumericDocValues(singleton);
-            }
-            return DocValues.singleton(longBits);
-        } else {
-            if (values instanceof SortableLongBitsToSortedNumericDoubleValues) {
-                return ((SortableLongBitsToSortedNumericDoubleValues) values).getLongValues();
-            } else {
-                return new SortableLongBitsSortedNumericDocValues(values);
-            }
-        }
-    }
 
     /**
      * Given a {@link SortedNumericDocValues}, return a {@link SortedNumericDoubleValues}
@@ -246,25 +137,6 @@ public enum FieldData {
     }
 
     /**
-     * Returns a multi-valued view over the provided {@link GeoPointValues}.
-     */
-    public static MultiGeoPointValues singleton(GeoPointValues values) {
-        return new SingletonMultiGeoPointValues(values);
-    }
-
-    /**
-     * Returns a single-valued view of the {@link MultiGeoPointValues},
-     * if it was previously wrapped with {@link #singleton(GeoPointValues)},
-     * or null.
-     */
-    public static GeoPointValues unwrapSingleton(MultiGeoPointValues values) {
-        if (values instanceof SingletonMultiGeoPointValues) {
-            return ((SingletonMultiGeoPointValues) values).getGeoPointValues();
-        }
-        return null;
-    }
-
-    /**
      * Returns a multi-valued view over the provided {@link BinaryDocValues}.
      */
     public static SortedBinaryDocValues singleton(BinaryDocValues values) {
@@ -281,14 +153,6 @@ public enum FieldData {
             return ((SingletonSortedBinaryDocValues) values).getBinaryDocValues();
         }
         return null;
-    }
-
-    /**
-     * Returns whether the provided values *might* be multi-valued. There is no
-     * guarantee that this method will return {@code false} in the single-valued case.
-     */
-    public static boolean isMultiValued(SortedSetDocValues values) {
-        return DocValues.unwrapSingleton(values) == null;
     }
 
     /**

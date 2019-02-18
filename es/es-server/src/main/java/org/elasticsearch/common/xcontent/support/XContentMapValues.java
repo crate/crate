@@ -299,10 +299,6 @@ public class XContentMapValues {
         return filtered;
     }
 
-    public static boolean isObject(Object node) {
-        return node instanceof Map;
-    }
-
     public static boolean isArray(Object node) {
         return node instanceof List;
     }
@@ -312,13 +308,6 @@ public class XContentMapValues {
             return defaultValue;
         }
         return node.toString();
-    }
-
-    public static float nodeFloatValue(Object node, float defaultValue) {
-        if (node == null) {
-            return defaultValue;
-        }
-        return nodeFloatValue(node);
     }
 
     public static float nodeFloatValue(Object node) {

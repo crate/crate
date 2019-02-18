@@ -76,10 +76,6 @@ public final class Uid {
         return createUid(type, id);
     }
 
-    public BytesRef toBytesRef() {
-        return createUidAsBytes(type, id);
-    }
-
     public static Uid createUid(String uid) {
         int delimiterIndex = uid.indexOf(DELIMITER); // type is not allowed to have # in it..., ids can
         return new Uid(uid.substring(0, delimiterIndex), uid.substring(delimiterIndex + 1));
@@ -87,10 +83,6 @@ public final class Uid {
 
     public static BytesRef createUidAsBytes(String type, String id) {
         return createUidAsBytes(new BytesRef(type), new BytesRef(id));
-    }
-
-    public static BytesRef createUidAsBytes(String type, BytesRef id) {
-        return createUidAsBytes(new BytesRef(type), id);
     }
 
     public static BytesRef createUidAsBytes(BytesRef type, BytesRef id) {
@@ -102,10 +94,6 @@ public final class Uid {
         ref.offset = 0;
         ref.length = ref.bytes.length;
         return ref;
-    }
-
-    public static BytesRef[] createUidsForTypesAndId(Collection<String> types, Object id) {
-        return createUidsForTypesAndIds(types, Collections.singletonList(id));
     }
 
     public static BytesRef[] createUidsForTypesAndIds(Collection<String> types, Collection<?> ids) {

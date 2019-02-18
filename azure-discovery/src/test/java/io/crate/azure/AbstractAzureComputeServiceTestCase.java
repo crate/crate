@@ -24,10 +24,10 @@ package io.crate.azure;
 
 import io.crate.azure.management.AzureComputeService.Discovery;
 import io.crate.azure.management.AzureComputeService.Management;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 
 
 public abstract class AbstractAzureComputeServiceTestCase extends ESIntegTestCase {
@@ -47,9 +47,6 @@ public abstract class AbstractAzureComputeServiceTestCase extends ESIntegTestCas
     }
 
     void checkNumberOfNodes(int expected) {
-        NodesInfoResponse nodeInfos = client().admin().cluster().prepareNodesInfo().execute().actionGet();
-        assertNotNull(nodeInfos);
-        assertNotNull(nodeInfos.getNodes());
-        assertEquals(expected, nodeInfos.getNodes().size());
+        assertThat(internalCluster().clusterService().state().nodes().getSize(), Matchers.is(expected));
     }
 }

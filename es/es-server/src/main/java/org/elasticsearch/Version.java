@@ -322,19 +322,6 @@ public class Version implements Comparable<Version>, ToXContentFragment {
         return internalId;
     }
 
-    private boolean isBeta() {
-        return major < 5 ? build < 50 : build >= 25 && build < 50;
-    }
-
-    /**
-     * Returns true iff this version is an alpha version
-     * Note: This has been introduced in elasticsearch version 5. Previous versions will never
-     * have an alpha version.
-     */
-    private boolean isAlpha() {
-        return major < 5 ? false :  build < 25;
-    }
-
     public boolean isRelease() {
         return build == 99;
     }
