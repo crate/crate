@@ -86,6 +86,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.QualifiedName;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
@@ -114,7 +115,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -165,7 +165,7 @@ import static org.mockito.Mockito.mock;
  */
 public class SQLExecutor {
 
-    private static final Logger LOGGER = Loggers.getLogger(SQLExecutor.class);
+    private static final Logger LOGGER = LogManager.getLogger(SQLExecutor.class);
 
     private final Functions functions;
     public final Analyzer analyzer;

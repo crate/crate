@@ -24,6 +24,7 @@ package io.crate.plugin;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.collections.Lists2;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -31,7 +32,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -57,7 +57,7 @@ import java.util.function.UnaryOperator;
 
 public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
-    private static final Logger LOGGER = Loggers.getLogger(PluginLoaderPlugin.class);
+    private static final Logger LOGGER = LogManager.getLogger(PluginLoaderPlugin.class);
 
     @VisibleForTesting
     final PluginLoader pluginLoader;

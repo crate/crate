@@ -20,9 +20,9 @@
 package org.elasticsearch.discovery.ec2;
 
 import com.amazonaws.util.json.Jackson;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.SuppressForbidden;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -33,11 +33,11 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.ReloadablePlugin;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.UncheckedIOException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
@@ -51,7 +51,7 @@ import java.util.function.Supplier;
 
 public class Ec2DiscoveryPlugin extends Plugin implements DiscoveryPlugin, ReloadablePlugin {
 
-    private static Logger logger = Loggers.getLogger(Ec2DiscoveryPlugin.class);
+    private static Logger logger = LogManager.getLogger(Ec2DiscoveryPlugin.class);
 
     public static final String EC2 = "ec2";
 

@@ -19,6 +19,7 @@
 
 package org.elasticsearch.index.fielddata.plain;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.LeafReaderContext;
@@ -28,7 +29,6 @@ import org.apache.lucene.search.SortedSetSelector;
 import org.apache.lucene.search.SortedSetSortField;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.AtomicOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource.Nested;
@@ -46,7 +46,7 @@ public class SortedSetDVOrdinalsIndexFieldData extends DocValuesIndexFieldData i
     private final IndexSettings indexSettings;
     private final IndexFieldDataCache cache;
     private final CircuitBreakerService breakerService;
-    private static final Logger logger = Loggers.getLogger(SortedSetDVOrdinalsIndexFieldData.class);
+    private static final Logger logger = LogManager.getLogger(SortedSetDVOrdinalsIndexFieldData.class);
 
     public SortedSetDVOrdinalsIndexFieldData(IndexSettings indexSettings, IndexFieldDataCache cache, String fieldName,
             CircuitBreakerService breakerService) {

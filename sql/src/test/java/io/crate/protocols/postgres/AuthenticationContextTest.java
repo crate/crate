@@ -28,7 +28,7 @@ import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
 import io.crate.auth.user.User;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.logging.Loggers;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Test;
 
 import java.net.InetAddress;
@@ -48,7 +48,7 @@ public class AuthenticationContextTest extends CrateUnitTest {
             InetAddress.getByName("127.0.0.1"), Protocol.POSTGRES, null);
         AuthenticationMethod authMethod = AUTHENTICATION.resolveAuthenticationType(userName, connProperties);
         AuthenticationContext authContext = new AuthenticationContext(
-            authMethod, connProperties, userName, Loggers.getLogger(AuthenticationContextTest.class));
+            authMethod, connProperties, userName, LogManager.getLogger(AuthenticationContextTest.class));
         authContext.setSecurePassword(passwd);
         assertThat(authContext.authenticate(), is(User.CRATE_USER));
         assertThat(authContext.password().getChars(), is(passwd));
