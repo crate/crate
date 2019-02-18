@@ -454,7 +454,6 @@ def create_doctest_suite():
                             'admin/user-management.rst',
                             'admin/snapshots.rst',
                             'admin/privileges.rst',
-                            'admin/ingestion/rules.rst',
                             'general/dql/index.rst',
                             'general/dql/refresh.rst',
                             'admin/optimization.rst',

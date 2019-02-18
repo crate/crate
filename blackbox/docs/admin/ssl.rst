@@ -8,8 +8,7 @@ Secured communication allows you to encrypt traffic between the CrateDB node
 and a client. This applies to connections using HTTP (i.e. `Admin UI
 <https://crate.io/docs/crate/guide/getting_started/connect/admin_ui.html>`_,
 `Crash <https://crate.io/docs/crate/guide/getting_started/connect/crash.html>`_,
-:ref:`sql_http_endpoint`), the :ref:`postgres_wire_protocol` (i.e. JDBC, psql),
-and :ref:`ingest_mqtt`.
+:ref:`sql_http_endpoint`) and the :ref:`postgres_wire_protocol` (i.e. JDBC, psql).
 
 Connections are secured using Transport Layer Security (TLS).
 
@@ -41,8 +40,7 @@ create a ``keystore``.
 Once the ``keystore`` (and optional ``truststore``) is created, continue with
 the following steps:
 
- - Set ``ssl.psql.enabled``, ``ssl.http.enabled`` or ``ssl.ingestion.mqtt.enabled``
-   to ``true``.
+ - Set ``ssl.psql.enabled`` or ``ssl.http.enabled`` to ``true``.
  - :ref:`ssl_configure_keystore`
  - (Optional) :ref:`ssl_configure_truststore`
 
@@ -188,15 +186,6 @@ information including the different SSL modes please visit the
 .. _jdbc ssl documentation: https://jdbc.postgresql.org/documentation/head/ssl-client.html
 .. _psql documentation: https://www.postgresql.org/docs/current/static/app-psql.html
 
-
-Connecting to a CrateDB MQTT Endpoint With SSL/TLS
---------------------------------------------------
-
-A CrateDB node configured to run as an :ref:`MQTT endpoint <ingest_mqtt>` can
-only accept encrypted connections if SSL ingestion is enabled, namely if the
-:ref:`ssl.ingestion.mqtt.enabled <ssl_ingestion_mqtt_enabled>` setting is
-configured to ``true`` and the :ref:`ingestion.mqtt.port <ingestion_mqtt_port>`
-setting is ``8883``.
 
 Setting up a Keystore/Truststore With a Certificate Chain
 =========================================================

@@ -71,7 +71,6 @@ number of replicas.
     | doc                | partitioned_table       | BASE TABLE |                4 | 0-1                |
     | doc                | quotes                  | BASE TABLE |                2 | 0                  |
     | information_schema | columns                 | BASE TABLE |             NULL | NULL               |
-    | information_schema | ingestion_rules         | BASE TABLE |             NULL | NULL               |
     | information_schema | key_column_usage        | BASE TABLE |             NULL | NULL               |
     | information_schema | referential_constraints | BASE TABLE |             NULL | NULL               |
     | information_schema | routines                | BASE TABLE |             NULL | NULL               |
@@ -108,7 +107,7 @@ number of replicas.
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 41 rows in set (... sec)
+    SELECT 40 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`partitioned_tables`)
@@ -774,34 +773,3 @@ CrateDB based to the current SQL standard (see :ref:`sql_supported_features`)::
 :comments:
     Either ``NULL`` or shows a comment about the supported status of the
     feature
-
-.. _information_schema_ingest:
-
-``ingestion_rules``
--------------------
-
-The ``ingestion_rules`` table contains rules created by
-:ref:`create-ingest-rule` statements.
-
-.. rubric:: Schema
-
-+--------------------+-------------+
-| Name               | Data Type   |
-+====================+=============+
-| rule_name          | String      |
-+--------------------+-------------+
-| source_ident       | String      |
-+--------------------+-------------+
-| target_table       | String      |
-+--------------------+-------------+
-| condition          | String      |
-+--------------------+-------------+
-
-:rule_name:
-    The rule name
-:source_ident:
-    The ingestion source identifier
-:target_table:
-    The target table identifier
-:condition:
-    A boolean expression used to filter the source data

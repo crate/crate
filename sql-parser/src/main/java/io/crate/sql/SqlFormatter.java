@@ -36,13 +36,11 @@ import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CrateTableOption;
 import io.crate.sql.tree.CreateFunction;
-import io.crate.sql.tree.CreateIngestRule;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.DenyPrivilege;
-import io.crate.sql.tree.DropIngestRule;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.Explain;
@@ -93,7 +91,6 @@ import java.util.TreeMap;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import static io.crate.sql.ExpressionFormatter.formatExpression;
 import static io.crate.sql.ExpressionFormatter.formatStandaloneExpression;
 
 public final class SqlFormatter {
@@ -717,35 +714,7 @@ public final class SqlFormatter {
             return null;
         }
 
-        @Override
-        public Void visitCreateIngestRule(CreateIngestRule node, Integer context) {
-            builder.append("CREATE INGEST RULE ")
-                .append(quoteIdentifierIfNeeded(node.ruleName().toString()));
-
-            builder.append(" ON ")
-                .append(quoteIdentifierIfNeeded(node.sourceIdent().toString()));
-
-            if (node.where().isPresent()) {
-                builder.append(" WHERE " + formatExpression(node.where().get()));
-            }
-            builder.append(" INTO ")
-                .append(quoteIdentifierIfNeeded(node.targetTable().toString()));
-
-            return null;
-        }
-
-        @Override
-        public Void visitDropIngestRule(DropIngestRule node, Integer context) {
-            builder.append("DROP INGEST RULE ");
-            if (node.ifExists()) {
-                builder.append("IF EXISTS ");
-            }
-            builder.append(quoteIdentifierIfNeeded(node.name()));
-
-            return null;
-        }
-
-        private Void appendPrivilegesList(List<String> privilegeTypes) {
+        private void appendPrivilegesList(List<String> privilegeTypes) {
             int j = 0;
             for (String privilegeType : privilegeTypes) {
                 builder.append(privilegeType);
@@ -754,7 +723,6 @@ public final class SqlFormatter {
                 }
                 j++;
             }
-            return null;
         }
 
         private void appendUsersList(List<String> userNames) {

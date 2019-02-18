@@ -28,11 +28,11 @@ import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationsUnknown;
 import io.crate.execution.ddl.RepositoryService;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterTable;
@@ -49,7 +49,6 @@ import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.CreateAnalyzer;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateFunction;
-import io.crate.sql.tree.CreateIngestRule;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
@@ -62,7 +61,6 @@ import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropFunction;
-import io.crate.sql.tree.DropIngestRule;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropTable;
@@ -138,7 +136,6 @@ public class Analyzer {
     private final CreateFunctionAnalyzer createFunctionAnalyzer;
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
     private final PrivilegesAnalyzer privilegesAnalyzer;
-    private final CreateIngestionRuleAnalyzer createIngestionRuleAnalyzer;
     private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
     private final CreateUserAnalyzer createUserAnalyzer;
     private final AlterUserAnalyzer alterUserAnalyzer;
@@ -212,7 +209,6 @@ public class Analyzer {
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.privilegesAnalyzer = new PrivilegesAnalyzer(ENTERPRISE_LICENSE_SETTING.setting().get(settings));
-        this.createIngestionRuleAnalyzer = new CreateIngestionRuleAnalyzer(schemas);
         this.createUserAnalyzer = new CreateUserAnalyzer(functions);
         this.alterUserAnalyzer = new AlterUserAnalyzer(functions);
         this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
@@ -502,16 +498,6 @@ public class Analyzer {
         @Override
         protected AnalyzedStatement visitNode(Node node, Analysis context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "cannot analyze statement: '%s'", node));
-        }
-
-        @Override
-        public AnalyzedStatement visitDropIngestRule(DropIngestRule node, Analysis context) {
-            return new DropIngestionRuleAnalysedStatement(node.name(), node.ifExists());
-        }
-
-        @Override
-        public AnalyzedStatement visitCreateIngestRule(CreateIngestRule node, Analysis context) {
-            return createIngestionRuleAnalyzer.analyze(node, context);
         }
 
         @Override

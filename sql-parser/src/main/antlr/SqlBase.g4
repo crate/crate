@@ -81,7 +81,6 @@ statement
     | DROP FUNCTION (IF EXISTS)? name=qname
         '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
     | DROP USER (IF EXISTS)? name=ident                                              #dropUser
-    | DROP INGEST RULE (IF EXISTS)? rule_name=ident                                  #dropIngestRule
     | DROP VIEW (IF EXISTS)? names=qnames                                            #dropView
     | DROP ANALYZER name=ident                                                       #dropAnalyzer
     | GRANT (priviliges=idents | ALL PRIVILEGES?)
@@ -465,10 +464,6 @@ createStmt
         AS body=parameterOrString                                                    #createFunction
     | CREATE USER name=ident withProperties?                                         #createUser
     | CREATE ( OR REPLACE )? VIEW name=qname AS query                                #createView
-    | CREATE INGEST RULE rule_name=ident
-        ON source_ident=ident
-        (where)?
-        INTO table_ident=qname                                                       #createIngestRule
     ;
 
 functionArgument
@@ -654,7 +649,7 @@ nonReserved
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN | COMMIT
     | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
-    | PRIVILEGES | SCHEMA | INGEST | RULE | PREPARE
+    | PRIVILEGES | SCHEMA | PREPARE
     | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED
     | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION | RETURN | SUMMARY
     | WORK | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | DEFERRABLE
@@ -899,9 +894,6 @@ DENY: 'DENY';
 REVOKE: 'REVOKE';
 PRIVILEGES: 'PRIVILEGES';
 SCHEMA: 'SCHEMA';
-
-INGEST: 'INGEST';
-RULE: 'RULE';
 
 RETURN: 'RETURN';
 SUMMARY: 'SUMMARY';

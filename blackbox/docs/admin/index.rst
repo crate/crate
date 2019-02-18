@@ -19,7 +19,6 @@ database administrator.
     privileges
     auth/index
     ssl
-    ingestion/index
     optimization
     jobs-management
     monitoring

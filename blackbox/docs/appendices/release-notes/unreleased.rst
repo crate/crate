@@ -56,6 +56,8 @@ Breaking Changes
 - Removed the deprecated ``http.enabled`` setting. ``HTTP`` is now always
   enabled and can no longer be disabled.
 
+- Removed the deprecated ``ingest`` framework, including the ``MQTT`` endpoint.
+
 
 Deprecations
 ============
@@ -73,7 +75,7 @@ Deprecations
   deprecated in favour of the
   :ref:`ALTER CLUSTER DECOMISSION <alter_cluster_decommission>` statement.
 
-- Marked :ref:`create-ingest-rule` and :ref:`drop-ingest-rule` as deprecated.
+- Marked ``CREATE INGEST RULE`` and ``DROP INGEST RULE`` as deprecated.
   Given that the only implementation (MQTT) was deprecated and will be removed,
   the framework itself will also be removed.
 

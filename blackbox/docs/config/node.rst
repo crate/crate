@@ -484,15 +484,6 @@ Layer Security (TLS).
   Set this to true to enable secure communication between the CrateDB node
   and the client through SSL via the PostgreSQL wire protocol.
 
-.. _ssl_ingestion_mqtt_enabled:
-
-**ssl.ingestion.mqtt.enabled**
-  | *Runtime:*  ``no``
-  | *Default:* ``false``
-
-  Set this to true to enable secure communication between the CrateDB node and
-  the client through SSL via the MQTT protocol.
-
 **ssl.keystore_filepath**
   | *Runtime:* ``no``
 
@@ -679,47 +670,6 @@ Custom attributes are not validated by CrateDB, unlike core node attributes.
 Custom attributes can, however, be :ref:`used to control shard allocation
 <conf-routing-allocation-awareness>`.
 
-
-Ingestion Framework
-===================
-
-.. _ingest_mqtt_config:
-
-MQTT
-----
-
-Settings for the :ref:`ingest_mqtt`.
-
-.. NOTE::
-
-   The MQTT ingestion source an
-   :ref:`enterprise feature <enterprise_features>`.
-
-**ingestion.mqtt.enabled**
-  | *Default:*   ``false``
-  | *Runtime:*  ``no``
-
-  Enables the MQTT_ ingestion source on this node.
-
-.. _ingestion_mqtt_port:
-
-**ingestion.mqtt.port**
-  | *Default:*   ``1883``
-  | *Runtime:*  ``no``
-
-  TCP port on which the endpoint is exposed.
-
-  Can either be a number, or a string defining a port range. The first free
-  port of this range is used.
-
-**ingestion.mqtt.timeout**
-  | *Default:*   ``10s``
-  | *Runtime:*  ``no``
-
-  The default keep-alive timeout for establised connections.
-
-  This timeout is used if the client does not specify a ``keepAlive`` option
-  when sending the ``CONNECT`` message.
 
 .. _conf-node-enterprise-license:
 
