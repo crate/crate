@@ -19,16 +19,11 @@
 
 package org.elasticsearch.common.settings;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.Strings;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Binder;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentType;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,8 +31,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * A module that binds the provided settings to the {@link Settings} interface.
@@ -84,60 +77,10 @@ public class SettingsModule implements Module {
         }
         this.indexScopedSettings = new IndexScopedSettings(settings, new HashSet<>(this.indexSettings.values()));
         this.clusterSettings = new ClusterSettings(settings, new HashSet<>(this.nodeSettings.values()), clusterSettingUpgraders);
-        Settings indexSettings = settings.filter((s) -> (s.startsWith("index.") &&
-            // special case - we want to get Did you mean indices.query.bool.max_clause_count
-            // which means we need to by-pass this check for this setting
-            // TODO remove in 6.0!!
-            "index.query.bool.max_clause_count".equals(s) == false)
-            && clusterSettings.get(s) == null);
+        Settings indexSettings = settings.filter((s) -> s.startsWith("index.") && clusterSettings.get(s) == null);
         if (indexSettings.isEmpty() == false) {
-            try {
-                String separator = IntStream.range(0, 85).mapToObj(s -> "*").collect(Collectors.joining("")).trim();
-                StringBuilder builder = new StringBuilder();
-                builder.append(System.lineSeparator());
-                builder.append(separator);
-                builder.append(System.lineSeparator());
-                builder.append("Found index level settings on node level configuration.");
-                builder.append(System.lineSeparator());
-                builder.append(System.lineSeparator());
-                int count = 0;
-                for (String word : ("Since elasticsearch 5.x index level settings can NOT be set on the nodes configuration like " +
-                    "the elasticsearch.yaml, in system properties or command line arguments." +
-                    "In order to upgrade all indices the settings must be updated via the /${index}/_settings API. " +
-                    "Unless all settings are dynamic all indices must be closed in order to apply the upgrade" +
-                    "Indices created in the future should use index templates to set default values."
-                ).split(" ")) {
-                    if (count + word.length() > 85) {
-                        builder.append(System.lineSeparator());
-                        count = 0;
-                    }
-                    count += word.length() + 1;
-                    builder.append(word).append(" ");
-                }
-
-                builder.append(System.lineSeparator());
-                builder.append(System.lineSeparator());
-                builder.append("Please ensure all required values are updated on all indices by executing: ");
-                builder.append(System.lineSeparator());
-                builder.append(System.lineSeparator());
-                builder.append("curl -XPUT 'http://localhost:9200/_all/_settings?preserve_existing=true' -d '");
-                try (XContentBuilder xContentBuilder = XContentBuilder.builder(XContentType.JSON.xContent())) {
-                    xContentBuilder.prettyPrint();
-                    xContentBuilder.startObject();
-                    indexSettings.toXContent(xContentBuilder, new ToXContent.MapParams(Collections.singletonMap("flat_settings", "true")));
-                    xContentBuilder.endObject();
-                    builder.append(Strings.toString(xContentBuilder));
-                }
-                builder.append("'");
-                builder.append(System.lineSeparator());
-                builder.append(separator);
-                builder.append(System.lineSeparator());
-
-                logger.warn(builder.toString());
-                throw new IllegalArgumentException("node settings must not contain any index level settings");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            throw new IllegalArgumentException(
+                "Index settings found. These have been unsupported since CrateDB 2.0 and should've been migrated.");
         }
         // by now we are fully configured, lets check node level settings for unregistered index settings
         clusterSettings.validate(settings, true);
