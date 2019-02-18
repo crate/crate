@@ -66,6 +66,8 @@ Deprecations
 Changes
 =======
 
+- Added support for :ref:`sql_escape_string_literals`.
+
 - Expose the sum of durations, total, and failed count metrics under the
   :ref:`query_stats_mbean` for ``QUERY``, ``INSERT``, ``UPDATE``, ``DELETE``,
   ``MANAGEMENT``, ``DDL`` and ``COPY`` statement types.

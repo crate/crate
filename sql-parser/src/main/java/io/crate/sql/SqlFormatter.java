@@ -45,6 +45,7 @@ import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropIngestRule;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionArgument;
@@ -503,6 +504,12 @@ public final class SqlFormatter {
         @Override
         protected Void visitStringLiteral(StringLiteral node, Integer indent) {
             builder.append(Literals.quoteStringLiteral(node.getValue()));
+            return null;
+        }
+
+        @Override
+        protected Void visitEscapedCharStringLiteral(EscapedCharStringLiteral node, Integer context) {
+            builder.append(Literals.escapeAndQuoteStringLiteral(node.getRawValue()));
             return null;
         }
 

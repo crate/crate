@@ -87,6 +87,7 @@ import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.DropView;
+import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Except;
 import io.crate.sql.tree.ExistsPredicate;
 import io.crate.sql.tree.Explain;
@@ -1528,6 +1529,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitStringLiteral(SqlBaseParser.StringLiteralContext context) {
         return new StringLiteral(unquote(context.STRING().getText()));
+    }
+
+    @Override
+    public Node visitEscapedCharsStringLiteral(SqlBaseParser.EscapedCharsStringLiteralContext ctx) {
+        return new EscapedCharStringLiteral(unquote(ctx.STRING().getText()));
     }
 
     @Override
