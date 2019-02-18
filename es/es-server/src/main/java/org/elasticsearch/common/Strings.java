@@ -267,17 +267,6 @@ public class Strings {
     }
 
     /**
-     * Delete all occurrences of the given substring.
-     *
-     * @param inString the original String
-     * @param pattern  the pattern to delete all occurrences of
-     * @return the resulting String
-     */
-    public static String delete(String inString, String pattern) {
-        return replace(inString, pattern, "");
-    }
-
-    /**
      * Delete any character in a given String.
      *
      * @param inString      the original String

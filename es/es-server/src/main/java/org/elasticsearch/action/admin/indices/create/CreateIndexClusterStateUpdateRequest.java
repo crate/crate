@@ -27,7 +27,6 @@ import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.transport.TransportMessage;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,7 +38,6 @@ import java.util.Set;
  */
 public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequest<CreateIndexClusterStateUpdateRequest> {
 
-    private final TransportMessage originalMessage;
     private final String cause;
     private final String index;
     private final String providedName;
@@ -60,9 +58,7 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
 
     private ActiveShardCount waitForActiveShards = ActiveShardCount.DEFAULT;
 
-    public CreateIndexClusterStateUpdateRequest(TransportMessage originalMessage, String cause, String index, String providedName,
-                                                boolean updateAllTypes) {
-        this.originalMessage = originalMessage;
+    public CreateIndexClusterStateUpdateRequest(String cause, String index, String providedName, boolean updateAllTypes) {
         this.cause = cause;
         this.index = index;
         this.updateAllTypes = updateAllTypes;
@@ -84,16 +80,6 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
         return this;
     }
 
-    public CreateIndexClusterStateUpdateRequest blocks(Set<ClusterBlock> blocks) {
-        this.blocks.addAll(blocks);
-        return this;
-    }
-
-    public CreateIndexClusterStateUpdateRequest state(IndexMetaData.State state) {
-        this.state = state;
-        return this;
-    }
-
     public CreateIndexClusterStateUpdateRequest recoverFrom(Index recoverFrom) {
         this.recoverFrom = recoverFrom;
         return this;
@@ -112,10 +98,6 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
     public CreateIndexClusterStateUpdateRequest copySettings(final boolean copySettings) {
         this.copySettings = copySettings;
         return this;
-    }
-
-    public TransportMessage originalMessage() {
-        return originalMessage;
     }
 
     public String cause() {

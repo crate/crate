@@ -23,7 +23,6 @@ import com.carrotsearch.hppc.ObjectLongMap;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.CheckIndex;
 import org.apache.lucene.index.IndexCommit;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
@@ -73,7 +72,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.bitset.ShardBitsetFilterCache;
-import org.elasticsearch.index.cache.request.ShardRequestCache;
 import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.engine.CommitStats;
 import org.elasticsearch.index.engine.Engine;
@@ -82,8 +80,6 @@ import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.RefreshFailedEngineException;
 import org.elasticsearch.index.engine.Segment;
-import org.elasticsearch.index.engine.SegmentsStats;
-import org.elasticsearch.index.fielddata.FieldDataStats;
 import org.elasticsearch.index.fielddata.ShardFieldData;
 import org.elasticsearch.index.flush.FlushStats;
 import org.elasticsearch.index.mapper.DocumentMapper;
@@ -96,7 +92,6 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.RootObjectMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.Uid;
-import org.elasticsearch.index.mapper.UidFieldMapper;
 import org.elasticsearch.index.merge.MergeStats;
 import org.elasticsearch.index.recovery.RecoveryStats;
 import org.elasticsearch.index.refresh.RefreshStats;
@@ -110,9 +105,6 @@ import org.elasticsearch.index.store.StoreFileMetaData;
 import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogConfig;
-import org.elasticsearch.index.translog.TranslogStats;
-import org.elasticsearch.index.warmer.ShardIndexWarmerService;
-import org.elasticsearch.index.warmer.WarmerStats;
 import org.elasticsearch.indices.IndexingMemoryController;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.TypeMissingException;
@@ -160,9 +152,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     private final MapperService mapperService;
     private final IndexCache indexCache;
     private final Store store;
-    private final InternalIndexingStats internalIndexingStats;
-    private final ShardIndexWarmerService shardWarmerService;
-    private final ShardRequestCache requestCacheStats;
     private final ShardFieldData shardFieldData;
     private final ShardBitsetFilterCache shardBitsetFilterCache;
     private final Object mutex = new Object();
@@ -258,13 +247,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         this.threadPool = threadPool;
         this.mapperService = mapperService;
         this.indexCache = indexCache;
-        this.internalIndexingStats = new InternalIndexingStats();
-        final List<IndexingOperationListener> listenersList = new ArrayList<>(listeners);
-        listenersList.add(internalIndexingStats);
-        this.indexingOperationListeners = new IndexingOperationListener.CompositeListener(listenersList, logger);
+        this.indexingOperationListeners = new IndexingOperationListener.CompositeListener(listeners, logger);
         this.globalCheckpointSyncer = globalCheckpointSyncer;
-        this.shardWarmerService = new ShardIndexWarmerService(shardId, indexSettings);
-        this.requestCacheStats = new ShardRequestCache();
         this.shardFieldData = new ShardFieldData();
         this.shardBitsetFilterCache = new ShardBitsetFilterCache(shardId, indexSettings);
         state = IndexShardState.CREATED;
@@ -332,14 +316,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return mapperService;
     }
 
-    public ShardIndexWarmerService warmerService() {
-        return this.shardWarmerService;
-    }
-
-    public ShardRequestCache requestCache() {
-        return this.requestCacheStats;
-    }
-
     public ShardFieldData fieldData() {
         return this.shardFieldData;
     }
@@ -355,11 +331,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return this.pendingPrimaryTerm;
     }
 
-    /** Returns the primary term that is currently being used to assign to operations */
-    public long getOperationPrimaryTerm() {
-        return this.operationPrimaryTerm;
-    }
-
     /**
      * Returns the latest cluster routing entry received with this shard.
      */
@@ -367,11 +338,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     public ShardRouting routingEntry() {
         return this.shardRouting;
     }
-
-    public QueryCachingPolicy getQueryCachingPolicy() {
-        return cachingPolicy;
-    }
-
 
     @Override
     public void updateShardState(final ShardRouting newRouting,
@@ -886,20 +852,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return getEngine().getSeqNoStats(replicationTracker.getGlobalCheckpoint());
     }
 
-    public IndexingStats indexingStats(String... types) {
-        Engine engine = getEngineOrNull();
-        final boolean throttled;
-        final long throttleTimeInMillis;
-        if (engine == null) {
-            throttled = false;
-            throttleTimeInMillis = 0;
-        } else {
-            throttled = engine.isThrottled();
-            throttleTimeInMillis = engine.getIndexThrottleTimeInMillis();
-        }
-        return internalIndexingStats.stats(throttled, throttleTimeInMillis, types);
-    }
-
     public StoreStats storeStats() {
         try {
             return store.stats();
@@ -915,24 +867,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             return new MergeStats();
         }
         return engine.getMergeStats();
-    }
-
-    public SegmentsStats segmentStats(boolean includeSegmentFileSizes) {
-        SegmentsStats segmentsStats = getEngine().segmentsStats(includeSegmentFileSizes);
-        segmentsStats.addBitsetMemoryInBytes(shardBitsetFilterCache.getMemorySizeInBytes());
-        return segmentsStats;
-    }
-
-    public WarmerStats warmerStats() {
-        return shardWarmerService.stats();
-    }
-
-    public FieldDataStats fieldDataStats(String... fields) {
-        return shardFieldData.stats(fields);
-    }
-
-    public TranslogStats translogStats() {
-        return getEngine().getTranslogStats();
     }
 
     public Engine.SyncedFlushResult syncFlush(String syncId, Engine.CommitId expectedCommitId) {
@@ -1937,15 +1871,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     public boolean pendingInSync() {
         assert assertPrimaryMode();
         return replicationTracker.pendingInSync();
-    }
-
-    /**
-     * Should be called for each no-op update operation to increment relevant statistics.
-     *
-     * @param type the doc type of the update
-     */
-    public void noopUpdate(String type) {
-        internalIndexingStats.noopUpdate(type);
     }
 
     void checkIndex() throws IOException {

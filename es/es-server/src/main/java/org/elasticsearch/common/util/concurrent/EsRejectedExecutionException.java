@@ -30,14 +30,6 @@ public class EsRejectedExecutionException extends RejectedExecutionException {
         this.isExecutorShutdown = isExecutorShutdown;
     }
 
-    public EsRejectedExecutionException(String message) {
-        this(message, false);
-    }
-
-    public EsRejectedExecutionException() {
-        this(null, false);
-    }
-
     /**
      * Checks if the thread pool that rejected the execution was terminated
      * shortly after the rejection. Its possible that this returns false and the

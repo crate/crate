@@ -23,26 +23,20 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexFormatTooNewException;
 import org.apache.lucene.index.IndexFormatTooOldException;
-import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.index.Index;
 import org.elasticsearch.rest.RestStatus;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class ExceptionsHelper {
@@ -271,65 +265,5 @@ public final class ExceptionsHelper {
                         .start();
             }
         });
-    }
-
-    /**
-     * Deduplicate the failures by exception message and index.
-     */
-    public static ShardOperationFailedException[] groupBy(ShardOperationFailedException[] failures) {
-        List<ShardOperationFailedException> uniqueFailures = new ArrayList<>();
-        Set<GroupBy> reasons = new HashSet<>();
-        for (ShardOperationFailedException failure : failures) {
-            GroupBy reason = new GroupBy(failure);
-            if (reasons.contains(reason) == false) {
-                reasons.add(reason);
-                uniqueFailures.add(failure);
-            }
-        }
-        return uniqueFailures.toArray(new ShardOperationFailedException[0]);
-    }
-
-    private static class GroupBy {
-        final String reason;
-        final String index;
-        final Class<? extends Throwable> causeType;
-
-        GroupBy(ShardOperationFailedException failure) {
-            Throwable cause = failure.getCause();
-            //the index name from the failure contains the cluster alias when using CCS. Ideally failures should be grouped by
-            //index name and cluster alias. That's why the failure index name has the precedence over the one coming from the cause,
-            //which does not include the cluster alias.
-            String indexName = failure.index();
-            if (indexName == null) {
-                if (cause instanceof ElasticsearchException) {
-                    final Index index = ((ElasticsearchException) cause).getIndex();
-                    if (index != null) {
-                        indexName = index.getName();
-                    }
-                }
-            }
-            this.index = indexName;
-            this.reason = cause.getMessage();
-            this.causeType = cause.getClass();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            GroupBy groupBy = (GroupBy) o;
-            return Objects.equals(reason, groupBy.reason) &&
-                Objects.equals(index, groupBy.index) &&
-                Objects.equals(causeType, groupBy.causeType);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(reason, index, causeType);
-        }
     }
 }

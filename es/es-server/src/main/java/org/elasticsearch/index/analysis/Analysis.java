@@ -19,8 +19,8 @@
 
 package org.elasticsearch.index.analysis;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.ar.ArabicAnalyzer;
 import org.apache.lucene.analysis.bg.BulgarianAnalyzer;
@@ -96,11 +96,6 @@ public class Analysis {
         }
         // resolve the analysis version based on the version the index was created with
         return org.elasticsearch.Version.indexCreated(indexSettings).luceneVersion;
-    }
-
-    public static boolean isNoStopwords(Settings settings) {
-        String value = settings.get("stopwords");
-        return value != null && "_none_".equals(value);
     }
 
     public static CharArraySet parseStemExclusion(Settings settings, CharArraySet defaultStemExclusion) {

@@ -32,7 +32,6 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.discovery.Discovery;
-import org.elasticsearch.discovery.DiscoveryStats;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
@@ -86,11 +85,6 @@ public class SingleNodeDiscovery extends AbstractLifecycleComponent implements D
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    @Override
-    public DiscoveryStats stats() {
-        return new DiscoveryStats(null, null);
     }
 
     @Override

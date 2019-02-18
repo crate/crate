@@ -34,13 +34,9 @@ import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteReposito
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteResponse;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequestBuilder;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequestBuilder;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotAction;
@@ -142,12 +138,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
     }
 
     @Override
-    public final <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> RequestBuilder prepareExecute(
-            final Action<Request, Response, RequestBuilder> action) {
-        return action.newRequestBuilder(this);
-    }
-
-    @Override
     public final <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> ActionFuture<Response> execute(
             Action<Request, Response, RequestBuilder> action, Request request) {
         PlainActionFuture<Response> actionFuture = PlainActionFuture.newFuture();
@@ -208,12 +198,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         }
 
         @Override
-        public <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> RequestBuilder prepareExecute(
-                Action<Request, Response, RequestBuilder> action) {
-            return client.prepareExecute(action);
-        }
-
-        @Override
         public ThreadPool threadPool() {
             return client.threadPool();
         }
@@ -221,11 +205,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public ActionFuture<ClusterHealthResponse> health(final ClusterHealthRequest request) {
             return execute(ClusterHealthAction.INSTANCE, request);
-        }
-
-        @Override
-        public void health(final ClusterHealthRequest request, final ActionListener<ClusterHealthResponse> listener) {
-            execute(ClusterHealthAction.INSTANCE, request, listener);
         }
 
         @Override
@@ -239,38 +218,13 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         }
 
         @Override
-        public void state(final ClusterStateRequest request, final ActionListener<ClusterStateResponse> listener) {
-            execute(ClusterStateAction.INSTANCE, request, listener);
-        }
-
-        @Override
         public ClusterStateRequestBuilder prepareState() {
             return new ClusterStateRequestBuilder(this, ClusterStateAction.INSTANCE);
         }
 
         @Override
-        public ActionFuture<ClusterRerouteResponse> reroute(final ClusterRerouteRequest request) {
-            return execute(ClusterRerouteAction.INSTANCE, request);
-        }
-
-        @Override
-        public void reroute(final ClusterRerouteRequest request, final ActionListener<ClusterRerouteResponse> listener) {
-            execute(ClusterRerouteAction.INSTANCE, request, listener);
-        }
-
-        @Override
         public ClusterRerouteRequestBuilder prepareReroute() {
             return new ClusterRerouteRequestBuilder(this, ClusterRerouteAction.INSTANCE);
-        }
-
-        @Override
-        public ActionFuture<ClusterUpdateSettingsResponse> updateSettings(final ClusterUpdateSettingsRequest request) {
-            return execute(ClusterUpdateSettingsAction.INSTANCE, request);
-        }
-
-        @Override
-        public void updateSettings(final ClusterUpdateSettingsRequest request, final ActionListener<ClusterUpdateSettingsResponse> listener) {
-            execute(ClusterUpdateSettingsAction.INSTANCE, request, listener);
         }
 
         @Override
@@ -327,12 +281,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         public <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void execute(
                 Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener) {
             client.execute(action, request, listener);
-        }
-
-        @Override
-        public <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> RequestBuilder prepareExecute(
-                Action<Request, Response, RequestBuilder> action) {
-            return client.prepareExecute(action);
         }
 
         @Override

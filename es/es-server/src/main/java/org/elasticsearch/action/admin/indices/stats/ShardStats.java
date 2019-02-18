@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.admin.indices.stats;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -67,26 +66,8 @@ public class ShardStats implements Streamable, Writeable {
         return this.commonStats;
     }
 
-    @Nullable
-    public CommitStats getCommitStats() {
-        return this.commitStats;
-    }
-
-    @Nullable
-    public SeqNoStats getSeqNoStats() {
-        return this.seqNoStats;
-    }
-
     public String getDataPath() {
         return dataPath;
-    }
-
-    public String getStatePath() {
-        return statePath;
-    }
-
-    public boolean isCustomDataPath() {
-        return isCustomDataPath;
     }
 
     public static ShardStats readShardStats(StreamInput in) throws IOException {

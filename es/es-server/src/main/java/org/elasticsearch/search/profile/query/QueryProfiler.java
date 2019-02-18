@@ -53,38 +53,4 @@ public final class QueryProfiler extends AbstractProfiler<QueryProfileBreakdown,
         }
         this.collector = Objects.requireNonNull(collector);
     }
-
-    /**
-     * Begin timing the rewrite phase of a request.  All rewrites are accumulated together into a
-     * single metric
-     */
-    public void startRewriteTime() {
-        ((InternalQueryProfileTree) profileTree).startRewriteTime();
-    }
-
-    /**
-     * Stop recording the current rewrite and add it's time to the total tally, returning the
-     * cumulative time so far.
-     *
-     * @return cumulative rewrite time
-     */
-    public long stopAndAddRewriteTime() {
-        return ((InternalQueryProfileTree) profileTree).stopAndAddRewriteTime();
-    }
-
-    /**
-     * @return total time taken to rewrite all queries in this profile
-     */
-    public long getRewriteTime() {
-        return ((InternalQueryProfileTree) profileTree).getRewriteTime();
-    }
-
-    /**
-     * Return the current root Collector for this search
-     */
-    public CollectorResult getCollector() {
-        return collector.getCollectorTree();
-    }
-
-
 }

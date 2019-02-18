@@ -42,8 +42,6 @@ public abstract class AbstractQueryBuilder<QB extends AbstractQueryBuilder<QB>> 
 
     /** Default for boost to apply to resulting Lucene query. Defaults to 1.0*/
     public static final float DEFAULT_BOOST = 1.0f;
-    public static final ParseField NAME_FIELD = new ParseField("_name");
-    public static final ParseField BOOST_FIELD = new ParseField("boost");
 
     protected String queryName;
     protected float boost = DEFAULT_BOOST;

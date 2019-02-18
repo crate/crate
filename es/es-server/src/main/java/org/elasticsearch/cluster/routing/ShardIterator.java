@@ -30,10 +30,4 @@ public interface ShardIterator extends ShardsIterator, Comparable<ShardIterator>
      * The shard id this group relates to.
      */
     ShardId shardId();
-
-    /**
-     * Resets the iterator.
-     */
-    @Override
-    void reset();
 }

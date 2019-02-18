@@ -25,7 +25,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.lucene.all.AllEntries;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.IndexSettings;
 
@@ -268,11 +267,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
         }
 
         @Override
-        public AllEntries allEntries() {
-            return in.allEntries();
-        }
-
-        @Override
         public boolean externalValueSet() {
             return in.externalValueSet();
         }
@@ -330,8 +324,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
 
         private SeqNoFieldMapper.SequenceIDFields seqID;
 
-        private final AllEntries allEntries;
-
         private final List<Mapper> dynamicMappers;
 
         private boolean docsReversed = false;
@@ -350,7 +342,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
             this.documents.add(document);
             this.version = null;
             this.sourceToParse = source;
-            this.allEntries = new AllEntries();
             this.dynamicMappers = new ArrayList<>();
         }
 
@@ -431,11 +422,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
         @Override
         public void seqID(SeqNoFieldMapper.SequenceIDFields seqID) {
             this.seqID = seqID;
-        }
-
-        @Override
-        public AllEntries allEntries() {
-            return this.allEntries;
         }
 
         @Override
@@ -635,8 +621,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
     public abstract SeqNoFieldMapper.SequenceIDFields seqID();
 
     public abstract void seqID(SeqNoFieldMapper.SequenceIDFields seqID);
-
-    public abstract AllEntries allEntries();
 
     /**
      * Return a new context that will have the external value set.

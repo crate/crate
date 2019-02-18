@@ -40,23 +40,10 @@ public interface WriteRequest<R extends WriteRequest<R>> extends Streamable {
     R setRefreshPolicy(RefreshPolicy refreshPolicy);
 
     /**
-     * Parse the refresh policy from a string, only modifying it if the string is non null. Convenient to use with request parsing.
-     */
-    @SuppressWarnings("unchecked")
-    default R setRefreshPolicy(String refreshPolicy) {
-        if (refreshPolicy != null) {
-            setRefreshPolicy(RefreshPolicy.parse(refreshPolicy));
-        }
-        return (R) this;
-    }
-
-    /**
      * Should this request trigger a refresh ({@linkplain RefreshPolicy#IMMEDIATE}), wait for a refresh (
      * {@linkplain RefreshPolicy#WAIT_UNTIL}), or proceed ignore refreshes entirely ({@linkplain RefreshPolicy#NONE}, the default).
      */
     RefreshPolicy getRefreshPolicy();
-
-    ActionRequestValidationException validate();
 
     enum RefreshPolicy implements Writeable {
         /**

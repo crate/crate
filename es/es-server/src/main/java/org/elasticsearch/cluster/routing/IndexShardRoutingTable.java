@@ -200,15 +200,6 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
     }
 
     /**
-     * Returns a {@link List} of active shards
-     *
-     * @return a {@link List} of shards
-     */
-    public List<ShardRouting> getActiveShards() {
-        return activeShards();
-    }
-
-    /**
      * Returns a {@link List} of assigned shards
      *
      * @return a {@link List} of shards
@@ -217,25 +208,8 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
         return this.assignedShards;
     }
 
-    /**
-     * Returns a {@link List} of assigned shards
-     *
-     * @return a {@link List} of shards
-     */
-    public List<ShardRouting> getAssignedShards() {
-        return this.assignedShards;
-    }
-
-    public ShardIterator shardsRandomIt() {
-        return new PlainShardIterator(shardId, shuffler.shuffle(shards));
-    }
-
     public ShardIterator shardsIt() {
         return new PlainShardIterator(shardId, shards);
-    }
-
-    public ShardIterator shardsIt(int seed) {
-        return new PlainShardIterator(shardId, shuffler.shuffle(shards, seed));
     }
 
     /**
@@ -258,14 +232,6 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
         ordered.addAll(shuffler.shuffle(activeShards, seed));
         ordered.addAll(allInitializingShards);
         return new PlainShardIterator(shardId, ordered);
-    }
-
-    private static Set<String> getAllNodeIds(final List<ShardRouting> shards) {
-        final Set<String> nodeIds = new HashSet<>();
-        for (ShardRouting shard : shards) {
-            nodeIds.add(shard.currentNodeId());
-        }
-        return nodeIds;
     }
 
     /**
@@ -369,10 +335,6 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
         return new PlainShardIterator(shardId, ordered);
     }
 
-    public ShardIterator onlyNodeSelectorActiveInitializingShardsIt(String nodeAttributes, DiscoveryNodes discoveryNodes) {
-        return onlyNodeSelectorActiveInitializingShardsIt(new String[] {nodeAttributes}, discoveryNodes);
-    }
-
     /**
      * Returns shards based on nodeAttributes given  such as node name , node attribute, node IP
      * Supports node specifications in cluster API
@@ -439,13 +401,6 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
         int result = shardId.hashCode();
         result = 31 * result + shards.hashCode();
         return result;
-    }
-
-    /**
-     * Returns <code>true</code> iff all shards in the routing table are started otherwise <code>false</code>
-     */
-    public boolean allShardsStarted() {
-        return allShardsStarted;
     }
 
     @Nullable
@@ -678,7 +633,6 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
                 entry.writeToThin(out);
             }
         }
-
     }
 
     @Override

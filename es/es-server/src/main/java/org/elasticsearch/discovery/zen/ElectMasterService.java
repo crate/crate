@@ -170,16 +170,6 @@ public class ElectMasterService extends AbstractComponent {
     }
 
     /**
-     * Returns the given nodes sorted by likelihood of being elected as master, most likely first.
-     * Non-master nodes are not removed but are rather put in the end
-     */
-    static List<DiscoveryNode> sortByMasterLikelihood(Iterable<DiscoveryNode> nodes) {
-        ArrayList<DiscoveryNode> sortedNodes = CollectionUtils.iterableAsArrayList(nodes);
-        CollectionUtil.introSort(sortedNodes, ElectMasterService::compareNodes);
-        return sortedNodes;
-    }
-
-    /**
      * Returns a list of the next possible masters.
      */
     public DiscoveryNode[] nextPossibleMasters(ObjectContainer<DiscoveryNode> nodes, int numberOfPossibleMasters) {

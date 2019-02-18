@@ -532,10 +532,6 @@ public final class CopyOnWriteHashMap<K, V> extends AbstractMap<K, V> {
         return result;
     }
 
-    public <K1 extends K, V1 extends V> CopyOnWriteHashMap<K, V> copyAndPutAll(Stream<Entry<K1, V1>> entries) {
-        return copyAndPutAll(entries::iterator);
-    }
-
     /**
      * Remove the given key from this map. The current hash table is not modified.
      */
@@ -550,17 +546,6 @@ public final class CopyOnWriteHashMap<K, V> extends AbstractMap<K, V> {
         } else {
             return new CopyOnWriteHashMap<>(newRoot, size - 1);
         }
-    }
-
-    /**
-     * Same as {@link #copyAndRemove(Object)} but for an arbitrary number of entries.
-     */
-    public CopyOnWriteHashMap<K, V> copyAndRemoveAll(Collection<?> keys) {
-        CopyOnWriteHashMap<K, V> result = this;
-        for (Object key : keys) {
-            result = result.copyAndRemove(key);
-        }
-        return result;
     }
 
     @Override

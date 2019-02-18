@@ -19,11 +19,9 @@
 
 package org.elasticsearch.index.engine;
 
-import com.carrotsearch.hppc.ObjectLongHashMap;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.IndexReader;
@@ -34,10 +32,8 @@ import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SegmentReader;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.index.Terms;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.ReferenceManager;
-import org.apache.lucene.search.suggest.document.CompletionTerms;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
@@ -46,7 +42,6 @@ import org.apache.lucene.util.Accountables;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.CheckedRunnable;
-import org.elasticsearch.common.FieldMemoryStats;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -61,7 +56,6 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndVersion;
 import org.elasticsearch.common.metrics.CounterMetric;
-import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.VersionType;
@@ -87,12 +81,9 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -284,17 +275,6 @@ public abstract class Engine implements Closeable {
     }
 
     /**
-     * Returns the number of milliseconds this engine was under index throttling.
-     */
-    public abstract long getIndexThrottleTimeInMillis();
-
-    /**
-     * Returns the <code>true</code> iff this engine is currently under index throttling.
-     * @see #getIndexThrottleTimeInMillis()
-     */
-    public abstract boolean isThrottled();
-
-    /**
      * Trims translog for terms below <code>belowTerm</code> and seq# above <code>aboveSeqNo</code>
      * @see Translog#trimOperations(long, long)
      */
@@ -419,10 +399,6 @@ public abstract class Engine implements Closeable {
             return seqNo;
         }
 
-        public long getTerm() {
-            return term;
-        }
-
         /**
          * If the operation was aborted due to missing mappings, this method will return the mappings
          * that are required to complete the operation.
@@ -444,10 +420,6 @@ public abstract class Engine implements Closeable {
         /** get total time in nanoseconds */
         public long getTook() {
             return took;
-        }
-
-        public Operation.TYPE getOperationType() {
-            return operationType;
         }
 
         void setTranslogLocation(Translog.Location translogLocation) {
@@ -760,48 +732,6 @@ public abstract class Engine implements Closeable {
      */
     public abstract long getLastSyncedGlobalCheckpoint();
 
-    /**
-     * Global stats on segments.
-     */
-    public final SegmentsStats segmentsStats(boolean includeSegmentFileSizes) {
-        ensureOpen();
-        Set<String> segmentName = new HashSet<>();
-        SegmentsStats stats = new SegmentsStats();
-        try (Searcher searcher = acquireSearcher("segments_stats", SearcherScope.INTERNAL)) {
-            for (LeafReaderContext ctx : searcher.reader().getContext().leaves()) {
-                SegmentReader segmentReader = Lucene.segmentReader(ctx.reader());
-                fillSegmentStats(segmentReader, includeSegmentFileSizes, stats);
-                segmentName.add(segmentReader.getSegmentName());
-            }
-        }
-
-        try (Searcher searcher = acquireSearcher("segments_stats", SearcherScope.EXTERNAL)) {
-            for (LeafReaderContext ctx : searcher.reader().getContext().leaves()) {
-                SegmentReader segmentReader = Lucene.segmentReader(ctx.reader());
-                if (segmentName.contains(segmentReader.getSegmentName()) == false) {
-                    fillSegmentStats(segmentReader, includeSegmentFileSizes, stats);
-                }
-            }
-        }
-        writerSegmentStats(stats);
-        return stats;
-    }
-
-    private void fillSegmentStats(SegmentReader segmentReader, boolean includeSegmentFileSizes, SegmentsStats stats) {
-        stats.add(1, segmentReader.ramBytesUsed());
-        stats.addTermsMemoryInBytes(guardedRamBytesUsed(segmentReader.getPostingsReader()));
-        stats.addStoredFieldsMemoryInBytes(guardedRamBytesUsed(segmentReader.getFieldsReader()));
-        stats.addTermVectorsMemoryInBytes(guardedRamBytesUsed(segmentReader.getTermVectorsReader()));
-        stats.addNormsMemoryInBytes(guardedRamBytesUsed(segmentReader.getNormsReader()));
-        stats.addPointsMemoryInBytes(guardedRamBytesUsed(segmentReader.getPointsReader()));
-        stats.addDocValuesMemoryInBytes(guardedRamBytesUsed(segmentReader.getDocValuesReader()));
-
-        if (includeSegmentFileSizes) {
-            // TODO: consider moving this to StoreStats
-            stats.addFileSizes(getSegmentFileSizes(segmentReader));
-        }
-    }
-
     private ImmutableOpenMap<String, Long> getSegmentFileSizes(SegmentReader segmentReader) {
         Directory directory = null;
         SegmentCommitInfo segmentCommitInfo = segmentReader.getSegmentInfo();
@@ -867,12 +797,6 @@ public abstract class Engine implements Closeable {
         }
 
         return map.build();
-    }
-
-    protected void writerSegmentStats(SegmentsStats stats) {
-        // by default we don't have a writer here... subclasses can override this
-        stats.addVersionMapMemoryInBytes(0);
-        stats.addIndexWriterMemoryInBytes(0);
     }
 
     /** How much heap is used that would be freed by a refresh.  Note that this may throw {@link AlreadyClosedException}. */
@@ -1042,13 +966,6 @@ public abstract class Engine implements Closeable {
     public abstract void rollTranslogGeneration() throws EngineException;
 
     /**
-     * Force merges to 1 segment
-     */
-    public void forceMerge(boolean flush) throws IOException {
-        forceMerge(flush, 1, false, false, false);
-    }
-
-    /**
      * Triggers a forced merge on this engine
      */
     public abstract void forceMerge(boolean flush, int maxNumSegments, boolean onlyExpungeDeletes, boolean upgrade, boolean upgradeOnlyAncientSegments) throws EngineException, IOException;
@@ -1205,16 +1122,6 @@ public abstract class Engine implements Closeable {
         /** type of operation (index, delete), subclasses use static types */
         public enum TYPE {
             INDEX, DELETE, NO_OP;
-
-            private final String lowercase;
-
-            TYPE() {
-                this.lowercase = this.toString().toLowerCase(Locale.ROOT);
-            }
-
-            public String getLowercase() {
-                return lowercase;
-            }
         }
 
         private final Term uid;
@@ -1305,10 +1212,6 @@ public abstract class Engine implements Closeable {
             this.autoGeneratedIdTimestamp = autoGeneratedIdTimestamp;
         }
 
-        public Index(Term uid, long primaryTerm, ParsedDocument doc) {
-            this(uid, primaryTerm, doc, Versions.MATCH_ANY);
-        } // TEST ONLY
-
         Index(Term uid, long primaryTerm, ParsedDocument doc, long version) {
             this(uid, doc, SequenceNumbers.UNASSIGNED_SEQ_NO, primaryTerm, version, VersionType.INTERNAL,
                 Origin.PRIMARY, System.nanoTime(), -1, false);
@@ -1383,15 +1286,6 @@ public abstract class Engine implements Closeable {
             super(uid, seqNo, primaryTerm, version, versionType, origin, startTime);
             this.type = Objects.requireNonNull(type);
             this.id = Objects.requireNonNull(id);
-        }
-
-        public Delete(String type, String id, Term uid, long primaryTerm) {
-            this(type, id, uid, SequenceNumbers.UNASSIGNED_SEQ_NO, primaryTerm, Versions.MATCH_ANY, VersionType.INTERNAL, Origin.PRIMARY, System.nanoTime());
-        }
-
-        public Delete(Delete template, VersionType versionType) {
-            this(template.type(), template.id(), template.uid(), template.seqNo(), template.primaryTerm(), template.version(),
-                    versionType, template.origin(), template.startTime());
         }
 
         @Override
@@ -1545,14 +1439,6 @@ public abstract class Engine implements Closeable {
 
         public boolean exists() {
             return exists;
-        }
-
-        public long version() {
-            return this.version;
-        }
-
-        public Searcher searcher() {
-            return this.searcher;
         }
 
         public DocIdAndVersion docIdAndVersion() {

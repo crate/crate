@@ -208,19 +208,8 @@ public class CommonStatsFlags implements Writeable, Cloneable {
 
     public enum Flag {
         Store(0),
-        Indexing(1),
-        Merge(4),
-        Flush(5),
-        Refresh(6),
-        QueryCache(7),
-        FieldData(8),
         Docs(9),
-        Warmer(10),
-        Completion(11),
-        Segments(12),
-        Translog(13),
-        RequestCache(15),
-        Recovery(16);
+        Completion(11);
 
         private final int index;
 

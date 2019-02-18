@@ -1987,13 +1987,6 @@ public class InternalEngine extends Engine {
     }
 
     @Override
-    protected final void writerSegmentStats(SegmentsStats stats) {
-        stats.addVersionMapMemoryInBytes(versionMap.ramBytesUsed());
-        stats.addIndexWriterMemoryInBytes(indexWriter.ramBytesUsed());
-        stats.updateMaxUnsafeAutoIdTimestamp(maxUnsafeAutoIdTimestamp.get());
-    }
-
-    @Override
     public long getIndexBufferRAMBytesUsed() {
         // We don't guard w/ readLock here, so we could throw AlreadyClosedException
         return indexWriter.ramBytesUsed() + versionMap.ramBytesUsedForRefresh();
@@ -2187,16 +2180,6 @@ public class InternalEngine extends Engine {
         if (count == 0) {
             throttle.deactivate();
         }
-    }
-
-    @Override
-    public boolean isThrottled() {
-        return throttle.isThrottled();
-    }
-
-    @Override
-    public long getIndexThrottleTimeInMillis() {
-        return throttle.getThrottleTimeInMillis();
     }
 
     long getGcDeletesInMillis() {

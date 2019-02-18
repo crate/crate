@@ -39,7 +39,6 @@ import org.elasticsearch.common.cache.RemovalListener;
 import org.elasticsearch.common.cache.RemovalNotification;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.IndexWarmer;
@@ -235,24 +234,17 @@ public final class BitsetFilterCache extends AbstractIndexComponent implements I
                         try {
                             final long start = System.nanoTime();
                             getAndLoadIfNotPresent(filterToWarm, ctx);
-                            if (indexShard.warmerService().logger().isTraceEnabled()) {
-                                indexShard.warmerService().logger().trace("warmed bitset for [{}], took [{}]", filterToWarm, TimeValue.timeValueNanos(System.nanoTime() - start));
-                            }
                         } catch (Exception e) {
-                            indexShard.warmerService().logger().warn(() -> new ParameterizedMessage("failed to load bitset for [{}]", filterToWarm), e);
+                            logger.warn(() -> new ParameterizedMessage("failed to load bitset for [{}]", filterToWarm), e);
                         } finally {
                             latch.countDown();
                         }
                     });
                 }
             }
-            return () -> latch.await();
+            return latch::await;
         }
 
-    }
-
-    Cache<IndexReader.CacheKey, Cache<Query, Value>> getLoadedFilters() {
-        return loadedFilters;
     }
 
     /**

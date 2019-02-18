@@ -22,14 +22,15 @@
 package org.elasticsearch.indices.recovery;
 
 import io.crate.blob.v2.BlobShard;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.common.util.concurrent.ConcurrentMapLong;
 import org.elasticsearch.index.shard.ShardId;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class BlobRecoveryStatus {
 
     private final RecoveryTarget recoveryTarget;
-    private final ConcurrentMapLong<BlobRecoveryTransferStatus> onGoingTransfers = ConcurrentCollections.newConcurrentMapLong();
+    private final ConcurrentMap<Long, BlobRecoveryTransferStatus> onGoingTransfers = new ConcurrentHashMap<>();
     final BlobShard blobShard;
 
 
@@ -54,7 +55,7 @@ public class BlobRecoveryStatus {
         return recoveryTarget.shardId();
     }
 
-    public ConcurrentMapLong<BlobRecoveryTransferStatus> onGoingTransfers() {
+    public ConcurrentMap<Long, BlobRecoveryTransferStatus> onGoingTransfers() {
         return onGoingTransfers;
     }
 }

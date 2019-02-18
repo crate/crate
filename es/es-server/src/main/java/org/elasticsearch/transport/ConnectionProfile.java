@@ -216,22 +216,6 @@ public final class ConnectionProfile {
     }
 
     /**
-     * Returns the number of connections per type for this profile. This might return a count that is shared with other types such
-     * that the sum of all connections per type might be higher than {@link #getNumConnections()}. For instance if
-     * {@link org.elasticsearch.transport.TransportRequestOptions.Type#BULK} shares connections with
-     * {@link org.elasticsearch.transport.TransportRequestOptions.Type#REG} they will return both the same number of connections from
-     * this method but the connections are not distinct.
-     */
-    public int getNumConnectionsPerType(TransportRequestOptions.Type type) {
-        for (ConnectionTypeHandle handle : handles) {
-            if (handle.getTypes().contains(type)) {
-                return handle.length;
-            }
-        }
-        throw new AssertionError("no handle found for type: "  + type);
-    }
-
-    /**
      * Returns the type handles for this connection profile
      */
     List<ConnectionTypeHandle> getHandles() {

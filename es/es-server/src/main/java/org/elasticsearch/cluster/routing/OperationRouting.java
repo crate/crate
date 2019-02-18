@@ -19,7 +19,6 @@
 
 package org.elasticsearch.cluster.routing;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -31,12 +30,9 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -63,62 +59,6 @@ public class OperationRouting extends AbstractComponent {
 
     public ShardIterator getShards(ClusterState clusterState, String index, String id, @Nullable String routing, @Nullable String preference) {
         return preferenceActiveShardIterator(shards(clusterState, index, id, routing), clusterState.nodes().getLocalNodeId(), clusterState.nodes(), preference, null);
-    }
-
-    public ShardIterator getShards(ClusterState clusterState, String index, int shardId, @Nullable String preference) {
-        final IndexShardRoutingTable indexShard = clusterState.getRoutingTable().shardRoutingTable(index, shardId);
-        return preferenceActiveShardIterator(indexShard, clusterState.nodes().getLocalNodeId(), clusterState.nodes(), preference, null);
-    }
-
-    public GroupShardsIterator<ShardIterator> searchShards(ClusterState clusterState,
-                                                           String[] concreteIndices,
-                                                           @Nullable Map<String, Set<String>> routing,
-                                                           @Nullable String preference) {
-        return searchShards(clusterState, concreteIndices, routing, preference, null);
-    }
-
-
-    public GroupShardsIterator<ShardIterator> searchShards(ClusterState clusterState,
-                                                           String[] concreteIndices,
-                                                           @Nullable Map<String, Set<String>> routing,
-                                                           @Nullable String preference,
-                                                           @Nullable Map<String, Long> nodeCounts) {
-        final Set<IndexShardRoutingTable> shards = computeTargetedShards(clusterState, concreteIndices, routing);
-        final Set<ShardIterator> set = new HashSet<>(shards.size());
-        for (IndexShardRoutingTable shard : shards) {
-            ShardIterator iterator = preferenceActiveShardIterator(shard,
-                    clusterState.nodes().getLocalNodeId(), clusterState.nodes(), preference, nodeCounts);
-            if (iterator != null) {
-                set.add(iterator);
-            }
-        }
-        return new GroupShardsIterator<>(new ArrayList<>(set));
-    }
-
-    private static final Map<String, Set<String>> EMPTY_ROUTING = Collections.emptyMap();
-
-    private Set<IndexShardRoutingTable> computeTargetedShards(ClusterState clusterState, String[] concreteIndices, @Nullable Map<String, Set<String>> routing) {
-        routing = routing == null ? EMPTY_ROUTING : routing; // just use an empty map
-        final Set<IndexShardRoutingTable> set = new HashSet<>();
-        // we use set here and not list since we might get duplicates
-        for (String index : concreteIndices) {
-            final IndexRoutingTable indexRouting = indexRoutingTable(clusterState, index);
-            final IndexMetaData indexMetaData = indexMetaData(clusterState, index);
-            final Set<String> effectiveRouting = routing.get(index);
-            if (effectiveRouting != null) {
-                for (String r : effectiveRouting) {
-                    final int routingPartitionSize = indexMetaData.getRoutingPartitionSize();
-                    for (int partitionOffset = 0; partitionOffset < routingPartitionSize; partitionOffset++) {
-                        set.add(shardRoutingTable(indexRouting, calculateScaledShardId(indexMetaData, r, partitionOffset)));
-                    }
-                }
-            } else {
-                for (IndexShardRoutingTable indexShard : indexRouting) {
-                    set.add(indexShard);
-                }
-            }
-        }
-        return set;
     }
 
     private ShardIterator preferenceActiveShardIterator(IndexShardRoutingTable indexShard, String localNodeId,
@@ -214,14 +154,6 @@ public class OperationRouting extends AbstractComponent {
         } else {
             return indexShard.preferAttributesActiveInitializingShardsIt(awarenessAttributes, nodes, routingHash);
         }
-    }
-
-    private IndexShardRoutingTable shardRoutingTable(IndexRoutingTable indexRouting, int shardId) {
-        IndexShardRoutingTable indexShard = indexRouting.shard(shardId);
-        if (indexShard == null) {
-            throw new ShardNotFoundException(new ShardId(indexRouting.getIndex(), shardId));
-        }
-        return indexShard;
     }
 
     protected IndexRoutingTable indexRoutingTable(ClusterState clusterState, String index) {

@@ -24,7 +24,6 @@ import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.LeafCollector;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -37,6 +36,9 @@ import java.util.List;
  * InternalProfiler facilitates the linking of the Collector graph
  */
 public class InternalProfileCollector implements Collector {
+
+    private static final String REASON_AGGREGATION = "aggregation";
+    private static final String REASON_AGGREGATION_GLOBAL = "aggregation_global";
 
     /**
      * A more friendly representation of the Collector's class name
@@ -104,7 +106,7 @@ public class InternalProfileCollector implements Collector {
         }
 
         // Aggregation collector toString()'s include the user-defined agg name
-        if (reason.equals(CollectorResult.REASON_AGGREGATION) || reason.equals(CollectorResult.REASON_AGGREGATION_GLOBAL)) {
+        if (reason.equals(REASON_AGGREGATION) || reason.equals(REASON_AGGREGATION_GLOBAL)) {
             s += ": [" + c.toString() + "]";
         }
         return s;
@@ -118,18 +120,5 @@ public class InternalProfileCollector implements Collector {
     @Override
     public boolean needsScores() {
         return collector.needsScores();
-    }
-
-    public CollectorResult getCollectorTree() {
-        return InternalProfileCollector.doGetCollectorTree(this);
-    }
-
-    private static CollectorResult doGetCollectorTree(InternalProfileCollector collector) {
-        List<CollectorResult> childResults = new ArrayList<>(collector.children.size());
-        for (InternalProfileCollector child : collector.children) {
-            CollectorResult result = doGetCollectorTree(child);
-            childResults.add(result);
-        }
-        return new CollectorResult(collector.getName(), collector.getReason(), collector.getTime(), childResults);
     }
 }
