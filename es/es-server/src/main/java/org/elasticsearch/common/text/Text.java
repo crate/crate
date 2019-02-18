@@ -33,8 +33,6 @@ import java.nio.charset.StandardCharsets;
  */
 public final class Text implements Comparable<Text>, ToXContentFragment {
 
-    public static final Text[] EMPTY_ARRAY = new Text[0];
-
     private BytesReference bytes;
     private String text;
     private int hash;

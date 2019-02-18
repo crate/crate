@@ -60,17 +60,9 @@ final class EsTieredMergePolicy extends FilterMergePolicy {
         forcedMergePolicy.setForceMergeDeletesPctAllowed(forceMergeDeletesPctAllowed);
     }
 
-    public double getForceMergeDeletesPctAllowed() {
-        return forcedMergePolicy.getForceMergeDeletesPctAllowed();
-    }
-
     public void setFloorSegmentMB(double mbFrac) {
         regularMergePolicy.setFloorSegmentMB(mbFrac);
         forcedMergePolicy.setFloorSegmentMB(mbFrac);
-    }
-
-    public double getFloorSegmentMB() {
-        return regularMergePolicy.getFloorSegmentMB();
     }
 
     public void setMaxMergeAtOnce(int maxMergeAtOnce) {
@@ -78,17 +70,9 @@ final class EsTieredMergePolicy extends FilterMergePolicy {
         forcedMergePolicy.setMaxMergeAtOnce(maxMergeAtOnce);
     }
 
-    public int getMaxMergeAtOnce() {
-        return regularMergePolicy.getMaxMergeAtOnce();
-    }
-
     public void setMaxMergeAtOnceExplicit(int maxMergeAtOnceExplicit) {
         regularMergePolicy.setMaxMergeAtOnceExplicit(maxMergeAtOnceExplicit);
         forcedMergePolicy.setMaxMergeAtOnceExplicit(maxMergeAtOnceExplicit);
-    }
-
-    public int getMaxMergeAtOnceExplicit() {
-        return forcedMergePolicy.getMaxMergeAtOnceExplicit();
     }
 
     // only setter that must NOT delegate to the forced merge policy
@@ -96,25 +80,13 @@ final class EsTieredMergePolicy extends FilterMergePolicy {
         regularMergePolicy.setMaxMergedSegmentMB(mbFrac);
     }
 
-    public double getMaxMergedSegmentMB() {
-        return regularMergePolicy.getMaxMergedSegmentMB();
-    }
-
     public void setSegmentsPerTier(double segmentsPerTier) {
         regularMergePolicy.setSegmentsPerTier(segmentsPerTier);
         forcedMergePolicy.setSegmentsPerTier(segmentsPerTier);
     }
 
-    public double getSegmentsPerTier() {
-        return regularMergePolicy.getSegmentsPerTier();
-    }
-
     public void setDeletesPctAllowed(double deletesPctAllowed) {
         regularMergePolicy.setDeletesPctAllowed(deletesPctAllowed);
         forcedMergePolicy.setDeletesPctAllowed(deletesPctAllowed);
-    }
-
-    public double getDeletesPctAllowed() {
-        return regularMergePolicy.getDeletesPctAllowed();
     }
 }

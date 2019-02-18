@@ -109,45 +109,9 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
         if (request.store()) {
             flags.set(CommonStatsFlags.Flag.Store);
         }
-        if (request.indexing()) {
-            flags.set(CommonStatsFlags.Flag.Indexing);
-            flags.types(request.types());
-        }
-        if (request.merge()) {
-            flags.set(CommonStatsFlags.Flag.Merge);
-        }
-        if (request.refresh()) {
-            flags.set(CommonStatsFlags.Flag.Refresh);
-        }
-        if (request.flush()) {
-            flags.set(CommonStatsFlags.Flag.Flush);
-        }
-        if (request.warmer()) {
-            flags.set(CommonStatsFlags.Flag.Warmer);
-        }
-        if (request.queryCache()) {
-            flags.set(CommonStatsFlags.Flag.QueryCache);
-        }
-        if (request.fieldData()) {
-            flags.set(CommonStatsFlags.Flag.FieldData);
-            flags.fieldDataFields(request.fieldDataFields());
-        }
-        if (request.segments()) {
-            flags.set(CommonStatsFlags.Flag.Segments);
-            flags.includeSegmentFileSizes(request.includeSegmentFileSizes());
-        }
         if (request.completion()) {
             flags.set(CommonStatsFlags.Flag.Completion);
             flags.completionDataFields(request.completionFields());
-        }
-        if (request.translog()) {
-            flags.set(CommonStatsFlags.Flag.Translog);
-        }
-        if (request.requestCache()) {
-            flags.set(CommonStatsFlags.Flag.RequestCache);
-        }
-        if (request.recovery()) {
-            flags.set(CommonStatsFlags.Flag.Recovery);
         }
 
         CommitStats commitStats;

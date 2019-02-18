@@ -27,10 +27,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskAwareRequest;
 import org.elasticsearch.tasks.TaskManager;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Collection;
-import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -43,8 +41,8 @@ public class MockTaskManager extends TaskManager {
 
     private final Collection<MockTaskManagerListener> listeners = new CopyOnWriteArrayList<>();
 
-    public MockTaskManager(Settings settings, ThreadPool threadPool, Set<String> taskHeaders) {
-        super(settings, threadPool, taskHeaders);
+    public MockTaskManager(Settings settings) {
+        super(settings);
     }
 
     @Override

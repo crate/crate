@@ -64,14 +64,6 @@ public interface ActionPlugin {
     }
 
     /**
-     * Client actions added by this plugin. This defaults to all of the {@linkplain GenericAction} in
-     * {@linkplain ActionPlugin#getActions()}.
-     */
-    default List<GenericAction> getClientActions() {
-        return getActions().stream().map(a -> a.action).collect(Collectors.toList());
-    }
-
-    /**
      * Rest handlers added by this plugin.
      */
     default List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings,

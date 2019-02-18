@@ -57,14 +57,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
 
     /**
      * The health of the cluster.
-     *
-     * @param request  The cluster state request
-     * @param listener A listener to be notified with a result
-     */
-    void health(ClusterHealthRequest request, ActionListener<ClusterHealthResponse> listener);
-
-    /**
-     * The health of the cluster.
      */
     ClusterHealthRequestBuilder prepareHealth(String... indices);
 
@@ -78,41 +70,13 @@ public interface ClusterAdminClient extends ElasticsearchClient {
 
     /**
      * The state of the cluster.
-     *
-     * @param request  The cluster state request.
-     * @param listener A listener to be notified with a result
-     */
-    void state(ClusterStateRequest request, ActionListener<ClusterStateResponse> listener);
-
-    /**
-     * The state of the cluster.
      */
     ClusterStateRequestBuilder prepareState();
-
-    /**
-     * Updates settings in the cluster.
-     */
-    ActionFuture<ClusterUpdateSettingsResponse> updateSettings(ClusterUpdateSettingsRequest request);
-
-    /**
-     * Update settings in the cluster.
-     */
-    void updateSettings(ClusterUpdateSettingsRequest request, ActionListener<ClusterUpdateSettingsResponse> listener);
 
     /**
      * Update settings in the cluster.
      */
     ClusterUpdateSettingsRequestBuilder prepareUpdateSettings();
-
-    /**
-     * Reroutes allocation of shards. Advance API.
-     */
-    ActionFuture<ClusterRerouteResponse> reroute(ClusterRerouteRequest request);
-
-    /**
-     * Reroutes allocation of shards. Advance API.
-     */
-    void reroute(ClusterRerouteRequest request, ActionListener<ClusterRerouteResponse> listener);
 
     /**
      * Update settings in the cluster.

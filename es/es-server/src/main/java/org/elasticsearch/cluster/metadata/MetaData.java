@@ -513,7 +513,7 @@ public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, To
         if (aliasMd.indexRouting() != null) {
             if (aliasMd.indexRouting().indexOf(',') != -1) {
                 throw new IllegalArgumentException("index/alias [" + aliasOrIndex + "] provided with routing value ["
-                    + aliasMd.getIndexRouting() + "] that resolved to several routing values, rejecting operation");
+                    + aliasMd.indexRouting() + "] that resolved to several routing values, rejecting operation");
             }
             if (routing != null) {
                 if (!routing.equals(aliasMd.indexRouting())) {
@@ -548,7 +548,7 @@ public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, To
         AliasMetaData aliasMd = alias.getFirstAliasMetaData();
         if (aliasMd.indexRouting() != null) {
             if (aliasMd.indexRouting().indexOf(',') != -1) {
-                throw new IllegalArgumentException("index/alias [" + aliasOrIndex + "] provided with routing value [" + aliasMd.getIndexRouting() + "] that resolved to several routing values, rejecting operation");
+                throw new IllegalArgumentException("index/alias [" + aliasOrIndex + "] provided with routing value [" + aliasMd.indexRouting() + "] that resolved to several routing values, rejecting operation");
             }
             if (routing != null) {
                 if (!routing.equals(aliasMd.indexRouting())) {

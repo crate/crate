@@ -77,12 +77,4 @@ public final class Sets {
         Objects.requireNonNull(right);
         return left.stream().filter(k -> !right.contains(k)).collect(Collectors.toSet());
     }
-
-    public static <T> Set<T> union(Set<T> left, Set<T> right) {
-        Objects.requireNonNull(left);
-        Objects.requireNonNull(right);
-        Set<T> union = new HashSet<>(left);
-        union.addAll(right);
-        return union;
-    }
 }

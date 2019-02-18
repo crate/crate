@@ -23,7 +23,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.util.CollectionUtil;
-import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.client.Client;
@@ -63,20 +62,13 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
-import org.elasticsearch.index.cache.request.ShardRequestCache;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
-import org.elasticsearch.index.flush.FlushStats;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.merge.MergeStats;
-import org.elasticsearch.index.recovery.RecoveryStats;
-import org.elasticsearch.index.refresh.RefreshStats;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.IndexingOperationListener;
-import org.elasticsearch.index.shard.IndexingStats;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.IndexStore;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -155,7 +147,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private volatile Map<String, IndexService> indices = emptyMap();
     private final Map<Index, List<PendingDelete>> pendingDeletes = new HashMap<>();
     private final AtomicInteger numUncompletedDeletes = new AtomicInteger();
-    private final OldShardsStats oldShardsStats = new OldShardsStats();
     private final MapperRegistry mapperRegistry;
     private final NamedWriteableRegistry namedWriteableRegistry;
     private final IndexingMemoryController indexingMemoryController;
@@ -319,7 +310,6 @@ public class IndicesService extends AbstractLifecycleComponent
             }
         };
         finalListeners.add(onStoreClose);
-        finalListeners.add(oldShardsStats);
         final IndexService indexService =
                 createIndexService(
                         "create index",
@@ -518,26 +508,6 @@ public class IndicesService extends AbstractLifecycleComponent
 
     public IndicesQueryCache getIndicesQueryCache() {
         return indicesQueryCache;
-    }
-
-    static class OldShardsStats implements IndexEventListener {
-
-        final IndexingStats indexingStats = new IndexingStats();
-        final MergeStats mergeStats = new MergeStats();
-        final RefreshStats refreshStats = new RefreshStats();
-        final FlushStats flushStats = new FlushStats();
-        final RecoveryStats recoveryStats = new RecoveryStats();
-
-        @Override
-        public synchronized void beforeIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard, Settings indexSettings) {
-            if (indexShard != null) {
-                indexingStats.addTotals(indexShard.indexingStats());
-                mergeStats.addTotals(indexShard.mergeStats());
-                refreshStats.addTotals(indexShard.refreshStats());
-                flushStats.addTotals(indexShard.flushStats());
-                recoveryStats.addTotals(indexShard.recoveryStats());
-            }
-        }
     }
 
     /**

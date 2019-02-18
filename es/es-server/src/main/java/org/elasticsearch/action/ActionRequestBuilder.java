@@ -20,7 +20,6 @@
 package org.elasticsearch.action;
 
 import org.elasticsearch.client.ElasticsearchClient;
-import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.Objects;
 
@@ -51,20 +50,6 @@ public abstract class ActionRequestBuilder<Request extends ActionRequest, Respon
      */
     public Response get() {
         return execute().actionGet();
-    }
-
-    /**
-     * Short version of execute().actionGet().
-     */
-    public Response get(TimeValue timeout) {
-        return execute().actionGet(timeout);
-    }
-
-    /**
-     * Short version of execute().actionGet().
-     */
-    public Response get(String timeout) {
-        return execute().actionGet(timeout);
     }
 
     public void execute(ActionListener<Response> listener) {

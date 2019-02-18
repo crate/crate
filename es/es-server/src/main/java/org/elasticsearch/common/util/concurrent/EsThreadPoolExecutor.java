@@ -23,7 +23,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 /**
  * An extension to thread pool executor, allowing (in the future) to add specific additional stats to it.
@@ -31,17 +30,12 @@ import java.util.stream.Stream;
 public class EsThreadPoolExecutor extends ThreadPoolExecutor {
 
     private final ThreadContext contextHolder;
-    private volatile ShutdownListener listener;
 
     private final Object monitor = new Object();
     /**
      * Name used in error reporting.
      */
     private final String name;
-
-    final String getName() {
-        return name;
-    }
 
     EsThreadPoolExecutor(String name, int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
             BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory, ThreadContext contextHolder) {
@@ -56,36 +50,9 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
         this.contextHolder = contextHolder;
     }
 
-    public void shutdown(ShutdownListener listener) {
-        synchronized (monitor) {
-            if (this.listener != null) {
-                throw new IllegalStateException("Shutdown was already called on this thread pool");
-            }
-            if (isTerminated()) {
-                listener.onTerminated();
-            } else {
-                this.listener = listener;
-            }
-        }
-        shutdown();
-    }
-
     @Override
     protected synchronized void terminated() {
         super.terminated();
-        synchronized (monitor) {
-            if (listener != null) {
-                try {
-                    listener.onTerminated();
-                } finally {
-                    listener = null;
-                }
-            }
-        }
-    }
-
-    public interface ShutdownListener {
-        void onTerminated();
     }
 
     @Override
@@ -133,14 +100,6 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
         return true;
     }
 
-    /**
-     * Returns a stream of all pending tasks. This is similar to {@link #getQueue()} but will expose the originally submitted
-     * {@link Runnable} instances rather than potentially wrapped ones.
-     */
-    public Stream<Runnable> getTasks() {
-        return this.getQueue().stream().map(this::unwrap);
-    }
-
     @Override
     public final String toString() {
         StringBuilder b = new StringBuilder();
@@ -151,23 +110,12 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
             SizeBlockingQueue queue = (SizeBlockingQueue) getQueue();
             b.append("queue capacity = ").append(queue.capacity()).append(", ");
         }
-        appendThreadPoolExecutorDetails(b);
         /*
          * ThreadPoolExecutor has some nice information in its toString but we
          * can't get at it easily without just getting the toString.
          */
         b.append(super.toString()).append(']');
         return b.toString();
-    }
-
-    /**
-     * Append details about this thread pool to the specified {@link StringBuilder}. All details should be appended as key/value pairs in
-     * the form "%s = %s, "
-     *
-     * @param sb the {@link StringBuilder} to append to
-     */
-    protected void appendThreadPoolExecutorDetails(final StringBuilder sb) {
-
     }
 
     protected Runnable wrapRunnable(Runnable command) {

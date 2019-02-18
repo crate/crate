@@ -63,13 +63,6 @@ public class IndicesStatsRequest extends BroadcastRequest<IndicesStatsRequest> {
         return this;
     }
 
-    /**
-     * Document types to return stats for. Mainly affects {@link #indexing(boolean)} when
-     * enabled, returning specific indexing stats for those types.
-     */
-    public String[] types() {
-        return this.flags.types();
-    }
 
     /**
      * Sets specific search group stats to retrieve the stats for. Mainly affects search
@@ -102,79 +95,6 @@ public class IndicesStatsRequest extends BroadcastRequest<IndicesStatsRequest> {
         return flags.isSet(Flag.Store);
     }
 
-    public IndicesStatsRequest indexing(boolean indexing) {
-        flags.set(Flag.Indexing, indexing);
-
-        return this;
-    }
-
-    public boolean indexing() {
-        return flags.isSet(Flag.Indexing);
-    }
-
-    public IndicesStatsRequest merge(boolean merge) {
-        flags.set(Flag.Merge, merge);
-        return this;
-    }
-
-    public boolean merge() {
-        return flags.isSet(Flag.Merge);
-    }
-
-    public IndicesStatsRequest refresh(boolean refresh) {
-        flags.set(Flag.Refresh, refresh);
-        return this;
-    }
-
-    public boolean refresh() {
-        return flags.isSet(Flag.Refresh);
-    }
-
-    public IndicesStatsRequest flush(boolean flush) {
-        flags.set(Flag.Flush, flush);
-        return this;
-    }
-
-    public boolean flush() {
-        return flags.isSet(Flag.Flush);
-    }
-
-    public IndicesStatsRequest warmer(boolean warmer) {
-        flags.set(Flag.Warmer, warmer);
-        return this;
-    }
-
-    public boolean warmer() {
-        return flags.isSet(Flag.Warmer);
-    }
-
-    public IndicesStatsRequest queryCache(boolean queryCache) {
-        flags.set(Flag.QueryCache, queryCache);
-        return this;
-    }
-
-    public boolean queryCache() {
-        return flags.isSet(Flag.QueryCache);
-    }
-
-    public IndicesStatsRequest fieldData(boolean fieldData) {
-        flags.set(Flag.FieldData, fieldData);
-        return this;
-    }
-
-    public boolean fieldData() {
-        return flags.isSet(Flag.FieldData);
-    }
-
-    public IndicesStatsRequest segments(boolean segments) {
-        flags.set(Flag.Segments, segments);
-        return this;
-    }
-
-    public boolean segments() {
-        return flags.isSet(Flag.Segments);
-    }
-
     public IndicesStatsRequest fieldDataFields(String... fieldDataFields) {
         flags.fieldDataFields(fieldDataFields);
         return this;
@@ -200,33 +120,6 @@ public class IndicesStatsRequest extends BroadcastRequest<IndicesStatsRequest> {
 
     public String[] completionFields() {
         return flags.completionDataFields();
-    }
-
-    public IndicesStatsRequest translog(boolean translog) {
-        flags.set(Flag.Translog, translog);
-        return this;
-    }
-
-    public boolean translog() {
-        return flags.isSet(Flag.Translog);
-    }
-
-    public IndicesStatsRequest requestCache(boolean requestCache) {
-        flags.set(Flag.RequestCache, requestCache);
-        return this;
-    }
-
-    public boolean requestCache() {
-        return flags.isSet(Flag.RequestCache);
-    }
-
-    public IndicesStatsRequest recovery(boolean recovery) {
-        flags.set(Flag.Recovery, recovery);
-        return this;
-    }
-
-    public boolean recovery() {
-        return flags.isSet(Flag.Recovery);
     }
 
     public boolean includeSegmentFileSizes() {

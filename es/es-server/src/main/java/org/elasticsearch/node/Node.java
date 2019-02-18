@@ -525,8 +525,7 @@ public abstract class Node implements Closeable {
                 .map(injector::getInstance).collect(Collectors.toList()));
             resourcesToClose.addAll(pluginLifecycleComponents);
             this.pluginLifecycleComponents = Collections.unmodifiableList(pluginLifecycleComponents);
-            client.initialize(injector.getInstance(new Key<Map<GenericAction, TransportAction>>() {}),
-                    () -> clusterService.localNode().getId());
+            client.initialize(injector.getInstance(new Key<Map<GenericAction, TransportAction>>() {}));
 
             logger.debug("initializing HTTP handlers ...");
             actionModule.initRestHandlers(() -> clusterService.state().nodes());
@@ -674,7 +673,6 @@ public abstract class Node implements Closeable {
             .stream()
             .flatMap(p -> p.getBootstrapChecks().stream()).collect(Collectors.toList()));
 
-        clusterService.addStateApplier(transportService.getTaskManager());
         // start after transport service so the local disco is known
         discovery.start(); // start before cluster service so that it can set initial state on ClusterApplierService
         clusterService.start();

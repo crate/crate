@@ -109,22 +109,12 @@ public class Cache<K, V> {
         this.entriesExpireAfterAccess = true;
     }
 
-    // pkg-private for testing
-    long getExpireAfterAccessNanos() {
-        return this.expireAfterAccessNanos;
-    }
-
     void setExpireAfterWriteNanos(long expireAfterWriteNanos) {
         if (expireAfterWriteNanos <= 0) {
             throw new IllegalArgumentException("expireAfterWriteNanos <= 0");
         }
         this.expireAfterWriteNanos = expireAfterWriteNanos;
         this.entriesExpireAfterWrite = true;
-    }
-
-    // pkg-private for testing
-    long getExpireAfterWriteNanos() {
-        return this.expireAfterWriteNanos;
     }
 
     void setMaximumWeight(long maximumWeight) {
@@ -350,16 +340,6 @@ public class Cache<K, V> {
     // lock protecting mutations to the LRU list
     private final ReleasableLock lruLock = new ReleasableLock(new ReentrantLock());
 
-    /**
-     * Returns the value to which the specified key is mapped, or null if this map contains no mapping for the key.
-     *
-     * @param key the key whose associated value is to be returned
-     * @return the value to which the specified key is mapped, or null if this map contains no mapping for the key
-     */
-    public V get(K key) {
-        return get(key, now(), e -> {});
-    }
-
     private V get(K key, long now, Consumer<Entry<K, V>> onExpiration) {
         CacheSegment<K, V> segment = getCacheSegment(key);
         Entry<K, V> entry = segment.get(key, now, e -> isExpired(e, now), onExpiration);
@@ -460,18 +440,6 @@ public class Cache<K, V> {
         return value;
     }
 
-    /**
-     * Associates the specified value with the specified key in this map. If the map previously contained a mapping for
-     * the key, the old value is replaced.
-     *
-     * @param key   key with which the specified value is to be associated
-     * @param value value to be associated with the specified key
-     */
-    public void put(K key, V value) {
-        long now = now();
-        put(key, value, now);
-    }
-
     private void put(K key, V value, long now) {
         CacheSegment<K, V> segment = getCacheSegment(key);
         Tuple<Entry<K, V>, Entry<K, V>> tuple = segment.put(key, value, now);
@@ -511,19 +479,6 @@ public class Cache<K, V> {
     public void invalidate(K key) {
         CacheSegment<K, V> segment = getCacheSegment(key);
         segment.remove(key, invalidationConsumer);
-    }
-
-    /**
-     * Invalidate the entry for the specified key and value. If the value provided is not equal to the value in
-     * the cache, no removal will occur. A removal notification will be issued for invalidated
-     * entries with {@link org.elasticsearch.common.cache.RemovalNotification.RemovalReason} INVALIDATED.
-     *
-     * @param key the key whose mapping is to be invalidated from the cache
-     * @param value the expected value that should be associated with the key
-     */
-    public void invalidate(K key, V value) {
-        CacheSegment<K, V> segment = getCacheSegment(key);
-        segment.remove(key, value, invalidationConsumer);
     }
 
     /**
@@ -581,15 +536,6 @@ public class Cache<K, V> {
      */
     public int count() {
         return count;
-    }
-
-    /**
-     * The weight of the entries in the cache.
-     *
-     * @return the weight of the entries in the cache
-     */
-    public long weight() {
-        return weight;
     }
 
     /**
@@ -680,48 +626,6 @@ public class Cache<K, V> {
                     delete(entry, RemovalNotification.RemovalReason.INVALIDATED);
                 }
             }
-        }
-    }
-
-    /**
-     * The cache statistics tracking hits, misses and evictions. These are taken on a best-effort basis meaning that
-     * they could be out-of-date mid-flight.
-     *
-     * @return the current cache statistics
-     */
-    public CacheStats stats() {
-        long hits = 0;
-        long misses = 0;
-        long evictions = 0;
-        for (int i = 0; i < segments.length; i++) {
-            hits += segments[i].segmentStats.hits.longValue();
-            misses += segments[i].segmentStats.misses.longValue();
-            evictions += segments[i].segmentStats.evictions.longValue();
-        }
-        return new CacheStats(hits, misses, evictions);
-    }
-
-    public static class CacheStats {
-        private long hits;
-        private long misses;
-        private long evictions;
-
-        public CacheStats(long hits, long misses, long evictions) {
-            this.hits = hits;
-            this.misses = misses;
-            this.evictions = evictions;
-        }
-
-        public long getHits() {
-            return hits;
-        }
-
-        public long getMisses() {
-            return misses;
-        }
-
-        public long getEvictions() {
-            return evictions;
         }
     }
 

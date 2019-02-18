@@ -21,7 +21,6 @@ package org.elasticsearch.discovery.zen;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -52,9 +51,9 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.discovery.DiscoverySettings;
-import org.elasticsearch.discovery.DiscoveryStats;
 import org.elasticsearch.discovery.zen.PublishClusterStateAction.IncomingClusterStateListener;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.EmptyTransportResponseHandler;
@@ -71,7 +70,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -394,38 +392,9 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
         }
     }
 
-    /**
-     * Gets the current set of nodes involved in the node fault detection.
-     * NB: for testing purposes
-     */
-    Set<DiscoveryNode> getFaultDetectionNodes() {
-        return nodesFD.getNodes();
-    }
-
-    @Override
-    public DiscoveryStats stats() {
-        return new DiscoveryStats(pendingStatesQueue.stats(), publishClusterState.stats());
-    }
-
-    public DiscoverySettings getDiscoverySettings() {
-        return discoverySettings;
-    }
-
-    /**
-     * returns true if zen discovery is started and there is a currently a background thread active for (re)joining
-     * the cluster used for testing.
-     */
-    public boolean joiningCluster() {
-        return joinThreadControl.joinThreadActive();
-    }
-
     // used for testing
     public ClusterState[] pendingClusterStates() {
         return pendingStatesQueue.pendingClusterStates();
-    }
-
-    PendingClusterStatesQueue pendingClusterStatesQueue() {
-        return pendingStatesQueue;
     }
 
     /**

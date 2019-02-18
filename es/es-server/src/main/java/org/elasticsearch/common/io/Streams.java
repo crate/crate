@@ -19,24 +19,18 @@
 
 package org.elasticsearch.common.io;
 
-import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStream;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.core.internal.io.IOUtils;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * Simple utility methods for file and stream copying.
@@ -92,29 +86,6 @@ public abstract class Streams {
         }
     }
 
-    /**
-     * Copy the contents of the given byte array to the given OutputStream.
-     * Closes the stream when done.
-     *
-     * @param in  the byte array to copy from
-     * @param out the OutputStream to copy to
-     * @throws IOException in case of I/O errors
-     */
-    public static void copy(byte[] in, OutputStream out) throws IOException {
-        Objects.requireNonNull(in, "No input byte array specified");
-        Objects.requireNonNull(out, "No OutputStream specified");
-        try {
-            out.write(in);
-        } finally {
-            try {
-                out.close();
-            } catch (IOException ex) {
-                // do nothing
-            }
-        }
-    }
-
-
     //---------------------------------------------------------------------
     // Copy methods for java.io.Reader / java.io.Writer
     //---------------------------------------------------------------------
@@ -153,28 +124,6 @@ public abstract class Streams {
     }
 
     /**
-     * Copy the contents of the given String to the given output Writer.
-     * Closes the write when done.
-     *
-     * @param in  the String to copy from
-     * @param out the Writer to copy to
-     * @throws IOException in case of I/O errors
-     */
-    public static void copy(String in, Writer out) throws IOException {
-        Objects.requireNonNull(in, "No input String specified");
-        Objects.requireNonNull(out, "No Writer specified");
-        try {
-            out.write(in);
-        } finally {
-            try {
-                out.close();
-            } catch (IOException ex) {
-                // do nothing
-            }
-        }
-    }
-
-    /**
      * Copy the contents of the given Reader into a String.
      * Closes the reader when done.
      *
@@ -188,26 +137,6 @@ public abstract class Streams {
         return out.toString();
     }
 
-    public static int readFully(Reader reader, char[] dest) throws IOException {
-        return readFully(reader, dest, 0, dest.length);
-    }
-
-    public static int readFully(Reader reader, char[] dest, int offset, int len) throws IOException {
-        int read = 0;
-        while (read < len) {
-            final int r = reader.read(dest, offset + read, len - read);
-            if (r == -1) {
-                break;
-            }
-            read += r;
-        }
-        return read;
-    }
-
-    public static int readFully(InputStream reader, byte[] dest) throws IOException {
-        return readFully(reader, dest, 0, dest.length);
-    }
-
     public static int readFully(InputStream reader, byte[] dest, int offset, int len) throws IOException {
         int read = 0;
         while (read < len) {
@@ -218,21 +147,6 @@ public abstract class Streams {
             read += r;
         }
         return read;
-    }
-
-    public static List<String> readAllLines(InputStream input) throws IOException {
-        final List<String> lines = new ArrayList<>();
-        readAllLines(input, lines::add);
-        return lines;
-    }
-
-    public static void readAllLines(InputStream input, Consumer<String> consumer) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                consumer.accept(line);
-            }
-        }
     }
 
     /**

@@ -34,10 +34,6 @@ public class CompressorFactory {
 
     public static final Compressor COMPRESSOR = new DeflateCompressor();
 
-    public static boolean isCompressed(BytesReference bytes) {
-        return compressor(bytes) != null;
-    }
-
     @Nullable
     public static Compressor compressor(BytesReference bytes) {
             if (COMPRESSOR.isCompressed(bytes)) {

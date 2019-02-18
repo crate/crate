@@ -88,24 +88,12 @@ public class AliasMetaData extends AbstractDiffable<AliasMetaData> implements To
         return filter;
     }
 
-    public CompressedXContent getFilter() {
-        return filter();
-    }
-
     public boolean filteringRequired() {
         return filter != null;
     }
 
-    public String getSearchRouting() {
-        return searchRouting();
-    }
-
     public String searchRouting() {
         return searchRouting;
-    }
-
-    public String getIndexRouting() {
-        return indexRouting();
     }
 
     public String indexRouting() {
@@ -121,10 +109,6 @@ public class AliasMetaData extends AbstractDiffable<AliasMetaData> implements To
     }
 
     public static Builder builder(String alias) {
-        return new Builder(alias);
-    }
-
-    public static Builder newAliasMetaDataBuilder(String alias) {
         return new Builder(alias);
     }
 

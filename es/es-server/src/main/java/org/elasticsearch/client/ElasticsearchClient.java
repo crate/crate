@@ -57,18 +57,6 @@ public interface ElasticsearchClient {
             Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener);
 
     /**
-     * Prepares a request builder to execute, specified by {@link Action}.
-     *
-     * @param action           The action type to execute.
-     * @param <Request>        The request type.
-     * @param <Response>       The response type.
-     * @param <RequestBuilder> The request builder.
-     * @return The request builder, that can, at a later stage, execute the request.
-     */
-    <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> RequestBuilder prepareExecute(
-            Action<Request, Response, RequestBuilder> action);
-
-    /**
      * Returns the threadpool used to execute requests on this client
      */
     ThreadPool threadPool();

@@ -25,7 +25,7 @@ import org.elasticsearch.client.ElasticsearchClient;
 /**
  * A request to get indices level stats. Allow to enable different stats to be returned.
  * <p>
- * By default, the {@link #setDocs(boolean)}, {@link #setStore(boolean)}, {@link #setIndexing(boolean)}
+ * By default, the {@link #setDocs(boolean)} and {@link #setStore(boolean)}
  * are enabled. Other stats can be enabled as well.
  * <p>
  * All the stats to be returned can be cleared using {@link #clear()}, at which point, specific
@@ -53,15 +53,6 @@ public class IndicesStatsRequestBuilder extends BroadcastOperationRequestBuilder
         return this;
     }
 
-    /**
-     * Document types to return stats for. Mainly affects {@link #setIndexing(boolean)} when
-     * enabled, returning specific indexing stats for those types.
-     */
-    public IndicesStatsRequestBuilder setTypes(String... types) {
-        request.types(types);
-        return this;
-    }
-
     public IndicesStatsRequestBuilder setGroups(String... groups) {
         request.groups(groups);
         return this;
@@ -77,78 +68,8 @@ public class IndicesStatsRequestBuilder extends BroadcastOperationRequestBuilder
         return this;
     }
 
-    public IndicesStatsRequestBuilder setIndexing(boolean indexing) {
-        request.indexing(indexing);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setMerge(boolean merge) {
-        request.merge(merge);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setRefresh(boolean refresh) {
-        request.refresh(refresh);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setFlush(boolean flush) {
-        request.flush(flush);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setWarmer(boolean warmer) {
-        request.warmer(warmer);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setQueryCache(boolean queryCache) {
-        request.queryCache(queryCache);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setFieldData(boolean fieldData) {
-        request.fieldData(fieldData);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setFieldDataFields(String... fields) {
-        request.fieldDataFields(fields);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setSegments(boolean segments) {
-        request.segments(segments);
-        return this;
-    }
-
     public IndicesStatsRequestBuilder setCompletion(boolean completion) {
         request.completion(completion);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setCompletionFields(String... fields) {
-        request.completionFields(fields);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setTranslog(boolean translog) {
-        request.translog(translog);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setRequestCache(boolean requestCache) {
-        request.requestCache(requestCache);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setRecovery(boolean recovery) {
-        request.recovery(recovery);
-        return this;
-    }
-
-    public IndicesStatsRequestBuilder setIncludeSegmentFileSizes(boolean includeSegmentFileSizes) {
-        request.includeSegmentFileSizes(includeSegmentFileSizes);
         return this;
     }
 }

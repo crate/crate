@@ -19,14 +19,11 @@
 
 package org.elasticsearch.index.query;
 
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -68,12 +65,6 @@ public class ExistsQueryBuilder {
             boolFilterBuilder.add(newFieldExistsQuery(context, field), BooleanClause.Occur.SHOULD);
         }
         return new ConstantScoreQuery(boolFilterBuilder.build());
-    }
-
-    private static Query newLegacyExistsQuery(QueryShardContext context, String field) {
-        MappedFieldType fieldType = context.fieldMapper(field);
-        String fieldName = fieldType != null ? fieldType.name() : field;
-        return new TermQuery(new Term(FieldNamesFieldMapper.NAME, fieldName));
     }
 
     private static Query newFieldExistsQuery(QueryShardContext context, String field) {

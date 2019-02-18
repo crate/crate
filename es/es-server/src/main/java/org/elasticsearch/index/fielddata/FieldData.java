@@ -77,19 +77,9 @@ public enum FieldData {
     public static SortedNumericDoubleValues sortableLongBitsToDoubles(SortedNumericDocValues values) {
         final NumericDocValues singleton = DocValues.unwrapSingleton(values);
         if (singleton != null) {
-            final NumericDoubleValues doubles;
-            if (singleton instanceof SortableLongBitsNumericDocValues) {
-                doubles = ((SortableLongBitsNumericDocValues) singleton).getDoubleValues();
-            } else {
-                doubles = new SortableLongBitsToNumericDoubleValues(singleton);
-            }
-            return singleton(doubles);
+            return singleton(new SortableLongBitsToNumericDoubleValues(singleton));
         } else {
-            if (values instanceof SortableLongBitsSortedNumericDocValues) {
-                return ((SortableLongBitsSortedNumericDocValues) values).getDoubleValues();
-            } else {
-                return new SortableLongBitsToSortedNumericDoubleValues(values);
-            }
+            return new SortableLongBitsToSortedNumericDoubleValues(values);
         }
     }
 

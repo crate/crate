@@ -36,8 +36,6 @@ import java.util.TreeMap;
 
 public class DynamicTemplate implements ToXContentObject {
 
-    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(Loggers.getLogger(DynamicTemplate.class));
-
     public enum MatchType {
         SIMPLE {
             @Override

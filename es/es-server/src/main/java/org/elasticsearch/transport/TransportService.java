@@ -23,7 +23,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.CheckedBiConsumer;
@@ -209,7 +208,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     }
 
     protected TaskManager createTaskManager(Settings settings, ThreadPool threadPool, Set<String> taskHeaders) {
-        return new TaskManager(settings, threadPool, taskHeaders);
+        return new TaskManager(settings);
     }
 
     /**
@@ -295,14 +294,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      */
     public final void acceptIncomingRequests() {
         blockIncomingRequestsLatch.countDown();
-    }
-
-    public TransportInfo info() {
-        BoundTransportAddress boundTransportAddress = boundAddress();
-        if (boundTransportAddress == null) {
-            return null;
-        }
-        return new TransportInfo(boundTransportAddress, transport.profileBoundAddresses());
     }
 
     public TransportStats stats() {

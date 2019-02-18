@@ -41,29 +41,6 @@ import java.util.NoSuchElementException;
  * Note that backoff policies are exposed as <code>Iterables</code> in order to be consumed multiple times.
  */
 public abstract class BackoffPolicy implements Iterable<TimeValue> {
-    private static final BackoffPolicy NO_BACKOFF = new NoBackoff();
-
-    /**
-     * Creates a backoff policy that will not allow any backoff, i.e. an operation will fail after the first attempt.
-     *
-     * @return A backoff policy without any backoff period. The returned instance is thread safe.
-     */
-    public static BackoffPolicy noBackoff() {
-        return NO_BACKOFF;
-    }
-
-    /**
-     * Creates an new constant backoff policy with the provided configuration.
-     *
-     * @param delay              The delay defines how long to wait between retry attempts. Must not be null.
-     *                           Must be &lt;= <code>Integer.MAX_VALUE</code> ms.
-     * @param maxNumberOfRetries The maximum number of retries. Must be a non-negative number.
-     * @return A backoff policy with a constant wait time between retries. The returned instance is thread safe but each
-     * iterator created from it should only be used by a single thread.
-     */
-    public static BackoffPolicy constantBackoff(TimeValue delay, int maxNumberOfRetries) {
-        return new ConstantBackoff(checkDelay(delay), maxNumberOfRetries);
-    }
 
     /**
      * Creates an new exponential backoff policy with a default configuration of 50 ms initial wait period and 8 retries taking
@@ -101,23 +78,6 @@ public abstract class BackoffPolicy implements Iterable<TimeValue> {
             throw new IllegalArgumentException("delay must be <= " + Integer.MAX_VALUE + " ms");
         }
         return delay;
-    }
-
-    private static class NoBackoff extends BackoffPolicy {
-        @Override
-        public Iterator<TimeValue> iterator() {
-            return new Iterator<TimeValue>() {
-                @Override
-                public boolean hasNext() {
-                    return false;
-                }
-
-                @Override
-                public TimeValue next() {
-                    throw new NoSuchElementException("No backoff");
-                }
-            };
-        }
     }
 
     private static class ExponentialBackoff extends BackoffPolicy {
@@ -163,48 +123,6 @@ public abstract class BackoffPolicy implements Iterable<TimeValue> {
             int result = start + 10 * ((int) Math.exp(0.8d * (currentlyConsumed)) - 1);
             currentlyConsumed++;
             return TimeValue.timeValueMillis(result);
-        }
-    }
-
-    private static final class ConstantBackoff extends BackoffPolicy {
-        private final TimeValue delay;
-
-        private final int numberOfElements;
-
-        ConstantBackoff(TimeValue delay, int numberOfElements) {
-            assert numberOfElements >= 0;
-            this.delay = delay;
-            this.numberOfElements = numberOfElements;
-        }
-
-        @Override
-        public Iterator<TimeValue> iterator() {
-            return new ConstantBackoffIterator(delay, numberOfElements);
-        }
-    }
-
-    private static final class ConstantBackoffIterator implements Iterator<TimeValue> {
-        private final TimeValue delay;
-        private final int numberOfElements;
-        private int curr;
-
-        ConstantBackoffIterator(TimeValue delay, int numberOfElements) {
-            this.delay = delay;
-            this.numberOfElements = numberOfElements;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return curr < numberOfElements;
-        }
-
-        @Override
-        public TimeValue next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException();
-            }
-            curr++;
-            return delay;
         }
     }
 

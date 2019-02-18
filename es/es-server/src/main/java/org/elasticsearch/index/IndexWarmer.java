@@ -19,11 +19,12 @@
 
 package org.elasticsearch.index;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.DirectoryReader;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
@@ -40,10 +41,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 
 public final class IndexWarmer extends AbstractComponent {
 
+    private final static Logger LOGGER = LogManager.getLogger(IndexWarmer.class);
     private final List<Listener> listeners;
 
     IndexWarmer(Settings settings, ThreadPool threadPool, IndexFieldDataService indexFieldDataService,
@@ -67,7 +68,6 @@ public final class IndexWarmer extends AbstractComponent {
         if (logger.isTraceEnabled()) {
             logger.trace("{} top warming [{}]", shard.shardId(), searcher.reader());
         }
-        shard.warmerService().onPreWarm();
         long time = System.nanoTime();
         final List<TerminationHandle> terminationHandles = new ArrayList<>();
         // get a handle on pending tasks
@@ -83,11 +83,6 @@ public final class IndexWarmer extends AbstractComponent {
                 logger.warn("top warming has been interrupted", e);
                 break;
             }
-        }
-        long took = System.nanoTime() - time;
-        shard.warmerService().onPostWarm(took);
-        if (shard.warmerService().logger().isTraceEnabled()) {
-            shard.warmerService().logger().trace("top warming took [{}]", new TimeValue(took, TimeUnit.NANOSECONDS));
         }
     }
 
@@ -131,31 +126,20 @@ public final class IndexWarmer extends AbstractComponent {
             for (final MappedFieldType fieldType : warmUpGlobalOrdinals.values()) {
                 executor.execute(() -> {
                     try {
-                        final long start = System.nanoTime();
                         IndexFieldData.Global ifd = indexFieldDataService.getForField(fieldType);
                         DirectoryReader reader = searcher.getDirectoryReader();
                         IndexFieldData<?> global = ifd.loadGlobal(reader);
                         if (reader.leaves().isEmpty() == false) {
                             global.load(reader.leaves().get(0));
                         }
-
-                        if (indexShard.warmerService().logger().isTraceEnabled()) {
-                            indexShard.warmerService().logger().trace(
-                                "warmed global ordinals for [{}], took [{}]",
-                                fieldType.name(),
-                                TimeValue.timeValueNanos(System.nanoTime() - start));
-                        }
                     } catch (Exception e) {
-                        indexShard
-                            .warmerService()
-                            .logger()
-                            .warn(() -> new ParameterizedMessage("failed to warm-up global ordinals for [{}]", fieldType.name()), e);
+                        LOGGER.warn(() -> new ParameterizedMessage("failed to warm-up global ordinals for [{}]", fieldType.name()), e);
                     } finally {
                         latch.countDown();
                     }
                 });
             }
-            return () -> latch.await();
+            return latch::await;
         }
     }
 

@@ -29,8 +29,6 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.common.util.concurrent.ConcurrentMapLong;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
@@ -42,6 +40,8 @@ import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 
 public class BlobRecoveryTarget extends AbstractComponent {
@@ -74,7 +74,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
     *
     * */
 
-    private final ConcurrentMapLong<BlobRecoveryStatus> onGoingBlobRecoveries = ConcurrentCollections.newConcurrentMapLong();
+    private final ConcurrentMap<Long, BlobRecoveryStatus> onGoingBlobRecoveries = new ConcurrentHashMap<>();
     private final BlobIndicesService blobIndicesService;
     private final PeerRecoveryTargetService peerRecoveryTargetService;
 

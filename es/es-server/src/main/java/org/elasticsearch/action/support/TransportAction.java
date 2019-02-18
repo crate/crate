@@ -28,7 +28,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.tasks.Task;
-import org.elasticsearch.tasks.TaskListener;
 import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -87,32 +86,6 @@ public abstract class TransportAction<Request extends ActionRequest, Response ex
                 }
             });
         }
-        return task;
-    }
-
-    /**
-     * Execute the transport action on the local node, returning the {@link Task} used to track its execution and accepting a
-     * {@link TaskListener} which listens for the completion of the action.
-     */
-    public final Task execute(Request request, TaskListener<Response> listener) {
-        Task task = taskManager.register("transport", actionName, request);
-        execute(task, request, new ActionListener<Response>() {
-            @Override
-            public void onResponse(Response response) {
-                if (task != null) {
-                    taskManager.unregister(task);
-                }
-                listener.onResponse(task, response);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                if (task != null) {
-                    taskManager.unregister(task);
-                }
-                listener.onFailure(task, e);
-            }
-        });
         return task;
     }
 

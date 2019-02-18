@@ -30,7 +30,6 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.common.util.concurrent.ConcurrentMapLong;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -38,6 +37,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
@@ -184,8 +184,8 @@ public interface Transport extends LifecycleComponent {
      * This class is a registry that allows
      */
     final class ResponseHandlers {
-        private final ConcurrentMapLong<ResponseContext> handlers = ConcurrentCollections
-            .newConcurrentMapLongWithAggressiveConcurrency();
+        private final ConcurrentMap<Long, ResponseContext> handlers = ConcurrentCollections
+            .newConcurrentMapWithAggressiveConcurrency();
         private final AtomicLong requestIdGenerator = new AtomicLong();
 
         /**

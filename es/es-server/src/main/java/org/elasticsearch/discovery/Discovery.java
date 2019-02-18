@@ -81,11 +81,6 @@ public interface Discovery extends LifecycleComponent {
     }
 
     /**
-     * @return stats about the discovery
-     */
-    DiscoveryStats stats();
-
-    /**
      * Triggers the first join cycle
      */
     void startInitialJoin();

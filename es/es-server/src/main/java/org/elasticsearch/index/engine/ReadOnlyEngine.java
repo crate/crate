@@ -186,16 +186,6 @@ public final class ReadOnlyEngine extends Engine {
     }
 
     @Override
-    public long getIndexThrottleTimeInMillis() {
-        return 0;
-    }
-
-    @Override
-    public boolean isThrottled() {
-        return false;
-    }
-
-    @Override
     public IndexResult index(Index index) {
         assert false : "this should not be called";
         throw new UnsupportedOperationException("indexing is not supported on a read-only engine");
