@@ -41,6 +41,7 @@ import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropIngestRule;
 import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.GCDanglingArtifacts;
@@ -796,6 +797,11 @@ public class TestStatementBuilder {
         printStatement("select * from t where 'source' !~ 'pattern'");
         printStatement("select * from t where source_column ~ pattern_column");
         printStatement("select * from t where ? !~ ?");
+        // escaped chars related
+        printStatement("select * from t where a like E'aValue'");
+        printStatement("select * from t where a = E'\\141Value'");
+        printStatement("select * from t where a = e'\\141Value'");
+        printStatement("select e.a from t e where e.a = E'\\141Value'");
     }
 
     @Test
@@ -1198,6 +1204,16 @@ public class TestStatementBuilder {
             Expression expr = SqlParser.createExpression(Literals.quoteStringLiteral(s));
             assertThat(((StringLiteral) expr).getValue(), is(s));
         }
+    }
+
+    @Test
+    public void testEscapedStringLiteral() throws Exception {
+        String input = "this is a triple-a:\\141\\x61\\u0061";
+        String expectedValue = "this is a triple-a:aaa";
+        Expression expr = SqlParser.createExpression(Literals.escapeAndQuoteStringLiteral(input));
+        EscapedCharStringLiteral escapedCharStringLiteral = (EscapedCharStringLiteral) expr;
+        assertThat(escapedCharStringLiteral.getRawValue(), is(input));
+        assertThat(escapedCharStringLiteral.getValue(), is(expectedValue));
     }
 
     @Test
