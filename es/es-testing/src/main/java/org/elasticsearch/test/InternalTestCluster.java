@@ -27,6 +27,7 @@ import com.carrotsearch.randomizedtesting.SysGlobals;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.ElasticsearchException;
@@ -52,7 +53,6 @@ import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasables;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.MockSecureSettings;
 import org.elasticsearch.common.settings.SecureSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -133,7 +133,6 @@ import java.util.stream.Stream;
 import static java.util.Collections.emptyList;
 import static org.apache.lucene.util.LuceneTestCase.TEST_NIGHTLY;
 import static org.apache.lucene.util.LuceneTestCase.rarely;
-import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
 import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
 import static org.elasticsearch.discovery.DiscoverySettings.INITIAL_STATE_TIMEOUT_SETTING;
 import static org.elasticsearch.discovery.zen.ElectMasterService.DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING;
@@ -162,7 +161,7 @@ import static org.junit.Assert.fail;
  */
 public final class InternalTestCluster extends TestCluster {
 
-    private final Logger logger = Loggers.getLogger(getClass());
+    private final Logger logger = LogManager.getLogger(getClass());
 
 
     private static final AtomicInteger clusterOrdinal = new AtomicInteger();

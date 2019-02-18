@@ -19,6 +19,7 @@
 
 package org.elasticsearch.index.search;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.miscellaneous.DisableGraphAttribute;
@@ -50,7 +51,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.DeprecationLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.search.MultiPhrasePrefixQuery;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -69,7 +69,7 @@ import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQue
 
 public class MatchQuery {
 
-    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(Loggers.getLogger(MappedFieldType.class));
+    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(MappedFieldType.class));
     public static final float DEFAULT_BOOST = 1.0f;
 
     public enum Type implements Writeable {

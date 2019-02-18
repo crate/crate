@@ -47,8 +47,8 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.util.ReferenceCountUtil;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
@@ -122,7 +122,7 @@ public class HttpTestServer {
     @ChannelHandler.Sharable
     public class HttpTestServerHandler extends SimpleChannelInboundHandler<Object> {
 
-        private final Logger logger = Loggers.getLogger(HttpTestServerHandler.class.getName());
+        private final Logger logger = LogManager.getLogger(HttpTestServerHandler.class.getName());
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {

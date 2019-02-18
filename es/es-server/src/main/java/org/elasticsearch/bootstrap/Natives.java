@@ -19,8 +19,8 @@
 
 package org.elasticsearch.bootstrap;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 
 /**
  * The Natives class is a wrapper class that checks if the classes necessary for calling native methods are available on
@@ -30,7 +30,7 @@ final class Natives {
     /** no instantiation */
     private Natives() {}
 
-    private static final Logger logger = Loggers.getLogger(Natives.class);
+    private static final Logger logger = LogManager.getLogger(Natives.class);
 
     // marker to determine if the JNA class files are available to the JVM
     static final boolean JNA_AVAILABLE;

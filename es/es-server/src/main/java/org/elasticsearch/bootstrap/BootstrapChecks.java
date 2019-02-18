@@ -19,6 +19,7 @@
 
 package org.elasticsearch.bootstrap;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.Constants;
@@ -413,7 +414,7 @@ final class BootstrapChecks {
 
         // visible for testing
         long getMaxMapCount() {
-            return getMaxMapCount(Loggers.getLogger(BootstrapChecks.class));
+            return getMaxMapCount(LogManager.getLogger(BootstrapChecks.class));
         }
 
         // visible for testing

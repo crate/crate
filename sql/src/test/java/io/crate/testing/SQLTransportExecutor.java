@@ -44,6 +44,7 @@ import io.crate.shade.org.postgresql.util.ServerErrorMessage;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionFuture;
@@ -102,7 +103,7 @@ public class SQLTransportExecutor {
     public static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
         MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
 
-    private static final Logger LOGGER = Loggers.getLogger(SQLTransportExecutor.class);
+    private static final Logger LOGGER = LogManager.getLogger(SQLTransportExecutor.class);
 
     private static final TestExecutionConfig EXECUTION_FEATURES_DISABLED = new TestExecutionConfig(false, false, false);
 

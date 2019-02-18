@@ -25,9 +25,9 @@ package io.crate.breaker;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.RowGenerator;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.junit.After;
@@ -57,7 +57,7 @@ public class RowAccountingWithEstimatorsTest extends CrateUnitTest {
             new RamAccountingContext(
                 "test",
                 new MemoryCircuitBreaker(
-                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, Loggers.getLogger(RowAccountingWithEstimatorsTest.class))
+                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class))
             ));
 
         expectedException.expect(CircuitBreakingException.class);
@@ -70,7 +70,7 @@ public class RowAccountingWithEstimatorsTest extends CrateUnitTest {
             new RamAccountingContext(
                 "test",
                 new MemoryCircuitBreaker(
-                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, Loggers.getLogger(RowAccountingWithEstimatorsTest.class))
+                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class))
             ),
             2);
 

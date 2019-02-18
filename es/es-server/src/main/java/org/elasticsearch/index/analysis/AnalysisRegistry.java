@@ -18,13 +18,13 @@
  */
 package org.elasticsearch.index.analysis;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.logging.DeprecationLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.env.Environment;
@@ -468,7 +468,7 @@ public final class AnalysisRegistry implements Closeable {
 
         Index index = indexSettings.getIndex();
         analyzerProviders = new HashMap<>(analyzerProviders);
-        Logger logger = Loggers.getLogger(getClass());
+        Logger logger = LogManager.getLogger(getClass());
         DeprecationLogger deprecationLogger = new DeprecationLogger(logger);
         Map<String, NamedAnalyzer> analyzerAliases = new HashMap<>();
         Map<String, NamedAnalyzer> analyzers = new HashMap<>();

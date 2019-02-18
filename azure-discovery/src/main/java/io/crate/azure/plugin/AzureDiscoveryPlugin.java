@@ -26,11 +26,11 @@ import io.crate.azure.AzureConfiguration;
 import io.crate.azure.discovery.AzureUnicastHostsProvider;
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeServiceImpl;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -65,7 +65,7 @@ public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
     private final Settings settings;
     private AzureComputeServiceImpl azureComputeService;
 
-    protected final Logger logger = Loggers.getLogger(AzureDiscoveryPlugin.class);
+    protected final Logger logger = LogManager.getLogger(AzureDiscoveryPlugin.class);
 
     public AzureDiscoveryPlugin(Settings settings) {
         this.settings = settings;
