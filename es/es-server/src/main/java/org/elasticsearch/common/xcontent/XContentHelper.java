@@ -288,54 +288,6 @@ public class XContentHelper {
     }
 
     /**
-     * Writes a "raw" (bytes) field, handling cases where the bytes are compressed, and tries to optimize writing using
-     * {@link XContentBuilder#rawField(String, InputStream)}.
-     * @deprecated use {@link #writeRawField(String, BytesReference, XContentType, XContentBuilder, Params)} to avoid content type
-     * auto-detection
-     */
-    @Deprecated
-    public static void writeRawField(String field, BytesReference source, XContentBuilder builder, ToXContent.Params params) throws IOException {
-        Compressor compressor = CompressorFactory.compressor(source);
-        if (compressor != null) {
-            try (InputStream compressedStreamInput = compressor.streamInput(source.streamInput())) {
-                builder.rawField(field, compressedStreamInput);
-            }
-        } else {
-            try (InputStream stream = source.streamInput()) {
-                builder.rawField(field, stream);
-            }
-        }
-    }
-
-    /**
-     * Writes a "raw" (bytes) field, handling cases where the bytes are compressed, and tries to optimize writing using
-     * {@link XContentBuilder#rawField(String, InputStream, XContentType)}.
-     */
-    public static void writeRawField(String field, BytesReference source, XContentType xContentType, XContentBuilder builder,
-                                     ToXContent.Params params) throws IOException {
-        Objects.requireNonNull(xContentType);
-        Compressor compressor = CompressorFactory.compressor(source);
-        if (compressor != null) {
-            try (InputStream compressedStreamInput = compressor.streamInput(source.streamInput())) {
-                builder.rawField(field, compressedStreamInput, xContentType);
-            }
-        } else {
-            try (InputStream stream = source.streamInput()) {
-                builder.rawField(field, stream, xContentType);
-            }
-        }
-    }
-
-    /**
-     * Returns the bytes that represent the XContent output of the provided {@link ToXContent} object, using the provided
-     * {@link XContentType}. Wraps the output into a new anonymous object according to the value returned
-     * by the {@link ToXContent#isFragment()} method returns.
-     */
-    public static BytesReference toXContent(ToXContent toXContent, XContentType xContentType, boolean humanReadable) throws IOException {
-        return toXContent(toXContent, xContentType, ToXContent.EMPTY_PARAMS, humanReadable);
-    }
-
-    /**
      * Returns the bytes that represent the XContent output of the provided {@link ToXContent} object, using the provided
      * {@link XContentType}. Wraps the output into a new anonymous object according to the value returned
      * by the {@link ToXContent#isFragment()} method returns.

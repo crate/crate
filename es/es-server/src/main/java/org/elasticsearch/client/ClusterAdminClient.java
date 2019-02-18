@@ -24,7 +24,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequestBuilder;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
@@ -119,11 +118,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Update settings in the cluster.
      */
     ClusterRerouteRequestBuilder prepareReroute();
-
-    /**
-     * Nodes info of the cluster.
-     */
-    NodesInfoRequestBuilder prepareNodesInfo(String... nodesIds);
 
     /**
      * Registers a snapshot repository.

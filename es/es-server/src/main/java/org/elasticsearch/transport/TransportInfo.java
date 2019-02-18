@@ -24,7 +24,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.transport.BoundTransportAddress;
-import org.elasticsearch.common.xcontent.ToXContent.Params;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -99,17 +98,5 @@ public class TransportInfo implements Writeable, ToXContentFragment {
 
     public BoundTransportAddress address() {
         return address;
-    }
-
-    public BoundTransportAddress getAddress() {
-        return address();
-    }
-
-    public Map<String, BoundTransportAddress> getProfileAddresses() {
-        return profileAddresses();
-    }
-
-    public Map<String, BoundTransportAddress> profileAddresses() {
-        return profileAddresses;
     }
 }
