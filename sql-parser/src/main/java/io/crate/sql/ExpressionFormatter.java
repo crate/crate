@@ -41,6 +41,7 @@ import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DateLiteral;
 import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.ExistsPredicate;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Extract;
@@ -208,6 +209,11 @@ public final class ExpressionFormatter {
         @Override
         protected String visitStringLiteral(StringLiteral node, Void context) {
             return Literals.quoteStringLiteral(node.getValue());
+        }
+
+        @Override
+        protected String visitEscapedCharStringLiteral(EscapedCharStringLiteral node, Void context) {
+            return Literals.escapeAndQuoteStringLiteral(node.getRawValue());
         }
 
         @Override

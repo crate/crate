@@ -92,6 +92,7 @@ import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Extract;
 import io.crate.sql.tree.FrameBound;
@@ -784,6 +785,11 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitStringLiteral(StringLiteral node, ExpressionAnalysisContext context) {
+            return Literal.of(node.getValue());
+        }
+
+        @Override
+        protected Symbol visitEscapedCharStringLiteral(EscapedCharStringLiteral node, ExpressionAnalysisContext context) {
             return Literal.of(node.getValue());
         }
 
