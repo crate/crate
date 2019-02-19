@@ -29,7 +29,6 @@ import java.util.Map;
 import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolPB;
 import org.apache.hadoop.security.KerberosInfo;
 import org.apache.hadoop.security.SecurityUtil;
-import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -41,7 +40,6 @@ public final class HdfsPlugin extends Plugin implements RepositoryPlugin {
 
     // initialize some problematic classes with elevated privileges
     static {
-        SpecialPermission.check();
         AccessController.doPrivileged((PrivilegedAction<Void>) HdfsPlugin::evilHadoopInit);
         AccessController.doPrivileged((PrivilegedAction<Void>) HdfsPlugin::eagerInit);
     }

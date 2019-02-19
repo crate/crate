@@ -20,7 +20,6 @@
 package org.elasticsearch.repositories.s3;
 
 import com.amazonaws.util.json.Jackson;
-import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -46,7 +45,6 @@ import java.util.Objects;
 public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin, ReloadablePlugin {
 
     static {
-        SpecialPermission.check();
         AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
             try {
                 // kick jackson to do some static caching of declared members info

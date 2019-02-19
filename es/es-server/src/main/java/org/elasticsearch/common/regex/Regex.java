@@ -196,36 +196,4 @@ public class Regex {
         }
         return pFlags;
     }
-
-    public static String flagsToString(int flags) {
-        StringBuilder sb = new StringBuilder();
-        if ((flags & Pattern.CASE_INSENSITIVE) != 0) {
-            sb.append("CASE_INSENSITIVE|");
-        }
-        if ((flags & Pattern.MULTILINE) != 0) {
-            sb.append("MULTILINE|");
-        }
-        if ((flags & Pattern.DOTALL) != 0) {
-            sb.append("DOTALL|");
-        }
-        if ((flags & Pattern.UNICODE_CASE) != 0) {
-            sb.append("UNICODE_CASE|");
-        }
-        if ((flags & Pattern.CANON_EQ) != 0) {
-            sb.append("CANON_EQ|");
-        }
-        if ((flags & Pattern.UNIX_LINES) != 0) {
-            sb.append("UNIX_LINES|");
-        }
-        if ((flags & Pattern.LITERAL) != 0) {
-            sb.append("LITERAL|");
-        }
-        if ((flags & Pattern.COMMENTS) != 0) {
-            sb.append("COMMENTS|");
-        }
-        if ((flags & UNICODE_CHARACTER_CLASS) != 0) {
-            sb.append("UNICODE_CHAR_CLASS|");
-        }
-        return sb.toString();
-    }
 }

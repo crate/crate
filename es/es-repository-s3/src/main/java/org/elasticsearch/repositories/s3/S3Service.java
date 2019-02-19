@@ -39,6 +39,7 @@ import org.elasticsearch.common.settings.Settings;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
+
 import static java.util.Collections.emptyMap;
 
 class S3Service extends AbstractComponent implements Closeable {
@@ -144,7 +145,7 @@ class S3Service extends AbstractComponent implements Closeable {
         final AWSCredentials credentials = clientSettings.credentials;
         if (credentials == null) {
             logger.debug("Using instance profile credentials");
-            return new PrivilegedInstanceProfileCredentialsProvider();
+            return new EC2ContainerCredentialsProviderWrapper();
         } else {
             logger.debug("Using basic key/secret credentials");
             return new StaticCredentialsProvider(credentials);
@@ -169,25 +170,6 @@ class S3Service extends AbstractComponent implements Closeable {
         // shutdown IdleConnectionReaper background thread
         // it will be restarted on new client usage
         IdleConnectionReaper.shutdown();
-    }
-
-    static class PrivilegedInstanceProfileCredentialsProvider implements AWSCredentialsProvider {
-        private final AWSCredentialsProvider credentials;
-
-        private PrivilegedInstanceProfileCredentialsProvider() {
-            // InstanceProfileCredentialsProvider as last item of chain
-            this.credentials = new EC2ContainerCredentialsProviderWrapper();
-        }
-
-        @Override
-        public AWSCredentials getCredentials() {
-            return SocketAccess.doPrivileged(credentials::getCredentials);
-        }
-
-        @Override
-        public void refresh() {
-            SocketAccess.doPrivilegedVoid(credentials::refresh);
-        }
     }
 
     @Override

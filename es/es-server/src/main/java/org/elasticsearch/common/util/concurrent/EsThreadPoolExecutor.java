@@ -31,7 +31,6 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
 
     private final ThreadContext contextHolder;
 
-    private final Object monitor = new Object();
     /**
      * Name used in error reporting.
      */

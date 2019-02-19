@@ -133,18 +133,6 @@ public class Strings {
     }
 
     /**
-     * Check that the given BytesReference is neither <code>null</code> nor of length 0
-     * Note: Will return <code>true</code> for a BytesReference that purely consists of whitespace.
-     *
-     * @param bytesReference the BytesReference to check (may be <code>null</code>)
-     * @return <code>true</code> if the BytesReference is not null and has length
-     * @see #hasLength(CharSequence)
-     */
-    public static boolean hasLength(BytesReference bytesReference) {
-        return (bytesReference != null && bytesReference.length() > 0);
-    }
-
-    /**
      * Check that the given String is neither <code>null</code> nor of length 0.
      * Note: Will return <code>true</code> for a String that purely consists of whitespace.
      *
@@ -292,17 +280,6 @@ public class Strings {
     //---------------------------------------------------------------------
     // Convenience methods for working with formatted Strings
     //---------------------------------------------------------------------
-
-    /**
-     * Quote the given String with single quotes.
-     *
-     * @param str the input String (e.g. "myString")
-     * @return the quoted String (e.g. "'myString'"),
-     *         or <code>null</code> if the input was <code>null</code>
-     */
-    public static String quote(String str) {
-        return (str != null ? "'" + str + "'" : null);
-    }
 
     /**
      * Capitalize a <code>String</code>, changing the first letter to
@@ -677,22 +654,6 @@ public class Strings {
     }
 
 
-    /**
-     * Return substring(beginIndex, endIndex) that is impervious to string length.
-     */
-    public static String substring(String s, int beginIndex, int endIndex) {
-        if (s == null) {
-            return s;
-        }
-
-        int realEndIndex = s.length() > 0 ? s.length() - 1 : 0;
-
-        if (endIndex > realEndIndex) {
-            return s.substring(beginIndex);
-        } else {
-            return s.substring(beginIndex, endIndex);
-        }
-    }
 
     /**
      * If an array only consists of zero or one element, which is "*" or "_all" return an empty array
@@ -760,30 +721,6 @@ public class Strings {
             builder.humanReadable(true);
         }
         return builder;
-    }
-
-    /**
-     * Truncates string to a length less than length. Backtracks to throw out
-     * high surrogates.
-     */
-    public static String cleanTruncate(String s, int length) {
-        if (s == null) {
-            return s;
-        }
-        /*
-         * Its pretty silly for you to truncate to 0 length but just in case
-         * someone does this shouldn't break.
-         */
-        if (length == 0) {
-            return "";
-        }
-        if (length >= s.length()) {
-            return s;
-        }
-        if (Character.isHighSurrogate(s.charAt(length - 1))) {
-            length--;
-        }
-        return s.substring(0, length);
     }
 
     public static boolean isNullOrEmpty(@Nullable String s) {

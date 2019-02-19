@@ -37,7 +37,6 @@ import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.SuppressForbidden;
@@ -224,7 +223,6 @@ public final class HdfsRepository extends BlobStoreRepository {
     @Override
     protected HdfsBlobStore createBlobStore() {
         // initialize our blobstore using elevated privileges.
-        SpecialPermission.check();
         final HdfsBlobStore blobStore =
             AccessController.doPrivileged((PrivilegedAction<HdfsBlobStore>)
                 () -> createBlobstore(uri, pathSetting, getMetadata().settings()));

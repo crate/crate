@@ -34,7 +34,6 @@ import javax.security.auth.PrivateCredentialPermission;
 import javax.security.auth.kerberos.ServicePermission;
 
 import org.apache.hadoop.security.UserGroupInformation;
-import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.env.Environment;
 
 /**
@@ -136,7 +135,6 @@ class HdfsSecurityContext {
     }
 
     <T> T doPrivilegedOrThrow(PrivilegedExceptionAction<T> action) throws IOException {
-        SpecialPermission.check();
         try {
             if (restrictPermissions) {
                 return AccessController.doPrivileged(action, null, this.getRestrictedExecutionPermissions());

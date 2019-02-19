@@ -27,7 +27,6 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.shard.DocsStats;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.store.StoreStats;
-import org.elasticsearch.indices.IndicesQueryCache;
 
 import java.io.IOException;
 
@@ -60,7 +59,7 @@ public class CommonStats implements Writeable {
         }
     }
 
-    public CommonStats(IndicesQueryCache indicesQueryCache, IndexShard indexShard, CommonStatsFlags flags) {
+    public CommonStats(IndexShard indexShard, CommonStatsFlags flags) {
         CommonStatsFlags.Flag[] setFlags = flags.getFlags();
         for (CommonStatsFlags.Flag flag : setFlags) {
             try {

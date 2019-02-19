@@ -68,7 +68,7 @@ class S3BlobContainer extends AbstractBlobContainer {
     @Override
     public boolean blobExists(String blobName) {
         try (AmazonS3Reference clientReference = blobStore.clientReference()) {
-            return SocketAccess.doPrivileged(() -> clientReference.client().doesObjectExist(blobStore.bucket(), buildKey(blobName)));
+            return clientReference.client().doesObjectExist(blobStore.bucket(), buildKey(blobName));
         } catch (final Exception e) {
             throw new BlobStoreException("Failed to check if blob [" + blobName +"] exists", e);
         }
@@ -77,8 +77,7 @@ class S3BlobContainer extends AbstractBlobContainer {
     @Override
     public InputStream readBlob(String blobName) throws IOException {
         try (AmazonS3Reference clientReference = blobStore.clientReference()) {
-            final S3Object s3Object = SocketAccess.doPrivileged(() -> clientReference.client().getObject(blobStore.bucket(),
-                    buildKey(blobName)));
+            final S3Object s3Object = clientReference.client().getObject(blobStore.bucket(), buildKey(blobName));
             return s3Object.getObjectContent();
         } catch (final AmazonClientException e) {
             if (e instanceof AmazonS3Exception) {
@@ -95,14 +94,11 @@ class S3BlobContainer extends AbstractBlobContainer {
      */
     @Override
     public void writeBlob(String blobName, InputStream inputStream, long blobSize, boolean failIfAlreadyExists) throws IOException {
-        SocketAccess.doPrivilegedIOException(() -> {
-            if (blobSize <= blobStore.bufferSizeInBytes()) {
-                executeSingleUpload(blobStore, buildKey(blobName), inputStream, blobSize);
-            } else {
-                executeMultipartUpload(blobStore, buildKey(blobName), inputStream, blobSize);
-            }
-            return null;
-        });
+        if (blobSize <= blobStore.bufferSizeInBytes()) {
+            executeSingleUpload(blobStore, buildKey(blobName), inputStream, blobSize);
+        } else {
+            executeMultipartUpload(blobStore, buildKey(blobName), inputStream, blobSize);
+        }
     }
 
     @Override
@@ -117,7 +113,7 @@ class S3BlobContainer extends AbstractBlobContainer {
     public void deleteBlobIgnoringIfNotExists(String blobName) throws IOException {
         try (AmazonS3Reference clientReference = blobStore.clientReference()) {
             // There is no way to know if an non-versioned object existed before the deletion
-            SocketAccess.doPrivilegedVoid(() -> clientReference.client().deleteObject(blobStore.bucket(), buildKey(blobName)));
+            clientReference.client().deleteObject(blobStore.bucket(), buildKey(blobName));
         } catch (final AmazonClientException e) {
             throw new IOException("Exception when deleting blob [" + blobName + "]", e);
         }
@@ -132,13 +128,12 @@ class S3BlobContainer extends AbstractBlobContainer {
                 ObjectListing list;
                 if (prevListing != null) {
                     final ObjectListing finalPrevListing = prevListing;
-                    list = SocketAccess.doPrivileged(() -> clientReference.client().listNextBatchOfObjects(finalPrevListing));
+                    list = clientReference.client().listNextBatchOfObjects(finalPrevListing);
                 } else {
                     if (blobNamePrefix != null) {
-                        list = SocketAccess.doPrivileged(() -> clientReference.client().listObjects(blobStore.bucket(),
-                                buildKey(blobNamePrefix)));
+                        list = clientReference.client().listObjects(blobStore.bucket(), buildKey(blobNamePrefix));
                     } else {
-                        list = SocketAccess.doPrivileged(() -> clientReference.client().listObjects(blobStore.bucket(), keyPath));
+                        list = clientReference.client().listObjects(blobStore.bucket(), keyPath);
                     }
                 }
                 for (final S3ObjectSummary summary : list.getObjectSummaries()) {
@@ -192,9 +187,7 @@ class S3BlobContainer extends AbstractBlobContainer {
         putRequest.setCannedAcl(blobStore.getCannedACL());
 
         try (AmazonS3Reference clientReference = blobStore.clientReference()) {
-            SocketAccess.doPrivilegedVoid(() -> {
-                clientReference.client().putObject(putRequest);
-            });
+            clientReference.client().putObject(putRequest);
         } catch (final AmazonClientException e) {
             throw new IOException("Unable to upload object [" + blobName + "] using a single upload", e);
         }
@@ -242,7 +235,7 @@ class S3BlobContainer extends AbstractBlobContainer {
         }
         try (AmazonS3Reference clientReference = blobStore.clientReference()) {
 
-            uploadId.set(SocketAccess.doPrivileged(() -> clientReference.client().initiateMultipartUpload(initRequest).getUploadId()));
+            uploadId.set(clientReference.client().initiateMultipartUpload(initRequest).getUploadId());
             if (Strings.isEmpty(uploadId.get())) {
                 throw new IOException("Failed to initialize multipart upload " + blobName);
             }
@@ -267,7 +260,7 @@ class S3BlobContainer extends AbstractBlobContainer {
                 }
                 bytesCount += uploadRequest.getPartSize();
 
-                final UploadPartResult uploadResponse = SocketAccess.doPrivileged(() -> clientReference.client().uploadPart(uploadRequest));
+                final UploadPartResult uploadResponse = clientReference.client().uploadPart(uploadRequest);
                 parts.add(uploadResponse.getPartETag());
             }
 
@@ -278,7 +271,7 @@ class S3BlobContainer extends AbstractBlobContainer {
 
             final CompleteMultipartUploadRequest complRequest = new CompleteMultipartUploadRequest(bucketName, blobName, uploadId.get(),
                     parts);
-            SocketAccess.doPrivilegedVoid(() -> clientReference.client().completeMultipartUpload(complRequest));
+            clientReference.client().completeMultipartUpload(complRequest);
             success = true;
 
         } catch (final AmazonClientException e) {
@@ -287,7 +280,7 @@ class S3BlobContainer extends AbstractBlobContainer {
             if ((success == false) && Strings.hasLength(uploadId.get())) {
                 final AbortMultipartUploadRequest abortRequest = new AbortMultipartUploadRequest(bucketName, blobName, uploadId.get());
                 try (AmazonS3Reference clientReference = blobStore.clientReference()) {
-                    SocketAccess.doPrivilegedVoid(() -> clientReference.client().abortMultipartUpload(abortRequest));
+                    clientReference.client().abortMultipartUpload(abortRequest);
                 }
             }
         }
