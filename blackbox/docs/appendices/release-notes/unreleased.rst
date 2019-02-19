@@ -72,7 +72,7 @@ Changes
 
 - Expose the sum of statement durations, total, and failed count classified by
   statement type under the sum_of_durations, total_count and failed_count
-  columns, respectively, in the sys.jobs_metric table.
+  columns, respectively, in the :ref:`sys-jobs-metrics` table.
 
 - Added a node check that checks the JVM version under which CrateDB is
   running. We recommend users to upgrade to JVM 11 as support for older
