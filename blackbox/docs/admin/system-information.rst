@@ -1158,6 +1158,8 @@ Every request that queries data or manipulates data is considered a "job" if it
 is a valid query. Requests that are not valid queries (for example, a request
 that tries to query a non-existent table) will not show up as jobs.
 
+.. _sys-jobs-metrics:
+
 Jobs Metrics
 ------------
 
