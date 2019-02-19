@@ -20,30 +20,17 @@
 package org.elasticsearch.index.query;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
-import org.elasticsearch.index.cache.bitset.BitsetFilterCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.mapper.ContentPath;
 import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ObjectMapper;
-import org.elasticsearch.index.mapper.TextFieldMapper;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.LongSupplier;
 
@@ -54,54 +41,22 @@ public class QueryShardContext extends QueryRewriteContext {
 
     private final IndexSettings indexSettings;
     private final MapperService mapperService;
-    private final BitsetFilterCache bitsetFilterCache;
     private final BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataService;
-    private final int shardId;
-    private final IndexReader reader;
-    private final String clusterAlias;
-    private String[] types = Strings.EMPTY_ARRAY;
     private final SetOnce<Boolean> frozen = new SetOnce<>();
     private final Index fullyQualifiedIndex;
 
-    public void setTypes(String... types) {
-        this.types = types;
-    }
-
-    public String[] getTypes() {
-        return types;
-    }
-
-    private final Map<String, Query> namedQueries = new HashMap<>();
     private boolean allowUnmappedFields;
-    private boolean mapUnmappedFieldAsString;
 
-    public QueryShardContext(int shardId,
-                             IndexSettings indexSettings,
-                             BitsetFilterCache bitsetFilterCache,
+    public QueryShardContext(IndexSettings indexSettings,
                              BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataLookup,
                              MapperService mapperService,
-                             NamedXContentRegistry xContentRegistry,
-                             NamedWriteableRegistry namedWriteableRegistry,
-                             IndexReader reader,
-                             LongSupplier nowInMillis,
-                             String clusterAlias) {
-        super(xContentRegistry, namedWriteableRegistry, nowInMillis);
-        this.shardId = shardId;
+                             LongSupplier nowInMillis) {
+        super(nowInMillis);
         this.mapperService = mapperService;
-        this.bitsetFilterCache = bitsetFilterCache;
         this.indexFieldDataService = indexFieldDataLookup;
         this.allowUnmappedFields = indexSettings.isDefaultAllowUnmappedFields();
         this.indexSettings = indexSettings;
-        this.reader = reader;
-        this.clusterAlias = clusterAlias;
         this.fullyQualifiedIndex = indexSettings.getIndex();
-    }
-
-    public QueryShardContext(QueryShardContext source) {
-        this(source.shardId, source.indexSettings, source.bitsetFilterCache, source.indexFieldDataService, source.mapperService,
-                source.getXContentRegistry(), source.getWriteableRegistry(),
-                source.reader, source.nowInMillis, source.clusterAlias);
-        this.types = source.getTypes();
     }
 
     public IndexAnalyzers getIndexAnalyzers() {
@@ -114,12 +69,6 @@ public class QueryShardContext extends QueryRewriteContext {
 
     public <IFD extends IndexFieldData<?>> IFD getForField(MappedFieldType fieldType) {
         return (IFD) indexFieldDataService.apply(fieldType, fullyQualifiedIndex.getName());
-    }
-
-    public void addNamedQuery(String name, Query query) {
-        if (query != null) {
-            namedQueries.put(name, query);
-        }
     }
 
     /**
@@ -160,37 +109,12 @@ public class QueryShardContext extends QueryRewriteContext {
         return getMapperService().searchQuoteAnalyzer();
     }
 
-    MappedFieldType failIfFieldMappingNotFound(String name, MappedFieldType fieldMapping) {
+    private MappedFieldType failIfFieldMappingNotFound(String name, MappedFieldType fieldMapping) {
         if (fieldMapping != null || allowUnmappedFields) {
             return fieldMapping;
-        } else if (mapUnmappedFieldAsString) {
-            TextFieldMapper.Builder builder = new TextFieldMapper.Builder(name);
-            return builder.build(new Mapper.BuilderContext(indexSettings.getSettings(), new ContentPath(1))).fieldType();
         } else {
             throw new QueryShardException(this, "No field mapping can be found for the field with name [{}]", name);
         }
-    }
-
-    /**
-     * Returns the narrowed down explicit types, or, if not set, all types.
-     */
-    public Collection<String> queryTypes() {
-        String[] types = getTypes();
-        if (types == null || types.length == 0) {
-            return getMapperService().types();
-        }
-        if (types.length == 1 && types[0].equals("_all")) {
-            return getMapperService().types();
-        }
-        return Arrays.asList(types);
-    }
-
-    public Version indexVersionCreated() {
-        return indexSettings.getIndexVersionCreated();
-    }
-
-    public Index index() {
-        return indexSettings.getIndex();
     }
 
     /**
@@ -205,13 +129,6 @@ public class QueryShardContext extends QueryRewriteContext {
         } else {
             assert frozen.get() == null : frozen.get();
         }
-    }
-
-    /**
-     * Returns the shard ID this context was created for.
-     */
-    public int getShardId() {
-        return shardId;
     }
 
     @Override
@@ -233,12 +150,6 @@ public class QueryShardContext extends QueryRewriteContext {
      */
     public MapperService getMapperService() {
         return mapperService;
-    }
-
-    /** Return the current {@link IndexReader}, or {@code null} if no index reader is available,
-     *  for instance if this rewrite context is used to index queries (percolation). */
-    public IndexReader getIndexReader() {
-        return reader;
     }
 
     /**

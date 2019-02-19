@@ -28,8 +28,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.Index;
@@ -133,21 +131,16 @@ public class IdFieldMapper extends MetadataFieldMapper {
 
         @Override
         public Query termsQuery(List<?> values, QueryShardContext context) {
-            if (indexOptions() != IndexOptions.NONE) {
-                failIfNotIndexed();
-                BytesRef[] bytesRefs = new BytesRef[values.size()];
-                for (int i = 0; i < bytesRefs.length; i++) {
-                    Object idObject = values.get(i);
-                    if (idObject instanceof BytesRef) {
-                        idObject = ((BytesRef) idObject).utf8ToString();
-                    }
-                    BytesRef id = Uid.encodeId(idObject.toString());
-                    bytesRefs[i] = id;
+            failIfNotIndexed();
+            BytesRef[] bytesRefs = new BytesRef[values.size()];
+            for (int i = 0; i < bytesRefs.length; i++) {
+                Object idObject = values.get(i);
+                if (idObject instanceof BytesRef) {
+                    idObject = ((BytesRef) idObject).utf8ToString();
                 }
-                return new TermInSetQuery(name(), bytesRefs);
+                bytesRefs[i] = Uid.encodeId(idObject.toString());
             }
-            // 5.x index, _uid is indexed
-            return new TermInSetQuery(UidFieldMapper.NAME, Uid.createUidsForTypesAndIds(context.queryTypes(), values));
+            return new TermInSetQuery(name(), bytesRefs);
         }
 
         @Override

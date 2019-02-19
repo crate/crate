@@ -61,9 +61,6 @@ public abstract class AbstractQueryBuilder<QB extends AbstractQueryBuilder<QB>> 
                     query = new BoostQuery(query, boost);
                 }
             }
-            if (queryName != null) {
-                context.addNamedQuery(queryName, query);
-            }
         }
         return query;
     }
