@@ -1201,7 +1201,7 @@ statements.
 | ``failed_count``             | Total number of queries that failed to complete    | ``LONG``         |  
 |                              | successfully.                                      |                  | 
 +------------------------------+----------------------------------------------------+------------------+
-| ``sum_of_durations``         | Sum of durations of all executed queries per       | ``LONG``         |
+| ``sum_of_durations``         | Sum of durations in ms of all executed queries per | ``LONG``         |
 |                              | statement type.                                    |                  |
 +------------------------------+----------------------------------------------------+------------------+
 | ``stdev``                    | The standard deviation of the query latencies      | ``DOUBLE``       |
