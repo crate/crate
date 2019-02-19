@@ -95,7 +95,6 @@ import java.util.function.UnaryOperator;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static io.crate.settings.SharedSettings.ENTERPRISE_LICENSE_SETTING;
-import static org.elasticsearch.action.support.AutoCreateIndex.AUTO_CREATE_INDEX_SETTING;
 
 public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
@@ -115,10 +114,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     @Override
     public Settings additionalSettings() {
         Settings.Builder settingsBuilder = Settings.builder();
-
-        // Never allow implicit creation of an index, even on partitioned tables we are creating
-        // partitions explicitly
-        settingsBuilder.put(AUTO_CREATE_INDEX_SETTING.getKey(), false);
 
         // Set maxClauses to 8192 for Boolean queries so that we allow the != ANY()
         // to operate on arrays with more than 1024 elements which is the ES default value for this setting.

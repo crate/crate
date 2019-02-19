@@ -19,7 +19,6 @@
 package org.elasticsearch.common.settings;
 
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.action.support.DestructiveOperations;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.bootstrap.BootstrapSettings;
@@ -338,7 +337,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     Node.NODE_ATTRIBUTES,
                     Node.NODE_LOCAL_STORAGE_SETTING,
                     TransportMasterNodeReadAction.FORCE_LOCAL_SETTING,
-                    AutoCreateIndex.AUTO_CREATE_INDEX_SETTING,
                     ClusterName.CLUSTER_NAME_SETTING,
                     ClusterModule.SHARDS_ALLOCATOR_TYPE_SETTING,
                     EsExecutors.PROCESSORS_SETTING,
