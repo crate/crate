@@ -27,8 +27,6 @@ import org.apache.lucene.util.Constants;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 
-import java.nio.file.Path;
-
 import static org.elasticsearch.bootstrap.JNAKernel32Library.SizeT;
 
 /**
@@ -44,13 +42,9 @@ class JNANatives {
 
     // Set to true, in case native mlockall call was successful
     static boolean LOCAL_MLOCKALL = false;
-    // Set to true, in case native system call filter install was successful
-    static boolean LOCAL_SYSTEM_CALL_FILTER = false;
-    // Set to true, in case policy can be applied to all threads of the process (even existing ones)
-    // otherwise they are only inherited for new threads (ES app threads)
-    static boolean LOCAL_SYSTEM_CALL_FILTER_ALL = false;
+
     // set to the maximum number of threads that can be created for
-    // the user ID that owns the running Elasticsearch process
+    // the user ID that owns the running CrateDB process
     static long MAX_NUMBER_OF_THREADS = -1;
 
     static long MAX_SIZE_VIRTUAL_MEMORY = Long.MIN_VALUE;
@@ -151,7 +145,7 @@ class JNANatives {
         }
     }
 
-    static String rlimitToString(long value) {
+    private static String rlimitToString(long value) {
         assert Constants.LINUX || Constants.MAC_OS_X;
         if (value == JNACLibrary.RLIM_INFINITY) {
             return "unlimited";
@@ -250,23 +244,6 @@ class JNANatives {
             } catch (UnsatisfiedLinkError e) {
                 // this will have already been logged by Kernel32Library, no need to repeat it
             }
-        }
-    }
-
-    static void tryInstallSystemCallFilter(Path tmpFile) {
-        try {
-            int ret = SystemCallFilter.init(tmpFile);
-            LOCAL_SYSTEM_CALL_FILTER = true;
-            if (ret == 1) {
-                LOCAL_SYSTEM_CALL_FILTER_ALL = true;
-            }
-        } catch (Exception e) {
-            // this is likely to happen unless the kernel is newish, its a best effort at the moment
-            // so we log stacktrace at debug for now...
-            if (logger.isDebugEnabled()) {
-                logger.debug("unable to install syscall filter", e);
-            }
-            logger.warn("unable to install syscall filter: ", e);
         }
     }
 }

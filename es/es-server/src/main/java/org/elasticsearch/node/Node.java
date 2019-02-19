@@ -31,7 +31,6 @@ import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.GenericAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.bootstrap.BootstrapCheck;
-import org.elasticsearch.bootstrap.BootstrapContext;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterInfo;
@@ -667,7 +666,7 @@ public abstract class Node implements Closeable {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        validateNodeBeforeAcceptingRequests(new BootstrapContext(settings, onDiskMetadata), transportService.boundAddress(), pluginsService
+        validateNodeBeforeAcceptingRequests(settings, transportService.boundAddress(), pluginsService
             .filterPlugins(Plugin
             .class)
             .stream()
@@ -857,13 +856,11 @@ public abstract class Node implements Closeable {
      * and before the network service starts accepting incoming network
      * requests.
      *
-     * @param context               the bootstrap context for this node
      * @param boundTransportAddress the network addresses the node is
      *                              bound and publishing to
      */
-    @SuppressWarnings("unused")
     protected void validateNodeBeforeAcceptingRequests(
-        final BootstrapContext context,
+        final Settings settings,
         final BoundTransportAddress boundTransportAddress, List<BootstrapCheck> bootstrapChecks) throws NodeValidationException {
     }
 

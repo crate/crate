@@ -19,6 +19,8 @@
 
 package org.elasticsearch.bootstrap;
 
+import org.elasticsearch.common.settings.Settings;
+
 import java.util.Objects;
 
 /**
@@ -67,10 +69,9 @@ public interface BootstrapCheck {
     /**
      * Test if the node fails the check.
      *
-     * @param context the bootstrap context
      * @return the result of the bootstrap check
      */
-    BootstrapCheckResult check(BootstrapContext context);
+    BootstrapCheckResult check(Settings settings);
 
     default boolean alwaysEnforce() {
         return false;
