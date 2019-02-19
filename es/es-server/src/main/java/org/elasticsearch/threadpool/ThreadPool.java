@@ -35,8 +35,6 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.node.Node;
 
@@ -217,19 +215,6 @@ public class ThreadPool implements Scheduler, Closeable {
      */
     public long relativeTimeInMillis() {
         return cachedTimeThread.relativeTimeInMillis();
-    }
-
-    public ThreadPoolInfo info() {
-        List<Info> infos = new ArrayList<>();
-        for (ExecutorHolder holder : executors.values()) {
-            String name = holder.info.getName();
-            // no need to have info on "same" thread pool
-            if ("same".equals(name)) {
-                continue;
-            }
-            infos.add(holder.info);
-        }
-        return new ThreadPoolInfo(infos);
     }
 
     public Info info(String name) {

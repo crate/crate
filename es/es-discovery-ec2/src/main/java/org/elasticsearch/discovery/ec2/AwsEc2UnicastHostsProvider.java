@@ -107,7 +107,7 @@ class AwsEc2UnicastHostsProvider extends AbstractComponent implements UnicastHos
             // NOTE: we don't filter by security group during the describe instances request for two reasons:
             // 1. differences in VPCs require different parameters during query (ID vs Name)
             // 2. We want to use two different strategies: (all security groups vs. any security groups)
-            descInstances = SocketAccess.doPrivileged(() -> clientReference.client().describeInstances(buildDescribeInstancesRequest()));
+            descInstances = clientReference.client().describeInstances(buildDescribeInstancesRequest());
         } catch (final AmazonClientException e) {
             logger.info("Exception while retrieving instance list from AWS API: {}", e.getMessage());
             logger.debug("Full exception:", e);

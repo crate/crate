@@ -80,7 +80,6 @@ import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.RefreshFailedEngineException;
 import org.elasticsearch.index.engine.Segment;
-import org.elasticsearch.index.fielddata.ShardFieldData;
 import org.elasticsearch.index.flush.FlushStats;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.DocumentMapperForType;
@@ -152,7 +151,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     private final MapperService mapperService;
     private final IndexCache indexCache;
     private final Store store;
-    private final ShardFieldData shardFieldData;
     private final ShardBitsetFilterCache shardBitsetFilterCache;
     private final Object mutex = new Object();
     private final String checkIndexOnStartup;
@@ -249,7 +247,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         this.indexCache = indexCache;
         this.indexingOperationListeners = new IndexingOperationListener.CompositeListener(listeners, logger);
         this.globalCheckpointSyncer = globalCheckpointSyncer;
-        this.shardFieldData = new ShardFieldData();
         this.shardBitsetFilterCache = new ShardBitsetFilterCache(shardId, indexSettings);
         state = IndexShardState.CREATED;
         this.path = path;
@@ -314,10 +311,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     public MapperService mapperService() {
         return mapperService;
-    }
-
-    public ShardFieldData fieldData() {
-        return this.shardFieldData;
     }
 
     /**

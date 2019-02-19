@@ -49,7 +49,6 @@ import org.elasticsearch.index.cache.bitset.BitsetFilterCache;
 import org.elasticsearch.index.cache.query.QueryCache;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineFactory;
-import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
@@ -169,7 +168,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.eventListener = eventListener;
         this.nodeEnv = nodeEnv;
         this.indexStore = indexStore;
-        indexFieldData.setListener(new FieldDataCacheListener(this));
         this.bitsetFilterCache = new BitsetFilterCache(indexSettings, new BitsetCacheListener(this));
         this.warmer = new IndexWarmer(indexSettings.getSettings(), threadPool, indexFieldData,
             bitsetFilterCache.createListener(threadPool));
@@ -545,34 +543,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 if (shard != null) {
                     long ramBytesUsed = accountable != null ? accountable.ramBytesUsed() : 0L;
                     shard.shardBitsetFilterCache().onRemoval(ramBytesUsed);
-                }
-            }
-        }
-    }
-
-    private final class FieldDataCacheListener implements IndexFieldDataCache.Listener {
-        final IndexService indexService;
-
-        FieldDataCacheListener(IndexService indexService) {
-            this.indexService = indexService;
-        }
-
-        @Override
-        public void onCache(ShardId shardId, String fieldName, Accountable ramUsage) {
-            if (shardId != null) {
-                final IndexShard shard = indexService.getShardOrNull(shardId.id());
-                if (shard != null) {
-                    shard.fieldData().onCache(shardId, fieldName, ramUsage);
-                }
-            }
-        }
-
-        @Override
-        public void onRemoval(ShardId shardId, String fieldName, boolean wasEvicted, long sizeInBytes) {
-            if (shardId != null) {
-                final IndexShard shard = indexService.getShardOrNull(shardId.id());
-                if (shard != null) {
-                    shard.fieldData().onRemoval(shardId, fieldName, wasEvicted, sizeInBytes);
                 }
             }
         }

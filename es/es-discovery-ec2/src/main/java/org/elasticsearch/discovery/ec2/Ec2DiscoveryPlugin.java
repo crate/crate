@@ -21,7 +21,6 @@ package org.elasticsearch.discovery.ec2;
 
 import com.amazonaws.util.json.Jackson;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkService;
@@ -57,7 +56,6 @@ public class Ec2DiscoveryPlugin extends Plugin implements DiscoveryPlugin, Reloa
     public static final String EC2 = "ec2";
 
     static {
-        SpecialPermission.check();
         // Initializing Jackson requires RuntimePermission accessDeclaredMembers
         // The ClientConfiguration class requires RuntimePermission getClassLoader
         AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
@@ -148,14 +146,14 @@ public class Ec2DiscoveryPlugin extends Plugin implements DiscoveryPlugin, Reloa
         try {
             url = new URL(azMetadataUrl);
             logger.debug("obtaining ec2 [placement/availability-zone] from ec2 meta-data url {}", url);
-            urlConnection = SocketAccess.doPrivilegedIOException(url::openConnection);
+            urlConnection = url.openConnection();
             urlConnection.setConnectTimeout(2000);
         } catch (final IOException e) {
             // should not happen, we know the url is not malformed, and openConnection does not actually hit network
             throw new UncheckedIOException(e);
         }
 
-        try (InputStream in = SocketAccess.doPrivilegedIOException(urlConnection::getInputStream);
+        try (InputStream in = urlConnection.getInputStream();
              BufferedReader urlReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
 
             final String metadataResult = urlReader.readLine();

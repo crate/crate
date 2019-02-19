@@ -22,8 +22,6 @@ package org.elasticsearch.search.profile.query;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.search.profile.AbstractProfiler;
 
-import java.util.Objects;
-
 /**
  * This class acts as a thread-local storage for profiling a query.  It also
  * builds a representation of the query tree which is built constructed
@@ -37,20 +35,7 @@ import java.util.Objects;
  */
 public final class QueryProfiler extends AbstractProfiler<QueryProfileBreakdown, Query> {
 
-    /**
-     * The root Collector used in the search
-     */
-    private InternalProfileCollector collector;
-
     public QueryProfiler() {
         super(new InternalQueryProfileTree());
-    }
-
-    /** Set the collector that is associated with this profiler. */
-    public void setCollector(InternalProfileCollector collector) {
-        if (this.collector != null) {
-            throw new IllegalStateException("The collector can only be set once.");
-        }
-        this.collector = Objects.requireNonNull(collector);
     }
 }

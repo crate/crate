@@ -69,24 +69,22 @@ class S3BlobStore extends AbstractComponent implements BlobStore {
         // Note: the method client.doesBucketExist() may return 'true' is the bucket exists
         // but we don't have access to it (ie, 403 Forbidden response code)
         try (AmazonS3Reference clientReference = clientReference()) {
-            SocketAccess.doPrivilegedVoid(() -> {
-                try {
-                    clientReference.client().headBucket(new HeadBucketRequest(bucket));
-                } catch (final AmazonServiceException e) {
-                    if (e.getStatusCode() == 301) {
-                        throw new IllegalArgumentException("the bucket [" + bucket + "] is in a different region than you configured", e);
-                    } else if (e.getStatusCode() == 403) {
-                        throw new IllegalArgumentException("you do not have permissions to access the bucket [" + bucket + "]", e);
-                    } else if (e.getStatusCode() == 404) {
-                        throw new IllegalArgumentException(
-                                "the bucket [" + bucket + "] does not exist;"
-                                        + " please create it before creating an S3 snapshot repository backed by it",
-                                e);
-                    } else {
-                        throw new IllegalArgumentException("error checking the existence of bucket [" + bucket + "]", e);
-                    }
+            try {
+                clientReference.client().headBucket(new HeadBucketRequest(bucket));
+            } catch (final AmazonServiceException e) {
+                if (e.getStatusCode() == 301) {
+                    throw new IllegalArgumentException("the bucket [" + bucket + "] is in a different region than you configured", e);
+                } else if (e.getStatusCode() == 403) {
+                    throw new IllegalArgumentException("you do not have permissions to access the bucket [" + bucket + "]", e);
+                } else if (e.getStatusCode() == 404) {
+                    throw new IllegalArgumentException(
+                            "the bucket [" + bucket + "] does not exist;"
+                                    + " please create it before creating an S3 snapshot repository backed by it",
+                            e);
+                } else {
+                    throw new IllegalArgumentException("error checking the existence of bucket [" + bucket + "]", e);
                 }
-            });
+            }
         }
     }
 
@@ -130,9 +128,9 @@ class S3BlobStore extends AbstractComponent implements BlobStore {
                 ObjectListing list;
                 if (prevListing != null) {
                     final ObjectListing finalPrevListing = prevListing;
-                    list = SocketAccess.doPrivileged(() -> clientReference.client().listNextBatchOfObjects(finalPrevListing));
+                    list = clientReference.client().listNextBatchOfObjects(finalPrevListing);
                 } else {
-                    list = SocketAccess.doPrivileged(() -> clientReference.client().listObjects(bucket, path.buildAsString()));
+                    list = clientReference.client().listObjects(bucket, path.buildAsString());
                     multiObjectDeleteRequest = new DeleteObjectsRequest(list.getBucketName());
                 }
                 for (final S3ObjectSummary summary : list.getObjectSummaries()) {
@@ -141,7 +139,7 @@ class S3BlobStore extends AbstractComponent implements BlobStore {
                     if (keys.size() > 500) {
                         multiObjectDeleteRequest.setKeys(keys);
                         final DeleteObjectsRequest finalMultiObjectDeleteRequest = multiObjectDeleteRequest;
-                        SocketAccess.doPrivilegedVoid(() -> clientReference.client().deleteObjects(finalMultiObjectDeleteRequest));
+                        clientReference.client().deleteObjects(finalMultiObjectDeleteRequest);
                         multiObjectDeleteRequest = new DeleteObjectsRequest(list.getBucketName());
                         keys.clear();
                     }
@@ -155,7 +153,7 @@ class S3BlobStore extends AbstractComponent implements BlobStore {
             if (!keys.isEmpty()) {
                 multiObjectDeleteRequest.setKeys(keys);
                 final DeleteObjectsRequest finalMultiObjectDeleteRequest = multiObjectDeleteRequest;
-                SocketAccess.doPrivilegedVoid(() -> clientReference.client().deleteObjects(finalMultiObjectDeleteRequest));
+                clientReference.client().deleteObjects(finalMultiObjectDeleteRequest);
             }
         }
     }

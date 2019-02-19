@@ -30,10 +30,6 @@ import org.elasticsearch.search.profile.ProfileResult;
  */
 final class InternalQueryProfileTree extends AbstractInternalProfileTree<QueryProfileBreakdown, Query> {
 
-    /** Rewrite time */
-    private long rewriteTime;
-    private long rewriteScratch;
-
     @Override
     protected QueryProfileBreakdown createProfileBreakdown() {
         return new QueryProfileBreakdown();
@@ -52,32 +48,5 @@ final class InternalQueryProfileTree extends AbstractInternalProfileTree<QueryPr
     @Override
     protected String getDescriptionFromElement(Query query) {
         return query.toString();
-    }
-
-    /**
-     * Begin timing a query for a specific Timing context
-     */
-    public void startRewriteTime() {
-        assert rewriteScratch == 0;
-        rewriteScratch = System.nanoTime();
-    }
-
-    /**
-     * Halt the timing process and add the elapsed rewriting time.
-     * startRewriteTime() must be called for a particular context prior to calling
-     * stopAndAddRewriteTime(), otherwise the elapsed time will be negative and
-     * nonsensical
-     *
-     * @return          The elapsed time
-     */
-    public long stopAndAddRewriteTime() {
-        long time = Math.max(1, System.nanoTime() - rewriteScratch);
-        rewriteTime += time;
-        rewriteScratch = 0;
-        return time;
-    }
-
-    public long getRewriteTime() {
-        return rewriteTime;
     }
 }
