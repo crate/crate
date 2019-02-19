@@ -14,3 +14,6 @@ extraction:
   python:
     python_setup:
       version: 3
+  java:
+    index:
+      java_version: 11
