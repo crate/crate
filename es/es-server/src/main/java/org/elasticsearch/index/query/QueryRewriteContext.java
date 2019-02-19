@@ -18,10 +18,6 @@
  */
 package org.elasticsearch.index.query;
 
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentParser;
-
 import java.util.function.LongSupplier;
 
 /**
@@ -29,24 +25,10 @@ import java.util.function.LongSupplier;
  */
 public class QueryRewriteContext {
 
-    private final NamedXContentRegistry xContentRegistry;
-    private final NamedWriteableRegistry writeableRegistry;
-    protected final LongSupplier nowInMillis;
+    private final LongSupplier nowInMillis;
 
-    public QueryRewriteContext(NamedXContentRegistry xContentRegistry,
-                               NamedWriteableRegistry writeableRegistry,
-                               LongSupplier nowInMillis) {
-
-        this.xContentRegistry = xContentRegistry;
-        this.writeableRegistry = writeableRegistry;
+    QueryRewriteContext(LongSupplier nowInMillis) {
         this.nowInMillis = nowInMillis;
-    }
-
-    /**
-     * The registry used to build new {@link XContentParser}s. Contains registered named parsers needed to parse the query.
-     */
-    public NamedXContentRegistry getXContentRegistry() {
-        return xContentRegistry;
     }
 
     /**
@@ -54,9 +36,5 @@ public class QueryRewriteContext {
      */
     public long nowInMillis() {
         return nowInMillis.getAsLong();
-    }
-
-    public NamedWriteableRegistry getWriteableRegistry() {
-        return writeableRegistry;
     }
 }

@@ -25,12 +25,10 @@ package io.crate.testing;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.metadata.RelationName;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.Version;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -169,18 +167,11 @@ public final class IndexEnv implements AutoCloseable {
         indexFieldDataService = indexService.fieldData();
         IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());
         writer = new IndexWriter(new RAMDirectory(), conf);
-        DirectoryReader reader = DirectoryReader.open(writer, true, true);
         queryShardContext.set(new QueryShardContext(
-            0,
             idxSettings,
-            bitsetFilterCache,
             indexFieldDataService::getForField,
             mapperService,
-            NamedXContentRegistry.EMPTY,
-            namedWriteableRegistry,
-            reader,
-            System::currentTimeMillis,
-            "dummyClusterAlias"
+            System::currentTimeMillis
         ));
     }
 

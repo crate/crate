@@ -20,7 +20,6 @@
 package org.elasticsearch.index;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.Accountable;
@@ -152,7 +151,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.mapperService = new MapperService(indexSettings, registry.build(indexSettings), xContentRegistry,
             mapperRegistry,
             // we parse all percolator queries as they would be parsed on shard 0
-            () -> newQueryShardContext(0, null, System::currentTimeMillis, null));
+            () -> newQueryShardContext(System::currentTimeMillis));
         this.indexFieldData = new IndexFieldDataService(indexSettings, indicesFieldDataCache, circuitBreakerService, mapperService);
         if (indexSettings.getIndexSortConfig().hasIndexSort()) {
             // we delay the actual creation of the sort order for this index because the mapping has not been merged yet.
@@ -462,24 +461,14 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     }
 
     /**
-     * Creates a new QueryShardContext. The context has not types set yet, if types are required set them via
-     * {@link QueryShardContext#setTypes(String...)}.
-     *
-     * Passing a {@code null} {@link IndexReader} will return a valid context, however it won't be able to make
-     * {@link IndexReader}-specific optimizations, such as rewriting containing range queries.
+     * Creates a new QueryShardContext
      */
-    public QueryShardContext newQueryShardContext(int shardId, IndexReader indexReader, LongSupplier nowInMillis, String clusterAlias) {
+    public QueryShardContext newQueryShardContext(LongSupplier nowInMillis) {
         return new QueryShardContext(
-            shardId,
             indexSettings,
-            indexCache.bitsetFilterCache(),
             indexFieldData::getForField,
             mapperService(),
-            xContentRegistry,
-            namedWriteableRegistry,
-            indexReader,
-            nowInMillis,
-            clusterAlias
+            nowInMillis
         );
     }
 
@@ -495,10 +484,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
      */
     public BigArrays getBigArrays() {
         return bigArrays;
-    }
-
-    List<IndexingOperationListener> getIndexOperationListeners() { // pkg private for testing
-        return indexingOperationListeners;
     }
 
     @Override
