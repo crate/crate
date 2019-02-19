@@ -19,12 +19,9 @@
 
 package org.elasticsearch.index;
 
-import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.Version;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -87,8 +84,6 @@ public final class IndexModule {
             Setting.listSetting("index.store.preload", Collections.emptyList(), Function.identity(),
                     Property.IndexScope, Property.NodeScope);
 
-    public static final String SIMILARITY_SETTINGS_PREFIX = "index.similarity";
-
     // whether to use the query cache
     public static final Setting<Boolean> INDEX_QUERY_CACHE_ENABLED_SETTING =
             Setting.boolSetting("index.queries.cache.enabled", true, Property.IndexScope);
@@ -102,7 +97,6 @@ public final class IndexModule {
     private final EngineFactory engineFactory;
     private SetOnce<IndexSearcherWrapperFactory> indexSearcherWrapper = new SetOnce<>();
     private final Set<IndexEventListener> indexEventListeners = new HashSet<>();
-    private final Map<String, BiFunction<Settings, Version, Similarity>> similarities = new HashMap<>();
     private final Map<String, Function<IndexSettings, IndexStore>> indexStoreFactories;
     private final SetOnce<BiFunction<IndexSettings, IndicesQueryCache, QueryCache>> forceQueryCacheProvider = new SetOnce<>();
     private final List<IndexingOperationListener> indexOperationListeners = new ArrayList<>();
@@ -125,7 +119,6 @@ public final class IndexModule {
         this.indexSettings = indexSettings;
         this.analysisRegistry = analysisRegistry;
         this.engineFactory = Objects.requireNonNull(engineFactory);
-        this.indexOperationListeners.add(new IndexingSlowLog(indexSettings));
         this.indexStoreFactories = Collections.unmodifiableMap(indexStoreFactories);
     }
 
