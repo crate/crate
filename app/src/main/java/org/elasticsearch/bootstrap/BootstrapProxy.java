@@ -54,9 +54,8 @@ import org.elasticsearch.node.NodeValidationException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -96,17 +95,12 @@ public class BootstrapProxy {
     /**
      * initialize native resources
      */
-    static void initializeNatives(Path tmpFile, boolean mlockAll, boolean systemCallFilter, boolean ctrlHandler) {
+    static void initializeNatives(boolean mlockAll, boolean ctrlHandler) {
         final Logger logger = LogManager.getLogger(BootstrapProxy.class);
 
         // check if the user is running as root, and bail
         if (Natives.definitelyRunningAsRoot()) {
             throw new RuntimeException("can not run crate as root");
-        }
-
-        // enable system call filter
-        if (systemCallFilter) {
-            Natives.tryInstallSystemCallFilter(tmpFile);
         }
 
         // mlockall if requested
@@ -159,9 +153,7 @@ public class BootstrapProxy {
     private void setup(boolean addShutdownHook, Environment environment) throws BootstrapException {
         Settings settings = environment.settings();
         initializeNatives(
-            environment.tmpFile(),
             BootstrapSettings.MEMORY_LOCK_SETTING.get(settings),
-            BootstrapSettings.SYSTEM_CALL_FILTER_SETTING.get(settings),
             BootstrapSettings.CTRLHANDLER_SETTING.get(settings));
 
         // initialize probes before the security manager is installed
@@ -192,10 +184,10 @@ public class BootstrapProxy {
         node = new CrateNode(environment) {
 
             @Override
-            protected void validateNodeBeforeAcceptingRequests(BootstrapContext context,
+            protected void validateNodeBeforeAcceptingRequests(Settings settings,
                                                                BoundTransportAddress boundTransportAddress,
                                                                List<BootstrapCheck> bootstrapChecks) throws NodeValidationException {
-                BootstrapChecks.check(context, boundTransportAddress, bootstrapChecks);
+                BootstrapChecks.check(settings, boundTransportAddress, bootstrapChecks);
             }
         };
 
@@ -280,20 +272,10 @@ public class BootstrapProxy {
                 // guice: log the shortened exc to the log file
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
                 PrintStream ps = null;
-                try {
-                    ps = new PrintStream(os, false, "UTF-8");
-                } catch (UnsupportedEncodingException uee) {
-                    assert false : "UnsupportedEncodingException happens!";
-                    e.addSuppressed(uee);
-                }
+                ps = new PrintStream(os, false, StandardCharsets.UTF_8);
                 new StartupException(e).printStackTrace(ps);
                 ps.flush();
-                try {
-                    logger.error("Guice Exception: {}", os.toString("UTF-8"));
-                } catch (UnsupportedEncodingException uee) {
-                    assert false : "UnsupportedEncodingException happens!";
-                    e.addSuppressed(uee);
-                }
+                logger.error("Guice Exception: {}", os.toString(StandardCharsets.UTF_8));
             } else if (e instanceof NodeValidationException) {
                 logger.error("node validation exception\n{}", e.getMessage());
             } else {

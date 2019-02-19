@@ -25,6 +25,7 @@ import org.apache.lucene.util.Constants;
 import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.discovery.DiscoveryModule;
@@ -37,7 +38,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.AllPermission;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,17 +64,17 @@ final class BootstrapChecks {
      * {@code es.enforce.bootstrap.checks} is set to {@code true} then the bootstrap checks will be enforced regardless of whether or not
      * the transport protocol is bound to a non-loopback interface.
      *
-     * @param context              the current node bootstrap context
      * @param boundTransportAddress the node network bindings
      */
-    static void check(final BootstrapContext context, final BoundTransportAddress boundTransportAddress,
+    static void check(final Settings settings,
+                      final BoundTransportAddress boundTransportAddress,
                       List<BootstrapCheck> additionalChecks) throws NodeValidationException {
         final List<BootstrapCheck> builtInChecks = checks();
         final List<BootstrapCheck> combinedChecks = new ArrayList<>(builtInChecks);
         combinedChecks.addAll(additionalChecks);
-        check(  context,
-                enforceLimits(boundTransportAddress, DiscoveryModule.DISCOVERY_TYPE_SETTING.get(context.settings)),
-                Collections.unmodifiableList(combinedChecks));
+        check(settings,
+              enforceLimits(boundTransportAddress, DiscoveryModule.DISCOVERY_TYPE_SETTING.get(settings)),
+              Collections.unmodifiableList(combinedChecks));
     }
 
     /**
@@ -82,15 +82,14 @@ final class BootstrapChecks {
      * property {@code es.enforce.bootstrap.checks} is set to {@code true} then the bootstrap checks will be enforced regardless of whether
      * or not the transport protocol is bound to a non-loopback interface.
      *
-     * @param context        the current node boostrap context
      * @param enforceLimits {@code true} if the checks should be enforced or otherwise warned
      * @param checks        the checks to execute
      */
     static void check(
-        final BootstrapContext context,
+        final Settings settings,
         final boolean enforceLimits,
         final List<BootstrapCheck> checks) throws NodeValidationException {
-        check(context, enforceLimits, checks, Loggers.getLogger(BootstrapChecks.class));
+        check(settings, enforceLimits, checks, Loggers.getLogger(BootstrapChecks.class));
     }
 
     /**
@@ -98,13 +97,12 @@ final class BootstrapChecks {
      * property {@code es.enforce.bootstrap.checks }is set to {@code true} then the bootstrap checks will be enforced regardless of whether
      * or not the transport protocol is bound to a non-loopback interface.
      *
-     * @param context the current node boostrap context
      * @param enforceLimits {@code true} if the checks should be enforced or otherwise warned
      * @param checks        the checks to execute
      * @param logger        the logger to
      */
     static void check(
-            final BootstrapContext context,
+            final Settings settings,
             final boolean enforceLimits,
             final List<BootstrapCheck> checks,
             final Logger logger) throws NodeValidationException {
@@ -134,7 +132,7 @@ final class BootstrapChecks {
         }
 
         for (final BootstrapCheck check : checks) {
-            final BootstrapCheck.BootstrapCheckResult result = check.check(context);
+            final BootstrapCheck.BootstrapCheckResult result = check.check(settings);
             if (result.isFailure()) {
                 if (!(enforceLimits || enforceBootstrapChecks) && !check.alwaysEnforce()) {
                     ignoredErrors.add(result.getMessage());
@@ -201,19 +199,17 @@ final class BootstrapChecks {
         }
         checks.add(new ClientJvmCheck());
         checks.add(new UseSerialGCCheck());
-        checks.add(new SystemCallFilterCheck());
         checks.add(new OnErrorCheck());
         checks.add(new OnOutOfMemoryErrorCheck());
         checks.add(new EarlyAccessCheck());
         checks.add(new G1GCCheck());
-        checks.add(new AllPermissionCheck());
         return Collections.unmodifiableList(checks);
     }
 
     static class HeapSizeCheck implements BootstrapCheck {
 
         @Override
-        public BootstrapCheckResult check(BootstrapContext context) {
+        public BootstrapCheckResult check(Settings settings) {
             final long initialHeapSize = getInitialHeapSize();
             final long maxHeapSize = getMaxHeapSize();
             if (initialHeapSize != 0 && maxHeapSize != 0 && initialHeapSize != maxHeapSize) {
@@ -268,7 +264,7 @@ final class BootstrapChecks {
             this.limit = limit;
         }
 
-        public final BootstrapCheckResult check(BootstrapContext context) {
+        public final BootstrapCheckResult check(Settings settings) {
             final long maxFileDescriptorCount = getMaxFileDescriptorCount();
             if (maxFileDescriptorCount != -1 && maxFileDescriptorCount < limit) {
                 final String message = String.format(
@@ -292,8 +288,8 @@ final class BootstrapChecks {
     static class MlockallCheck implements BootstrapCheck {
 
         @Override
-        public BootstrapCheckResult check(BootstrapContext context) {
-            if (BootstrapSettings.MEMORY_LOCK_SETTING.get(context.settings) && !isMemoryLocked()) {
+        public BootstrapCheckResult check(Settings settings) {
+            if (BootstrapSettings.MEMORY_LOCK_SETTING.get(settings) && !isMemoryLocked()) {
                 return BootstrapCheckResult.failure("memory locking requested for crate process but memory is not locked");
             } else {
                 return BootstrapCheckResult.success();
@@ -313,7 +309,7 @@ final class BootstrapChecks {
         private static final long MAX_NUMBER_OF_THREADS_THRESHOLD = 1 << 12;
 
         @Override
-        public BootstrapCheckResult check(BootstrapContext context) {
+        public BootstrapCheckResult check(Settings settings) {
             if (getMaxNumberOfThreads() != -1 && getMaxNumberOfThreads() < MAX_NUMBER_OF_THREADS_THRESHOLD) {
                 final String message = String.format(
                         Locale.ROOT,
@@ -337,7 +333,7 @@ final class BootstrapChecks {
     static class MaxSizeVirtualMemoryCheck implements BootstrapCheck {
 
         @Override
-        public BootstrapCheckResult check(BootstrapContext context) {
+        public BootstrapCheckResult check(Settings settings) {
             if (getMaxSizeVirtualMemory() != Long.MIN_VALUE && getMaxSizeVirtualMemory() != getRlimInfinity()) {
                 final String message = String.format(
                         Locale.ROOT,
@@ -368,7 +364,7 @@ final class BootstrapChecks {
     static class MaxFileSizeCheck implements BootstrapCheck {
 
         @Override
-        public BootstrapCheckResult check(BootstrapContext context) {
+        public BootstrapCheckResult check(Settings settings) {
             final long maxFileSize = getMaxFileSize();
             if (maxFileSize != Long.MIN_VALUE && maxFileSize != getRlimInfinity()) {
                 final String message = String.format(
@@ -397,9 +393,9 @@ final class BootstrapChecks {
         static final long LIMIT = 1 << 18;
 
         @Override
-        public BootstrapCheckResult check(final BootstrapContext context) {
+        public BootstrapCheckResult check(final Settings settings) {
             // we only enforce the check if mmapfs is an allowed store type
-            if (IndexModule.NODE_STORE_ALLOW_MMAPFS.get(context.settings)) {
+            if (IndexModule.NODE_STORE_ALLOW_MMAPFS.get(settings)) {
                 if (getMaxMapCount() != -1 && getMaxMapCount() < LIMIT) {
                     final String message = String.format(
                             Locale.ROOT,
@@ -463,7 +459,7 @@ final class BootstrapChecks {
     static class ClientJvmCheck implements BootstrapCheck {
 
         @Override
-        public BootstrapCheckResult check(BootstrapContext context) {
+        public BootstrapCheckResult check(Settings settings) {
             if (getVmName().toLowerCase(Locale.ROOT).contains("client")) {
                 final String message = String.format(
                         Locale.ROOT,
@@ -489,7 +485,7 @@ final class BootstrapChecks {
     static class UseSerialGCCheck implements BootstrapCheck {
 
         @Override
-        public BootstrapCheckResult check(BootstrapContext context) {
+        public BootstrapCheckResult check(Settings settings) {
             if (getUseSerialGC().equals("true")) {
                 final String message = String.format(
                         Locale.ROOT,
@@ -509,46 +505,18 @@ final class BootstrapChecks {
 
     }
 
-    /**
-     * Bootstrap check that if system call filters are enabled, then system call filters must have installed successfully.
-     */
-    static class SystemCallFilterCheck implements BootstrapCheck {
-
-        @Override
-        public BootstrapCheckResult check(BootstrapContext context) {
-            if (BootstrapSettings.SYSTEM_CALL_FILTER_SETTING.get(context.settings) && !isSystemCallFilterInstalled()) {
-                final String message =  "system call filters failed to install; " +
-                        "check the logs and fix your configuration or disable system call filters at your own risk";
-                return BootstrapCheckResult.failure(message);
-            } else {
-                return BootstrapCheckResult.success();
-            }
-        }
-
-        // visible for testing
-        boolean isSystemCallFilterInstalled() {
-            return Natives.isSystemCallFilterInstalled();
-        }
-
-    }
-
     abstract static class MightForkCheck implements BootstrapCheck {
 
         @Override
-        public BootstrapCheckResult check(BootstrapContext context) {
-            if (isSystemCallFilterInstalled() && mightFork()) {
-                return BootstrapCheckResult.failure(message(context));
+        public BootstrapCheckResult check(Settings settings) {
+            if (mightFork()) {
+                return BootstrapCheckResult.failure(message());
             } else {
                 return BootstrapCheckResult.success();
             }
         }
 
-        abstract String message(BootstrapContext context);
-
-        // visible for testing
-        boolean isSystemCallFilterInstalled() {
-            return Natives.isSystemCallFilterInstalled();
-        }
+        abstract String message();
 
         // visible for testing
         abstract boolean mightFork();
@@ -574,15 +542,14 @@ final class BootstrapChecks {
         }
 
         @Override
-        String message(BootstrapContext context) {
+        String message() {
             return String.format(
                 Locale.ROOT,
                 "OnError [%s] requires forking but is prevented by system call filters ([%s=true]);" +
                     " upgrade to at least Java 8u92 and use ExitOnOutOfMemoryError",
                 onError(),
-                BootstrapSettings.SYSTEM_CALL_FILTER_SETTING.getKey());
+                false);
         }
-
     }
 
     static class OnOutOfMemoryErrorCheck extends MightForkCheck {
@@ -598,15 +565,14 @@ final class BootstrapChecks {
             return JvmInfo.jvmInfo().onOutOfMemoryError();
         }
 
-        String message(BootstrapContext context) {
+        String message() {
             return String.format(
                 Locale.ROOT,
                 "OnOutOfMemoryError [%s] requires forking but is prevented by system call filters ([%s=true]);" +
                     " upgrade to at least Java 8u92 and use ExitOnOutOfMemoryError",
                 onOutOfMemoryError(),
-                BootstrapSettings.SYSTEM_CALL_FILTER_SETTING.getKey());
+                false);
         }
-
     }
 
     /**
@@ -615,7 +581,7 @@ final class BootstrapChecks {
     static class EarlyAccessCheck implements BootstrapCheck {
 
         @Override
-        public BootstrapCheckResult check(BootstrapContext context) {
+        public BootstrapCheckResult check(Settings settings) {
             final String javaVersion = javaVersion();
             if ("Oracle Corporation".equals(jvmVendor()) && javaVersion.endsWith("-ea")) {
                 final String message = String.format(
@@ -644,7 +610,7 @@ final class BootstrapChecks {
     static class G1GCCheck implements BootstrapCheck {
 
         @Override
-        public BootstrapCheckResult check(BootstrapContext context) {
+        public BootstrapCheckResult check(Settings settings) {
             if ("Oracle Corporation".equals(jvmVendor()) && isJava8() && isG1GCEnabled()) {
                 final String jvmVersion = jvmVersion();
                 // HotSpot versions on Java 8 match this regular expression; note that this changes with Java 9 after JEP-223
@@ -689,31 +655,4 @@ final class BootstrapChecks {
         }
 
     }
-
-    static class AllPermissionCheck implements BootstrapCheck {
-
-        @Override
-        public final BootstrapCheckResult check(BootstrapContext context) {
-            if (isAllPermissionGranted()) {
-                return BootstrapCheck.BootstrapCheckResult.failure("granting the all permission effectively disables security");
-            }
-            return BootstrapCheckResult.success();
-        }
-
-        boolean isAllPermissionGranted() {
-            final SecurityManager sm = System.getSecurityManager();
-            if (sm == null) {
-                // SecurityManager is disabled we also don't want to fail because of this Bootstrap check
-                return false;
-            }
-            try {
-                sm.checkPermission(new AllPermission());
-            } catch (final SecurityException e) {
-                return false;
-            }
-            return true;
-        }
-
-    }
-
 }

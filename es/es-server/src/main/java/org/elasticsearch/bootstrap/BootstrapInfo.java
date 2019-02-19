@@ -34,35 +34,11 @@ public final class BootstrapInfo {
     private BootstrapInfo() {}
 
     /**
-     * Returns true if we successfully loaded native libraries.
-     * <p>
-     * If this returns false, then native operations such as locking
-     * memory did not work.
-     */
-    public static boolean isNativesAvailable() {
-        return Natives.JNA_AVAILABLE;
-    }
-
-    /**
      * Returns true if we were able to lock the process's address space.
      */
     public static boolean isMemoryLocked() {
         return Natives.isMemoryLocked();
     }
-
-    /**
-     * Returns true if system call filter is installed (supported systems only)
-     */
-    public static boolean isSystemCallFilterInstalled() {
-        return Natives.isSystemCallFilterInstalled();
-    }
-
-    /**
-     * codebase location for untrusted scripts (provide some additional safety)
-     * <p>
-     * This is not a full URL, just a path.
-     */
-    public static final String UNTRUSTED_CODEBASE = "/untrusted";
 
     // create a view of sysprops map that does not allow modifications
     // this must be done this way (e.g. versus an actual typed map), because
