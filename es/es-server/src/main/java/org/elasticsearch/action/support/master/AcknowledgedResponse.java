@@ -24,9 +24,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
 import org.elasticsearch.common.xcontent.ObjectParser;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -36,7 +33,7 @@ import static org.elasticsearch.common.xcontent.ConstructingObjectParser.constru
 /**
  * A response that indicates that a request has been acknowledged
  */
-public class AcknowledgedResponse extends ActionResponse implements ToXContentObject {
+public class AcknowledgedResponse extends ActionResponse {
 
     private static final ParseField ACKNOWLEDGED = new ParseField("acknowledged");
 
@@ -74,19 +71,6 @@ public class AcknowledgedResponse extends ActionResponse implements ToXContentOb
         out.writeBoolean(acknowledged);
     }
 
-    @Override
-    public final XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ACKNOWLEDGED.getPreferredName(), isAcknowledged());
-        addCustomFields(builder, params);
-        builder.endObject();
-        return builder;
-    }
-
-    protected void addCustomFields(XContentBuilder builder, Params params) throws IOException {
-
-    }
-
     /**
      * A generic parser that simply parses the acknowledged flag
      */
@@ -96,10 +80,6 @@ public class AcknowledgedResponse extends ActionResponse implements ToXContentOb
     static {
         ACKNOWLEDGED_FLAG_PARSER.declareField(constructorArg(), (parser, context) -> parser.booleanValue(), ACKNOWLEDGED,
                 ObjectParser.ValueType.BOOLEAN);
-    }
-
-    public static AcknowledgedResponse fromXContent(XContentParser parser) throws IOException {
-        return new AcknowledgedResponse(ACKNOWLEDGED_FLAG_PARSER.apply(parser, null));
     }
 
     @Override

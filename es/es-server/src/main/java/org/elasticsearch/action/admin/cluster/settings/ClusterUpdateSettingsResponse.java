@@ -19,14 +19,12 @@
 
 package org.elasticsearch.action.admin.cluster.settings;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
@@ -86,16 +84,6 @@ public class ClusterUpdateSettingsResponse extends AcknowledgedResponse {
         super.writeTo(out);
         Settings.writeSettingsToStream(transientSettings, out);
         Settings.writeSettingsToStream(persistentSettings, out);
-    }
-
-    @Override
-    protected void addCustomFields(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(PERSISTENT.getPreferredName());
-        persistentSettings.toXContent(builder, params);
-        builder.endObject();
-        builder.startObject(TRANSIENT.getPreferredName());
-        transientSettings.toXContent(builder, params);
-        builder.endObject();
     }
 
     public static ClusterUpdateSettingsResponse fromXContent(XContentParser parser) {

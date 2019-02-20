@@ -22,13 +22,10 @@ package org.elasticsearch.index.shard;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.store.StoreStats;
 
 import java.io.IOException;
 
-public class DocsStats implements Streamable, ToXContentFragment {
+public class DocsStats implements Streamable {
 
     long count = 0;
     long deleted = 0;
@@ -61,26 +58,6 @@ public class DocsStats implements Streamable, ToXContentFragment {
         return this.count;
     }
 
-    public long getDeleted() {
-        return this.deleted;
-    }
-
-    /**
-     * Returns the total size in bytes of all documents in this stats.
-     * This value may be more reliable than {@link StoreStats#getSizeInBytes()} in estimating the index size.
-     */
-    public long getTotalSizeInBytes() {
-        return totalSizeInBytes;
-    }
-
-    /**
-     * Returns the average size in bytes of all documents in this stats.
-     */
-    public long getAverageSizeInBytes() {
-        long totalDocs = count + deleted;
-        return totalDocs == 0 ? 0 : totalSizeInBytes / totalDocs;
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         count = in.readVLong();
@@ -93,20 +70,5 @@ public class DocsStats implements Streamable, ToXContentFragment {
         out.writeVLong(count);
         out.writeVLong(deleted);
         out.writeVLong(totalSizeInBytes);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Fields.DOCS);
-        builder.field(Fields.COUNT, count);
-        builder.field(Fields.DELETED, deleted);
-        builder.endObject();
-        return builder;
-    }
-
-    static final class Fields {
-        static final String DOCS = "docs";
-        static final String COUNT = "count";
-        static final String DELETED = "deleted";
     }
 }

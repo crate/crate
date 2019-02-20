@@ -181,10 +181,6 @@ public class DocumentMapper implements ToXContentFragment {
         return this.type;
     }
 
-    public Map<String, Object> meta() {
-        return mapping.meta;
-    }
-
     public CompressedXContent mappingSource() {
         return this.mappingSource;
     }
@@ -196,10 +192,6 @@ public class DocumentMapper implements ToXContentFragment {
     @SuppressWarnings({"unchecked"})
     public <T extends MetadataFieldMapper> T metadataMapper(Class<T> type) {
         return mapping.metadataMapper(type);
-    }
-
-    public IdFieldMapper idFieldMapper() {
-        return metadataMapper(IdFieldMapper.class);
     }
 
     public RoutingFieldMapper routingFieldMapper() {
@@ -232,10 +224,6 @@ public class DocumentMapper implements ToXContentFragment {
         final BytesRef byteRef = new BytesRef(reason);
         parsedDoc.rootDoc().add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
         return parsedDoc;
-    }
-
-    public boolean isParent(String type) {
-        return mapperService.getParentTypes().contains(type);
     }
 
     public DocumentMapper merge(Mapping mapping, boolean updateAllTypes) {

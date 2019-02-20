@@ -26,9 +26,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public abstract class BaseNodesResponse<TNodeResponse extends BaseNodeResponse> extends ActionResponse {
@@ -36,7 +34,6 @@ public abstract class BaseNodesResponse<TNodeResponse extends BaseNodeResponse> 
     private ClusterName clusterName;
     private List<FailedNodeException> failures;
     private List<TNodeResponse> nodes;
-    private Map<String, TNodeResponse> nodesMap;
 
     protected BaseNodesResponse() {
     }
@@ -45,15 +42,6 @@ public abstract class BaseNodesResponse<TNodeResponse extends BaseNodeResponse> 
         this.clusterName = Objects.requireNonNull(clusterName);
         this.failures = Objects.requireNonNull(failures);
         this.nodes = Objects.requireNonNull(nodes);
-    }
-
-    /**
-     * Get the {@link ClusterName} associated with all of the nodes.
-     *
-     * @return Never {@code null}.
-     */
-    public ClusterName getClusterName() {
-        return clusterName;
     }
 
     /**
@@ -82,22 +70,6 @@ public abstract class BaseNodesResponse<TNodeResponse extends BaseNodeResponse> 
      */
     public List<TNodeResponse> getNodes() {
         return nodes;
-    }
-
-    /**
-     * Lazily build and get a map of Node ID to node response.
-     *
-     * @return Never {@code null}. Can be empty.
-     * @see #getNodes()
-     */
-    public Map<String, TNodeResponse> getNodesMap() {
-        if (nodesMap == null) {
-            nodesMap = new HashMap<>();
-            for (TNodeResponse nodeResponse : nodes) {
-                nodesMap.put(nodeResponse.getNode().getId(), nodeResponse);
-            }
-        }
-        return nodesMap;
     }
 
     @Override

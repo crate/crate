@@ -68,12 +68,6 @@ public abstract class BaseNodesRequest<Request extends BaseNodesRequest<Request>
         return nodesIds;
     }
 
-    @SuppressWarnings("unchecked")
-    public final Request nodesIds(String... nodesIds) {
-        this.nodesIds = nodesIds;
-        return (Request) this;
-    }
-
     public TimeValue timeout() {
         return this.timeout;
     }
@@ -84,11 +78,6 @@ public abstract class BaseNodesRequest<Request extends BaseNodesRequest<Request>
         return (Request) this;
     }
 
-    @SuppressWarnings("unchecked")
-    public final Request timeout(String timeout) {
-        this.timeout = TimeValue.parseTimeValue(timeout, null, getClass().getSimpleName() + ".timeout");
-        return (Request) this;
-    }
     public DiscoveryNode[] concreteNodes() {
         return concreteNodes;
     }

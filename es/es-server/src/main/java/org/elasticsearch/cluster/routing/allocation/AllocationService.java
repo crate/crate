@@ -147,16 +147,6 @@ public class AllocationService extends AbstractComponent {
         return newStateBuilder.build();
     }
 
-    // Used for testing
-    public ClusterState applyFailedShard(ClusterState clusterState, ShardRouting failedShard, boolean markAsStale) {
-        return applyFailedShards(clusterState, singletonList(new FailedShard(failedShard, null, null, markAsStale)), emptyList());
-    }
-
-    // Used for testing
-    public ClusterState applyFailedShards(ClusterState clusterState, List<FailedShard> failedShards) {
-        return applyFailedShards(clusterState, failedShards, emptyList());
-    }
-
     /**
      * Applies the failed shards. Note, only assigned ShardRouting instances that exist in the routing table should be
      * provided as parameter. Also applies a list of allocation ids to remove from the in-sync set for shard copies for which there

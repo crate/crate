@@ -32,10 +32,6 @@ public class BreakerSettings {
     private final double overhead;
     private final CircuitBreaker.Type type;
 
-    public BreakerSettings(String name, long limitBytes, double overhead) {
-        this(name, limitBytes, overhead, CircuitBreaker.Type.MEMORY);
-    }
-
     public BreakerSettings(String name, long limitBytes, double overhead, CircuitBreaker.Type type) {
         this.name = name;
         this.limitBytes = limitBytes;
