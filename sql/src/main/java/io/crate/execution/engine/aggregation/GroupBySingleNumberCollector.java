@@ -281,7 +281,7 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
     private Iterable<Row> groupsToRows(Groups groups) {
         final Object[] cells = new Object[1 + aggregations.length];
         final Row row = new RowN(cells);
-        Stream<Row> rows = groups.statesByKey.entrySet().stream()
+        Supplier<Stream<Row>> rows = () -> groups.statesByKey.entrySet().stream()
             .map(entry -> {
                 cells[0] = entry.getKey();
                 Object[] states = entry.getValue();
@@ -293,7 +293,7 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
             });
 
         if (groups.statesByNullValue == null) {
-            return rows::iterator;
+            return () -> rows.get().iterator();
         }
 
         Object[] nullRow = new Object[1 + aggregations.length];
@@ -302,6 +302,8 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
             //noinspection unchecked
             nullRow[i + 1] = mode.finishCollect(ramAccounting, aggregations[i], groups.statesByNullValue[i]);
         }
-        return Stream.concat(rows, Stream.of(new RowN(nullRow)))::iterator;
+        // the Iterable contract doesn't prevent the caller from calling iterator() multiple times but java streams
+        // are "one consumption" only so create a new stream on every iterator() request
+        return () -> Stream.concat(rows.get(), Stream.of(new RowN(nullRow))).iterator();
     }
 }
