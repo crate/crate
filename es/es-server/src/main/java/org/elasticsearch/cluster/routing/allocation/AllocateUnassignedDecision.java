@@ -211,30 +211,6 @@ public class AllocateUnassignedDecision extends AbstractAllocationDecision {
         return allocationId;
     }
 
-    /**
-     * Gets the remaining delay for allocating the replica shard when a node holding the replica left
-     * the cluster and the deciders are waiting to see if the node returns before allocating the replica
-     * elsewhere.  Only returns a meaningful positive value if {@link #getAllocationStatus()} returns
-     * {@link AllocationStatus#DELAYED_ALLOCATION}.  If {@link #isDecisionTaken()} returns {@code false},
-     * then invoking this method will throw an {@code IllegalStateException}.
-     */
-    public long getRemainingDelayInMillis() {
-        checkDecisionState();
-        return remainingDelayInMillis;
-    }
-
-    /**
-     * Gets the total configured delay for allocating the replica shard when a node holding the replica left
-     * the cluster and the deciders are waiting to see if the node returns before allocating the replica
-     * elsewhere.  Only returns a meaningful positive value if {@link #getAllocationStatus()} returns
-     * {@link AllocationStatus#DELAYED_ALLOCATION}.  If {@link #isDecisionTaken()} returns {@code false},
-     * then invoking this method will throw an {@code IllegalStateException}.
-     */
-    public long getConfiguredDelayInMillis() {
-        checkDecisionState();
-        return configuredDelayInMillis;
-    }
-
     @Override
     public String getExplanation() {
         checkDecisionState();

@@ -31,7 +31,6 @@ import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.Explicit;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.geo.ShapeRelation;
@@ -47,7 +46,6 @@ import org.elasticsearch.index.fielddata.IndexNumericFieldData.NumericType;
 import org.elasticsearch.index.fielddata.plain.DocValuesIndexFieldData;
 import org.elasticsearch.index.query.QueryRewriteContext;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.search.DocValueFormat;
 import org.joda.time.DateTimeZone;
 
 import java.io.IOException;
@@ -326,18 +324,6 @@ public class DateFieldMapper extends FieldMapper {
                 return null;
             }
             return dateTimeFormatter().printer().print(val);
-        }
-
-        @Override
-        public DocValueFormat docValueFormat(@Nullable String format, DateTimeZone timeZone) {
-            FormatDateTimeFormatter dateTimeFormatter = this.dateTimeFormatter;
-            if (format != null) {
-                dateTimeFormatter = Joda.forPattern(format);
-            }
-            if (timeZone == null) {
-                timeZone = DateTimeZone.UTC;
-            }
-            return new DocValueFormat.DateTime(dateTimeFormatter, timeZone);
         }
     }
 

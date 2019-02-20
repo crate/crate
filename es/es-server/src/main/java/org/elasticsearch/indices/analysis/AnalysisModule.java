@@ -73,17 +73,16 @@ public final class AnalysisModule {
 
     private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(AnalysisModule.class));
 
-    private final HunspellService hunspellService;
     private final AnalysisRegistry analysisRegistry;
 
     public AnalysisModule(Environment environment, List<AnalysisPlugin> plugins) throws IOException {
         NamedRegistry<AnalysisProvider<CharFilterFactory>> charFilters = setupCharFilters(plugins);
         NamedRegistry<org.apache.lucene.analysis.hunspell.Dictionary> hunspellDictionaries = setupHunspellDictionaries(plugins);
-        hunspellService = new HunspellService(environment.settings(), environment, hunspellDictionaries.getRegistry());
+        HunspellService hunspellService = new HunspellService(environment.settings(), environment, hunspellDictionaries.getRegistry());
         NamedRegistry<AnalysisProvider<TokenFilterFactory>> tokenFilters = setupTokenFilters(plugins, hunspellService);
         NamedRegistry<AnalysisProvider<TokenizerFactory>> tokenizers = setupTokenizers(plugins);
         NamedRegistry<AnalysisProvider<AnalyzerProvider<?>>> analyzers = setupAnalyzers(plugins);
-        NamedRegistry<AnalysisProvider<AnalyzerProvider<?>>> normalizers = setupNormalizers(plugins);
+        NamedRegistry<AnalysisProvider<AnalyzerProvider<?>>> normalizers = setupNormalizers();
 
         Map<String, PreConfiguredCharFilter> preConfiguredCharFilters = setupPreConfiguredCharFilters(plugins);
         Map<String, PreConfiguredTokenFilter> preConfiguredTokenFilters = setupPreConfiguredTokenFilters(plugins);
@@ -94,10 +93,6 @@ public final class AnalysisModule {
                 charFilters.getRegistry(), tokenFilters.getRegistry(), tokenizers.getRegistry(),
                 analyzers.getRegistry(), normalizers.getRegistry(),
                 preConfiguredCharFilters, preConfiguredTokenFilters, preConfiguredTokenizers, preConfiguredAnalyzers);
-    }
-
-    HunspellService getHunspellService() {
-        return hunspellService;
     }
 
     public AnalysisRegistry getAnalysisRegistry() {
@@ -231,14 +226,9 @@ public final class AnalysisModule {
         return analyzers;
     }
 
-    private NamedRegistry<AnalysisProvider<AnalyzerProvider<?>>> setupNormalizers(List<AnalysisPlugin> plugins) {
-        NamedRegistry<AnalysisProvider<AnalyzerProvider<?>>> normalizers = new NamedRegistry<>("normalizer");
-        // TODO: provide built-in normalizer providers?
-        // TODO: pluggability?
-        return normalizers;
+    private NamedRegistry<AnalysisProvider<AnalyzerProvider<?>>> setupNormalizers() {
+        return new NamedRegistry<>("normalizer");
     }
-
-
     /**
      * The basic factory interface for analysis components.
      */

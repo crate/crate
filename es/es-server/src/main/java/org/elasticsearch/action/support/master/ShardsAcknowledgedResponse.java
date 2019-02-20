@@ -72,11 +72,6 @@ public abstract class ShardsAcknowledgedResponse extends AcknowledgedResponse {
     }
 
     @Override
-    protected void addCustomFields(XContentBuilder builder, Params params) throws IOException {
-        builder.field(SHARDS_ACKNOWLEDGED.getPreferredName(), isShardsAcknowledged());
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (super.equals(o)) {
             ShardsAcknowledgedResponse that = (ShardsAcknowledgedResponse) o;

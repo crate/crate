@@ -40,7 +40,6 @@ import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.plain.DocValuesIndexFieldData;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.search.DocValueFormat;
-import org.joda.time.DateTimeZone;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -250,18 +249,6 @@ public class IpFieldMapper extends FieldMapper {
                 return null;
             }
             return DocValueFormat.IP.format((BytesRef) value);
-        }
-
-        @Override
-        public DocValueFormat docValueFormat(@Nullable String format, DateTimeZone timeZone) {
-            if (format != null) {
-                throw new IllegalArgumentException("Field [" + name() + "] of type [" + typeName() + "] does not support custom formats");
-            }
-            if (timeZone != null) {
-                throw new IllegalArgumentException("Field [" + name() + "] of type [" + typeName()
-                    + "] does not support custom time zones");
-            }
-            return DocValueFormat.IP;
         }
     }
 

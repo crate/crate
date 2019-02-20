@@ -24,7 +24,6 @@ import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.IntroSorter;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.RoutingNodes;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -142,28 +141,6 @@ public class BalancedShardsAllocator extends AbstractComponent implements Shards
     }
 
     /**
-     * Returns the currently configured delta threshold
-     */
-    public float getThreshold() {
-        return threshold;
-    }
-
-    /**
-     * Returns the index related weight factor.
-     */
-    public float getIndexBalance() {
-        return weightFunction.indexBalance;
-    }
-
-    /**
-     * Returns the shard related weight factor.
-     */
-    public float getShardBalance() {
-        return weightFunction.shardBalance;
-    }
-
-
-    /**
      * This class is the primary weight function used to create balanced over nodes and shards in the cluster.
      * Currently this function has 3 properties:
      * <ul>
@@ -188,8 +165,6 @@ public class BalancedShardsAllocator extends AbstractComponent implements Shards
      */
     public static class WeightFunction {
 
-        private final float indexBalance;
-        private final float shardBalance;
         private final float theta0;
         private final float theta1;
 
@@ -201,8 +176,6 @@ public class BalancedShardsAllocator extends AbstractComponent implements Shards
             }
             theta0 = shardBalance / sum;
             theta1 = indexBalance / sum;
-            this.indexBalance = indexBalance;
-            this.shardBalance = shardBalance;
         }
 
         public float weight(Balancer balancer, ModelNode node, String index) {
@@ -445,28 +418,6 @@ public class BalancedShardsAllocator extends AbstractComponent implements Shards
                 return MoveDecision.rebalance(canRebalance, AllocationDecision.fromDecisionType(rebalanceDecisionType),
                     assignedNode != null ? assignedNode.routingNode.node() : null, currentNodeWeightRanking, nodeDecisions);
             }
-        }
-
-        public Map<DiscoveryNode, Float> weighShard(ShardRouting shard) {
-            final ModelNode[] modelNodes = sorter.modelNodes;
-            final float[] weights = sorter.weights;
-
-            buildWeightOrderedIndices();
-            Map<DiscoveryNode, Float> nodes = new HashMap<>(modelNodes.length);
-            float currentNodeWeight = 0.0f;
-            for (int i = 0; i < modelNodes.length; i++) {
-                if (modelNodes[i].getNodeId().equals(shard.currentNodeId())) {
-                    // If a node was found with the shard, use that weight instead of 0.0
-                    currentNodeWeight = weights[i];
-                    break;
-                }
-            }
-
-            for (int i = 0; i < modelNodes.length; i++) {
-                final float delta = currentNodeWeight - weights[i];
-                nodes.put(modelNodes[i].getRoutingNode().node(), delta);
-            }
-            return nodes;
         }
 
         /**

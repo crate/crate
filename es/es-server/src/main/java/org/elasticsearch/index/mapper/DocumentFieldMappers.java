@@ -20,7 +20,6 @@
 package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.elasticsearch.index.analysis.FieldNameAnalyzer;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -32,10 +31,6 @@ public final class DocumentFieldMappers implements Iterable<Mapper> {
 
     /** Full field name to mapper */
     private final Map<String, Mapper> fieldMappers;
-
-    private final FieldNameAnalyzer indexAnalyzer;
-    private final FieldNameAnalyzer searchAnalyzer;
-    private final FieldNameAnalyzer searchQuoteAnalyzer;
 
     private static void put(Map<String, Analyzer> analyzers, String key, Analyzer value, Analyzer defaultValue) {
         if (value == null) {
@@ -66,9 +61,6 @@ public final class DocumentFieldMappers implements Iterable<Mapper> {
         }
 
         this.fieldMappers = Collections.unmodifiableMap(fieldMappers);
-        this.indexAnalyzer = new FieldNameAnalyzer(indexAnalyzers);
-        this.searchAnalyzer = new FieldNameAnalyzer(searchAnalyzers);
-        this.searchQuoteAnalyzer = new FieldNameAnalyzer(searchQuoteAnalyzers);
     }
 
     /**
@@ -79,26 +71,6 @@ public final class DocumentFieldMappers implements Iterable<Mapper> {
      */
     public Mapper getMapper(String field) {
         return fieldMappers.get(field);
-    }
-
-    /**
-     * A smart analyzer used for indexing that takes into account specific analyzers configured
-     * per {@link FieldMapper}.
-     */
-    public Analyzer indexAnalyzer() {
-        return this.indexAnalyzer;
-    }
-
-    /**
-     * A smart analyzer used for searching that takes into account specific analyzers configured
-     * per {@link FieldMapper}.
-     */
-    public Analyzer searchAnalyzer() {
-        return this.searchAnalyzer;
-    }
-
-    public Analyzer searchQuoteAnalyzer() {
-        return this.searchQuoteAnalyzer;
     }
 
     public Iterator<Mapper> iterator() {

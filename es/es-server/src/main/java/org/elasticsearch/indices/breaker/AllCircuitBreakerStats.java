@@ -19,27 +19,20 @@
 
 package org.elasticsearch.indices.breaker;
 
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 
 /**
  * Stats class encapsulating all of the different circuit breaker stats
  */
-public class AllCircuitBreakerStats implements Writeable, ToXContentFragment {
+public class AllCircuitBreakerStats implements Writeable {
 
     private final CircuitBreakerStats[] allStats;
 
     public AllCircuitBreakerStats(CircuitBreakerStats[] allStats) {
         this.allStats = allStats;
-    }
-
-    public AllCircuitBreakerStats(StreamInput in) throws IOException {
-        allStats = in.readArray(CircuitBreakerStats::new, CircuitBreakerStats[]::new);
     }
 
     @Override
@@ -58,21 +51,5 @@ public class AllCircuitBreakerStats implements Writeable, ToXContentFragment {
             }
         }
         return null;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Fields.BREAKERS);
-        for (CircuitBreakerStats stats : allStats) {
-            if (stats != null) {
-                stats.toXContent(builder, params);
-            }
-        }
-        builder.endObject();
-        return builder;
-    }
-
-    static final class Fields {
-        static final String BREAKERS = "breakers";
     }
 }

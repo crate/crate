@@ -930,7 +930,8 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
     private void configureQueryCircuitBreakerForCluster(long availableMemory, double overhead) {
         for (CrateCircuitBreakerService circuitBreakerService : internalCluster().getInstances(CrateCircuitBreakerService.class)) {
-            circuitBreakerService.registerBreaker(new BreakerSettings(CrateCircuitBreakerService.QUERY, availableMemory, overhead));
+            circuitBreakerService.registerBreaker(
+                new BreakerSettings(CrateCircuitBreakerService.QUERY, availableMemory, overhead, CircuitBreaker.Type.MEMORY));
         }
     }
 

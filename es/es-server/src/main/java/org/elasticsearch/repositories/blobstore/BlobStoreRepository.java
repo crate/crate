@@ -284,11 +284,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         }
     }
 
-    // package private, only use for testing
-    BlobContainer getBlobContainer() {
-        return blobContainer.get();
-    }
-
     // for test purposes only
     protected BlobStore getBlobStore() {
         return blobStore.get();

@@ -20,7 +20,6 @@
 package org.elasticsearch.index.mapper;
 
 import com.carrotsearch.hppc.ObjectArrayList;
-
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
@@ -40,8 +39,6 @@ import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.plain.BytesBinaryDVIndexFieldData;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.QueryShardException;
-import org.elasticsearch.search.DocValueFormat;
-import org.joda.time.DateTimeZone;
 
 import java.io.IOException;
 import java.util.Base64;
@@ -100,15 +97,9 @@ public class BinaryFieldMapper extends FieldMapper {
             return new BinaryFieldType(this);
         }
 
-
         @Override
         public String typeName() {
             return CONTENT_TYPE;
-        }
-
-        @Override
-        public DocValueFormat docValueFormat(String format, DateTimeZone timeZone) {
-            return DocValueFormat.BINARY;
         }
 
         @Override

@@ -88,11 +88,6 @@ public final class BitsetFilterCache extends AbstractIndexComponent implements I
         return new BitSetProducerWarmer(threadPool);
     }
 
-
-    public BitSetProducer getBitSetProducer(Query query) {
-        return new QueryWrapperBitSetProducer(query);
-    }
-
     @Override
     public void onClose(IndexReader.CacheKey ownerCoreCacheKey) {
         loadedFilters.invalidate(ownerCoreCacheKey);
@@ -169,40 +164,6 @@ public final class BitsetFilterCache extends AbstractIndexComponent implements I
         public Value(BitSet bitset, ShardId shardId) {
             this.bitset = bitset;
             this.shardId = shardId;
-        }
-    }
-
-    final class QueryWrapperBitSetProducer implements BitSetProducer {
-
-        final Query query;
-
-        QueryWrapperBitSetProducer(Query query) {
-            this.query = Objects.requireNonNull(query);
-        }
-
-        @Override
-        public BitSet getBitSet(LeafReaderContext context) throws IOException {
-            try {
-                return getAndLoadIfNotPresent(query, context);
-            } catch (ExecutionException e) {
-                throw ExceptionsHelper.convertToElastic(e);
-            }
-        }
-
-        @Override
-        public String toString() {
-            return "random_access(" + query + ")";
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!(o instanceof QueryWrapperBitSetProducer)) return false;
-            return this.query.equals(((QueryWrapperBitSetProducer) o).query);
-        }
-
-        @Override
-        public int hashCode() {
-            return 31 * getClass().hashCode() + query.hashCode();
         }
     }
 
