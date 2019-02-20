@@ -36,7 +36,7 @@ public class RamBlockSizeCalculator implements IntSupplier {
     private final long estimatedRowSizeForLeft;
     private final long numberOfRowsForLeft;
 
-    RamBlockSizeCalculator(int defaultBlockSize,
+    public RamBlockSizeCalculator(int defaultBlockSize,
                            CircuitBreaker circuitBreaker,
                            long estimatedRowSizeForLeft,
                            long numberOfRowsForLeft) {
