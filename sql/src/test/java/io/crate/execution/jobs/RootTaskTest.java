@@ -36,8 +36,8 @@ import io.crate.profile.ProfilingContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.IntegerType;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -61,7 +61,7 @@ import static org.mockito.Mockito.when;
 
 public class RootTaskTest extends CrateUnitTest {
 
-    private Logger logger = Loggers.getLogger(RootTaskTest.class);
+    private Logger logger = LogManager.getLogger(RootTaskTest.class);
 
     private String coordinatorNode = "dummyNode";
 

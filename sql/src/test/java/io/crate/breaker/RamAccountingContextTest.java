@@ -23,13 +23,14 @@
 package io.crate.breaker;
 
 import io.crate.test.integration.CrateUnitTest;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
 
 import static org.hamcrest.Matchers.is;
 
@@ -45,7 +46,7 @@ public class RamAccountingContextTest extends CrateUnitTest {
         RamAccountingContext.FLUSH_BUFFER_SIZE = 20;
 
         breaker = new MemoryCircuitBreaker(
-            new ByteSizeValue(40, ByteSizeUnit.BYTES), 1.01, Loggers.getLogger(RamAccountingContextTest.class));
+            new ByteSizeValue(40, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RamAccountingContextTest.class));
         ramAccountingContext = new RamAccountingContext("test", breaker);
     }
 

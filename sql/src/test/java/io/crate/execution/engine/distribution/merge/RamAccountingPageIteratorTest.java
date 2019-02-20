@@ -34,10 +34,10 @@ import io.crate.planner.PositionalOrderBy;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.junit.After;
@@ -153,7 +153,7 @@ public class RamAccountingPageIteratorTest extends CrateUnitTest {
                                         new MemoryCircuitBreaker(
                                             new ByteSizeValue(197, ByteSizeUnit.BYTES),
                                             1,
-                                            Loggers.getLogger(RowAccountingWithEstimatorsTest.class)))));
+                                            LogManager.getLogger(RowAccountingWithEstimatorsTest.class)))));
 
         expectedException.expect(CircuitBreakingException.class);
         expectedException.expectMessage(

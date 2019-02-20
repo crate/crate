@@ -28,12 +28,12 @@ import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseService;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.settings.SharedSettings;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -58,7 +58,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class PingTask extends TimerTask {
 
     private static final TimeValue HTTP_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
-    private static final Logger logger = Loggers.getLogger(PingTask.class);
+    private static final Logger logger = LogManager.getLogger(PingTask.class);
 
     private final ClusterService clusterService;
     private final ExtendedNodeInfo extendedNodeInfo;
