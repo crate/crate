@@ -19,10 +19,9 @@
 
 package org.elasticsearch.cluster.block;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.RestStatus;
@@ -32,7 +31,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.Locale;
 
-public class ClusterBlock implements Streamable, ToXContentFragment {
+public class ClusterBlock implements Writeable, ToXContentFragment {
 
     private int id;
 
@@ -48,8 +47,20 @@ public class ClusterBlock implements Streamable, ToXContentFragment {
 
     private RestStatus status;
 
-    ClusterBlock() {
-    }
+    public ClusterBlock(StreamInput in) throws IOException {
+        id = in.readVInt();
+        description = in.readString();
+        final int len = in.readVInt();
+        ArrayList<ClusterBlockLevel> levels = new ArrayList<>(len);
+        for (int i = 0; i < len; i++) {
+            levels.add(in.readEnum(ClusterBlockLevel.class));
+        }
+        this.levels = EnumSet.copyOf(levels);
+        retryable = in.readBoolean();
+        disableStatePersistence = in.readBoolean();
+        status = RestStatus.readFrom(in);
+        allowReleaseResources = in.readBoolean();
+     }
 
     public ClusterBlock(int id, String description, boolean retryable, boolean disableStatePersistence, boolean allowReleaseResources, RestStatus status,
                         EnumSet<ClusterBlockLevel> levels) {
@@ -61,6 +72,7 @@ public class ClusterBlock implements Streamable, ToXContentFragment {
         this.levels = levels;
         this.allowReleaseResources = allowReleaseResources;
     }
+
 
     public int id() {
         return this.id;
@@ -117,28 +129,6 @@ public class ClusterBlock implements Streamable, ToXContentFragment {
         builder.endArray();
         builder.endObject();
         return builder;
-    }
-
-    public static ClusterBlock readClusterBlock(StreamInput in) throws IOException {
-        ClusterBlock block = new ClusterBlock();
-        block.readFrom(in);
-        return block;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        id = in.readVInt();
-        description = in.readString();
-        final int len = in.readVInt();
-        ArrayList<ClusterBlockLevel> levels = new ArrayList<>(len);
-        for (int i = 0; i < len; i++) {
-            levels.add(in.readEnum(ClusterBlockLevel.class));
-        }
-        this.levels = EnumSet.copyOf(levels);
-        retryable = in.readBoolean();
-        disableStatePersistence = in.readBoolean();
-        status = RestStatus.readFrom(in);
-        allowReleaseResources = in.readBoolean();
     }
 
     @Override
