@@ -127,6 +127,8 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused the Admin UI monitoring graphs to be cut off.
+
 - Fixed an issue that caused a ``stream has already been operated upon or
   closed`` exception to be thrown when joining on a right subquery that
   contained a ``group by`` clause on one number column.

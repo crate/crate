@@ -293,7 +293,7 @@ uploadArchives {
 
 ext {
     downloadDir = new File(buildDir, 'downloads')
-    adminui_version = '1.11.3'
+    adminui_version = '1.11.4'
 }
 
 def rootDir = project.parent.projectDir
