@@ -75,7 +75,7 @@ class InsertFromSubQueryAnalyzer {
     private final RelationAnalyzer relationAnalyzer;
 
 
-    private static class ValuesResolver implements ValuesAwareExpressionAnalyzer.ValuesResolver {
+    private static class ValuesResolver implements io.crate.analyze.ValuesResolver {
 
         private final DocTableRelation targetTableRelation;
         private final List<Reference> targetColumns;
@@ -255,10 +255,8 @@ class InsertFromSubQueryAnalyzer {
         } else {
             fieldProvider = new NameFieldProvider(targetTable);
         }
-        ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-            functions, txnCtx, paramConverter, fieldProvider, valuesResolver, duplicateKeyContext.getType());
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, targetTable);
-
+        var expressionAnalyzer = new ExpressionAnalyzer(functions, txnCtx, paramConverter, fieldProvider, null);
+        var normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, targetTable);
         Map<Reference, Symbol> updateAssignments = new HashMap<>(duplicateKeyContext.getAssignments().size());
         for (Assignment assignment : duplicateKeyContext.getAssignments()) {
             Reference targetCol = requireNonNull(
@@ -267,7 +265,7 @@ class InsertFromSubQueryAnalyzer {
             );
 
             Symbol valueSymbol = ValueNormalizer.normalizeInputForReference(
-                normalizer.normalize(valuesAwareExpressionAnalyzer.convert(assignment.expression(), exprCtx), txnCtx),
+                normalizer.normalize(expressionAnalyzer.convert(assignment.expression(), exprCtx), txnCtx),
                 targetCol,
                 targetTable.tableInfo()
             );

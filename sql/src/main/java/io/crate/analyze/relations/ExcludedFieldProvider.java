@@ -22,7 +22,7 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.ValuesAwareExpressionAnalyzer;
+import io.crate.analyze.ValuesResolver;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.Operation;
@@ -41,10 +41,10 @@ import java.util.List;
  */
 public class ExcludedFieldProvider implements FieldProvider<Symbol> {
 
-    private ValuesAwareExpressionAnalyzer.ValuesResolver valuesResolver;
+    private ValuesResolver valuesResolver;
     private FieldProvider fieldProvider;
 
-    public ExcludedFieldProvider(FieldProvider fieldProvider, ValuesAwareExpressionAnalyzer.ValuesResolver valuesResolver) {
+    public ExcludedFieldProvider(FieldProvider fieldProvider, ValuesResolver valuesResolver) {
         this.fieldProvider = fieldProvider;
         this.valuesResolver = valuesResolver;
     }

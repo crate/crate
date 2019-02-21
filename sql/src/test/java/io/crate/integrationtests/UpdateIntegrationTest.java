@@ -306,13 +306,13 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertIntoWithOnDuplicateKeyWithFunctionWhereArgumentIsInIntegerRangeInsteadOfLong() throws Exception {
+    public void testInsertIntoWithOnConflictKeyWithFunctionWhereArgumentIsInIntegerRangeInsteadOfLong() throws Exception {
         execute("create table t (id int primary key, ts timestamp, day int) with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (id, ts, day) values (1, 0, 0)");
         execute("refresh table t");
         execute("insert into t (id, ts, day) (select id, ts, day from t) " +
-                "on duplicate key update day = extract(day from ts)");
+                "on conflict (id) do update set day = extract(day from ts)");
         assertThat(response.rowCount(), is(1L));
     }
 

@@ -523,12 +523,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
      * Creates a {@link io.crate.sql.tree.Insert.DuplicateKeyContext} based on the Insert
      */
     private Insert.DuplicateKeyContext createDuplicateKeyContext(SqlBaseParser.InsertContext context) {
-        if (context.onDuplicate() != null) {
-            return new Insert.DuplicateKeyContext(
-                Insert.DuplicateKeyContext.Type.ON_DUPLICATE_KEY_UPDATE,
-                visitCollection(context.onDuplicate().assignment(), Assignment.class),
-                emptyList());
-        } else if (context.onConflict() != null) {
+        if (context.onConflict() != null) {
             SqlBaseParser.OnConflictContext onConflictContext = context.onConflict();
             final List<String> conflictColumns;
             if (onConflictContext.conflictTarget() != null) {
@@ -544,7 +539,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                     emptyList(),
                     conflictColumns);
             } else {
-                if (conflictColumns == null) {
+                if (conflictColumns.isEmpty()) {
                     throw new IllegalStateException("ON CONFLICT <conflict_target> <- conflict_target missing");
                 }
                 return new Insert.DuplicateKeyContext(

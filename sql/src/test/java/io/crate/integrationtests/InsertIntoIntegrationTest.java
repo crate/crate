@@ -723,7 +723,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         // set all 'female' values to true
         execute("insert into t (id, name, female) (select id, name, female from characters) " +
-                "on duplicate key update female = ?",
+                "on conflict (id) do update set female = ?",
             new Object[]{true});
         assertThat(response.rowCount(), is(4L));
         refresh();
@@ -734,7 +734,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         // set all 'female' values back to their original values
         execute("insert into t (id, name, female) (select id, name, female from characters) " +
-                "on duplicate key update female = values(female)");
+                "on conflict (id) do update set female = excluded.female");
         assertThat(response.rowCount(), is(4L));
         refresh();
 
@@ -1029,7 +1029,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("insert into test_generated_column (id, ts) values (?, ?)" +
-                "on duplicate key update ts = ?",
+                "on conflict (id) do update set ts = ?",
             new Object[]{1, "2015-11-18T11:11:00", "2015-11-23T14:43:00"});
         refresh();
 
@@ -1326,7 +1326,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         expectedException.expectMessage("Object o is null, cannot write x = 5 into it");
-        execute("insert into t (id, i, o) values(1, 1, null) ON DUPLICATE KEY UPDATE o['x'] = 5");
+        execute("insert into t (id, i, o) values (1, 1, null) ON CONFLICT (id) DO UPDATE set o['x'] = 5");
     }
 
     @Test

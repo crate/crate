@@ -215,7 +215,7 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testForbiddenInsertFromValuesOnDuplicateKey() throws Exception {
-        assertReadOnly("insert into write_test (id) values (1) on duplicate key update name = 'foo'");
+        assertReadOnly("insert into write_test (id) values (1) on conflict (id) do update set name = 'foo'");
     }
 
     @Test
