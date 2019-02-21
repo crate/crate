@@ -28,6 +28,7 @@ import io.crate.testing.QueryTester;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
 import org.junit.After;
 import org.junit.Before;
@@ -293,7 +294,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 // Object compareValueTo does type-guessing which might result in
                 // double/float conversions which are not fully accurate, so we skip that here
                 // having the result size check should be sufficient anyway
-                if (!type.equals(DataTypes.OBJECT)) {
+                if (type.id() != ObjectType.ID) {
                     assertThat(arrayType.compareValueTo(result.get(0), arr), is(0));
                 }
             }

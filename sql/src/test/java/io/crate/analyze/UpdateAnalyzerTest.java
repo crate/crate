@@ -51,6 +51,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
+import io.crate.types.ObjectType;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -312,7 +313,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
 
         assertThat(sources[0].valueType().id(), is(ArrayType.ID));
-        assertEquals(DataTypes.OBJECT, ((ArrayType) sources[0].valueType()).innerType());
+        assertThat(((ArrayType) sources[0].valueType()).innerType().id(), is(ObjectType.ID));
         assertThat(((Object[]) ((Literal) sources[0]).value()).length, is(0));
     }
 
@@ -536,10 +537,10 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement stmt = e.analyze("UPDATE bag SET ob = [?] WHERE id = ?");
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
-            contains(isReference("ob", new ArrayType(DataTypes.OBJECT))));
+            contains(isReference("ob", new ArrayType(ObjectType.untyped()))));
         assertThat(
             stmt.assignmentByTargetCol().values(),
-            contains(isFunction("_array", singletonList(DataTypes.OBJECT))));
+            contains(isFunction("_array", singletonList(ObjectType.untyped()))));
     }
 
     @Test
@@ -547,11 +548,11 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement stmt = e.analyze("UPDATE bag SET ob = array_cat([?], [{obb=1}]) WHERE id = ?");
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
-            contains(isReference("ob", new ArrayType(DataTypes.OBJECT))));
+            contains(isReference("ob", new ArrayType(ObjectType.untyped()))));
         assertThat(
             stmt.assignmentByTargetCol().values(),
             contains(isFunction("array_cat",
-                isFunction("_array", singletonList(DataTypes.OBJECT)),
+                isFunction("_array", singletonList(ObjectType.untyped())),
                 instanceOf(Literal.class)
             )));
     }

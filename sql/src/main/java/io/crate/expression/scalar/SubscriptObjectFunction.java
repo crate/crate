@@ -48,7 +48,7 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> {
     public static void register(ScalarFunctionModule module) {
         module.register(NAME,
             new BaseFunctionResolver(
-                FuncParams.builder(Param.of(ObjectType.INSTANCE), Param.of(StringType.INSTANCE)).build()
+                FuncParams.builder(Param.of(ObjectType.untyped()), Param.of(StringType.INSTANCE)).build()
             ) {
                 @Override
                 public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {

@@ -36,7 +36,9 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Collections;
@@ -104,28 +106,28 @@ public class PgAttributeTable extends StaticTableInfo {
 
     PgAttributeTable() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register(Columns.ATTRELID.name(), DataTypes.INTEGER, null)
-                .register(Columns.ATTNAME.name(), DataTypes.STRING, null)
-                .register(Columns.ATTTYPID.name(), DataTypes.INTEGER, null)
-                .register(Columns.ATTSTATTARGET.name(), DataTypes.INTEGER, null)
-                .register(Columns.ATTLEN.name(), DataTypes.INTEGER, null)
-                .register(Columns.ATTNUM.name(), DataTypes.SHORT, null)
-                .register(Columns.ATTNDIMS.name(), DataTypes.INTEGER, null)
-                .register(Columns.ATTCACHEOFF.name(), DataTypes.INTEGER, null)
-                .register(Columns.ATTTYPMOD.name(), DataTypes.INTEGER, null)
-                .register(Columns.ATTBYVAL.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.ATTSTORAGE.name(), DataTypes.STRING, null)
-                .register(Columns.ATTALIGN.name(), DataTypes.STRING, null)
-                .register(Columns.ATTNOTNULL.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.ATTHASDEF.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.ATTIDENTITY.name(), DataTypes.STRING, null)
-                .register(Columns.ATTISDROPPED.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.ATTISLOCAL.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.ATTINHCOUNT.name(), DataTypes.INTEGER, null)
-                .register(Columns.ATTCOLLATION.name(), DataTypes.INTEGER, null)
-                .register(Columns.ATTACL.name(), DataTypes.OBJECT_ARRAY, null)
-                .register(Columns.ATTOPTIONS.name(), DataTypes.STRING_ARRAY, null)
-                .register(Columns.ATTFDWOPTIONS.name(), DataTypes.STRING_ARRAY, null),
+                .register(Columns.ATTRELID.name(), DataTypes.INTEGER)
+                .register(Columns.ATTNAME.name(), DataTypes.STRING)
+                .register(Columns.ATTTYPID.name(), DataTypes.INTEGER)
+                .register(Columns.ATTSTATTARGET.name(), DataTypes.INTEGER)
+                .register(Columns.ATTLEN.name(), DataTypes.INTEGER)
+                .register(Columns.ATTNUM.name(), DataTypes.SHORT)
+                .register(Columns.ATTNDIMS.name(), DataTypes.INTEGER)
+                .register(Columns.ATTCACHEOFF.name(), DataTypes.INTEGER)
+                .register(Columns.ATTTYPMOD.name(), DataTypes.INTEGER)
+                .register(Columns.ATTBYVAL.name(), DataTypes.BOOLEAN)
+                .register(Columns.ATTSTORAGE.name(), DataTypes.STRING)
+                .register(Columns.ATTALIGN.name(), DataTypes.STRING)
+                .register(Columns.ATTNOTNULL.name(), DataTypes.BOOLEAN)
+                .register(Columns.ATTHASDEF.name(), DataTypes.BOOLEAN)
+                .register(Columns.ATTIDENTITY.name(), DataTypes.STRING)
+                .register(Columns.ATTISDROPPED.name(), DataTypes.BOOLEAN)
+                .register(Columns.ATTISLOCAL.name(), DataTypes.BOOLEAN)
+                .register(Columns.ATTINHCOUNT.name(), DataTypes.INTEGER)
+                .register(Columns.ATTCOLLATION.name(), DataTypes.INTEGER)
+                .register(Columns.ATTACL.name(), new ArrayType(ObjectType.untyped()))
+                .register(Columns.ATTOPTIONS.name(), DataTypes.STRING_ARRAY)
+                .register(Columns.ATTFDWOPTIONS.name(), DataTypes.STRING_ARRAY),
             Collections.emptyList());
     }
 

@@ -34,6 +34,7 @@ import io.crate.planner.TableStatsService;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.udc.service.UDCService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -310,7 +311,7 @@ public final class CrateSettings implements ClusterStateListener {
             buildReferenceTree(referenceMap,
                 CrateSetting.of(Setting.groupSetting(prefix + settingKey + ".",
                     Setting.Property.NodeScope),
-                    DataTypes.OBJECT));
+                    ObjectType.untyped()));
             //build the reference tree for every child setting
             for (String settingName : settingValue.keySet()) {
                 String nestedPrefix = prefix + settingKey + "." + settingName;

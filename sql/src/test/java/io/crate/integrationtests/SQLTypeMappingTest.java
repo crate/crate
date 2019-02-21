@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -102,6 +103,12 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         ensureYellow();
     }
 
+    /**
+     * Disabled JDBC usage cause of text mode JSON encoding which is not type safe on numeric types.
+     * E.g. byte values are always converted to integers,
+     * see {@link com.fasterxml.jackson.core.JsonGenerator#writeNumber(short)}.
+     */
+    @UseJdbc(0)
     @Test
     public void testParseInsertObject() throws Exception {
         setUpObjectTable();
@@ -133,13 +140,13 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> objectMap = (Map<String, Object>) response.rows()[0][0];
         assertEquals(1384819200000L, objectMap.get("created"));
-        assertEquals(127, objectMap.get("size"));
+        assertEquals((byte) 127, objectMap.get("size"));
 
         assertThat(response.rows()[0][1], instanceOf(Map.class));
         @SuppressWarnings("unchecked")
         Map<String, Object> strictMap = (Map<String, Object>) response.rows()[0][1];
         assertEquals("/dev/null", strictMap.get("path"));
-        assertEquals(0, strictMap.get("created"));
+        assertEquals(0L, strictMap.get("created"));
 
         assertThat(response.rows()[0][2], instanceOf(Map.class));
         @SuppressWarnings("unchecked")
@@ -259,6 +266,12 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         assertEquals("127.0.0.1", response.rows()[0][11]);
     }
 
+    /**
+     * We must fix this test to run ALL statements via JDBC or not because object/map values are NOT preserving exact
+     * its elements numeric types (e.g. Long(0) becomes Integer(0)). This is caused by the usage of JSON for psql text
+     * serialization. See e.g. {@link org.codehaus.jackson.io.NumberOutput#outputLong(long, byte[], int)}.
+     */
+    @UseJdbc(0)
     @Test
     public void testGetRequestMapping() throws Exception {
         setUpSimple();
@@ -292,6 +305,10 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         execute("insert into t1 values ({a=['123', '456']})");
     }
 
+    /**
+     * Disable JDBC/PSQL as object values are streamed via JSON on the PSQL wire protocol which is not type safe.
+     */
+    @UseJdbc(0)
     @Test
     public void testInsertNewObjectColumn() throws Exception {
         setUpSimple();
@@ -311,9 +328,12 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> mapped = (Map<String, Object>) response.rows()[0][1];
         assertEquals("1970-01-01", mapped.get("a_date"));
-        assertEquals(127, mapped.get("an_int"));
         assertEquals(0x7fffffffffffffffL, mapped.get("a_long"));
         assertEquals(true, mapped.get("a_boolean"));
+
+        // The inner value will result in an Long type as we rely on ES mappers here and the dynamic ES parsing
+        // will define integers as longs (no concrete type was specified so use long to be safe)
+        assertEquals(127L, mapped.get("an_int"));
     }
 
     @Test

@@ -33,6 +33,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoShapeType;
+import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
 import org.elasticsearch.common.settings.Settings;
@@ -49,16 +50,16 @@ import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
 public class AnalyzedColumnDefinition {
 
-    private static final Set<DataType> UNSUPPORTED_PK_TYPES = Sets.newHashSet(
-        DataTypes.OBJECT,
-        DataTypes.GEO_POINT,
-        DataTypes.GEO_SHAPE
+    private static final Set<Integer> UNSUPPORTED_PK_TYPE_IDS = Sets.newHashSet(
+        ObjectType.ID,
+        DataTypes.GEO_POINT.id(),
+        DataTypes.GEO_SHAPE.id()
     );
 
-    private static final Set<DataType> UNSUPPORTED_INDEX_TYPES = Sets.newHashSet(
-        DataTypes.OBJECT,
-        DataTypes.GEO_POINT,
-        DataTypes.GEO_SHAPE
+    private static final Set<Integer> UNSUPPORTED_INDEX_TYPE_IDS = Sets.newHashSet(
+        ObjectType.ID,
+        DataTypes.GEO_POINT.id(),
+        DataTypes.GEO_SHAPE.id()
     );
 
     private final AnalyzedColumnDefinition parent;
@@ -176,7 +177,7 @@ public class AnalyzedColumnDefinition {
                     ident.sqlFqn()
                 ));
         }
-        if (indexType != null && UNSUPPORTED_INDEX_TYPES.contains(dataType)) {
+        if (indexType != null && UNSUPPORTED_INDEX_TYPE_IDS.contains(dataType.id())) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "INDEX constraint cannot be used on columns of type \"%s\"", dataType));
         }
@@ -193,7 +194,7 @@ public class AnalyzedColumnDefinition {
             throw new UnsupportedOperationException(
                 String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", collectionType));
         }
-        if (UNSUPPORTED_PK_TYPES.contains(dataType)) {
+        if (UNSUPPORTED_PK_TYPE_IDS.contains(dataType.id())) {
             throw new UnsupportedOperationException(
                 String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", dataType));
         }
@@ -223,12 +224,12 @@ public class AnalyzedColumnDefinition {
         if ("array".equals(collectionType)) {
             Map<String, Object> outerMapping = new HashMap<>();
             outerMapping.put("type", "array");
-            if (dataType().equals(DataTypes.OBJECT)) {
+            if (dataType().id() == ObjectType.ID) {
                 objectMapping(mapping);
             }
             outerMapping.put("inner", mapping);
             return outerMapping;
-        } else if (dataType().equals(DataTypes.OBJECT)) {
+        } else if (dataType().id() == ObjectType.ID) {
             objectMapping(mapping);
         }
 

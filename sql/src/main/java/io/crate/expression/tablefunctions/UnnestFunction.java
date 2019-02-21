@@ -46,7 +46,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.ArrayList;
@@ -202,7 +202,7 @@ public class UnnestFunction {
 
             @Override
             public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                DataType returnType = dataTypes.size() == 1 ? CollectionType.unnest(dataTypes.get(0)) : DataTypes.OBJECT;
+                DataType returnType = dataTypes.size() == 1 ? CollectionType.unnest(dataTypes.get(0)) : ObjectType.untyped();
                 return new UnnestTableFunctionImplementation(
                     new FunctionInfo(new FunctionIdent(NAME, dataTypes), returnType, FunctionInfo.Type.TABLE));
             }

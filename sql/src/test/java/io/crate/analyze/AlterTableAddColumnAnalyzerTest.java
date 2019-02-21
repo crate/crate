@@ -28,6 +28,7 @@ import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -247,13 +248,13 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
         AnalyzedColumnDefinition details = columns.get(0);
         assertThat(details.ident(), is(ColumnIdent.fromPath("details")));
-        assertThat(details.dataType(), is(DataTypes.OBJECT));
+        assertThat(details.dataType().id(), is(ObjectType.ID));
         assertThat(details.isParentColumn(), is(true));
         assertThat(details.children().size(), is(1));
 
         AnalyzedColumnDefinition foo = details.children().get(0);
         assertThat(foo.ident(), is(ColumnIdent.fromPath("details.foo")));
-        assertThat(foo.dataType(), is(DataTypes.OBJECT));
+        assertThat(foo.dataType().id(), is(ObjectType.ID));
         assertThat(foo.isParentColumn(), is(false));
 
         assertThat(columns.get(0).children().get(0).children().size(), is(2));
@@ -279,7 +280,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             "alter table users add column new_obj_col object as (a array(long))");
         List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(2)); // second one is primary key
-        assertThat(columns.get(0).dataType(), is(DataTypes.OBJECT));
+        assertThat(columns.get(0).dataType().id(), is(ObjectType.ID));
         assertThat(columns.get(0).children().get(0).dataType(), is(DataTypes.LONG));
         assertTrue(columns.get(0).children().get(0).isArrayOrInArray());
     }
@@ -290,7 +291,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             "alter table users add column new_obj_col object as (o object as (b array(long)))");
         List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(2)); // second one is primary key
-        assertThat(columns.get(0).children().get(0).dataType(), is(DataTypes.OBJECT));
+        assertThat(columns.get(0).children().get(0).dataType().id(), is(ObjectType.ID));
         assertThat(columns.get(0).children().get(0).children().get(0).dataType(), is(DataTypes.LONG));
         assertTrue(columns.get(0).children().get(0).children().get(0).isArrayOrInArray());
     }
@@ -302,19 +303,19 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(1));
         assertThat(columns.get(0).ident(), is(ColumnIdent.fromPath("details")));
-        assertThat(columns.get(0).dataType(), is(DataTypes.OBJECT));
+        assertThat(columns.get(0).dataType().id(), is(ObjectType.ID));
         assertThat(columns.get(0).isParentColumn(), is(true));
         assertThat(columns.get(0).children().size(), is(1));
 
         AnalyzedColumnDefinition stuff = columns.get(0).children().get(0);
         assertThat(stuff.ident(), is(ColumnIdent.fromPath("details.stuff")));
-        assertThat(stuff.dataType(), is(DataTypes.OBJECT));
+        assertThat(stuff.dataType().id(), is(ObjectType.ID));
         assertThat(stuff.isParentColumn(), is(true));
         assertThat(stuff.children().size(), is(1));
 
         AnalyzedColumnDefinition foo = stuff.children().get(0);
         assertThat(foo.ident(), is(ColumnIdent.fromPath("details.stuff.foo")));
-        assertThat(foo.dataType(), is(DataTypes.OBJECT));
+        assertThat(foo.dataType().id(), is(ObjectType.ID));
         assertThat(foo.isParentColumn(), is(false));
         assertThat(foo.children().size(), is(2));
 

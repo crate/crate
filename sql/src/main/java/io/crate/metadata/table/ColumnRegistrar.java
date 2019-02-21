@@ -29,9 +29,13 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.types.CollectionType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +54,10 @@ public class ColumnRegistrar {
         this.columnsBuilder = ImmutableSortedSet.orderedBy(Reference.COMPARE_BY_COLUMN_IDENT);
     }
 
+    public ColumnRegistrar register(String column, DataType type) {
+        return register(new ColumnIdent(column), type);
+    }
+
     public ColumnRegistrar register(String column, DataType type, @Nullable List<String> path) {
         return register(new ColumnIdent(column, path), type);
     }
@@ -65,7 +73,28 @@ public class ColumnRegistrar {
             columnsBuilder.add(ref);
         }
         infosBuilder.put(ref.column(), ref);
+        registerPossibleObjectInnerTypes(column.name(), column.path(), type);
         return this;
+    }
+
+    private void registerPossibleObjectInnerTypes(String topLevelName, List<String> path, DataType dataType) {
+        if (DataTypes.isCollectionType(dataType)) {
+            dataType = ((CollectionType) dataType).innerType();
+        }
+        if (dataType.id() != ObjectType.ID) {
+            return;
+        }
+        Map<String, DataType> innerTypes = ((ObjectType) dataType).innerTypes();
+        for (Map.Entry<String, DataType> entry : innerTypes.entrySet()) {
+            List<String> subPath = new ArrayList<>(path);
+            subPath.add(entry.getKey());
+            ColumnIdent ci = new ColumnIdent(topLevelName, subPath);
+            DataType innerType = entry.getValue();
+            Reference ref = new Reference(new ReferenceIdent(relationName, ci), rowGranularity, innerType,
+                ColumnPolicy.STRICT, Reference.IndexType.NOT_ANALYZED, true);
+            infosBuilder.put(ref.column(), ref);
+            registerPossibleObjectInnerTypes(ci.name(), ci.path(), innerType);
+        }
     }
 
     public ColumnRegistrar putInfoOnly(ColumnIdent columnIdent, Reference reference) {

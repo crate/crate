@@ -30,6 +30,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Schemas;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -102,7 +103,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     @Test
     public void testObjectReturnType() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.OBJECT, ImmutableList.of(),
+        registerUserDefinedFunction("f", ObjectType.untyped(), ImmutableList.of(),
             "function f() { return JSON.parse('{\"foo\": \"bar\"}'); }");
         assertEvaluate("f()", ImmutableMap.of("foo", "bar"));
     }
@@ -234,7 +235,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     @Test
     public void testNormalizeOnObjectInput() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.OBJECT, ImmutableList.of(DataTypes.OBJECT),
+        registerUserDefinedFunction("f", ObjectType.untyped(), ImmutableList.of(ObjectType.untyped()),
             "function f(x) { return x; }");
         assertNormalize("f({})", isLiteral(new HashMap<>()));
     }

@@ -21,12 +21,10 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.expression.reference.sys.cluster.ClusterLoggingOverridesExpression;
 import io.crate.expression.reference.sys.cluster.ClusterSettingsExpression;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -37,10 +35,16 @@ import io.crate.metadata.table.StaticTableInfo;
 import io.crate.settings.CrateSetting;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.settings.Settings;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.EXPIRY_DATE;
 import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.ISSUED_TO;
@@ -68,45 +72,61 @@ public class SysClusterTableInfo extends StaticTableInfo {
     }
 
     private static ColumnRegistrar buildColumnRegistrar() {
-        ColumnRegistrar columnRegistrar = new ColumnRegistrar(IDENT, RowGranularity.CLUSTER)
-            .register("id", DataTypes.STRING, null)
-            .register("name", DataTypes.STRING, null)
-            .register("master_node", DataTypes.STRING, null)
-            .register("license", DataTypes.OBJECT, null)
-            .register(new ColumnIdent("license", EXPIRY_DATE), DataTypes.TIMESTAMP)
-            .register(new ColumnIdent("license", ISSUED_TO), DataTypes.STRING)
-            .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, null)
-            // custom registration of logger expressions
-            .register(ClusterSettingsExpression.NAME, new ArrayType(DataTypes.OBJECT), ImmutableList.of(
-                ClusterLoggingOverridesExpression.NAME))
-            .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(
-                ClusterLoggingOverridesExpression.NAME,
-                ClusterLoggingOverridesExpression.ClusterLoggingOverridesChildExpression.NAME))
-            .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(
-                ClusterLoggingOverridesExpression.NAME,
-                ClusterLoggingOverridesExpression.ClusterLoggingOverridesChildExpression.LEVEL));
+        return new ColumnRegistrar(IDENT, RowGranularity.CLUSTER)
+            .register("id", DataTypes.STRING)
+            .register("name", DataTypes.STRING)
+            .register("master_node", DataTypes.STRING)
+            .register("license",
+                ObjectType.builder()
+                    .setInnerType(EXPIRY_DATE, DataTypes.TIMESTAMP)
+                    .setInnerType(ISSUED_TO, DataTypes.STRING)
+                    .build())
+            .register(ClusterSettingsExpression.NAME, buildSettingsObjectType());
+    }
+
+    private static ObjectType buildSettingsObjectType() {
+        ObjectType.Builder settingTypeBuilder = ObjectType.builder()
+            .setInnerType(ClusterLoggingOverridesExpression.NAME, new ArrayType(
+                ObjectType.builder()
+                    .setInnerType(ClusterLoggingOverridesExpression.ClusterLoggingOverridesChildExpression.NAME, DataTypes.STRING)
+                    .setInnerType(ClusterLoggingOverridesExpression.ClusterLoggingOverridesChildExpression.LEVEL, DataTypes.STRING)
+                    .build()));
 
         // register all exposed crate and elasticsearch settings
+        Map<String, CrateSetting<?>> settingsMap = new HashMap<>();
+        Settings.Builder settingsBuilder = Settings.builder();
         for (CrateSetting<?> crateSetting : CrateSettings.BUILT_IN_SETTINGS) {
-            List<String> namePath = crateSetting.path();
-            createParentColumnIfMissing(columnRegistrar, namePath);
-            // don't register empty groups
-            if (namePath.get(namePath.size() - 1).isEmpty() == false) {
-                columnRegistrar.register(ClusterSettingsExpression.NAME, crateSetting.dataType(), namePath);
-            }
+            settingsBuilder.put(crateSetting.getKey(), crateSetting.getDefault().toString());
+            settingsMap.put(crateSetting.getKey(), crateSetting);
         }
 
-        return columnRegistrar;
+        Map<String, Object> structuredSettingsMap = settingsBuilder.build().getAsStructuredMap();
+        for (Map.Entry<String, Object> entry : structuredSettingsMap.entrySet()) {
+            buildObjectType(settingTypeBuilder, entry.getKey(), entry.getValue(), Collections.emptyList(), settingsMap::get);
+        }
+
+        return settingTypeBuilder.build();
     }
 
-    private static void createParentColumnIfMissing(ColumnRegistrar columnRegistrar, List<String> nameParts) {
-        for (int i = 1; i < nameParts.size(); i++) {
-            ColumnIdent columnIdent = new ColumnIdent(ClusterSettingsExpression.NAME, nameParts.subList(0, i));
-            if (columnRegistrar.infos().get(columnIdent) == null) {
-                columnRegistrar.register(columnIdent, DataTypes.OBJECT);
+    private static void buildObjectType(ObjectType.Builder builder,
+                                        String name,
+                                        Object val,
+                                        List<String> path,
+                                        Function<String, CrateSetting> resolver) {
+        List<String> newPath = new ArrayList<>(path);
+        newPath.add(name);
+        String fqnName = String.join(".", newPath);
+        if (val instanceof Map) {
+            ObjectType.Builder innerBuilder = ObjectType.builder();
+            //noinspection unchecked
+            for (Map.Entry<String, Object> entry : ((Map<String, Object>) val).entrySet()) {
+                buildObjectType(innerBuilder, entry.getKey(), entry.getValue(), newPath, resolver);
             }
+            builder.setInnerType(name, innerBuilder.build());
+        } else {
+            CrateSetting crateSetting = resolver.apply(fqnName);
+            builder.setInnerType(name, crateSetting.dataType());
         }
     }
-
 
 }

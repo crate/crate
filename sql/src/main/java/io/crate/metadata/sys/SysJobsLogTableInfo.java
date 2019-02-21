@@ -36,6 +36,7 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.List;
@@ -88,9 +89,10 @@ public class SysJobsLogTableInfo extends StaticTableInfo {
             .register(Columns.STARTED, DataTypes.TIMESTAMP)
             .register(Columns.ENDED, DataTypes.TIMESTAMP)
             .register(Columns.ERROR, DataTypes.STRING)
-            .register(Columns.CLASS, DataTypes.OBJECT)
-            .register(Columns.CLASS_TYPE, DataTypes.STRING)
-            .register(Columns.CLASS_LABELS, DataTypes.STRING_ARRAY),
+            .register(Columns.CLASS, ObjectType.builder()
+                .setInnerType("type", DataTypes.STRING)
+                .setInnerType("labels", DataTypes.STRING_ARRAY)
+                .build()),
             PRIMARY_KEYS);
     }
 

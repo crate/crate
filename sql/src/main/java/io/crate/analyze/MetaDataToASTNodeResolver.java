@@ -59,6 +59,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.SetType;
 import org.elasticsearch.common.Nullable;
 
@@ -116,12 +117,12 @@ public class MetaDataToASTNodeResolver {
                 }
 
                 ColumnType columnType;
-                if (info.valueType().equals(DataTypes.OBJECT)) {
+                if (info.valueType().id() == ObjectType.ID) {
                     columnType = new ObjectColumnType(info.columnPolicy().value(), extractColumnDefinitions(ident));
                 } else if (info.valueType().id() == ArrayType.ID) {
                     DataType innerType = ((CollectionType) info.valueType()).innerType();
                     ColumnType innerColumnType;
-                    if (innerType.equals(DataTypes.OBJECT)) {
+                    if (innerType.id() == ObjectType.ID) {
                         innerColumnType = new ObjectColumnType(info.columnPolicy().value(), extractColumnDefinitions(ident));
                     } else {
                         innerColumnType = new ColumnType(innerType.getName());
@@ -139,9 +140,9 @@ public class MetaDataToASTNodeResolver {
                     constraints.add(new NotNullColumnConstraint());
                 }
                 if (info.indexType().equals(Reference.IndexType.NO)
-                    && !info.valueType().equals(DataTypes.OBJECT)
+                    && info.valueType().id() != ObjectType.ID
                     && !(info.valueType().id() == ArrayType.ID &&
-                         ((CollectionType) info.valueType()).innerType().equals(DataTypes.OBJECT))) {
+                         ((CollectionType) info.valueType()).innerType().id() == ObjectType.ID)) {
                     constraints.add(IndexColumnConstraint.OFF);
                 } else if (info.indexType().equals(Reference.IndexType.ANALYZED)) {
                     String analyzer = tableInfo.getAnalyzerForColumnIdent(ident);

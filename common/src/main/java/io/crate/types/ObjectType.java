@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.Streamer;
 import io.crate.common.collections.MapComparator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -38,10 +39,51 @@ import java.util.Map;
 
 public class ObjectType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
-    public static final ObjectType INSTANCE = new ObjectType();
     public static final int ID = 12;
+    public static final String NAME = "object";
 
+    public static ObjectType untyped() {
+        return new ObjectType();
+    }
+
+    public static class Builder {
+
+        ImmutableMap.Builder<String, DataType> innerTypesBuilder = ImmutableMap.builder();
+
+        public Builder setInnerType(String key, DataType innerType) {
+            innerTypesBuilder.put(key, innerType);
+            return this;
+        }
+
+        public ObjectType build() {
+            return new ObjectType(innerTypesBuilder.build());
+        }
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    private ImmutableMap<String, DataType> innerTypes;
+
+    /**
+     * Constructor used for the {@link org.elasticsearch.common.io.stream.Streamable}
+     * interface which initializes the fields after object creation.
+     */
     private ObjectType() {
+        this(ImmutableMap.of());
+    }
+
+    private ObjectType(ImmutableMap<String, DataType> innerTypes) {
+        this.innerTypes = innerTypes;
+    }
+
+    public Map<String, DataType> innerTypes() {
+        return innerTypes;
+    }
+
+    public DataType innerType(String key) {
+        return innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
     }
 
     @Override
@@ -56,7 +98,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     @Override
     public String getName() {
-        return "object";
+        return NAME;
     }
 
     @Override
@@ -68,14 +110,27 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     @SuppressWarnings("unchecked")
     public Map<String, Object> value(Object value) {
         if (value instanceof String) {
-            return mapFromJSONString((String) value);
+            value = mapFromJSONString((String) value);
         }
-        return (Map<String, Object>) value;
+        Map<String, Object> map = (Map<String, Object>) value;
+
+        if (map == null || innerTypes == null) {
+            return map;
+        }
+
+        HashMap<String, Object> newMap = new HashMap<>(map);
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String key = entry.getKey();
+            DataType innerType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
+            newMap.put(key, innerType.value(entry.getValue()));
+        }
+        return newMap;
     }
 
     @Override
     public Object hashableValue(Object value) throws IllegalArgumentException, ClassCastException {
         if (value instanceof Map) {
+            //noinspection unchecked
             Map<String, Object> m = (Map<String, Object>) value;
             HashMap<String, Object> result = new HashMap<>();
             for (Map.Entry<String, Object> entry : m.entrySet()) {
@@ -119,17 +174,57 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         return MapComparator.compareMaps(val1, val2);
     }
 
-    // TODO: require type info from each child and then use typed streamer for contents of the map
-    // ?
-
     @Override
-    @SuppressWarnings("unchecked")
     public Map<String, Object> readValueFrom(StreamInput in) throws IOException {
-        return (Map<String, Object>) in.readGenericValue();
+        if (in.readBoolean()) {
+            int size = in.readInt();
+            HashMap<String, Object> m = new HashMap<>(size);
+            for (int i = 0; i < size; i++) {
+                String key = in.readString();
+                DataType innerType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
+                Object val = innerType.streamer().readValueFrom(in);
+                m.put(key, val);
+            }
+            return m;
+        }
+        return null;
     }
 
     @Override
     public void writeValueTo(StreamOutput out, Map<String, Object> v) throws IOException {
-        out.writeGenericValue(v);
+        if (v == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeInt(v.size());
+            for (Map.Entry<String, Object> entry : v.entrySet()) {
+                String key = entry.getKey();
+                out.writeString(key);
+                DataType innerType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
+                //noinspection unchecked
+                innerType.streamer().writeValueTo(out, innerType.value(entry.getValue()));
+            }
+        }
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        int typesSize = in.readVInt();
+        ImmutableMap.Builder<String, DataType> builder = ImmutableMap.builderWithExpectedSize(typesSize);
+        for (int i = 0; i < typesSize; i++) {
+            String key = in.readString();
+            DataType type = DataTypes.fromStream(in);
+            builder.put(key, type);
+        }
+        innerTypes = builder.build();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeVInt(innerTypes.size());
+        for (Map.Entry<String, DataType> entry : innerTypes.entrySet()) {
+            out.writeString(entry.getKey());
+            DataTypes.toStream(entry.getValue(), out);
+        }
     }
 }

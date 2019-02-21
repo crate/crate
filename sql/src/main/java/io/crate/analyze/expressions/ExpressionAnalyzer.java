@@ -127,6 +127,7 @@ import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 
 import javax.annotation.Nullable;
@@ -629,7 +630,7 @@ public class ExpressionAnalyzer {
         }
 
         private Symbol createSubscript(Symbol name, Symbol index, ExpressionAnalysisContext context) {
-            String function = name.valueType().equals(DataTypes.OBJECT)
+            String function = name.valueType().id() == ObjectType.ID
                 ? SubscriptObjectFunction.NAME
                 : SubscriptFunction.NAME;
             return allocateFunction(function, ImmutableList.of(name, index), context);

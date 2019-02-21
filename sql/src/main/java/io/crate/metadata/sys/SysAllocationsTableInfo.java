@@ -37,7 +37,9 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.HashMap;
@@ -130,10 +132,11 @@ public class SysAllocationsTableInfo extends StaticTableInfo {
             .register(Columns.PRIMARY, DataTypes.BOOLEAN)
             .register(Columns.CURRENT_STATE, DataTypes.STRING)
             .register(Columns.EXPLANATION, DataTypes.STRING)
-            .register(Columns.DECISIONS, DataTypes.OBJECT_ARRAY)
-            .register(Columns.DECISIONS_NODE_ID, DataTypes.STRING)
-            .register(Columns.DECISIONS_NODE_NAME, DataTypes.STRING)
-            .register(Columns.DECISIONS_EXPLANATIONS, DataTypes.STRING_ARRAY),
+            .register(Columns.DECISIONS, new ArrayType(ObjectType.builder()
+                .setInnerType("node_id", DataTypes.STRING)
+                .setInnerType("node_name", DataTypes.STRING)
+                .setInnerType("explanations", DataTypes.STRING_ARRAY)
+                .build())),
             PRIMARY_KEYS);
     }
 

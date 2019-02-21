@@ -31,7 +31,7 @@ import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.profile.ProfilingContext;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -46,7 +46,7 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
 
     ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement, ProfilingContext context) {
         this.statement = statement;
-        this.fields = Collections.singletonList(new Field(this, new OutputName(columnName), DataTypes.OBJECT));
+        this.fields = Collections.singletonList(new Field(this, new OutputName(columnName), ObjectType.untyped()));
         this.context = context;
     }
 

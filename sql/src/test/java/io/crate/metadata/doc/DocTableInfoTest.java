@@ -13,6 +13,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.Operation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
@@ -30,7 +31,7 @@ public class DocTableInfoTest extends CrateUnitTest {
         DocTableInfo info = new DocTableInfo(
             relationName,
             ImmutableList.of(
-                new Reference(new ReferenceIdent(relationName, new ColumnIdent("o", ImmutableList.of())), RowGranularity.DOC, DataTypes.OBJECT)
+                new Reference(new ReferenceIdent(relationName, new ColumnIdent("o", ImmutableList.of())), RowGranularity.DOC, ObjectType.untyped())
             ),
             ImmutableList.of(),
             ImmutableList.of(),
@@ -67,13 +68,12 @@ public class DocTableInfoTest extends CrateUnitTest {
 
     @Test
     public void testGetColumnInfoStrictParent() throws Exception {
-
         RelationName dummy = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
         ReferenceIdent foobarIdent = new ReferenceIdent(dummy, new ColumnIdent("foobar"));
         Reference strictParent = new Reference(
             foobarIdent,
             RowGranularity.DOC,
-            DataTypes.OBJECT,
+            ObjectType.untyped(),
             ColumnPolicy.STRICT,
             Reference.IndexType.NOT_ANALYZED,
             true

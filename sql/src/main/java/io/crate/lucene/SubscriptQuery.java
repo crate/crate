@@ -34,6 +34,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.metadata.Reference;
 import io.crate.types.CollectionType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
@@ -90,7 +91,7 @@ class SubscriptQuery implements InnerFunctionToQuery {
 
             MappedFieldType fieldType = context.getFieldTypeOrNull(reference.column().fqn());
             if (fieldType == null) {
-                if (CollectionType.unnest(reference.valueType()).equals(DataTypes.OBJECT)) {
+                if (CollectionType.unnest(reference.valueType()).id() == ObjectType.ID) {
                     return null; // fallback to generic query to enable objects[1] = {x=10}
                 }
                 return Queries.newMatchNoDocsQuery("column doesn't exist in this index");

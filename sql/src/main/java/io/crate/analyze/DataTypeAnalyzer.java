@@ -22,12 +22,14 @@
 package io.crate.analyze;
 
 import io.crate.sql.tree.CollectionColumnType;
+import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.ObjectColumnType;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 import java.util.Locale;
 
@@ -53,7 +55,11 @@ public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType, Vo
 
     @Override
     public DataType visitObjectColumnType(ObjectColumnType node, Void context) {
-        return DataTypes.OBJECT;
+        ObjectType.Builder builder = ObjectType.builder();
+        for (ColumnDefinition columnDefinition : node.nestedColumns()) {
+            builder.setInnerType(columnDefinition.ident(), process(columnDefinition.type(), context));
+        }
+        return builder.build();
     }
 
     @Override

@@ -28,6 +28,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.types.CollectionType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
@@ -68,7 +69,7 @@ class AnyEqQuery implements FunctionToQuery {
                                                    LuceneQueryBuilder.Context context) {
         MappedFieldType fieldType = context.getFieldTypeOrNull(array.column().fqn());
         if (fieldType == null) {
-            if (CollectionType.unnest(array.valueType()).equals(DataTypes.OBJECT)) {
+            if (CollectionType.unnest(array.valueType()).id() == ObjectType.ID) {
                 return genericFunctionFilter(any, context); // {x=10} = any(objects)
             }
             return Queries.newMatchNoDocsQuery("column doesn't exist in this index");

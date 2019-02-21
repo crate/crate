@@ -34,6 +34,7 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
@@ -80,19 +81,22 @@ public class SysMetricsTableInfo extends StaticTableInfo {
                 .register(Columns.STDEV, DataTypes.DOUBLE)
                 .register(Columns.MAX, DataTypes.LONG)
                 .register(Columns.MIN, DataTypes.LONG)
-                .register(Columns.PERCENTILES, DataTypes.OBJECT)
-                .register(Columns.P25, DataTypes.LONG)
-                .register(Columns.P50, DataTypes.LONG)
-                .register(Columns.P75, DataTypes.LONG)
-                .register(Columns.P90, DataTypes.LONG)
-                .register(Columns.P95, DataTypes.LONG)
-                .register(Columns.P99, DataTypes.LONG)
-                .register(Columns.NODE, DataTypes.OBJECT)
-                .register(Columns.NODE_ID, DataTypes.STRING)
-                .register(Columns.NODE_NAME, DataTypes.STRING)
-                .register(Columns.CLASS, DataTypes.OBJECT)
-                .register(Columns.CLASS_TYPE, DataTypes.STRING)
-                .register(Columns.CLASS_LABELS, DataTypes.STRING_ARRAY),
+                .register(Columns.PERCENTILES, ObjectType.builder()
+                    .setInnerType("25", DataTypes.LONG)
+                    .setInnerType("50", DataTypes.LONG)
+                    .setInnerType("75", DataTypes.LONG)
+                    .setInnerType("90", DataTypes.LONG)
+                    .setInnerType("95", DataTypes.LONG)
+                    .setInnerType("99", DataTypes.LONG)
+                    .build())
+                .register(Columns.NODE, ObjectType.builder()
+                    .setInnerType("id", DataTypes.STRING)
+                    .setInnerType("name", DataTypes.STRING)
+                    .build())
+                .register(Columns.CLASS, ObjectType.builder()
+                    .setInnerType("type", DataTypes.STRING)
+                    .setInnerType("labels", DataTypes.STRING_ARRAY)
+                    .build()),
             Collections.emptyList()
         );
     }

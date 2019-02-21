@@ -36,6 +36,7 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Collections;
@@ -113,31 +114,31 @@ public class PgConstraintTable extends StaticTableInfo {
 
     PgConstraintTable() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register(Columns.OID.name(), DataTypes.INTEGER, null)
-                .register(Columns.CONNAME.name(), DataTypes.STRING, null)
-                .register(Columns.CONNAMESPACE.name(), DataTypes.INTEGER, null)
-                .register(Columns.CONTYPE.name(), DataTypes.STRING, null)
-                .register(Columns.CONDEFERRABLE.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.CONDEFERRED.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.CONVALIDATED.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.CONRELID.name(), DataTypes.INTEGER, null)
-                .register(Columns.CONTYPID.name(), DataTypes.INTEGER, null)
-                .register(Columns.CONINDID.name(), DataTypes.INTEGER, null)
-                .register(Columns.CONFRELID.name(), DataTypes.INTEGER, null)
-                .register(Columns.CONFUPDTYPE.name(), DataTypes.STRING, null)
-                .register(Columns.CONFDELTYPE.name(), DataTypes.STRING, null)
-                .register(Columns.CONFMATCHTYPE.name(), DataTypes.STRING, null)
-                .register(Columns.CONISLOCAL.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.CONINHCOUNT.name(), DataTypes.INTEGER, null)
-                .register(Columns.CONNOINHERIT.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.CONKEY.name(), DataTypes.SHORT_ARRAY, null)
-                .register(Columns.CONFKEY.name(), DataTypes.SHORT_ARRAY, null)
-                .register(Columns.CONPFEQOP.name(), DataTypes.INTEGER_ARRAY, null)
-                .register(Columns.CONPPEQOP.name(), DataTypes.INTEGER_ARRAY, null)
-                .register(Columns.CONFFEQOP.name(), DataTypes.INTEGER_ARRAY, null)
-                .register(Columns.CONEXCLOP.name(), DataTypes.INTEGER_ARRAY, null)
-                .register(Columns.CONBIN.name(), DataTypes.OBJECT, null)
-                .register(Columns.CONSRC.name(), DataTypes.STRING, null),
+                .register(Columns.OID.name(), DataTypes.INTEGER)
+                .register(Columns.CONNAME.name(), DataTypes.STRING)
+                .register(Columns.CONNAMESPACE.name(), DataTypes.INTEGER)
+                .register(Columns.CONTYPE.name(), DataTypes.STRING)
+                .register(Columns.CONDEFERRABLE.name(), DataTypes.BOOLEAN)
+                .register(Columns.CONDEFERRED.name(), DataTypes.BOOLEAN)
+                .register(Columns.CONVALIDATED.name(), DataTypes.BOOLEAN)
+                .register(Columns.CONRELID.name(), DataTypes.INTEGER)
+                .register(Columns.CONTYPID.name(), DataTypes.INTEGER)
+                .register(Columns.CONINDID.name(), DataTypes.INTEGER)
+                .register(Columns.CONFRELID.name(), DataTypes.INTEGER)
+                .register(Columns.CONFUPDTYPE.name(), DataTypes.STRING)
+                .register(Columns.CONFDELTYPE.name(), DataTypes.STRING)
+                .register(Columns.CONFMATCHTYPE.name(), DataTypes.STRING)
+                .register(Columns.CONISLOCAL.name(), DataTypes.BOOLEAN)
+                .register(Columns.CONINHCOUNT.name(), DataTypes.INTEGER)
+                .register(Columns.CONNOINHERIT.name(), DataTypes.BOOLEAN)
+                .register(Columns.CONKEY.name(), DataTypes.SHORT_ARRAY)
+                .register(Columns.CONFKEY.name(), DataTypes.SHORT_ARRAY)
+                .register(Columns.CONPFEQOP.name(), DataTypes.INTEGER_ARRAY)
+                .register(Columns.CONPPEQOP.name(), DataTypes.INTEGER_ARRAY)
+                .register(Columns.CONFFEQOP.name(), DataTypes.INTEGER_ARRAY)
+                .register(Columns.CONEXCLOP.name(), DataTypes.INTEGER_ARRAY)
+                .register(Columns.CONBIN.name(), ObjectType.untyped())
+                .register(Columns.CONSRC.name(), DataTypes.STRING),
             Collections.emptyList());
     }
 

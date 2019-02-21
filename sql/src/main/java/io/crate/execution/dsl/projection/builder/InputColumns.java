@@ -40,6 +40,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
@@ -212,9 +213,9 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         List<String> path = ref.column().path();
         for (int i = 0; i < path.size(); i++) {
             boolean lastPart = i + 1 == path.size();
-            DataType returnType = lastPart ? ref.valueType() : DataTypes.OBJECT;
+            DataType returnType = lastPart ? ref.valueType() : ObjectType.untyped();
             subscript = new Function(
-                new FunctionInfo(new FunctionIdent(SubscriptObjectFunction.NAME, ImmutableList.of(DataTypes.OBJECT, DataTypes.STRING)), returnType),
+                new FunctionInfo(new FunctionIdent(SubscriptObjectFunction.NAME, ImmutableList.of(ObjectType.untyped(), DataTypes.STRING)), returnType),
                 ImmutableList.of(subscript, Literal.of(path.get(i)))
             );
         }

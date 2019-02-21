@@ -35,7 +35,9 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Collections;
@@ -65,10 +67,10 @@ public class PgNamespaceTable extends StaticTableInfo {
 
     PgNamespaceTable() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register(Columns.OID.name(), DataTypes.INTEGER, null)
-                .register(Columns.NSPNAME.name(), DataTypes.STRING, null)
-                .register(Columns.NSPOWNER.name(), DataTypes.INTEGER, null)
-                .register(Columns.NSPACL.name(), DataTypes.OBJECT_ARRAY, null),
+                .register(Columns.OID.name(), DataTypes.INTEGER)
+                .register(Columns.NSPNAME.name(), DataTypes.STRING)
+                .register(Columns.NSPOWNER.name(), DataTypes.INTEGER)
+                .register(Columns.NSPACL.name(), new ArrayType(ObjectType.untyped())),
             Collections.emptyList());
     }
 

@@ -67,6 +67,7 @@ import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -143,7 +144,17 @@ public class TestingHelpers {
             out.print("]");
         } else if (o instanceof Map) {
             out.print("{");
-            out.print(MAP_JOINER.join(Sorted.sortRecursive((Map<String, Object>) o, true)));
+            //noinspection unchecked
+            Map<String, Object> map = Sorted.sortRecursive((Map<String, Object>) o, true);
+            Iterator<String> it = map.keySet().iterator();
+            while (it.hasNext()) {
+                String key = it.next();
+                out.print(key + "=");
+                printObject(out, true, map.get(key));
+                if (it.hasNext()) {
+                    out.print(", ");
+                }
+            }
             out.print("}");
         } else {
             out.print(o.toString());

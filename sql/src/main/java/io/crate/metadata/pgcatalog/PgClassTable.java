@@ -35,7 +35,9 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Collections;
@@ -131,40 +133,40 @@ public class PgClassTable extends StaticTableInfo {
 
     PgClassTable() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register(Columns.OID.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELNAME.name(), DataTypes.STRING, null)
-                .register(Columns.RELNAMESPACE.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELTYPE.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELOFTYPE.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELOWNER.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELAM.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELFILENODE.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELTABLESPACE.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELPAGES.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELTUPLES.name(), DataTypes.FLOAT, null)
-                .register(Columns.RELALLVISIBLE.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELTOASTRELID.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELHASINDEX.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.RELISSHARED.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.RELPERSISTENCE.name(), DataTypes.STRING, null)
-                .register(Columns.RELKIND.name(), DataTypes.STRING, null)
-                .register(Columns.RELNATTS.name(), DataTypes.SHORT, null)
-                .register(Columns.RELCHECKS.name(), DataTypes.SHORT, null)
-                .register(Columns.RELHASOIDS.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.RELHASPKEY.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.RELHASRULES.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.RELHASTRIGGERS.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.RELHASSUBCLASS.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.RELROWSECURITY.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.RELFORCEROWSECURITY.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.RELISPOPULATED.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.RELREPLIDENT.name(), DataTypes.STRING, null)
-                .register(Columns.RELISPARTITION.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.RELFROZENXID.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELMINMXID.name(), DataTypes.INTEGER, null)
-                .register(Columns.RELACL.name(), DataTypes.OBJECT_ARRAY, null)
-                .register(Columns.RELOPTIONS.name(), DataTypes.STRING_ARRAY, null)
-                .register(Columns.RELPARTBOUND.name(), DataTypes.OBJECT, null),
+                .register(Columns.OID.name(), DataTypes.INTEGER)
+                .register(Columns.RELNAME.name(), DataTypes.STRING)
+                .register(Columns.RELNAMESPACE.name(), DataTypes.INTEGER)
+                .register(Columns.RELTYPE.name(), DataTypes.INTEGER)
+                .register(Columns.RELOFTYPE.name(), DataTypes.INTEGER)
+                .register(Columns.RELOWNER.name(), DataTypes.INTEGER)
+                .register(Columns.RELAM.name(), DataTypes.INTEGER)
+                .register(Columns.RELFILENODE.name(), DataTypes.INTEGER)
+                .register(Columns.RELTABLESPACE.name(), DataTypes.INTEGER)
+                .register(Columns.RELPAGES.name(), DataTypes.INTEGER)
+                .register(Columns.RELTUPLES.name(), DataTypes.FLOAT)
+                .register(Columns.RELALLVISIBLE.name(), DataTypes.INTEGER)
+                .register(Columns.RELTOASTRELID.name(), DataTypes.INTEGER)
+                .register(Columns.RELHASINDEX.name(), DataTypes.BOOLEAN)
+                .register(Columns.RELISSHARED.name(), DataTypes.BOOLEAN)
+                .register(Columns.RELPERSISTENCE.name(), DataTypes.STRING)
+                .register(Columns.RELKIND.name(), DataTypes.STRING)
+                .register(Columns.RELNATTS.name(), DataTypes.SHORT)
+                .register(Columns.RELCHECKS.name(), DataTypes.SHORT)
+                .register(Columns.RELHASOIDS.name(), DataTypes.BOOLEAN)
+                .register(Columns.RELHASPKEY.name(), DataTypes.BOOLEAN)
+                .register(Columns.RELHASRULES.name(), DataTypes.BOOLEAN)
+                .register(Columns.RELHASTRIGGERS.name(), DataTypes.BOOLEAN)
+                .register(Columns.RELHASSUBCLASS.name(), DataTypes.BOOLEAN)
+                .register(Columns.RELROWSECURITY.name(), DataTypes.BOOLEAN)
+                .register(Columns.RELFORCEROWSECURITY.name(), DataTypes.BOOLEAN)
+                .register(Columns.RELISPOPULATED.name(), DataTypes.BOOLEAN)
+                .register(Columns.RELREPLIDENT.name(), DataTypes.STRING)
+                .register(Columns.RELISPARTITION.name(), DataTypes.BOOLEAN)
+                .register(Columns.RELFROZENXID.name(), DataTypes.INTEGER)
+                .register(Columns.RELMINMXID.name(), DataTypes.INTEGER)
+                .register(Columns.RELACL.name(), new ArrayType(ObjectType.untyped()))
+                .register(Columns.RELOPTIONS.name(), DataTypes.STRING_ARRAY)
+                .register(Columns.RELPARTBOUND.name(), ObjectType.untyped()),
             Collections.emptyList());
     }
 

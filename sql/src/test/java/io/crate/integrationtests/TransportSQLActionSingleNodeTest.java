@@ -27,6 +27,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
@@ -174,7 +175,8 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
         waitForMappingUpdateOnAll("foo", "bar");
         execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
-        assertThat((String) response.rows()[0][0], is("long_array"));
+        // integer values for unknown columns will be result in a long type for range safety
+        assertThat(response.rows()[0][0], is("long_array"));
     }
 
     @Test
