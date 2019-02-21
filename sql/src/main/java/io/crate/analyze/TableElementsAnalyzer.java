@@ -46,7 +46,8 @@ import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.PrimaryKeyColumnConstraint;
 import io.crate.sql.tree.PrimaryKeyConstraint;
 import io.crate.sql.tree.TableElement;
-import io.crate.types.DataTypes;
+import io.crate.types.ArrayType;
+import io.crate.types.ObjectType;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -139,14 +140,14 @@ public class TableElementsAnalyzer {
                 AnalyzedColumnDefinition parent = context.analyzedColumnDefinition;
                 AnalyzedColumnDefinition leaf = parent;
                 for (String name : ident.path()) {
-                    parent.dataType(DataTypes.OBJECT.getName());
+                    parent.dataType(ObjectType.NAME);
                     // Check if parent is already defined.
                     // If it is an array, set the collection type to array, or if it's an object keep the object column
                     // policy.
                     if (context.tableInfo != null) {
                         Reference parentRef = context.tableInfo.getReference(parent.ident());
                         if (parentRef != null) {
-                            if (parentRef.valueType().equals(DataTypes.OBJECT_ARRAY)) {
+                            if (parentRef.valueType().equals(new ArrayType(ObjectType.untyped()))) {
                                 parent.collectionType("array");
                             } else {
                                 parent.objectType(String.valueOf(parentRef.columnPolicy().mappingValue()));

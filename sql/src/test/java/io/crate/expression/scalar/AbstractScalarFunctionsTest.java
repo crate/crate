@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -52,6 +51,7 @@ import io.crate.testing.SqlExpressions;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.SetType;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -102,7 +102,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("double_val", DataTypes.DOUBLE)
             .add("float_val", DataTypes.DOUBLE)
             .add("short_val", DataTypes.SHORT)
-            .add("obj", DataTypes.OBJECT, ImmutableList.of())
+            .add("obj", ObjectType.untyped())
             .build();
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         tableSources = ImmutableMap.of(new QualifiedName("users"), tableRelation);

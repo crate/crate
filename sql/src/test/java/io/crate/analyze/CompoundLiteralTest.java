@@ -66,7 +66,7 @@ public class CompoundLiteralTest extends CrateUnitTest {
 
         Literal objectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{ident='value'}"));
         assertThat(objectLiteral.symbolType(), is(SymbolType.LITERAL));
-        assertThat(objectLiteral.valueType(), is((DataType) ObjectType.INSTANCE));
+        assertThat(objectLiteral.valueType().id(), is(ObjectType.ID));
         assertThat(objectLiteral.value(), is((Object) new MapBuilder<String, Object>().put("ident", "value").map()));
 
         Literal multipleObjectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{\"Ident\"=123.4, a={}, ident='string'}"));

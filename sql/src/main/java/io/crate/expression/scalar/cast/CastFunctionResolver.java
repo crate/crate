@@ -32,6 +32,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.SetType;
 
 import java.util.Locale;
@@ -129,7 +130,7 @@ public class CastFunctionResolver {
         .putAll(GEO_FUNCTION_MAP)
         .putAll(ARRAY_FUNCTION_MAP)
         .putAll(SET_FUNCTION_MAP)
-        .put(DataTypes.OBJECT, FunctionNames.TO_OBJECT)
+        .put(ObjectType.untyped(), FunctionNames.TO_OBJECT)
         .build();
 
     public static Symbol generateCastFunction(Symbol sourceSymbol, DataType targetType, boolean tryCast) {

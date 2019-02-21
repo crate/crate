@@ -27,6 +27,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.junit.Test;
 
 public class MaximumAggregationTest extends AggregationTest {
@@ -85,6 +86,6 @@ public class MaximumAggregationTest extends AggregationTest {
 
     @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.OBJECT, new Object[][]{{new Object()}});
+        Object[][] result = executeAggregation(ObjectType.untyped(), new Object[][]{{new Object()}});
     }
 }

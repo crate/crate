@@ -30,6 +30,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -45,7 +46,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
     private static final Predicate<Reference> IS_OBJECT_ARRAY =
         input -> input != null
         && input.valueType().id() == ArrayType.ID
-        && ((ArrayType) input.valueType()).innerType().equals(DataTypes.OBJECT);
+        && ((ArrayType) input.valueType()).innerType().id() == ObjectType.ID;
 
     protected T tableInfo;
     private List<Field> outputs;

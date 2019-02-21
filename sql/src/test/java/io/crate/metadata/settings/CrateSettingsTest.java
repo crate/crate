@@ -27,7 +27,7 @@ import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.settings.CrateSetting;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -151,7 +151,7 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
             Setting.groupSetting("test.",
                 Setting.Property.Dynamic,
                 Setting.Property.NodeScope),
-            DataTypes.OBJECT
+            ObjectType.untyped()
         );
 
         Settings initialSettings = Settings.builder()

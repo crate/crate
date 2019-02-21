@@ -28,6 +28,7 @@ import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.collect.MapBuilder;

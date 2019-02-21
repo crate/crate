@@ -24,6 +24,7 @@ package io.crate.breaker;
 
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.SetType;
 import org.junit.Test;
 
@@ -50,7 +51,7 @@ public class SizeEstimatorFactoryTest {
 
     @Test
     public void testSizeEstimationForObjects() throws Exception {
-        SizeEstimator<Object> estimator = SizeEstimatorFactory.create(DataTypes.OBJECT);
+        SizeEstimator<Object> estimator = SizeEstimatorFactory.create(ObjectType.untyped());
         assertThat(estimator.estimateSize(Collections.emptyMap()), is(60L));
     }
 

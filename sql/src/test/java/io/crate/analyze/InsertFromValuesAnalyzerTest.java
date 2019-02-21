@@ -43,6 +43,7 @@ import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -75,10 +76,16 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     private static final RelationName NESTED_CLUSTERED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "nested_clustered");
     private static final DocTableInfo NESTED_CLUSTERED_TABLE_INFO = new TestingTableInfo.Builder(
         NESTED_CLUSTERED_TABLE_IDENT, new Routing(ImmutableMap.of()))
-        .add("o", DataTypes.OBJECT, null)
-        .add("o", DataTypes.STRING, Arrays.asList("c"))
-        .add("o2", DataTypes.OBJECT, null)
-        .add("o2", DataTypes.STRING, Arrays.asList("p"))
+        .add("o",
+            ObjectType.builder()
+                .setInnerType("c", DataTypes.STRING)
+                .build(),
+            null)
+        .add("o2",
+            ObjectType.builder()
+                .setInnerType("p", DataTypes.STRING)
+                .build(),
+            null)
         .add("k", DataTypes.INTEGER, null)
         .clusteredBy("o.c")
         .addPrimaryKey("o2.p")
@@ -116,8 +123,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         TestingTableInfo.Builder generatedColumnTable = new TestingTableInfo.Builder(
             generatedColumnRelationName, new Routing(ImmutableMap.of()))
             .add("ts", DataTypes.TIMESTAMP, null)
-            .add("user", DataTypes.OBJECT, null)
-            .add("user", DataTypes.STRING, Arrays.asList("name"))
+            .add("user",
+                ObjectType.builder().setInnerType("name", DataTypes.STRING).build(),
+                null)
             .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
             .addGeneratedColumn("name", DataTypes.STRING, "concat(\"user\"['name'], 'bar')", false);
         executorBuilder.addDocTable(generatedColumnTable);
@@ -157,8 +165,10 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         RelationName generatedNestedClusteredByRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "generated_nested_clustered_by");
         TestingTableInfo.Builder generatedNestedClusteredByInfo = new TestingTableInfo.Builder(
             generatedNestedClusteredByRelationName, SHARD_ROUTING)
-            .add("o", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
-            .add("o", DataTypes.INTEGER, Arrays.asList("serial_number"))
+            .add("o",
+                ObjectType.builder().setInnerType("serial_number", DataTypes.INTEGER).build(),
+                null,
+                ColumnPolicy.DYNAMIC)
             .addGeneratedColumn("routing_col", DataTypes.INTEGER, "o['serial_number'] + 1", false)
             .clusteredBy("routing_col");
         executorBuilder.addDocTable(generatedNestedClusteredByInfo);
@@ -615,15 +625,15 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertNestedPartitionedColumn() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = e.analyze(
-            "insert into nested_parted (id, date, obj)" +
+            "insert into multi_parted (id, date, obj)" +
             "values (?, ?, ?), (?, ?, ?)",
             new Object[]{
                 1, "1970-01-01", new MapBuilder<String, Object>().put("name", "Zaphod").map(),
                 2, "2014-05-21", new MapBuilder<String, Object>().put("name", "Arthur").map()
             });
         assertThat(analysis.generatePartitions(), contains(
-            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList("0", "Zaphod")).asIndexName(),
-            new PartitionName(new RelationName("doc", "nested_parted"), Arrays.asList("1400630400000", "Arthur")).asIndexName()
+            new PartitionName(new RelationName("doc", "multi_parted"), Arrays.asList("0", "Zaphod")).asIndexName(),
+            new PartitionName(new RelationName("doc", "multi_parted"), Arrays.asList("1400630400000", "Arthur")).asIndexName()
 
         ));
         assertThat(analysis.sourceMaps().size(), is(2));
@@ -901,7 +911,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testInsertIntoTableWithNestedPartitionedByColumnAndNullValue() throws Exception {
         // caused an AssertionError before... now there should be an entry with value null in the partition map
         InsertFromValuesAnalyzedStatement statement = e.analyze(
-            "insert into nested_parted (obj) values (null)");
+            "insert into multi_parted (obj) values (null)");
         assertThat(statement.partitionMaps().get(0).containsKey("obj.name"), is(true));
         assertThat(statement.partitionMaps().get(0).get("obj.name"), nullValue());
     }

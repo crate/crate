@@ -25,6 +25,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Test;
 
@@ -290,6 +291,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("select coolness['x'], coolness['y'] from test");
         assertEquals(1, response.rowCount());
         assertEquals("3", response.rows()[0][0]);
+        // integer values for unknown columns will be result in a long type for range safety
         assertEquals(2L, response.rows()[0][1]);
     }
 
@@ -437,6 +439,10 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals("x=3, y=2", mapToSortedString((Map<String, Object>) response.rows()[0][0]));
     }
 
+    /**
+     * Disable JDBC/PSQL as object values are streamed via JSON on the PSQL wire protocol which is not type safe.
+     */
+    @UseJdbc(0)
     @Test
     public void testUpdateResetNestedObject() throws Exception {
         execute("create table test (coolness object)");
@@ -453,7 +459,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         // update with different map
         Map<String, Object> new_map = new HashMap<>();
-        new_map.put("z", 1);
+        new_map.put("z", 1L);
 
         execute("update test set coolness = ?", new Object[]{new_map});
         assertEquals(1, response.rowCount());
@@ -508,12 +514,16 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(new_data, response.rows()[0][0]);
     }
 
+    /**
+     * Disable JDBC/PSQL as object values are streamed via JSON on the PSQL wire protocol which is not type safe.
+     */
+    @UseJdbc(0)
     @Test
     public void testUpdateResetNestedNestedObject() throws Exception {
         execute("create table test (coolness object)");
         ensureYellow();
 
-        Map<String, Object> map = new HashMap<String, Object>() {{
+        Map<String, Object> map = new HashMap<>() {{
             put("x", "1");
             put("y", new HashMap<String, Object>() {{
                 put("z", 3);
@@ -525,7 +535,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         Map<String, Object> new_map = new HashMap<>();
-        new_map.put("a", 1);
+        new_map.put("a", 1L);
 
         execute("update test set coolness['y'] = ?", new Object[]{new_map});
         assertEquals(1, response.rowCount());

@@ -1889,7 +1889,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "order by number");
         assertThat(response.rowCount(), is(2L));
         assertThat(printedTable(response.rows()), is(
-            "{sessionid=null}\n" +
+            "{sessionid=NULL}\n" +
             "NULL\n"));
 
         execute("select data " +

@@ -105,7 +105,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addDocTable(TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY)
             .addDocTable(TableDefinitions.PARTED_PKS_TI)
             .addDocTable(TableDefinitions.IGNORED_NESTED_TABLE_INFO)
-            .addDocTable(TableDefinitions.TEST_MULTIPLE_PARTITIONED_TABLE_INFO)
             .addDocTable(T3.T1_INFO)
             .addDocTable(T3.T2_INFO)
             .addTable(

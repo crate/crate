@@ -24,6 +24,7 @@ package io.crate.expression.symbol;
 import io.crate.planner.ExplainLeaf;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
@@ -41,7 +42,7 @@ public class MatchPredicate extends Symbol {
                           Symbol queryTerm,
                           String matchType,
                           Symbol options) {
-        assert options.valueType().equals(DataTypes.OBJECT) : "options symbol must be of type object";
+        assert options.valueType().id() == ObjectType.ID : "options symbol must be of type object";
         this.identBoostMap = identBoostMap;
         this.queryTerm = queryTerm;
         this.matchType = matchType;

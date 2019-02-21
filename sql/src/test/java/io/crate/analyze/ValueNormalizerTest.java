@@ -21,8 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
@@ -33,13 +31,11 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.table.TestingTableInfo;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -51,38 +47,39 @@ import java.util.Map;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 
-public class ValueNormalizerTest extends CrateUnitTest {
+public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     private static final RelationName TEST_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "test1");
-    private static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_TABLE_IDENT,
-        new Routing(ImmutableMap.of()))
-        .add("id", DataTypes.LONG, null)
-        .add("name", DataTypes.STRING, null)
-        .add("d", DataTypes.DOUBLE, null)
-        .add("dyn_empty", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
-        .add("dyn", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
-        .add("dyn", DataTypes.DOUBLE, ImmutableList.of("d"))
-        .add("dyn", DataTypes.OBJECT, ImmutableList.of("inner_strict"), ColumnPolicy.STRICT)
-        .add("dyn", DataTypes.DOUBLE, ImmutableList.of("inner_strict", "double"))
-        .add("strict", DataTypes.OBJECT, null, ColumnPolicy.STRICT)
-        .add("strict", DataTypes.DOUBLE, ImmutableList.of("inner_d"))
-        .add("ignored", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
-        .addPrimaryKey("id")
-        .clusteredBy("id")
-        .build();
+    private TableInfo userTableInfo;
 
     private Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference) {
         return ValueNormalizer.normalizeInputForReference(valueSymbol, reference, userTableInfo);
     }
 
     @Before
-    public void prepare() {
-        Schemas schemas = mock(Schemas.class);
-        when(schemas.getTableInfo(TEST_TABLE_IDENT)).thenReturn(userTableInfo);
+    public void prepare() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table doc.test1 (" +
+                      " id long primary key," +
+                      " name string," +
+                      " d double," +
+                      " dyn_empty object," +
+                      " dyn object as (" +
+                      "  d double," +
+                      "  inner_strict object(strict) as (" +
+                      "   double double" +
+                      "  )" +
+                      " )," +
+                      " strict object(strict) as (" +
+                      "  inner_d double" +
+                      " )," +
+                      " ignored object(ignored)" +
+                      ") " +
+                      "clustered by (id)")
+            .build();
+        userTableInfo = e.resolveTableInfo("doc.test1");
     }
 
     @Test

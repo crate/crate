@@ -80,7 +80,7 @@ public final class ValueNormalizer {
             return literal;
         }
         try {
-            if (targetType == DataTypes.OBJECT) {
+            if (targetType.id() == ObjectType.ID) {
                 //noinspection unchecked
                 normalizeObjectValue((Map) value, reference, tableInfo);
             } else if (isObjectArray(targetType)) {
@@ -139,7 +139,7 @@ public final class ValueNormalizer {
                     continue;
                 }
             }
-            if (nestedInfo.valueType() == DataTypes.OBJECT && entry.getValue() instanceof Map) {
+            if (nestedInfo.valueType().id() == ObjectType.ID && entry.getValue() instanceof Map) {
                 normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo, tableInfo);
             } else if (isObjectArray(nestedInfo.valueType()) && entry.getValue() instanceof Object[]) {
                 normalizeObjectArrayValue((Object[]) entry.getValue(), nestedInfo, tableInfo);

@@ -57,7 +57,7 @@ public class DataTypeTesting {
         .addAll(DataTypes.PRIMITIVE_TYPES)
         .add(DataTypes.GEO_POINT)
         .add(DataTypes.GEO_SHAPE)
-        .add(DataTypes.OBJECT)
+        .add(ObjectType.untyped())
         .build();
 
     public static DataType<?> randomType() {

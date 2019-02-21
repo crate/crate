@@ -34,6 +34,7 @@ import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 import java.util.Arrays;
 import java.util.List;
@@ -146,7 +147,7 @@ public final class EqOperator extends Operator<Object> {
             if (DataTypes.isCollectionType(leftType) && DataTypes.isCollectionType(rightType)) {
                 return new ArrayEqOperator(info);
             }
-            if (leftType.equals(DataTypes.OBJECT) && rightType.equals(DataTypes.OBJECT)) {
+            if (leftType.id() == ObjectType.ID && rightType.id() == ObjectType.ID) {
                 return new ObjectEqOperator(info);
             }
             return new EqOperator(info);

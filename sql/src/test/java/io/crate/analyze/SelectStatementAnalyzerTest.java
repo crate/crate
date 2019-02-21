@@ -72,7 +72,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.hamcrest.Matchers;

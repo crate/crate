@@ -65,11 +65,11 @@ public class PgAttrDefTable extends StaticTableInfo {
 
     PgAttrDefTable() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register(Columns.OID.name(), DataTypes.INTEGER, null)
-                .register(Columns.ADRELID.name(), DataTypes.INTEGER, null)
-                .register(Columns.ADNUM.name(), DataTypes.INTEGER, null)
-                .register(Columns.ADBIN.name(), DataTypes.STRING, null)
-                .register(Columns.ADSRC.name(), DataTypes.STRING, null),
+                .register(Columns.OID.name(), DataTypes.INTEGER)
+                .register(Columns.ADRELID.name(), DataTypes.INTEGER)
+                .register(Columns.ADNUM.name(), DataTypes.INTEGER)
+                .register(Columns.ADBIN.name(), DataTypes.STRING)
+                .register(Columns.ADSRC.name(), DataTypes.STRING),
             Collections.emptyList());
     }
 

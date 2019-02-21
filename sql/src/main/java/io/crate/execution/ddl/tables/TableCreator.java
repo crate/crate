@@ -91,7 +91,7 @@ public class TableCreator {
     }
 
     private Settings settings(CreateTableAnalyzedStatement statement) {
-        return statement.tableParameter().settings().getByPrefix("index.");
+        return statement.tableParameter().settings();
     }
 
     private PutIndexTemplateRequest createTemplateRequest(CreateTableAnalyzedStatement statement) {

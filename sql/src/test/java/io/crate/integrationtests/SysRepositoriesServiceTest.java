@@ -97,7 +97,7 @@ public class SysRepositoriesServiceTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertThat(response.cols().length, is(3));
         assertThat(response.cols(), is(new String[]{"name", "settings", "type"}));
-        assertThat(response.columnTypes(), is(new DataType[]{StringType.INSTANCE, ObjectType.INSTANCE, StringType.INSTANCE}));
+        assertThat(response.columnTypes(), is(new DataType[]{StringType.INSTANCE, ObjectType.untyped(), StringType.INSTANCE}));
         assertThat((String) response.rows()[0][0], is("test-repo"));
 
         Map<String, Object> settings = (Map<String, Object>) response.rows()[0][1];

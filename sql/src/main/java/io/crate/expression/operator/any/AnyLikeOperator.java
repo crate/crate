@@ -36,6 +36,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.SetType;
 
 import java.util.List;
@@ -125,7 +126,7 @@ public final class AnyLikeOperator extends Operator<Object> {
             DataType<?> innerType = ((CollectionType) dataTypes.get(1)).innerType();
             checkArgument(innerType.equals(dataTypes.get(0)),
                 "The inner type of the array/set passed to ANY must match its left expression");
-            checkArgument(!innerType.equals(DataTypes.OBJECT),
+            checkArgument(innerType.id() != ObjectType.ID,
                 "ANY on object arrays is not supported");
 
             return new AnyLikeOperator(

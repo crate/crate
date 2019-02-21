@@ -60,6 +60,8 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
@@ -140,8 +142,6 @@ import static io.crate.analyze.TableDefinitions.NESTED_PK_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.TEST_DOC_TRANSACTIONS_TABLE_INFO;
-import static io.crate.analyze.TableDefinitions.TEST_MULTIPLE_PARTITIONED_TABLE_INFO;
-import static io.crate.analyze.TableDefinitions.TEST_NESTED_PARTITIONED_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY;
@@ -333,8 +333,6 @@ public class SQLExecutor {
             addDocTable(DEEPLY_NESTED_TABLE_INFO);
             addDocTable(NESTED_PK_TABLE_INFO);
             addDocTable(TEST_PARTITIONED_TABLE_INFO);
-            addDocTable(TEST_NESTED_PARTITIONED_TABLE_INFO);
-            addDocTable(TEST_MULTIPLE_PARTITIONED_TABLE_INFO);
             addDocTable(TEST_DOC_TRANSACTIONS_TABLE_INFO);
             addDocTable(TEST_DOC_LOCATIONS_TABLE_INFO);
             addDocTable(TEST_CLUSTER_BY_STRING_TABLE_INFO);
@@ -342,6 +340,19 @@ public class SQLExecutor {
             addDocTable(T3.T1_INFO);
             addDocTable(T3.T2_INFO);
             addDocTable(T3.T3_INFO);
+
+            RelationName multiPartName = new RelationName("doc", "multi_parted");
+            addPartitionedTable("create table doc.multi_parted (" +
+                                " id int," +
+                                " date timestamp," +
+                                " num long," +
+                                " obj object as (name string)" +
+                                ") " +
+                                "partitioned by (date, obj['name'])",
+                new PartitionName(multiPartName, Arrays.asList("1395874800000", "0")).toString(),
+                new PartitionName(multiPartName, Arrays.asList("1395961200000", "-100")).toString(),
+                new PartitionName(multiPartName, Arrays.asList(null, "-100")).toString()
+            );
             return this;
         }
 
@@ -442,7 +453,7 @@ public class SQLExecutor {
 
             XContentBuilder mappingBuilder = XContentFactory.jsonBuilder().map(analyzedStmt.mapping());
             CompressedXContent mapping = new CompressedXContent(BytesReference.bytes(mappingBuilder));
-            Settings settings = analyzedStmt.tableParameter().settings().getByPrefix("index.");
+            Settings settings = analyzedStmt.tableParameter().settings();
             AliasMetaData.Builder alias = AliasMetaData.builder(analyzedStmt.tableIdent().indexNameOrAlias());
             IndexTemplateMetaData.Builder template = IndexTemplateMetaData.builder(analyzedStmt.templateName())
                 .patterns(singletonList(analyzedStmt.templatePrefix()))
@@ -687,5 +698,11 @@ public class SQLExecutor {
 
     public SessionContext getSessionContext() {
         return sessionContext;
+    }
+
+    public <T> T resolveTableInfo(String tableName) {
+        IndexParts indexParts = new IndexParts(tableName);
+        QualifiedName qualifiedName = QualifiedName.of(indexParts.getSchema(), indexParts.getTable());
+        return (T) schemas.resolveTableInfo(qualifiedName, Operation.READ, sessionContext.searchPath());
     }
 }

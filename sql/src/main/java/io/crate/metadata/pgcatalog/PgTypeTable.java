@@ -88,15 +88,15 @@ public class PgTypeTable extends StaticTableInfo {
 
     PgTypeTable() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register(Columns.OID.name(), DataTypes.INTEGER, null)
-                .register(Columns.TYPNAME.name(), DataTypes.STRING, null)
-                .register(Columns.TYPDELIM.name(), DataTypes.STRING, null)
-                .register(Columns.TYPELEM.name(), DataTypes.INTEGER, null)
-                .register(Columns.TYPLEN.name(), DataTypes.SHORT, null)
-                .register(Columns.TYPTYPE.name(), DataTypes.STRING, null)
-                .register(Columns.TYPBASETYPE.name(), DataTypes.INTEGER, null)
-                .register(Columns.TYPTYPMOD.name(), DataTypes.INTEGER, null)
-                .register(Columns.TYPNAMESPACE.name(), DataTypes.INTEGER, null),
+                .register(Columns.OID.name(), DataTypes.INTEGER)
+                .register(Columns.TYPNAME.name(), DataTypes.STRING)
+                .register(Columns.TYPDELIM.name(), DataTypes.STRING)
+                .register(Columns.TYPELEM.name(), DataTypes.INTEGER)
+                .register(Columns.TYPLEN.name(), DataTypes.SHORT)
+                .register(Columns.TYPTYPE.name(), DataTypes.STRING)
+                .register(Columns.TYPBASETYPE.name(), DataTypes.INTEGER)
+                .register(Columns.TYPTYPMOD.name(), DataTypes.INTEGER)
+                .register(Columns.TYPNAMESPACE.name(), DataTypes.INTEGER),
             Collections.emptyList());
     }
 
