@@ -109,6 +109,8 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused the Admin UI monitoring graphs to be cut off.
+
 - Fixed an issue that would cause the results of a nested loop join statement
   ordered by fields from a single relation, in the form of
   ``SELECT t1.x, t2.x FROM t2 INNER JOIN t1 ON t1.x = t2.x ORDER BY t2.y``, to
