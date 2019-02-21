@@ -79,7 +79,7 @@ import static io.crate.analyze.InsertFromSubQueryAnalyzer.resolveTargetColumns;
 
 class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
-    private static class ValuesResolver implements io.crate.analyze.ValuesAwareExpressionAnalyzer.ValuesResolver {
+    private static class ValuesResolver implements io.crate.analyze.ValuesResolver {
 
         private final DocTableRelation tableRelation;
         public List<Reference> columns;
@@ -182,13 +182,13 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         }
         Function<ParameterExpression, Symbol> convertParamFunction = analysis.parameterContext();
 
-        ExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
+        ExpressionAnalyzer valuesAwareExpressionAnalyzer = new ExpressionAnalyzer(
             functions,
             analysis.transactionContext(),
             convertParamFunction,
             fieldProvider,
-            valuesResolver,
-            duplicateKeyContext.getType());
+            null
+        );
 
         final boolean ignoreDuplicateKeys =
             duplicateKeyContext.getType() == Type.ON_CONFLICT_DO_NOTHING;

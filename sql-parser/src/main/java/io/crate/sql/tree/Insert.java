@@ -82,7 +82,6 @@ public abstract class Insert extends Statement {
             new DuplicateKeyContext(Type.NONE, Collections.emptyList(), Collections.emptyList());
 
         public enum Type {
-            ON_DUPLICATE_KEY_UPDATE,
             ON_CONFLICT_DO_UPDATE_SET,
             ON_CONFLICT_DO_NOTHING,
             NONE

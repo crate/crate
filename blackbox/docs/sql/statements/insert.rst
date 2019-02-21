@@ -23,8 +23,7 @@ Synopsis
       [ ( column_ident [, ...] ) ]
       { VALUES ( expression [, ...] ) [, ...] | ( query ) | query }
       [ ON CONFLICT (column_ident [, ...]) DO UPDATE SET { column_ident = expression [, ...] } |
-        ON CONFLICT [ ( column_ident [, ...] ) ] DO NOTHING |
-        ON DUPLICATE KEY UPDATE { column_ident = expression [, ...] } ]
+        ON CONFLICT [ ( column_ident [, ...] ) ] DO NOTHING ]
 
 Description
 ===========
@@ -43,42 +42,22 @@ filled.
 If the expression for any column is not of the correct data type, automatic
 type conversion will be attempted.
 
-.. _on_duplicate_key_update:
-
-``ON DUPLICATE KEY UPDATE``
----------------------------
-
-.. warning::
-      This clause of the ``INSERT`` statement has been deprecated. Please use
-      the ``ON CONFLICT DO UPDATE SET`` clause instead.
-
-If ``ON DUPLICATE KEY UPDATE`` is specified and a row is inserted that would
-cause a duplicate-key conflict, an update of the existing row is performed.
-
-::
-
-      ON DUPLICATE KEY UPDATE { column_ident = expression [, ...] }
-
-Within expressions in the ``UPDATE`` clause you can use the
-``VALUES(column_ident)`` function to refer to column values from the INSERT
-statement.
-
-So ``VALUES(column_ident)`` in the ``UPDATE`` clause refers to the value of
-the column_ident that would be inserted if no duplicate-key conflict occured.
-
-This function is especially useful in multiple-row inserts, because the values
-of the current row can be referenced.
 
 ``ON CONFLICT DO UPDATE SET``
 -----------------------------
 
-``ON CONFLICT DO UPDATE SET`` works just like ``ON DUPLICATE KEY UPDATE``, but
-its syntax is slightly different. Additionally, it requires to specify the key
-columns (conflict target) to perform the duplicate key check against.
+This clause can be used to update a record if a conflicting record is
+encountered. 
 
 ::
 
-     ON CONFLICT (column_ident, [, ...]) DO UPDATE SET { column_ident = expression [, ...] }
+     ON CONFLICT (conflict_target) DO UPDATE SET { assignments }
+
+     WHERE
+
+      conflict_target := column_ident [, ... ]
+      assignments := column_ident = expression [, ... ]
+
 
 Within expressions in the ``DO UPDATE SET`` clause, you can use the special
 ``excluded`` table to refer to column values from the INSERT statement values.
@@ -146,9 +125,7 @@ Parameters
   The name of a column or field in the table pointed to by *table_ident*.
 
 :expression:
-  An expression or value to assign to the corresponding column. Within a
-  ``ON DUPLICATE KEY UPDATE`` clause the expression may also refer to an
-  expression from VALUES by using ``VALUES ( column_ident )``
+  An expression or value to assign to the corresponding column.
 
 :query:
   A query (SELECT statement) that supplies the rows to be inserted.

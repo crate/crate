@@ -22,7 +22,7 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.ValuesAwareExpressionAnalyzer;
+import io.crate.analyze.ValuesResolver;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.table.Operation;
@@ -47,7 +47,7 @@ public class ExcludedFieldProviderTest {
         FieldProvider fieldProvider = (qualifiedName, path, operation) -> {
             return new Field(Mockito.mock(AnalyzedRelation.class), qualifiedName::toString, DataTypes.INTEGER);
         };
-        ValuesAwareExpressionAnalyzer.ValuesResolver valuesResolver = argumentColumn -> {
+        ValuesResolver valuesResolver = argumentColumn -> {
             assertThat(argumentColumn.path().outputName(), is("field3"));
             return Literal.of(42);
         };

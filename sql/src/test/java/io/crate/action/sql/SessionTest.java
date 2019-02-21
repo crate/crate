@@ -200,7 +200,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             build();
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?) " +
-                                      "ON DUPLICATE KEY UPDATE name = ?"),
+                                      "ON CONFLICT (id) DO UPDATE SET name = ?"),
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
@@ -211,7 +211,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
-                                      "WHERE name = ?) ON DUPLICATE KEY UPDATE name = ?"),
+                                      "WHERE name = ?) ON CONFLICT (id) DO UPDATE SET name = ?"),
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );

@@ -68,7 +68,7 @@ statement
     | SET LICENSE stringLiteral                                                      #setLicense
     | KILL (ALL | jobId=parameterOrString)                                           #kill
     | INSERT INTO table ('(' ident (',' ident)* ')')? insertSource
-        (onDuplicate | onConflict)?                                                  #insert
+        onConflict?                                                                  #insert
     | RESTORE SNAPSHOT qname (ALL | TABLE tableWithPartitions) withProperties?       #restore
     | COPY tableWithPartition FROM path=expr withProperties? (RETURN SUMMARY)?       #copyFrom
     | COPY tableWithPartition columns? where?
@@ -421,10 +421,6 @@ insertSource
    : VALUES  values (',' values)*
    | query
    | '(' query ')'
-   ;
-
-onDuplicate
-   : ON DUPLICATE KEY UPDATE assignment (',' assignment)*
    ;
 
 onConflict

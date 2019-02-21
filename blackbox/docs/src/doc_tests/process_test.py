@@ -334,7 +334,7 @@ class TestGracefulStopDuringQueryExecution(GracefulStopTest):
         client = self.clients[0]
 
         client.sql('''
-            CREATE TABLE t1 (id int, name string)
+            CREATE TABLE t1 (id int primary key, name string)
             CLUSTERED INTO 4 SHARDS
             WITH (number_of_replicas = 1)
         ''')
@@ -395,7 +395,7 @@ class TestGracefulStopDuringQueryExecution(GracefulStopTest):
                 chars = list(string.ascii_lowercase[:14])
                 random.shuffle(chars)
                 client.sql(
-                    'insert into t1 (id, name) values ($1, $2) on duplicate key update name = $2',
+                    'insert into t1 (id, name) values ($1, $2) on conflict (id) do update set name = $2',
                     (random.randint(0, 2147483647), ''.join(chars))
                 )
             except Exception as e:

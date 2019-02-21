@@ -61,8 +61,8 @@ public class ConcurrencyIntegrationTest extends SQLTransportIntegrationTest {
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
 
         String[] statements = new String[]{
-            "insert into t1 (id, x) values (1, 10) on duplicate key update x = x + 10 ",
-            "insert into t2 (id, x) values (1, 'bar') on duplicate key update x = 'foo' ",
+            "insert into t1 (id, x) values (1, 10) on conflict (id) do update set x = x + 10 ",
+            "insert into t2 (id, x) values (1, 'bar') on conflict (id) do update set x = 'foo' ",
             "insert into t3 (x) values (current_timestamp) ",
             "insert into t4 (y) values ('foo') ",
         };

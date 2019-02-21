@@ -379,7 +379,8 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInsertFromValuesWithOnDuplicateKey() {
-        LegacyUpsertById node = e.plan("insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
+        LegacyUpsertById node = e.plan(
+            "insert into users (id, name) values (1, null) on conflict (id) do update set name = excluded.name");
 
         assertThat(node.updateColumns(), is(new String[]{"name"}));
 

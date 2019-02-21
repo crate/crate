@@ -41,6 +41,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Removed the deprecated ``ON DUPLICATE KEY`` syntax of :ref:`ref-insert`
+  statements.
+
 - Dropped support for Java versions < 11
 
 - The Elasticsearch REST API has been removed.
