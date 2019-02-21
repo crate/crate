@@ -818,17 +818,29 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t2 (x) values (1), (3), (3), (4), (4)");
         execute("refresh table t1, t2");
 
-        configureQueryCircuitBreakerForCluster(20L);
-        CircuitBreaker breaker = internalCluster().getInstance(CrateCircuitBreakerService.class).getBreaker(CrateCircuitBreakerService.QUERY);
-        randomiseAndConfigureJoinBlockSize("t1", 5L, breaker);
-        randomiseAndConfigureJoinBlockSize("t2", 5L, breaker);
+        configureQueryCircuitBreakerForCluster(20L, 1.0d);
+        CircuitBreaker queryCircuitBreaker = internalCluster().getInstance(CrateCircuitBreakerService.class).getBreaker(CrateCircuitBreakerService.QUERY);
+        randomiseAndConfigureJoinBlockSize("t1", 5L, queryCircuitBreaker);
+        randomiseAndConfigureJoinBlockSize("t2", 5L, queryCircuitBreaker);
 
-        execute("select a, x from t1 join t2 on t1.a + 1 = t2.x order by a, x");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("0| 1\n" +
-               "0| 1\n" +
-               "2| 3\n" +
-               "2| 3\n"));
+        try {
+            execute("select a, x from t1 join t2 on t1.a + 1 = t2.x order by a, x");
+            assertThat(TestingHelpers.printedTable(response.rows()),
+                is("0| 1\n" +
+                   "0| 1\n" +
+                   "2| 3\n" +
+                   "2| 3\n"));
+        } finally {
+            configureQueryCircuitBreakerForCluster(queryCircuitBreaker.getLimit(), queryCircuitBreaker.getOverhead());
+            Iterable<TableStats> tableStatsOnAllNodes = internalCluster().getInstances(TableStats.class);
+            resetTableStats();
+        }
+    }
+
+    private void resetTableStats() {
+        for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
+            tableStats.updateTableStats(new ObjectObjectHashMap<>());
+        }
     }
 
     @Test
@@ -891,29 +903,34 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (x) values (0), (1), (2), (3), (4), (5), (6), (7), (8), (9)");
         execute("refresh table t1");
 
-        configureQueryCircuitBreakerForCluster(40L);
-        CircuitBreaker breaker = internalCluster().getInstance(CrateCircuitBreakerService.class).getBreaker(CrateCircuitBreakerService.QUERY);
-        randomiseAndConfigureJoinBlockSize("t1", 10L, breaker);
+        configureQueryCircuitBreakerForCluster(40L, 1.0d);
+        CircuitBreaker queryCircuitBreaker = internalCluster().getInstance(CrateCircuitBreakerService.class).getBreaker(CrateCircuitBreakerService.QUERY);
+        randomiseAndConfigureJoinBlockSize("t1", 10L, queryCircuitBreaker);
 
-        execute("select x from t1 left_rel JOIN (select x x2, count(x) from t1 group by x2) right_rel " +
-                "ON left_rel.x = right_rel.x2 order by left_rel.x");
+        try {
+            execute("select x from t1 left_rel JOIN (select x x2, count(x) from t1 group by x2) right_rel " +
+                    "ON left_rel.x = right_rel.x2 order by left_rel.x");
 
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("0\n" +
-               "1\n" +
-               "2\n" +
-               "3\n" +
-               "4\n" +
-               "5\n" +
-               "6\n" +
-               "7\n" +
-               "8\n" +
-               "9\n"));
+            assertThat(TestingHelpers.printedTable(response.rows()),
+                is("0\n" +
+                   "1\n" +
+                   "2\n" +
+                   "3\n" +
+                   "4\n" +
+                   "5\n" +
+                   "6\n" +
+                   "7\n" +
+                   "8\n" +
+                   "9\n"));
+        } finally {
+            configureQueryCircuitBreakerForCluster(queryCircuitBreaker.getLimit(), queryCircuitBreaker.getOverhead());
+            resetTableStats();
+        }
     }
 
-    private void configureQueryCircuitBreakerForCluster(long availableMemory) {
+    private void configureQueryCircuitBreakerForCluster(long availableMemory, double overhead) {
         for (CrateCircuitBreakerService circuitBreakerService : internalCluster().getInstances(CrateCircuitBreakerService.class)) {
-            circuitBreakerService.registerBreaker(new BreakerSettings(CrateCircuitBreakerService.QUERY, availableMemory, 1.00d));
+            circuitBreakerService.registerBreaker(new BreakerSettings(CrateCircuitBreakerService.QUERY, availableMemory, overhead));
         }
     }
 
