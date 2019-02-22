@@ -139,21 +139,21 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testDropUserUnAuthorized() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("User \"normal\" is not authorized to execute statement");
+        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement");
         executeAsNormalUser("drop user ford");
     }
 
     @Test
     public void testCreateUserUnAuthorized() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("User \"normal\" is not authorized to execute statement");
+        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement");
         executeAsNormalUser("create user ford");
     }
 
     @Test
     public void testCreateNormalUserUnAuthorized() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("User \"normal\" is not authorized to execute statement");
+        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement");
         executeAsNormalUser("create user ford");
     }
 

@@ -27,9 +27,9 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.sql.parser.SqlParser;
@@ -168,21 +168,24 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     @Test
     public void testCreateUserNotAllowedAsNormalUser() throws Exception {
         expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
+        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
+                                        "Superuser permissions are required");
         analyze("create user ford");
     }
 
     @Test
     public void testDropUserNotAllowedAsNormalUser() throws Exception {
         expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
+        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
+                                        "Superuser permissions are required");
         analyze("drop user ford");
     }
 
     @Test
     public void testAlterOtherUsersNotAllowedAsNormalUser() {
         expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
+        expectedException.expectMessage("A regular user can use ALTER USER only on himself. " +
+                                        "To modify other users superuser permissions are required");
         analyze("alter user ford set (password = 'pass')");
     }
 
@@ -195,35 +198,40 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     @Test
     public void testPrivilegesNotAllowedAsNormalUser() throws Exception {
         expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
+        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
+                                        "Superuser permissions are required");
         analyze("grant dql to normal");
     }
 
     @Test
     public void testOptimizeNotAllowedAsNormalUser() throws Exception {
         expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
+        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
+                                        "Superuser permissions are required");
         analyze("optimize table users");
     }
 
     @Test
     public void testSetGlobalNotAllowedAsNormalUser() throws Exception {
         expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
+        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
+                                        "Superuser permissions are required");
         analyze("set global stats.enabled = true");
     }
 
     @Test
     public void testResetNotAllowedAsNormalUser() throws Exception {
         expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
+        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
+                                        "Superuser permissions are required");
         analyze("reset global stats.enabled");
     }
 
     @Test
     public void testKillNotAllowedAsNormalUser() throws Exception {
         expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
+        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
+                                        "Superuser permissions are required");
         analyze("kill all");
     }
 
@@ -478,6 +486,13 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     public void testPermissionCheckIsDoneOnSchemaAndTableNotOnTableAlias() {
         analyze("select * from doc.users as t");
         assertAskedForTable(Privilege.Type.DQL, "doc.users");
+    }
+
+    @Test
+    public void testDecommissionRequiresSuperUserPrivileges() {
+        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
+                                        "Superuser permissions are required");
+        analyze("alter cluster decommission 'n1'");
     }
 }
 
