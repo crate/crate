@@ -148,6 +148,26 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testNestedLoop_TablesAreNotSwitchedAfterOrderByPushDown() {
+        TableStats tableStats = new TableStats();
+        ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
+        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(10, 0));
+        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10_0000, 0));
+        tableStats.updateTableStats(rowCountByTable);
+
+        PlannerContext context = e.getPlannerContext(clusterService.state());
+        context.transactionContext().sessionContext().setHashJoinEnabled(false);
+        LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
+        LogicalPlan plan = logicalPlanner.plan(e.analyze("select users.id from users, locations " +
+                                                         "where users.id = locations.id order by users.id"), context);
+        Join nl = (Join) plan.build(
+            context, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
+
+        assertThat(((Collect) nl.left()).collectPhase().toCollect(), isSQL("doc.users.id"));
+        assertThat(nl.resultDescription().orderBy(), notNullValue());
+    }
+
+    @Test
     public void testHashJoin_TableOrderInLogicalAndExecutionPlan() {
         MultiSourceSelect mss = e.normalize("select users.name, locations.id " +
                                             "from users " +

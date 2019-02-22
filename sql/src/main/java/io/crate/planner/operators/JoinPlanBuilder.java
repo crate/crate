@@ -97,7 +97,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             JoinOperations.buildRelationsToJoinPairsMap(
                 JoinOperations.convertImplicitJoinConditionsToJoinPairs(mss.joinPairs(), queryParts));
 
-        final boolean orderByCanBePushedDown = joinPairs.values().stream().noneMatch(p -> p.joinType().isOuter());
+        final boolean noOuterJoin = joinPairs.values().stream().noneMatch(p -> p.joinType().isOuter());
 
         Collection<QualifiedName> orderedRelationNames;
         if (mss.sources().size() > 2) {
@@ -159,7 +159,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             lhs,
             rhs,
             query,
-            orderByCanBePushedDown,
+            noOuterJoin,
             txnCtx.sessionContext(),
             tableStats);
 
@@ -175,7 +175,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 joinPairs,
                 queryParts,
                 subqueryPlanner,
-                orderByCanBePushedDown,
+                noOuterJoin,
                 lhs,
                 functions,
                 txnCtx);
