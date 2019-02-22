@@ -85,7 +85,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testNormalUserGrantsPrivilegeThrowsException() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("UnauthorizedException: User \"normal\" is not authorized to execute statement");
+        expectedException.expectMessage("UnauthorizedException: User \"normal\" is not authorized to execute the statement");
         executeAsNormalUser("grant DQL to " + TEST_USERNAME);
     }
 
@@ -346,7 +346,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(response.rowCount(), is (0L));
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("UnauthorizedException: User \"normal\" is not authorized to execute statement"));
+        expectedException.expectMessage(containsString("UnauthorizedException: User \"normal\" is not authorized to execute the statement"));
         executeAsNormalUser("alter cluster reroute retry failed");
     }
 

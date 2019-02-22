@@ -56,7 +56,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         .put("auth.host_based.config.0.user", "crate")
         .build();
 
-    // UserLookup always returns null, so there are no users (even no default crate super user)
+    // UserLookup always returns null, so there are no users (even no default crate superuser)
     private final Authentication authService = new HostBasedAuthentication(hbaEnabled, userName -> null);
 
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
