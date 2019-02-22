@@ -69,15 +69,16 @@ class NestedLoopJoin extends TwoInputPlan {
     private final Symbol joinCondition;
     private final AnalyzedRelation topMostLeftRelation;
     private final JoinType joinType;
-    private final boolean orderByCanBePushedDown;
+    private final boolean noOuterJoin;
     private final boolean isFiltered;
+    private boolean orderByWasPushedDown = false;
 
     NestedLoopJoin(LogicalPlan lhs,
                    LogicalPlan rhs,
                    JoinType joinType,
                    @Nullable Symbol joinCondition,
                    boolean isFiltered,
-                   boolean orderByCanBePushedDown,
+                   boolean noOuterJoin,
                    AnalyzedRelation topMostLeftRelation) {
         super(lhs, rhs, new ArrayList<>());
         this.joinType = joinType;
@@ -90,7 +91,19 @@ class NestedLoopJoin extends TwoInputPlan {
         }
         this.topMostLeftRelation = topMostLeftRelation;
         this.joinCondition = joinCondition;
-        this.orderByCanBePushedDown = orderByCanBePushedDown;
+        this.noOuterJoin = noOuterJoin;
+    }
+
+    private NestedLoopJoin(LogicalPlan lhs,
+                   LogicalPlan rhs,
+                   JoinType joinType,
+                   @Nullable Symbol joinCondition,
+                   boolean isFiltered,
+                   boolean noOuterJoin,
+                   AnalyzedRelation topMostLeftRelation,
+                   boolean orderByWasPushedDown) {
+        this(lhs, rhs, joinType, joinCondition, isFiltered, noOuterJoin, topMostLeftRelation);
+        this.orderByWasPushedDown = orderByWasPushedDown;
     }
 
     JoinType joinType() {
@@ -146,7 +159,7 @@ class NestedLoopJoin extends TwoInputPlan {
                         (!left.resultDescription().nodeIds().isEmpty() && !right.resultDescription().nodeIds().isEmpty());
         boolean blockNlPossible = !isDistributed && isBlockNlPossible(left, right);
 
-        if (joinType.supportsInversion() &&
+        if (!orderByWasPushedDown && joinType.supportsInversion() &&
             (isDistributed && lhs.numExpectedRows() < rhs.numExpectedRows() && orderByFromLeft == null) ||
             (blockNlPossible && lhs.numExpectedRows() > rhs.numExpectedRows())) {
             // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
@@ -246,8 +259,9 @@ class NestedLoopJoin extends TwoInputPlan {
             joinType,
             joinCondition,
             isFiltered,
-            orderByCanBePushedDown,
-            topMostLeftRelation);
+            noOuterJoin,
+            topMostLeftRelation,
+            orderByWasPushedDown);
     }
 
     @Override
@@ -276,7 +290,7 @@ class NestedLoopJoin extends TwoInputPlan {
              *   - that relation happens to be on the left-side of the join
              *   - there is no outer join involved in the whole join (outer joins may create null rows - breaking the ordering)
              */
-            if (orderByCanBePushedDown) {
+            if (noOuterJoin) {
                 Set<AnalyzedRelation> relationsInOrderBy =
                     Collections.newSetFromMap(new IdentityHashMap<>());
                 Consumer<Field> gatherRelations = f -> relationsInOrderBy.add(f.relation());
@@ -290,6 +304,7 @@ class NestedLoopJoin extends TwoInputPlan {
                     if (relationInOrderBy == topMostLeftRelation) {
                         LogicalPlan newLhs = lhs.tryOptimize(ancestor, SymbolMapper.fromMap(expressionMapping));
                         if (newLhs != null) {
+                            orderByWasPushedDown = true;
                             return updateSources(newLhs, rhs);
                         }
                     }
