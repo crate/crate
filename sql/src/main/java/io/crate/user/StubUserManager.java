@@ -67,7 +67,7 @@ public class StubUserManager implements UserManager {
     @Nullable
     @Override
     public User findUser(String userName) {
-        // Without enterprise enabled everything runs as super user
+        // Without enterprise enabled everything runs as superuser
         return User.CRATE_USER;
     }
 

@@ -39,7 +39,6 @@ import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.CreateTableAnalyzedStatement;
-import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.DropBlobTableAnalyzedStatement;
@@ -47,19 +46,15 @@ import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.DropTableAnalyzedStatement;
-import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
 import io.crate.analyze.KillAnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.OptimizeTableAnalyzedStatement;
-import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.RefreshTableAnalyzedStatement;
-import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
@@ -99,9 +94,10 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         new StatementVisitor(userLookup, defaultSchema).process(statement, user);
     }
 
-    private static void throwUnauthorized(String userName) {
+    private static void throwRequiresSuperUserPermission(String userName) {
         throw new UnauthorizedException(
-            String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute statement", userName));
+            String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute the statement. " +
+                                          "Superuser permissions are required", userName));
     }
 
     private static final class StatementVisitor extends AnalyzedStatementVisitor<User, Void> {
@@ -121,12 +117,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         protected Void visitAnalyzedStatement(AnalyzedStatement analyzedStatement, User user) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement));
-        }
-
-        @Override
-        protected Void visitCreateUserStatement(CreateUserAnalyzedStatement analysis, User user) {
-            throwUnauthorized(user.name());
+            throwRequiresSuperUserPermission(user.name());
             return null;
         }
 
@@ -134,26 +125,9 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         public Void visitAlterUserStatement(AlterUserAnalyzedStatement analysis, User user) {
             // user is allowed to change it's own properties
             if (!analysis.userName().equals(user.name())) {
-                throwUnauthorized(user.name());
+                throw new UnauthorizedException("A regular user can use ALTER USER only on himself. " +
+                                                "To modify other users superuser permissions are required.");
             }
-            return null;
-        }
-
-        @Override
-        protected Void visitDropUserStatement(DropUserAnalyzedStatement analysis, User user) {
-            throwUnauthorized(user.name());
-            return null;
-        }
-
-        @Override
-        public Void visitPrivilegesStatement(PrivilegesAnalyzedStatement analysis, User user) {
-            throwUnauthorized(user.name());
-            return null;
-        }
-
-        @Override
-        public Void visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, User user) {
-            throwUnauthorized(user.name());
             return null;
         }
 
@@ -315,12 +289,6 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         }
 
         @Override
-        public Void visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, User user) {
-            throwUnauthorized(user.name());
-            return null;
-        }
-
-        @Override
         public Void visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, User user) {
             for (String indexName : analysis.indexNames()) {
                 String tableName;
@@ -364,7 +332,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         @Override
         public Void visitSetStatement(SetAnalyzedStatement analysis, User user) {
             if (analysis.scope().equals(SetStatement.Scope.GLOBAL)) {
-                throwUnauthorized(user.name());
+                throwRequiresSuperUserPermission(user.name());
                 return null;
             }
             return null;
@@ -394,7 +362,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         public Void visitKillAnalyzedStatement(KillAnalyzedStatement analysis, User user) {
-            throwUnauthorized(user.name());
+            throwRequiresSuperUserPermission(user.name());
             return null;
         }
 
@@ -460,7 +428,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         public Void visitResetAnalyzedStatement(ResetAnalyzedStatement resetAnalyzedStatement, User user) {
-            throwUnauthorized(user.name());
+            throwRequiresSuperUserPermission(user.name());
             return null;
         }
 
