@@ -47,6 +47,11 @@ None
 Fixes
 =====
 
+- Fixed an issue that would cause the results of a nested loop join statement
+  ordered by fields from a single relation, in the form of
+  ``SELECT t1.x, t2.x FROM t2 INNER JOIN t1 ON t1.x = t2.x ORDER BY t2.y``, to
+  be out of order.
+
 - Fixed an issue that caused a ``stream has already been operated upon or
   closed`` exception to be thrown when joining on a right subquery that
   contained a ``group by`` clause on one number column.
