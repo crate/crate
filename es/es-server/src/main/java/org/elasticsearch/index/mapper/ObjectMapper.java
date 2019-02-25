@@ -19,12 +19,7 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.CopyOnWriteHashMap;
 import org.elasticsearch.common.settings.Settings;
@@ -47,7 +42,6 @@ import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBo
 public class ObjectMapper extends Mapper implements Cloneable {
 
     public static final String CONTENT_TYPE = "object";
-    public static final String NESTED_CONTENT_TYPE = "nested";
 
     public static class Defaults {
         public static final boolean ENABLED = true;
@@ -222,14 +216,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     private final boolean enabled;
 
-    private final String nestedTypePathAsString;
-    private final BytesRef nestedTypePathAsBytes;
-
-    private final Query nestedTypeFilter;
-
     private volatile Dynamic dynamic;
-
-    private Boolean includeInAll;
 
     private volatile CopyOnWriteHashMap<String, Mapper> mappers;
 
@@ -237,7 +224,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
             Map<String, Mapper> mappers, Settings settings) {
         super(name);
         assert settings != null;
-        Version indexCreatedVersion = Version.indexCreated(settings);
         if (name.isEmpty()) {
             throw new IllegalArgumentException("name cannot be empty string");
         }
@@ -249,9 +235,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
         } else {
             this.mappers = CopyOnWriteHashMap.copyOf(mappers);
         }
-        this.nestedTypePathAsString = "__" + fullPath;
-        this.nestedTypePathAsBytes = new BytesRef(nestedTypePathAsString);
-        this.nestedTypeFilter = new TermQuery(new Term(TypeFieldMapper.NAME, nestedTypePathAsBytes));
     }
 
     @Override
@@ -294,14 +277,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
         return mappers.get(field);
     }
 
-    public Boolean includeInAll() {
-        return includeInAll;
-    }
-
-    public Query nestedTypeFilter() {
-        return this.nestedTypeFilter;
-    }
-
     protected void putMapper(Mapper mapper) {
         mappers = mappers.copyAndPut(mapper.simpleName(), mapper);
     }
@@ -315,26 +290,8 @@ public class ObjectMapper extends Mapper implements Cloneable {
         return this.fullPath;
     }
 
-    public String nestedTypePathAsString() {
-        return nestedTypePathAsString;
-    }
-
     public final Dynamic dynamic() {
         return dynamic;
-    }
-
-    /**
-     * Returns the parent {@link ObjectMapper} instance of the specified object mapper or <code>null</code> if there
-     * isn't any.
-     */
-    public ObjectMapper getParentObjectMapper(MapperService mapperService) {
-        int indexOfLastDot = fullPath().lastIndexOf('.');
-        if (indexOfLastDot != -1) {
-            String parentNestObjectPath = fullPath().substring(0, indexOfLastDot);
-            return mapperService.getObjectMapper(parentNestObjectPath);
-        } else {
-            return null;
-        }
     }
 
     @Override
@@ -419,9 +376,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
         if (enabled != Defaults.ENABLED) {
             builder.field("enabled", enabled);
-        }
-        if (includeInAll != null) {
-            builder.field("include_in_all", includeInAll);
         }
 
         if (custom != null) {

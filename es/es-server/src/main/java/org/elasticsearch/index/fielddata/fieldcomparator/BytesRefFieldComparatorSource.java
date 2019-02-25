@@ -23,11 +23,9 @@ import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
-import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.SortField;
-import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.AbstractSortedDocValues;
 import org.elasticsearch.index.fielddata.IndexFieldData;
@@ -44,8 +42,8 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
 
     private final IndexFieldData<?> indexFieldData;
 
-    public BytesRefFieldComparatorSource(IndexFieldData<?> indexFieldData, Object missingValue, MultiValueMode sortMode, Nested nested) {
-        super(missingValue, sortMode, nested);
+    public BytesRefFieldComparatorSource(IndexFieldData<?> indexFieldData, Object missingValue, MultiValueMode sortMode) {
+        super(missingValue, sortMode);
         this.indexFieldData = indexFieldData;
     }
 
@@ -85,15 +83,7 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
                 @Override
                 protected SortedDocValues getSortedDocValues(LeafReaderContext context, String field) throws IOException {
                     final SortedSetDocValues values = ((IndexOrdinalsFieldData) indexFieldData).load(context).getOrdinalsValues();
-                    final SortedDocValues selectedValues;
-                    if (nested == null) {
-                        selectedValues = sortMode.select(values);
-                    } else {
-                        final BitSet rootDocs = nested.rootDocs(context);
-                        final DocIdSetIterator innerDocs = nested.innerDocs(context);
-                        final int maxChildren = Integer.MAX_VALUE;
-                        selectedValues = sortMode.select(values, rootDocs, innerDocs, maxChildren);
-                    }
+                    final SortedDocValues selectedValues = sortMode.select(values);
                     if (sortMissingFirst(missingValue) || sortMissingLast(missingValue)) {
                         return selectedValues;
                     } else {
@@ -114,16 +104,7 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
             @Override
             protected BinaryDocValues getBinaryDocValues(LeafReaderContext context, String field) throws IOException {
                 final SortedBinaryDocValues values = getValues(context);
-                final BinaryDocValues selectedValues;
-                if (nested == null) {
-                    selectedValues = sortMode.select(values, missingBytes);
-                } else {
-                    final BitSet rootDocs = nested.rootDocs(context);
-                    final DocIdSetIterator innerDocs = nested.innerDocs(context);
-                    final int maxChildren = Integer.MAX_VALUE;
-                    selectedValues = sortMode.select(values, missingBytes, rootDocs, innerDocs, context.reader().maxDoc(), maxChildren);
-                }
-                return selectedValues;
+                return sortMode.select(values, missingBytes);
             }
 
             @Override
