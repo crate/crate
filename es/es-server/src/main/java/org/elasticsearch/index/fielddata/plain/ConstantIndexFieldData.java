@@ -116,7 +116,7 @@ public class ConstantIndexFieldData extends AbstractIndexOrdinalsFieldData {
                     return docID;
                 }
             };
-            return (SortedSetDocValues) DocValues.singleton(sortedValues);
+            return DocValues.singleton(sortedValues);
         }
 
         @Override
@@ -145,15 +145,13 @@ public class ConstantIndexFieldData extends AbstractIndexOrdinalsFieldData {
     }
 
     @Override
-    public AtomicOrdinalsFieldData loadDirect(LeafReaderContext context)
-            throws Exception {
+    public AtomicOrdinalsFieldData loadDirect(LeafReaderContext context) throws Exception {
         return atomicFieldData;
     }
 
     @Override
-    public SortField sortField(@Nullable Object missingValue, MultiValueMode sortMode, XFieldComparatorSource.Nested nested,
-            boolean reverse) {
-        final XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, missingValue, sortMode, nested);
+    public SortField sortField(@Nullable Object missingValue, MultiValueMode sortMode, boolean reverse) {
+        final XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, missingValue, sortMode);
         return new SortField(getFieldName(), source, reverse);
     }
 

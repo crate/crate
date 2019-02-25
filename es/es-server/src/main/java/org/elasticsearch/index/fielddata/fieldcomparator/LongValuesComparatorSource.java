@@ -21,10 +21,8 @@ package org.elasticsearch.index.fielddata.fieldcomparator;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.SortField;
-import org.apache.lucene.util.BitSet;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
@@ -40,8 +38,8 @@ public class LongValuesComparatorSource extends IndexFieldData.XFieldComparatorS
 
     private final IndexNumericFieldData indexFieldData;
 
-    public LongValuesComparatorSource(IndexNumericFieldData indexFieldData, @Nullable Object missingValue, MultiValueMode sortMode, Nested nested) {
-        super(missingValue, sortMode, nested);
+    public LongValuesComparatorSource(IndexNumericFieldData indexFieldData, @Nullable Object missingValue, MultiValueMode sortMode) {
+        super(missingValue, sortMode);
         this.indexFieldData = indexFieldData;
     }
 
@@ -61,16 +59,7 @@ public class LongValuesComparatorSource extends IndexFieldData.XFieldComparatorS
             @Override
             protected NumericDocValues getNumericDocValues(LeafReaderContext context, String field) throws IOException {
                 final SortedNumericDocValues values = indexFieldData.load(context).getLongValues();
-                final NumericDocValues selectedValues;
-                if (nested == null) {
-                    selectedValues = FieldData.replaceMissing(sortMode.select(values), dMissingValue);
-                } else {
-                    final BitSet rootDocs = nested.rootDocs(context);
-                    final DocIdSetIterator innerDocs = nested.innerDocs(context);
-                    final int maxChildren = Integer.MAX_VALUE;
-                    selectedValues = sortMode.select(values, dMissingValue, rootDocs, innerDocs, context.reader().maxDoc(), maxChildren);
-                }
-                return selectedValues;
+                return FieldData.replaceMissing(sortMode.select(values), dMissingValue);
             }
 
         };

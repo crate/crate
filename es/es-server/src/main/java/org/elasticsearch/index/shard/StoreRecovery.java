@@ -116,7 +116,6 @@ final class StoreRecovery {
             indexShard.mapperService().merge(sourceMetaData, MapperService.MergeReason.MAPPING_RECOVERY, true);
             // now that the mapping is merged we can validate the index sort configuration.
             Sort indexSort = indexShard.getIndexSort();
-            final boolean hasNested = indexShard.mapperService().hasNested();
             final boolean isSplit = sourceMetaData.getNumberOfShards() < indexShard.indexSettings().getNumberOfShards();
             return executeRecovery(indexShard, () -> {
                 logger.debug("starting recovery from local shards {}", shards);
@@ -127,7 +126,7 @@ final class StoreRecovery {
                     final long maxUnsafeAutoIdTimestamp =
                             shards.stream().mapToLong(LocalShardSnapshot::maxUnsafeAutoIdTimestamp).max().getAsLong();
                     addIndices(indexShard.recoveryState().getIndex(), directory, indexSort, sources, maxSeqNo, maxUnsafeAutoIdTimestamp,
-                        indexShard.indexSettings().getIndexMetaData(), indexShard.shardId().id(), isSplit, hasNested);
+                        indexShard.indexSettings().getIndexMetaData(), indexShard.shardId().id(), isSplit);
                     internalRecoverFromStore(indexShard);
                     // just trigger a merge to do housekeeping on the
                     // copied segments - we will also see them in stats etc.
@@ -142,8 +141,7 @@ final class StoreRecovery {
     }
 
     void addIndices(final RecoveryState.Index indexRecoveryStats, final Directory target, final Sort indexSort, final Directory[] sources,
-            final long maxSeqNo, final long maxUnsafeAutoIdTimestamp, IndexMetaData indexMetaData, int shardId, boolean split,
-            boolean hasNested) throws IOException {
+            final long maxSeqNo, final long maxUnsafeAutoIdTimestamp, IndexMetaData indexMetaData, int shardId, boolean split) throws IOException {
 
         // clean target directory (if previous recovery attempt failed) and create a fresh segment file with the proper lucene version
         Lucene.cleanLuceneIndex(target);
@@ -168,7 +166,7 @@ final class StoreRecovery {
         try (IndexWriter writer = new IndexWriter(new StatsDirectoryWrapper(hardLinkOrCopyTarget, indexRecoveryStats), iwc)) {
             writer.addIndexes(sources);
             if (split) {
-                writer.deleteDocuments(new ShardSplittingQuery(indexMetaData, shardId, hasNested));
+                writer.deleteDocuments(new ShardSplittingQuery(indexMetaData, shardId));
             }
             /*
              * We set the maximum sequence number and the local checkpoint on the target to the maximum of the maximum sequence numbers on
