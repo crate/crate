@@ -73,11 +73,6 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     public static final CrateSetting<DataAvailability> GRACEFUL_STOP_MIN_AVAILABILITY_SETTING = CrateSetting.of(new Setting<>(
         "cluster.graceful_stop.min_availability", DataAvailability.PRIMARIES.name(), DataAvailability::of,
         Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.STRING);
-    public static final CrateSetting<Boolean> GRACEFUL_STOP_REALLOCATE_SETTING = CrateSetting.of(
-        Setting.boolSetting("cluster.graceful_stop.reallocate",
-            true,
-            Setting.Property.Dynamic, Setting.Property.NodeScope, Setting.Property.Deprecated),
-        DataTypes.BOOLEAN);
     public static final CrateSetting<Boolean> GRACEFUL_STOP_FORCE_SETTING = CrateSetting.of(Setting.boolSetting(
         "cluster.graceful_stop.force", false, Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.BOOLEAN);
     public static final CrateSetting<TimeValue> GRACEFUL_STOP_TIMEOUT_SETTING = CrateSetting.of(Setting.positiveTimeSetting(

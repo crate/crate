@@ -262,25 +262,6 @@ nodes of the cluster:
 
      This option is ignored if there is only 1 node in a cluster!
 
-.. _cluster.graceful_stop.reallocate:
-
-**cluster.graceful_stop.reallocate**
-  | *Default:*   ``true``
-  | *Runtime:*  ``yes``
-
-  ``true``: The ``graceful stop`` command allows shards to be reallocated
-  before shutting down the node in order to ensure minimum data availability
-  set with ``min_availability``.
-
-  ``false``: This has no effect, meaning that the behaviour is the same as
-  setting this to `true`. For this reason, this setting is deprecated and
-  will be removed in a future release.
-
-  .. WARNING::
-
-     Make sure you have enough nodes and enough disk space for the
-     reallocation.
-
 .. _cluster.graceful_stop.timeout:
 
 **cluster.graceful_stop.timeout**

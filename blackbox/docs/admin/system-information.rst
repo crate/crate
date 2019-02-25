@@ -108,7 +108,6 @@ applied cluster settings.
     | settings['cluster']['graceful_stop']                                              | object       |
     | settings['cluster']['graceful_stop']['force']                                     | boolean      |
     | settings['cluster']['graceful_stop']['min_availability']                          | string       |
-    | settings['cluster']['graceful_stop']['reallocate']                                | boolean      |
     | settings['cluster']['graceful_stop']['timeout']                                   | string       |
     | settings['cluster']['info']                                                       | object       |
     | settings['cluster']['info']['update']                                             | object       |
