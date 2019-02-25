@@ -39,6 +39,40 @@ single quotes, e.g. ``'Jack''s car'``.
    Two adjacent single quotes are **not** equivalent to the double-quote
    character ``"``.
 
+.. _sql_escape_string_literals:
+
+String Literals with C-Style Escapes
+------------------------------------
+
+In addition to the escaped character ``'``, CrateDB supports C-Style escaped
+string sequences. Such a sequence is constructed by prefixing the string
+literal with the letter ``E`` or ``e``, for example, ``e'hello\nWorld'``.
+The following escaped sequences are supported:
+
+==================================================   ================
+Escape Sequence                                       Interpretation
+==================================================   ================
+``\b``                                                backspace
+``\f``                                                form feed
+``\n``                                                newline
+``\r``                                                carriage return
+``\t``                                                tab
+``\o``, ``\oo``, ``\ooo`` (``o`` = [0-7])             octal byte value
+``\xh``, ``xhh`` (``h`` = [0-9,A-F,a-f])              hexadecimal byte value
+``\uxxxx``, ``\Uxxxxxxxx`` (``x`` = [0-9,A-F,a-f])    16 or 32-bit hexadecimal Unicode character value
+==================================================   ================
+
+For instance, the escape string literal ``e'\u0061\x61\141'``
+is equivalent to the ``'aaa'`` string literal::
+
+    cr> select e'\u0061\x61\141' as col1;
+    +------+
+    | col1 |
+    +------+
+    | aaa  |
+    +------+
+    SELECT 1 row in set (... sec)
+
 .. _sql_lexical_keywords_identifiers:
 
 Key Words and Identifiers
@@ -58,25 +92,26 @@ quoted if used as identifiers.
     CURRENT_SCHEMA, CURRENT_TIME, CURRENT_TIMESTAMP, CURRENT_USER
     DEFAULT, DELETE, DENY, DESC
     DESCRIBE, DIRECTORY, DISTINCT, DOUBLE
-    DROP, ELSE, END, ESCAPE
-    EXCEPT, EXISTS, EXTRACT, FALSE
-    FIRST, FLOAT, FOR, FROM
-    FULL, FUNCTION, GRANT, GROUP
-    HAVING, IF, IN, INDEX
-    INNER, INPUT, INSERT, INT
-    INTEGER, INTERSECT, INTO, IP
-    IS, JOIN, LAST, LEFT
-    LIKE, LIMIT, LONG, MATCH
-    NATURAL, NOT, NULL, NULLS
-    OBJECT, OFFSET, ON, OR
-    ORDER, OUTER, PERSISTENT, PRIMARY
-    RECURSIVE, REPLACE, RESET, RETURNS
-    REVOKE, RIGHT, SELECT, SESSION_USER
-    SET, SHORT, SOME, STRATIFY
-    STRING, SUBSTRING, TABLE, THEN
-    TRANSIENT, TRUE, TRY_CAST, UNBOUNDED
-    UNION, UPDATE, USER, USING
-    WHEN, WHERE, WITH,
+    DROP, E, ELSE, END
+    ESCAPE, EXCEPT, EXISTS, EXTRACT
+    FALSE, FIRST, FLOAT, FOR
+    FROM, FULL, FUNCTION, GRANT
+    GROUP, HAVING, IF, IN
+    INDEX, INNER, INPUT, INSERT
+    INT, INTEGER, INTERSECT, INTO
+    IP, IS, JOIN, LAST
+    LEFT, LICENSE, LIKE, LIMIT
+    LONG, MATCH, NATURAL, NOT
+    NULL, NULLS, OBJECT, OFFSET
+    ON, OR, ORDER, OUTER
+    PERSISTENT, PRIMARY, RECURSIVE, REPLACE
+    RESET, RETURNS, REVOKE, RIGHT
+    SELECT, SESSION_USER, SET, SHORT
+    SOME, STRATIFY, STRING, SUBSTRING
+    TABLE, THEN, TRANSIENT, TRUE
+    TRY_CAST, UNBOUNDED, UNION, UPDATE
+    USER, USING, WHEN, WHERE
+    WITH
 
 Tokens such as ``my_table``, ``id``, ``name``, or ``data`` in the example above
 are **identifiers**, which identify names of tables, columns, and other
