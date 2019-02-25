@@ -96,7 +96,6 @@ public final class CrateSettings implements ClusterStateListener {
             // GRACEFUL STOP
             DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP,
             DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING,
-            DecommissioningService.GRACEFUL_STOP_REALLOCATE_SETTING,
             DecommissioningService.GRACEFUL_STOP_TIMEOUT_SETTING,
             DecommissioningService.GRACEFUL_STOP_FORCE_SETTING,
 
