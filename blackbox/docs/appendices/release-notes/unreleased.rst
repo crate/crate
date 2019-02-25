@@ -29,8 +29,8 @@ Unreleased Changes
 .. When resetting this file during a release, leave the headers in place, but
 .. add a single paragraph to each section with the word "None".
 
-.. Always cluster items into bigger topics. Link to the documentation whenever feasible.  
-.. Remember to give the right level of information: Users should understand  
+.. Always cluster items into bigger topics. Link to the documentation whenever feasible.
+.. Remember to give the right level of information: Users should understand
 .. the impact of the change without going into the depth of tech.
 
 .. rubric:: Table of Contents
@@ -40,6 +40,8 @@ Unreleased Changes
 
 Breaking Changes
 ================
+
+- Removed the deprecated setting ``cluster.graceful_stop.reallocate``.
 
 - Removed the deprecated ``ON DUPLICATE KEY`` syntax of :ref:`ref-insert`
   statements.
@@ -71,10 +73,9 @@ Deprecations
   have been deprecated in favour of the new total count and sum of durations
   metrics.
 
-- Marked the
-  :ref:`cluster.graceful_stop.reallocate <cluster.graceful_stop.reallocate>`
-  setting as deprecated. This setting was already being ignored, setting the
-  value to `false` has no effect.
+- Marked the ``cluster.graceful_stop.reallocate`` setting as deprecated.
+  This setting was already being ignored, setting the value to `false` has
+  no effect.
 
 - The node decommission using the ``USR2`` :ref:`cli_signals` has been
   deprecated in favour of the
