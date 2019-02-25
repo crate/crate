@@ -43,7 +43,7 @@ public abstract class AbstractLatLonPointDVIndexFieldData extends DocValuesIndex
     }
 
     @Override
-    public SortField sortField(@Nullable Object missingValue, MultiValueMode sortMode, XFieldComparatorSource.Nested nested, boolean reverse) {
+    public SortField sortField(@Nullable Object missingValue, MultiValueMode sortMode, boolean reverse) {
         throw new IllegalArgumentException("can't sort on geo_point field without using specific sorting feature, like geo_distance");
     }
 

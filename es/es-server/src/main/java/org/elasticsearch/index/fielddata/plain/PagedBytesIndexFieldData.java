@@ -78,8 +78,8 @@ public class PagedBytesIndexFieldData extends AbstractIndexOrdinalsFieldData {
     }
 
     @Override
-    public SortField sortField(@Nullable Object missingValue, MultiValueMode sortMode, XFieldComparatorSource.Nested nested, boolean reverse) {
-        XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, missingValue, sortMode, nested);
+    public SortField sortField(@Nullable Object missingValue, MultiValueMode sortMode, boolean reverse) {
+        XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, missingValue, sortMode);
         return new SortField(getFieldName(), source, reverse);
     }
 

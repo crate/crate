@@ -31,7 +31,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.AtomicOrdinalsFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource.Nested;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.fieldcomparator.BytesRefFieldComparatorSource;
@@ -57,17 +56,8 @@ public class SortedSetDVOrdinalsIndexFieldData extends DocValuesIndexFieldData i
     }
 
     @Override
-    public SortField sortField(@Nullable Object missingValue, MultiValueMode sortMode, Nested nested, boolean reverse) {
-        XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, missingValue, sortMode, nested);
-        /**
-         * Check if we can use a simple {@link SortedSetSortField} compatible with index sorting and
-         * returns a custom sort field otherwise.
-         */
-        if (nested != null ||
-                (sortMode != MultiValueMode.MAX && sortMode != MultiValueMode.MIN) ||
-                (source.sortMissingLast(missingValue) == false && source.sortMissingFirst(missingValue) == false)) {
-            return new SortField(getFieldName(), source, reverse);
-        }
+    public SortField sortField(@Nullable Object missingValue, MultiValueMode sortMode, boolean reverse) {
+        XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, missingValue, sortMode);
         SortField sortField = new SortedSetSortField(fieldName, reverse,
             sortMode == MultiValueMode.MAX ? SortedSetSelector.Type.MAX : SortedSetSelector.Type.MIN);
         sortField.setMissingValue(source.sortMissingLast(missingValue) ^ reverse ?
