@@ -4,7 +4,7 @@
 Use to apply patches from ES upstream with:
 
     git apply --reject \
-        <(curl -L https://github.com/elastic/elasticsearch/pull/<NUMBER>.patch | ./devs/tools/adapt-es-path.py)
+        <(curl -L https://github.com/elastic/elasticsearch/pull/<NUMBER>.diff | ./devs/tools/adapt-es-path.py)
 """
 
 import sys
@@ -12,9 +12,9 @@ import sys
 
 def main():
     for line in sys.stdin:
-        print(
+        sys.stdout.write(
             line
-            .rstrip()
+            .replace('diff --git a/server/', 'diff --git a/es/es-server/')
             .replace('--- a/server/', '--- a/es/es-server/')
             .replace('+++ b/server/', '+++ b/es/es-server/')
         )
