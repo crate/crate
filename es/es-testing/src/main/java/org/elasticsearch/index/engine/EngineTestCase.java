@@ -48,28 +48,21 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.AllocationId;
-import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.codec.CodecService;
-import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
@@ -77,7 +70,6 @@ import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
-import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.mapper.VersionFieldMapper;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
@@ -309,29 +301,7 @@ public abstract class EngineTestCase extends ESTestCase {
         } else {
             document.add(new StoredField(SourceFieldMapper.NAME, ref.bytes, ref.offset, ref.length));
         }
-        return new ParsedDocument(versionField, seqID, id, "test", routing, Arrays.asList(document), source, XContentType.JSON,
-                mappingUpdate);
-    }
-
-    public static CheckedFunction<String, ParsedDocument, IOException> nestedParsedDocFactory() throws Exception {
-        final MapperService mapperService = createMapperService("type");
-        final String nestedMapping = Strings.toString(XContentFactory.jsonBuilder().startObject().startObject("type")
-            .startObject("properties").startObject("nested_field").field("type", "nested").endObject().endObject()
-            .endObject().endObject());
-        final DocumentMapper nestedMapper = mapperService.documentMapperParser().parse("type", new CompressedXContent(nestedMapping));
-        return docId -> {
-            final XContentBuilder source = XContentFactory.jsonBuilder().startObject().field("field", "value");
-            final int nestedValues = between(0, 3);
-            if (nestedValues > 0) {
-                XContentBuilder nestedField = source.startObject("nested_field");
-                for (int i = 0; i < nestedValues; i++) {
-                    nestedField.field("field-" + i, "value-" + i);
-                }
-                source.endObject();
-            }
-            source.endObject();
-            return nestedMapper.parse(SourceToParse.source("test", "type", docId, BytesReference.bytes(source), XContentType.JSON));
-        };
+        return new ParsedDocument(versionField, seqID, id, "test", routing, Arrays.asList(document), source, mappingUpdate);
     }
 
     /**
@@ -353,7 +323,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 seqID.tombstoneField.setLongValue(1);
                 doc.add(seqID.tombstoneField);
                 return new ParsedDocument(versionField, seqID, id, type, null,
-                    Collections.singletonList(doc), new BytesArray("{}"), XContentType.JSON, null);
+                    Collections.singletonList(doc), new BytesArray("{}"), null);
             }
 
             @Override
@@ -370,7 +340,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 BytesRef byteRef = new BytesRef(reason);
                 doc.add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
                 return new ParsedDocument(versionField, seqID, null, null, null,
-                    Collections.singletonList(doc), null, XContentType.JSON, null);
+                    Collections.singletonList(doc), null, null);
             }
         };
     }

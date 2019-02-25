@@ -178,9 +178,6 @@ public class SourceFieldMapper extends MetadataFieldMapper {
 
     private final boolean enabled;
 
-    /** indicates whether the source will always exist and be complete, for use by features like the update API */
-    private final boolean complete;
-
     private final String[] includes;
     private final String[] excludes;
 
@@ -195,11 +192,6 @@ public class SourceFieldMapper extends MetadataFieldMapper {
         this.excludes = excludes;
         final boolean filtered = (includes != null && includes.length > 0) || (excludes != null && excludes.length > 0);
         this.filter = enabled && filtered && fieldType().stored() ? XContentMapValues.filter(includes, excludes) : null;
-        this.complete = enabled && includes == null && excludes == null;
-    }
-
-    public boolean enabled() {
-        return enabled;
     }
 
     public String[] excludes() {
@@ -209,10 +201,6 @@ public class SourceFieldMapper extends MetadataFieldMapper {
 
     public String[] includes() {
         return this.includes != null ? this.includes : Strings.EMPTY_ARRAY;
-    }
-
-    public boolean isComplete() {
-        return complete;
     }
 
     @Override

@@ -521,8 +521,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
                 return;
             }
 
-            context = context.createMultiFieldContext();
-
             context.path().add(mainField.simpleName());
             for (ObjectCursor<FieldMapper> cursor : mappers.values()) {
                 cursor.value.parse(context);

@@ -19,22 +19,19 @@
 
 package org.elasticsearch.index.mapper;
 
-import java.util.Objects;
-
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentType;
 
+import java.util.Objects;
+
 public class SourceToParse {
 
-    public static SourceToParse source(String index, String type, String id, BytesReference source,
-                                       XContentType contentType) {
-        return new SourceToParse(index, type, id, source, contentType);
+    public static SourceToParse source(String type, String id, BytesReference source, XContentType contentType) {
+        return new SourceToParse(type, id, source, contentType);
     }
 
     private final BytesReference source;
-
-    private final String index;
 
     private final String type;
 
@@ -46,8 +43,7 @@ public class SourceToParse {
 
     private XContentType xContentType;
 
-    private SourceToParse(String index, String type, String id, BytesReference source, XContentType xContentType) {
-        this.index = Objects.requireNonNull(index);
+    private SourceToParse(String type, String id, BytesReference source, XContentType xContentType) {
         this.type = Objects.requireNonNull(type);
         this.id = Objects.requireNonNull(id);
         // we always convert back to byte array, since we store it and Field only supports bytes..
@@ -58,10 +54,6 @@ public class SourceToParse {
 
     public BytesReference source() {
         return this.source;
-    }
-
-    public String index() {
-        return this.index;
     }
 
     public String type() {

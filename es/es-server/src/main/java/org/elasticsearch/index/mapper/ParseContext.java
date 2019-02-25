@@ -23,7 +23,6 @@ import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.carrotsearch.hppc.ObjectObjectMap;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.IndexSettings;
@@ -57,13 +56,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
 
         public Document() {
             this("", null);
-        }
-
-        /**
-         * Return the path associated with this document.
-         */
-        public String getPath() {
-            return path;
         }
 
         /**
@@ -156,16 +148,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
             }
             return null;
         }
-
-        public BytesRef getBinaryValue(String name) {
-            for (IndexableField f : fields) {
-                if (f.name().equals(name) && f.binaryValue() != null) {
-                    return f.binaryValue();
-                }
-            }
-            return null;
-        }
-
     }
 
     private static class FilterParseContext extends ParseContext {
@@ -189,11 +171,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
         @Override
         public boolean isWithinCopyTo() {
             return in.isWithinCopyTo();
-        }
-
-        @Override
-        public boolean isWithinMultiFields() {
-            return in.isWithinMultiFields();
         }
 
         @Override
@@ -513,22 +490,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
 
     public abstract DocumentMapperParser docMapperParser();
 
-    /** Return a view of this {@link ParseContext} that changes the return
-     *  value of {@link #getIncludeInAllDefault()}. */
-    public final ParseContext setIncludeInAllDefault(boolean includeInAll) {
-        return new FilterParseContext(this) {
-            @Override
-            public Boolean getIncludeInAllDefault() {
-                return includeInAll;
-            }
-        };
-    }
-
-    /** Whether field values should be added to the _all field by default. */
-    public Boolean getIncludeInAllDefault() {
-        return null;
-    }
-
     /**
      * Return a new context that will be within a copy-to operation.
      */
@@ -543,27 +504,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
 
     public boolean isWithinCopyTo() {
         return false;
-    }
-
-    /**
-     * Return a new context that will be within multi-fields.
-     */
-    public final ParseContext createMultiFieldContext() {
-        return new FilterParseContext(this) {
-            @Override
-            public boolean isWithinMultiFields() {
-                return true;
-            }
-        };
-    }
-
-    /**
-     * Return a new context that will be used within a nested document.
-     */
-    public final ParseContext createNestedContext(String fullPath) {
-        final Document doc = new Document(fullPath, doc());
-        addDoc(doc);
-        return switchDoc(doc);
     }
 
     /**
@@ -588,10 +528,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
                 return path;
             }
         };
-    }
-
-    public boolean isWithinMultiFields() {
-        return false;
     }
 
     public abstract IndexSettings indexSettings();
