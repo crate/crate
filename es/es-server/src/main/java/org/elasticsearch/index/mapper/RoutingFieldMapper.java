@@ -145,10 +145,6 @@ public class RoutingFieldMapper extends MetadataFieldMapper {
         this.required = required;
     }
 
-    public void markAsRequired() {
-        this.required = true;
-    }
-
     public boolean required() {
         return this.required;
     }

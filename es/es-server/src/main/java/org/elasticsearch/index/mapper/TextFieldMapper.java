@@ -585,10 +585,6 @@ public class TextFieldMapper extends FieldMapper {
             this.indexPhrases = indexPhrases;
         }
 
-        public PrefixFieldType getPrefixFieldType() {
-            return this.prefixFieldType;
-        }
-
         @Override
         public String typeName() {
             return CONTENT_TYPE;
@@ -693,10 +689,6 @@ public class TextFieldMapper extends FieldMapper {
     @Override
     protected TextFieldMapper clone() {
         return (TextFieldMapper) super.clone();
-    }
-
-    public int getPositionIncrementGap() {
-        return this.positionIncrementGap;
     }
 
     @Override

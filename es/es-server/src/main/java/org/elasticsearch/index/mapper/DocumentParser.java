@@ -151,7 +151,6 @@ final class DocumentParser {
             source.routing(),
             context.docs(),
             context.sourceToParse().source(),
-            context.sourceToParse().getXContentType(),
             update
         ).parent(source.parent());
     }

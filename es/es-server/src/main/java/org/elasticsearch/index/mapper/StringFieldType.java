@@ -24,17 +24,13 @@ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.FuzzyQuery;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.MultiPhraseQuery;
 import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.RegexpQuery;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermRangeQuery;
-import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.unit.Fuzziness;
@@ -78,28 +74,6 @@ public abstract class StringFieldType extends TermBasedFieldType {
     public Query prefixQuery(String value, MultiTermQuery.RewriteMethod method, QueryShardContext context) {
         failIfNotIndexed();
         PrefixQuery query = new PrefixQuery(new Term(name(), indexedValueForSearch(value)));
-        if (method != null) {
-            query.setRewriteMethod(method);
-        }
-        return query;
-    }
-
-    @Override
-    public Query wildcardQuery(String value, MultiTermQuery.RewriteMethod method, QueryShardContext context) {
-        Query termQuery = termQuery(value, context);
-        if (termQuery instanceof MatchNoDocsQuery || termQuery instanceof MatchAllDocsQuery) {
-            return termQuery;
-        }
-        Term term = MappedFieldType.extractTerm(termQuery);
-
-        return new WildcardQuery(term);
-    }
-
-    @Override
-    public Query regexpQuery(String value, int flags, int maxDeterminizedStates,
-            MultiTermQuery.RewriteMethod method, QueryShardContext context) {
-        failIfNotIndexed();
-        RegexpQuery query = new RegexpQuery(new Term(name(), indexedValueForSearch(value)), flags, maxDeterminizedStates);
         if (method != null) {
             query.setRewriteMethod(method);
         }

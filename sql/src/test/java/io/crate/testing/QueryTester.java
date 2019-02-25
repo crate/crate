@@ -142,7 +142,6 @@ public final class QueryTester implements AutoCloseable {
             );
             BytesReference source = sourceGen.generateSource(new Object[]{value});
             SourceToParse sourceToParse = SourceToParse.source(
-                table.concreteIndices()[0],
                 "default",
                 UUIDs.randomBase64UUID(),
                 source,

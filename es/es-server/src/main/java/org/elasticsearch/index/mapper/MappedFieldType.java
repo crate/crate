@@ -291,18 +291,6 @@ public abstract class MappedFieldType extends FieldType {
         return indexOptions() != IndexOptions.NONE;
     }
 
-    /** Returns true if the field is aggregatable.
-     *
-     */
-    public boolean isAggregatable() {
-        try {
-            fielddataBuilder("");
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
-    }
-
     /** Generates a query that will only match documents that contain the given value.
      *  The default implementation returns a {@link TermQuery} over the value bytes,
      *  boosted by {@link #boost()}.
@@ -346,16 +334,6 @@ public abstract class MappedFieldType extends FieldType {
         throw new QueryShardException(context, "Can only use prefix queries on keyword and text fields - not on [" + name + "] which is of type [" + typeName() + "]");
     }
 
-    public Query wildcardQuery(String value,
-                               @Nullable MultiTermQuery.RewriteMethod method,
-                               QueryShardContext context) {
-        throw new QueryShardException(context, "Can only use wildcard queries on keyword and text fields - not on [" + name + "] which is of type [" + typeName() + "]");
-    }
-
-    public Query regexpQuery(String value, int flags, int maxDeterminizedStates, @Nullable MultiTermQuery.RewriteMethod method, QueryShardContext context) {
-        throw new QueryShardException(context, "Can only use regexp queries on keyword and text fields - not on [" + name + "] which is of type [" + typeName() + "]");
-    }
-
     public Query nullValueQuery() {
         if (nullValue == null) {
             return null;
@@ -371,16 +349,6 @@ public abstract class MappedFieldType extends FieldType {
 
     public Query multiPhraseQuery(String field, TokenStream stream, int slop, boolean enablePositionIncrements) throws IOException {
         throw new IllegalArgumentException("Attempted to build a phrase query with multiple terms against non-text field [" + name + "]");
-    }
-
-    /**
-     * An enum used to describe the relation between the range of terms in a
-     * shard when compared with a query range
-     */
-    public enum Relation {
-        WITHIN,
-        INTERSECTS,
-        DISJOINT;
     }
 
     /** A term query to use when parsing a query string. Can return {@code null}. */

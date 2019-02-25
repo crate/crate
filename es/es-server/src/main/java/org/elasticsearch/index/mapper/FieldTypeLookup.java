@@ -200,18 +200,6 @@ class FieldTypeLookup implements Iterable<MappedFieldType> {
     }
 
     /**
-     * Get the set of types that have a mapping for the given field.
-     * Note: this method is only visible for testing.
-     **/
-    protected Set<String> getTypes(String field) {
-        Set<String> types = fullNameToTypes.get(field);
-        if (types == null) {
-            types = Collections.emptySet();
-        }
-        return types;
-    }
-
-    /**
      * Returns a list of the full names of a simple match regex like pattern against full name and index name.
      */
     public Collection<String> simpleMatchToFullName(String pattern) {

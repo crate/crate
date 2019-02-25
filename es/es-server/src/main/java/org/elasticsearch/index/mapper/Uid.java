@@ -20,14 +20,10 @@
 package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.UnicodeUtil;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collection;
-import java.util.Collections;
 
 public final class Uid {
 
@@ -94,20 +90,6 @@ public final class Uid {
         ref.offset = 0;
         ref.length = ref.bytes.length;
         return ref;
-    }
-
-    public static BytesRef[] createUidsForTypesAndIds(Collection<String> types, Collection<?> ids) {
-        BytesRef[] uids = new BytesRef[types.size() * ids.size()];
-        BytesRefBuilder typeBytes = new BytesRefBuilder();
-        BytesRefBuilder idBytes = new BytesRefBuilder();
-        int index = 0;
-        for (String type : types) {
-            typeBytes.copyChars(type);
-            for (Object id : ids) {
-                uids[index++] = Uid.createUidAsBytes(typeBytes.get(), BytesRefs.toBytesRef(id, idBytes));
-            }
-        }
-        return uids;
     }
 
     public static String createUid(String type, String id) {
