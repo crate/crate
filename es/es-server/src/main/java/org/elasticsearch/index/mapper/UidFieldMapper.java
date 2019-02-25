@@ -57,7 +57,6 @@ public class UidFieldMapper extends MetadataFieldMapper {
         public static final String NAME = UidFieldMapper.NAME;
 
         public static final MappedFieldType FIELD_TYPE = new UidFieldType();
-        public static final MappedFieldType NESTED_FIELD_TYPE;
 
         static {
             FIELD_TYPE.setIndexOptions(IndexOptions.DOCS);
@@ -68,10 +67,6 @@ public class UidFieldMapper extends MetadataFieldMapper {
             FIELD_TYPE.setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
             FIELD_TYPE.setName(NAME);
             FIELD_TYPE.freeze();
-
-            NESTED_FIELD_TYPE = FIELD_TYPE.clone();
-            NESTED_FIELD_TYPE.setStored(false);
-            NESTED_FIELD_TYPE.freeze();
         }
     }
 

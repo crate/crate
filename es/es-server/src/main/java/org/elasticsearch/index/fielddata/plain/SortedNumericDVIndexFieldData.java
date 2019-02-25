@@ -34,7 +34,6 @@ import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.fielddata.AtomicNumericFieldData;
 import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource.Nested;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.NumericDoubleValues;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
@@ -63,32 +62,22 @@ public class SortedNumericDVIndexFieldData extends DocValuesIndexFieldData imple
     }
 
     @Override
-    public SortField sortField(Object missingValue, MultiValueMode sortMode, Nested nested, boolean reverse) {
+    public SortField sortField(Object missingValue, MultiValueMode sortMode, boolean reverse) {
         final XFieldComparatorSource source;
         switch (numericType) {
             case HALF_FLOAT:
             case FLOAT:
-                source = new FloatValuesComparatorSource(this, missingValue, sortMode, nested);
+                source = new FloatValuesComparatorSource(this, missingValue, sortMode);
                 break;
 
             case DOUBLE:
-                source = new DoubleValuesComparatorSource(this, missingValue, sortMode, nested);
+                source = new DoubleValuesComparatorSource(this, missingValue, sortMode);
                 break;
 
             default:
                 assert !numericType.isFloatingPoint();
-                source = new LongValuesComparatorSource(this, missingValue, sortMode, nested);
+                source = new LongValuesComparatorSource(this, missingValue, sortMode);
                 break;
-        }
-
-        /**
-         * Check if we can use a simple {@link SortedNumericSortField} compatible with index sorting and
-         * returns a custom sort field otherwise.
-         */
-        if (nested != null
-                || (sortMode != MultiValueMode.MAX && sortMode != MultiValueMode.MIN)
-                || numericType == NumericType.HALF_FLOAT) {
-            return new SortField(fieldName, source, reverse);
         }
 
         final SortField sortField;

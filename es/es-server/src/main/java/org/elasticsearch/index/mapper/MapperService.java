@@ -45,7 +45,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.IndexSortConfig;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.indices.InvalidTypeNameException;
@@ -120,7 +119,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
     private volatile FieldTypeLookup fieldTypes;
     private volatile Map<String, ObjectMapper> fullPathObjectMappers = emptyMap();
-    private boolean hasNested = false; // updated dynamically to true when a nested object is added
 
     private final DocumentMapperParser documentParser;
 
@@ -156,10 +154,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         } else if (logger.isDebugEnabled()) {
             logger.debug("using dynamic[{}]", dynamic);
         }
-    }
-
-    public boolean hasNested() {
-        return this.hasNested;
     }
 
     /**
@@ -482,7 +476,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             // this check will be skipped.
             checkDepthLimit(fullPathObjectMappers.keySet());
         }
-        checkIndexSortCompatibility(indexSettings.getIndexSortConfig(), hasNested);
 
         for (Map.Entry<String, DocumentMapper> entry : mappers.entrySet()) {
             if (entry.getKey().equals(DEFAULT_MAPPING)) {
@@ -519,7 +512,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         }
         this.mappers = mappers;
         this.fieldTypes = fieldTypes;
-        this.hasNested = hasNested;
         this.fullPathObjectMappers = fullPathObjectMappers;
         this.parentTypes = parentTypes;
 
@@ -588,12 +580,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                 throw new IllegalArgumentException("mapping type [" + newMapper.type() + "] must have routing "
                         + "required for partitioned index [" + indexSettings.getIndex().getName() + "]");
             }
-        }
-    }
-
-    private static void checkIndexSortCompatibility(IndexSortConfig sortConfig, boolean hasNested) {
-        if (sortConfig.hasIndexSort() && hasNested) {
-            throw new IllegalArgumentException("cannot have nested fields when index sort is activated");
         }
     }
 

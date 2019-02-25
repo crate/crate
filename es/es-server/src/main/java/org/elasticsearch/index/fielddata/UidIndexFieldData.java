@@ -24,7 +24,6 @@ import org.apache.lucene.search.SortField;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource.Nested;
 import org.elasticsearch.index.fielddata.fieldcomparator.BytesRefFieldComparatorSource;
 import org.elasticsearch.index.mapper.UidFieldMapper;
 import org.elasticsearch.search.MultiValueMode;
@@ -64,8 +63,8 @@ public final class UidIndexFieldData implements IndexFieldData<AtomicFieldData> 
     }
 
     @Override
-    public SortField sortField(Object missingValue, MultiValueMode sortMode, Nested nested, boolean reverse) {
-        XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, missingValue, sortMode, nested);
+    public SortField sortField(Object missingValue, MultiValueMode sortMode, boolean reverse) {
+        XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, missingValue, sortMode);
         return new SortField(getFieldName(), source, reverse);
     }
 

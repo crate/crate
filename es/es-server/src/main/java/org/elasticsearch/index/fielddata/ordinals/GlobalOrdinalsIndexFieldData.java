@@ -29,7 +29,6 @@ import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.AtomicOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource.Nested;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.plain.AbstractAtomicOrdinalsFieldData;
 import org.elasticsearch.search.MultiValueMode;
@@ -82,7 +81,7 @@ public class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent impleme
     }
 
     @Override
-    public SortField sortField(@Nullable Object missingValue, MultiValueMode sortMode, Nested nested, boolean reverse) {
+    public SortField sortField(@Nullable Object missingValue, MultiValueMode sortMode, boolean reverse) {
         throw new UnsupportedOperationException("no global ordinals sorting yet");
     }
 
