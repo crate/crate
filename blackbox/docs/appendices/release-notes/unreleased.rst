@@ -129,26 +129,3 @@ Changes
 
 Fixes
 =====
-
-- Fixed an issue that would cause the results of a nested loop join statement
-  ordered by fields from a single relation, in the form of
-  ``SELECT t1.x, t2.x FROM t2 INNER JOIN t1 ON t1.x = t2.x ORDER BY t2.y``, to
-  be out of order.
-
-- Fixed an issue that caused the Admin UI monitoring graphs to be cut off.
-
-- Fixed an issue that caused a ``stream has already been operated upon or
-  closed`` exception to be thrown when joining on a right subquery that
-  contained a ``group by`` clause on one number column.
-
-- Fixed an issue that caused ``INSERT INTO`` with a subquery to not insert into
-  partitioned tables where the partitioned by columns had a ``NOT NULL``
-  constraint.
-
-- Fixed a regression that caused inserts which create new dynamic columns to
-  fail if the table was created in an earlier version of CrateDB.
-
-- Fixed an issue that caused inserts into partitioned tables where the
-  partitioned column is generated and based on the child of an object to fail.
-
-- Fixed an issue that caused the Basic Authentication prompt to fail in Safari.
