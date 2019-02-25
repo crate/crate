@@ -20,10 +20,8 @@ package org.elasticsearch.index.fielddata.fieldcomparator;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.SortField;
-import org.apache.lucene.util.BitSet;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
@@ -41,8 +39,8 @@ public class FloatValuesComparatorSource extends IndexFieldData.XFieldComparator
 
     private final IndexNumericFieldData indexFieldData;
 
-    public FloatValuesComparatorSource(IndexNumericFieldData indexFieldData, @Nullable Object missingValue, MultiValueMode sortMode, Nested nested) {
-        super(missingValue, sortMode, nested);
+    public FloatValuesComparatorSource(IndexNumericFieldData indexFieldData, @Nullable Object missingValue, MultiValueMode sortMode) {
+        super(missingValue, sortMode);
         this.indexFieldData = indexFieldData;
     }
 
@@ -62,15 +60,7 @@ public class FloatValuesComparatorSource extends IndexFieldData.XFieldComparator
             @Override
             protected NumericDocValues getNumericDocValues(LeafReaderContext context, String field) throws IOException {
                 final SortedNumericDoubleValues values = indexFieldData.load(context).getDoubleValues();
-                final NumericDoubleValues selectedValues;
-                if (nested == null) {
-                    selectedValues = FieldData.replaceMissing(sortMode.select(values), dMissingValue);
-                } else {
-                    final BitSet rootDocs = nested.rootDocs(context);
-                    final DocIdSetIterator innerDocs = nested.innerDocs(context);
-                    final int maxChildren = Integer.MAX_VALUE;
-                    selectedValues = sortMode.select(values, dMissingValue, rootDocs, innerDocs, context.reader().maxDoc(), maxChildren);
-                }
+                final NumericDoubleValues selectedValues = FieldData.replaceMissing(sortMode.select(values), dMissingValue);
                 return selectedValues.getRawFloatValues();
             }
         };

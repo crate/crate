@@ -34,8 +34,8 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -168,8 +168,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 context.reverseFlag);
         } else {
             return context.context.getFieldData(fieldType)
-                .sortField(SortOrder.missing(context.reverseFlag, context.nullFirst),
-                    sortMode, null, context.reverseFlag);
+                .sortField(SortOrder.missing(context.reverseFlag, context.nullFirst), sortMode, context.reverseFlag);
         }
 
     }

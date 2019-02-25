@@ -23,7 +23,6 @@ import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.search.SortedSetSortField;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.fielddata.IndexFieldData;
@@ -193,7 +192,7 @@ public final class IndexSortConfig {
             if (fieldData == null) {
                 throw new IllegalArgumentException("docvalues not found for index sort field:[" + sortSpec.field + "]");
             }
-            sortFields[i] = fieldData.sortField(sortSpec.missingValue, mode, null, reverse);
+            sortFields[i] = fieldData.sortField(sortSpec.missingValue, mode, reverse);
             validateIndexSortField(sortFields[i]);
         }
         return new Sort(sortFields);

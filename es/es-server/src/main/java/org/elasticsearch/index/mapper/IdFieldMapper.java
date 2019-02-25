@@ -34,7 +34,6 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.AtomicFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource.Nested;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.index.fielddata.fieldcomparator.BytesRefFieldComparatorSource;
@@ -63,7 +62,6 @@ public class IdFieldMapper extends MetadataFieldMapper {
         public static final String NAME = IdFieldMapper.NAME;
 
         public static final MappedFieldType FIELD_TYPE = new IdFieldType();
-        public static final MappedFieldType NESTED_FIELD_TYPE;
 
         static {
             FIELD_TYPE.setTokenized(false);
@@ -74,10 +72,6 @@ public class IdFieldMapper extends MetadataFieldMapper {
             FIELD_TYPE.setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
             FIELD_TYPE.setName(NAME);
             FIELD_TYPE.freeze();
-
-            NESTED_FIELD_TYPE = FIELD_TYPE.clone();
-            NESTED_FIELD_TYPE.setStored(false);
-            NESTED_FIELD_TYPE.freeze();
         }
     }
 
@@ -180,8 +174,8 @@ public class IdFieldMapper extends MetadataFieldMapper {
                         }
 
                         @Override
-                        public SortField sortField(Object missingValue, MultiValueMode sortMode, Nested nested, boolean reverse) {
-                            XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, missingValue, sortMode, nested);
+                        public SortField sortField(Object missingValue, MultiValueMode sortMode, boolean reverse) {
+                            XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, missingValue, sortMode);
                             return new SortField(getFieldName(), source, reverse);
                         }
 
