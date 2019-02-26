@@ -34,7 +34,6 @@ import org.elasticsearch.cluster.NamedDiffable;
 import org.elasticsearch.cluster.NamedDiffableValueSerializer;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.HppcMaps;
@@ -61,7 +60,6 @@ import org.elasticsearch.rest.RestStatus;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -489,92 +487,6 @@ public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, To
 
     public String[] getConcreteAllClosedIndices() {
         return allClosedIndices;
-    }
-
-    /**
-     * Returns indexing routing for the given <code>aliasOrIndex</code>. Resolves routing from the alias metadata used
-     * in the write index.
-     */
-    public String resolveWriteIndexRouting(@Nullable String parent, @Nullable String routing, String aliasOrIndex) {
-        if (aliasOrIndex == null) {
-            return routingOrParent(parent, routing);
-        }
-
-        AliasOrIndex result = getAliasAndIndexLookup().get(aliasOrIndex);
-        if (result == null || result.isAlias() == false) {
-            return routingOrParent(parent, routing);
-        }
-        AliasOrIndex.Alias alias = (AliasOrIndex.Alias) result;
-        IndexMetaData writeIndex = alias.getWriteIndex();
-        if (writeIndex == null) {
-            throw new IllegalArgumentException("alias [" + aliasOrIndex + "] does not have a write index");
-        }
-        AliasMetaData aliasMd = writeIndex.getAliases().get(alias.getAliasName());
-        if (aliasMd.indexRouting() != null) {
-            if (aliasMd.indexRouting().indexOf(',') != -1) {
-                throw new IllegalArgumentException("index/alias [" + aliasOrIndex + "] provided with routing value ["
-                    + aliasMd.indexRouting() + "] that resolved to several routing values, rejecting operation");
-            }
-            if (routing != null) {
-                if (!routing.equals(aliasMd.indexRouting())) {
-                    throw new IllegalArgumentException("Alias [" + aliasOrIndex + "] has index routing associated with it ["
-                        + aliasMd.indexRouting() + "], and was provided with routing value [" + routing + "], rejecting operation");
-                }
-            }
-            // Alias routing overrides the parent routing (if any).
-            return aliasMd.indexRouting();
-        }
-        return routingOrParent(parent, routing);
-    }
-
-    /**
-     * Returns indexing routing for the given index.
-     */
-    // TODO: This can be moved to IndexNameExpressionResolver too, but this means that we will support wildcards and other expressions
-    // in the index,bulk,update and delete apis.
-    public String resolveIndexRouting(@Nullable String parent, @Nullable String routing, String aliasOrIndex) {
-        if (aliasOrIndex == null) {
-            return routingOrParent(parent, routing);
-        }
-
-        AliasOrIndex result = getAliasAndIndexLookup().get(aliasOrIndex);
-        if (result == null || result.isAlias() == false) {
-            return routingOrParent(parent, routing);
-        }
-        AliasOrIndex.Alias alias = (AliasOrIndex.Alias) result;
-        if (result.getIndices().size() > 1) {
-            rejectSingleIndexOperation(aliasOrIndex, result);
-        }
-        AliasMetaData aliasMd = alias.getFirstAliasMetaData();
-        if (aliasMd.indexRouting() != null) {
-            if (aliasMd.indexRouting().indexOf(',') != -1) {
-                throw new IllegalArgumentException("index/alias [" + aliasOrIndex + "] provided with routing value [" + aliasMd.indexRouting() + "] that resolved to several routing values, rejecting operation");
-            }
-            if (routing != null) {
-                if (!routing.equals(aliasMd.indexRouting())) {
-                    throw new IllegalArgumentException("Alias [" + aliasOrIndex + "] has index routing associated with it [" + aliasMd.indexRouting() + "], and was provided with routing value [" + routing + "], rejecting operation");
-                }
-            }
-            // Alias routing overrides the parent routing (if any).
-            return aliasMd.indexRouting();
-        }
-        return routingOrParent(parent, routing);
-    }
-
-    private void rejectSingleIndexOperation(String aliasOrIndex, AliasOrIndex result) {
-        String[] indexNames = new String[result.getIndices().size()];
-        int i = 0;
-        for (IndexMetaData indexMetaData : result.getIndices()) {
-            indexNames[i++] = indexMetaData.getIndex().getName();
-        }
-        throw new IllegalArgumentException("Alias [" + aliasOrIndex + "] has more than one index associated with it [" + Arrays.toString(indexNames) + "], can't execute a single index op");
-    }
-
-    private String routingOrParent(@Nullable String parent, @Nullable String routing) {
-        if (routing == null) {
-            return parent;
-        }
-        return routing;
     }
 
     public boolean hasIndex(String index) {

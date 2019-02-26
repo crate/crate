@@ -67,7 +67,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
 
 public class MapperService extends AbstractIndexComponent implements Closeable {
 
@@ -100,7 +99,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     //TODO this needs to be cleaned up: _timestamp and _ttl are not supported anymore, _field_names, _seq_no, _version and _source are
     //also missing, not sure if on purpose. See IndicesModule#getMetadataMappers
     private static final ObjectHashSet<String> META_FIELDS = ObjectHashSet.from(
-            "_uid", "_id", "_type", "_all", "_parent", "_routing", "_index",
+            "_id", "_type", "_routing", "_index",
             "_size", "_timestamp", "_ttl", IgnoredFieldMapper.NAME
     );
 
@@ -125,8 +124,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     private final MapperAnalyzerWrapper indexAnalyzer;
     private final MapperAnalyzerWrapper searchAnalyzer;
     private final MapperAnalyzerWrapper searchQuoteAnalyzer;
-
-    private volatile Set<String> parentTypes = emptySet();
 
     final MapperRegistry mapperRegistry;
 
@@ -392,7 +389,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                                                                    List<DocumentMapper> documentMappers, MergeReason reason, boolean updateAllTypes) {
         Map<String, ObjectMapper> fullPathObjectMappers = this.fullPathObjectMappers;
         FieldTypeLookup fieldTypes = this.fieldTypes;
-        Set<String> parentTypes = this.parentTypes;
         Map<String, DocumentMapper> mappers = new HashMap<>(this.mappers);
 
         Map<String, DocumentMapper> results = new LinkedHashMap<>(documentMappers.size() + 1);
@@ -407,14 +403,12 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             results.put(DEFAULT_MAPPING, defaultMapper);
         }
 
-        if (indexSettings.isSingleType()) {
-            Set<String> actualTypes = new HashSet<>(mappers.keySet());
-            documentMappers.forEach(mapper -> actualTypes.add(mapper.type()));
-            actualTypes.remove(DEFAULT_MAPPING);
-            if (actualTypes.size() > 1) {
-                throw new IllegalArgumentException(
-                    "Rejecting mapping update to [" + index().getName() + "] as the final mapping would have more than 1 type: " + actualTypes);
-            }
+        Set<String> actualTypes = new HashSet<>(mappers.keySet());
+        documentMappers.forEach(mapper -> actualTypes.add(mapper.type()));
+        actualTypes.remove(DEFAULT_MAPPING);
+        if (actualTypes.size() > 1) {
+            throw new IllegalArgumentException(
+                "Rejecting mapping update to [" + index().getName() + "] as the final mapping would have more than 1 type: " + actualTypes);
         }
 
         for (DocumentMapper mapper : documentMappers) {
@@ -502,9 +496,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         if (fullPathObjectMappers != this.fullPathObjectMappers) {
             fullPathObjectMappers = Collections.unmodifiableMap(fullPathObjectMappers);
         }
-        if (parentTypes != this.parentTypes) {
-            parentTypes = Collections.unmodifiableSet(parentTypes);
-        }
 
         // commit the change
         if (defaultMappingSource != null) {
@@ -513,7 +504,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         this.mappers = mappers;
         this.fieldTypes = fieldTypes;
         this.fullPathObjectMappers = fullPathObjectMappers;
-        this.parentTypes = parentTypes;
 
         assert assertMappersShareSameFieldType();
         assert results.values().stream().allMatch(this::assertSerialization);
@@ -671,10 +661,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         return this.searchQuoteAnalyzer;
     }
 
-    public Set<String> getParentTypes() {
-        return parentTypes;
-    }
-
     @Override
     public void close() throws IOException {
         indexAnalyzers.close();
@@ -717,7 +703,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         if (hasMapping(type) == false) {
             return null;
         }
-        assert indexSettings.isSingleType();
         return new Term(IdFieldMapper.NAME, Uid.encodeId(id));
     }
 }

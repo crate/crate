@@ -419,11 +419,6 @@ public final class IndexSettings {
     public int getNumberOfReplicas() { return settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, null); }
 
     /**
-     * Returns whether the index enforces at most one type.
-     */
-    public boolean isSingleType() { return singleType; }
-
-    /**
      * Returns the node settings. The settings returned from {@link #getSettings()} are a merged version of the
      * index settings and the node settings where node settings are overwritten by index settings.
      */

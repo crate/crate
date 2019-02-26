@@ -1,6 +1,9 @@
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
+sourceCompatibility = "11"
+targetCompatibility = "11"
+
 dependencies {
     compile project(':es:es-core')
     compile project(':es:es-x-content')

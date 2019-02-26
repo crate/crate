@@ -152,7 +152,7 @@ final class DocumentParser {
             context.docs(),
             context.sourceToParse().source(),
             update
-        ).parent(source.parent());
+        );
     }
 
 

@@ -28,13 +28,9 @@ import org.elasticsearch.index.fielddata.IndexNumericFieldData.NumericType;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.UidFieldMapper;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
 import java.util.Set;
-
-import static java.util.Collections.unmodifiableSet;
-import static org.elasticsearch.common.util.set.Sets.newHashSet;
 
 /** {@link IndexFieldData} impl based on Lucene's doc values. Caching is done on the Lucene side. */
 public abstract class DocValuesIndexFieldData {
@@ -65,7 +61,7 @@ public abstract class DocValuesIndexFieldData {
     }
 
     public static class Builder implements IndexFieldData.Builder {
-        private static final Set<String> BINARY_INDEX_FIELD_NAMES = unmodifiableSet(newHashSet(UidFieldMapper.NAME, IdFieldMapper.NAME));
+        private static final Set<String> BINARY_INDEX_FIELD_NAMES = Set.of(IdFieldMapper.NAME);
 
         private NumericType numericType;
 

@@ -21,7 +21,6 @@ package org.elasticsearch.index.mapper;
 
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.index.IndexSettings;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -101,7 +100,6 @@ public final class FieldAliasMapper extends Mapper {
         @Override
         public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext)
             throws MapperParsingException {
-            checkIndexCompatibility(parserContext.mapperService().getIndexSettings(), name);
 
             FieldAliasMapper.Builder builder = new FieldAliasMapper.Builder(name);
             Object pathField = node.remove(Names.PATH);
@@ -110,14 +108,6 @@ public final class FieldAliasMapper extends Mapper {
                 throw new MapperParsingException("The [path] property must be specified for field [" + name + "].");
             }
             return builder.path(path);
-        }
-
-        private static void checkIndexCompatibility(IndexSettings settings, String name) {
-            if (!settings.isSingleType()) {
-                throw new IllegalStateException("Cannot create a field alias [" + name + "] " +
-                    "for index [" + settings.getIndex().getName() + "]. Field aliases can only " +
-                    "be specified on indexes that enforce a single mapping type.");
-            }
         }
     }
 

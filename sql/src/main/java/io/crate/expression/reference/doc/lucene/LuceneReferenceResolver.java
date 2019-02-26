@@ -77,16 +77,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                 throw new UnsupportedFeatureException("_raw expression does not support subscripts: " + column);
 
             case DocSysColumns.Names.UID:
-                if (indexSettings.isSingleType()) {
-                    return new IdCollectorExpression(); // _uid == _id
-                }
-                return new UidCollectorExpression();
-
             case DocSysColumns.Names.ID:
-                if (indexSettings.isSingleType()) {
-                    return new IdCollectorExpression();
-                }
-                return new IdFromUidCollectorExpression();
+                return new IdCollectorExpression();
 
             case DocSysColumns.Names.DOC:
                 return DocCollectorExpression.create(ref);
