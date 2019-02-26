@@ -47,7 +47,6 @@ import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.elasticsearch.index.mapper.TypeFieldMapper;
-import org.elasticsearch.index.mapper.UidFieldMapper;
 import org.elasticsearch.index.mapper.VersionFieldMapper;
 import org.elasticsearch.index.seqno.GlobalCheckpointSyncAction;
 import org.elasticsearch.index.shard.PrimaryReplicaSyncer;
@@ -133,7 +132,6 @@ public class IndicesModule extends AbstractModule {
         builtInMetadataMappers.put(IgnoredFieldMapper.NAME, new IgnoredFieldMapper.TypeParser());
         // UID second so it will be the first (if no ignored fields) stored field to load
         // (so will benefit from "fields: []" early termination
-        builtInMetadataMappers.put(UidFieldMapper.NAME, new UidFieldMapper.TypeParser());
         builtInMetadataMappers.put(IdFieldMapper.NAME, new IdFieldMapper.TypeParser());
         builtInMetadataMappers.put(RoutingFieldMapper.NAME, new RoutingFieldMapper.TypeParser());
         builtInMetadataMappers.put(SourceFieldMapper.NAME, new SourceFieldMapper.TypeParser());

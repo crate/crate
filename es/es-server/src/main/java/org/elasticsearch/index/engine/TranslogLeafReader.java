@@ -40,7 +40,6 @@ import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
-import org.elasticsearch.index.mapper.UidFieldMapper;
 import org.elasticsearch.index.translog.Translog;
 
 import java.io.IOException;
@@ -61,9 +60,6 @@ final class TranslogLeafReader extends LeafReader {
         0, 0, false);
     private static final FieldInfo FAKE_ID_FIELD
         = new FieldInfo(IdFieldMapper.NAME, 3, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
-        0, 0, false);
-    private static final FieldInfo FAKE_UID_FIELD
-        = new FieldInfo(UidFieldMapper.NAME, 4, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
         0, 0, false);
     private final Version indexVersionCreated;
 
@@ -93,11 +89,7 @@ final class TranslogLeafReader extends LeafReader {
 
     @Override
     public SortedDocValues getSortedDocValues(String field) {
-        if (operation.parent() == null) {
-            return null;
-        }
-        assert false : "unexpected field: " + field;
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -173,9 +165,6 @@ final class TranslogLeafReader extends LeafReader {
             byte[] id = new byte[bytesRef.length];
             System.arraycopy(bytesRef.bytes, bytesRef.offset, id, 0, bytesRef.length);
             visitor.stringField(FAKE_ID_FIELD, id);
-        }
-        if (visitor.needsField(FAKE_UID_FIELD) == StoredFieldVisitor.Status.YES) {
-            visitor.stringField(FAKE_UID_FIELD,  Uid.createUid(operation.type(), operation.id()).getBytes(StandardCharsets.UTF_8));
         }
     }
 

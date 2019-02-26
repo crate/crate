@@ -64,15 +64,6 @@ public class SourceToParse {
         return this.id;
     }
 
-    public String parent() {
-        return this.parentId;
-    }
-
-    public SourceToParse parent(String parentId) {
-        this.parentId = parentId;
-        return this;
-    }
-
     public String routing() {
         return this.routing;
     }

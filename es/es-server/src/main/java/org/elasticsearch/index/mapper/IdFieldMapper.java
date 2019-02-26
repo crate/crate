@@ -235,13 +235,8 @@ public class IdFieldMapper extends MetadataFieldMapper {
 
     static MappedFieldType defaultFieldType(IndexSettings indexSettings) {
         MappedFieldType defaultFieldType = Defaults.FIELD_TYPE.clone();
-        if (indexSettings.isSingleType()) {
-            defaultFieldType.setIndexOptions(IndexOptions.DOCS);
-            defaultFieldType.setStored(true);
-        } else {
-            defaultFieldType.setIndexOptions(IndexOptions.NONE);
-            defaultFieldType.setStored(false);
-        }
+        defaultFieldType.setIndexOptions(IndexOptions.DOCS);
+        defaultFieldType.setStored(true);
         return defaultFieldType;
     }
 

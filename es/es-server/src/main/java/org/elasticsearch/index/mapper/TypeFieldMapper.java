@@ -35,11 +35,9 @@ import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.IndexFieldData;
@@ -149,61 +147,46 @@ public class TypeFieldMapper extends MetadataFieldMapper {
 
         @Override
         public Query termsQuery(List<?> values, QueryShardContext context) {
-            if (context.getIndexSettings().isSingleType()) {
-                Collection<String> indexTypes = context.getMapperService().types();
-                if (indexTypes.isEmpty()) {
-                    return new MatchNoDocsQuery("No types");
-                }
-                assert indexTypes.size() == 1;
-                BytesRef indexType = indexedValueForSearch(indexTypes.iterator().next());
-                if (values.stream()
-                        .map(this::indexedValueForSearch)
-                        .anyMatch(indexType::equals)) {
-                    return new MatchAllDocsQuery();
-                } else {
-                    return new MatchNoDocsQuery("Type list does not contain the index type");
-                }
+            Collection<String> indexTypes = context.getMapperService().types();
+            if (indexTypes.isEmpty()) {
+                return new MatchNoDocsQuery("No types");
+            }
+            assert indexTypes.size() == 1;
+            BytesRef indexType = indexedValueForSearch(indexTypes.iterator().next());
+            if (values.stream()
+                    .map(this::indexedValueForSearch)
+                    .anyMatch(indexType::equals)) {
+                return new MatchAllDocsQuery();
             } else {
-                if (indexOptions() == IndexOptions.NONE) {
-                    throw new AssertionError();
-                }
-                final BytesRef[] types = values.stream()
-                        .map(this::indexedValueForSearch)
-                        .toArray(size -> new BytesRef[size]);
-                return new TypesQuery(types);
+                return new MatchNoDocsQuery("Type list does not contain the index type");
             }
         }
 
         @Override
         public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper, QueryShardContext context) {
-            if (context.getIndexSettings().isSingleType() == false) {
-                return new TermRangeQuery(name(), lowerTerm == null ? null : indexedValueForSearch(lowerTerm),
-                        upperTerm == null ? null : indexedValueForSearch(upperTerm), includeLower, includeUpper);
-            } else {
-                // this means the index has a single type and the type field is implicit
-                DEPRECATION_LOGGER.deprecatedAndMaybeLog("range_single_type",
-                        "Running [range] query on [_type] field for an index with a single type. As types are deprecated, this functionality will be removed in future releases.");
-                Collection<String> types = context.getMapperService().types();
-                String type = types.iterator().hasNext() ? types.iterator().next() : null;
-                if (type != null) {
-                    Query result = new MatchAllDocsQuery();
-                    BytesRef typeBytes = new BytesRef(type);
-                    if (lowerTerm != null) {
-                        int comp = indexedValueForSearch(lowerTerm).compareTo(typeBytes);
-                        if (comp > 0 || (comp == 0 && includeLower == false)) {
-                            result = new MatchNoDocsQuery("[_type] was lexicographically smaller than lower bound of range");
-                        }
+            // this means the index has a single type and the type field is implicit
+            DEPRECATION_LOGGER.deprecatedAndMaybeLog("range_single_type",
+                    "Running [range] query on [_type] field for an index with a single type. As types are deprecated, this functionality will be removed in future releases.");
+            Collection<String> types = context.getMapperService().types();
+            String type = types.iterator().hasNext() ? types.iterator().next() : null;
+            if (type != null) {
+                Query result = new MatchAllDocsQuery();
+                BytesRef typeBytes = new BytesRef(type);
+                if (lowerTerm != null) {
+                    int comp = indexedValueForSearch(lowerTerm).compareTo(typeBytes);
+                    if (comp > 0 || (comp == 0 && includeLower == false)) {
+                        result = new MatchNoDocsQuery("[_type] was lexicographically smaller than lower bound of range");
                     }
-                    if (upperTerm != null) {
-                        int comp = indexedValueForSearch(upperTerm).compareTo(typeBytes);
-                        if (comp < 0 || (comp == 0 && includeUpper == false)) {
-                            result = new MatchNoDocsQuery("[_type] was lexicographically greater than upper bound of range");
-                        }
-                    }
-                    return result;
-                } else {
-                    return new MatchNoDocsQuery();
                 }
+                if (upperTerm != null) {
+                    int comp = indexedValueForSearch(upperTerm).compareTo(typeBytes);
+                    if (comp < 0 || (comp == 0 && includeUpper == false)) {
+                        result = new MatchNoDocsQuery("[_type] was lexicographically greater than upper bound of range");
+                    }
+                }
+                return result;
+            } else {
+                return new MatchNoDocsQuery();
             }
         }
     }
@@ -301,13 +284,8 @@ public class TypeFieldMapper extends MetadataFieldMapper {
 
     private static MappedFieldType defaultFieldType(IndexSettings indexSettings) {
         MappedFieldType defaultFieldType = Defaults.FIELD_TYPE.clone();
-        if (indexSettings.isSingleType()) {
-            defaultFieldType.setIndexOptions(IndexOptions.NONE);
-            defaultFieldType.setHasDocValues(false);
-        } else {
-            defaultFieldType.setIndexOptions(IndexOptions.DOCS);
-            defaultFieldType.setHasDocValues(true);
-        }
+        defaultFieldType.setIndexOptions(IndexOptions.NONE);
+        defaultFieldType.setHasDocValues(false);
         return defaultFieldType;
     }
 

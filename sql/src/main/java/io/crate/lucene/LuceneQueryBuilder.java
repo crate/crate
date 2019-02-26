@@ -65,9 +65,9 @@ import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataTypes;
@@ -494,7 +494,7 @@ public class LuceneQueryBuilder {
                 Symbol right = arguments.get(1);
                 if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
                     Reference ref = (Reference) left;
-                    if (ref.column().equals(DocSysColumns.UID) && context.queryShardContext().getIndexSettings().isSingleType()) {
+                    if (ref.column().equals(DocSysColumns.UID)) {
                         return new Function(
                             function.info(),
                             ImmutableList.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID), right)
